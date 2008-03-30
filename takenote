@@ -1,0 +1,445 @@
+#!/usr/bin/env python
+
+# import the wxPython GUI package
+import wx
+import wx.richtext as rt
+
+class NoteSelector (wx.ListCtrl):
+    
+    def __init__(self, parent, id=wx.ID_ANY):
+        wx.ListCtrl.__init__(self, parent, id,
+                             style=wx.LC_REPORT | wx.LC_HRULES)
+                             
+        self.InsertColumn(0, "subject", format=wx.LIST_FORMAT_LEFT, width=-1)
+        self.InsertColumn(1, "date", format=wx.LIST_FORMAT_LEFT, width=-1)
+
+        # dummy notes
+        self.InsertStringItem(0, "note1")
+        self.InsertStringItem(0, "note2")
+        self.InsertStringItem(0, "note3")    
+
+        self.SetStringItem(0, 1, "today", -1)
+        self.SetStringItem(1, 1, "03/29/2008", -1)
+        self.SetStringItem(2, 1, "03/20/2008", -1)
+
+
+class NoteTextEditor (rt.RichTextCtrl):
+    
+    def __init__(self, parent, id=wx.ID_ANY, value=""):
+        rt.RichTextCtrl.__init__(self, parent, id, value=value)
+        
+        # add xml and html saving/loading to editor
+        self.GetBuffer().AddHandler(rt.RichTextXMLHandler())
+        self.GetBuffer().AddHandler(rt.RichTextHTMLHandler())
+        
+
+
+# Create a new frame class, derived from the wxPython Frame.
+class TakeNoteFrame(wx.Frame):
+
+    def __init__(self, parent, id, title):
+        # First, call the base class' __init__ method to create the frame
+        wx.Frame.__init__(self, parent, id, title,
+                          size=(800, 600))
+                
+        # status bar
+        self.statusbar = wx.StatusBar(self, style=wx.ST_SIZEGRIP)
+        self.SetStatusBar(self.statusbar)
+                          
+        # splitters
+        splitter = wx.SplitterWindow(self, style=wx.SP_3D)
+        splitter.SetMinimumPaneSize(20)
+        
+        splitter2 = wx.SplitterWindow(splitter, style=wx.SP_3D)
+        splitter2.SetMinimumPaneSize(20)
+        
+        # treeview
+        self.tree = wx.TreeCtrl(splitter)        
+        root = self.tree.AddRoot("TakeNote")
+        self.tree.AppendItem(root, "section1")
+        self.tree.AppendItem(root, "section2")
+        n = self.tree.AppendItem(root, "section3")
+        self.tree.AppendItem(n, "subsection1")
+        
+        # note selector
+        self.selector = NoteSelector(splitter2, wx.ID_ANY)
+        
+
+        
+        # note editor
+        self.editor = NoteTextEditor(splitter2, value="new note")
+        self.editor.SetFocus()
+        
+        # layout
+        splitter.SplitVertically(self.tree, splitter2, 150)
+        splitter2.SplitHorizontally(self.selector, self.editor, 200)
+    
+    
+        
+        # menu bar
+        self.MakeMenuBar()
+        
+        # toolbar
+        self.MakeToolBar()
+
+            
+
+    def ForwardEvent(self, evt):
+        # The Editor can handle menu and update events for undo,
+        # redo, cut, copy, paste, delete, and select all, so just
+        # forward the event to it.
+        self.editor.ProcessEvent(evt)
+
+
+    def MakeMenuBar(self):
+        def doBind(item, handler, updateUI=None):
+            self.Bind(wx.EVT_MENU, handler, item)
+            if updateUI is not None:
+                self.Bind(wx.EVT_UPDATE_UI, updateUI, item)
+            
+        fileMenu = wx.Menu()
+        doBind(fileMenu.Append(-1, "&Open\tCtrl+O", "Open a file"),
+               self.OnFileOpen)
+        doBind(fileMenu.Append(-1, "&Save\tCtrl+S", "Save a file"),
+               self.OnFileSave)
+        #doBind( fileMenu.Append(-1, "&Save As...\tF12", "Save to a new file"),
+        #        self.OnFileSaveAs )
+        fileMenu.AppendSeparator()
+        #doBind( fileMenu.Append(-1, "&View as HTML", "View HTML"),
+        #        self.OnFileViewHTML)
+        #fileMenu.AppendSeparator()
+        doBind(fileMenu.Append(-1, "E&xit\tCtrl+Q", "Quit this program"),
+               self.OnFileExit)
+        
+        editMenu = wx.Menu()
+        doBind(editMenu.Append(wx.ID_UNDO, "&Undo\tCtrl+Z"),
+               self.ForwardEvent, self.ForwardEvent)
+        doBind(editMenu.Append(wx.ID_REDO, "&Redo\tCtrl+Y"),
+               self.ForwardEvent, self.ForwardEvent )
+        editMenu.AppendSeparator()
+        doBind(editMenu.Append(wx.ID_CUT, "Cu&t\tCtrl+X"),
+               self.ForwardEvent, self.ForwardEvent )
+        doBind(editMenu.Append(wx.ID_COPY, "&Copy\tCtrl+C"),
+               self.ForwardEvent, self.ForwardEvent)
+        doBind(editMenu.Append(wx.ID_PASTE, "&Paste\tCtrl+V"),
+               self.ForwardEvent, self.ForwardEvent)
+        doBind(editMenu.Append(wx.ID_CLEAR, "&Delete\tDel"),
+               self.ForwardEvent, self.ForwardEvent)
+        editMenu.AppendSeparator()
+        doBind(editMenu.Append(wx.ID_SELECTALL, "Select A&ll\tCtrl+A"),
+               self.ForwardEvent, self.ForwardEvent )
+        
+        #doBind( editMenu.AppendSeparator(),  )
+        #doBind( editMenu.Append(-1, "&Find...\tCtrl+F"),  )
+        #doBind( editMenu.Append(-1, "&Replace...\tCtrl+R"),  )
+
+        formatMenu = wx.Menu()
+        doBind(formatMenu.AppendCheckItem(-1, "&Bold\tCtrl+B"),
+               self.OnBold, self.OnUpdateBold)
+        doBind(formatMenu.AppendCheckItem(-1, "&Italic\tCtrl+I"),
+               self.OnItalic, self.OnUpdateItalic)
+        doBind(formatMenu.AppendCheckItem(-1, "&Underline\tCtrl+U"),
+               self.OnUnderline, self.OnUpdateUnderline)
+        formatMenu.AppendSeparator()
+        #doBind( formatMenu.AppendCheckItem(-1, "L&eft Align\tCtrl+L"),
+        #        self.OnAlignLeft, self.OnUpdateAlignLeft)
+        #doBind( formatMenu.AppendCheckItem(-1, "&Center\tCtrl+E"),
+        #        self.OnAlignCenter, self.OnUpdateAlignCenter)
+        #doBind( formatMenu.AppendCheckItem(-1, "&Right Align\tCtrl+R"),
+        #        self.OnAlignRight, self.OnUpdateAlignRight)
+        formatMenu.AppendSeparator()
+        doBind(formatMenu.Append(-1, "Indent &More"), self.OnIndentMore)
+        doBind(formatMenu.Append(-1, "Indent &Less"), self.OnIndentLess)
+        formatMenu.AppendSeparator()
+        #doBind( formatMenu.Append(-1, "Increase Paragraph &Spacing"), self.OnParagraphSpacingMore)
+        #doBind( formatMenu.Append(-1, "Decrease &Paragraph Spacing"), self.OnParagraphSpacingLess)
+        formatMenu.AppendSeparator()
+        #doBind( formatMenu.Append(-1, "Normal Line Spacing"), self.OnLineSpacingSingle)
+        #doBind( formatMenu.Append(-1, "1.5 Line Spacing"), self.OnLineSpacingHalf)
+        #doBind( formatMenu.Append(-1, "Double Line Spacing"), self.OnLineSpacingDouble)
+        formatMenu.AppendSeparator()
+        doBind(formatMenu.Append(-1, "&Font..."), self.OnFont)
+        doBind(formatMenu.Append(-1, "Font Size &Increase\tCtrl++"), self.OnFontSizeInc)
+        doBind(formatMenu.Append(-1, "Font Size &Decrease\tCtrl+-"), self.OnFontSizeDec)
+        
+        mb = wx.MenuBar()
+        mb.Append(fileMenu, "&File")
+        mb.Append(editMenu, "&Edit")
+        mb.Append(formatMenu, "F&ormat")
+        self.SetMenuBar(mb)
+
+
+    def MakeToolBar(self):
+        def doBind(item, handler, updateUI=None):
+            self.Bind(wx.EVT_TOOL, handler, item)
+            if updateUI is not None:
+                self.Bind(wx.EVT_UPDATE_UI, updateUI, item)
+        
+        tbar = self.CreateToolBar()
+        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/open.xpm"),
+                            shortHelpString="Open"), self.OnFileOpen)
+        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/save.xpm"),
+                            shortHelpString="Save"), self.OnFileSave)
+        tbar.AddSeparator()
+        
+        """
+        doBind(tbar.AddTool(wx.ID_CUT, wx.Bitmap("bitmaps/cut.xpm"), isToggle=True,
+                            shortHelpString="Cut"), 
+                            self.ForwardEvent, self.ForwardEvent)
+        doBind(tbar.AddTool(wx.ID_COPY, wx.Bitmap("bitmaps/copy.xpm"), isToggle=True,
+                            shortHelpString="Copy"), 
+                            self.ForwardEvent, self.ForwardEvent)
+        doBind(tbar.AddTool(wx.ID_PASTE, wx.Bitmap("bitmaps/paste.xpm"), isToggle=True,
+                            shortHelpString="Paste"), 
+                            self.ForwardEvent, self.ForwardEvent)
+        tbar.AddSeparator()
+        """
+        
+        doBind(tbar.AddTool(wx.ID_UNDO, wx.Bitmap("bitmaps/undo.xpm"),
+                            shortHelpString="Undo"), self.ForwardEvent, self.ForwardEvent)
+        doBind(tbar.AddTool(wx.ID_REDO, wx.Bitmap("bitmaps/redo.xpm"),
+                            shortHelpString="Redo"), self.ForwardEvent, self.ForwardEvent)
+        
+        tbar.AddSeparator()
+        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/bold.xpm"), isToggle=True,
+                            shortHelpString="Bold"), self.OnBold, self.OnUpdateBold)
+        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/italic.xpm"), isToggle=True,
+                            shortHelpString="Italic"), self.OnItalic, self.OnUpdateItalic)
+        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/underline.xpm"), isToggle=True,
+                            shortHelpString="Underline"), self.OnUnderline, self.OnUpdateUnderline)
+
+        tbar.AddSeparator()
+        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/alignleft.xpm"), 
+                            isToggle=True,
+                            shortHelpString="Align Left"), 
+               self.OnAlignLeft, self.OnUpdateAlignLeft)
+        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/aligncenter.xpm"), 
+                            isToggle=True,
+                            shortHelpString="Center"), 
+               self.OnAlignCenter, self.OnUpdateAlignCenter)
+        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/alignright.xpm"), 
+                            isToggle=True,
+                            shortHelpString="Align Right"), 
+               self.OnAlignRight, self.OnUpdateAlignRight)
+        tbar.AddSeparator()
+        
+
+        doBind( tbar.AddTool(-1, wx.Bitmap("bitmaps/indentless.xpm"),
+                            shortHelpString="Indent Less"), self.OnIndentLess)
+        doBind( tbar.AddTool(-1, wx.Bitmap("bitmaps/indentmore.xpm"),
+                            shortHelpString="Indent More"), self.OnIndentMore)
+        tbar.AddSeparator()
+        doBind( tbar.AddTool(-1, wx.Bitmap("bitmaps/font.xpm"),
+                            shortHelpString="Font"), self.OnFont)
+        doBind( tbar.AddTool(-1, wx.Bitmap("bitmaps/font-inc.xpm"),
+                            shortHelpString="Font Size Increase"), self.OnFontSizeInc)                            
+        doBind( tbar.AddTool(-1, wx.Bitmap("bitmaps/font-dec.xpm"),
+                            shortHelpString="Font Size Decrease"), self.OnFontSizeDec)
+        doBind( tbar.AddTool(-1, wx.Bitmap("bitmaps/color.xpm"),
+                            shortHelpString="Font Colour"), self.OnColour)
+        tbar.Realize()
+    
+    
+    #=============================================================================
+    # edit menu
+    
+    #def OnUndo(self, event):
+    #    self.editor.Undo()
+    
+    #def OnRedo(self, event):
+    #    self.editor.Redo()
+    
+    #def OnSelectAll(self, event):
+    #    self.editor.SelectAll()
+    
+    #=============================================================================
+    # format menu
+    
+    def OnBold(self, event):
+        self.editor.ApplyBoldToSelection()
+
+    def OnItalic(self, event):
+        self.editor.ApplyItalicToSelection()
+    
+    def OnUnderline(self, event):
+        self.editor.ApplyUnderlineToSelection()  
+
+
+    def OnUpdateBold(self, event):
+        event.Check(self.editor.IsSelectionBold())        
+
+    def OnUpdateItalic(self, event):
+        event.Check(self.editor.IsSelectionItalics())
+
+    def OnUpdateUnderline(self, event):
+        event.Check(self.editor.IsSelectionUnderlined())
+       
+    
+    def OnAlignLeft(self, evt):
+        self.editor.ApplyAlignmentToSelection(rt.TEXT_ALIGNMENT_LEFT)
+        
+    def OnAlignRight(self, evt):
+        self.editor.ApplyAlignmentToSelection(rt.TEXT_ALIGNMENT_RIGHT)
+        
+    def OnAlignCenter(self, evt):
+        self.editor.ApplyAlignmentToSelection(rt.TEXT_ALIGNMENT_CENTRE)
+
+
+    def OnUpdateAlignLeft(self, evt):
+        evt.Check(self.editor.IsSelectionAligned(rt.TEXT_ALIGNMENT_LEFT))
+        
+    def OnUpdateAlignCenter(self, evt):
+        evt.Check(self.editor.IsSelectionAligned(rt.TEXT_ALIGNMENT_CENTRE))
+        
+    def OnUpdateAlignRight(self, evt):
+        evt.Check(self.editor.IsSelectionAligned(rt.TEXT_ALIGNMENT_RIGHT))
+
+
+    def OnIndentMore(self, evt):
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
+        ip = self.editor.GetInsertionPoint()
+        if self.editor.GetStyle(ip, attr):
+            r = rt.RichTextRange(ip, ip)
+            if self.editor.HasSelection():
+                r = self.editor.GetSelectionRange()
+
+            attr.SetLeftIndent(attr.GetLeftIndent() + 100)
+            attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
+            self.editor.SetStyle(r, attr)
+       
+        
+    def OnIndentLess(self, evt):
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
+        ip = self.editor.GetInsertionPoint()
+        if self.editor.GetStyle(ip, attr):
+            r = rt.RichTextRange(ip, ip)
+            if self.editor.HasSelection():
+                r = self.editor.GetSelectionRange()
+
+        if attr.GetLeftIndent() >= 100:
+            attr.SetLeftIndent(attr.GetLeftIndent() - 100)
+            attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
+            self.editor.SetStyle(r, attr)
+    
+    def OnFont(self, evt):
+        if not self.editor.HasSelection():
+            return
+
+        r = self.editor.GetSelectionRange()
+        fontData = wx.FontData()
+        fontData.EnableEffects(False)
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_FONT)
+        if self.editor.GetStyle(self.editor.GetInsertionPoint(), attr):
+            fontData.SetInitialFont(attr.GetFont())
+
+        dlg = wx.FontDialog(self, fontData)
+        if dlg.ShowModal() == wx.ID_OK:
+            fontData = dlg.GetFontData()
+            font = fontData.GetChosenFont()
+            if font:
+                attr.SetFlags(rt.TEXT_ATTR_FONT)
+                attr.SetFont(font)
+                self.editor.SetStyle(r, attr)
+        dlg.Destroy()
+    
+    
+    def OnFontSizeInc(self, evt):
+        ip = self.editor.GetInsertionPoint()
+    
+        if self.editor.HasSelection():
+            r = self.editor.GetSelectionRange()
+        else:
+            r = rt.RichTextRange(ip, ip)
+        
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_FONT)
+        if self.editor.GetStyle(ip, attr):
+            font = attr.GetFont()
+            font.SetPointSize(font.GetPointSize() + 2)
+            attr.SetFont(font)
+            self.editor.SetStyle(r, attr)
+
+    
+    
+    def OnFontSizeDec(self, evt):
+        ip = self.editor.GetInsertionPoint()
+        
+        if self.editor.HasSelection():
+            r = self.editor.GetSelectionRange()
+        else:
+            r = rt.RichTextRange(ip, ip)
+        
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_FONT)
+        if self.editor.GetStyle(ip, attr):
+            font = attr.GetFont()
+            font.SetPointSize(font.GetPointSize() - 2)
+            attr.SetFont(font)
+            self.editor.SetStyle(r, attr)
+        
+
+    def OnColour(self, evt):
+        colourData = wx.ColourData()
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_TEXT_COLOUR)
+        if self.editor.GetStyle(self.editor.GetInsertionPoint(), attr):
+            colourData.SetColour(attr.GetTextColour())
+
+        dlg = wx.ColourDialog(self, colourData)
+        if dlg.ShowModal() == wx.ID_OK:
+            colourData = dlg.GetColourData()
+            colour = colourData.GetColour()
+            if colour:
+                if not self.editor.HasSelection():
+                    self.editor.BeginTextColour(colour)
+                else:
+                    r = self.editor.GetSelectionRange()
+                    attr.SetFlags(rt.TEXT_ATTR_TEXT_COLOUR)
+                    attr.SetTextColour(colour)
+                    self.editor.SetStyle(r, attr)
+        dlg.Destroy()
+    
+    
+    #=============================================================================
+    # file menu
+    
+    def OnFileOpen(self, event):
+        self.editor.LoadFile("note.xml")
+    
+    def OnFileSave(self, event):
+        self.editor.SaveFile("note.xml")#, type=wx.richtext.RICHTEXT_TYPE_ANY)
+        
+    def OnFileExit(self, event):
+        self.Close()
+
+
+
+
+# Every wxWidgets application must have a class derived from wx.App
+class TakeNote(wx.App):
+
+    # wxWindows calls this method to initialize the application
+    def OnInit(self):
+
+        # Create an instance of our customized Frame class
+        frame = TakeNoteFrame(None, -1, "TakeNote")
+        frame.Show(True)
+
+        # Tell wxWindows that this is our main window
+        self.SetTopWindow(frame)
+
+        # Return a success flag
+        return True
+
+
+# start app
+app = TakeNote(0)
+app.MainLoop()
+
+
+
+
+

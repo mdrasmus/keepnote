@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<richtext version="1.0.0.0" xmlns="http://www.wxwidgets.org">
+  <paragraphlayout textcolor="#000000" fontsize="10" fontstyle="90" fontweight="90" fontunderlined="0" fontface="Sans" texteffects="0" texteffectflags="5" alignment="1" parspacingafter="10" parspacingbefore="0" linespacing="10">
+    <paragraph textcolor="#000000" fontsize="22" fontstyle="90" fontweight="92" fontunderlined="0" fontface="Sans" texteffects="0" texteffectflags="5" alignment="2" parspacingafter="10" parspacingbefore="0" linespacing="10">
+      <text textcolor="#FF0000" fontsize="22" fontstyle="90" fontweight="92" fontunderlined="1" fontface="Sans" texteffects="0" texteffectflags="5">my new title</text>
+    </paragraph>
+    <paragraph>
+      <text>* new note</text>
+    </paragraph>
+    <paragraph>
+    </paragraph>
+    <paragraph>
+      <text>* shdaksfj</text>
+    </paragraph>
+    <paragraph>
+    </paragraph>
+    <paragraph>
+      <text>* asdfklk</text>
+    </paragraph>
+    <paragraph>
+    </paragraph>
+    <paragraph>
+    </paragraph>
+  </paragraphlayout>
+</richtext>
