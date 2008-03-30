@@ -1,15 +1,21 @@
 #!/usr/bin/env python
 
+import os, tempfile
+
+
 # import the wxPython GUI package
 import wx
 import wx.richtext as rt
+
+
+
 
 class NoteSelector (wx.ListCtrl):
     
     def __init__(self, parent, id=wx.ID_ANY):
         wx.ListCtrl.__init__(self, parent, id,
                              style=wx.LC_REPORT | wx.LC_HRULES)
-                             
+        
         self.InsertColumn(0, "subject", format=wx.LIST_FORMAT_LEFT, width=-1)
         self.InsertColumn(1, "date", format=wx.LIST_FORMAT_LEFT, width=-1)
 
@@ -21,6 +27,8 @@ class NoteSelector (wx.ListCtrl):
         self.SetStringItem(0, 1, "today", -1)
         self.SetStringItem(1, 1, "03/29/2008", -1)
         self.SetStringItem(2, 1, "03/20/2008", -1)
+
+
 
 
 class NoteTextEditor (rt.RichTextCtrl):
@@ -69,6 +77,8 @@ class TakeNoteFrame(wx.Frame):
         # note editor
         self.editor = NoteTextEditor(splitter2, value="new note")
         self.editor.SetFocus()
+        
+        self.editor.AddImage(wx.Bitmap("bitmaps/zebra.xpm").ConvertToImage())
         
         # layout
         splitter.SplitVertically(self.tree, splitter2, 150)
@@ -123,11 +133,16 @@ class TakeNoteFrame(wx.Frame):
                self.ForwardEvent, self.ForwardEvent)
         doBind(editMenu.Append(wx.ID_PASTE, "&Paste\tCtrl+V"),
                self.ForwardEvent, self.ForwardEvent)
-        doBind(editMenu.Append(wx.ID_CLEAR, "&Delete\tDel"),
+        doBind(editMenu.Append(wx.ID_CLEAR, "&Delete"),
                self.ForwardEvent, self.ForwardEvent)
         editMenu.AppendSeparator()
+        
         doBind(editMenu.Append(wx.ID_SELECTALL, "Select A&ll\tCtrl+A"),
-               self.ForwardEvent, self.ForwardEvent )
+               self.ForwardEvent, self.ForwardEvent)
+        editMenu.AppendSeparator()
+        
+        doBind(editMenu.Append(wx.ID_ANY, "Insert &Image\tCtrl+M"), self.OnInsertImage)
+        doBind(editMenu.Append(wx.ID_ANY, "Insert &Screenshot\tCtrl+Ins"), self.OnInsertScreenshot)
         
         #doBind( editMenu.AppendSeparator(),  )
         #doBind( editMenu.Append(-1, "&Find...\tCtrl+F"),  )
@@ -141,13 +156,15 @@ class TakeNoteFrame(wx.Frame):
         doBind(formatMenu.AppendCheckItem(-1, "&Underline\tCtrl+U"),
                self.OnUnderline, self.OnUpdateUnderline)
         formatMenu.AppendSeparator()
-        #doBind( formatMenu.AppendCheckItem(-1, "L&eft Align\tCtrl+L"),
-        #        self.OnAlignLeft, self.OnUpdateAlignLeft)
-        #doBind( formatMenu.AppendCheckItem(-1, "&Center\tCtrl+E"),
-        #        self.OnAlignCenter, self.OnUpdateAlignCenter)
-        #doBind( formatMenu.AppendCheckItem(-1, "&Right Align\tCtrl+R"),
-        #        self.OnAlignRight, self.OnUpdateAlignRight)
+        
+        doBind( formatMenu.AppendCheckItem(-1, "L&eft Align\tCtrl+L"),
+                self.OnAlignLeft, self.OnUpdateAlignLeft)
+        doBind( formatMenu.AppendCheckItem(-1, "&Center\tCtrl+E"),
+                self.OnAlignCenter, self.OnUpdateAlignCenter)
+        doBind( formatMenu.AppendCheckItem(-1, "&Right Align\tCtrl+R"),
+                self.OnAlignRight, self.OnUpdateAlignRight)
         formatMenu.AppendSeparator()
+        
         doBind(formatMenu.Append(-1, "Indent &More"), self.OnIndentMore)
         doBind(formatMenu.Append(-1, "Indent &Less"), self.OnIndentLess)
         formatMenu.AppendSeparator()
@@ -224,33 +241,59 @@ class TakeNoteFrame(wx.Frame):
         tbar.AddSeparator()
         
 
-        doBind( tbar.AddTool(-1, wx.Bitmap("bitmaps/indentless.xpm"),
+        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/indentless.xpm"),
                             shortHelpString="Indent Less"), self.OnIndentLess)
-        doBind( tbar.AddTool(-1, wx.Bitmap("bitmaps/indentmore.xpm"),
+        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/indentmore.xpm"),
                             shortHelpString="Indent More"), self.OnIndentMore)
         tbar.AddSeparator()
-        doBind( tbar.AddTool(-1, wx.Bitmap("bitmaps/font.xpm"),
+        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/font.xpm"),
                             shortHelpString="Font"), self.OnFont)
-        doBind( tbar.AddTool(-1, wx.Bitmap("bitmaps/font-inc.xpm"),
+        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/font-inc.xpm"),
                             shortHelpString="Font Size Increase"), self.OnFontSizeInc)                            
-        doBind( tbar.AddTool(-1, wx.Bitmap("bitmaps/font-dec.xpm"),
+        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/font-dec.xpm"),
                             shortHelpString="Font Size Decrease"), self.OnFontSizeDec)
-        doBind( tbar.AddTool(-1, wx.Bitmap("bitmaps/color.xpm"),
+        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/color.xpm"),
                             shortHelpString="Font Colour"), self.OnColour)
+        
+        self.fontsize = wx.SpinCtrl(tbar, -1, 
+                               style=wx.SP_ARROW_KEYS, 
+                               min=1, max=1000, 
+                               initial=12,
+                               size=(50, -1))
+        self.Bind(wx.EVT_SPINCTRL, self.OnFontSizeSpinner)
+        self.Bind(wx.EVT_UPDATE_UI, self.OnUpdateFontSizeSpinner, self.fontsize)
+        tbar.AddControl(self.fontsize)
+        
         tbar.Realize()
     
     
     #=============================================================================
     # edit menu
     
-    #def OnUndo(self, event):
-    #    self.editor.Undo()
+    def OnInsertImage(self, event):
+        dlg = wx.FileDialog(self, "Choose a filename",
+                            #wildcard="*.xpm|*.gif|*.jpg|*.png",
+                            style=wx.OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            path = dlg.GetPath()
+            if path:
+                img = wx.Image(path)
+                if img.IsOk():
+                    self.editor.WriteImage(img)
+        dlg.Destroy()
     
-    #def OnRedo(self, event):
-    #    self.editor.Redo()
     
-    #def OnSelectAll(self, event):
-    #    self.editor.SelectAll()
+    def OnInsertScreenshot(self, event):
+        f, imgfile = tempfile.mkstemp(".png", "takenote")
+        os.close(f)
+    
+        os.system("import %s" % imgfile)
+        if os.path.exists(imgfile):
+            img = wx.Image(imgfile)
+            if img.IsOk():
+                self.editor.WriteImage(img)
+            os.remove(imgfile)
+        
     
     #=============================================================================
     # format menu
@@ -358,9 +401,16 @@ class TakeNoteFrame(wx.Frame):
         attr.SetFlags(rt.TEXT_ATTR_FONT)
         if self.editor.GetStyle(ip, attr):
             font = attr.GetFont()
-            font.SetPointSize(font.GetPointSize() + 2)
+            size = font.GetPointSize()
+            if size < 8:
+                font.SetPointSize(size + 1)
+            else:
+                font.SetPointSize(size + 2)
+                
             attr.SetFont(font)
-            self.editor.SetStyle(r, attr)
+            self.editor.SetStyleEx(r, attr, 
+                rt.RICHTEXT_SETSTYLE_CHARACTERS_ONLY | 
+                rt.RICHTEXT_SETSTYLE_WITH_UNDO)
 
     
     
@@ -376,11 +426,49 @@ class TakeNoteFrame(wx.Frame):
         attr.SetFlags(rt.TEXT_ATTR_FONT)
         if self.editor.GetStyle(ip, attr):
             font = attr.GetFont()
-            font.SetPointSize(font.GetPointSize() - 2)
+            size = font.GetPointSize()
+            if size <= 1:
+                return
+            if size <= 8:
+                font.SetPointSize(size - 1)
+            else:
+                font.SetPointSize(size - 2)
             attr.SetFont(font)
-            self.editor.SetStyle(r, attr)
+            self.editor.SetStyleEx(r, attr, 
+                rt.RICHTEXT_SETSTYLE_CHARACTERS_ONLY | 
+                rt.RICHTEXT_SETSTYLE_WITH_UNDO)
+    
+    
+    def OnFontSizeSpinner(self, evt):
+        size = self.fontsize.GetValue()
         
-
+        ip = self.editor.GetInsertionPoint()
+        
+        if self.editor.HasSelection():
+            r = self.editor.GetSelectionRange()
+        else:
+            r = rt.RichTextRange(ip, ip)
+        
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_FONT)
+        if self.editor.GetStyle(ip, attr):
+            font = attr.GetFont()
+            font.SetPointSize(size)
+            attr.SetFont(font)
+            self.editor.SetStyleEx(r, attr,
+                rt.RICHTEXT_SETSTYLE_CHARACTERS_ONLY | 
+                rt.RICHTEXT_SETSTYLE_WITH_UNDO)
+    
+    
+    def OnUpdateFontSizeSpinner(self, evt):
+        ip = self.editor.GetInsertionPoint()
+        
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_FONT)
+        if self.editor.GetStyle(ip, attr):
+            self.fontsize.SetValue(attr.GetFont().GetPointSize())
+    
+    
     def OnColour(self, evt):
         colourData = wx.ColourData()
         attr = rt.TextAttrEx()
@@ -423,6 +511,13 @@ class TakeNote(wx.App):
 
     # wxWindows calls this method to initialize the application
     def OnInit(self):
+
+        # add image handlers
+        #wx.Image_AddHandler(wx.PNGHandler)
+        #wx.Image_AddHandler(wx.JPEGHandler)
+        #wx.Image_AddHandler(wx.GIFHandler)
+        
+        wx.InitAllImageHandlers()
 
         # Create an instance of our customized Frame class
         frame = TakeNoteFrame(None, -1, "TakeNote")
