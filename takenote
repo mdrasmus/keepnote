@@ -40,16 +40,211 @@ class NoteTextEditor (rt.RichTextCtrl):
         self.GetBuffer().AddHandler(rt.RichTextXMLHandler())
         self.GetBuffer().AddHandler(rt.RichTextHTMLHandler())
         
+        
+        self.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
+        
+        self.Bind(wx.EVT_FIND, self.OnFind)
+        self.Bind(wx.EVT_FIND_NEXT, self.OnFindNext)
+        self.findline = 0
+        self.findpos = 0
+        
+        #EVT_FIND_REPLACE(id, func) 	Replace button was pressed in the dialog.
+        #EVT_FIND_REPLACE_ALL(id, func)
+    
+    
+    def OnFind(self, event):
+        self.findline = 0
+        self.findpos = 0
+        
+        self.OnFindNext(event)
+    
+    
+    def OnFindNext(self, event):
+        findstr = event.GetFindString()
+        
+        for i in xrange(self.findline, self.GetNumberOfLines()):
+            if i > self.findline:
+                self.findpos = 0
+            pos = self.GetLineText(i).find(findstr, self.findpos)
+            
+            if pos != -1:
+                self.MoveHome()
+                self.MoveDown(i)
+                ip = self.GetInsertionPoint()
+                
+                self.SetSelection(ip + pos, ip + pos + len(findstr))
+            
+                self.findline = i
+                self.findpos = pos + 1
+                return
+        
+        # start search from beginning
+        self.findline = 0
+        self.SelectNone()
+                
+    
+    
+    def OnKeyDown(self, event):
+        
+        # capture tab key presses at start of line
+        if event.m_keyCode == wx.WXK_TAB:
+            
+            if not event.ControlDown():           
+                if event.ShiftDown():
+                    self.IndentLess()
+                else:
+                    self.IndentMore()
+                return
+        
+        # let normal processing of this event occur
+        event.Skip()
 
+    
+    def StartList(self):
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
+        ip = self.GetInsertionPoint()
+        if self.GetStyle(ip, attr):
+            r = rt.RichTextRange(ip, ip)
+            if self.HasSelection():
+                r = self.GetSelectionRange()
+            
+            indent = attr.GetLeftIndent() + 100
+            
+            attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
+                
+            self.BeginSymbolBullet('*', indent, 60)
+            #self.Newline()
+            #self.EndSymbolBullet()
+    
+
+    def IndentMore(self):
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT | 
+                      rt.TEXT_ATTR_BULLET_STYLE |
+                      rt.TEXT_ATTR_BULLET_NAME)
+        ip = self.GetInsertionPoint()
+        if self.GetStyle(ip, attr):
+            if self.HasSelection():
+                r = self.GetSelectionRange()
+            else:
+                r = rt.RichTextRange(ip, ip+1)
+
+            attr.SetLeftIndent(attr.GetLeftIndent() + 100, 60)
+            attr.SetBulletStyle(rt.TEXT_ATTR_BULLET_STYLE_STANDARD)
+            attr.SetBulletName("standard/circle")
+            
+            #attr.SetLeftSubIndent(60)
+            #attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
+            self.SetStyle(r, attr)
+       
+        
+    def IndentLess(self):
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
+        ip = self.GetInsertionPoint()
+        if self.GetStyle(ip, attr):
+            if self.HasSelection():
+                r = self.GetSelectionRange()
+            else:
+                r = rt.RichTextRange(ip, ip+1)
+
+        indent = attr.GetLeftIndent()
+        if indent >= 100:
+            
+            if indent == 100:
+                attr.SetBulletStyle(rt.TEXT_ATTR_BULLET_STYLE_NONE)
+                attr.SetFlags(rt.TEXT_ATTR_BULLET_STYLE |
+                              rt.TEXT_ATTR_LEFT_INDENT)
+            else:
+                attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
+                            
+                                    
+            attr.SetLeftIndent(indent - 100, 60)
+
+            self.SetStyle(r, attr)
+    
+    def OnInsertImage(self, event):
+        dlg = wx.FileDialog(self, "Choose a filename",
+                            #wildcard="*.xpm|*.gif|*.jpg|*.png",
+                            style=wx.OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            path = dlg.GetPath()
+            if path:
+                img = wx.Image(path)
+                if img.IsOk():
+                    self.WriteImage(img)
+        dlg.Destroy()
+    
+    
+    def OnInsertScreenshot(self, event):
+        f, imgfile = tempfile.mkstemp(".png", "takenote")
+        os.close(f)
+    
+        os.system("import %s" % imgfile)
+        if os.path.exists(imgfile):
+            img = wx.Image(imgfile)
+            if img.IsOk():
+                self.WriteImage(img)
+            os.remove(imgfile)
+
+        
+
+class NoteTreeViewer (wx.TreeCtrl):
+    
+    def __init__(self, parent, id=-1, rootdir=None,
+                 onViewBook=None):
+        wx.TreeCtrl.__init__(self, parent, id)
+        self.onViewBook = onViewBook
+        
+        self.Bind(wx.EVT_TREE_ITEM_EXPANDING, self.OnExpanding)
+        self.Bind(wx.EVT_TREE_SEL_CHANGED, self.OnSelChange)
+        
+        
+        rootname = os.path.basename(rootdir)
+        
+        self.rootNode = self.AddRoot(rootname, data=wx.TreeItemData(rootdir))
+        self.SetItemHasChildren(self.rootNode)
+
+
+    
+    def OnExpanding(self, event):
+        item = event.GetItem()
+        path = self.GetPyData(item)
+        
+        subdirs = os.listdir(path)
+        subdirs.sort()
+        
+        for filename in subdirs:
+            path2 = os.path.join(path, filename)
+            if os.path.isdir(path2):
+                item2 = self.AppendItem(item, filename, 
+                    data=wx.TreeItemData(path2))
+                self.SetItemHasChildren(item2)
+    
+    
+    def OnSelChange(self, event):
+        item = event.GetItem()
+        path = self.GetPyData(item)
+        
+        if self.onViewBook:
+            self.onViewBook(path)
+        
+        
+    
+        
+    
 
 # Create a new frame class, derived from the wxPython Frame.
-class TakeNoteFrame(wx.Frame):
+class TakeNoteFrame (wx.Frame):
 
     def __init__(self, parent, id, title):
         # First, call the base class' __init__ method to create the frame
         wx.Frame.__init__(self, parent, id, title,
                           size=(800, 600))
-                
+        
+        self.findDialog = None
+        
         # status bar
         self.statusbar = wx.StatusBar(self, style=wx.ST_SIZEGRIP)
         self.SetStatusBar(self.statusbar)
@@ -62,12 +257,8 @@ class TakeNoteFrame(wx.Frame):
         splitter2.SetMinimumPaneSize(20)
         
         # treeview
-        self.tree = wx.TreeCtrl(splitter)        
-        root = self.tree.AddRoot("TakeNote")
-        self.tree.AppendItem(root, "section1")
-        self.tree.AppendItem(root, "section2")
-        n = self.tree.AppendItem(root, "section3")
-        self.tree.AppendItem(n, "subsection1")
+        self.tree = NoteTreeViewer(splitter, rootdir="notebook",
+                                   onViewBook=self.OnViewBook)
         
         # note selector
         self.selector = NoteSelector(splitter2, wx.ID_ANY)
@@ -84,7 +275,6 @@ class TakeNoteFrame(wx.Frame):
         splitter.SplitVertically(self.tree, splitter2, 150)
         splitter2.SplitHorizontally(self.selector, self.editor, 200)
     
-    
         
         # menu bar
         self.MakeMenuBar()
@@ -92,9 +282,12 @@ class TakeNoteFrame(wx.Frame):
         # toolbar
         self.MakeToolBar()
 
+    
+    def OnViewBook(self, book):
+        print book
             
 
-    def ForwardEvent(self, evt):
+    def ForwardEditEvent(self, evt):
         # The Editor can handle menu and update events for undo,
         # redo, cut, copy, paste, delete, and select all, so just
         # forward the event to it.
@@ -123,29 +316,31 @@ class TakeNoteFrame(wx.Frame):
         
         editMenu = wx.Menu()
         doBind(editMenu.Append(wx.ID_UNDO, "&Undo\tCtrl+Z"),
-               self.ForwardEvent, self.ForwardEvent)
+               self.ForwardEditEvent, self.ForwardEditEvent)
         doBind(editMenu.Append(wx.ID_REDO, "&Redo\tCtrl+Y"),
-               self.ForwardEvent, self.ForwardEvent )
+               self.ForwardEditEvent, self.ForwardEditEvent )
         editMenu.AppendSeparator()
         doBind(editMenu.Append(wx.ID_CUT, "Cu&t\tCtrl+X"),
-               self.ForwardEvent, self.ForwardEvent )
+               self.ForwardEditEvent, self.ForwardEditEvent )
         doBind(editMenu.Append(wx.ID_COPY, "&Copy\tCtrl+C"),
-               self.ForwardEvent, self.ForwardEvent)
+               self.ForwardEditEvent, self.ForwardEditEvent)
         doBind(editMenu.Append(wx.ID_PASTE, "&Paste\tCtrl+V"),
-               self.ForwardEvent, self.ForwardEvent)
+               self.ForwardEditEvent, self.ForwardEditEvent)
         doBind(editMenu.Append(wx.ID_CLEAR, "&Delete"),
-               self.ForwardEvent, self.ForwardEvent)
+               self.ForwardEditEvent, self.ForwardEditEvent)
         editMenu.AppendSeparator()
         
         doBind(editMenu.Append(wx.ID_SELECTALL, "Select A&ll\tCtrl+A"),
-               self.ForwardEvent, self.ForwardEvent)
+               self.ForwardEditEvent, self.ForwardEditEvent)
         editMenu.AppendSeparator()
         
-        doBind(editMenu.Append(wx.ID_ANY, "Insert &Image\tCtrl+M"), self.OnInsertImage)
-        doBind(editMenu.Append(wx.ID_ANY, "Insert &Screenshot\tCtrl+Ins"), self.OnInsertScreenshot)
+        doBind(editMenu.Append(wx.ID_ANY, "Insert &Image\tCtrl+M"), self.editor.OnInsertImage)
+        doBind(editMenu.Append(wx.ID_ANY, "Insert &Screenshot\tCtrl+Ins"), self.editor.OnInsertScreenshot)
         
-        #doBind( editMenu.AppendSeparator(),  )
-        #doBind( editMenu.Append(-1, "&Find...\tCtrl+F"),  )
+        editMenu.AppendSeparator()
+        doBind(editMenu.Append(wx.ID_FIND, "&Find...\tCtrl+F"), self.OnFind)        
+        self.Bind(wx.EVT_FIND_CLOSE, self.OnFindClose)
+        
         #doBind( editMenu.Append(-1, "&Replace...\tCtrl+R"),  )
 
         formatMenu = wx.Menu()
@@ -165,8 +360,9 @@ class TakeNoteFrame(wx.Frame):
                 self.OnAlignRight, self.OnUpdateAlignRight)
         formatMenu.AppendSeparator()
         
-        doBind(formatMenu.Append(-1, "Indent &More"), self.OnIndentMore)
-        doBind(formatMenu.Append(-1, "Indent &Less"), self.OnIndentLess)
+        doBind(formatMenu.Append(-1, "Indent &More\tTab"), self.OnIndentMore)
+        doBind(formatMenu.Append(-1, "Indent &Less\tShift+Tab"), self.OnIndentLess)
+        
         formatMenu.AppendSeparator()
         #doBind( formatMenu.Append(-1, "Increase Paragraph &Spacing"), self.OnParagraphSpacingMore)
         #doBind( formatMenu.Append(-1, "Decrease &Paragraph Spacing"), self.OnParagraphSpacingLess)
@@ -202,20 +398,20 @@ class TakeNoteFrame(wx.Frame):
         """
         doBind(tbar.AddTool(wx.ID_CUT, wx.Bitmap("bitmaps/cut.xpm"), isToggle=True,
                             shortHelpString="Cut"), 
-                            self.ForwardEvent, self.ForwardEvent)
+                            self.ForwardEditEvent, self.ForwardEditEvent)
         doBind(tbar.AddTool(wx.ID_COPY, wx.Bitmap("bitmaps/copy.xpm"), isToggle=True,
                             shortHelpString="Copy"), 
-                            self.ForwardEvent, self.ForwardEvent)
+                            self.ForwardEditEvent, self.ForwardEditEvent)
         doBind(tbar.AddTool(wx.ID_PASTE, wx.Bitmap("bitmaps/paste.xpm"), isToggle=True,
                             shortHelpString="Paste"), 
-                            self.ForwardEvent, self.ForwardEvent)
+                            self.ForwardEditEvent, self.ForwardEditEvent)
         tbar.AddSeparator()
         """
         
         doBind(tbar.AddTool(wx.ID_UNDO, wx.Bitmap("bitmaps/undo.xpm"),
-                            shortHelpString="Undo"), self.ForwardEvent, self.ForwardEvent)
+                            shortHelpString="Undo"), self.ForwardEditEvent, self.ForwardEditEvent)
         doBind(tbar.AddTool(wx.ID_REDO, wx.Bitmap("bitmaps/redo.xpm"),
-                            shortHelpString="Redo"), self.ForwardEvent, self.ForwardEvent)
+                            shortHelpString="Redo"), self.ForwardEditEvent, self.ForwardEditEvent)
         
         tbar.AddSeparator()
         doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/bold.xpm"), isToggle=True,
@@ -253,7 +449,7 @@ class TakeNoteFrame(wx.Frame):
         doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/font-dec.xpm"),
                             shortHelpString="Font Size Decrease"), self.OnFontSizeDec)
         doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/color.xpm"),
-                            shortHelpString="Font Colour"), self.OnColour)
+                            shortHelpString="Font Color"), self.OnColor)
         
         self.fontsize = wx.SpinCtrl(tbar, -1, 
                                style=wx.SP_ARROW_KEYS, 
@@ -270,30 +466,22 @@ class TakeNoteFrame(wx.Frame):
     #=============================================================================
     # edit menu
     
-    def OnInsertImage(self, event):
-        dlg = wx.FileDialog(self, "Choose a filename",
-                            #wildcard="*.xpm|*.gif|*.jpg|*.png",
-                            style=wx.OPEN)
-        if dlg.ShowModal() == wx.ID_OK:
-            path = dlg.GetPath()
-            if path:
-                img = wx.Image(path)
-                if img.IsOk():
-                    self.editor.WriteImage(img)
-        dlg.Destroy()
     
+    def OnFind(self, event):
+        if not self.findDialog:
+            self.find_data = wx.FindReplaceData()
+            self.findDialog = wx.FindReplaceDialog(self.editor, self.find_data, "Find")        
+            self.findDialog.Show()
+        else:
+            self.findDialog.Hide()
+            self.findDialog.Show()
+            
     
-    def OnInsertScreenshot(self, event):
-        f, imgfile = tempfile.mkstemp(".png", "takenote")
-        os.close(f)
+    def OnFindClose(self, event):
+        self.findDialog.Hide()
+        self.findDialog = None
+        del self.find_data
     
-        os.system("import %s" % imgfile)
-        if os.path.exists(imgfile):
-            img = wx.Image(imgfile)
-            if img.IsOk():
-                self.editor.WriteImage(img)
-            os.remove(imgfile)
-        
     
     #=============================================================================
     # format menu
@@ -339,32 +527,12 @@ class TakeNoteFrame(wx.Frame):
 
 
     def OnIndentMore(self, evt):
-        attr = rt.TextAttrEx()
-        attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
-        ip = self.editor.GetInsertionPoint()
-        if self.editor.GetStyle(ip, attr):
-            r = rt.RichTextRange(ip, ip)
-            if self.editor.HasSelection():
-                r = self.editor.GetSelectionRange()
-
-            attr.SetLeftIndent(attr.GetLeftIndent() + 100)
-            attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
-            self.editor.SetStyle(r, attr)
+        self.editor.IndentMore()
        
         
     def OnIndentLess(self, evt):
-        attr = rt.TextAttrEx()
-        attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
-        ip = self.editor.GetInsertionPoint()
-        if self.editor.GetStyle(ip, attr):
-            r = rt.RichTextRange(ip, ip)
-            if self.editor.HasSelection():
-                r = self.editor.GetSelectionRange()
-
-        if attr.GetLeftIndent() >= 100:
-            attr.SetLeftIndent(attr.GetLeftIndent() - 100)
-            attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
-            self.editor.SetStyle(r, attr)
+        self.editor.IndentLess()
+    
     
     def OnFont(self, evt):
         if not self.editor.HasSelection():
@@ -391,7 +559,6 @@ class TakeNoteFrame(wx.Frame):
     
     def OnFontSizeInc(self, evt):
         ip = self.editor.GetInsertionPoint()
-    
         if self.editor.HasSelection():
             r = self.editor.GetSelectionRange()
         else:
@@ -416,7 +583,6 @@ class TakeNoteFrame(wx.Frame):
     
     def OnFontSizeDec(self, evt):
         ip = self.editor.GetInsertionPoint()
-        
         if self.editor.HasSelection():
             r = self.editor.GetSelectionRange()
         else:
@@ -469,7 +635,7 @@ class TakeNoteFrame(wx.Frame):
             self.fontsize.SetValue(attr.GetFont().GetPointSize())
     
     
-    def OnColour(self, evt):
+    def OnColor(self, evt):
         colourData = wx.ColourData()
         attr = rt.TextAttrEx()
         attr.SetFlags(rt.TEXT_ATTR_TEXT_COLOUR)
@@ -501,6 +667,11 @@ class TakeNoteFrame(wx.Frame):
         self.editor.SaveFile("note.xml")#, type=wx.richtext.RICHTEXT_TYPE_ANY)
         
     def OnFileExit(self, event):
+    
+        if self.findDialog:
+            self.findDialog.Hide()
+            self.findDialog = None
+    
         self.Close()
 
 
@@ -513,14 +684,10 @@ class TakeNote(wx.App):
     def OnInit(self):
 
         # add image handlers
-        #wx.Image_AddHandler(wx.PNGHandler)
-        #wx.Image_AddHandler(wx.JPEGHandler)
-        #wx.Image_AddHandler(wx.GIFHandler)
-        
         wx.InitAllImageHandlers()
-
+        
         # Create an instance of our customized Frame class
-        frame = TakeNoteFrame(None, -1, "TakeNote")
+        frame = TakeNoteFrame(None, wx.ID_ANY, "TakeNote")
         frame.Show(True)
 
         # Tell wxWindows that this is our main window
