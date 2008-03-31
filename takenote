@@ -187,6 +187,179 @@ class NoteTextEditor (rt.RichTextCtrl):
             if img.IsOk():
                 self.WriteImage(img)
             os.remove(imgfile)
+    
+    #=============================================================================
+    # format menu
+    
+    def OnBold(self, event):
+        self.ApplyBoldToSelection()
+
+    def OnItalic(self, event):
+        self.ApplyItalicToSelection()
+    
+    def OnUnderline(self, event):
+        self.ApplyUnderlineToSelection()  
+
+
+    def OnUpdateBold(self, event):
+        event.Check(self.IsSelectionBold())        
+
+    def OnUpdateItalic(self, event):
+        event.Check(self.IsSelectionItalics())
+
+    def OnUpdateUnderline(self, event):
+        event.Check(self.IsSelectionUnderlined())
+       
+    
+    def OnAlignLeft(self, evt):
+        self.ApplyAlignmentToSelection(rt.TEXT_ALIGNMENT_LEFT)
+        
+    def OnAlignRight(self, evt):
+        self.ApplyAlignmentToSelection(rt.TEXT_ALIGNMENT_RIGHT)
+        
+    def OnAlignCenter(self, evt):
+        self.ApplyAlignmentToSelection(rt.TEXT_ALIGNMENT_CENTRE)
+
+
+    def OnUpdateAlignLeft(self, evt):
+        evt.Check(self.IsSelectionAligned(rt.TEXT_ALIGNMENT_LEFT))
+        
+    def OnUpdateAlignCenter(self, evt):
+        evt.Check(self.IsSelectionAligned(rt.TEXT_ALIGNMENT_CENTRE))
+        
+    def OnUpdateAlignRight(self, evt):
+        evt.Check(self.IsSelectionAligned(rt.TEXT_ALIGNMENT_RIGHT))
+
+
+    def OnIndentMore(self, evt):
+        self.IndentMore()
+       
+        
+    def OnIndentLess(self, evt):
+        self.IndentLess()
+    
+    
+    def OnFont(self, evt):
+        if not self.HasSelection():
+            return
+
+        r = self.GetSelectionRange()
+        fontData = wx.FontData()
+        fontData.EnableEffects(False)
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_FONT)
+        if self.GetStyle(self.GetInsertionPoint(), attr):
+            fontData.SetInitialFont(attr.GetFont())
+
+        dlg = wx.FontDialog(self, fontData)
+        if dlg.ShowModal() == wx.ID_OK:
+            fontData = dlg.GetFontData()
+            font = fontData.GetChosenFont()
+            if font:
+                attr.SetFlags(rt.TEXT_ATTR_FONT)
+                attr.SetFont(font)
+                self.SetStyle(r, attr)
+        dlg.Destroy()
+    
+    
+    def OnFontSizeInc(self, evt):
+        ip = self.GetInsertionPoint()
+        if self.HasSelection():
+            r = self.GetSelectionRange()
+        else:
+            r = rt.RichTextRange(ip, ip)
+        
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_FONT)
+        if self.GetStyle(ip, attr):
+            font = attr.GetFont()
+            size = font.GetPointSize()
+            if size < 8:
+                font.SetPointSize(size + 1)
+            else:
+                font.SetPointSize(size + 2)
+                
+            attr.SetFont(font)
+            self.SetStyleEx(r, attr, 
+                rt.RICHTEXT_SETSTYLE_CHARACTERS_ONLY | 
+                rt.RICHTEXT_SETSTYLE_WITH_UNDO)
+
+    
+    
+    def OnFontSizeDec(self, evt):
+        ip = self.GetInsertionPoint()
+        if self.HasSelection():
+            r = self.GetSelectionRange()
+        else:
+            r = rt.RichTextRange(ip, ip)
+        
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_FONT)
+        if self.GetStyle(ip, attr):
+            font = attr.GetFont()
+            size = font.GetPointSize()
+            if size <= 1:
+                return
+            if size <= 8:
+                font.SetPointSize(size - 1)
+            else:
+                font.SetPointSize(size - 2)
+            attr.SetFont(font)
+            self.SetStyleEx(r, attr, 
+                rt.RICHTEXT_SETSTYLE_CHARACTERS_ONLY | 
+                rt.RICHTEXT_SETSTYLE_WITH_UNDO)
+    
+    
+    def OnFontSizeSpinner(self, evt):
+        size = self.fontsize.GetValue()
+        
+        ip = self.GetInsertionPoint()
+        
+        if self.HasSelection():
+            r = self.GetSelectionRange()
+        else:
+            r = rt.RichTextRange(ip, ip)
+        
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_FONT)
+        if self.GetStyle(ip, attr):
+            font = attr.GetFont()
+            font.SetPointSize(size)
+            attr.SetFont(font)
+            self.SetStyleEx(r, attr,
+                rt.RICHTEXT_SETSTYLE_CHARACTERS_ONLY | 
+                rt.RICHTEXT_SETSTYLE_WITH_UNDO)
+    
+    
+    def OnUpdateFontSizeSpinner(self, evt):
+        ip = self.GetInsertionPoint()
+        
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_FONT)
+        if self.GetStyle(ip, attr):
+            self.fontsize.SetValue(attr.GetFont().GetPointSize())
+    
+    
+    def OnColor(self, evt):
+        colourData = wx.ColourData()
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_TEXT_COLOUR)
+        if self.GetStyle(self.GetInsertionPoint(), attr):
+            colourData.SetColour(attr.GetTextColour())
+
+        dlg = wx.ColourDialog(self, colourData)
+        if dlg.ShowModal() == wx.ID_OK:
+            colourData = dlg.GetColourData()
+            colour = colourData.GetColour()
+            if colour:
+                if not self.HasSelection():
+                    self.BeginTextColour(colour)
+                else:
+                    r = self.GetSelectionRange()
+                    attr.SetFlags(rt.TEXT_ATTR_TEXT_COLOUR)
+                    attr.SetTextColour(colour)
+                    self.SetStyle(r, attr)
+        dlg.Destroy()
 
         
 
@@ -451,14 +624,14 @@ class TakeNoteFrame (wx.Frame):
         doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/color.xpm"),
                             shortHelpString="Font Color"), self.OnColor)
         
-        self.fontsize = wx.SpinCtrl(tbar, -1, 
+        self.editor.fontsize = wx.SpinCtrl(tbar, -1, 
                                style=wx.SP_ARROW_KEYS, 
                                min=1, max=1000, 
                                initial=12,
                                size=(50, -1))
         self.Bind(wx.EVT_SPINCTRL, self.OnFontSizeSpinner)
-        self.Bind(wx.EVT_UPDATE_UI, self.OnUpdateFontSizeSpinner, self.fontsize)
-        tbar.AddControl(self.fontsize)
+        self.Bind(wx.EVT_UPDATE_UI, self.OnUpdateFontSizeSpinner, self.editor.fontsize)
+        tbar.AddControl(self.editor.fontsize)
         
         tbar.Realize()
     
@@ -483,178 +656,7 @@ class TakeNoteFrame (wx.Frame):
         del self.find_data
     
     
-    #=============================================================================
-    # format menu
     
-    def OnBold(self, event):
-        self.editor.ApplyBoldToSelection()
-
-    def OnItalic(self, event):
-        self.editor.ApplyItalicToSelection()
-    
-    def OnUnderline(self, event):
-        self.editor.ApplyUnderlineToSelection()  
-
-
-    def OnUpdateBold(self, event):
-        event.Check(self.editor.IsSelectionBold())        
-
-    def OnUpdateItalic(self, event):
-        event.Check(self.editor.IsSelectionItalics())
-
-    def OnUpdateUnderline(self, event):
-        event.Check(self.editor.IsSelectionUnderlined())
-       
-    
-    def OnAlignLeft(self, evt):
-        self.editor.ApplyAlignmentToSelection(rt.TEXT_ALIGNMENT_LEFT)
-        
-    def OnAlignRight(self, evt):
-        self.editor.ApplyAlignmentToSelection(rt.TEXT_ALIGNMENT_RIGHT)
-        
-    def OnAlignCenter(self, evt):
-        self.editor.ApplyAlignmentToSelection(rt.TEXT_ALIGNMENT_CENTRE)
-
-
-    def OnUpdateAlignLeft(self, evt):
-        evt.Check(self.editor.IsSelectionAligned(rt.TEXT_ALIGNMENT_LEFT))
-        
-    def OnUpdateAlignCenter(self, evt):
-        evt.Check(self.editor.IsSelectionAligned(rt.TEXT_ALIGNMENT_CENTRE))
-        
-    def OnUpdateAlignRight(self, evt):
-        evt.Check(self.editor.IsSelectionAligned(rt.TEXT_ALIGNMENT_RIGHT))
-
-
-    def OnIndentMore(self, evt):
-        self.editor.IndentMore()
-       
-        
-    def OnIndentLess(self, evt):
-        self.editor.IndentLess()
-    
-    
-    def OnFont(self, evt):
-        if not self.editor.HasSelection():
-            return
-
-        r = self.editor.GetSelectionRange()
-        fontData = wx.FontData()
-        fontData.EnableEffects(False)
-        attr = rt.TextAttrEx()
-        attr.SetFlags(rt.TEXT_ATTR_FONT)
-        if self.editor.GetStyle(self.editor.GetInsertionPoint(), attr):
-            fontData.SetInitialFont(attr.GetFont())
-
-        dlg = wx.FontDialog(self, fontData)
-        if dlg.ShowModal() == wx.ID_OK:
-            fontData = dlg.GetFontData()
-            font = fontData.GetChosenFont()
-            if font:
-                attr.SetFlags(rt.TEXT_ATTR_FONT)
-                attr.SetFont(font)
-                self.editor.SetStyle(r, attr)
-        dlg.Destroy()
-    
-    
-    def OnFontSizeInc(self, evt):
-        ip = self.editor.GetInsertionPoint()
-        if self.editor.HasSelection():
-            r = self.editor.GetSelectionRange()
-        else:
-            r = rt.RichTextRange(ip, ip)
-        
-        attr = rt.TextAttrEx()
-        attr.SetFlags(rt.TEXT_ATTR_FONT)
-        if self.editor.GetStyle(ip, attr):
-            font = attr.GetFont()
-            size = font.GetPointSize()
-            if size < 8:
-                font.SetPointSize(size + 1)
-            else:
-                font.SetPointSize(size + 2)
-                
-            attr.SetFont(font)
-            self.editor.SetStyleEx(r, attr, 
-                rt.RICHTEXT_SETSTYLE_CHARACTERS_ONLY | 
-                rt.RICHTEXT_SETSTYLE_WITH_UNDO)
-
-    
-    
-    def OnFontSizeDec(self, evt):
-        ip = self.editor.GetInsertionPoint()
-        if self.editor.HasSelection():
-            r = self.editor.GetSelectionRange()
-        else:
-            r = rt.RichTextRange(ip, ip)
-        
-        attr = rt.TextAttrEx()
-        attr.SetFlags(rt.TEXT_ATTR_FONT)
-        if self.editor.GetStyle(ip, attr):
-            font = attr.GetFont()
-            size = font.GetPointSize()
-            if size <= 1:
-                return
-            if size <= 8:
-                font.SetPointSize(size - 1)
-            else:
-                font.SetPointSize(size - 2)
-            attr.SetFont(font)
-            self.editor.SetStyleEx(r, attr, 
-                rt.RICHTEXT_SETSTYLE_CHARACTERS_ONLY | 
-                rt.RICHTEXT_SETSTYLE_WITH_UNDO)
-    
-    
-    def OnFontSizeSpinner(self, evt):
-        size = self.fontsize.GetValue()
-        
-        ip = self.editor.GetInsertionPoint()
-        
-        if self.editor.HasSelection():
-            r = self.editor.GetSelectionRange()
-        else:
-            r = rt.RichTextRange(ip, ip)
-        
-        attr = rt.TextAttrEx()
-        attr.SetFlags(rt.TEXT_ATTR_FONT)
-        if self.editor.GetStyle(ip, attr):
-            font = attr.GetFont()
-            font.SetPointSize(size)
-            attr.SetFont(font)
-            self.editor.SetStyleEx(r, attr,
-                rt.RICHTEXT_SETSTYLE_CHARACTERS_ONLY | 
-                rt.RICHTEXT_SETSTYLE_WITH_UNDO)
-    
-    
-    def OnUpdateFontSizeSpinner(self, evt):
-        ip = self.editor.GetInsertionPoint()
-        
-        attr = rt.TextAttrEx()
-        attr.SetFlags(rt.TEXT_ATTR_FONT)
-        if self.editor.GetStyle(ip, attr):
-            self.fontsize.SetValue(attr.GetFont().GetPointSize())
-    
-    
-    def OnColor(self, evt):
-        colourData = wx.ColourData()
-        attr = rt.TextAttrEx()
-        attr.SetFlags(rt.TEXT_ATTR_TEXT_COLOUR)
-        if self.editor.GetStyle(self.editor.GetInsertionPoint(), attr):
-            colourData.SetColour(attr.GetTextColour())
-
-        dlg = wx.ColourDialog(self, colourData)
-        if dlg.ShowModal() == wx.ID_OK:
-            colourData = dlg.GetColourData()
-            colour = colourData.GetColour()
-            if colour:
-                if not self.editor.HasSelection():
-                    self.editor.BeginTextColour(colour)
-                else:
-                    r = self.editor.GetSelectionRange()
-                    attr.SetFlags(rt.TEXT_ATTR_TEXT_COLOUR)
-                    attr.SetTextColour(colour)
-                    self.editor.SetStyle(r, attr)
-        dlg.Destroy()
     
     
     #=============================================================================
