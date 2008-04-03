@@ -8,22 +8,67 @@ import wx
 import wx.richtext as rt
 
 # TODO: indent ranges better
+# TODO: fix bullet copy and paste
+
+BLANK_NOTE = """
+<?xml version="1.0" encoding="UTF-8"?>
+<richtext version="1.0.0.0" xmlns="http://www.wxwidgets.org">
+</richtext>
+"""
 
 
 class NoteBook (object):
     def __init__(self, rootdir):
+        """rootdir -- Root directory of notebook"""
+    
         rootname = os.path.basename(rootdir)
         self.root = NoteBookNode(rootname, rootdir)
     
+    
     def GetRootNode(self):
+        """Returns the root node of the notebook"""
         return self.root
- 
+
+
+    def NewPage(self, parentNode, name):
+        parentNode.NewPage(name)
+
+
+class NoteBookPage (object):
+    def __init__(self, name, path):
+        self.name = name
+        self.path = path         
+
 
 class NoteBookNode (object):
     def __init__(self, name, path):
         self.name = name
         self.path = path
-     
+    
+    
+    def NewPage(self, name):
+        newpath = os.path.join(self.path, name)
+        out = os.open(path, "w")
+        out.write(BLANK_NOTE)
+        out.close()
+        
+        return NoteBookPage(name, newpath)
+
+
+    
+    def Rename(self, name):
+        path2 = os.path.join(os.path.dirname(self.path), name)
+        
+        try:
+            
+        
+            os.rename(self.path, path2)
+            self.name = name
+            self.path = path2
+        except Exception, e:
+            print e
+            print "cannot rename page '%s' to '%s'" % (self.path, path2)
+    
      
     def GetChildNodes(self):
         subdirs = os.listdir(self.path)
@@ -42,25 +87,66 @@ class NoteBookNode (object):
         for filename in files:
             path2 = os.path.join(self.path, filename)
             if os.path.isfile(path2):
-                yield NoteBookNode(filename, path2)
+                yield NoteBookPage(filename, path2)
                 
 
 
 
 class NoteSelector (wx.ListCtrl):
     
-    def __init__(self, parent, id=wx.ID_ANY, onViewPage=None):
+    def __init__(self, parent, id=wx.ID_ANY, onViewPage=None, onClosePage=None):
         wx.ListCtrl.__init__(self, parent, id,
-                             style=wx.LC_REPORT | wx.LC_HRULES | wx.LC_VIRTUAL)
+                             style=wx.LC_REPORT | wx.LC_HRULES | wx.LC_VIRTUAL |
+                                   wx.LC_EDIT_LABELS | wx.LC_SINGLE_SEL |
+                                   wx.LC_SMALL_ICON)
         self.onViewPage = onViewPage
+        self.onClosePage = onClosePage
         self.lookup = {}
         self.pages = []
         
+        #self.pageImage = wx.Image()
+        #assert self.pageImage.IsOk()
+        self.noteBitmap = wx.Bitmap("bitmaps/paste.xpm")
+        self.imglist = wx.ImageList(15, 15, True, 0)
+        self.imglist.Add(self.noteBitmap)
+        self.SetImageList(self.imglist, wx.IMAGE_LIST_SMALL)
+        
+        
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnSelectPage)
+        self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnDeselectPage)
+        self.Bind(wx.EVT_LIST_BEGIN_LABEL_EDIT, self.OnBeginEdit)
+        self.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.OnEndEdit)
         
         self.InsertColumn(0, "subject", format=wx.LIST_FORMAT_LEFT, width=500)
         self.InsertColumn(1, "date", format=wx.LIST_FORMAT_LEFT, width=-1)
 
+
+    def OnViewNode(self, node):
+        self.SelectNone()    
+        self.LoadPages(node)
+        self.SetItemCount(len(self.pages))
+        self.RefreshItems(0, len(self.pages))
+
+
+
+    def SelectNone(self):
+        item = self.GetSelectedItem()
+        if item != None:
+            self.SetItemState(item, 0, wx.LIST_STATE_SELECTED)
+            
+
+    def GetSelectedItem(self):
+        item = -1
+        while True:
+            item = self.GetNextItem(item,
+                                   wx.LIST_NEXT_ALL,
+                                   wx.LIST_STATE_SELECTED)
+            if item == -1:
+                break
+            else:
+                return item
+        return None
+        
 
     def LoadPages(self, node):
         # load pages
@@ -74,24 +160,37 @@ class NoteSelector (wx.ListCtrl):
             self.pages.append(page)
             
 
-    def OnGetItemText(self, item, column):
+    def OnGetItemText(self, row, column):
         if column == 0:
-            return self.pages[item].name
+            return self.pages[row].name.replace(".xml", "")
         elif column == 1:
             return "Today"
         else:
             return ""
 
-    def OnViewNode(self, node):
-        self.LoadPages(node)
-        self.SetItemCount(len(self.pages))
-        
+    def OnGetItemImage(self, row):
+        return 0
+    
 
     def OnSelectPage(self, event):
         if self.onViewPage:
             self.onViewPage(self.pages[event.GetIndex()])
             #self.onViewPage(self.lookup[event.GetItem().GetData()])
     
+    def OnDeselectPage(self, event):
+        if self.onClosePage:
+            self.onClosePage(self.pages[event.GetIndex()])
+            #self.onViewPage(self.lookup[event.GetItem().GetData()])
+    
+    
+    def OnBeginEdit(self, event):
+        if event.GetColumn() != 0:
+            event.Veto()
+    
+    def OnEndEdit(self, event):
+        name = event.GetLabel() + ".xml"
+        page = self.pages[event.GetIndex()]
+        page.Rename(name)
 
             
 
@@ -167,7 +266,9 @@ class TakeNoteFrame (wx.Frame):
         splitter2.SetMinimumPaneSize(20)
         
         # note selector
-        self.selector = NoteSelector(splitter2, onViewPage=self.OnViewPage)
+        self.selector = NoteSelector(splitter2, 
+            onViewPage=self.OnViewPage,
+            onClosePage=self.OnClosePage)
         
         # treeview
         self.tree = NoteTreeViewer(splitter, notebook=self.notebook,
@@ -175,10 +276,24 @@ class TakeNoteFrame (wx.Frame):
         
         
         # note editor
-        self.editor = NoteTextEditor(splitter2, value="new note")
+        self.editor = NoteTextEditor(splitter2, value="")
         self.editor.SetFocus()
         
         self.editor.AddImage(wx.Bitmap("bitmaps/zebra.xpm").ConvertToImage())
+        
+        self.editor.BeginNumberedBullet(1, 100, 60)
+        self.editor.Newline()
+
+        self.editor.WriteText("This is my first item. Note that wxRichTextCtrl doesn't automatically do numbering, but this will be added later.")
+        self.editor.EndNumberedBullet()
+
+        self.editor.BeginNumberedBullet(2, 100, 60)
+        self.editor.Newline()
+
+        self.editor.WriteText("This is my second item.")
+        self.editor.EndNumberedBullet()
+
+        
         
         # layout
         splitter.SplitVertically(self.tree, splitter2, 150)
@@ -194,6 +309,10 @@ class TakeNoteFrame (wx.Frame):
 
     def OnViewPage(self, page):
         self.editor.ViewPage(page)
+    
+    
+    def OnClosePage(self, page):
+        self.editor.ClosePage(page)
         
 
     def ForwardEditEvent(self, evt):
@@ -210,9 +329,11 @@ class TakeNoteFrame (wx.Frame):
                 self.Bind(wx.EVT_UPDATE_UI, updateUI, item)
             
         fileMenu = wx.Menu()
-        doBind(fileMenu.Append(-1, "&Open\tCtrl+O", "Open a file"),
+        doBind(fileMenu.Append(wx.ID_ANY, "&New\tCtrl+N", "New note"),
+               self.OnFileNew)
+        doBind(fileMenu.Append(wx.ID_ANY, "&Open\tCtrl+O", "Open a file"),
                self.OnFileOpen)
-        doBind(fileMenu.Append(-1, "&Save\tCtrl+S", "Save a file"),
+        doBind(fileMenu.Append(wx.ID_ANY, "&Save\tCtrl+S", "Save a file"),
                self.OnFileSave)
         #doBind( fileMenu.Append(-1, "&Save As...\tF12", "Save to a new file"),
         #        self.OnFileSaveAs )
@@ -226,6 +347,8 @@ class TakeNoteFrame (wx.Frame):
         editMenu = wx.Menu()
         doBind(editMenu.Append(wx.ID_UNDO, "&Undo\tCtrl+Z"),
                self.ForwardEditEvent, self.ForwardEditEvent)
+        doBind(editMenu.Append(wx.ID_ANY, "&test\tCtrl+T"),
+               lambda e: self.editor.printBuffer())
         doBind(editMenu.Append(wx.ID_REDO, "&Redo\tCtrl+Y"),
                self.ForwardEditEvent, self.ForwardEditEvent )
         editMenu.AppendSeparator()
@@ -410,6 +533,11 @@ class TakeNoteFrame (wx.Frame):
     #=============================================================================
     # file menu
     
+    def OnFileNew(self, event):
+        #self.notebook.NewPage(
+        pass
+        
+    
     def OnFileOpen(self, event):
         self.editor.LoadFile("note.xml")
     
@@ -435,7 +563,7 @@ class NoteTextEditor (rt.RichTextCtrl):
         self.GetBuffer().AddHandler(rt.RichTextXMLHandler())
         self.GetBuffer().AddHandler(rt.RichTextHTMLHandler())
         
-        
+        self.Bind(wx.EVT_MENU, self.OnPaste, id=wx.ID_PASTE)
         self.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
         
         self.Bind(wx.EVT_FIND, self.OnFind)
@@ -445,13 +573,31 @@ class NoteTextEditor (rt.RichTextCtrl):
         self.findline = 0
         self.findpos = 0
         
+    
+    def printBuffer(self):
+    
+        node = self.GetBuffer()
+        
+        print "==========================================="
+        for child in node.GetChildren():
+            #print dir(child)
+            print child.GetClassName(), child.GetTextForRange((0, 1000))
+
+    
         
     def ViewPage(self, page):
         
         if self.LoadFile(page.path):
             self.page = page
+            self.Enable()
+            self.SetEditable(True)
         else:
             print "can't load page"
+
+    def ClosePage(self, page):
+        self.Clear()
+        self.SetEditable(False)
+        self.Disable()
 
 
     def SavePage(self):
@@ -480,6 +626,7 @@ class NoteTextEditor (rt.RichTextCtrl):
                 ip = self.GetInsertionPoint()
                 
                 self.SetSelection(ip + pos, ip + pos + len(findstr))
+                self.ShowPosition()
             
                 self.findline = i
                 self.findpos = pos + 1
@@ -506,26 +653,8 @@ class NoteTextEditor (rt.RichTextCtrl):
         # let normal processing of this event occur
         event.Skip()
     
-
-    def IndentMore(self):
-        attr = rt.TextAttrEx()
-        attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT | 
-                      rt.TEXT_ATTR_BULLET_STYLE |
-                      rt.TEXT_ATTR_BULLET_NAME)
-        ip = self.GetInsertionPoint()
-        if self.GetStyle(ip, attr):
-            if self.HasSelection():
-                r = self.GetSelectionRange()
-            else:
-                r = rt.RichTextRange(ip, ip+1)
-
-            attr.SetLeftIndent(attr.GetLeftIndent() + 100, 50)
-            attr.SetBulletStyle(rt.TEXT_ATTR_BULLET_STYLE_STANDARD)
-            attr.SetBulletName("standard/circle")
-            self.SetStyle(r, attr)
-       
-        
-    def IndentLess(self):
+    
+    def OnPaste(self, event):
         attr = rt.TextAttrEx()
         attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
         ip = self.GetInsertionPoint()
@@ -534,19 +663,84 @@ class NoteTextEditor (rt.RichTextCtrl):
                 r = self.GetSelectionRange()
             else:
                 r = rt.RichTextRange(ip, ip+1)
-
-        indent = attr.GetLeftIndent()
-        if indent >= 100:
-            
-            if indent == 100:
-                attr.SetBulletStyle(rt.TEXT_ATTR_BULLET_STYLE_NONE)
+                       
+            if attr.GetLeftIndent() != 0:
+                # prepare for paste
+                
+                data = wx.TextDataObject()
+                wx.TheClipboard.GetData(data)
+                
+                
+                '''
                 attr.SetFlags(rt.TEXT_ATTR_BULLET_STYLE |
-                              rt.TEXT_ATTR_LEFT_INDENT)
+                              rt.TEXT_ATTR_BULLET_NAME |
+                              rt.TEXT_ATTR_LEFT_INDENT)                
+                attr.SetBulletStyle(rt.TEXT_ATTR_BULLET_STYLE_NONE)
+                attr.SetBulletName("")
+                attr.SetLeftIndent(0, 50)
+                self.SetStyleEx(r, attr, 
+                                rt.RICHTEXT_SETSTYLE_PARAGRAPHS_ONLY |
+                                rt.RICHTEXT_SETSTYLE_WITH_UNDO)
+                '''
+                
+        
+        # check to see if paste is into a bulleted region
+        # if so some how prevent bullet bug
+        event.Skip()
+    
+
+    def IndentMore(self):
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT | 
+                      rt.TEXT_ATTR_BULLET_STYLE |
+                      rt.TEXT_ATTR_BULLET_NAME)
+        ip = self.GetInsertionPoint()
+        
+        if self.GetStyle(ip, attr):
+            if self.HasSelection():
+                r = self.GetSelectionRange()
             else:
-                attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
-                                      
-            attr.SetLeftIndent(indent - 100, 50)
+                r = rt.RichTextRange(ip, ip)
+            
+            indent = attr.GetLeftIndent()
+            attr.SetLeftIndent(indent + 100, 50)
+            attr.SetBulletStyle(rt.TEXT_ATTR_BULLET_STYLE_STANDARD)
+            attr.SetBulletName("standard/circle")
             self.SetStyle(r, attr)
+            #self.SetStyleEx(r, attr, 
+            #                rt.RICHTEXT_SETSTYLE_PARAGRAPHS_ONLY |
+            #                rt.RICHTEXT_SETSTYLE_WITH_UNDO)
+       
+        
+    def IndentLess(self):
+        attr = rt.TextAttrEx()
+        attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
+        ip = self.GetInsertionPoint()
+        
+        if self.GetStyle(ip, attr):
+            if self.HasSelection():
+                r = self.GetSelectionRange()
+            else:
+                r = rt.RichTextRange(ip, ip)
+
+            indent = attr.GetLeftIndent()
+            if indent >= 100:
+
+                if indent == 100:
+                    attr.SetFlags(rt.TEXT_ATTR_BULLET_STYLE |
+                                  rt.TEXT_ATTR_BULLET_NAME |
+                                  rt.TEXT_ATTR_LEFT_INDENT)                
+                    attr.SetBulletStyle(rt.TEXT_ATTR_BULLET_STYLE_NONE)
+                    attr.SetBulletName("")
+                    attr.SetLeftIndent(indent - 100)
+                else:
+                    attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
+                    attr.SetLeftIndent(indent - 100, 50)
+                
+                #self.SetStyleEx(r, attr, 
+                #                rt.RICHTEXT_SETSTYLE_PARAGRAPHS_ONLY |
+                #                rt.RICHTEXT_SETSTYLE_WITH_UNDO)
+                self.SetStyle(r, attr)
     
     
     def OnInsertImage(self, event):
