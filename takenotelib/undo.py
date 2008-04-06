@@ -5,6 +5,14 @@
 """
 
 
+
+def cat_funcs(funcs):
+    def f():
+        for func in funcs:
+            func()
+    return f
+            
+
 class UndoStack (object):
     def __init__(self):
         self.undo_actions = []
@@ -54,19 +62,13 @@ class UndoStack (object):
     
     def end_action(self):
         self.action_stack -= 1
-        
-        def make_call(funcs):
-            def f():
-                for func in funcs:
-                    func()
-            return f
-        
+
         if self.action_stack == 0:
             if len(self.pending_actions) > 0:
                 actions, undos = zip(*self.pending_actions)
                 
-                self.undo_actions.append((make_call(actions), 
-                                          make_call(undos)))
+                self.undo_actions.append((cat_funcs(actions), 
+                                          cat_funcs(undos)))
                 self.pending_actions = []
 
     def suppress(self):

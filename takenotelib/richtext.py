@@ -7,18 +7,18 @@ from HTMLParser import HTMLParser
 import pygtk
 pygtk.require('2.0')
 import gtk, gobject, pango
-import gtk.gdk
+from gtk import gdk
 
 from takenotelib.undo import UndoStack
 
 
 # TODO: copy and paste child elements
-# TODO: propper undo tags
+
 
 #=============================================================================
 # functions for iterating and inserting into textbuffers
 
-def iter_buffer(textbuffer, start=None, end=None):
+def iter_buffer_contents(textbuffer, start=None, end=None):
     """Iterate over the items of a textbuffer"""
     
     if start == None:
@@ -33,7 +33,7 @@ def iter_buffer(textbuffer, start=None, end=None):
 
     # yield opening tags
     for tag in it.get_tags():
-        yield ("begin", it, last, tag)
+        yield ("begin", it, tag)
     
     while True:
         it2 = it.copy()    
@@ -48,18 +48,18 @@ def iter_buffer(textbuffer, start=None, end=None):
             ret = it2.forward_search(u'\ufffc', (), stop)
             
             if ret == None:
-                yield ("text", it2, stop, it2.get_text(stop))
+                yield ("text", it2, it2.get_text(stop))
                 break
             
             a, b = ret
             anchor = a.get_child_anchor()
             
             # yield text in between tags
-            yield ("text", it2, a, it2.get_text(a))
+            yield ("text", it2, it2.get_text(a))
             if anchor != None:
-                yield ("anchor", a, b, (anchor, anchor.get_widgets()))
+                yield ("anchor", a, (anchor, anchor.get_widgets()))
             else:
-                yield ("pixbuf", a, b, a.get_pixbuf())
+                yield ("pixbuf", a, a.get_pixbuf())
             it2 = b
         
         if it.get_offset() > end.get_offset():
@@ -67,11 +67,11 @@ def iter_buffer(textbuffer, start=None, end=None):
         
         # yield closing tags
         for tag in it.get_toggled_tags(False):
-            yield ("end", it, last, tag)
+            yield ("end", it, tag)
 
         # yield opening tags
         for tag in it.get_toggled_tags(True):
-            yield ("begin", it, last, tag)
+            yield ("begin", it, tag)
         
         last = it.copy()
         
@@ -81,14 +81,23 @@ def iter_buffer(textbuffer, start=None, end=None):
     toggled = set(end.get_toggled_tags(False))
     for tag in end.get_tags():
         if tag not in toggled:
-            yield ("end", end, last, tag)
+            yield ("end", end, tag)
 
+
+def buffer_contents_iter_to_offset(contents):
+    """Converts to iters of a content list to offsets"""
+    
+    for kind, it, param in contents:
+        yield (kind, it.get_offset(), param)
+    
 
 def normalize_tags(items):
+    """Normalize open and close tags to ensure proper nesting"""
+
     open_stack = []
 
     for item in items:
-        kind, it, last, param = item
+        kind, it, param = item
         if kind == "begin":
             open_stack.append(param)
             yield item
@@ -100,7 +109,7 @@ def normalize_tags(items):
             while param != open_stack[-1]:
                 reopen_stack.append(open_stack.pop())
                 tag2 = reopen_stack[-1]
-                yield ("end", it, last, tag2)
+                yield ("end", it, tag2)
 
             # close current tag
             open_stack.pop()
@@ -109,13 +118,15 @@ def normalize_tags(items):
             # reopen tags
             for tag2 in reversed(reopen_stack):
                 open_stack.append(tag2)
-                yield ("begin", it, last, tag2)
+                yield ("begin", it, tag2)
 
         else:
             yield item
 
 
 def insert_buffer_contents(textview, pos, contents):
+    """Insert a content list into a textview"""
+    
     textbuffer = textview.get_buffer()
     
     textbuffer.place_cursor(pos)
@@ -125,9 +136,11 @@ def insert_buffer_contents(textview, pos, contents):
     first_insert = True
     
     for item in contents:
-        kind, it, last, param = item
+        kind, offset, param = item
+        
         if kind == "text":
             textbuffer.insert_at_cursor(param)
+            
             if first_insert:
                 it = textbuffer.get_iter_at_mark(textbuffer.get_insert())
                 it2 = it.copy()
@@ -154,6 +167,28 @@ def insert_buffer_contents(textview, pos, contents):
         elif kind == "end":
             start = textbuffer.get_iter_at_offset(tags[param])
             end = textbuffer.get_iter_at_mark(textbuffer.get_insert())
+            textbuffer.apply_tag(param, start, end)
+
+
+def buffer_contents_apply_tags(textview, contents):
+    """Apply tags into a textview"""
+    
+    textbuffer = textview.get_buffer()
+    
+    tags = {}
+    
+    # make sure all tags are removed on first text/anchor insert
+    first_insert = True
+    
+    for item in contents:
+        kind, offset, param = item
+        
+        if kind == "begin":
+            tags[param] = textbuffer.get_iter_at_offset(offset)
+            
+        elif kind == "end":
+            start = tags[param]
+            end = textbuffer.get_iter_at_offset(offset)
             textbuffer.apply_tag(param, start, end)
 
 
@@ -272,7 +307,7 @@ class HtmlBuffer (HTMLParser):
         
         self.out.write("<html><body>")
         
-        for kind, it, last, param in normalize_tags(iter_buffer(textbuffer)):
+        for kind, it, param in normalize_tags(iter_buffer_contents(textbuffer)):
             if kind == "text":
                 text = param
                 text = text.replace("&", "&amp;")
@@ -367,12 +402,15 @@ class DeleteAction (Action):
         self.text = text
         self.cursor_offset = cursor_offset
         self.contents = []
+        
+        self.record_range()
     
 
     def do(self):
         start = self.textbuffer.get_iter_at_offset(self.start_offset)
         end = self.textbuffer.get_iter_at_offset(self.end_offset)
         self.textbuffer.place_cursor(start)
+        self.record_range()
         self.textbuffer.delete(start, end)
 
     def undo(self):
@@ -387,7 +425,8 @@ class DeleteAction (Action):
     def record_range(self):
         start = self.textbuffer.get_iter_at_offset(self.start_offset)
         end = self.textbuffer.get_iter_at_offset(self.end_offset)
-        self.contents = list(iter_buffer(self.textbuffer, start, end))
+        self.contents = list(buffer_contents_iter_to_offset(
+            iter_buffer_contents(self.textbuffer, start, end)))
 
 
 
@@ -425,11 +464,14 @@ class TagAction (Action):
         self.start_offset = start_offset
         self.end_offset = end_offset
         self.applied = applied
+        self.contents = []
+        self.record_range()
         
     
     def do(self):
         start = self.textbuffer.get_iter_at_offset(self.start_offset)
         end = self.textbuffer.get_iter_at_offset(self.end_offset)
+        self.record_range()
         if self.applied:
             self.textbuffer.apply_tag(self.tag, start, end)
         else:
@@ -443,6 +485,15 @@ class TagAction (Action):
             self.textbuffer.remove_tag(self.tag, start, end)
         else:
             self.textbuffer.apply_tag(self.tag, start, end)
+        buffer_contents_apply_tags(self.richtext, self.contents)
+    
+    def record_range(self):
+        start = self.textbuffer.get_iter_at_offset(self.start_offset)
+        end = self.textbuffer.get_iter_at_offset(self.end_offset)
+        self.contents = filter(lambda (kind, it, param): 
+            kind in ("begin", "end") and param == self.tag,
+            buffer_contents_iter_to_offset(
+                iter_buffer_contents(self.textbuffer, start, end)))
 
 
 #=============================================================================
@@ -506,14 +557,63 @@ class RichTextImage (RichTextChild):
         
 
 #=============================================================================
-# RichText class
+# RichText classes
+
+class RichTextBuffer (gtk.TextBuffer):
+    def __init__(self):
+        gtk.TextBuffer.__init__(self)
+
+    def copy_clipboard(self, clipboard):
+        print "do copy", clipboard              
+        gtk.TextBuffer.copy_clipboard(self, clipboard)
+        return 
+        
+        start, end = self.get_selection_bounds()
+        
+        targets = [("application/x-takenote", gtk.TARGET_SAME_APP & gtk.TARGET_SAME_WIDGET, 0)]
+        contents = list(iter_buffer_contents(self, start, end))
+        clipboard.set_with_data(targets, self.get_selection_data, 
+                                self.clear_selection_data,
+                                contents)
+
+    def cut_clipboard(self, clipboard, default_editable):
+        print "do paste"
+
+    def paste_clipboard(self, clipboard, override_location, default_editable):
+        print "do paste"
+        gtk.TextBuffer.paste_clipboard(self, clipboard, override_location, default_editable)        
+        #clipboard.request_contents("application/x-gtk-text-buffer-rich-text", self.do_paste)
+        #print clipboard.wait_is_rich_text_available(self)
+        #clipboard.request_text(self.do_paste_text)
+        #clipboard.request_rich_text(self, self.do_paste)
+    
+    def do_paste_text(self, clipboard, text, data):
+        print text
+    
+    def do_paste(self, clipboard, format, text, length, data): #clipboard, selection_data, data):
+        
+        print text
+        #print "paste sel", selection_data, data
+        #print selection_data.get_targets(), selection_data.get_text()
+        #print selection_data.targets_include_rich_text(self)
+    
+    def get_selection_data(self, clipboard, selection_data, info, data):
+        print "copy sel", selection_data, data
+        selection_data.set_text("mytext")
+        return
+    
+    def clear_selection_data(self, clipboard, data):
+        return
+    
 
 class RichTextView (gtk.TextView):
 
     def __init__(self):
-        gtk.TextView.__init__(self)
+        gtk.TextView.__init__(self, RichTextBuffer())
+        #self.set_buffer()
         self.textbuffer = self.get_buffer()
         self.undo_stack = UndoStack()
+        self.set_wrap_mode(gtk.WRAP_CHAR)
         
         # signals
         self.textbuffer.connect("mark-set", self.on_mark_set)
@@ -521,16 +621,21 @@ class RichTextView (gtk.TextView):
         self.textbuffer.connect("delete-range", self.on_delete_range)
         self.textbuffer.connect("insert-pixbuf", self.on_insert_pixbuf)
         self.textbuffer.connect("insert-child-anchor", self.on_insert_child_anchor)
-
+        self.textbuffer.connect("apply-tag", self.on_apply_tag)
+        self.textbuffer.connect("remove-tag", self.on_remove_tag)        
         self.insertid = self.textbuffer.connect("changed", self.on_changed)
         self.textbuffer.connect("begin_user_action", self.on_begin_user_action)
-        self.textbuffer.connect("begin_user_action", self.on_end_user_action)
-        self.textbuffer.connect("apply-tag", self.on_apply_tag)
-        self.textbuffer.connect("remove-tag", self.on_remove_tag)
+        self.textbuffer.connect("end_user_action", self.on_end_user_action)
+        #self.connect("populate-popup", self.on_popup)
+        
+        #self.connect("copy-clipboard", self.on_copy)
+        #self.connect("cut-clipboard", self.on_cut)
+        #self.connect("paste-clipboard", self.on_paste)
         
         self.insert_mark = None
         self.next_action = None
         self.current_tags = []
+        self.first_menu = True
         
         # font tags
         self.tag_table = self.textbuffer.get_tag_table()
@@ -555,14 +660,82 @@ class RichTextView (gtk.TextView):
         
         self.image = RichTextImage()
         self.image.set_from_file("bitmaps/zebra.xpm")
-        self.insert_image(self.image)
+        #self.insert_image(self.image)
         
         self.textbuffer.insert_at_cursor("hello")
         
         image = gtk.Image()
         image.set_from_file("bitmaps/zebra.xpm")        
         #self.insert_image(image)
+
+        #self.textbuffer.unregister_serialize_format("application/x-gtk-text-buffer-rich-text")
+        #self.textbuffer.unregister_deserialize_format("application/x-gtk-text-buffer-rich-text")
+        
+        #self.textbuffer.register_serialize_format("application/x-gtk-text-buffer-rich-text", self.serialize, None)
+        #self.textbuffer.register_deserialize_format("application/x-gtk-text-buffer-rich-text", self.deserialize, None)
+        #self.textbuffer.register_serialize_format("application/x-takenote", 
+        #                                          self.serialize, None)
+        #self.textbuffer.register_deserialize_format("application/x-takenote", 
+        #                                            self.deserialize, None)
+        
+        print self.textbuffer.get_serialize_formats()
+        print self.textbuffer.get_copy_target_list()
+        start = self.textbuffer.get_start_iter()
+        end = self.textbuffer.get_end_iter()
+        #print type(self.textbuffer.serialize(self.textbuffer, "application/x-gtk-text-buffer-rich-text", start, end))
+        
+                                                  
+    def on_popup(self, textview, menu):
+        return
+        self.first_menu = False
+        menu.foreach(lambda item: menu.remove(item))
+
+        # Create the menu item
+        copy_item = gtk.MenuItem("Copy")
+        copy_item.connect("activate", self.on_copy)
+        menu.add(copy_item)
+        
+        accel_group = menu.get_accel_group()
+        print "accel", accel_group
+        if accel_group == None:
+            accel_group = gtk.AccelGroup()
+            menu.set_accel_group(accel_group)
+            print "get", menu.get_accel_group()
+
+
+        # Now add the accelerator to the menu item. Note that since we created
+        # the menu item with a label the AccelLabel is automatically setup to 
+        # display the accelerators.
+        copy_item.add_accelerator("activate", accel_group, ord("C"),
+                                  gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE)
+        copy_item.show()                                  
+
+            
+           
     
+    def serialize(self, register_buf, content_buf, start, end, data):
+        print "serialize", content_buf, data
+        return "SERIALIZED"
+    
+    
+    def deserialize(self, register_buf, content_buf, it, data, create_tags, udata):
+        print "deserialize"
+        
+    
+    def on_copy(self, textview):
+        clipboard = gtk.clipboard_get(gdk.SELECTION_CLIPBOARD)
+        self.textbuffer.copy_clipboard(clipboard)
+        self.stop_emission('copy-clipboard')
+    
+    def on_cut(self, textview):
+        clipboard = gtk.clipboard_get(gdk.SELECTION_CLIPBOARD)
+        self.textbuffer.cut_clipboard(clipboard, self.get_editable())
+        self.stop_emission('cut-clipboard')
+    
+    def on_paste(self, textview):
+        clipboard = gtk.clipboard_get(gdk.SELECTION_CLIPBOARD)
+        self.textbuffer.paste_clipboard(clipboard, None, self.get_editable())
+        self.stop_emission('paste-clipboard')
     
     #==================================================================
     # Callbacks
@@ -598,7 +771,6 @@ class RichTextView (gtk.TextView):
                                         self.textbuffer.get_iter_at_mark(
                                             self.textbuffer.get_insert()).
                                                 get_offset())
-        self.next_action.record_range()
         
     
     def on_insert_pixbuf(self, textbuffer, it, pixbuf):
@@ -669,13 +841,16 @@ class RichTextView (gtk.TextView):
     
     
     def load(self):
-        self.textbuffer.begin_user_action()    
+        self.textbuffer.begin_user_action()
+        
         start = self.textbuffer.get_start_iter()
         end = self.textbuffer.get_end_iter()
         self.textbuffer.remove_all_tags(start, end)
         self.textbuffer.delete(start, end)
         self.html_buffer.read(self, open("notes.html", "r"))
+        
         self.textbuffer.end_user_action()
+        self.undo_stack.reset()
 
 
     def toggle_tag(self, tag):
