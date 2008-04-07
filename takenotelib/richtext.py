@@ -314,6 +314,18 @@ class HtmlBuffer (HTMLParser):
                 else:
                     raise Exception("unknown attr key '%s'" % key)
         
+        elif htmltag == "img":
+            
+            for key, value in attrs:
+                if key == "src":
+                    img = RichTextImage()
+                    img.set_filename(value)
+                    self.richtext.insert_image(img)
+                    pass
+                else:
+                    Exception("unknown attr key '%s'" % key)
+            return
+        
         else:
             raise Exception("WARNING: unhandled tag '%s'" % htmltag)
             
@@ -354,7 +366,12 @@ class HtmlBuffer (HTMLParser):
             
             elif kind == "anchor":
                 for widget in param[1]:
-                    self.out.write("<img/>")
+                    child = widget.get_owner()
+                    if isinstance(child, RichTextImage):
+                        self.out.write("<img src=\"%s\"/>" % child.get_filename())
+                    else:
+                        # warning
+                        print "unknown child element", widget
             
             elif kind == "pixbuf":
                 self.out.write("<pixbuf>")
@@ -568,18 +585,28 @@ class BaseImage (gtk.Image, BaseChild):
 class RichTextImage (RichTextChild):
     def __init__(self):
         RichTextChild.__init__(self)
+        self.filename = None
         self.child = BaseImage()
         self.child.set_owner(self)
         self.child.connect("destroy", self.on_image_destroy)
         self.pixbuf = None
     
+    def set_filename(self, filename):
+        self.filename = filename
+    
+    def get_filename(self):
+        return self.filename
     
     def set_from_file(self, filename):
+        if self.filename == None:
+            self.filename = os.path.basename(filename)
         self.child.set_from_file(filename)
         self.pixbuf = self.child.get_pixbuf()
     
     
-    def set_from_pixbuf(self, pixbuf):
+    def set_from_pixbuf(self, pixbuf, filename=None):
+        if filename != None:
+            self.filename = filename
         self.child.set_from_pixbuf(pixbuf)
         self.pixbuf = pixbuf
     
@@ -594,6 +621,7 @@ class RichTextImage (RichTextChild):
         
     def copy(self):
         img = RichTextImage()
+        img.filename = self.filename
         img.child.set_from_pixbuf(self.pixbuf)
         img.pixbuf = self.pixbuf
         img.child.show()
@@ -639,9 +667,10 @@ class RichTextBuffer (gtk.TextBuffer):
         if sel:
             start, end = sel
             contents = list(iter_buffer_contents(self, start, end))
+            text = start.get_text(end)
             clipboard.set_with_data(targets, self.get_selection_data, 
                                     self.clear_selection_data,
-                                    contents)
+                                    (contents, text))
 
     def cut_clipboard(self, clipboard, default_editable):
         """Callback for cut event"""
@@ -677,14 +706,15 @@ class RichTextBuffer (gtk.TextBuffer):
     def get_selection_data(self, clipboard, selection_data, info, data):
         """Callback for when Clipboard needs selection data"""
         
-        self.clipboard_contents = data
+        self.clipboard_contents = data[0]
+        
         
         if MIME_TAKENOTE in selection_data.target:
             # set rich text
             selection_data.set(MIME_TAKENOTE, 8, "<takenote>")
         else:
             # set plain text        
-            selection_data.set_text("mytext_only")
+            selection_data.set_text(data[1])
 
     
     def clear_selection_data(self, clipboard, data):
@@ -752,13 +782,14 @@ class RichTextView (gtk.TextView):
         self.html_buffer.add_justify_tag(self.right_tag, "right")
         
         
-        self.textbuffer.register_serialize_format(MIME_TAKENOTE, 
-                                                  self.serialize, None)
-        self.textbuffer.register_deserialize_format(MIME_TAKENOTE, 
-                                                    self.deserialize, None)
+        #self.textbuffer.register_serialize_format(MIME_TAKENOTE, 
+        #                                          self.serialize, None)
+        #self.textbuffer.register_deserialize_format(MIME_TAKENOTE, 
+        #                                            self.deserialize, None)
         
         
         # TESTING
+        """
         self.textbuffer.begin_user_action()
         self.textbuffer.insert_at_cursor("hello")        
         #self.p = gtk.gdk.pixbuf_new_from_file("bitmaps/copy.xpm")
@@ -776,6 +807,7 @@ class RichTextView (gtk.TextView):
                                   self.textbuffer.get_end_iter())
         
         self.textbuffer.end_user_action()
+        """
 
         
                                                   
@@ -920,8 +952,12 @@ class RichTextView (gtk.TextView):
     # File I/O
     
     def save(self, filename):
+        path = os.path.dirname(filename)
+        self.save_images(path)
+    
         out = open(filename, "w")
-        self.write_buffer(out)
+        self.html_buffer.set_output(out)
+        self.html_buffer.write(self)
         out.close()
     
     
@@ -934,25 +970,59 @@ class RichTextView (gtk.TextView):
         self.textbuffer.delete(start, end)
         self.html_buffer.read(self, open(filename, "r"))
         
+        path = os.path.dirname(filename)
+        self.load_images(path)
+        
         self.textbuffer.end_user_action()
         self.undo_stack.reset()
 
     
-    def write_buffer(self, out):
-        """Write buffer to output stream"""
+    def load_images(self, path):
         
-        self.html_buffer.set_output(out)
-        self.html_buffer.write(self)
+        for kind, it, param in iter_buffer_contents(self.textbuffer):
+            if kind == "anchor":
+                anchor, widgets = param
+                
+                for widget in widgets:
+                    child = widget.get_owner()
+                    
+                    if isinstance(child, RichTextImage):
+                        filename = os.path.join(path, child.get_filename())
+                        child.set_from_file(filename)
+                        child.get_child().show()
+
+    def save_images(self, path):
+        for kind, it, param in iter_buffer_contents(self.textbuffer):
+            if kind == "anchor":
+                anchor, widgets = param
+                
+                for widget in widgets:
+                    child = widget.get_owner()
+                    
+                    if isinstance(child, RichTextImage):
+                        filename = os.path.join(path, child.get_filename())
+                        
+                        f, ext = os.path.splitext(filename)
+                        ext = ext.replace(".", "")
+                        if ext == "jpg":
+                            ext = "jpeg"
+                        
+                        child.pixbuf.save(filename, ext) #, {"quality":"100"})
+                        
     
     #===========================================================
     # Actions
         
     def insert_image(self, image):
+        """Inserts an image into the textbuffer"""
+    
         self.textbuffer.begin_user_action()
+        
         it = self.textbuffer.get_iter_at_mark(self.textbuffer.get_insert())
         anchor = self.textbuffer.create_child_anchor(it)
         self.add_child_at_anchor(image.get_child(), anchor)
         image.get_child().show()
+        
         self.textbuffer.end_user_action()
     
     #==============================================================

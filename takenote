@@ -30,7 +30,7 @@ class TakeNoteTreeView (object):
         #self.treeview.connect("cursor-changed", self.on_select, full=True)
 
         #self.treeview.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
-        self.treeview.get_selection().set_select_function(self.on_select, full=True)
+        self.treeview.get_selection().set_select_function(self.on_select)#, full=True)
 
         # create the TreeViewColumn to display the data
         self.tvcolumn = gtk.TreeViewColumn()
@@ -42,6 +42,8 @@ class TakeNoteTreeView (object):
         # create a CellRendererText to render the data
         self.cell_icon = gtk.CellRendererPixbuf()
         self.cell_text = gtk.CellRendererText()
+        self.cell_text.connect("edited", self.on_edit_title)
+        self.cell_text.set_property("editable", True)        
 
         # add the cell to the tvcolumn and allow it to expand
         self.tvcolumn.pack_start(self.cell_icon, False)
@@ -65,12 +67,27 @@ class TakeNoteTreeView (object):
     #def on_activate(self, treeview, path, view_column):
     #    print path, view_column
     
-    def on_select(self, selection, model, path, is_selected):
+
+    def on_edit_title(self, cellrenderertext, path, new_text):
+        try:
+            node = self.get_node(path)        
+            node.rename(new_text)
+            
+            self.treestore[path][1] = new_text
+        except Exception, e:
+            print e
+            print "takenote: could not rename page '%s'" % node.title
+    
+
+    def on_select(self, path):
         
-        if not is_selected and self.on_select_node:
+        model, it = self.treeview.get_selection().get_selected()
+        is_selected = (it == None)
+        
+        if is_selected and self.on_select_node:
             self.on_select_node(self.get_node(path))
         return True
-        
+
 
     
     def set_notebook(self, notebook):
@@ -146,8 +163,8 @@ class TakeNoteSelector (object):
         tree_view = gtk.TreeView(self.model)
         scrolled_window.add_with_viewport (tree_view)
         tree_view.show()
-        tree_view.get_selection().set_select_function(self.on_select, full=True)
-
+        tree_view.get_selection().set_select_function(self.on_select)
+        self.tree_view = tree_view
         
         cell_icon = gtk.CellRendererPixbuf()
         cell_text = gtk.CellRendererText()
@@ -157,6 +174,8 @@ class TakeNoteSelector (object):
         
         column.pack_start(cell_icon, False)
         column.pack_start(cell_text, True)
+        cell_text.connect("edited", self.on_edit_title)
+        cell_text.set_property("editable", True)
 
         # map cells to columns in textstore
         column.add_attribute(cell_icon, 'pixbuf', 0)
@@ -165,6 +184,17 @@ class TakeNoteSelector (object):
         self.icon = pixbuf = gdk.pixbuf_new_from_file("bitmaps/copy.xpm")
         self.view = scrolled_window
 
+
+    def on_edit_title(self, cellrenderertext, path, new_text):
+        try:
+            page = self.get_page(path)        
+            page.rename(new_text)
+            
+            self.model[path][1] = new_text
+        except Exception, e:
+            print e
+            print "takenote: could not rename page '%s'" % node.title
+    
     
     def view_nodes(self, nodes):
         self.model.clear()
@@ -175,25 +205,24 @@ class TakeNoteSelector (object):
                 self.model.set(it, 0, self.icon)                
                 self.model.set(it, 1, page.get_title())
                 self.model.set(it, 2, page)
+    
+    
+    def on_select(self, path): 
 
-    def on_select(self, selection, model, path, is_selected):    
-        if not is_selected and self.on_select_node:
-            self.on_select_node(self.model[path[0]][2])
-        return True
+        model, it = self.tree_view.get_selection().get_selected()
+        is_selected = (it == None)
+        
+        if is_selected and self.on_select_node:
+            self.on_select_node(self.get_page(path))
+        return True    
+
     
     def set_notebook(self, notebook):
         self.notebook = notebook
         
     
-    def get_node(self, path):
-        
-        node = self.notebook.root
-        
-        for i in path[1:]:
-            c = node.get_children()
-            for j in xrange(i+1):
-                node = c.next()
-        return node
+    def get_page(self, path):
+        return self.model[path[0]][2]
 
 
 class TakeNoteEditor (object):
@@ -287,7 +316,7 @@ class TakeNoteWindow (gtk.Window):
         self.editor.textview.grab_focus()
     
     
-    def on_new_node(self):
+    def on_new_dir(self):
     
     
         if len(self.sel_nodes) == 1:
@@ -295,7 +324,7 @@ class TakeNoteWindow (gtk.Window):
         else:
             parent = self.notebook.get_root_node()
         
-        parent.new_node("New Node")
+        parent.new_dir("New Node")
         self.treeview.update_node(parent)
     
     
@@ -409,6 +438,7 @@ class TakeNoteWindow (gtk.Window):
             try:
                 pixbuf = gdk.pixbuf_new_from_file(imgfile)
                 img = RichTextImage()
+                img.set_filename("screenshot.jpg")
                 img.set_from_pixbuf(pixbuf)
                 self.editor.textview.insert_image(img)
             except Exception, e:
@@ -417,6 +447,14 @@ class TakeNoteWindow (gtk.Window):
             
             os.remove(imgfile)        
 
+    def on_choose_font(self):
+        self.font_sel.clicked()
+    
+    
+    def on_font_set(self):
+        self.editor.textview.on_font_set(self.font_sel)
+        self.editor.textview.grab_focus()
+    
     
     #================================================
     # Menubar
@@ -426,7 +464,7 @@ class TakeNoteWindow (gtk.Window):
         self.menu_items = (
             ( "/_File",         None,         None, 0, "<Branch>" ),
             ( "/File/_New Page", "<control>N", lambda w,e: self.on_new_page(), 0, None ),
-            ( "/File/Ne_w Node", "<control><shift>N", lambda w,e: self.on_new_node(), 0, None ),
+            ( "/File/Ne_w Directory", "<control><shift>N", lambda w,e: self.on_new_dir(), 0, None ),
             ( "/File/_Open",    "<control>O", lambda w,e: self.editor.textview.load("notes.html"), 0, None ),
             ( "/File/_Save",    "<control>S", lambda w,e: self.editor.save(), 0, None ),
             ( "/File/Save _As", None,         None, 0, None ),
@@ -440,13 +478,14 @@ class TakeNoteWindow (gtk.Window):
             ( "/Edit/Insert Screenshot",     "<control>Insert", lambda w,e: self.on_screenshot(), 0, None),
             
             ( "/Format",        None,         None, 0, "<Branch>" ),
-            ( "/Format/_Bold",    "<control>B", lambda w,e: self.on_bold(), 0, None ),
-            ( "/Format/_Italic", "<control>I", lambda w,e: self.on_italic(), 0, None ),
-            ( "/Format/_Underline", "<control>U", lambda w,e: self.on_underline(), 0, None ),
-            ( "/Format/sep1",     None,         None, 0, "<Separator>" ),
             ( "/Format/_Left Align",    "<control>L", lambda w,e: self.on_left_justify(), 0, None ),
             ( "/Format/C_enter Align", "<control>E", lambda w,e: self.on_center_justify(), 0, None ),
             ( "/Format/_Right Align", "<control>R", lambda w,e: self.on_right_justify(), 0, None ),
+            ( "/Format/sep1",     None,         None, 0, "<Separator>" ),            
+            ( "/Format/_Bold",    "<control>B", lambda w,e: self.on_bold(), 0, None ),
+            ( "/Format/_Italic", "<control>I", lambda w,e: self.on_italic(), 0, None ),
+            ( "/Format/_Underline", "<control>U", lambda w,e: self.on_underline(), 0, None ),
+            ( "/Format/Choose _Font", "<control>F", lambda w, e: self.on_choose_font(), 0, None),
 
             
             ( "/_Help",         None,         None, 0, "<LastBranch>" ),
@@ -489,7 +528,7 @@ class TakeNoteWindow (gtk.Window):
         icon.set_from_file("bitmaps/bold.xpm")
         self.bold_button = gtk.ToggleToolButton()
         self.bold_button.set_icon_widget(icon)
-        self.bold_button.set_tooltip_text("Bold")
+        #self.bold_button.set_tooltip_text("Bold")
         self.bold_id = self.bold_button.connect("toggled", lambda w: self.editor.textview.on_bold())
         toolbar.insert(self.bold_button, -1)
 
@@ -499,7 +538,7 @@ class TakeNoteWindow (gtk.Window):
         icon.set_from_file("bitmaps/italic.xpm")
         self.italic_button = gtk.ToggleToolButton()
         self.italic_button.set_icon_widget(icon)
-        self.italic_button.set_tooltip_text("Italic")
+        #self.italic_button.set_tooltip_text("Italic")
         self.italic_id = self.italic_button.connect("toggled", lambda w: self.editor.textview.on_italic())
         toolbar.insert(self.italic_button, -1)
 
@@ -508,7 +547,7 @@ class TakeNoteWindow (gtk.Window):
         icon.set_from_file("bitmaps/underline.xpm")
         self.underline_button = gtk.ToggleToolButton()
         self.underline_button.set_icon_widget(icon)
-        self.underline_button.set_tooltip_text("Underline")
+        #self.underline_button.set_tooltip_text("Underline")
         self.underline_id = self.underline_button.connect("toggled", lambda w: self.editor.textview.on_underline())
         toolbar.insert(self.underline_button, -1)
                 
@@ -517,16 +556,16 @@ class TakeNoteWindow (gtk.Window):
         self.font_sel = gtk.FontButton()
         item = gtk.ToolItem()
         item.add(self.font_sel)
-        item.set_tooltip_text("Set Font")
+        #item.set_tooltip_text("Set Font")
         toolbar.insert(item, -1)
-        self.font_sel.connect("font-set", self.editor.textview.on_font_set)
+        self.font_sel.connect("font-set", lambda w: self.on_font_set())
         
         # left tool
         icon = gtk.Image() # icon widget
         icon.set_from_file("bitmaps/alignleft.xpm")
         self.left_button = gtk.ToggleToolButton()
         self.left_button.set_icon_widget(icon)
-        self.left_button.set_tooltip_text("Left Justify")
+        #self.left_button.set_tooltip_text("Left Justify")
         self.left_id = self.left_button.connect("toggled", lambda w: self.editor.textview.on_left_justify())
         toolbar.insert(self.left_button, -1)
         
@@ -535,7 +574,7 @@ class TakeNoteWindow (gtk.Window):
         icon.set_from_file("bitmaps/aligncenter.xpm")
         self.center_button = gtk.ToggleToolButton()
         self.center_button.set_icon_widget(icon)
-        self.center_button.set_tooltip_text("Center Justify")
+        #self.center_button.set_tooltip_text("Center Justify")
         self.center_id = self.center_button.connect("toggled", lambda w: self.editor.textview.on_center_justify())
         toolbar.insert(self.center_button, -1)
         
@@ -544,7 +583,7 @@ class TakeNoteWindow (gtk.Window):
         icon.set_from_file("bitmaps/alignright.xpm")
         self.right_button = gtk.ToggleToolButton()
         self.right_button.set_icon_widget(icon)
-        self.right_button.set_tooltip_text("Right Justify")
+        #self.right_button.set_tooltip_text("Right Justify")
         self.right_id = self.right_button.connect("toggled", lambda w: self.editor.textview.on_right_justify())
         toolbar.insert(self.right_button, -1)        
         
