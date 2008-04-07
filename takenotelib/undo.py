@@ -68,7 +68,7 @@ class UndoStack (object):
                 actions, undos = zip(*self.pending_actions)
                 
                 self.undo_actions.append((cat_funcs(actions), 
-                                          cat_funcs(undos)))
+                                          cat_funcs(list(reversed(undos)))))
                 self.pending_actions = []
 
     def suppress(self):
