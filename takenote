@@ -22,7 +22,7 @@ class TakeNoteTreeView (object):
         self.on_select_node = None
     
         # create a TreeStore with one string column to use as the model
-        self.treestore = gtk.TreeStore(gdk.Pixbuf, str)
+        self.treestore = gtk.TreeStore(gdk.Pixbuf, str, object)
                 
         # create the TreeView using treestore
         self.treeview = gtk.TreeView(self.treestore)
@@ -81,28 +81,54 @@ class TakeNoteTreeView (object):
         
         else:
             root = self.notebook.get_root_node()
-            self.tvcolumn.set_title(root.name)
-            
-            for child in root.get_children():
-                self.add_node(None, child)
+            self.add_node(None, root)
         
     
     def add_node(self, parent, node):
         
-        it = self.treestore.append(parent, [self.icon, node.name])
+        it = self.treestore.append(parent, [self.icon, node.get_title(), node])
         
         for child in node.get_children():
             self.add_node(it, child)
 
+    def update_node(self, node):
+        path = self.get_path(node)
+        
+        for child in self.treestore[path].iterchildren():
+            self.treestore.remove(child.iter)
+        
+        it = self.treestore.get_iter(path)
+        for child in node.get_children():
+            self.add_node(it, child)
+            
+        
+        
+    
+    def get_path(self, node):
+        ancestors = []
+        ptr = node
+        while ptr != None:
+            ancestors.append(ptr)
+            ptr = ptr.get_parent()
+        ancestors.pop()
+        
+        
+        path = [0]
+        ptr = self.treestore[0]
+        for node in reversed(ancestors):
+            for i, row in enumerate(ptr.iterchildren()):
+                if row[2] == node:
+                    path.append(i)
+                    ptr = row
+                    break
+        
+        return tuple(path)
+        
+
     def get_node(self, path):
         
-        node = self.notebook.root
+        return self.treestore[path][2]
         
-        for i in path:
-            c = node.get_children()
-            for j in xrange(i+1):
-                node = c.next()
-        return node
                     
 
 
@@ -110,15 +136,17 @@ class TakeNoteTreeView (object):
 class TakeNoteSelector (object):
     
     def __init__(self):
+        self.on_select_node = None
         
         # Create a new scrolled window, with scrollbars only if needed
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 
-        self.model = gtk.ListStore(gdk.Pixbuf, gobject.TYPE_STRING)
+        self.model = gtk.ListStore(gdk.Pixbuf, gobject.TYPE_STRING, object)
         tree_view = gtk.TreeView(self.model)
         scrolled_window.add_with_viewport (tree_view)
         tree_view.show()
+        tree_view.get_selection().set_select_function(self.on_select, full=True)
 
         
         cell_icon = gtk.CellRendererPixbuf()
@@ -144,9 +172,28 @@ class TakeNoteSelector (object):
         for node in nodes:
             for page in node.get_pages():
                 it = self.model.append()
-                self.model.set(it, 1, page.name)
-                self.model.set(it, 0, self.icon)
+                self.model.set(it, 0, self.icon)                
+                self.model.set(it, 1, page.get_title())
+                self.model.set(it, 2, page)
 
+    def on_select(self, selection, model, path, is_selected):    
+        if not is_selected and self.on_select_node:
+            self.on_select_node(self.model[path[0]][2])
+        return True
+    
+    def set_notebook(self, notebook):
+        self.notebook = notebook
+        
+    
+    def get_node(self, path):
+        
+        node = self.notebook.root
+        
+        for i in path[1:]:
+            c = node.get_children()
+            for j in xrange(i+1):
+                node = c.next()
+        return node
 
 
 class TakeNoteEditor (object):
@@ -160,6 +207,15 @@ class TakeNoteEditor (object):
         self.textview.show()
         self.view = sw
         
+        self.page = None
+        
+    def view_page(self, page):
+        self.page = page
+        self.textview.load(page.get_data_file())
+    
+    def save(self):
+        if self.page != None:
+            self.textview.save(self.page.get_data_file())
 
 
 class TakeNoteWindow (gtk.Window):
@@ -168,16 +224,20 @@ class TakeNoteWindow (gtk.Window):
         
         self.set_title("TakeNote")
         self.set_default_size(800, 600)
-        self.connect("destroy", self.on_close)
+        self.connect("destroy", lambda w: self.on_close())
         
         self.notebook = takenote.NoteBook("notebook")
+        self.sel_nodes = []
         
         # selector
         self.selector = TakeNoteSelector()
+        self.selector.set_notebook(self.notebook)        
+        self.selector.on_select_node = self.on_select_page
         
         # treeview
-        self.treeview = TakeNoteTreeView(self.notebook)
-        self.treeview.on_select_node = self.on_select_node
+        self.treeview = TakeNoteTreeView()
+        self.treeview.set_notebook(self.notebook)
+        self.treeview.on_select_node = self.on_select_treenode
         
         # editor
         self.editor = TakeNoteEditor()
@@ -204,7 +264,7 @@ class TakeNoteWindow (gtk.Window):
         # create a horizontal paned widget
         hpaned = gtk.HPaned()
         main_vbox.pack_start(hpaned, True, True, 0)
-        hpaned.set_position(150)
+        hpaned.set_position(200)
 
         # create a vertical paned widget
         vpaned = gtk.VPaned()
@@ -227,15 +287,42 @@ class TakeNoteWindow (gtk.Window):
         self.editor.textview.grab_focus()
     
     
-    # close the window and quit
-    def on_close(self, widget):
+    def on_new_node(self):
+    
+    
+        if len(self.sel_nodes) == 1:
+            parent = self.sel_nodes[0]
+        else:
+            parent = self.notebook.get_root_node()
+        
+        parent.new_node("New Node")
+        self.treeview.update_node(parent)
+    
+    
+    def on_new_page(self):
+        if len(self.sel_nodes) == 1:
+            parent = self.sel_nodes[0]
+        else:
+            parent = self.notebook.get_root_node()
+        
+        parent.new_page("New Page")
+        self.treeview.update_node(parent)
+    
+    
+    
+    def on_close(self):
+        """close the window and quit"""
         gtk.main_quit()
         return False
     
     
-    def on_select_node(self, node):
+    def on_select_treenode(self, node):
+        self.sel_nodes = [node]
         self.selector.view_nodes([node])
-        
+    
+    def on_select_page(self, page):
+        self.editor.view_page(page)
+    
     
     #=============================================================
     # Font UI Update
@@ -338,12 +425,13 @@ class TakeNoteWindow (gtk.Window):
         # menu bar
         self.menu_items = (
             ( "/_File",         None,         None, 0, "<Branch>" ),
-            ( "/File/_New",     "<control>N", None, 0, None ),
-            ( "/File/_Open",    "<control>O", lambda w,e: self.editor.textview.load(), 0, None ),
-            ( "/File/_Save",    "<control>S", lambda w,e: self.editor.textview.save(), 0, None ),
+            ( "/File/_New Page", "<control>N", lambda w,e: self.on_new_page(), 0, None ),
+            ( "/File/Ne_w Node", "<control><shift>N", lambda w,e: self.on_new_node(), 0, None ),
+            ( "/File/_Open",    "<control>O", lambda w,e: self.editor.textview.load("notes.html"), 0, None ),
+            ( "/File/_Save",    "<control>S", lambda w,e: self.editor.save(), 0, None ),
             ( "/File/Save _As", None,         None, 0, None ),
             ( "/File/sep1",     None,         None, 0, "<Separator>" ),
-            ( "/File/Quit",     "<control>Q", gtk.main_quit, 0, None ),
+            ( "/File/Quit",     "<control>Q", lambda w,e: self.on_close(), 0, None ),
 
             ( "/_Edit",         None,         None, 0, "<Branch>" ),
             ( "/Edit/Un_do",     "<control>Z", lambda w,e: self.editor.textview.undo(), 0, None),

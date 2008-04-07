@@ -919,20 +919,20 @@ class RichTextView (gtk.TextView):
     #==================================================================
     # File I/O
     
-    def save(self):
-        out = open("notes.html", "w")
+    def save(self, filename):
+        out = open(filename, "w")
         self.write_buffer(out)
         out.close()
     
     
-    def load(self):
+    def load(self, filename):
         self.textbuffer.begin_user_action()
         
         start = self.textbuffer.get_start_iter()
         end = self.textbuffer.get_end_iter()
         self.textbuffer.remove_all_tags(start, end)
         self.textbuffer.delete(start, end)
-        self.html_buffer.read(self, open("notes.html", "r"))
+        self.html_buffer.read(self, open(filename, "r"))
         
         self.textbuffer.end_user_action()
         self.undo_stack.reset()
