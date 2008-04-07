@@ -205,8 +205,13 @@ class HtmlBuffer (HTMLParser):
         self.out = out
         self.tag2html = {}
         self.html2tag = {}
+        
         self.size_tags = set()
         self.family_tags = set()
+        self.justify_tags = set()
+        self.justify2tag = {}
+        self.tag2justify = {}
+        
         self.tag_stack = []
         self.richtext = None
         self.buffer = None
@@ -217,6 +222,9 @@ class HtmlBuffer (HTMLParser):
         self.entity2char = {}
         for ch, name in self.entity_char_map:
             self.entity2char[name] = ch
+        
+        
+        
     
     def set_output(self, out):
         self.out = out
@@ -234,6 +242,11 @@ class HtmlBuffer (HTMLParser):
     def add_family_tag(self, tag):
         self.family_tags.add(tag)
     
+    
+    def add_justify_tag(self, tag, justify):
+        self.justify_tags.add(tag)
+        self.tag2justify[tag] = justify
+        self.justify2tag[justify] = tag
     
     def read(self, richtext, infile):
         self.richtext = richtext
@@ -281,6 +294,20 @@ class HtmlBuffer (HTMLParser):
                     elif value.startswith("font-family"):
                         family = value.split(":")[1].strip()
                         tag = self.richtext.lookup_family_tag(family)
+                    
+                    else:
+                        raise Exception("unknown style '%s'" % value)
+                else:
+                    raise Exception("unknown attr key '%s'" % key)
+        
+        elif htmltag == "div":
+            # apply style
+            
+            for key, value in attrs:
+                if key == "style":
+                    if value.startswith("text-align"):
+                        align = value.split(":")[1].strip()
+                        tag = self.justify2tag[align]
                         
                     else:
                         raise Exception("unknown style '%s'" % value)
@@ -345,6 +372,10 @@ class HtmlBuffer (HTMLParser):
             elif tag in self.family_tags:
                 self.out.write("<span style='font-family: %s'>" % 
                           tag.get_property("family"))
+            elif tag in self.justify_tags:
+                            
+                self.out.write("<div style='text-align: %s'>" % 
+                          self.tag2justify[tag])
             else:
                 raise Exception("unknown tag")
                 
@@ -352,6 +383,8 @@ class HtmlBuffer (HTMLParser):
     def write_tag_end(self, tag):
         if tag in self.tag2html:
             self.out.write("</%s>" % self.tag2html[tag])
+        elif tag in self.justify_tags:
+            self.out.write("</div>")
         else:
             self.out.write("</span>")
 
@@ -546,6 +579,10 @@ class RichTextImage (RichTextChild):
         self.pixbuf = self.child.get_pixbuf()
     
     
+    def set_from_pixbuf(self, pixbuf):
+        self.child.set_from_pixbuf(pixbuf)
+        self.pixbuf = pixbuf
+    
     def refresh(self):
         if self.child == None:
             self.child = BaseImage()
@@ -704,11 +741,15 @@ class RichTextView (gtk.TextView):
         self.size_tags = set()
         
         
+        # initialize HTML buffer
         self.html_buffer = HtmlBuffer()
         
         self.html_buffer.add_tag(self.bold_tag, "b")
         self.html_buffer.add_tag(self.italic_tag, "i")
         self.html_buffer.add_tag(self.underline_tag, "u")
+        self.html_buffer.add_justify_tag(self.left_tag, "left")
+        self.html_buffer.add_justify_tag(self.center_tag, "center")
+        self.html_buffer.add_justify_tag(self.right_tag, "right")
         
         
         self.textbuffer.register_serialize_format(MIME_TAKENOTE, 
@@ -911,6 +952,7 @@ class RichTextView (gtk.TextView):
         it = self.textbuffer.get_iter_at_mark(self.textbuffer.get_insert())
         anchor = self.textbuffer.create_child_anchor(it)
         self.add_child_at_anchor(image.get_child(), anchor)
+        image.get_child().show()
         self.textbuffer.end_user_action()
     
     #==============================================================
@@ -1031,13 +1073,13 @@ class RichTextView (gtk.TextView):
                 self.remove_tag(self.tag_table.lookup(mod))
     
     def on_left_justify(self):
-        self.toggle_tag(self.left_tag)
+        self.apply_tag(self.left_tag)
         
     def on_center_justify(self):
-        self.toggle_tag(self.center_tag)
+        self.apply_tag(self.center_tag)
     
     def on_right_justify(self):
-        self.toggle_tag(self.right_tag)
+        self.apply_tag(self.right_tag)
         
     
     #==================================================================

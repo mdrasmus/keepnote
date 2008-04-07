@@ -1,972 +1,407 @@
 #!/usr/bin/env python
 
-import os, tempfile
+import sys, os, tempfile, re
+
+# pygtk imports
+import pygtk
+pygtk.require('2.0')
+import gtk, gobject, pango
+from gtk import gdk
+
+from takenotelib.undo import UndoStack
+from takenotelib.richtext import RichTextView, RichTextImage
 
 
-# import the wxPython GUI package
-import wx
-import wx.richtext as rt
-
-# TODO: indent ranges better
-# TODO: fix bullet copy and paste
-
-BLANK_NOTE = """
-<?xml version="1.0" encoding="UTF-8"?>
-<richtext version="1.0.0.0" xmlns="http://www.wxwidgets.org">
-</richtext>
-"""
+# TODO: shade undo/redo
 
 
-class NoteBook (object):
-    def __init__(self, rootdir):
-        """rootdir -- Root directory of notebook"""
+class TakeNoteTreeView (object):
     
-        rootname = os.path.basename(rootdir)
-        self.root = NoteBookNode(rootname, rootdir)
+    def __init__(self):
+        
+        # create a TreeStore with one string column to use as the model
+        self.treestore = gtk.TreeStore(str)
+
+        # we'll add some data now - 4 rows with 3 child rows each
+        for parent in range(4):
+            piter = self.treestore.append(None, ['parent %i' % parent])
+            for child in range(3):
+                self.treestore.append(piter, ['child %i of parent %i' %
+                                              (child, parent)])
+        
+        # create the TreeView using treestore
+        self.treeview = gtk.TreeView(self.treestore)
+
+        # create the TreeViewColumn to display the data
+        self.tvcolumn = gtk.TreeViewColumn('Column 0')
+
+        # add tvcolumn to treeview
+        self.treeview.append_column(self.tvcolumn)
+
+        # create a CellRendererText to render the data
+        self.cell = gtk.CellRendererText()
+
+        # add the cell to the tvcolumn and allow it to expand
+        self.tvcolumn.pack_start(self.cell, True)
+
+        # set the cell "text" attribute to column 0 - retrieve text
+        # from that column in treestore
+        self.tvcolumn.add_attribute(self.cell, 'text', 0)
+
+        # make it searchable
+        self.treeview.set_search_column(0)
+
+        # Allow sorting on the column
+        self.tvcolumn.set_sort_column_id(0)
+
+        # Allow drag and drop reordering of rows
+        self.treeview.set_reorderable(True)
+
+
+class TakeNoteSelector (object):
     
-    
-    def GetRootNode(self):
-        """Returns the root node of the notebook"""
-        return self.root
-
-
-    def NewPage(self, parentNode, name):
-        parentNode.NewPage(name)
-
-
-class NoteBookPage (object):
-    def __init__(self, name, path):
-        self.name = name
-        self.path = path         
-
-
-class NoteBookNode (object):
-    def __init__(self, name, path):
-        self.name = name
-        self.path = path
-    
-    
-    def NewPage(self, name):
-        newpath = os.path.join(self.path, name)
-        out = os.open(path, "w")
-        out.write(BLANK_NOTE)
-        out.close()
+    def __init__(self):
         
-        return NoteBookPage(name, newpath)
+        # Create a new scrolled window, with scrollbars only if needed
+        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 
+        model = gtk.ListStore(gobject.TYPE_STRING)
+        tree_view = gtk.TreeView(model)
+        scrolled_window.add_with_viewport (tree_view)
+        tree_view.show()
 
-    
-    def Rename(self, name):
-        path2 = os.path.join(os.path.dirname(self.path), name)
+        # Add some messages to the window
+        for i in range(10):
+            msg = "Message #%d" % i
+            it = model.append()
+            model.set(it, 0, msg)
+
+        cell = gtk.CellRendererText()
+        column = gtk.TreeViewColumn("Messages", cell, text=0)
+        tree_view.append_column(column)
         
-        try:
-            
+        self.view = scrolled_window
+
         
-            os.rename(self.path, path2)
-            self.name = name
-            self.path = path2
-        except Exception, e:
-            print e
-            print "cannot rename page '%s' to '%s'" % (self.path, path2)
-    
-     
-    def GetChildNodes(self):
-        subdirs = os.listdir(self.path)
-        subdirs.sort()
-        
-        for filename in subdirs:
-            path2 = os.path.join(self.path, filename)
-            if os.path.isdir(path2):
-                yield NoteBookNode(filename, path2)
-    
-    
-    def GetPages(self):
-        files = os.listdir(self.path)
-        files.sort()
-        
-        for filename in files:
-            path2 = os.path.join(self.path, filename)
-            if os.path.isfile(path2):
-                yield NoteBookPage(filename, path2)
-                
 
 
 
-class NoteSelector (wx.ListCtrl):
-    
-    def __init__(self, parent, id=wx.ID_ANY, onViewPage=None, onClosePage=None):
-        wx.ListCtrl.__init__(self, parent, id,
-                             style=wx.LC_REPORT | wx.LC_HRULES | wx.LC_VIRTUAL |
-                                   wx.LC_EDIT_LABELS | wx.LC_SINGLE_SEL |
-                                   wx.LC_SMALL_ICON)
-        self.onViewPage = onViewPage
-        self.onClosePage = onClosePage
-        self.lookup = {}
-        self.pages = []
+class TakeNoteEditor (object):
+
+    def __init__(self):
+        sw = gtk.ScrolledWindow()
+        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.textview = RichTextView()
+        sw.add(self.textview)
+        sw.show()
+        self.textview.show()
+        self.view = sw
         
-        #self.pageImage = wx.Image()
-        #assert self.pageImage.IsOk()
-        self.noteBitmap = wx.Bitmap("bitmaps/paste.xpm")
-        self.imglist = wx.ImageList(15, 15, True, 0)
-        self.imglist.Add(self.noteBitmap)
-        self.SetImageList(self.imglist, wx.IMAGE_LIST_SMALL)
-        
-        
-        self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.OnSelectPage)
-        self.Bind(wx.EVT_LIST_ITEM_DESELECTED, self.OnDeselectPage)
-        self.Bind(wx.EVT_LIST_BEGIN_LABEL_EDIT, self.OnBeginEdit)
-        self.Bind(wx.EVT_LIST_END_LABEL_EDIT, self.OnEndEdit)
-        
-        self.InsertColumn(0, "subject", format=wx.LIST_FORMAT_LEFT, width=500)
-        self.InsertColumn(1, "date", format=wx.LIST_FORMAT_LEFT, width=-1)
 
 
-    def OnViewNode(self, node):
-        self.SelectNone()    
-        self.LoadPages(node)
-        self.SetItemCount(len(self.pages))
-        self.RefreshItems(0, len(self.pages))
-
-
-
-    def SelectNone(self):
-        item = self.GetSelectedItem()
-        if item != None:
-            self.SetItemState(item, 0, wx.LIST_STATE_SELECTED)
-            
-
-    def GetSelectedItem(self):
-        item = -1
-        while True:
-            item = self.GetNextItem(item,
-                                   wx.LIST_NEXT_ALL,
-                                   wx.LIST_STATE_SELECTED)
-            if item == -1:
-                break
-            else:
-                return item
-        return None
+class TakeNoteWindow (gtk.Window):
+    def __init__(self):
+        gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
         
-
-    def LoadPages(self, node):
-        # load pages
-        self.pages = []
-        self.lookup.clear()
+        self.set_title("TakeNote")
+        self.set_default_size(800, 600)
+        self.connect("destroy", self.on_close)
         
-        for i, page in enumerate(node.GetPages()):
-            # add page to lookup
-            h = hash(page)
-            self.lookup[h] = page
-            self.pages.append(page)
-            
-
-    def OnGetItemText(self, row, column):
-        if column == 0:
-            return self.pages[row].name.replace(".xml", "")
-        elif column == 1:
-            return "Today"
-        else:
-            return ""
-
-    def OnGetItemImage(self, row):
-        return 0
-    
-
-    def OnSelectPage(self, event):
-        if self.onViewPage:
-            self.onViewPage(self.pages[event.GetIndex()])
-            #self.onViewPage(self.lookup[event.GetItem().GetData()])
-    
-    def OnDeselectPage(self, event):
-        if self.onClosePage:
-            self.onClosePage(self.pages[event.GetIndex()])
-            #self.onViewPage(self.lookup[event.GetItem().GetData()])
-    
-    
-    def OnBeginEdit(self, event):
-        if event.GetColumn() != 0:
-            event.Veto()
-    
-    def OnEndEdit(self, event):
-        name = event.GetLabel() + ".xml"
-        page = self.pages[event.GetIndex()]
-        page.Rename(name)
-
-            
-
-class NoteTreeViewer (wx.TreeCtrl):
-    
-    def __init__(self, parent, id=-1, notebook=None,
-                 onViewNode=None):
-        wx.TreeCtrl.__init__(self, parent, id)
-        self.notebook = notebook
-        self.onViewNode = onViewNode
-        
-        self.Bind(wx.EVT_TREE_ITEM_EXPANDING, self.OnExpanding)
-        self.Bind(wx.EVT_TREE_SEL_CHANGED, self.OnSelChange)
-        
-        root = self.notebook.GetRootNode()       
-        self.rootItem = self.AddRoot(root.name, 
-                                     data=wx.TreeItemData(root))
-        
-        if list(root.GetChildNodes()) > 0:
-            self.SetItemHasChildren(self.rootItem)
-            self.Expand(self.rootItem)
-
-    
-    def OnExpanding(self, event):
-        item = event.GetItem()
-        node = self.GetPyData(item)
-        
-        self.DeleteChildren(item)
-        
-        for node2 in node.GetChildNodes():
-            item2 = self.AppendItem(item, node2.name, 
-                data=wx.TreeItemData(node2))
-            self.SetItemHasChildren(item2, len(list(node2.GetChildNodes())) > 0)
-                
-        
-        if self.GetChildrenCount(item) == 0:
-            self.SetItemHasChildren(item, False)
-    
-    
-    def OnSelChange(self, event):
-        item = event.GetItem()
-        node = self.GetPyData(item)
-        
-        if self.onViewNode:
-            self.onViewNode(node)
-        
-        
-    
-        
-    
-
-# Create a new frame class, derived from the wxPython Frame.
-class TakeNoteFrame (wx.Frame):
-
-    def __init__(self, parent, id, title):
-        # First, call the base class' __init__ method to create the frame
-        wx.Frame.__init__(self, parent, id, title,
-                          size=(800, 600))
-        
-        self.findDialog = None
-        
-        self.notebook = NoteBook("notebook")
-        
-        # status bar
-        self.statusbar = wx.StatusBar(self, style=wx.ST_SIZEGRIP)
-        self.SetStatusBar(self.statusbar)
-                          
-        # splitters
-        splitter = wx.SplitterWindow(self, style=wx.SP_3D)
-        splitter.SetMinimumPaneSize(20)
-        
-        splitter2 = wx.SplitterWindow(splitter, style=wx.SP_3D)
-        splitter2.SetMinimumPaneSize(20)
-        
-        # note selector
-        self.selector = NoteSelector(splitter2, 
-            onViewPage=self.OnViewPage,
-            onClosePage=self.OnClosePage)
-        
-        # treeview
-        self.tree = NoteTreeViewer(splitter, notebook=self.notebook,
-                                   onViewNode=self.selector.OnViewNode)
-        
-        
-        # note editor
-        self.editor = NoteTextEditor(splitter2, value="")
-        self.editor.SetFocus()
-        
-        self.editor.AddImage(wx.Bitmap("bitmaps/zebra.xpm").ConvertToImage())
-        
-        self.editor.BeginNumberedBullet(1, 100, 60)
-        self.editor.Newline()
-
-        self.editor.WriteText("This is my first item. Note that wxRichTextCtrl doesn't automatically do numbering, but this will be added later.")
-        self.editor.EndNumberedBullet()
-
-        self.editor.BeginNumberedBullet(2, 100, 60)
-        self.editor.Newline()
-
-        self.editor.WriteText("This is my second item.")
-        self.editor.EndNumberedBullet()
-
-        
-        
-        # layout
-        splitter.SplitVertically(self.tree, splitter2, 150)
-        splitter2.SplitHorizontally(self.selector, self.editor, 200)
-    
+        self.editor = TakeNoteEditor()
+        self.editor.textview.font_callback = self.on_font_change
         
         # menu bar
-        self.MakeMenuBar()
+        self.menu_items = (
+            ( "/_File",         None,         None, 0, "<Branch>" ),
+            ( "/File/_New",     "<control>N", None, 0, None ),
+            ( "/File/_Open",    "<control>O", lambda w,e: self.editor.textview.load(), 0, None ),
+            ( "/File/_Save",    "<control>S", lambda w,e: self.editor.textview.save(), 0, None ),
+            ( "/File/Save _As", None,         None, 0, None ),
+            ( "/File/sep1",     None,         None, 0, "<Separator>" ),
+            ( "/File/Quit",     "<control>Q", gtk.main_quit, 0, None ),
+
+            ( "/_Edit",         None,         None, 0, "<Branch>" ),
+            ( "/Edit/Un_do",     "<control>Z", lambda w,e: self.editor.textview.undo(), 0, None),
+            ( "/Edit/_Redo",     "<control>Y", lambda w,e: self.editor.textview.redo(), 0, None),
+            ( "/Edit/sep1",     None,         None, 0, "<Separator>" ),
+            ( "/Edit/Insert Screenshot",     "<control>Insert", lambda w,e: self.on_screenshot(), 0, None),
+            
+            ( "/Format",        None,         None, 0, "<Branch>" ),
+            ( "/Format/_Bold",    "<control>B", lambda w,e: self.on_bold(), 0, None ),
+            ( "/Format/_Italic", "<control>I", lambda w,e: self.on_italic(), 0, None ),
+            ( "/Format/_Underline", "<control>U", lambda w,e: self.on_underline(), 0, None ),
+            ( "/Format/sep1",     None,         None, 0, "<Separator>" ),
+            ( "/Format/_Left Align",    "<control>L", lambda w,e: self.on_left_justify(), 0, None ),
+            ( "/Format/C_enter Align", "<control>E", lambda w,e: self.on_center_justify(), 0, None ),
+            ( "/Format/_Right Align", "<control>R", lambda w,e: self.on_right_justify(), 0, None ),
+
+            
+            ( "/_Help",         None,         None, 0, "<LastBranch>" ),
+            ( "/_Help/About",   None,         None, 0, None ),
+            )
+
+        main_vbox = gtk.VBox(False, 1)
+        self.add(main_vbox)
         
+        main_vbox.set_border_width(1)
+        menubar = self.make_menubar(self.menu_items)
+        main_vbox.pack_start(menubar, False, True, 0)
+        
+        self.tips = gtk.Tooltips()
+        
+        #=================================
         # toolbar
-        self.MakeToolBar()
+        handlebox = gtk.HandleBox()
+        toolbar = gtk.Toolbar()
+        toolbar.set_orientation(gtk.ORIENTATION_HORIZONTAL)
+        toolbar.set_style(gtk.TOOLBAR_ICONS)
+        toolbar.set_border_width(0)
+        handlebox.add(toolbar)
+        main_vbox.pack_start(handlebox, False, True, 0)
+        
+        # bold tool
+        icon = gtk.Image() # icon widget
+        icon.set_from_file("bitmaps/bold.xpm")
+        self.bold_button = gtk.ToggleToolButton()
+        self.bold_button.set_icon_widget(icon)
+        self.bold_button.set_tooltip_text("Bold")
+        self.bold_id = self.bold_button.connect("toggled", lambda w: self.editor.textview.on_bold())
+        toolbar.insert(self.bold_button, -1)
 
 
-    def OnViewPage(self, page):
-        self.editor.ViewPage(page)
-    
-    
-    def OnClosePage(self, page):
-        self.editor.ClosePage(page)
-        
+        # italic tool
+        icon = gtk.Image() # icon widget
+        icon.set_from_file("bitmaps/italic.xpm")
+        self.italic_button = gtk.ToggleToolButton()
+        self.italic_button.set_icon_widget(icon)
+        self.italic_button.set_tooltip_text("Italic")
+        self.italic_id = self.italic_button.connect("toggled", lambda w: self.editor.textview.on_italic())
+        toolbar.insert(self.italic_button, -1)
 
-    def ForwardEditEvent(self, evt):
-        # The Editor can handle menu and update events for undo,
-        # redo, cut, copy, paste, delete, and select all, so just
-        # forward the event to it.
-        self.editor.ProcessEvent(evt)
-
-
-    def MakeMenuBar(self):
-        def doBind(item, handler, updateUI=None):
-            self.Bind(wx.EVT_MENU, handler, item)
-            if updateUI is not None:
-                self.Bind(wx.EVT_UPDATE_UI, updateUI, item)
-            
-        fileMenu = wx.Menu()
-        doBind(fileMenu.Append(wx.ID_ANY, "&New\tCtrl+N", "New note"),
-               self.OnFileNew)
-        doBind(fileMenu.Append(wx.ID_ANY, "&Open\tCtrl+O", "Open a file"),
-               self.OnFileOpen)
-        doBind(fileMenu.Append(wx.ID_ANY, "&Save\tCtrl+S", "Save a file"),
-               self.OnFileSave)
-        #doBind( fileMenu.Append(-1, "&Save As...\tF12", "Save to a new file"),
-        #        self.OnFileSaveAs )
-        fileMenu.AppendSeparator()
-        #doBind( fileMenu.Append(-1, "&View as HTML", "View HTML"),
-        #        self.OnFileViewHTML)
-        #fileMenu.AppendSeparator()
-        doBind(fileMenu.Append(-1, "E&xit\tCtrl+Q", "Quit this program"),
-               self.OnFileExit)
-        
-        editMenu = wx.Menu()
-        doBind(editMenu.Append(wx.ID_UNDO, "&Undo\tCtrl+Z"),
-               self.ForwardEditEvent, self.ForwardEditEvent)
-        doBind(editMenu.Append(wx.ID_ANY, "&test\tCtrl+T"),
-               lambda e: self.editor.printBuffer())
-        doBind(editMenu.Append(wx.ID_REDO, "&Redo\tCtrl+Y"),
-               self.ForwardEditEvent, self.ForwardEditEvent )
-        editMenu.AppendSeparator()
-        doBind(editMenu.Append(wx.ID_CUT, "Cu&t\tCtrl+X"),
-               self.ForwardEditEvent, self.ForwardEditEvent )
-        doBind(editMenu.Append(wx.ID_COPY, "&Copy\tCtrl+C"),
-               self.ForwardEditEvent, self.ForwardEditEvent)
-        doBind(editMenu.Append(wx.ID_PASTE, "&Paste\tCtrl+V"),
-               self.ForwardEditEvent, self.ForwardEditEvent)
-        doBind(editMenu.Append(wx.ID_CLEAR, "&Delete"),
-               self.ForwardEditEvent, self.ForwardEditEvent)
-        editMenu.AppendSeparator()
-        
-        doBind(editMenu.Append(wx.ID_SELECTALL, "Select A&ll\tCtrl+A"),
-               self.ForwardEditEvent, self.ForwardEditEvent)
-        editMenu.AppendSeparator()
-        
-        doBind(editMenu.Append(wx.ID_ANY, "Insert &Image\tCtrl+M"), self.editor.OnInsertImage)
-        doBind(editMenu.Append(wx.ID_ANY, "Insert &Screenshot\tCtrl+Ins"), self.editor.OnInsertScreenshot)
-        
-        editMenu.AppendSeparator()
-        doBind(editMenu.Append(wx.ID_FIND, "&Find...\tCtrl+F"), self.OnFind)        
-        self.Bind(wx.EVT_FIND_CLOSE, self.OnFindClose)
-        
-        #doBind( editMenu.Append(-1, "&Replace...\tCtrl+R"),  )
-
-        formatMenu = wx.Menu()
-        doBind(formatMenu.AppendCheckItem(-1, "&Bold\tCtrl+B"),
-               self.editor.OnBold, self.editor.OnUpdateBold)
-        doBind(formatMenu.AppendCheckItem(-1, "&Italic\tCtrl+I"),
-               self.editor.OnItalic, self.editor.OnUpdateItalic)
-        doBind(formatMenu.AppendCheckItem(-1, "&Underline\tCtrl+U"),
-               self.editor.OnUnderline, self.editor.OnUpdateUnderline)
-        formatMenu.AppendSeparator()
-        
-        doBind( formatMenu.AppendCheckItem(-1, "L&eft Align\tCtrl+L"),
-                self.editor.OnAlignLeft, self.editor.OnUpdateAlignLeft)
-        doBind( formatMenu.AppendCheckItem(-1, "&Center\tCtrl+E"),
-                self.editor.OnAlignCenter, self.editor.OnUpdateAlignCenter)
-        doBind( formatMenu.AppendCheckItem(-1, "&Right Align\tCtrl+R"),
-                self.editor.OnAlignRight, self.editor.OnUpdateAlignRight)
-        formatMenu.AppendSeparator()
-        
-        doBind(formatMenu.Append(-1, "Indent &More\tTab"), self.editor.OnIndentMore)
-        doBind(formatMenu.Append(-1, "Indent &Less\tShift+Tab"), self.editor.OnIndentLess)
-        
-        formatMenu.AppendSeparator()
-        #doBind( formatMenu.Append(-1, "Increase Paragraph &Spacing"), self.OnParagraphSpacingMore)
-        #doBind( formatMenu.Append(-1, "Decrease &Paragraph Spacing"), self.OnParagraphSpacingLess)
-        formatMenu.AppendSeparator()
-        #doBind( formatMenu.Append(-1, "Normal Line Spacing"), self.OnLineSpacingSingle)
-        #doBind( formatMenu.Append(-1, "1.5 Line Spacing"), self.OnLineSpacingHalf)
-        #doBind( formatMenu.Append(-1, "Double Line Spacing"), self.OnLineSpacingDouble)
-        formatMenu.AppendSeparator()
-        doBind(formatMenu.Append(-1, "&Font..."), self.editor.OnFont)
-        doBind(formatMenu.Append(-1, "Font Size &Increase\tCtrl++"), self.editor.OnFontSizeInc)
-        doBind(formatMenu.Append(-1, "Font Size &Decrease\tCtrl+-"), self.editor.OnFontSizeDec)
-        
-        mb = wx.MenuBar()
-        mb.Append(fileMenu, "&File")
-        mb.Append(editMenu, "&Edit")
-        mb.Append(formatMenu, "F&ormat")
-        self.SetMenuBar(mb)
-
-
-    def MakeToolBar(self):
-        def doBind(item, handler, updateUI=None):
-            self.Bind(wx.EVT_TOOL, handler, item)
-            if updateUI is not None:
-                self.Bind(wx.EVT_UPDATE_UI, updateUI, item)
-        
-        tbar = self.CreateToolBar()
-        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/open.xpm"),
-                            shortHelpString="Open"), self.OnFileOpen)
-        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/save.xpm"),
-                            shortHelpString="Save"), self.OnFileSave)
-        tbar.AddSeparator()
-        
-        """
-        doBind(tbar.AddTool(wx.ID_CUT, wx.Bitmap("bitmaps/cut.xpm"), isToggle=True,
-                            shortHelpString="Cut"), 
-                            self.ForwardEditEvent, self.ForwardEditEvent)
-        doBind(tbar.AddTool(wx.ID_COPY, wx.Bitmap("bitmaps/copy.xpm"), isToggle=True,
-                            shortHelpString="Copy"), 
-                            self.ForwardEditEvent, self.ForwardEditEvent)
-        doBind(tbar.AddTool(wx.ID_PASTE, wx.Bitmap("bitmaps/paste.xpm"), isToggle=True,
-                            shortHelpString="Paste"), 
-                            self.ForwardEditEvent, self.ForwardEditEvent)
-        tbar.AddSeparator()
-        """
-        
-        doBind(tbar.AddTool(wx.ID_UNDO, wx.Bitmap("bitmaps/undo.xpm"),
-                            shortHelpString="Undo"), self.ForwardEditEvent, self.ForwardEditEvent)
-        doBind(tbar.AddTool(wx.ID_REDO, wx.Bitmap("bitmaps/redo.xpm"),
-                            shortHelpString="Redo"), self.ForwardEditEvent, self.ForwardEditEvent)
-        
-        tbar.AddSeparator()
-        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/bold.xpm"), isToggle=True,
-                            shortHelpString="Bold"), 
-                            self.editor.OnBold, 
-                            self.editor.OnUpdateBold)
-        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/italic.xpm"), isToggle=True,
-                            shortHelpString="Italic"), 
-                            self.editor.OnItalic, 
-                            self.editor.OnUpdateItalic)
-        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/underline.xpm"), isToggle=True,
-                            shortHelpString="Underline"), 
-                            self.editor.OnUnderline, 
-                            self.editor.OnUpdateUnderline)
-
-        tbar.AddSeparator()
-        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/alignleft.xpm"), 
-                            isToggle=True,
-                            shortHelpString="Align Left"), 
-               self.editor.OnAlignLeft, self.editor.OnUpdateAlignLeft)
-        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/aligncenter.xpm"), 
-                            isToggle=True,
-                            shortHelpString="Center"), 
-               self.editor.OnAlignCenter, self.editor.OnUpdateAlignCenter)
-        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/alignright.xpm"), 
-                            isToggle=True,
-                            shortHelpString="Align Right"), 
-               self.editor.OnAlignRight, self.editor.OnUpdateAlignRight)
-        tbar.AddSeparator()
-        
-
-        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/indentless.xpm"),
-                            shortHelpString="Indent Less"), 
-                            self.editor.OnIndentLess)
-        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/indentmore.xpm"),
-                            shortHelpString="Indent More"), 
-                            self.editor.OnIndentMore)
-        tbar.AddSeparator()
-        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/font.xpm"),
-                            shortHelpString="Font"), 
-                            self.editor.OnFont)
-        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/font-inc.xpm"),
-                            shortHelpString="Font Size Increase"), 
-                            self.editor.OnFontSizeInc)                            
-        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/font-dec.xpm"),
-                            shortHelpString="Font Size Decrease"), 
-                            self.editor.OnFontSizeDec)
-        doBind(tbar.AddTool(-1, wx.Bitmap("bitmaps/color.xpm"),
-                            shortHelpString="Font Color"), 
-                            self.editor.OnColor)
-        
-        self.editor.fontsize = wx.SpinCtrl(tbar, -1, 
-                               style=wx.SP_ARROW_KEYS, 
-                               min=1, max=1000, 
-                               initial=12,
-                               size=(50, -1))
-        self.editor.fontsize.Bind(wx.EVT_SPINCTRL, self.editor.OnFontSizeSpinner)
-        self.Bind(wx.EVT_UPDATE_UI, self.editor.OnUpdateFontSizeSpinner, self.editor.fontsize)
-        tbar.AddControl(self.editor.fontsize)
-        
-        tbar.Realize()
-    
-    
-    #=============================================================================
-    # edit menu
-    
-    
-    def OnFind(self, event):
-        if not self.findDialog:
-            self.find_data = wx.FindReplaceData()
-            self.findDialog = wx.FindReplaceDialog(self.editor, self.find_data, "Find")        
-            self.findDialog.Show()
-        else:
-            self.findDialog.Hide()
-            self.findDialog.Show()
-            
-    
-    def OnFindClose(self, event):
-        self.findDialog.Hide()
-        self.findDialog = None
-        del self.find_data
-    
-    
-    
-    
-    
-    #=============================================================================
-    # file menu
-    
-    def OnFileNew(self, event):
-        #self.notebook.NewPage(
-        pass
-        
-    
-    def OnFileOpen(self, event):
-        self.editor.LoadFile("note.xml")
-    
-    def OnFileSave(self, event):
-        self.editor.SavePage() #File("note.xml")#, type=wx.richtext.RICHTEXT_TYPE_ANY)
-        
-    def OnFileExit(self, event):
-    
-        if self.findDialog:
-            self.findDialog.Hide()
-            self.findDialog = None
-    
-        self.Close()
-
-
-class NoteTextEditor (rt.RichTextCtrl):
-    
-    def __init__(self, parent, id=wx.ID_ANY, value=""):
-        rt.RichTextCtrl.__init__(self, parent, id, value=value)
-        self.page = None
-        
-        # add xml and html saving/loading to editor
-        self.GetBuffer().AddHandler(rt.RichTextXMLHandler())
-        self.GetBuffer().AddHandler(rt.RichTextHTMLHandler())
-        
-        self.Bind(wx.EVT_MENU, self.OnPaste, id=wx.ID_PASTE)
-        self.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
-        
-        self.Bind(wx.EVT_FIND, self.OnFind)
-        self.Bind(wx.EVT_FIND_NEXT, self.OnFindNext)
-        #EVT_FIND_REPLACE(id, func) 	Replace button was pressed in the dialog.
-        #EVT_FIND_REPLACE_ALL(id, func)
-        self.findline = 0
-        self.findpos = 0
-        
-    
-    def printBuffer(self):
-    
-        node = self.GetBuffer()
-        
-        print "==========================================="
-        for child in node.GetChildren():
-            #print dir(child)
-            print child.GetClassName(), child.GetTextForRange((0, 1000))
-
-    
-        
-    def ViewPage(self, page):
-        
-        if self.LoadFile(page.path):
-            self.page = page
-            self.Enable()
-            self.SetEditable(True)
-        else:
-            print "can't load page"
-
-    def ClosePage(self, page):
-        self.Clear()
-        self.SetEditable(False)
-        self.Disable()
-
-
-    def SavePage(self):
-        if self.page:
-            self.SaveFile(self.page.path)
-    
-    
-    def OnFind(self, event):
-        self.findline = 0
-        self.findpos = 0
-        
-        self.OnFindNext(event)
-    
-    
-    def OnFindNext(self, event):
-        findstr = event.GetFindString()
-        
-        for i in xrange(self.findline, self.GetNumberOfLines()):
-            if i > self.findline:
-                self.findpos = 0
-            pos = self.GetLineText(i).find(findstr, self.findpos)
-            
-            if pos != -1:
-                self.MoveHome()
-                self.MoveDown(i)
-                ip = self.GetInsertionPoint()
+        # underline tool
+        icon = gtk.Image() # icon widget
+        icon.set_from_file("bitmaps/underline.xpm")
+        self.underline_button = gtk.ToggleToolButton()
+        self.underline_button.set_icon_widget(icon)
+        self.underline_button.set_tooltip_text("Underline")
+        self.underline_id = self.underline_button.connect("toggled", lambda w: self.editor.textview.on_underline())
+        toolbar.insert(self.underline_button, -1)
                 
-                self.SetSelection(ip + pos, ip + pos + len(findstr))
-                self.ShowPosition()
-            
-                self.findline = i
-                self.findpos = pos + 1
-                return
+
+        # font button
+        self.font_sel = gtk.FontButton()
+        item = gtk.ToolItem()
+        item.add(self.font_sel)
+        item.set_tooltip_text("Set Font")
+        toolbar.insert(item, -1)
+        self.font_sel.connect("font-set", self.editor.textview.on_font_set)
         
-        # start search from beginning
-        self.findline = 0
-        self.SelectNone()
-                
+        # left tool
+        icon = gtk.Image() # icon widget
+        icon.set_from_file("bitmaps/alignleft.xpm")
+        self.left_button = gtk.ToggleToolButton()
+        self.left_button.set_icon_widget(icon)
+        self.left_button.set_tooltip_text("Left Justify")
+        self.left_id = self.left_button.connect("toggled", lambda w: self.editor.textview.on_left_justify())
+        toolbar.insert(self.left_button, -1)
+        
+        # center tool
+        icon = gtk.Image() # icon widget
+        icon.set_from_file("bitmaps/aligncenter.xpm")
+        self.center_button = gtk.ToggleToolButton()
+        self.center_button.set_icon_widget(icon)
+        self.center_button.set_tooltip_text("Center Justify")
+        self.center_id = self.center_button.connect("toggled", lambda w: self.editor.textview.on_center_justify())
+        toolbar.insert(self.center_button, -1)
+        
+        # right tool
+        icon = gtk.Image() # icon widget
+        icon.set_from_file("bitmaps/alignright.xpm")
+        self.right_button = gtk.ToggleToolButton()
+        self.right_button.set_icon_widget(icon)
+        self.right_button.set_tooltip_text("Right Justify")
+        self.right_id = self.right_button.connect("toggled", lambda w: self.editor.textview.on_right_justify())
+        toolbar.insert(self.right_button, -1)        
+        
+        #==========================================
+        # create a hpaned widget and add it to our toplevel window
+        hpaned = gtk.HPaned()
+        main_vbox.pack_start(hpaned, True, True, 0)
+        hpaned.set_position(150)
+
+        # create a vpaned widget and add it to our toplevel window
+        vpaned = gtk.VPaned()
+        hpaned.add2(vpaned)
+        vpaned.set_position(200)
+        
+        
+        # status bar
+        self.status_bar = gtk.Statusbar()      
+        main_vbox.pack_start(self.status_bar, False, True, 0)  
+
+
+        # add treeview
+        self.treeview = TakeNoteTreeView()
+        hpaned.add1(self.treeview.treeview)
+        
+        
+        # add note selector
+        self.selector = TakeNoteSelector()
+        vpaned.add1(self.selector.view)
+        #self.selector.view.show()
+        
+        
+        # add note editor        
+        vpaned.add2(self.editor.view)
+
+
+        self.show_all()
+        self.editor.textview.grab_focus()        
     
     
-    def OnKeyDown(self, event):
+    # close the window and quit
+    def on_close(self, widget):
+        gtk.main_quit()
+        return False
+    
+    #=============================================================
+    # Font UI Update
+    
+    def on_font_change(self, mods, justify):
+    
+        # block toolbar handlers
+        self.bold_button.handler_block(self.bold_id)
+        self.italic_button.handler_block(self.italic_id)
+        self.underline_button.handler_block(self.underline_id) 
+        self.left_button.handler_block(self.left_id)
+        self.center_button.handler_block(self.center_id)
+        self.right_button.handler_block(self.right_id) 
         
-        # capture tab key presses at start of line
-        if event.m_keyCode == wx.WXK_TAB:
-            
-            if not event.ControlDown():           
-                if event.ShiftDown():
-                    self.IndentLess()
-                else:
-                    self.IndentMore()
-                return
+        # update font mods
+        self.bold_button.set_active(mods["bold"])
+        self.italic_button.set_active(mods["italic"])        
+        self.underline_button.set_active(mods["underline"])
         
-        # let normal processing of this event occur
-        event.Skip()
+        # update text justification
+        self.left_button.set_active(justify == "left")
+        self.center_button.set_active(justify == "center")
+        self.right_button.set_active(justify == "right")                
+        
+        # unblock toolbar handlers
+        self.bold_button.handler_unblock(self.bold_id)
+        self.italic_button.handler_block(self.italic_id)
+        self.underline_button.handler_unblock(self.underline_id)
+        self.left_button.handler_unblock(self.left_id)
+        self.center_button.handler_unblock(self.center_id)
+        self.right_button.handler_unblock(self.right_id) 
+        
+        
+    
+    def on_bold(self):
+        self.editor.textview.on_bold()
+        mods, justify = self.editor.textview.get_font()
+        
+        self.bold_button.handler_block(self.bold_id)
+        self.bold_button.set_active(mods["bold"])
+        self.bold_button.handler_unblock(self.bold_id)
     
     
-    def OnPaste(self, event):
-        attr = rt.TextAttrEx()
-        attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
-        ip = self.GetInsertionPoint()
-        if self.GetStyle(ip, attr):
-            if self.HasSelection():
-                r = self.GetSelectionRange()
-            else:
-                r = rt.RichTextRange(ip, ip+1)
-                       
-            if attr.GetLeftIndent() != 0:
-                # prepare for paste
-                
-                data = wx.TextDataObject()
-                wx.TheClipboard.GetData(data)
-                
-                
-                '''
-                attr.SetFlags(rt.TEXT_ATTR_BULLET_STYLE |
-                              rt.TEXT_ATTR_BULLET_NAME |
-                              rt.TEXT_ATTR_LEFT_INDENT)                
-                attr.SetBulletStyle(rt.TEXT_ATTR_BULLET_STYLE_NONE)
-                attr.SetBulletName("")
-                attr.SetLeftIndent(0, 50)
-                self.SetStyleEx(r, attr, 
-                                rt.RICHTEXT_SETSTYLE_PARAGRAPHS_ONLY |
-                                rt.RICHTEXT_SETSTYLE_WITH_UNDO)
-                '''
-                
+    def on_italic(self):
+        self.editor.textview.on_italic()
+        mods, justify = self.editor.textview.get_font()
         
-        # check to see if paste is into a bulleted region
-        # if so some how prevent bullet bug
-        event.Skip()
+        self.italic_button.handler_block(self.italic_id)
+        self.italic_button.set_active(mods["italic"])
+        self.italic_button.handler_block(self.italic_id)
+    
+    
+    def on_underline(self):
+        self.editor.textview.on_underline()
+        mods, justify = self.editor.textview.get_font()
+        
+        self.underline_button.handler_block(self.underline_id)        
+        self.underline_button.set_active(mods["underline"])
+        self.underline_button.handler_unblock(self.underline_id)
     
 
-    def IndentMore(self):
-        attr = rt.TextAttrEx()
-        attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT | 
-                      rt.TEXT_ATTR_BULLET_STYLE |
-                      rt.TEXT_ATTR_BULLET_NAME)
-        ip = self.GetInsertionPoint()
-        
-        if self.GetStyle(ip, attr):
-            if self.HasSelection():
-                r = self.GetSelectionRange()
-            else:
-                r = rt.RichTextRange(ip, ip)
-            
-            indent = attr.GetLeftIndent()
-            attr.SetLeftIndent(indent + 100, 50)
-            attr.SetBulletStyle(rt.TEXT_ATTR_BULLET_STYLE_STANDARD)
-            attr.SetBulletName("standard/circle")
-            self.SetStyle(r, attr)
-            #self.SetStyleEx(r, attr, 
-            #                rt.RICHTEXT_SETSTYLE_PARAGRAPHS_ONLY |
-            #                rt.RICHTEXT_SETSTYLE_WITH_UNDO)
-       
-        
-    def IndentLess(self):
-        attr = rt.TextAttrEx()
-        attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
-        ip = self.GetInsertionPoint()
-        
-        if self.GetStyle(ip, attr):
-            if self.HasSelection():
-                r = self.GetSelectionRange()
-            else:
-                r = rt.RichTextRange(ip, ip)
+    def on_left_justify(self):
+        self.editor.textview.on_left_justify()
+        mods, justify = self.editor.textview.get_font()
+        self.on_font_change(mods, justify)
 
-            indent = attr.GetLeftIndent()
-            if indent >= 100:
+    def on_center_justify(self):
+        self.editor.textview.on_center_justify()
+        mods, justify = self.editor.textview.get_font()
+        self.on_font_change(mods, justify)
 
-                if indent == 100:
-                    attr.SetFlags(rt.TEXT_ATTR_BULLET_STYLE |
-                                  rt.TEXT_ATTR_BULLET_NAME |
-                                  rt.TEXT_ATTR_LEFT_INDENT)                
-                    attr.SetBulletStyle(rt.TEXT_ATTR_BULLET_STYLE_NONE)
-                    attr.SetBulletName("")
-                    attr.SetLeftIndent(indent - 100)
-                else:
-                    attr.SetFlags(rt.TEXT_ATTR_LEFT_INDENT)
-                    attr.SetLeftIndent(indent - 100, 50)
-                
-                #self.SetStyleEx(r, attr, 
-                #                rt.RICHTEXT_SETSTYLE_PARAGRAPHS_ONLY |
-                #                rt.RICHTEXT_SETSTYLE_WITH_UNDO)
-                self.SetStyle(r, attr)
-    
-    
-    def OnInsertImage(self, event):
-        dlg = wx.FileDialog(self, "Choose a filename",
-                            #wildcard="*.xpm|*.gif|*.jpg|*.png",
-                            style=wx.OPEN)
-        if dlg.ShowModal() == wx.ID_OK:
-            path = dlg.GetPath()
-            if path:
-                img = wx.Image(path)
-                if img.IsOk():
-                    self.WriteImage(img)
-        dlg.Destroy()
-    
-    
-    def OnInsertScreenshot(self, event):
-        f, imgfile = tempfile.mkstemp(".png", "takenote")
+    def on_right_justify(self):
+        self.editor.textview.on_right_justify()
+        mods, justify = self.editor.textview.get_font()
+        self.on_font_change(mods, justify)
+
+
+    def on_screenshot(self):
+        f, imgfile = tempfile.mkstemp(".xpm", "takenote")
         os.close(f)
     
         os.system("import %s" % imgfile)
         if os.path.exists(imgfile):
-            img = wx.Image(imgfile)
-            if img.IsOk():
-                self.WriteImage(img)
-            os.remove(imgfile)
+            try:
+                pixbuf = gdk.pixbuf_new_from_file(imgfile)
+                img = RichTextImage()
+                img.set_from_pixbuf(pixbuf)
+                self.editor.textview.insert_image(img)
+            except Exception, e:
+                print e
+                print "error reading screenshot '%s'" % imgfile
+            
+            os.remove(imgfile)        
+
     
-    #=============================================================================
-    # format menu
+    #================================================
+    # Menubar
     
-    def OnBold(self, event):
-        self.ApplyBoldToSelection()
+    def make_menubar(self, menu_items):
+        accel_group = gtk.AccelGroup()
 
-    def OnItalic(self, event):
-        self.ApplyItalicToSelection()
+        # This function initializes the item factory.
+        # Param 1: The type of menu - can be MenuBar, Menu,
+        #          or OptionMenu.
+        # Param 2: The path of the menu.
+        # Param 3: A reference to an AccelGroup. The item factory sets up
+        #          the accelerator table while generating menus.
+        item_factory = gtk.ItemFactory(gtk.MenuBar, "<main>", accel_group)
+
+        # This method generates the menu items. Pass to the item factory
+        #  the list of menu items
+        item_factory.create_items(menu_items)
+
+        # Attach the new accelerator group to the window.
+        self.add_accel_group(accel_group)
+
+        # need to keep a reference to item_factory to prevent its destruction
+        self.item_factory = item_factory
+        # Finally, return the actual menu bar created by the item factory.
+        return item_factory.get_widget("<main>")
+
+
+
+class TakeNote (object):
     
-    def OnUnderline(self, event):
-        self.ApplyUnderlineToSelection()  
-
-
-    def OnUpdateBold(self, event):
-        event.Check(self.IsSelectionBold())        
-
-    def OnUpdateItalic(self, event):
-        event.Check(self.IsSelectionItalics())
-
-    def OnUpdateUnderline(self, event):
-        event.Check(self.IsSelectionUnderlined())
-       
-    
-    def OnAlignLeft(self, evt):
-        self.ApplyAlignmentToSelection(rt.TEXT_ALIGNMENT_LEFT)
+    def __init__(self):        
+        self.window = TakeNoteWindow()
         
-    def OnAlignRight(self, evt):
-        self.ApplyAlignmentToSelection(rt.TEXT_ALIGNMENT_RIGHT)
         
-    def OnAlignCenter(self, evt):
-        self.ApplyAlignmentToSelection(rt.TEXT_ALIGNMENT_CENTRE)
-
-
-    def OnUpdateAlignLeft(self, evt):
-        evt.Check(self.IsSelectionAligned(rt.TEXT_ALIGNMENT_LEFT))
-        
-    def OnUpdateAlignCenter(self, evt):
-        evt.Check(self.IsSelectionAligned(rt.TEXT_ALIGNMENT_CENTRE))
-        
-    def OnUpdateAlignRight(self, evt):
-        evt.Check(self.IsSelectionAligned(rt.TEXT_ALIGNMENT_RIGHT))
-
-
-    def OnIndentMore(self, evt):
-        self.IndentMore()
-       
-        
-    def OnIndentLess(self, evt):
-        self.IndentLess()
-    
-    
-    def OnFont(self, evt):
-        if not self.HasSelection():
-            return
-
-        r = self.GetSelectionRange()
-        fontData = wx.FontData()
-        fontData.EnableEffects(False)
-        attr = rt.TextAttrEx()
-        attr.SetFlags(rt.TEXT_ATTR_FONT)
-        if self.GetStyle(self.GetInsertionPoint(), attr):
-            fontData.SetInitialFont(attr.GetFont())
-
-        dlg = wx.FontDialog(self, fontData)
-        if dlg.ShowModal() == wx.ID_OK:
-            fontData = dlg.GetFontData()
-            font = fontData.GetChosenFont()
-            if font:
-                attr.SetFlags(rt.TEXT_ATTR_FONT)
-                attr.SetFont(font)
-                self.SetStyle(r, attr)
-        dlg.Destroy()
-    
-    
-    def OnFontSizeInc(self, evt):
-        ip = self.GetInsertionPoint()
-        if self.HasSelection():
-            r = self.GetSelectionRange()
-        else:
-            r = rt.RichTextRange(ip, ip)
-        
-        attr = rt.TextAttrEx()
-        attr.SetFlags(rt.TEXT_ATTR_FONT)
-        if self.GetStyle(ip, attr):
-            font = attr.GetFont()
-            size = font.GetPointSize()
-            if size < 8:
-                font.SetPointSize(size + 1)
-            else:
-                font.SetPointSize(size + 2)
-                
-            attr.SetFont(font)
-            self.SetStyleEx(r, attr, 
-                rt.RICHTEXT_SETSTYLE_CHARACTERS_ONLY | 
-                rt.RICHTEXT_SETSTYLE_WITH_UNDO)
-
-    
-    
-    def OnFontSizeDec(self, evt):
-        ip = self.GetInsertionPoint()
-        if self.HasSelection():
-            r = self.GetSelectionRange()
-        else:
-            r = rt.RichTextRange(ip, ip)
-        
-        attr = rt.TextAttrEx()
-        attr.SetFlags(rt.TEXT_ATTR_FONT)
-        if self.GetStyle(ip, attr):
-            font = attr.GetFont()
-            size = font.GetPointSize()
-            if size <= 1:
-                return
-            if size <= 8:
-                font.SetPointSize(size - 1)
-            else:
-                font.SetPointSize(size - 2)
-            attr.SetFont(font)
-            self.SetStyleEx(r, attr, 
-                rt.RICHTEXT_SETSTYLE_CHARACTERS_ONLY | 
-                rt.RICHTEXT_SETSTYLE_WITH_UNDO)
-    
-    
-    def OnFontSizeSpinner(self, evt):
-        size = self.fontsize.GetValue()
-        
-        ip = self.GetInsertionPoint()
-        
-        if self.HasSelection():
-            r = self.GetSelectionRange()
-        else:
-            r = rt.RichTextRange(ip, ip)
-        
-        attr = rt.TextAttrEx()
-        attr.SetFlags(rt.TEXT_ATTR_FONT)
-        if self.GetStyle(ip, attr):
-            font = attr.GetFont()
-            font.SetPointSize(size)
-            attr.SetFont(font)
-            self.SetStyleEx(r, attr,
-                rt.RICHTEXT_SETSTYLE_CHARACTERS_ONLY | 
-                rt.RICHTEXT_SETSTYLE_WITH_UNDO)
-    
-    
-    def OnUpdateFontSizeSpinner(self, evt):
-        ip = self.GetInsertionPoint()
-        
-        attr = rt.TextAttrEx()
-        attr.SetFlags(rt.TEXT_ATTR_FONT)
-        if self.GetStyle(ip, attr):
-            self.fontsize.SetValue(attr.GetFont().GetPointSize())
-    
-    
-    def OnColor(self, evt):
-        colourData = wx.ColourData()
-        attr = rt.TextAttrEx()
-        attr.SetFlags(rt.TEXT_ATTR_TEXT_COLOUR)
-        if self.GetStyle(self.GetInsertionPoint(), attr):
-            colourData.SetColour(attr.GetTextColour())
-
-        dlg = wx.ColourDialog(self, colourData)
-        if dlg.ShowModal() == wx.ID_OK:
-            colourData = dlg.GetColourData()
-            colour = colourData.GetColour()
-            if colour:
-                if not self.HasSelection():
-                    self.BeginTextColour(colour)
-                else:
-                    r = self.GetSelectionRange()
-                    attr.SetFlags(rt.TEXT_ATTR_TEXT_COLOUR)
-                    attr.SetTextColour(colour)
-                    self.SetStyle(r, attr)
-        dlg.Destroy()
-
-
-
-# Every wxWidgets application must have a class derived from wx.App
-class TakeNote(wx.App):
-
-    # wxWindows calls this method to initialize the application
-    def OnInit(self):
-
-        # add image handlers
-        wx.InitAllImageHandlers()
-        
-        # Create an instance of our customized Frame class
-        frame = TakeNoteFrame(None, wx.ID_ANY, "TakeNote")
-        frame.Show(True)
-
-        # Tell wxWindows that this is our main window
-        self.SetTopWindow(frame)
-
-        # Return a success flag
-        return True
-
-
-# start app
-app = TakeNote(0)
-app.MainLoop()
 
 
 
 
+#=============================================================================
 
+def main():
+    gtk.main()
+
+if __name__ == "__main__":
+    app = TakeNote()
+    main()
