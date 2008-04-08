@@ -1,4 +1,4 @@
-import os
+import os, shutil
 import xml.dom.minidom as xmldom
 import xml.dom
 
@@ -33,8 +33,14 @@ def get_dom_children(node):
         yield child
         child = child.nextSibling
 
-def get_unique_filename(path, filename, ext, number=2):
-    assert os.path.exits(path)
+def get_valid_filename(filename):
+    filename = filename.replace("/", "")
+    filename = filename.replace("'", "")
+    return filename
+    
+
+def get_unique_filename(path, filename, ext="", sep=" ", number=2):
+    assert os.path.exists(path)
     
     # try the given filename
     newname = os.path.join(path, filename + ext)
@@ -44,12 +50,32 @@ def get_unique_filename(path, filename, ext, number=2):
     # try numbered suffixes
     i = number
     while True:
-        newname = os.path.join(path, filename + str(i) + ext)
+        newname = os.path.join(path, filename + sep + str(i) + ext)
         if not os.path.exists(newname):
             return newname
         i += 1
+
+
+def get_valid_unique_filename(path, filename, ext="", sep=" ", number=2):
+    return get_unique_filename(path, get_valid_filename(filename), 
+                               ext, sep, number)
     
+
+def get_unique_filename_list(filenames, filename, ext="", sep=" ", number=2):
+    filenames = set(filenames)
     
+    # try the given filename
+    newname = filename + ext
+    if newname not in filenames:
+        return newname
+    
+    # try numbered suffixes
+    i = number
+    while True:
+        newname = filename + sep + str(i) + ext
+        if newname not in filenames:
+            return newname
+        i += 1
 
 
 class NoteBookNode (object):
@@ -80,6 +106,25 @@ class NoteBookNode (object):
     def get_parent(self):
         return self.parent
     
+    def delete(self):
+        path = self.get_path()
+        shutil.rmtree(path)
+    
+    def rename(self, title):
+        path = self.get_path()
+        parent_path = os.path.dirname(path)
+        path2 = get_valid_unique_filename(parent_path, title)
+
+        try:
+            os.rename(path, path2)
+            self.title = title
+            self.basename = os.path.basename(path2)
+            self.write_meta_data()
+        except Exception, e:
+            print e
+            print "cannot rename '%s' to '%s'" % (path, path2)
+    
+    
     def get_meta_file(self):
         raise Exception("Unimplemented")
     
@@ -89,6 +134,11 @@ class NoteBookNode (object):
     def write_meta_data(self):
         raise Exception("Unimplemented")
 
+    def __eq__(self, other):
+        if isinstance(other, NoteBookNode):
+            return self.get_path() == other.get_path()
+        else:
+            return False
 
 
 class NoteBookPage (NoteBookNode):
@@ -107,21 +157,7 @@ class NoteBookPage (NoteBookNode):
     
     def get_meta_file(self):
         return get_page_meta_file(self.get_path())
-
-
-    def rename(self, title):
-        path = self.get_path()
-        path2 = os.path.join(os.path.dirname(path), title)
-
-        try:
-            os.rename(path, path2)
-            self.title = title
-            self.basename = title
-            self.write_meta_data()
-        except Exception, e:
-            print e
-            print "cannot rename page '%s' to '%s'" % (path, path2)
-
+        
     
     def write_empty_data_file(self):
         datafile = self.get_data_file()
@@ -159,7 +195,8 @@ class NoteBookDir (NoteBookNode):
     
     
     def new_page(self, title):
-        newpath = os.path.join(self.get_path(), title)
+        path = self.get_path()
+        newpath = get_valid_unique_filename(path, title)
         os.mkdir(newpath)
         page = NoteBookPage(newpath, title=title)
         page.create()
@@ -167,26 +204,12 @@ class NoteBookDir (NoteBookNode):
     
     
     def new_dir(self, title):
-        newpath = os.path.join(self.get_path(), title)
+        path = self.get_path()
+        newpath = get_valid_unique_filename(path, title)
         os.mkdir(newpath)
-        node = NoteBookDir(newpath, title=title)
+        node = NoteBookDir(newpath, title=title, parent=self)
         node.write_meta_data()
         return node
-        
-        
-    
-    def rename(self, title):
-        path = self.get_path()
-        path2 = os.path.join(os.path.dirname(path), title)
-        
-        try:
-            os.rename(path, path2)
-            self.title = title
-            self.basename = title
-            self.write_meta_data()
-        except Exception, e:
-            print e
-            print "cannot rename page '%s' to '%s'" % (path, path2)
     
      
     def get_children(self):

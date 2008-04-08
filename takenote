@@ -26,9 +26,7 @@ class TakeNoteTreeView (object):
                 
         # create the TreeView using treestore
         self.treeview = gtk.TreeView(self.treestore)
-        #self.treeview.connect("row-activated", self.on_activate)
-        #self.treeview.connect("cursor-changed", self.on_select, full=True)
-
+        self.treeview.connect("key-release-event", self.on_key_released)
         #self.treeview.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
         self.treeview.get_selection().set_select_function(self.on_select)#, full=True)
 
@@ -62,11 +60,18 @@ class TakeNoteTreeView (object):
         self.icon = pixbuf = gdk.pixbuf_new_from_file("bitmaps/open.xpm")
         
         self.set_notebook(notebook)
+        #self.treeview.expand_to_path((0,0))
         
     
     #def on_activate(self, treeview, path, view_column):
     #    print path, view_column
+
     
+    def on_key_released(self, widget, event):
+        if event.keyval == gdk.keyval_from_name("Delete"):
+            self.on_delete_node()
+            self.treeview.stop_emission("key-release-event")
+            
 
     def on_edit_title(self, cellrenderertext, path, new_text):
         try:
@@ -102,12 +107,12 @@ class TakeNoteTreeView (object):
         
     
     def add_node(self, parent, node):
-        
         it = self.treestore.append(parent, [self.icon, node.get_title(), node])
         
         for child in node.get_children():
             self.add_node(it, child)
-
+    
+    
     def update_node(self, node):
         path = self.get_path(node)
         
@@ -117,7 +122,22 @@ class TakeNoteTreeView (object):
         it = self.treestore.get_iter(path)
         for child in node.get_children():
             self.add_node(it, child)
-            
+    
+    
+    def on_delete_node(self):
+        
+        model, it = self.treeview.get_selection().get_selected()
+        node = self.get_node(model.get_path(it))
+        parent = node.get_parent()
+        
+        if parent != None:
+            node.delete()
+            self.update_node(parent)
+        else:
+            # warn
+            print "Cannot delete notebook's toplevel directory"
+        
+        
         
         
     
@@ -154,23 +174,24 @@ class TakeNoteSelector (object):
     
     def __init__(self):
         self.on_select_node = None
+        self.sel_nodes = None
         
         # Create a new scrolled window, with scrollbars only if needed
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 
         self.model = gtk.ListStore(gdk.Pixbuf, gobject.TYPE_STRING, object)
-        tree_view = gtk.TreeView(self.model)
-        scrolled_window.add_with_viewport (tree_view)
-        tree_view.show()
-        tree_view.get_selection().set_select_function(self.on_select)
-        self.tree_view = tree_view
+        self.treeview = gtk.TreeView(self.model)
+        self.treeview.connect("key-release-event", self.on_key_released)
+        scrolled_window.add_with_viewport (self.treeview)
+        self.treeview.show()
+        self.treeview.get_selection().set_select_function(self.on_select)
         
         cell_icon = gtk.CellRendererPixbuf()
         cell_text = gtk.CellRendererText()
         column = gtk.TreeViewColumn()
         column.set_title("Pages")
-        tree_view.append_column(column)
+        self.treeview.append_column(column)
         
         column.pack_start(cell_icon, False)
         column.pack_start(cell_text, True)
@@ -196,7 +217,14 @@ class TakeNoteSelector (object):
             print "takenote: could not rename page '%s'" % node.title
     
     
+    def on_key_released(self, widget, event):
+        if event.keyval == gdk.keyval_from_name("Delete"):
+            self.on_delete_page()
+            self.treeview.stop_emission("key-release-event")
+    
+    
     def view_nodes(self, nodes):
+        self.sel_nodes = nodes
         self.model.clear()
         
         for node in nodes:
@@ -205,16 +233,34 @@ class TakeNoteSelector (object):
                 self.model.set(it, 0, self.icon)                
                 self.model.set(it, 1, page.get_title())
                 self.model.set(it, 2, page)
+
     
+    def update(self):
+        self.view_nodes(self.sel_nodes)
+    
+    def select_pages(self, pages):
+        page = pages[0]
+        path = self.get_path(page)
+        if path != None:
+            self.treeview.set_cursor_on_cell(path)
+        
     
     def on_select(self, path): 
 
-        model, it = self.tree_view.get_selection().get_selected()
+        model, it = self.treeview.get_selection().get_selected()
         is_selected = (it == None)
         
         if is_selected and self.on_select_node:
             self.on_select_node(self.get_page(path))
-        return True    
+        return True
+    
+    
+    def on_delete_page(self):
+        model, it = self.treeview.get_selection().get_selected()
+        page = self.get_page(model.get_path(it))
+        page.delete()
+        self.update()
+
 
     
     def set_notebook(self, notebook):
@@ -223,6 +269,13 @@ class TakeNoteSelector (object):
     
     def get_page(self, path):
         return self.model[path[0]][2]
+    
+    
+    def get_path(self, page):
+        for i, row in enumerate(self.model):
+            if row[2] == page:
+                return (i,)
+        return None
 
 
 class TakeNoteEditor (object):
@@ -257,6 +310,7 @@ class TakeNoteWindow (gtk.Window):
         
         self.notebook = takenote.NoteBook("notebook")
         self.sel_nodes = []
+        self.current_page = None
         
         # selector
         self.selector = TakeNoteSelector()
@@ -313,12 +367,12 @@ class TakeNoteWindow (gtk.Window):
         
         
         self.show_all()
+        self.treeview.treeview.expand_all()
         self.editor.textview.grab_focus()
+
     
     
     def on_new_dir(self):
-    
-    
         if len(self.sel_nodes) == 1:
             parent = self.sel_nodes[0]
         else:
@@ -334,8 +388,11 @@ class TakeNoteWindow (gtk.Window):
         else:
             parent = self.notebook.get_root_node()
         
-        parent.new_page("New Page")
+        node = parent.new_page("New Page")
         self.treeview.update_node(parent)
+        self.selector.update()
+        self.selector.select_pages([node])
+        self.editor.textview.grab_focus()
     
     
     
@@ -350,7 +407,9 @@ class TakeNoteWindow (gtk.Window):
         self.selector.view_nodes([node])
     
     def on_select_page(self, page):
+        self.current_page = page
         self.editor.view_page(page)
+        #self.editor.textview.grab_focus()
     
     
     #=============================================================
@@ -430,6 +489,9 @@ class TakeNoteWindow (gtk.Window):
 
 
     def on_screenshot(self):
+        if self.current_page == None:
+            return
+    
         f, imgfile = tempfile.mkstemp(".xpm", "takenote")
         os.close(f)
     
@@ -438,9 +500,8 @@ class TakeNoteWindow (gtk.Window):
             try:
                 pixbuf = gdk.pixbuf_new_from_file(imgfile)
                 img = RichTextImage()
-                img.set_filename("screenshot.jpg")
                 img.set_from_pixbuf(pixbuf)
-                self.editor.textview.insert_image(img)
+                self.editor.textview.insert_image(img, "screenshot.jpg")
             except Exception, e:
                 print e
                 print "error reading screenshot '%s'" % imgfile

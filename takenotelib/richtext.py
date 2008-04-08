@@ -9,6 +9,7 @@ pygtk.require('2.0')
 import gtk, gobject, pango
 from gtk import gdk
 
+import takenotelib as takenote
 from takenotelib.undo import UndoStack
 
 
@@ -1013,9 +1014,9 @@ class RichTextView (gtk.TextView):
     #===========================================================
     # Actions
         
-    def insert_image(self, image):
+    def insert_image(self, image, filename="image.jpg"):
         """Inserts an image into the textbuffer"""
-    
+                
         self.textbuffer.begin_user_action()
         
         it = self.textbuffer.get_iter_at_mark(self.textbuffer.get_insert())
@@ -1024,6 +1025,30 @@ class RichTextView (gtk.TextView):
         image.get_child().show()
         
         self.textbuffer.end_user_action()
+        
+        if image.get_filename() == None:
+            filename, ext = os.path.splitext(filename)
+            filenames = self.get_image_filenames()
+            filename = takenote.get_unique_filename_list(filenames, filename, ext)
+            image.set_filename(filename)
+    
+    
+    def get_image_filenames(self):
+        filenames = []
+    
+        for kind, it, param in iter_buffer_contents(self.textbuffer):
+            if kind == "anchor":
+                anchor, widgets = param
+                
+                for widget in widgets:
+                    child = widget.get_owner()
+                    
+                    if isinstance(child, RichTextImage):
+                        filenames.append(child.get_filename())
+        
+        return filenames
+        
+    
     
     #==============================================================
     # Tag manipulation    
