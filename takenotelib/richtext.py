@@ -12,7 +12,7 @@ from gtk import gdk
 import takenotelib as takenote
 from takenotelib.undo import UndoStack
 
-
+# TODO: implement CUT
 
 
 MIME_TAKENOTE = "application/x-takenote"
@@ -976,7 +976,22 @@ class RichTextView (gtk.TextView):
         
         self.textbuffer.end_user_action()
         self.undo_stack.reset()
-
+        self.enable()
+    
+    
+    def enable(self):
+        self.set_sensitive(True)
+    
+    
+    def disable(self):
+        
+        start = self.textbuffer.get_start_iter()
+        end = self.textbuffer.get_end_iter()
+        self.textbuffer.remove_all_tags(start, end)
+        self.textbuffer.delete(start, end)
+        self.undo_stack.reset()
+        self.set_sensitive(False)
+        
     
     def load_images(self, path):
         

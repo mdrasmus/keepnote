@@ -10,6 +10,8 @@ PAGE_META_FILE = "page.xml"
 PAGE_DATA_FILE = "page.html"
 
 
+# TODO: add NoteBookException
+
 #=============================================================================
 # NoteBook data structures
 
@@ -34,13 +36,14 @@ def get_dom_children(node):
         child = child.nextSibling
 
 def get_valid_filename(filename):
-    filename = filename.replace("/", "")
+    filename = filename.replace("/", "-")
     filename = filename.replace("'", "")
     return filename
     
 
 def get_unique_filename(path, filename, ext="", sep=" ", number=2):
-    assert os.path.exists(path)
+    if path != "":
+        assert os.path.exists(path)
     
     # try the given filename
     newname = os.path.join(path, filename + ext)
@@ -82,11 +85,13 @@ class NoteBookNode (object):
     def __init__(self, path, title=None, parent=None):
         self.title = title
         self.parent = parent
+        self._set_basename(path)
         
-        if self.parent == None:
-            self.basename = path
-        else:
-            self.basename = os.path.basename(path)
+
+    def create(self):
+        path = self.get_path()
+        os.mkdir(path)
+        self.write_meta_data()
 
 
     def get_path(self):
@@ -95,8 +100,11 @@ class NoteBookNode (object):
         else:
             return os.path.join(self.parent.get_path(), self.basename)
     
-    def set_basename(self, basename):
-        self.basename = basename
+    def _set_basename(self, path):
+        if self.parent == None:
+            self.basename = path
+        else:
+            self.basename = os.path.basename(path)
     
     def get_title(self):
         if self.title == None:
@@ -118,7 +126,7 @@ class NoteBookNode (object):
         try:
             os.rename(path, path2)
             self.title = title
-            self.basename = os.path.basename(path2)
+            self._set_basename(path2)
             self.write_meta_data()
         except Exception, e:
             print e
@@ -266,7 +274,9 @@ class NoteBook (NoteBookDir):
         """rootdir -- Root directory of notebook"""
         NoteBookDir.__init__(self, rootdir)
         
-        #self.root = NoteBookDir(rootdir)
+    def create(self):
+        os.mkdir(self.get_path())
+        self.write_meta_data()
     
     def get_root_node(self):
         """Returns the root node of the notebook"""
