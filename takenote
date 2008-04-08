@@ -18,7 +18,7 @@ from takenotelib.richtext import RichTextView, RichTextImage
 
 class TakeNoteTreeView (object):
     
-    def __init__(self, notebook=None):
+    def __init__(self):
         self.on_select_node = None
     
         # create a TreeStore with one string column to use as the model
@@ -58,10 +58,7 @@ class TakeNoteTreeView (object):
         self.treeview.set_reorderable(True)
         
         self.icon = pixbuf = gdk.pixbuf_new_from_file("bitmaps/open.xpm")
-        
-        self.set_notebook(notebook)
-        #self.treeview.expand_to_path((0,0))
-        
+                
     
     #def on_activate(self, treeview, path, view_column):
     #    print path, view_column
@@ -98,7 +95,7 @@ class TakeNoteTreeView (object):
     def set_notebook(self, notebook):
         self.notebook = notebook
         
-        if self.notebook == None:
+        if self.notebook is None:
             self.treestore.clear()
         
         else:
@@ -266,6 +263,9 @@ class TakeNoteSelector (object):
     def set_notebook(self, notebook):
         self.notebook = notebook
         
+        if self.notebook is None:
+            self.model.clear()
+        
     
     def get_page(self, path):
         return self.model[path[0]][2]
@@ -308,18 +308,16 @@ class TakeNoteWindow (gtk.Window):
         self.set_default_size(800, 600)
         self.connect("destroy", lambda w: self.on_close())
         
-        self.notebook = takenote.NoteBook("notebook")
+        self.notebook = None
         self.sel_nodes = []
         self.current_page = None
         
         # selector
         self.selector = TakeNoteSelector()
-        self.selector.set_notebook(self.notebook)        
         self.selector.on_select_node = self.on_select_page
         
         # treeview
         self.treeview = TakeNoteTreeView()
-        self.treeview.set_notebook(self.notebook)
         self.treeview.on_select_node = self.on_select_treenode
         
         # editor
@@ -366,10 +364,40 @@ class TakeNoteWindow (gtk.Window):
         vpaned.add2(self.editor.view)
         
         
-        self.show_all()
-        self.treeview.treeview.expand_all()
+        self.show_all()        
         self.editor.textview.grab_focus()
 
+
+    def on_open_notebook(self):
+        self.filew = gtk.FileSelection("Open notebook")
+        #self.filew = gtk.FileChooserDialog("Open notebook")
+        
+        self.filew.ok_button.connect("clicked", self.on_open_notebook_ok)
+        self.filew.cancel_button.connect("clicked",
+                                         lambda w: self.filew.destroy())
+        self.filew.show()
+    
+    
+    def on_open_notebook_ok(self, w):
+        filename = self.filew.get_filename()
+        self.filew.destroy()
+        self.open_notebook(filename)
+        
+    
+    def open_notebook(self, filename):
+        if self.notebook is not None:
+            self.close_notebook()
+        self.notebook = takenote.NoteBook(filename)
+        self.selector.set_notebook(self.notebook)
+        self.treeview.set_notebook(self.notebook)
+        self.treeview.treeview.expand_all()
+        
+        
+    def close_notebook(self):
+        if self.notebook is not None:
+            self.notebook = None
+            self.selector.set_notebook(self.notebook)
+            self.treeview.set_notebook(self.notebook)
     
     
     def on_new_dir(self):
@@ -526,9 +554,10 @@ class TakeNoteWindow (gtk.Window):
             ( "/_File",         None,         None, 0, "<Branch>" ),
             ( "/File/_New Page", "<control>N", lambda w,e: self.on_new_page(), 0, None ),
             ( "/File/Ne_w Directory", "<control><shift>N", lambda w,e: self.on_new_dir(), 0, None ),
-            ( "/File/_Open",    "<control>O", lambda w,e: self.editor.textview.load("notes.html"), 0, None ),
+            ( "/File/_Open",    "<control>O", lambda w,e: self.on_open_notebook(), 0, None ),
             ( "/File/_Save",    "<control>S", lambda w,e: self.editor.save(), 0, None ),
             ( "/File/Save _As", None,         None, 0, None ),
+            ( "/File/_Close", "<control>W", lambda w, e: self.close_notebook(), 0, None),
             ( "/File/sep1",     None,         None, 0, "<Separator>" ),
             ( "/File/Quit",     "<control>Q", lambda w,e: self.on_close(), 0, None ),
 
@@ -656,7 +685,8 @@ class TakeNote (object):
     def __init__(self):        
         self.window = TakeNoteWindow()
         
-        
+    def open_notebook(self, filename):
+        self.window.open_notebook(filename)
 
 
 
@@ -667,5 +697,10 @@ def main():
     gtk.main()
 
 if __name__ == "__main__":
+
+    
     app = TakeNote()
+    
+    if len(sys.argv) > 1:
+        app.open_notebook(sys.argv[1])
     main()
