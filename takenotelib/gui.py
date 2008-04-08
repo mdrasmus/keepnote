@@ -7,6 +7,7 @@ pygtk.require('2.0')
 import gtk, gobject, pango
 from gtk import gdk
 
+# takenote imports
 import takenotelib as takenote
 from takenotelib.undo import UndoStack
 from takenotelib.richtext import RichTextView, RichTextImage
@@ -785,8 +786,9 @@ class TakeNoteWindow (gtk.Window):
 
 class TakeNote (object):
     
-    def __init__(self):        
+    def __init__(self, basedir=""):
         self.window = TakeNoteWindow()
+        self.basedir = basedir
         
     def open_notebook(self, filename):
         self.window.open_notebook(filename)
