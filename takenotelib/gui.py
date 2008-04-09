@@ -13,6 +13,9 @@ from takenotelib.undo import UndoStack
 from takenotelib.richtext import RichTextView, RichTextImage
 
 
+PROGRAM_NAME = "TakeNode"
+PROGRAM_VERSION = "0.1"
+
 # TODO: shade undo/redo
 
 
@@ -683,6 +686,17 @@ class TakeNoteWindow (gtk.Window):
     def on_goto_editor(self):
         self.editor.textview.grab_focus()
     
+    def on_about(self):
+        """Display about dialog"""
+        
+        about = gtk.AboutDialog()
+        about.set_name(PROGRAM_NAME)
+        about.set_version("v%s" % (PROGRAM_VERSION) )
+        about.set_copyright("(C) Matt Rasmussen 2008")
+        about.set_transient_for(self)
+        about.set_position(gtk.WIN_POS_CENTER_ON_PARENT)
+        about.connect("response", lambda d,r: about.destroy())
+        about.show()
     
     #================================================
     # Menubar
@@ -739,7 +753,7 @@ class TakeNoteWindow (gtk.Window):
             ("/Format/sep2", 
                 None, None, 0, "<Separator>" ),
             ("/Format/Choose _Font", 
-                "<control>F", lambda w, e: self.on_choose_font(), 0, None),
+                "<control><shift>F", lambda w, e: self.on_choose_font(), 0, None),
             
             ("/_Go", 
                 None, None, 0, "<Branch>"),
@@ -752,7 +766,7 @@ class TakeNoteWindow (gtk.Window):
                 
             
             ("/_Help",       None, None, 0, "<LastBranch>" ),
-            ("/_Help/About", None, None, 0, None ),
+            ("/_Help/About", None, lambda w,e: self.on_about(), 0, None ),
             )    
     
         accel_group = gtk.AccelGroup()
