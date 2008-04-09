@@ -1,4 +1,22 @@
+"""
+    TakeNote
+    Copyright Matt Rasmussen 2008
+    
+    Graphical User Interface for TakeNote Application
+"""
 
+# TODO: shade undo/redo
+# TODO: allow open file for *.nbk files
+# TODO: add node ordering
+# TODO: add pages in treeview
+#       will eventually require lazy loading for treeview
+# TODO: add basedir to all image loading
+#       use get_takenote_file(filename)
+# TODO: add framework for customized page selector columns
+
+
+
+# python imports
 import sys, os, tempfile, re
 
 # pygtk imports
@@ -12,11 +30,10 @@ import takenotelib as takenote
 from takenotelib.undo import UndoStack
 from takenotelib.richtext import RichTextView, RichTextImage
 
-
+# constants
 PROGRAM_NAME = "TakeNode"
 PROGRAM_VERSION = "0.1"
 
-# TODO: shade undo/redo
 
 
 def str2path(pathtext):
@@ -35,22 +52,25 @@ class TakeNoteTreeView (object):
         self.node2path = {}
         self.path2node = {}
                         
-        # create the TreeView using treestore
+        # init treeview
         self.treeview = gtk.TreeView(self.model)
         self.treeview.connect("key-release-event", self.on_key_released)
+        self.treeview.connect("row-expanded", self.on_row_expanded)
+        self.treeview.connect("row-collapsed", self.on_row_collapsed) 
         #self.treeview.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
         self.treeview.get_selection().connect("changed", self.on_select_changed)
         self.treeview.set_headers_visible(False)
         self.treeview.set_property("enable-tree-lines", True)
+        #self.treeview.set_reorderable(True)
+        # make treeview searchable
+        self.treeview.set_search_column(1)        
 
-        # create the TreeViewColumn to display the data
+        # create the treeview column
         self.column = gtk.TreeViewColumn()
         self.column.set_clickable(False)
-
-        # add tvcolumn to treeview        
         self.treeview.append_column(self.column)
 
-        # create a CellRendererText to render the data
+        # create a cell renderers
         self.cell_icon = gtk.CellRendererPixbuf()
         self.cell_text = gtk.CellRendererText()
         self.cell_text.connect("edited", self.on_edit_title)
@@ -60,20 +80,15 @@ class TakeNoteTreeView (object):
         self.column.pack_start(self.cell_icon, False)
         self.column.pack_start(self.cell_text, True)
 
-        # map cells to columns in textstore
+        # map cells to columns in treestore
         self.column.add_attribute(self.cell_icon, 'pixbuf', 0)
         self.column.add_attribute(self.cell_text, 'text', 1)
-
-        # make it searchable
-        self.treeview.set_search_column(1)
-        
-        # Allow drag and drop reordering of rows
-        #self.treeview.set_reorderable(True)
         
         self.icon = pixbuf = gdk.pixbuf_new_from_file("bitmaps/open.xpm")
         
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        scrolled_window.set_shadow_type(gtk.SHADOW_IN)
         scrolled_window.add(self.treeview)
         self.view = scrolled_window
         
@@ -81,6 +96,13 @@ class TakeNoteTreeView (object):
     
     #=============================================
     # gui callbacks
+    
+    def on_row_expanded(self, treeview, it, path):
+        self.get_node(path).set_expand(True)
+
+    def on_row_collapsed(self, treeview, it, path):
+        self.get_node(path).set_expand(False)
+
         
     def on_key_released(self, widget, event):
         if event.keyval == gdk.keyval_from_name("Delete"):
@@ -134,13 +156,13 @@ class TakeNoteTreeView (object):
         else:
             root = self.notebook.get_root_node()
             self.add_node(None, root)
+            
     
     
     def edit_node(self, node):
         path = self.get_path(node)
         self.treeview.set_cursor_on_cell(path, self.column, self.cell_text, 
                                          True)
-        print path
         self.treeview.scroll_to_cell(path)
 
     
@@ -156,6 +178,9 @@ class TakeNoteTreeView (object):
         
         for child in node.get_children():
             self.add_node(it, child)
+        
+        if node.is_expanded():
+            self.treeview.expand_to_path(self.get_path(node))
     
     
     def update_node(self, node):
@@ -210,6 +235,7 @@ class TakeNoteSelector (object):
         # Create a new scrolled window, with scrollbars only if needed
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        scrolled_window.set_shadow_type(gtk.SHADOW_IN)
 
         self.model = gtk.ListStore(gdk.Pixbuf, gobject.TYPE_STRING, object)
         self.treeview = gtk.TreeView(self.model)
@@ -270,7 +296,7 @@ class TakeNoteSelector (object):
     
     def on_delete_page(self):
         model, it = self.treeview.get_selection().get_selected()
-        self.model.get_path(it)
+        path = self.model.get_path(it)
         page = self.get_node(model.get_path(it))
         self.remove_path(path, page)
         page.delete()
@@ -450,13 +476,16 @@ class TakeNoteWindow (gtk.Window):
     def get_preferences(self):
         if self.notebook is not None:
             self.resize(*self.notebook.pref.window_size)
+            if self.notebook.pref.window_pos != [-1, -1]:
+                self.move(*self.notebook.pref.window_pos)
             self.vpaned.set_position(self.notebook.pref.vsash_pos)
             self.hpaned.set_position(self.notebook.pref.hsash_pos)
     
 
     def set_preferences(self):
         if self.notebook is not None:
-            self.notebook.pref.window_size = list(self.get_size())
+            self.notebook.pref.window_size = self.get_size()
+            self.notebook.pref.window_pos = self.get_position()
             self.notebook.pref.vsash_pos = self.vpaned.get_position()
             self.notebook.pref.hsash_pos = self.hpaned.get_position()
                     
@@ -508,13 +537,13 @@ class TakeNoteWindow (gtk.Window):
     def open_notebook(self, filename):
         if self.notebook is not None:
             self.close_notebook()
-        self.notebook = takenote.NoteBook(filename)
-        self.notebook.load()
+        self.notebook = takenote.NoteBook()
+        self.notebook.load(filename)
         self.selector.set_notebook(self.notebook)
         self.treeview.set_notebook(self.notebook)
         self.get_preferences()
         
-        self.treeview.treeview.expand_all()
+        #self.treeview.treeview.expand_all()
         self.treeview.treeview.grab_focus()
         
         
@@ -692,7 +721,7 @@ class TakeNoteWindow (gtk.Window):
         about = gtk.AboutDialog()
         about.set_name(PROGRAM_NAME)
         about.set_version("v%s" % (PROGRAM_VERSION) )
-        about.set_copyright("(C) Matt Rasmussen 2008")
+        about.set_copyright("Copyright Matt Rasmussen 2008")
         about.set_transient_for(self)
         about.set_position(gtk.WIN_POS_CENTER_ON_PARENT)
         about.connect("response", lambda d,r: about.destroy())

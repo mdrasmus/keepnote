@@ -1,4 +1,15 @@
+"""
+    TakeNote
+    Copyright Matt Rasmussen 2008
+    
+    General rich text editor that saves to HTML
+"""
 
+
+# TODO: implement CUT
+# TODO: fix HTML spaces
+
+# python imports
 import sys, os, tempfile, re
 from HTMLParser import HTMLParser
 
@@ -9,12 +20,12 @@ pygtk.require('2.0')
 import gtk, gobject, pango
 from gtk import gdk
 
+# takenote imports
 import takenotelib as takenote
 from takenotelib.undo import UndoStack
 
-# TODO: implement CUT
 
-
+# constants
 MIME_TAKENOTE = "application/x-takenote"
 
 #=============================================================================
@@ -33,7 +44,7 @@ def iter_buffer_contents(textbuffer, start=None, end=None):
         end = textbuffer.get_end_iter()
 
 
-    # yield opening tags
+    # yield opening tags at begining of region
     for tag in it.get_tags():
         yield ("begin", it, tag)
     
@@ -64,6 +75,7 @@ def iter_buffer_contents(textbuffer, start=None, end=None):
                 yield ("pixbuf", a, a.get_pixbuf())
             it2 = b
         
+        # stop iterating if we have pasted end of region
         if it.get_offset() > end.get_offset():
             break
         
@@ -80,6 +92,7 @@ def iter_buffer_contents(textbuffer, start=None, end=None):
         if it.equal(end):
             break
     
+    # yield tags that have not been closed yet
     toggled = set(end.get_toggled_tags(False))
     for tag in end.get_tags():
         if tag not in toggled:

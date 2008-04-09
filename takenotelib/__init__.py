@@ -1,7 +1,23 @@
-import os, shutil
+"""
+    TakeNote
+    Copyright Matt Rasmussen 2008
+
+    Module for TakeNote
+    
+    Basic backend data structures for TakeNote and NoteBooks
+"""
+
+# TODO: add NoteBookException
+
+
+# python imports
+import os, sys, shutil
 import xml.dom.minidom as xmldom
 import xml.dom
 
+
+
+# constants
 BLANK_NOTE = "<html><body></body></html>"
 
 ELEMENT_NODE = 1
@@ -12,10 +28,11 @@ PREF_FILE = "notebook.nbk"
 
 
 DEFAULT_WINDOW_SIZE = (800, 600)
+DEFAULT_WINDOW_POS = (-1, -1)
 DEFAULT_VSASH_POS = 200
 DEFAULT_HSASH_POS = 200
 
-# TODO: add NoteBookException
+
 
 #=============================================================================
 # NoteBook data structures
@@ -45,6 +62,7 @@ def get_dom_children(node):
 
 def get_valid_filename(filename):
     filename = filename.replace("/", "-")
+    filename = filename.replace("\\", "-")
     filename = filename.replace("'", "")
     return filename
     
@@ -93,10 +111,13 @@ class NoteBookNode (object):
     def __init__(self, path, title=None, parent=None):
         self._title = title
         self._parent = parent
-        self._set_basename(path)
+        self._basename = None
         self._valid = True
-        self._order = None
+        self._order = sys.maxint
         self._children = None
+        self._expanded = False
+        
+        self._set_basename(path)
         
 
     def create(self):
@@ -109,17 +130,19 @@ class NoteBookNode (object):
     def get_path(self):
         """Returns the directory path of the node"""
         if self._parent == None:
-            return self.basename
+            return self._basename
         else:
-            return os.path.join(self._parent.get_path(), self.basename)
+            return os.path.join(self._parent.get_path(), self._basename)
     
     
     def _set_basename(self, path):
         """Sets the basename directory of the node"""
         if self._parent == None:
-            self.basename = path
+            self._basename = path
+        elif path is None:
+            self._basename = None
         else:
-            self.basename = os.path.basename(path)
+            self._basename = os.path.basename(path)
     
     
     def get_title(self):
@@ -137,6 +160,19 @@ class NoteBookNode (object):
     def is_valid(self):
         """Returns True if node is valid (not deleted)"""
         return self._valid
+    
+    
+    def set_expand(self, expanded):
+        self._expanded = expanded
+    
+    def is_expanded(self):
+        return self._expanded
+        
+    
+    def move(self, parent, index=None):
+        self._parent.remove_child(self)
+        self._parent = parent
+        self._parent.add_child(self, index)
         
     
     def delete(self):
@@ -230,14 +266,21 @@ class NoteBookPage (NoteBookNode):
         assert root != None
         
         for child in get_dom_children(root):
-            if child.nodeType == ELEMENT_NODE and child.tagName == "title":
-                self._title = child.firstChild.nodeValue  
+            if child.nodeType == ELEMENT_NODE:
+                if child.tagName == "title":
+                    self._title = child.firstChild.nodeValue
+                if child.tagName == "order":
+                    self._order = int(child.firstChild.nodeValue)
+                
+
 
     def write_meta_data(self):
         
         out = open(self.get_meta_file(), "w")
+        out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         out.write("<page>\n")
         out.write("    <title>%s</title>\n" % self._title)
+        out.write("    <order>%d</order>\n" % self._order)        
         out.write("</page>\n")
         out.close()
 
@@ -261,6 +304,7 @@ class NoteBookDir (NoteBookNode):
         page.create()
         if self._children is None:
             self._get_children()
+        page._order = len(self._children)
         self._children.append(page)
         return page
     
@@ -273,6 +317,7 @@ class NoteBookDir (NoteBookNode):
         node.write_meta_data()
         if self._children is None:
             self._get_children()
+        node._order = len(self._children)
         self._children.append(node)        
         return node
     
@@ -281,7 +326,7 @@ class NoteBookDir (NoteBookNode):
         self._children = []
         
         subdirs = os.listdir(self.get_path())
-        subdirs.sort()
+        #subdirs.sort()
         
         for filename in subdirs:
             path2 = os.path.join(self.get_path(), filename)
@@ -296,6 +341,30 @@ class NoteBookDir (NoteBookNode):
                 page = NoteBookPage(path2, parent=self)
                 page.read_meta_data()
                 self._children.append(page)
+        
+        # assign orders
+        self._children.sort(key=lambda x: x._order)
+        self._set_child_order()
+    
+    def _set_child_order(self):
+        for i, child in enumerate(self._children):
+            child._order = i
+            
+
+    def add_child(self, child, index):
+        if self._children is None:
+            self._get_children()
+        
+        if index == None:
+            child._order = self._children[-1]._order + 1
+            self._children.append(child)
+        else:
+            self._children.insert(index, child)
+            self._set_child_order()
+            #child._order = index
+            #for child2 in self._children[index+1:]:
+            #    child2._order += 1
+        
 
     def get_children(self):
         if self._children is None:
@@ -328,28 +397,37 @@ class NoteBookDir (NoteBookNode):
         assert root != None
         
         for child in get_dom_children(root):
-            if child.nodeType == ELEMENT_NODE and child.tagName == "title":
-                self._title = child.firstChild.nodeValue
+            if child.nodeType == ELEMENT_NODE:
+                if child.tagName == "title":
+                    self._title = child.firstChild.nodeValue
+                if child.tagName == "order":
+                    self._order = int(child.firstChild.nodeValue)
+                if child.tagName == "expanded":
+                    self._expanded = bool(int(child.firstChild.nodeValue))
     
     def write_meta_data(self):
         
         out = open(self.get_meta_file(), "w")
+        out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         out.write("<node>\n")
         out.write("    <title>%s</title>\n" % self._title)
+        out.write("    <order>%d</order>\n" % self._order)
+        out.write("    <expanded>%d</expanded>\n" % int(self._expanded))
         out.write("</node>\n")
         out.close()
 
 
 class NoteBookPreferences (object):
     def __init__(self):
-        self.window_size = list(DEFAULT_WINDOW_SIZE)
+        self.window_size = DEFAULT_WINDOW_SIZE
+        self.window_pos = DEFAULT_WINDOW_POS
         self.vsash_pos = DEFAULT_VSASH_POS
         self.hsash_pos = DEFAULT_HSASH_POS
 
 
 
 class NoteBook (NoteBookDir):
-    def __init__(self, rootdir):
+    def __init__(self, rootdir=None):
         """rootdir -- Root directory of notebook"""
         NoteBookDir.__init__(self, rootdir)
         self.pref = NoteBookPreferences()
@@ -365,7 +443,15 @@ class NoteBook (NoteBookDir):
         return self
     
     
-    def load(self):
+    def load(self, filename=None):
+        if filename is not None:
+            if os.path.isdir(filename):
+                self._set_basename(filename)
+            elif os.path.isfile(filename):
+                filename = os.path.dirname(filename)
+                self._set_basename(filename)
+            else:
+                raise Exception("cannot load notebook '%s'" % filename)
         self.read_meta_data()
         self.read_preferences()
     
@@ -384,11 +470,12 @@ class NoteBook (NoteBookDir):
     
     def write_preferences(self):
         out = open(self.get_pref_file(), "w")
+        out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         out.write("<notebook>\n")
-        out.write("    <window_width>%d</window_width>\n" % 
-            self.pref.window_size[0])
-        out.write("    <window_height>%d</window_height>\n" % 
-            self.pref.window_size[1])
+        out.write("    <window_size>%d,%d</window_size>\n" % 
+            tuple(self.pref.window_size))
+        out.write("    <window_pos>%d,%d</window_pos>\n" % 
+            tuple(self.pref.window_pos))
         out.write("    <vsash_pos>%d</vsash_pos>\n" % self.pref.vsash_pos)
         out.write("    <hsash_pos>%d</hsash_pos>\n" % self.pref.hsash_pos)
         out.write("</notebook>\n")
@@ -404,10 +491,10 @@ class NoteBook (NoteBookDir):
         
         for child in get_dom_children(root):
             if child.nodeType == ELEMENT_NODE:
-                if child.tagName == "window_width":
-                    self.pref.window_size[0] = int(child.firstChild.nodeValue)
-                if child.tagName == "window_height":
-                    self.pref.window_size[1] = int(child.firstChild.nodeValue)
+                if child.tagName == "window_size":
+                    self.pref.window_size = map(int,child.firstChild.nodeValue.split(","))
+                if child.tagName == "window_pos":
+                    self.pref.window_pos = map(int,child.firstChild.nodeValue.split(","))
                 if child.tagName == "vsash_pos":
                     self.pref.vsash_pos = int(child.firstChild.nodeValue)
                 if child.tagName == "hsash_pos":
