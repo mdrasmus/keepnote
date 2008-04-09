@@ -38,6 +38,7 @@ class TakeNoteTreeView (object):
         #self.treeview.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
         self.treeview.get_selection().connect("changed", self.on_select_changed)
         self.treeview.set_headers_visible(False)
+        self.treeview.set_property("enable-tree-lines", True)
 
         # create the TreeViewColumn to display the data
         self.column = gtk.TreeViewColumn()
@@ -70,7 +71,7 @@ class TakeNoteTreeView (object):
         
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        scrolled_window.add_with_viewport(self.treeview)
+        scrolled_window.add(self.treeview)
         self.view = scrolled_window
         
     
@@ -136,6 +137,8 @@ class TakeNoteTreeView (object):
         path = self.get_path(node)
         self.treeview.set_cursor_on_cell(path, self.column, self.cell_text, 
                                          True)
+        print path
+        self.treeview.scroll_to_cell(path)
 
     
     def expand_node(self, node):
@@ -154,6 +157,7 @@ class TakeNoteTreeView (object):
     
     def update_node(self, node):
         path = self.get_path(node)
+        expanded = self.treeview.row_expanded(path)
         
         for child in self.model[path].iterchildren():
             self.remove_path(child.path)
@@ -162,6 +166,8 @@ class TakeNoteTreeView (object):
         it = self.model.get_iter(path)
         for child in node.get_children():
             self.add_node(it, child)
+        
+        self.treeview.expand_to_path(path)
     
     
     
@@ -205,7 +211,7 @@ class TakeNoteSelector (object):
         self.model = gtk.ListStore(gdk.Pixbuf, gobject.TYPE_STRING, object)
         self.treeview = gtk.TreeView(self.model)
         self.treeview.connect("key-release-event", self.on_key_released)
-        scrolled_window.add_with_viewport(self.treeview)
+        scrolled_window.add(self.treeview)
         self.treeview.show()
         #self.treeview.get_selection().set_select_function(self.on_select)
         self.treeview.get_selection().connect("changed", self.on_select_changed)
@@ -284,8 +290,7 @@ class TakeNoteSelector (object):
                 self.model.set(it, 2, page)
                 path = self.model.get_path(it)
                 self.add_path(path, page)
-        
-        self.on_select_node(None)
+        self.on_select_node(None)        
     
     
     def update(self):
@@ -295,6 +300,8 @@ class TakeNoteSelector (object):
         path = self.get_path(page)
         self.treeview.set_cursor_on_cell(path, self.column, self.cell_text, 
                                          True)
+        path, col = self.treeview.get_cursor()
+        self.treeview.scroll_to_cell(path)
     
     
     def select_pages(self, pages):
@@ -341,6 +348,7 @@ class TakeNoteEditor (object):
     def __init__(self):
         sw = gtk.ScrolledWindow()
         sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        sw.set_shadow_type(gtk.SHADOW_IN)
         self.textview = RichTextView()
         sw.add(self.textview)
         sw.show()
@@ -360,8 +368,7 @@ class TakeNoteEditor (object):
             self.textview.load(page.get_data_file())
     
     def save(self):
-        # TODO: make sure note is not deleted
-        if self.page is not None:
+        if self.page is not None and self.page.is_valid():
             self.textview.save(self.page.get_data_file())
 
 
@@ -370,9 +377,8 @@ class TakeNoteWindow (gtk.Window):
         gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
         
         self.set_title("TakeNote")
-        self.set_default_size(800, 600)
+        self.set_default_size(*takenote.DEFAULT_WINDOW_SIZE)
         self.connect("delete-event", lambda w,e: self.on_close())
-        #self.connect("configure-event", lambda w, e: self.on_resize())
         
         self.notebook = None
         self.sel_nodes = []
@@ -393,31 +399,33 @@ class TakeNoteWindow (gtk.Window):
         
         #====================================
         # Layout
+        
         # vertical box
         main_vbox = gtk.VBox(False, 0)
         self.add(main_vbox)
         
         # menu bar
-        main_vbox.set_border_width(1)
+        main_vbox.set_border_width(0)
         menubar = self.make_menubar()
         main_vbox.pack_start(menubar, False, True, 0)
         
         # toolbar
-        #handlebox = gtk.HandleBox()
-        #handlebox.add(self.make_toolbar())
         main_vbox.pack_start(self.make_toolbar(), False, True, 0)          
         
+        main_vbox2 = gtk.VBox(False, 0)
+        main_vbox2.set_border_width(1)
+        main_vbox.pack_start(main_vbox2, True, True, 0)
         
         #==========================================
         # create a horizontal paned widget
         self.hpaned = gtk.HPaned()
-        main_vbox.pack_start(self.hpaned, True, True, 0)
-        self.hpaned.set_position(200)
+        main_vbox2.pack_start(self.hpaned, True, True, 0)
+        self.hpaned.set_position(takenote.DEFAULT_HSASH_POS)
 
         # create a vertical paned widget
         self.vpaned = gtk.VPaned()
         self.hpaned.add2(self.vpaned)
-        self.vpaned.set_position(200)
+        self.vpaned.set_position(takenote.DEFAULT_VSASH_POS)
         
         
         # status bar
@@ -434,12 +442,7 @@ class TakeNoteWindow (gtk.Window):
         self.show_all()        
         self.treeview.treeview.grab_focus()
     
-    """
-    def on_resize(self):
-        if self.notebook is not None:
-            self.notebook.pref.window_size = self.get_size()
-        return False
-    """
+
     
     def get_preferences(self):
         if self.notebook is not None:
@@ -699,7 +702,7 @@ class TakeNoteWindow (gtk.Window):
                 "<control>O", lambda w,e: self.on_open_notebook(), 0, None),
             ("/File/_Save Page",     
                 "<control>S", lambda w,e: self.editor.save(), 0, None),
-            ("/File/_Close", 
+            ("/File/_Close Notebook", 
                 "<control>W", lambda w, e: self.close_notebook(), 0, None),
             ("/File/sep1", 
                 None, None, 0, "<Separator>" ),

@@ -11,6 +11,10 @@ PAGE_DATA_FILE = "page.html"
 PREF_FILE = "notebook.nbk"
 
 
+DEFAULT_WINDOW_SIZE = (800, 600)
+DEFAULT_VSASH_POS = 200
+DEFAULT_HSASH_POS = 200
+
 # TODO: add NoteBookException
 
 #=============================================================================
@@ -338,9 +342,9 @@ class NoteBookDir (NoteBookNode):
 
 class NoteBookPreferences (object):
     def __init__(self):
-        self.window_size = [800, 600]
-        self.vsash_pos = 200
-        self.hsash_pos = 200
+        self.window_size = list(DEFAULT_WINDOW_SIZE)
+        self.vsash_pos = DEFAULT_VSASH_POS
+        self.hsash_pos = DEFAULT_HSASH_POS
 
 
 
