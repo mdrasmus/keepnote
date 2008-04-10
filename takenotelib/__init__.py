@@ -69,7 +69,7 @@ def get_valid_filename(filename):
 
 def get_unique_filename(path, filename, ext="", sep=" ", number=2):
     if path != "":
-        assert os.path.exists(path)
+        assert os.path.exists(path), path
     
     # try the given filename
     newname = os.path.join(path, filename + ext)
@@ -108,7 +108,8 @@ def get_unique_filename_list(filenames, filename, ext="", sep=" ", number=2):
 
 
 class NoteBookNode (object):
-    def __init__(self, path, title=None, parent=None):
+    def __init__(self, path, title=None, parent=None, notebook=None):
+        self._notebook = notebook
         self._title = title
         self._parent = parent
         self._basename = None
@@ -125,15 +126,21 @@ class NoteBookNode (object):
         path = self.get_path()
         os.mkdir(path)
         self.write_meta_data()
+        self._set_dirty(False)
 
 
     def get_path(self):
         """Returns the directory path of the node"""
-        if self._parent == None:
-            return self._basename
-        else:
-            return os.path.join(self._parent.get_path(), self._basename)
-    
+        
+        path_list = []
+        ptr = self
+        while ptr != None:
+            path_list.append(ptr._basename)
+            ptr = ptr._parent
+        path_list.reverse()
+        
+        return os.path.join(* path_list)
+            
     
     def _set_basename(self, path):
         """Sets the basename directory of the node"""
@@ -162,17 +169,40 @@ class NoteBookNode (object):
         return self._valid
     
     
+    def is_page(self):
+        return False
+    
     def set_expand(self, expanded):
         self._expanded = expanded
+        self._set_dirty(True)
     
     def is_expanded(self):
         return self._expanded
+
+
+    def _set_dirty(self, dirty):
+        self._notebook._set_dirty_node(self, dirty)
         
+    def _is_dirty(self):
+        return self._notebook._is_dirty_node(self)
+
     
     def move(self, parent, index=None):
+        assert self != parent
+        path = self.get_path()
+        old_parent = self._parent
         self._parent.remove_child(self)
         self._parent = parent
         self._parent.add_child(self, index)
+        self._set_dirty(True)
+        
+        # perform on-disk move is new parent
+        if old_parent != self._parent:
+            path2 = self.get_path()
+            parent_path = os.path.dirname(path2)
+            path2 = get_valid_unique_filename(parent_path, self._title)
+            os.rename(path, path2)
+            self.save()
         
     
     def delete(self):
@@ -181,12 +211,27 @@ class NoteBookNode (object):
         path = self.get_path()
         shutil.rmtree(path)
         self._valid = False
+        
+        # make sure to recursively invalidate
+        self._invalidate_children()
+        
+    
+    def _invalidate_children(self):
+        
+        if self._children is not None:
+            for child in self._children:
+                child._valid = False
+                child._invalidate_children()
     
     
     def rename(self, title):
         """Renames the title of the node"""
+        
+        # do noting if title is the same
         if title == self._title:
             return
+        
+        # try to pick a path that closely resembles the title
         path = self.get_path()
         parent_path = os.path.dirname(path)
         path2 = get_valid_unique_filename(parent_path, title)
@@ -195,11 +240,110 @@ class NoteBookNode (object):
             os.rename(path, path2)
             self._title = title
             self._set_basename(path2)
-            self.write_meta_data()
+            self.save()
         except Exception, e:
             print e
             print "cannot rename '%s' to '%s'" % (path, path2)
     
+    
+    def new_page(self, title):
+        path = self.get_path()
+        newpath = get_valid_unique_filename(path, title)
+        page = NoteBookPage(newpath, title=title, parent=self, notebook=self._notebook)
+        page.create()
+        if self._children is None:
+            self._get_children()
+        page._order = len(self._children)
+        self._children.append(page)
+        page.save()
+        return page
+    
+    
+    def new_dir(self, title):
+        path = self.get_path()
+        newpath = get_valid_unique_filename(path, title)
+        node = NoteBookDir(newpath, title=title, parent=self, notebook=self._notebook)
+        node.create()
+        if self._children is None:
+            self._get_children()
+        node._order = len(self._children)
+        self._children.append(node)
+        node.save()
+        return node
+    
+    
+    def _get_children(self):
+        self._children = []
+        path = self.get_path()
+        
+        files = os.listdir(path)
+        
+        for filename in files:
+            path2 = os.path.join(path, filename)
+            nodefile = get_dir_meta_file(path2)
+            pagefile = get_page_meta_file(path2)
+            
+            if os.path.exists(nodefile):
+                # create dir node
+                node = NoteBookDir(path2, parent=self, notebook=self._notebook)
+                node.read_meta_data()
+                self._children.append(node)
+                
+            elif os.path.exists(pagefile):
+                # create page node
+                page = NoteBookPage(path2, parent=self, notebook=self._notebook)
+                page.read_meta_data()
+                self._children.append(page)
+        
+        # assign orders
+        self._children.sort(key=lambda x: x._order)
+        self._set_child_order()
+    
+    def _set_child_order(self):
+        for i, child in enumerate(self._children):
+            if child._order != i:
+                child._order = i
+                child._set_dirty(True)
+            
+
+    def add_child(self, child, index):
+        child._notebook = self._notebook
+        
+        if self._children is None:
+            self._get_children()
+        
+        if index == None:
+            child._order = self._children[-1]._order + 1
+            self._children.append(child)
+        else:
+            self._children.insert(index, child)
+            self._set_child_order()
+        child._set_dirty(True)
+
+        
+
+    def get_children(self):
+        if self._children is None:
+            self._get_children()
+        
+        for child in self._children:
+            if isinstance(child, NoteBookDir):
+                yield child
+    
+    
+    def get_pages(self):
+        if self._children is None:
+            self._get_children()
+        
+        for child in self._children:
+            if isinstance(child, NoteBookPage):
+                yield child
+
+    def remove_child(self, child):
+        if self._children is None:
+            self._get_children()
+        self._children.remove(child)
+           
     
     def load(self):
         self.read_meta_data()
@@ -208,8 +352,12 @@ class NoteBookNode (object):
     def save(self):
         """Recursively save any loaded nodes"""
         
-        self.write_meta_data()
-        self._save_children()
+        if self._is_dirty():
+            self.write_meta_data()
+            self._set_dirty(False)
+            
+        #self._save_children()
+            
         
     
     def _save_children(self):
@@ -235,15 +383,19 @@ class NoteBookNode (object):
 
 
 class NoteBookPage (NoteBookNode):
-    def __init__(self, path, title=None, parent=None):
-        NoteBookNode.__init__(self, path, title, parent)
+    def __init__(self, path, title=None, parent=None, notebook=None):
+        NoteBookNode.__init__(self, path, title, parent, notebook)
     
     
     def create(self):
+        path = self.get_path()
+        os.mkdir(path)
         self.write_meta_data()
         self.write_empty_data_file()
     
-
+    def is_page(self):
+        return True
+    
     def get_data_file(self):
         return get_page_data_file(self.get_path())
     
@@ -272,8 +424,7 @@ class NoteBookPage (NoteBookNode):
                 if child.tagName == "order":
                     self._order = int(child.firstChild.nodeValue)
                 
-
-
+    
     def write_meta_data(self):
         
         out = open(self.get_meta_file(), "w")
@@ -287,107 +438,13 @@ class NoteBookPage (NoteBookNode):
 
 
 class NoteBookDir (NoteBookNode):
-    def __init__(self, path, title=None, parent=None):
-        NoteBookNode.__init__(self, path, title, parent)
+    def __init__(self, path, title=None, parent=None, notebook=None):
+        NoteBookNode.__init__(self, path, title, parent, notebook)
         
-    
         
     def get_meta_file(self):    
         return get_dir_meta_file(self.get_path())
     
-    
-    def new_page(self, title):
-        path = self.get_path()
-        newpath = get_valid_unique_filename(path, title)
-        os.mkdir(newpath)
-        page = NoteBookPage(newpath, title=title, parent=self)
-        page.create()
-        if self._children is None:
-            self._get_children()
-        page._order = len(self._children)
-        self._children.append(page)
-        return page
-    
-    
-    def new_dir(self, title):
-        path = self.get_path()
-        newpath = get_valid_unique_filename(path, title)
-        os.mkdir(newpath)
-        node = NoteBookDir(newpath, title=title, parent=self)
-        node.write_meta_data()
-        if self._children is None:
-            self._get_children()
-        node._order = len(self._children)
-        self._children.append(node)        
-        return node
-    
-    
-    def _get_children(self):
-        self._children = []
-        
-        subdirs = os.listdir(self.get_path())
-        #subdirs.sort()
-        
-        for filename in subdirs:
-            path2 = os.path.join(self.get_path(), filename)
-            nodefile = get_dir_meta_file(path2)
-            pagefile = get_page_meta_file(path2)
-            if os.path.isdir(path2) and os.path.exists(nodefile):
-                node = NoteBookDir(path2, parent=self)
-                node.read_meta_data()
-                self._children.append(node)
-                
-            elif os.path.isdir(path2) and os.path.exists(pagefile):
-                page = NoteBookPage(path2, parent=self)
-                page.read_meta_data()
-                self._children.append(page)
-        
-        # assign orders
-        self._children.sort(key=lambda x: x._order)
-        self._set_child_order()
-    
-    def _set_child_order(self):
-        for i, child in enumerate(self._children):
-            child._order = i
-            
-
-    def add_child(self, child, index):
-        if self._children is None:
-            self._get_children()
-        
-        if index == None:
-            child._order = self._children[-1]._order + 1
-            self._children.append(child)
-        else:
-            self._children.insert(index, child)
-            self._set_child_order()
-            #child._order = index
-            #for child2 in self._children[index+1:]:
-            #    child2._order += 1
-        
-
-    def get_children(self):
-        if self._children is None:
-            self._get_children()
-        
-        for child in self._children:
-            if isinstance(child, NoteBookDir):
-                yield child
-    
-    
-    def get_pages(self):
-        if self._children is None:
-            self._get_children()
-        
-        for child in self._children:
-            if isinstance(child, NoteBookPage):
-                yield child
-
-    def remove_child(self, child):
-        if self._children is None:
-            self._get_children()
-        self._children.remove(child)
-                
     
     def read_meta_data(self):
         
@@ -406,7 +463,6 @@ class NoteBookDir (NoteBookNode):
                     self._expanded = bool(int(child.firstChild.nodeValue))
     
     def write_meta_data(self):
-        
         out = open(self.get_meta_file(), "w")
         out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         out.write("<node>\n")
@@ -418,6 +474,7 @@ class NoteBookDir (NoteBookNode):
 
 
 class NoteBookPreferences (object):
+    """Preference data structure for a NoteBook"""
     def __init__(self):
         self.window_size = DEFAULT_WINDOW_SIZE
         self.window_pos = DEFAULT_WINDOW_POS
@@ -431,7 +488,21 @@ class NoteBook (NoteBookDir):
         """rootdir -- Root directory of notebook"""
         NoteBookDir.__init__(self, rootdir)
         self.pref = NoteBookPreferences()
+        self._title = os.path.basename(rootdir)
+        self._dirty = set()
+        self._notebook = self
 
+    def _set_dirty_node(self, node, dirty):
+        if dirty:
+            self._dirty.add(node)
+        else:
+            if node in self._dirty:
+                self._dirty.remove(node)
+    
+    
+    def _is_dirty_node(self, node):
+        return node in self._dirty
+        
         
     def create(self):
         os.mkdir(self.get_path())
@@ -461,7 +532,14 @@ class NoteBook (NoteBookDir):
         
         self.write_meta_data()
         self.write_preferences()
-        self._save_children()
+        #self._save_children()
+        
+        self._set_dirty(False)
+        
+        for node in list(self._dirty):
+            node.save()
+        
+        assert len(self._dirty) == 0
     
     
     def get_pref_file(self):

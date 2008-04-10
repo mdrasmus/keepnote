@@ -7,7 +7,7 @@
 
 # TODO: shade undo/redo
 # TODO: allow open file for *.nbk files
-# TODO: add node ordering
+# TODO: add node reordering
 # TODO: add pages in treeview
 #       will eventually require lazy loading for treeview
 # TODO: add basedir to all image loading
@@ -34,7 +34,67 @@ from takenotelib.richtext import RichTextView, RichTextImage
 PROGRAM_NAME = "TakeNode"
 PROGRAM_VERSION = "0.1"
 
+DROP_YES = ("drop_yes", gtk.TARGET_SAME_WIDGET, 0)
+DROP_NO = ("drop_no", gtk.TARGET_SAME_WIDGET, 0)
 
+
+class DataMap (object):
+    def __init__(self):
+        self.data2path = {}
+        self.path2data = {}
+    
+    def get_path(self, data):
+        return self.data2path.get(data, None)
+    
+    def get_data(self, path):
+        if isinstance(path, str):
+            path = str2path(path)
+        data = self.path2data.get(path, None)
+        assert data is not None, path
+        return data
+    
+    def remove_path(self, path):
+        if path in self.path2data:
+            data = self.path2data[path]
+            del self.path2data[path]
+            del self.data2path[data]
+    
+    def remove_path_all(self, path, get_child_data):
+        """Recursively remove path and all its descendants"""
+        if path in self.path2data:
+            data = self.path2data[path]
+            
+            for child in get_child_data(data):
+                child_path = self.get_path(child)
+                if child_path is not None:
+                    self.remove_path_all(child_path, get_child_data)
+            
+            del self.path2data[path]
+            del self.data2path[data]
+    
+    def add_path(self, path, data):
+        self.data2path[data] = path
+        self.path2data[path] = data
+    
+    def add_path_all(self, path, data, get_child_data):
+        """Recursively add paths for data and all its descendants"""
+        
+        lpath = list(path)
+        for i, child in enumerate(get_child_data(data)):
+            lpath.append(i)
+            self.add_path_all(tuple(lpath), child, get_child_data)
+            lpath.pop()
+        
+        self.data2path[data] = path
+        self.path2data[path] = data
+
+    
+    def clear_path(self):
+        self.data2path.clear()
+        self.path2data.clear()
+    
+            
+        
 
 def str2path(pathtext):
     """Converts str to tuple path"""
@@ -42,28 +102,53 @@ def str2path(pathtext):
     return tuple(map(int, pathtext.split(":")))
 
 
+def dnd_sanity_check(source_path, target_path):
+    """The target cannot be a descendant of the source
+       i.e. You cannot become your descendent's child
+       i.e. The source path cannot be a prefix of the target path"""
+    return source_path != target_path[:len(source_path)]
+    
+    
+
+class TakeNoteTreeStore (gtk.TreeStore):
+    
+    def __init__(self, *args, **kargs):
+        gtk.TreeStore.__init__(self, *args, **kargs)
+        
+    
+    def row_drop_possible(self, dest_path, selection_data):
+        print "drop", dest_path
+        return len(dest_path) > 1
+   
+
 class TakeNoteTreeView (object):
     
     def __init__(self):
         self.on_select_node = None
     
         # create a TreeStore with one string column to use as the model
-        self.model = gtk.TreeStore(gdk.Pixbuf, str, object)
-        self.node2path = {}
-        self.path2node = {}
+        self.model = TakeNoteTreeStore(gdk.Pixbuf, str, object)
+        self.datamap = DataMap()
                         
         # init treeview
         self.treeview = gtk.TreeView(self.model)
         self.treeview.connect("key-release-event", self.on_key_released)
-        self.treeview.connect("row-expanded", self.on_row_expanded)
-        self.treeview.connect("row-collapsed", self.on_row_collapsed) 
+        self.expanded_id = self.treeview.connect("row-expanded", self.on_row_expanded)
+        self.collapsed_id = self.treeview.connect("row-collapsed", self.on_row_collapsed) 
+        self.treeview.connect("drag-motion", self.on_drag_motion)
+        self.treeview.connect("drag-data-received", self.on_drag_data_received)
         #self.treeview.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
         self.treeview.get_selection().connect("changed", self.on_select_changed)
         self.treeview.set_headers_visible(False)
-        self.treeview.set_property("enable-tree-lines", True)
-        #self.treeview.set_reorderable(True)
+        #self.treeview.set_property("enable-tree-lines", True)
         # make treeview searchable
-        self.treeview.set_search_column(1)        
+        self.treeview.set_search_column(1) 
+        self.treeview.set_reorderable(True)        
+        self.treeview.enable_model_drag_source(
+            gtk.gdk.BUTTON1_MASK, [DROP_YES], gtk.gdk.ACTION_MOVE)
+        self.treeview.enable_model_drag_dest(
+            [DROP_YES], gtk.gdk.ACTION_MOVE)        
+        #self.treeview.set_fixed_height_mode(True)       
 
         # create the treeview column
         self.column = gtk.TreeViewColumn()
@@ -97,11 +182,135 @@ class TakeNoteTreeView (object):
     #=============================================
     # gui callbacks
     
+    def on_drag_motion(self, treeview, drag_context, x, y, eventtime):
+        """Callback for drag motion.
+           Indicate which drops are allowed"""
+        
+        # determine destination row   
+        dest_row = treeview.get_dest_row_at_pos(x, y)
+        if dest_row is None:
+            return
+        
+        # get target and source
+        target_path, drop_position  = dest_row    
+        model, source = treeview.get_selection().get_selected()
+        source_path = model.get_path(source)
+        
+        # determine if drag is allowed
+        if self.drop_allowed(source_path, target_path, drop_position):
+            treeview.enable_model_drag_dest([DROP_YES], gtk.gdk.ACTION_MOVE)
+        else:
+            treeview.enable_model_drag_dest([DROP_NO], gtk.gdk.ACTION_MOVE)
+            
+
+    def on_drag_data_received(self, treeview, drag_context, x, y,
+                              selection_data, info, eventtime):
+                              
+        # determine destination row
+        dest_row = treeview.get_dest_row_at_pos(x, y)
+        if dest_row is None:
+            return
+        
+        # get target and source
+        model, source = treeview.get_selection().get_selected()
+        target_path, drop_position  = dest_row    
+        target = model.get_iter(target_path)
+        source_path = model.get_path(source)
+        
+        
+        # determine if drop is allowed
+        if self.drop_allowed(source_path, target_path, drop_position):
+            node = self.datamap.get_data(source_path)
+            
+            # record the node's old parent
+            old_parent = node.get_parent()
+            old_parent_path = source_path[:-1]
+            
+            # perform move in tree model
+            self.treeview.handler_block(self.expanded_id)
+            self.treeview.handler_block(self.collapsed_id)
+            new_path = self.copy_row(treeview, model, source, target, drop_position)
+            self.treeview.handler_unblock(self.expanded_id)
+            self.treeview.handler_unblock(self.collapsed_id)
+            
+            # perform move in notebook model
+            new_parent_path = new_path[:-1]
+            new_parent = self.datamap.get_data(new_parent_path)
+            node.move(new_parent, new_path[-1])
+            
+            # update notebook model mappings
+            self.datamap.remove_path_all(new_parent_path, 
+                lambda x: x.get_children())
+            if old_parent != new_parent:
+                self.datamap.remove_path_all(old_parent_path, 
+                    lambda x: x.get_children())
+        
+            self.datamap.add_path_all(new_parent_path, new_parent,
+                lambda x: x.get_children())
+            
+            if old_parent != new_parent:
+                self.datamap.add_path_all(old_parent_path, old_parent,
+                    lambda x: x.get_children())
+            
+            
+            # make sure to show new children
+            if (drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or
+                drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER):
+                treeview.expand_row(target_path, False)
+            drag_context.finish(True, True, eventtime)
+        else:
+            drag_context.finish(False, False, eventtime)
+    
+    
+    def copy_row(self, treeview, model, source, target, drop_position):
+        
+        # move source row
+        source_row = model[source]
+        if drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE:
+            new = model.prepend(target, source_row)
+        elif drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER:
+            new = model.append(target, source_row)
+        elif drop_position == gtk.TREE_VIEW_DROP_BEFORE:
+            new = model.insert_before(None, target, source_row)
+        elif drop_position == gtk.TREE_VIEW_DROP_AFTER:
+            new = model.insert_after(None, target, source_row)
+        else:
+            raise Exception("unknown drop position %s" %
+                str(drop_position))
+        
+        # recursively move children
+        for n in range(model.iter_n_children(source)):
+            child = model.iter_nth_child(source, n)
+            self.copy_row(treeview, model, child, new,
+                          gtk.TREE_VIEW_DROP_INTO_OR_BEFORE)
+        
+        # expand view to keep the same expansion pattern
+        source_is_expanded = treeview.row_expanded(model.get_path(source))
+        new_path = model.get_path(new)
+        if source_is_expanded:
+            self.expand_to_path(treeview, new_path)
+        
+        return new_path
+    
+    
+    def expand_to_path(self, treeview, path):
+        for i in range(len(path)):
+            treeview.expand_row(path[:i+1], open_all=False)
+    
+    
+    def drop_allowed(self, source_path, target_path, drop_position):
+        """Determine if drop is allowed"""
+        return dnd_sanity_check(source_path, target_path) and \
+               not (target_path == (0,) and \
+                    (drop_position == gtk.TREE_VIEW_DROP_BEFORE or 
+                     drop_position == gtk.TREE_VIEW_DROP_AFTER))
+        
+    
     def on_row_expanded(self, treeview, it, path):
-        self.get_node(path).set_expand(True)
+        self.datamap.get_data(path).set_expand(True)
 
     def on_row_collapsed(self, treeview, it, path):
-        self.get_node(path).set_expand(False)
+        self.datamap.get_data(path).set_expand(False)
 
         
     def on_key_released(self, widget, event):
@@ -111,9 +320,8 @@ class TakeNoteTreeView (object):
             
 
     def on_edit_title(self, cellrenderertext, path, new_text):
-        path = str2path(path)
         try:
-            node = self.get_node(path)
+            node = self.datamap.get_data(path)
             node.rename(new_text)
             
             self.model[path][1] = new_text
@@ -126,14 +334,14 @@ class TakeNoteTreeView (object):
         model, paths = treeselect.get_selected_rows()
         
         if len(paths) > 0 and self.on_select_node:
-            self.on_select_node(self.get_node(paths[0]))
+            self.on_select_node(self.datamap.get_data(paths[0]))
         return True
     
     
     def on_delete_node(self):
         
         model, it = self.treeview.get_selection().get_selected()
-        node = self.get_node(model.get_path(it))
+        node = self.datamap.get_data(model.get_path(it))
         parent = node.get_parent()
         
         if parent != None:
@@ -151,7 +359,7 @@ class TakeNoteTreeView (object):
         
         if self.notebook is None:
             self.model.clear()
-            self.clear_path()
+            self.datamap.clear_path()
         
         else:
             root = self.notebook.get_root_node()
@@ -160,35 +368,35 @@ class TakeNoteTreeView (object):
     
     
     def edit_node(self, node):
-        path = self.get_path(node)
+        path = self.datamap.get_path(node)
         self.treeview.set_cursor_on_cell(path, self.column, self.cell_text, 
                                          True)
         self.treeview.scroll_to_cell(path)
 
     
     def expand_node(self, node):
-        path = self.get_path(node)
+        path = self.datamap.get_path(node)
         self.treeview.expand_to_path(path)
         
     
     def add_node(self, parent, node):
         it = self.model.append(parent, [self.icon, node.get_title(), node])
         path = self.model.get_path(it)
-        self.add_path(path, node)
+        self.datamap.add_path(path, node)
         
         for child in node.get_children():
             self.add_node(it, child)
         
         if node.is_expanded():
-            self.treeview.expand_to_path(self.get_path(node))
+            self.treeview.expand_to_path(self.datamap.get_path(node))
     
     
     def update_node(self, node):
-        path = self.get_path(node)
+        path = self.datamap.get_path(node)
         expanded = self.treeview.row_expanded(path)
         
         for child in self.model[path].iterchildren():
-            self.remove_path(child.path)
+            self.datamap.remove_path_all(child.path, lambda x: x.get_children())
             self.model.remove(child.iter)
         
         it = self.model.get_iter(path)
@@ -199,28 +407,6 @@ class TakeNoteTreeView (object):
     
     
     
-    #=================================================
-    # path maintaince
-    
-    def get_path(self, node):
-        return self.node2path.get(node, None)
-    
-    def get_node(self, path):
-        return self.path2node.get(path, None)
-    
-    def remove_path(self, path):
-        if path in self.path2node:
-            node = self.path2node[path]
-            del self.path2node[path]
-            del self.node2path[node]
-    
-    def add_path(self, path, node):
-        self.node2path[node] = path
-        self.path2node[path] = node
-    
-    def clear_path(self):
-        self.node2path.clear()
-        self.path2node.clear()
 
 
 
@@ -229,21 +415,17 @@ class TakeNoteSelector (object):
     def __init__(self):
         self.on_select_node = None
         self.sel_nodes = None
-        self.node2path = {}
-        self.path2node = {}
         
-        # Create a new scrolled window, with scrollbars only if needed
-        scrolled_window = gtk.ScrolledWindow()
-        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        scrolled_window.set_shadow_type(gtk.SHADOW_IN)
-
+        # init model
         self.model = gtk.ListStore(gdk.Pixbuf, gobject.TYPE_STRING, object)
+        self.datamap = DataMap()        
+        
+        # init view
         self.treeview = gtk.TreeView(self.model)
-        self.treeview.connect("key-release-event", self.on_key_released)
-        scrolled_window.add(self.treeview)
-        self.treeview.show()
-        #self.treeview.get_selection().set_select_function(self.on_select)
+        self.treeview.connect("key-release-event", self.on_key_released)        
         self.treeview.get_selection().connect("changed", self.on_select_changed)
+        self.treeview.set_rules_hint(True)
+        #self.treeview.set_fixed_height_mode(True)
         
         cell_icon = gtk.CellRendererPixbuf()
         self.cell_text = gtk.CellRendererText()
@@ -256,11 +438,18 @@ class TakeNoteSelector (object):
         self.cell_text.connect("edited", self.on_edit_title)
         self.cell_text.set_property("editable", True)
 
-        # map cells to columns in textstore
+        # map cells to columns in model
         self.column.add_attribute(cell_icon, 'pixbuf', 0)
         self.column.add_attribute(self.cell_text, 'text', 1)
         
         self.icon = pixbuf = gdk.pixbuf_new_from_file("bitmaps/copy.xpm")
+
+
+        # Create a new scrolled window, with scrollbars only if needed
+        scrolled_window = gtk.ScrolledWindow()
+        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        scrolled_window.set_shadow_type(gtk.SHADOW_IN)        
+        scrolled_window.add(self.treeview)
         self.view = scrolled_window
 
     #=============================================
@@ -273,21 +462,20 @@ class TakeNoteSelector (object):
     
 
     def on_edit_title(self, cellrenderertext, path, new_text):
-        path = str2path(path)
         try:
-            page = self.get_node(path)        
-            page.rename(new_text)
-            
-            self.model[path][1] = new_text
+            page = self.datamap.get_data(path)
+            if page.get_title() != new_text:
+                page.rename(new_text)
+                self.model[path][1] = new_text
         except Exception, e:
             print e
-            print "takenote: could not rename page '%s'" % node.get_title()
+            print "takenote: could not rename page '%s'" % page.get_title()
     
     def on_select_changed(self, treeselect): 
         model, paths = treeselect.get_selected_rows()
         
         if len(paths) > 0 and self.on_select_node:
-            node = self.get_node(paths[0])
+            node = self.datamap.get_data(paths[0])
             self.on_select_node(node)
         else:
             self.on_select_node(None)
@@ -297,8 +485,8 @@ class TakeNoteSelector (object):
     def on_delete_page(self):
         model, it = self.treeview.get_selection().get_selected()
         path = self.model.get_path(it)
-        page = self.get_node(model.get_path(it))
-        self.remove_path(path, page)
+        page = self.datamap.get_data(model.get_path(it))
+        self.datamap.remove_path(path)
         page.delete()
         self.update()
     
@@ -309,7 +497,7 @@ class TakeNoteSelector (object):
     def view_nodes(self, nodes):
         self.sel_nodes = nodes
         self.model.clear()
-        self.clear_path()
+        self.datamap.clear_path()
         
         for node in nodes:
             for page in node.get_pages():
@@ -318,7 +506,7 @@ class TakeNoteSelector (object):
                 self.model.set(it, 1, page.get_title())
                 self.model.set(it, 2, page)
                 path = self.model.get_path(it)
-                self.add_path(path, page)
+                self.datamap.add_path(path, page)
         self.on_select_node(None)        
     
     
@@ -326,7 +514,7 @@ class TakeNoteSelector (object):
         self.view_nodes(self.sel_nodes)    
     
     def edit_node(self, page):
-        path = self.get_path(page)
+        path = self.datamap.get_path(page)
         self.treeview.set_cursor_on_cell(path, self.column, self.cell_text, 
                                          True)
         path, col = self.treeview.get_cursor()
@@ -335,7 +523,7 @@ class TakeNoteSelector (object):
     
     def select_pages(self, pages):
         page = pages[0]
-        path = self.get_path(page)
+        path = self.datamap.get_path(page)
         if path != None:
             self.treeview.set_cursor_on_cell(path)
 
@@ -345,30 +533,9 @@ class TakeNoteSelector (object):
         
         if self.notebook is None:
             self.model.clear()
-            self.clear_path()
+            self.datamap.clear_path()
 
-    #=================================================
-    # path maintaince
 
-    def get_path(self, node):
-        return self.node2path.get(node, None)
-    
-    def get_node(self, path):
-        return self.path2node.get(path, None)
-    
-    def remove_path(self, path):
-        if path in self.path2node:
-            node = self.path2node[path]
-            del self.path2node[path]
-            del self.node2path[node]
-    
-    def add_path(self, path, node):
-        self.node2path[node] = path
-        self.path2node[path] = node
-    
-    def clear_path(self):
-        self.node2path.clear()
-        self.path2node.clear()
 
 
 
@@ -491,31 +658,53 @@ class TakeNoteWindow (gtk.Window):
                     
 
     def on_new_notebook(self):
-        self.filew = gtk.FileSelection("New notebook")
-        self.filew.ok_button.connect("clicked", self.on_new_notebook_ok)
-        self.filew.cancel_button.connect("clicked",
-                                         lambda w: self.filew.destroy())
+        self.filew = gtk.FileChooserDialog("New Notebook", self, 
+            action=gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER,
+            buttons=("Cancel", gtk.RESPONSE_CANCEL,
+                     "New", gtk.RESPONSE_OK))
+        self.filew.connect("response", self.on_new_notebook_response)
+    
         self.filew.show()
-
-    def on_new_notebook_ok(self, w):
-        filename = self.filew.get_filename()
-        self.filew.destroy()
-        self.new_notebook(filename)
-
+    
+    
+    def on_new_notebook_response(self, dialog, response):
+        if response == gtk.RESPONSE_OK:
+            filename = self.filew.get_filename()
+            dialog.destroy()
+            os.rmdir(filename)
+            self.new_notebook(filename)
+            
+        elif response == gtk.RESPONSE_CANCEL:
+            dialog.destroy()
+    
+    
     def on_open_notebook(self):
-        self.filew = gtk.FileSelection("Open notebook")
-        #self.filew = gtk.FileChooserDialog("Open notebook")
+        self.filew = gtk.FileChooserDialog("Open Notebook", self, 
+            action=gtk.FILE_CHOOSER_ACTION_OPEN,
+            buttons=("Cancel", gtk.RESPONSE_CANCEL,
+                     "Open", gtk.RESPONSE_OK))
+        self.filew.connect("response", self.on_open_notebook_response)
         
-        self.filew.ok_button.connect("clicked", self.on_open_notebook_ok)
-        self.filew.cancel_button.connect("clicked",
-                                         lambda w: self.filew.destroy())
+        file_filter = gtk.FileFilter()
+        file_filter.add_pattern("*.nbk")
+        file_filter.set_name("Notebook")
+        self.filew.add_filter(file_filter)
+        
+        file_filter = gtk.FileFilter()
+        file_filter.add_pattern("*")
+        file_filter.set_name("All files")
+        self.filew.add_filter(file_filter)
+        
         self.filew.show()
     
-    
-    def on_open_notebook_ok(self, w):
-        filename = self.filew.get_filename()
-        self.filew.destroy()
-        self.open_notebook(filename)
+    def on_open_notebook_response(self, dialog, response):
+        if response == gtk.RESPONSE_OK:
+            filename = self.filew.get_filename()
+            dialog.destroy()
+            self.open_notebook(filename)
+            
+        elif response == gtk.RESPONSE_CANCEL:
+            dialog.destroy()
         
     
     def new_notebook(self, filename):
@@ -537,13 +726,13 @@ class TakeNoteWindow (gtk.Window):
     def open_notebook(self, filename):
         if self.notebook is not None:
             self.close_notebook()
+        
         self.notebook = takenote.NoteBook()
         self.notebook.load(filename)
         self.selector.set_notebook(self.notebook)
         self.treeview.set_notebook(self.notebook)
         self.get_preferences()
         
-        #self.treeview.treeview.expand_all()
         self.treeview.treeview.grab_focus()
         
         
@@ -578,9 +767,7 @@ class TakeNoteWindow (gtk.Window):
         node = parent.new_page("New Page")
         self.treeview.update_node(parent)
         self.selector.update()
-        #self.selector.select_pages([node])
         self.selector.edit_node(node)
-        #self.editor.textview.grab_focus()
     
     
     
@@ -598,7 +785,7 @@ class TakeNoteWindow (gtk.Window):
     def on_select_page(self, page):
         self.current_page = page
         self.editor.view_page(page)
-        #self.editor.textview.grab_focus()
+        
     
     
     #=============================================================
