@@ -243,6 +243,13 @@ class NoteBookNode (object):
         if title == self._title:
             return
         
+        if self._parent is None:
+            # don't rename the directory of the notebook itself
+            # just change the title
+            self._title = title
+            self._set_dirty(True)
+            return
+        
         # try to pick a path that closely resembles the title
         path = self.get_path()
         parent_path = os.path.dirname(path)
