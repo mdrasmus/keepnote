@@ -488,7 +488,10 @@ class NoteBook (NoteBookDir):
         """rootdir -- Root directory of notebook"""
         NoteBookDir.__init__(self, rootdir)
         self.pref = NoteBookPreferences()
-        self._title = os.path.basename(rootdir)
+        if rootdir is not None:
+            self._title = os.path.basename(rootdir)
+        else:
+            self._title = None
         self._dirty = set()
         self._notebook = self
 

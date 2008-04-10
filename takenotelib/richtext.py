@@ -219,6 +219,7 @@ class HtmlBuffer (HTMLParser):
         self.out = out
         self.tag2html = {}
         self.html2tag = {}
+        self.newline = False
         
         self.size_tags = set()
         self.family_tags = set()
@@ -232,10 +233,13 @@ class HtmlBuffer (HTMLParser):
         
         self.entity_char_map = [("&", "amp"),
                                 (">", "gt"),
-                                ("<", "lt")]
+                                ("<", "lt"),
+                                (" ", "nbsp")]
         self.entity2char = {}
         for ch, name in self.entity_char_map:
             self.entity2char[name] = ch
+        
+        self.charref2char = {"09": "\t"}
         
         
         
@@ -273,6 +277,7 @@ class HtmlBuffer (HTMLParser):
     
     
     def handle_starttag(self, tag, attrs):
+        self.newline = False
         if tag in ("html", "body"):
             return
     
@@ -281,6 +286,7 @@ class HtmlBuffer (HTMLParser):
 
 
     def handle_endtag(self, tag):
+        self.newline = False
         if tag in ("html", "body"):
             return
     
@@ -294,6 +300,7 @@ class HtmlBuffer (HTMLParser):
         elif htmltag == "br":
             # insert newline
             self.buffer.insert(self.buffer.get_end_iter(), "\n")
+            self.newline = True
             return
             
         elif htmltag == "span":
@@ -348,13 +355,21 @@ class HtmlBuffer (HTMLParser):
         self.buffer.delete_mark(mark)
 
     def handle_data(self, data):
-        data = re.sub("[\n ]+", " ", data)
+        if self.newline:
+            data = re.sub("\n[\n ]*", "", data)
+            self.newline = False
+        else:
+            data = re.sub("[\n ]+", " ", data)
         self.buffer.insert(self.buffer.get_end_iter(), data)
     
     def handle_entityref(self, name):
         self.buffer.insert(self.buffer.get_end_iter(),
                            self.entity2char.get(name, ""))
-            
+    
+    def handle_charref(self, name):
+        self.buffer.insert(self.buffer.get_end_iter(),
+                           self.charref2char.get(name, ""))
+        
     
     def write(self, richtext):
         textbuffer = richtext.textbuffer
@@ -368,6 +383,8 @@ class HtmlBuffer (HTMLParser):
                 text = text.replace(">", "&gt;")
                 text = text.replace("<", "&lt;")
                 text = text.replace("\n", "<br/>\n")
+                text = text.replace("\t", "&#09;")
+                text = text.replace("  ", " &nbsp;")
                 self.out.write(text)
             
             elif kind == "begin":
@@ -388,7 +405,7 @@ class HtmlBuffer (HTMLParser):
                         print "unknown child element", widget
             
             elif kind == "pixbuf":
-                self.out.write("<pixbuf>")
+                self.out.write("")
         
         self.out.write("</body></html>")
         
