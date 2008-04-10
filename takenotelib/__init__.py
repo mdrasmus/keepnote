@@ -36,6 +36,7 @@ DEFAULT_HSASH_POS = 200
 # different standard)
 EPOC = time.mktime((1970, 1, 1, 0, 0, 0, 3, 1, 0)) - time.timezone
 
+FORMAT = "%a %b %d %I:%M:%S %p %Y"
 
 
 
@@ -44,6 +45,10 @@ EPOC = time.mktime((1970, 1, 1, 0, 0, 0, 3, 1, 0)) - time.timezone
 
 def get_timestamp():
 	return int(time.time() - EPOC)
+
+def get_str_timestamp(timestamp):
+	return time.strftime(FORMAT, time.localtime(timestamp + EPOC))
+
 
 def get_dir_meta_file(nodepath):
     """Returns the metadata file for a dir"""
@@ -180,6 +185,17 @@ class NoteBookNode (object):
         """Returns True if node is valid (not deleted)"""
         return self._valid
     
+    def get_created_time(self):
+        return self._created_time
+
+    def get_created_time_text(self):
+        return get_str_timestamp(self._created_time)
+    
+    def get_modified_time(self):
+        return self._modified_time
+
+    def get_modified_time_text(self):
+        return get_str_timestamp(self._modified_time)
     
     def is_page(self):
         return False

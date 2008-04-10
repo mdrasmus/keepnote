@@ -782,6 +782,9 @@ class RichTextView (gtk.TextView):
         self.connect("cut-clipboard", self.on_cut)
         self.connect("paste-clipboard", self.on_paste)
         
+        self.set_property("right-margin", 5)
+        self.set_property("left-margin", 5)
+        
         self.insert_mark = None
         self.next_action = None
         self.current_tags = []

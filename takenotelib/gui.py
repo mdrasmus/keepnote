@@ -411,7 +411,15 @@ class TakeNoteTreeView (object):
     
     
     
+class SelectorColumn (object):
+    def __init__(self, name, kind, col):
+        self.name = name
+        self.kind = kind
+        self.col = col
 
+TITLE_COLUMN = SelectorColumn("Title", str, 0)
+CREATED_COLUMN = SelectorColumn("Created", str, 1)
+MODIFIED_COLUMN = SelectorColumn("Modified", str, 2)
 
 
 class TakeNoteSelector (object):
@@ -420,8 +428,11 @@ class TakeNoteSelector (object):
         self.on_select_node = None
         self.sel_nodes = None
         
+        self.display_columns = []
+        
         # init model
-        self.model = gtk.ListStore(gdk.Pixbuf, gobject.TYPE_STRING, object)
+        self.model = gtk.ListStore(gdk.Pixbuf, str, str, int, str, int, object)
+        self.model.connect("rows-reordered", self.on_rows_reordered)
         self.datamap = DataMap()        
         
         # init view
@@ -434,30 +445,63 @@ class TakeNoteSelector (object):
         cell_icon = gtk.CellRendererPixbuf()
         self.cell_text = gtk.CellRendererText()
         self.column = gtk.TreeViewColumn()
-        self.column.set_title("Pages")
+        self.column.set_title("Title")
+        self.column.set_property("resizable", True)
         self.treeview.append_column(self.column)
+        
         
         self.column.pack_start(cell_icon, False)
         self.column.pack_start(self.cell_text, True)
         self.cell_text.connect("edited", self.on_edit_title)
         self.cell_text.set_property("editable", True)
-
+        self.column.set_sort_column_id(1)
         # map cells to columns in model
         self.column.add_attribute(cell_icon, 'pixbuf', 0)
         self.column.add_attribute(self.cell_text, 'text', 1)
+        
+        
+        cell_text = gtk.CellRendererText()
+        column = gtk.TreeViewColumn()
+        column.set_title("Created")
+        column.set_property("resizable", True)
+        column.set_sort_column_id(3)
+        #column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+        #column.set_property("min-width", 5)
+        column.pack_start(cell_text, True)
+        column.add_attribute(cell_text, 'text', 2)
+        self.treeview.append_column(column)
+
+        cell_text = gtk.CellRendererText()
+        column = gtk.TreeViewColumn()
+        column.set_property("resizable", True)
+        column.set_sort_column_id(5)
+        #column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+        #column.set_property("min-width", 5)
+        column.set_title("Modified")
+        column.pack_start(cell_text, True)
+        column.add_attribute(cell_text, 'text', 4)
+        self.treeview.append_column(column)        
         
         self.icon = pixbuf = gdk.pixbuf_new_from_file("bitmaps/copy.xpm")
 
 
         # Create a new scrolled window, with scrollbars only if needed
         scrolled_window = gtk.ScrolledWindow()
-        scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        scrolled_window.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC) #gtk.POLICY_AUTOMATIC)
         scrolled_window.set_shadow_type(gtk.SHADOW_IN)        
         scrolled_window.add(self.treeview)
         self.view = scrolled_window
 
     #=============================================
     # gui callbacks
+    
+    def on_rows_reordered(self, treemodel, path, it, new_order):
+        self.datamap.clear_path()
+        
+        nrows = self.model.iter_n_children(None)
+        for i in xrange(nrows):
+            self.datamap.add_path((i,), self.model[(i,)][6])
+        
     
     def on_key_released(self, widget, event):
         if event.keyval == gdk.keyval_from_name("Delete"):
@@ -508,7 +552,11 @@ class TakeNoteSelector (object):
                 it = self.model.append()
                 self.model.set(it, 0, self.icon)                
                 self.model.set(it, 1, page.get_title())
-                self.model.set(it, 2, page)
+                self.model.set(it, 2, page.get_created_time_text())
+                self.model.set(it, 3, page.get_created_time())
+                self.model.set(it, 4, page.get_modified_time_text())
+                self.model.set(it, 5, page.get_modified_time())
+                self.model.set(it, 6, page)
                 path = self.model.get_path(it)
                 self.datamap.add_path(path, page)
         self.on_select_node(None)        

@@ -2,5 +2,7 @@
 <node>
     <title>New Node</title>
     <order>0</order>
+    <created_time>1207865248</created_time>
+    <modified_time>1207865248</modified_time>
     <expanded>0</expanded>
 </node>
