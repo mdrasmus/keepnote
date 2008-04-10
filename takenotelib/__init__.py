@@ -11,7 +11,7 @@
 
 
 # python imports
-import os, sys, shutil
+import os, sys, shutil, time
 import xml.dom.minidom as xmldom
 import xml.dom
 
@@ -32,10 +32,18 @@ DEFAULT_WINDOW_POS = (-1, -1)
 DEFAULT_VSASH_POS = 200
 DEFAULT_HSASH_POS = 200
 
+# determine UNIX Epoc (which should be 0, unless the current platform has a 
+# different standard)
+EPOC = time.mktime((1970, 1, 1, 0, 0, 0, 3, 1, 0)) - time.timezone
+
+
 
 
 #=============================================================================
 # NoteBook data structures
+
+def get_timestamp():
+	return int(time.time() - EPOC)
 
 def get_dir_meta_file(nodepath):
     """Returns the metadata file for a dir"""
@@ -113,6 +121,8 @@ class NoteBookNode (object):
         self._title = title
         self._parent = parent
         self._basename = None
+        self._created_time = None
+        self._modified_time = None
         self._valid = True
         self._order = sys.maxint
         self._children = None
@@ -125,6 +135,8 @@ class NoteBookNode (object):
         """Initializes the node on disk"""
         path = self.get_path()
         os.mkdir(path)
+        self._created_time = get_timestamp()
+        self._modified_time = get_timestamp()
         self.write_meta_data()
         self._set_dirty(False)
 
@@ -202,7 +214,7 @@ class NoteBookNode (object):
             parent_path = os.path.dirname(path2)
             path2 = get_valid_unique_filename(parent_path, self._title)
             os.rename(path, path2)
-            self.save()
+            self.save(True)
         
     
     def delete(self):
@@ -240,7 +252,7 @@ class NoteBookNode (object):
             os.rename(path, path2)
             self._title = title
             self._set_basename(path2)
-            self.save()
+            self.save(True)
         except Exception, e:
             print e
             print "cannot rename '%s' to '%s'" % (path, path2)
@@ -255,7 +267,7 @@ class NoteBookNode (object):
             self._get_children()
         page._order = len(self._children)
         self._children.append(page)
-        page.save()
+        page.save(True)
         return page
     
     
@@ -268,7 +280,7 @@ class NoteBookNode (object):
             self._get_children()
         node._order = len(self._children)
         self._children.append(node)
-        node.save()
+        node.save(True)
         return node
     
     
@@ -349,23 +361,24 @@ class NoteBookNode (object):
         self.read_meta_data()
     
     
-    def save(self):
+    def save(self, force=False):
         """Recursively save any loaded nodes"""
         
-        if self._is_dirty():
+        if (force or self._is_dirty()) and self._valid:
             self.write_meta_data()
             self._set_dirty(False)
             
         #self._save_children()
             
         
-    
+    '''
     def _save_children(self):
         """Recursively save any loaded child nodes"""
         if self._children is not None:
             for child in self._children:
                 child.save()
-        
+    ''' 
+    
     
     def get_meta_file(self):
         """Returns  the meta file filename for the node"""
@@ -379,6 +392,22 @@ class NoteBookNode (object):
         """Writes the meta file for the node"""
         raise Exception("Unimplemented")
     
+    def read_basic_meta_data(self, child):
+        if child.tagName == "title":
+            self._title = child.firstChild.nodeValue
+        if child.tagName == "order":
+            self._order = int(child.firstChild.nodeValue)
+        if child.tagName == "created_time":
+            self._created_time = int(child.firstChild.nodeValue)
+        if child.tagName == "modified_time":
+            self._modified_time = int(child.firstChild.nodeValue)
+        
+    
+    def write_basic_meta_data(self, out):
+        out.write("    <title>%s</title>\n" % self._title)
+        out.write("    <order>%d</order>\n" % self._order)
+        out.write("    <created_time>%d</created_time>\n" % self._created_time)
+        out.write("    <modified_time>%d</modified_time>\n" % self._modified_time)
 
 
 
@@ -388,9 +417,7 @@ class NoteBookPage (NoteBookNode):
     
     
     def create(self):
-        path = self.get_path()
-        os.mkdir(path)
-        self.write_meta_data()
+        NoteBookNode.create(self)
         self.write_empty_data_file()
     
     def is_page(self):
@@ -417,12 +444,20 @@ class NoteBookPage (NoteBookNode):
         root = dom.firstChild
         assert root != None
         
+        self._created_time = None
+        self._modified_time = None
+        
         for child in get_dom_children(root):
             if child.nodeType == ELEMENT_NODE:
-                if child.tagName == "title":
-                    self._title = child.firstChild.nodeValue
-                if child.tagName == "order":
-                    self._order = int(child.firstChild.nodeValue)
+                self.read_basic_meta_data(child)
+        
+        if self._created_time is None:
+            self._created_time = get_timestamp()
+            self._set_dirty(True)
+        if self._modified_time is None:
+            self._modified_time = get_timestamp()
+            self._set_dirty(True)
+
                 
     
     def write_meta_data(self):
@@ -430,8 +465,7 @@ class NoteBookPage (NoteBookNode):
         out = open(self.get_meta_file(), "w")
         out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         out.write("<page>\n")
-        out.write("    <title>%s</title>\n" % self._title)
-        out.write("    <order>%d</order>\n" % self._order)        
+        self.write_basic_meta_data(out)
         out.write("</page>\n")
         out.close()
 
@@ -453,21 +487,28 @@ class NoteBookDir (NoteBookNode):
         root = dom.firstChild
         assert root != None
         
+        self._created_time = None
+        self._modified_time = None
+       
         for child in get_dom_children(root):
             if child.nodeType == ELEMENT_NODE:
-                if child.tagName == "title":
-                    self._title = child.firstChild.nodeValue
-                if child.tagName == "order":
-                    self._order = int(child.firstChild.nodeValue)
+                self.read_basic_meta_data(child)
                 if child.tagName == "expanded":
                     self._expanded = bool(int(child.firstChild.nodeValue))
+        
+        if self._created_time is None:
+            self._created_time = get_timestamp()
+            self._set_dirty(True)
+        if self._modified_time is None:
+            self._modified_time = get_timestamp()
+            self._set_dirty(True)
+    
     
     def write_meta_data(self):
         out = open(self.get_meta_file(), "w")
         out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         out.write("<node>\n")
-        out.write("    <title>%s</title>\n" % self._title)
-        out.write("    <order>%d</order>\n" % self._order)
+        self.write_basic_meta_data(out)
         out.write("    <expanded>%d</expanded>\n" % int(self._expanded))
         out.write("</node>\n")
         out.close()
@@ -507,9 +548,9 @@ class NoteBook (NoteBookDir):
         return node in self._dirty
         
         
-    def create(self):
-        os.mkdir(self.get_path())
-        self.write_meta_data()
+    #def create(self):
+    #    os.mkdir(self.get_path())
+    #    self.write_meta_data()
 
     
     def get_root_node(self):
@@ -530,7 +571,7 @@ class NoteBook (NoteBookDir):
         self.read_preferences()
     
     
-    def save(self):
+    def save(self, force=False):
         """Recursively save any loaded nodes"""
         
         self.write_meta_data()

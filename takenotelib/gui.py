@@ -344,12 +344,16 @@ class TakeNoteTreeView (object):
         node = self.datamap.get_data(model.get_path(it))
         parent = node.get_parent()
         
-        if parent != None:
+        if parent is not None:
             node.delete()
             self.update_node(parent)
         else:
             # warn
-            print "Cannot delete notebook's toplevel directory"    
+            print "Cannot delete notebook's toplevel directory"
+        
+        if self.on_select_node:
+            self.on_select_node(None)
+           
     
     #==============================================
     # actions
@@ -779,8 +783,12 @@ class TakeNoteWindow (gtk.Window):
     
     
     def on_select_treenode(self, node):
-        self.sel_nodes = [node]
-        self.selector.view_nodes([node])
+        if node is not None:
+            self.sel_nodes = [node]
+            self.selector.view_nodes([node])
+        else:
+            self.sel_nodes = []
+            self.selector.view_nodes([])
     
     def on_select_page(self, page):
         self.current_page = page

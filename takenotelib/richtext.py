@@ -272,6 +272,7 @@ class HtmlBuffer (HTMLParser):
         
         for line in infile:
             self.feed(line)
+        self.close()
         
         self.buffer.place_cursor(self.buffer.get_start_iter())
     
@@ -759,7 +760,7 @@ class RichTextView (gtk.TextView):
         gtk.TextView.__init__(self, RichTextBuffer(self))
         self.textbuffer = self.get_buffer()
         self.undo_stack = UndoStack()
-        self.set_wrap_mode(gtk.WRAP_CHAR)
+        self.set_wrap_mode(gtk.WRAP_WORD)
         
         self.font_callback = None
         self.ignore_font_upate = False
@@ -812,36 +813,15 @@ class RichTextView (gtk.TextView):
         self.html_buffer.add_justify_tag(self.center_tag, "center")
         self.html_buffer.add_justify_tag(self.right_tag, "right")
         
-        
+        # requires new pygtk
         #self.textbuffer.register_serialize_format(MIME_TAKENOTE, 
         #                                          self.serialize, None)
         #self.textbuffer.register_deserialize_format(MIME_TAKENOTE, 
         #                                            self.deserialize, None)
-        
-        
-        # TESTING
-        """
-        self.textbuffer.begin_user_action()
-        self.textbuffer.insert_at_cursor("hello")        
-        #self.p = gtk.gdk.pixbuf_new_from_file("bitmaps/copy.xpm")
-        #it = self.textbuffer.get_iter_at_mark(self.textbuffer.get_insert())
-        #self.textbuffer.insert_pixbuf(it, self.p)
-        
-        self.image = RichTextImage()
-        self.image.set_from_file("bitmaps/zebra.xpm")
-        self.insert_image(self.image)
-        
-        self.textbuffer.insert_at_cursor("hello")
 
-        self.indent = self.textbuffer.create_tag("Indent", left_margin=50)
-        self.textbuffer.apply_tag(self.indent, self.textbuffer.get_start_iter(),
-                                  self.textbuffer.get_end_iter())
-        
-        self.textbuffer.end_user_action()
-        """
 
         
-                                                  
+    """
     def on_popup(self, textview, menu):
         return
         self.first_menu = False
@@ -866,7 +846,7 @@ class RichTextView (gtk.TextView):
         copy_item.add_accelerator("activate", accel_group, ord("C"),
                                   gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE)
         copy_item.show()                                  
-
+    """
             
            
     
