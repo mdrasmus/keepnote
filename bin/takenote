@@ -8,12 +8,14 @@ import pygtk
 pygtk.require('2.0')
 import gtk
 
-basedir = os.path.dirname(sys.argv[0])
+basedir = os.path.dirname(os.path.realpath(sys.argv[0]))
+basedir = os.path.join(basedir, "..")
+print basedir
 
 try:
     import takenotelib as takenote
 except ImportError:
-    sys.path.append(os.path.join(basedir, ".."))
+    sys.path.append(basedir)
     import takenotelib as takenote
     
 import takenotelib.gui as gui

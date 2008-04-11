@@ -453,6 +453,20 @@ class Action (object):
         pass
 
 
+class ModifyAction (Action):
+    def __init__(self, textbuffer):
+        self.textbuffer = textbuffer
+        self.was_modified = False
+    
+    def do(self):
+        self.was_modified = self.textbuffer.is_modified()
+        self.textbuffer.modify()
+    
+    def undo(self):
+        if not self.was_modified:
+            self.textbuffer.unmodify()
+        
+
 class InsertAction (Action):
     def __init__(self, richtext, pos, text, length):
         Action.__init__(self)
@@ -461,17 +475,20 @@ class InsertAction (Action):
         self.pos = pos
         self.text = text
         self.length = length
+        self.mod = ModifyAction(self.textbuffer)
         
     def do(self):
         start = self.textbuffer.get_iter_at_offset(self.pos)
         self.textbuffer.place_cursor(start)
         self.textbuffer.insert_at_cursor(self.text)
+        self.mod.do()
     
     def undo(self):
         start = self.textbuffer.get_iter_at_offset(self.pos)
         end = self.textbuffer.get_iter_at_offset(self.pos + self.length)
         self.textbuffer.place_cursor(start)
         self.textbuffer.delete(start, end)
+        self.mod.undo()
 
 
 class DeleteAction (Action):
@@ -485,6 +502,7 @@ class DeleteAction (Action):
         self.text = text
         self.cursor_offset = cursor_offset
         self.contents = []
+        self.mod = ModifyAction(self.textbuffer)
         
         self.record_range()
     
@@ -495,6 +513,7 @@ class DeleteAction (Action):
         self.textbuffer.place_cursor(start)
         self.record_range()
         self.textbuffer.delete(start, end)
+        self.mod.do()
 
     def undo(self):
         start = self.textbuffer.get_iter_at_offset(self.start_offset)
@@ -504,6 +523,7 @@ class DeleteAction (Action):
         cursor = self.textbuffer.get_iter_at_offset(self.cursor_offset)
         self.textbuffer.place_cursor(cursor)
         self.textbuffer.end_user_action()
+        self.mod.undo()
     
     def record_range(self):
         start = self.textbuffer.get_iter_at_offset(self.start_offset)
@@ -521,12 +541,14 @@ class InsertChildAction (Action):
         self.pos = pos
         self.anchor = anchor
         self.child = None
+        self.mod = ModifyAction(self.textbuffer)
     
     def do(self):
         it = self.textbuffer.get_iter_at_offset(self.pos)
         self.anchor = self.textbuffer.create_child_anchor(it)
         self.child = self.child.copy()
         self.richtext.add_child_at_anchor(self.child.get_child(), self.anchor)
+        self.mod.do()
 
     
     def undo(self):
@@ -536,6 +558,7 @@ class InsertChildAction (Action):
         it2 = it.copy()
         it2.forward_char()
         self.textbuffer.delete(it, it2)
+        self.mod.undo()
 
 
 class TagAction (Action):
@@ -548,6 +571,7 @@ class TagAction (Action):
         self.end_offset = end_offset
         self.applied = applied
         self.contents = []
+        self.mod = ModifyAction(self.textbuffer)
         self.record_range()
         
     
@@ -559,6 +583,7 @@ class TagAction (Action):
             self.textbuffer.apply_tag(self.tag, start, end)
         else:
             self.textbuffer.remove_tag(self.tag, start, end)
+        self.mod.do()
 
     
     def undo(self):
@@ -569,6 +594,7 @@ class TagAction (Action):
         else:
             self.textbuffer.apply_tag(self.tag, start, end)
         buffer_contents_apply_tags(self.richtext, self.contents)
+        self.mod.undo()
     
     def record_range(self):
         start = self.textbuffer.get_iter_at_offset(self.start_offset)
@@ -671,7 +697,22 @@ class RichTextBuffer (gtk.TextBuffer):
         gtk.TextBuffer.__init__(self)
         self.clipboard_contents = None
         self.textview = textview
+        self._modified = False
 
+    
+    def modify(self):
+        self._modified = True
+        print "modify"
+    
+    def unmodify(self):
+        self._modified = False
+        print "unmodify"
+        
+    
+    def is_modified(self):
+        return self._modified
+        
+    
     def set_textview(self, textview):
         self.textview = textview
     
@@ -861,7 +902,7 @@ class RichTextView (gtk.TextView):
     
     def deserialize(self, register_buf, content_buf, it, data, create_tags, udata):
         print "deserialize"
-        
+     
     
     def on_copy(self, textview):
         clipboard = self.get_clipboard(selection="CLIPBOARD") #gtk.clipboard_get(gdk.SELECTION_CLIPBOARD)
@@ -973,6 +1014,8 @@ class RichTextView (gtk.TextView):
         self.html_buffer.set_output(out)
         self.html_buffer.write(self)
         out.close()
+        
+        self.textbuffer.unmodify()
     
     
     def load(self, filename):
@@ -990,6 +1033,8 @@ class RichTextView (gtk.TextView):
         self.textbuffer.end_user_action()
         self.undo_stack.reset()
         self.enable()
+        
+        self.textbuffer.unmodify()
     
     
     def enable(self):
@@ -1004,6 +1049,8 @@ class RichTextView (gtk.TextView):
         self.textbuffer.delete(start, end)
         self.undo_stack.reset()
         self.set_sensitive(False)
+        
+        self.textbuffer.unmodify()
         
     
     def load_images(self, path):

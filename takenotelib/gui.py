@@ -6,13 +6,15 @@
 """
 
 # TODO: shade undo/redo
-# TODO: allow open file for *.nbk files
-# TODO: add node reordering
 # TODO: add pages in treeview
 #       will eventually require lazy loading for treeview
 # TODO: add basedir to all image loading
 #       use get_takenote_file(filename)
 # TODO: add framework for customized page selector columns
+# TODO: add cut
+# TODO: add html links
+# TODO: make better font selector
+# TODO: add colored text
 
 
 
@@ -36,6 +38,11 @@ PROGRAM_VERSION = "0.1"
 
 DROP_YES = ("drop_yes", gtk.TARGET_SAME_WIDGET, 0)
 DROP_NO = ("drop_no", gtk.TARGET_SAME_WIDGET, 0)
+
+
+BASEDIR = ""
+def get_resource(*path_list):
+    return os.path.join(BASEDIR, *path_list)
 
 
 class DataMap (object):
@@ -110,16 +117,7 @@ def dnd_sanity_check(source_path, target_path):
     
     
 
-class TakeNoteTreeStore (gtk.TreeStore):
-    
-    def __init__(self, *args, **kargs):
-        gtk.TreeStore.__init__(self, *args, **kargs)
-        
-    
-    def row_drop_possible(self, dest_path, selection_data):
-        print "drop", dest_path
-        return len(dest_path) > 1
-   
+
 
 class TakeNoteTreeView (object):
     
@@ -127,7 +125,7 @@ class TakeNoteTreeView (object):
         self.on_select_node = None
     
         # create a TreeStore with one string column to use as the model
-        self.model = TakeNoteTreeStore(gdk.Pixbuf, str, object)
+        self.model = gtk.TreeStore(gdk.Pixbuf, str, object)
         self.datamap = DataMap()
                         
         # init treeview
@@ -169,7 +167,7 @@ class TakeNoteTreeView (object):
         self.column.add_attribute(self.cell_icon, 'pixbuf', 0)
         self.column.add_attribute(self.cell_text, 'text', 1)
         
-        self.icon = pixbuf = gdk.pixbuf_new_from_file("bitmaps/open.xpm")
+        self.icon = pixbuf = gdk.pixbuf_new_from_file(get_resource("bitmaps", "open.xpm"))
         
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -408,7 +406,7 @@ class TakeNoteTreeView (object):
             self.add_node(it, child)
         
         self.treeview.expand_to_path(path)
-    
+        
     
     
 class SelectorColumn (object):
@@ -482,7 +480,7 @@ class TakeNoteSelector (object):
         column.add_attribute(cell_text, 'text', 4)
         self.treeview.append_column(column)        
         
-        self.icon = pixbuf = gdk.pixbuf_new_from_file("bitmaps/copy.xpm")
+        self.icon = pixbuf = gdk.pixbuf_new_from_file(get_resource("bitmaps", "copy.xpm"))
 
 
         # Create a new scrolled window, with scrollbars only if needed
@@ -621,8 +619,9 @@ class TakeNoteEditor (object):
 
 
 class TakeNoteWindow (gtk.Window):
-    def __init__(self):
+    def __init__(self, basedir=""):
         gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
+        self.basedir = basedir
         
         self.set_title("TakeNote")
         self.set_default_size(*takenote.DEFAULT_WINDOW_SIZE)
@@ -1064,6 +1063,7 @@ class TakeNoteWindow (gtk.Window):
         return item_factory.get_widget("<main>")
 
 
+    
     def make_toolbar(self):
         
         toolbar = gtk.Toolbar()
@@ -1075,7 +1075,7 @@ class TakeNoteWindow (gtk.Window):
         
         # bold tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file("bitmaps/bold.xpm")
+        icon.set_from_file(get_resource("bitmaps", "bold.xpm"))
         self.bold_button = gtk.ToggleToolButton()
         self.bold_button.set_icon_widget(icon)
         tips.set_tip(self.bold_button, "Bold")
@@ -1085,7 +1085,7 @@ class TakeNoteWindow (gtk.Window):
 
         # italic tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file("bitmaps/italic.xpm")
+        icon.set_from_file(get_resource("bitmaps", "italic.xpm"))
         self.italic_button = gtk.ToggleToolButton()
         self.italic_button.set_icon_widget(icon)
         tips.set_tip(self.italic_button, "Italic")
@@ -1094,7 +1094,7 @@ class TakeNoteWindow (gtk.Window):
 
         # underline tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file("bitmaps/underline.xpm")
+        icon.set_from_file(get_resource("bitmaps", "underline.xpm"))
         self.underline_button = gtk.ToggleToolButton()
         self.underline_button.set_icon_widget(icon)
         tips.set_tip(self.underline_button, "Underline")
@@ -1112,7 +1112,7 @@ class TakeNoteWindow (gtk.Window):
         
         # left tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file("bitmaps/alignleft.xpm")
+        icon.set_from_file(get_resource("bitmaps", "alignleft.xpm"))
         self.left_button = gtk.ToggleToolButton()
         self.left_button.set_icon_widget(icon)
         tips.set_tip(self.left_button, "Left Justify")
@@ -1121,7 +1121,7 @@ class TakeNoteWindow (gtk.Window):
         
         # center tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file("bitmaps/aligncenter.xpm")
+        icon.set_from_file(get_resource("bitmaps", "aligncenter.xpm"))
         self.center_button = gtk.ToggleToolButton()
         self.center_button.set_icon_widget(icon)
         tips.set_tip(self.center_button, "Center Justify")
@@ -1130,7 +1130,7 @@ class TakeNoteWindow (gtk.Window):
         
         # right tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file("bitmaps/alignright.xpm")
+        icon.set_from_file(get_resource("bitmaps", "alignright.xpm"))
         self.right_button = gtk.ToggleToolButton()
         self.right_button.set_icon_widget(icon)
         tips.set_tip(self.right_button, "Right Justify")
@@ -1143,8 +1143,13 @@ class TakeNoteWindow (gtk.Window):
 class TakeNote (object):
     
     def __init__(self, basedir=""):
-        self.window = TakeNoteWindow()
         self.basedir = basedir
+
+        global BASEDIR
+        BASEDIR = basedir
+        
+        self.window = TakeNoteWindow(basedir)
+
         
     def open_notebook(self, filename):
         self.window.open_notebook(filename)
