@@ -42,6 +42,7 @@ def get_resource(*path_list):
     return os.path.join(BASEDIR, *path_list)
 
 
+
 class DataMap (object):
     def __init__(self):
         self.data2path = {}
@@ -164,7 +165,7 @@ class TakeNoteTreeView (object):
         self.column.add_attribute(self.cell_icon, 'pixbuf', 0)
         self.column.add_attribute(self.cell_text, 'text', 1)
         
-        self.icon = pixbuf = gdk.pixbuf_new_from_file(get_resource("bitmaps", "open.xpm"))
+        self.icon = pixbuf = gdk.pixbuf_new_from_file(get_resource("images", "open.xpm"))
         
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -477,7 +478,7 @@ class TakeNoteSelector (object):
         column.add_attribute(cell_text, 'text', 4)
         self.treeview.append_column(column)        
         
-        self.icon = pixbuf = gdk.pixbuf_new_from_file(get_resource("bitmaps", "copy.xpm"))
+        self.icon = gdk.pixbuf_new_from_file(get_resource("images", "copy.xpm"))
 
 
         # Create a new scrolled window, with scrollbars only if needed
@@ -1093,7 +1094,7 @@ class TakeNoteWindow (gtk.Window):
         
         # bold tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("bitmaps", "bold.xpm"))
+        icon.set_from_file(get_resource("images", "bold.xpm"))
         self.bold_button = gtk.ToggleToolButton()
         self.bold_button.set_icon_widget(icon)
         tips.set_tip(self.bold_button, "Bold")
@@ -1103,7 +1104,7 @@ class TakeNoteWindow (gtk.Window):
 
         # italic tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("bitmaps", "italic.xpm"))
+        icon.set_from_file(get_resource("images", "italic.xpm"))
         self.italic_button = gtk.ToggleToolButton()
         self.italic_button.set_icon_widget(icon)
         tips.set_tip(self.italic_button, "Italic")
@@ -1112,7 +1113,7 @@ class TakeNoteWindow (gtk.Window):
 
         # underline tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("bitmaps", "underline.xpm"))
+        icon.set_from_file(get_resource("images", "underline.xpm"))
         self.underline_button = gtk.ToggleToolButton()
         self.underline_button.set_icon_widget(icon)
         tips.set_tip(self.underline_button, "Underline")
@@ -1130,7 +1131,7 @@ class TakeNoteWindow (gtk.Window):
         
         # left tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("bitmaps", "alignleft.xpm"))
+        icon.set_from_file(get_resource("images", "alignleft.xpm"))
         self.left_button = gtk.ToggleToolButton()
         self.left_button.set_icon_widget(icon)
         tips.set_tip(self.left_button, "Left Justify")
@@ -1139,7 +1140,7 @@ class TakeNoteWindow (gtk.Window):
         
         # center tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("bitmaps", "aligncenter.xpm"))
+        icon.set_from_file(get_resource("images", "aligncenter.xpm"))
         self.center_button = gtk.ToggleToolButton()
         self.center_button.set_icon_widget(icon)
         tips.set_tip(self.center_button, "Center Justify")
@@ -1148,7 +1149,7 @@ class TakeNoteWindow (gtk.Window):
         
         # right tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("bitmaps", "alignright.xpm"))
+        icon.set_from_file(get_resource("images", "alignright.xpm"))
         self.right_button = gtk.ToggleToolButton()
         self.right_button.set_icon_widget(icon)
         tips.set_tip(self.right_button, "Right Justify")
