@@ -197,6 +197,17 @@ class NoteBookNode (object):
     def get_modified_time_text(self):
         return get_str_timestamp(self._modified_time)
     
+    
+    def set_created_time(self, timestamp=None):
+        if timestamp is None:
+            self._created_time = get_timestamp()
+            self._set_dirty(True)
+        
+    def set_modified_time(self, timestamp=None):
+        if timestamp is None:
+            self._modified_time = get_timestamp()
+            self._set_dirty(True)
+    
     def is_page(self):
         return False
     

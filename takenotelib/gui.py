@@ -548,13 +548,7 @@ class TakeNoteSelector (object):
         for node in nodes:
             for page in node.get_pages():
                 it = self.model.append()
-                self.model.set(it, 0, self.icon)                
-                self.model.set(it, 1, page.get_title())
-                self.model.set(it, 2, page.get_created_time_text())
-                self.model.set(it, 3, page.get_created_time())
-                self.model.set(it, 4, page.get_modified_time_text())
-                self.model.set(it, 5, page.get_modified_time())
-                self.model.set(it, 6, page)
+                self._set_page(it, page)
                 path = self.model.get_path(it)
                 self.datamap.add_path(path, page)
         self.on_select_node(None)        
@@ -562,6 +556,23 @@ class TakeNoteSelector (object):
     
     def update(self):
         self.view_nodes(self.sel_nodes)    
+    
+    def update_node(self, node):
+        path = self.datamap.get_path(node)
+        
+        if path is not None:
+            it = self.model.get_iter(path)
+            self._set_page(it, node)
+    
+    
+    def _set_page(self, it, page):
+        self.model.set(it, 0, self.icon)                
+        self.model.set(it, 1, page.get_title())
+        self.model.set(it, 2, page.get_created_time_text())
+        self.model.set(it, 3, page.get_created_time())
+        self.model.set(it, 4, page.get_modified_time_text())
+        self.model.set(it, 5, page.get_modified_time())
+        self.model.set(it, 6, page)
     
     def edit_node(self, page):
         path = self.datamap.get_path(page)
@@ -600,6 +611,7 @@ class TakeNoteEditor (object):
         sw.show()
         self.textview.show()
         self.view = sw
+        self.on_page_modified = None
         
         self.page = None
         
@@ -614,8 +626,14 @@ class TakeNoteEditor (object):
             self.textview.load(page.get_data_file())
     
     def save(self):
-        if self.page is not None and self.page.is_valid():
+        if self.page is not None and \
+           self.page.is_valid() and \
+           self.textview.is_modified():
             self.textview.save(self.page.get_data_file())
+            self.page.set_modified_time()
+            self.page.save()
+            if self.on_page_modified:
+                self.on_page_modified(self.page)
 
 
 class TakeNoteWindow (gtk.Window):
@@ -642,6 +660,7 @@ class TakeNoteWindow (gtk.Window):
         # editor
         self.editor = TakeNoteEditor()
         self.editor.textview.font_callback = self.on_font_change
+        self.editor.on_page_modified = self.on_page_modified
         self.editor.view_page(None)
         
         #====================================
@@ -841,7 +860,9 @@ class TakeNoteWindow (gtk.Window):
         self.current_page = page
         self.editor.view_page(page)
         
-    
+    def on_page_modified(self, page):
+        self.selector.update_node(page)
+        
     
     #=============================================================
     # Font UI Update
