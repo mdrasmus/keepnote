@@ -6,8 +6,6 @@
 """
 
 
-# TODO: implement CUT
-# TODO: fix HTML spaces
 
 # python imports
 import sys, os, tempfile, re
@@ -740,7 +738,8 @@ class RichTextBuffer (gtk.TextBuffer):
     def cut_clipboard(self, clipboard, default_editable):
         """Callback for cut event"""
         
-        print "do cut"
+        self.copy_clipboard(clipboard)
+        self.delete_selection(False, default_editable)
 
     
     def paste_clipboard(self, clipboard, override_location, default_editable):

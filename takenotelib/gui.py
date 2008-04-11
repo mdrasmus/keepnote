@@ -8,10 +8,7 @@
 # TODO: shade undo/redo
 # TODO: add pages in treeview
 #       will eventually require lazy loading for treeview
-# TODO: add basedir to all image loading
-#       use get_takenote_file(filename)
 # TODO: add framework for customized page selector columns
-# TODO: add cut
 # TODO: add html links
 # TODO: make better font selector
 # TODO: add colored text
