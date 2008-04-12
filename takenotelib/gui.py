@@ -534,7 +534,7 @@ class TakeNoteSelector (object):
         """Callback for drag motion.
            Indicate which drops are allowed"""
         
-        #print "drag"
+        print "drag", self, treeview
         
         # determine destination row   
         dest_row = treeview.get_dest_row_at_pos(x, y)
