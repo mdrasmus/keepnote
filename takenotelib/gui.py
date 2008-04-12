@@ -8,10 +8,7 @@
 # TODO: shade undo/redo
 # TODO: add pages in treeview
 #       will eventually require lazy loading for treeview
-# TODO: add basedir to all image loading
-#       use get_takenote_file(filename)
 # TODO: add framework for customized page selector columns
-# TODO: add cut
 # TODO: add html links
 # TODO: make better font selector
 # TODO: add colored text
@@ -43,6 +40,7 @@ DROP_NO = ("drop_no", gtk.TARGET_SAME_WIDGET, 0)
 BASEDIR = ""
 def get_resource(*path_list):
     return os.path.join(BASEDIR, *path_list)
+
 
 
 class DataMap (object):
@@ -167,7 +165,7 @@ class TakeNoteTreeView (object):
         self.column.add_attribute(self.cell_icon, 'pixbuf', 0)
         self.column.add_attribute(self.cell_text, 'text', 1)
         
-        self.icon = pixbuf = gdk.pixbuf_new_from_file(get_resource("bitmaps", "open.xpm"))
+        self.icon = pixbuf = gdk.pixbuf_new_from_file(get_resource("images", "open.xpm"))
         
         scrolled_window = gtk.ScrolledWindow()
         scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -424,6 +422,7 @@ class TakeNoteSelector (object):
     
     def __init__(self):
         self.on_select_node = None
+        self.on_status = None
         self.sel_nodes = None
         
         self.display_columns = []
@@ -485,7 +484,7 @@ class TakeNoteSelector (object):
         column.add_attribute(cell_text, 'text', 4)
         self.treeview.append_column(column)        
         
-        self.icon = pixbuf = gdk.pixbuf_new_from_file(get_resource("bitmaps", "copy.xpm"))
+        self.icon = gdk.pixbuf_new_from_file(get_resource("images", "copy.xpm"))
 
 
         # Create a new scrolled window, with scrollbars only if needed
@@ -574,23 +573,38 @@ class TakeNoteSelector (object):
         self.model.clear()
         self.datamap.clear_path()
         
+        npages = 0
         for node in nodes:
             for page in node.get_pages():
+                npages += 1
                 it = self.model.append()
-                self.model.set(it, 0, self.icon)                
-                self.model.set(it, 1, page.get_title())
-                self.model.set(it, 2, page.get_created_time_text())
-                self.model.set(it, 3, page.get_created_time())
-                self.model.set(it, 4, page.get_modified_time_text())
-                self.model.set(it, 5, page.get_modified_time())
-                self.model.set(it, 6, page)
+                self._set_page(it, page)
                 path = self.model.get_path(it)
                 self.datamap.add_path(path, page)
         self.on_select_node(None)        
+        
+        self.set_status("%d pages" % npages, "stats")
     
     
     def update(self):
         self.view_nodes(self.sel_nodes)    
+    
+    def update_node(self, node):
+        path = self.datamap.get_path(node)
+        
+        if path is not None:
+            it = self.model.get_iter(path)
+            self._set_page(it, node)
+    
+    
+    def _set_page(self, it, page):
+        self.model.set(it, 0, self.icon)                
+        self.model.set(it, 1, page.get_title())
+        self.model.set(it, 2, page.get_created_time_text())
+        self.model.set(it, 3, page.get_created_time())
+        self.model.set(it, 4, page.get_modified_time_text())
+        self.model.set(it, 5, page.get_modified_time())
+        self.model.set(it, 6, page)
     
     def edit_node(self, page):
         path = self.datamap.get_path(page)
@@ -613,6 +627,12 @@ class TakeNoteSelector (object):
         if self.notebook is None:
             self.model.clear()
             self.datamap.clear_path()
+    
+    
+    def set_status(self, text, bar="status"):
+        if self.on_status:
+            self.on_status(text, bar=bar)
+
 
 
 
@@ -629,6 +649,7 @@ class TakeNoteEditor (object):
         sw.show()
         self.textview.show()
         self.view = sw
+        self.on_page_modified = None
         
         self.page = None
         
@@ -643,8 +664,14 @@ class TakeNoteEditor (object):
             self.textview.load(page.get_data_file())
     
     def save(self):
-        if self.page is not None and self.page.is_valid():
+        if self.page is not None and \
+           self.page.is_valid() and \
+           self.textview.is_modified():
             self.textview.save(self.page.get_data_file())
+            self.page.set_modified_time()
+            self.page.save()
+            if self.on_page_modified:
+                self.on_page_modified(self.page)
 
 
 class TakeNoteWindow (gtk.Window):
@@ -663,6 +690,7 @@ class TakeNoteWindow (gtk.Window):
         # selector
         self.selector = TakeNoteSelector()
         self.selector.on_select_node = self.on_select_page
+        self.selector.on_status = self.set_status
         
         # treeview
         self.treeview = TakeNoteTreeView()
@@ -671,6 +699,7 @@ class TakeNoteWindow (gtk.Window):
         # editor
         self.editor = TakeNoteEditor()
         self.editor.textview.font_callback = self.on_font_change
+        self.editor.on_page_modified = self.on_page_modified
         self.editor.view_page(None)
         
         #====================================
@@ -705,9 +734,17 @@ class TakeNoteWindow (gtk.Window):
         
         
         # status bar
+        status_hbox = gtk.HBox(False, 0)
+        main_vbox.pack_start(status_hbox, False, True, 0)
+        
         self.status_bar = gtk.Statusbar()      
-        main_vbox.pack_start(self.status_bar, False, True, 0)  
-
+        status_hbox.pack_start(self.status_bar, False, True, 0)
+        self.status_bar.set_property("has-resize-grip", False)
+        self.status_bar.set_size_request(300, -1)
+        
+        self.stats_bar = gtk.Statusbar()
+        status_hbox.pack_start(self.stats_bar, True, True, 0)
+        
 
         # layout major widgets
         self.hpaned.add1(self.treeview.view)
@@ -718,6 +755,16 @@ class TakeNoteWindow (gtk.Window):
         self.show_all()        
         self.treeview.treeview.grab_focus()
     
+
+    def set_status(self, text, bar="status"):
+        if bar == "status":
+            self.status_bar.pop(0)
+            self.status_bar.push(0, text)
+        elif bar == "stats":
+            self.stats_bar.pop(0)
+            self.stats_bar.push(0, text)
+        else:
+            raise Exception("unknown bar '%s'" % bar)
 
     
     def get_preferences(self):
@@ -794,16 +841,17 @@ class TakeNoteWindow (gtk.Window):
         try:
             self.notebook = takenote.NoteBook(filename)
             self.notebook.create()
+            self.set_status("Created '%s'" % self.notebook.get_title())
         except Exception, e:
             self.notebook = None
+            self.set_status("Error: Could not create new notebook")
             print e
-            print "could not create new notebook"
         
-        self.open_notebook(filename)
+        self.open_notebook(filename, new=True)
         
         
     
-    def open_notebook(self, filename):
+    def open_notebook(self, filename, new=False):
         if self.notebook is not None:
             self.close_notebook()
         
@@ -814,6 +862,9 @@ class TakeNoteWindow (gtk.Window):
         self.get_preferences()
         
         self.treeview.treeview.grab_focus()
+        
+        if not new:
+            self.set_status("Loaded '%s'" % self.notebook.get_title())
         
         
     def close_notebook(self):
@@ -870,7 +921,9 @@ class TakeNoteWindow (gtk.Window):
         self.current_page = page
         self.editor.view_page(page)
         
-    
+    def on_page_modified(self, page):
+        self.selector.update_node(page)
+        
     
     #=============================================================
     # Font UI Update
@@ -1104,7 +1157,7 @@ class TakeNoteWindow (gtk.Window):
         
         # bold tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("bitmaps", "bold.xpm"))
+        icon.set_from_file(get_resource("images", "bold.xpm"))
         self.bold_button = gtk.ToggleToolButton()
         self.bold_button.set_icon_widget(icon)
         tips.set_tip(self.bold_button, "Bold")
@@ -1114,7 +1167,7 @@ class TakeNoteWindow (gtk.Window):
 
         # italic tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("bitmaps", "italic.xpm"))
+        icon.set_from_file(get_resource("images", "italic.xpm"))
         self.italic_button = gtk.ToggleToolButton()
         self.italic_button.set_icon_widget(icon)
         tips.set_tip(self.italic_button, "Italic")
@@ -1123,7 +1176,7 @@ class TakeNoteWindow (gtk.Window):
 
         # underline tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("bitmaps", "underline.xpm"))
+        icon.set_from_file(get_resource("images", "underline.xpm"))
         self.underline_button = gtk.ToggleToolButton()
         self.underline_button.set_icon_widget(icon)
         tips.set_tip(self.underline_button, "Underline")
@@ -1141,7 +1194,7 @@ class TakeNoteWindow (gtk.Window):
         
         # left tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("bitmaps", "alignleft.xpm"))
+        icon.set_from_file(get_resource("images", "alignleft.xpm"))
         self.left_button = gtk.ToggleToolButton()
         self.left_button.set_icon_widget(icon)
         tips.set_tip(self.left_button, "Left Justify")
@@ -1150,7 +1203,7 @@ class TakeNoteWindow (gtk.Window):
         
         # center tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("bitmaps", "aligncenter.xpm"))
+        icon.set_from_file(get_resource("images", "aligncenter.xpm"))
         self.center_button = gtk.ToggleToolButton()
         self.center_button.set_icon_widget(icon)
         tips.set_tip(self.center_button, "Center Justify")
@@ -1159,7 +1212,7 @@ class TakeNoteWindow (gtk.Window):
         
         # right tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("bitmaps", "alignright.xpm"))
+        icon.set_from_file(get_resource("images", "alignright.xpm"))
         self.right_button = gtk.ToggleToolButton()
         self.right_button.set_icon_widget(icon)
         tips.set_tip(self.right_button, "Right Justify")
