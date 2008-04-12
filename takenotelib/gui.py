@@ -437,7 +437,12 @@ class TakeNoteSelector (object):
         self.treeview = gtk.TreeView(self.model)
         self.treeview.connect("key-release-event", self.on_key_released)        
         self.treeview.get_selection().connect("changed", self.on_select_changed)
+        self.treeview.connect("drag-motion", self.on_drag_motion)
         self.treeview.set_rules_hint(True)
+        self.treeview.enable_model_drag_source(
+            gtk.gdk.BUTTON1_MASK, [DROP_YES], gtk.gdk.ACTION_MOVE)
+        self.treeview.enable_model_drag_dest(
+            [DROP_YES], gtk.gdk.ACTION_MOVE)                
         #self.treeview.set_fixed_height_mode(True)
         
         cell_icon = gtk.CellRendererPixbuf()
@@ -492,6 +497,30 @@ class TakeNoteSelector (object):
 
     #=============================================
     # gui callbacks
+    
+    def on_drag_motion(self, treeview, drag_context, x, y, eventtime):
+        """Callback for drag motion.
+           Indicate which drops are allowed"""
+        
+        print "drag"
+        
+        # determine destination row   
+        dest_row = treeview.get_dest_row_at_pos(x, y)
+        if dest_row is None:
+            return
+        
+        return
+        # get target and source
+        target_path, drop_position  = dest_row    
+        model, source = treeview.get_selection().get_selected()
+        source_path = model.get_path(source)
+        
+        # determine if drag is allowed
+        if self.drop_allowed(source_path, target_path, drop_position):
+            treeview.enable_model_drag_dest([DROP_YES], gtk.gdk.ACTION_MOVE)
+        else:
+            treeview.enable_model_drag_dest([DROP_NO], gtk.gdk.ACTION_MOVE)    
+    
     
     def on_rows_reordered(self, treemodel, path, it, new_order):
         self.datamap.clear_path()
