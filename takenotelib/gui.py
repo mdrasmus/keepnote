@@ -422,6 +422,7 @@ class TakeNoteSelector (object):
     
     def __init__(self):
         self.on_select_node = None
+        self.on_status = None
         self.sel_nodes = None
         
         self.display_columns = []
@@ -543,13 +544,17 @@ class TakeNoteSelector (object):
         self.model.clear()
         self.datamap.clear_path()
         
+        npages = 0
         for node in nodes:
             for page in node.get_pages():
+                npages += 1
                 it = self.model.append()
                 self._set_page(it, page)
                 path = self.model.get_path(it)
                 self.datamap.add_path(path, page)
         self.on_select_node(None)        
+        
+        self.set_status("%d pages" % npages, "stats")
     
     
     def update(self):
@@ -593,6 +598,12 @@ class TakeNoteSelector (object):
         if self.notebook is None:
             self.model.clear()
             self.datamap.clear_path()
+    
+    
+    def set_status(self, text, bar="status"):
+        if self.on_status:
+            self.on_status(text, bar=bar)
+
 
 
 
@@ -650,6 +661,7 @@ class TakeNoteWindow (gtk.Window):
         # selector
         self.selector = TakeNoteSelector()
         self.selector.on_select_node = self.on_select_page
+        self.selector.on_status = self.set_status
         
         # treeview
         self.treeview = TakeNoteTreeView()
@@ -693,9 +705,17 @@ class TakeNoteWindow (gtk.Window):
         
         
         # status bar
+        status_hbox = gtk.HBox(False, 0)
+        main_vbox.pack_start(status_hbox, False, True, 0)
+        
         self.status_bar = gtk.Statusbar()      
-        main_vbox.pack_start(self.status_bar, False, True, 0)  
-
+        status_hbox.pack_start(self.status_bar, False, True, 0)
+        self.status_bar.set_property("has-resize-grip", False)
+        self.status_bar.set_size_request(300, -1)
+        
+        self.stats_bar = gtk.Statusbar()
+        status_hbox.pack_start(self.stats_bar, True, True, 0)
+        
 
         # layout major widgets
         self.hpaned.add1(self.treeview.view)
@@ -706,6 +726,16 @@ class TakeNoteWindow (gtk.Window):
         self.show_all()        
         self.treeview.treeview.grab_focus()
     
+
+    def set_status(self, text, bar="status"):
+        if bar == "status":
+            self.status_bar.pop(0)
+            self.status_bar.push(0, text)
+        elif bar == "stats":
+            self.stats_bar.pop(0)
+            self.stats_bar.push(0, text)
+        else:
+            raise Exception("unknown bar '%s'" % bar)
 
     
     def get_preferences(self):
@@ -782,16 +812,17 @@ class TakeNoteWindow (gtk.Window):
         try:
             self.notebook = takenote.NoteBook(filename)
             self.notebook.create()
+            self.set_status("Created '%s'" % self.notebook.get_title())
         except Exception, e:
             self.notebook = None
+            self.set_status("Error: Could not create new notebook")
             print e
-            print "could not create new notebook"
         
-        self.open_notebook(filename)
+        self.open_notebook(filename, new=True)
         
         
     
-    def open_notebook(self, filename):
+    def open_notebook(self, filename, new=False):
         if self.notebook is not None:
             self.close_notebook()
         
@@ -802,6 +833,9 @@ class TakeNoteWindow (gtk.Window):
         self.get_preferences()
         
         self.treeview.treeview.grab_focus()
+        
+        if not new:
+            self.set_status("Loaded '%s'" % self.notebook.get_title())
         
         
     def close_notebook(self):

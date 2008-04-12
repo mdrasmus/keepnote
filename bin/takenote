@@ -10,7 +10,6 @@ import gtk
 
 basedir = os.path.dirname(os.path.realpath(sys.argv[0]))
 basedir = os.path.join(basedir, "..")
-print basedir
 
 try:
     import takenotelib as takenote
