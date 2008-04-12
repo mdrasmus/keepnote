@@ -19,8 +19,8 @@ import gtk, gobject, pango
 from gtk import gdk
 
 # takenote imports
-import takenotelib as takenote
-from takenotelib.undo import UndoStack
+import takenote
+from takenote.undo import UndoStack
 
 
 # constants
@@ -810,9 +810,9 @@ class RichTextView (gtk.TextView):
         self.textbuffer.connect("end_user_action", self.on_end_user_action)
         #self.connect("populate-popup", self.on_popup)
         
-        self.connect("copy-clipboard", self.on_copy)
-        self.connect("cut-clipboard", self.on_cut)
-        self.connect("paste-clipboard", self.on_paste)
+        self.connect("copy-clipboard", lambda w: self.on_copy())
+        self.connect("cut-clipboard", lambda w: self.on_cut())
+        self.connect("paste-clipboard", lambda w: self.on_paste())
         
         self.set_property("right-margin", 5)
         self.set_property("left-margin", 5)
@@ -895,17 +895,17 @@ class RichTextView (gtk.TextView):
         print "deserialize"
      
     
-    def on_copy(self, textview):
+    def on_copy(self):
         clipboard = self.get_clipboard(selection="CLIPBOARD") #gtk.clipboard_get(gdk.SELECTION_CLIPBOARD)
         self.textbuffer.copy_clipboard(clipboard)
         self.stop_emission('copy-clipboard')
     
-    def on_cut(self, textview):
+    def on_cut(self):
         clipboard = self.get_clipboard(selection="CLIPBOARD") #gtk.clipboard_get(gdk.SELECTION_CLIPBOARD)
         self.textbuffer.cut_clipboard(clipboard, self.get_editable())
         self.stop_emission('cut-clipboard')
     
-    def on_paste(self, textview):
+    def on_paste(self):
         clipboard = self.get_clipboard(selection="CLIPBOARD") #gtk.clipboard_get(gdk.SELECTION_CLIPBOARD)
         self.textbuffer.paste_clipboard(clipboard, None, self.get_editable())
         self.stop_emission('paste-clipboard')

@@ -25,6 +25,9 @@ NODE_META_FILE = "node.xml"
 PAGE_META_FILE = "page.xml"
 PAGE_DATA_FILE = "page.html"
 PREF_FILE = "notebook.nbk"
+NOTEBOOK_META_DIR = "__NOTEBOOK__"
+USER_PREF_DIR = ".takenote"
+USER_PREF_FILE = "takenote.xml"
 
 
 DEFAULT_WINDOW_SIZE = (800, 600)
@@ -41,7 +44,7 @@ FORMAT = "%a %b %d %I:%M:%S %p %Y"
 
 
 #=============================================================================
-# NoteBook data structures
+# filenaming scheme
 
 def get_timestamp():
 	return int(time.time() - EPOC)
@@ -65,13 +68,35 @@ def get_page_data_file(pagepath):
 def get_pref_file(nodepath):
     return os.path.join(nodepath, PREF_FILE)
 
+def get_pref_dir(nodepath):
+    return os.path.join(nodepath, NOTEBOOK_META_DIR)
 
-def get_dom_children(node):
-    """Convenience function for iterating the children of a DOM object"""
-    child = node.firstChild
-    while child:
-        yield child
-        child = child.nextSibling
+def get_user_pref_dir(home=None):
+    if home is None:
+        home = os.getenv("HOME")
+    return os.path.joint(home, USER_PREF_DIR)
+
+def get_user_pref_file(home=None):
+    return os.path.join(get_user_pref_dir(home), USER_PREF_FILE)
+
+
+def init_user_pref(home=None):
+    pref_dir = get_user_pref_dir(home)
+    pref_file = get_user_pref_file(home)
+    
+    if not os.path.exists(pref_dir):
+        os.mkdir(pref_dir)
+    
+    if not os.path.exists(pref_file):
+        out = open(pref_file, "w")
+        out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+        out.write("<takenote>\n")
+        out.write("</takenote>\n")
+    
+
+
+#=============================================================================
+# filename creation functions
 
 def get_valid_filename(filename):
     filename = filename.replace("/", "-")
@@ -118,6 +143,30 @@ def get_unique_filename_list(filenames, filename, ext="", sep=" ", number=2):
         if newname not in filenames:
             return newname
         i += 1
+
+
+#=============================================================================
+# misc functions
+
+def get_dom_children(node):
+    """Convenience function for iterating the children of a DOM object"""
+    child = node.firstChild
+    while child:
+        yield child
+        child = child.nextSibling
+
+
+#=============================================================================
+# NoteBook data structures
+
+class TakeNotePreferences (object):
+    """Preference data structure for the TakeNote application"""
+    
+    def __init__(self):
+        self.window_size = DEFAULT_WINDOW_SIZE
+        self.window_pos = DEFAULT_WINDOW_POS
+        self.vsash_pos = DEFAULT_VSASH_POS
+        self.hsash_pos = DEFAULT_HSASH_POS
 
 
 class NoteBookNode (object):
@@ -587,9 +636,9 @@ class NoteBook (NoteBookDir):
         return len(self._dirty) > 0
         
         
-    #def create(self):
-    #    os.mkdir(self.get_path())
-    #    self.write_meta_data()
+    def create(self):
+        NoteBookDir.create(self)
+        os.mkdir(self.get_pref_dir())
 
     
     def get_root_node(self):
@@ -628,8 +677,16 @@ class NoteBook (NoteBookDir):
     def get_pref_file(self):
         return get_pref_file(self.get_path())
     
+    def get_pref_dir(self):
+        return get_pref_dir(self.get_path())
+    
     
     def write_preferences(self):
+    
+        # ensure preference directory exists
+        if not os.path.exists(self.get_pref_dir()):
+            os.mkdir(self.get_pref_dir())
+        
         out = open(self.get_pref_file(), "w")
         out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         out.write("<notebook>\n")

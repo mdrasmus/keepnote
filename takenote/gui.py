@@ -25,9 +25,9 @@ import gtk, gobject, pango
 from gtk import gdk
 
 # takenote imports
-import takenotelib as takenote
-from takenotelib.undo import UndoStack
-from takenotelib.richtext import RichTextView, RichTextImage
+import takenote
+from takenote.undo import UndoStack
+from takenote.richtext import RichTextView, RichTextImage
 
 # constants
 PROGRAM_NAME = "TakeNode"
@@ -373,13 +373,11 @@ class TakeNoteTreeView (gtk.TreeView):
                 # make sure to show new children
                 if (drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or
                     drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER):
-                    
                     treeview.expand_row(target_path, False)
-                    drag_context.finish(True, True, eventtime)
-                else:
-                    drag_context.finish(False, False, eventtime)
-
+                
+                drag_context.finish(True, True, eventtime)
             else:
+                assert source_node.is_page()
                 
                 # NOTE: this is here until pages are in treeview
                 if drop_position in (gtk.TREE_VIEW_DROP_BEFORE,
@@ -602,6 +600,9 @@ class TakeNoteSelector (gtk.TreeView):
         column.pack_start(cell_text, True)
         column.add_attribute(cell_text, 'text', 4)
         self.append_column(column)        
+        
+        # set default sorting
+        self.model.set_sort_column_id(3, gtk.SORT_DESCENDING)
         
         self.icon = gdk.pixbuf_new_from_file(get_resource("images", "copy.xpm"))
         
@@ -946,6 +947,11 @@ class TakeNoteWindow (gtk.Window):
         else:
             raise Exception("unknown bar '%s'" % bar)
 
+
+    def error(self, text):
+        """Display an error message"""
+        self.set_status(text)
+        
     
     def get_preferences(self):
         if self.notebook is not None:
@@ -1193,7 +1199,7 @@ class TakeNoteWindow (gtk.Window):
 
 
     def on_screenshot(self):
-        if self.current_page == None:
+        if self.current_page is None:
             return
     
         f, imgfile = tempfile.mkstemp(".xpm", "takenote")
@@ -1202,15 +1208,64 @@ class TakeNoteWindow (gtk.Window):
         os.system("import %s" % imgfile)
         if os.path.exists(imgfile):
             try:
-                pixbuf = gdk.pixbuf_new_from_file(imgfile)
-                img = RichTextImage()
-                img.set_from_pixbuf(pixbuf)
-                self.editor.textview.insert_image(img, "screenshot.jpg")
+                self.insert_image(imgfile, "screenshot.png")
             except Exception, e:
                 print e
-                print "error reading screenshot '%s'" % imgfile
+                self.error("error reading screenshot '%s'" % imgfile)
             
-            os.remove(imgfile)        
+            os.remove(imgfile)
+        
+    def on_insert_image(self):
+        if self.current_page is None:
+            return
+                  
+        dialog = gtk.FileChooserDialog("Insert Image From File", self, 
+            action=gtk.FILE_CHOOSER_ACTION_OPEN,
+            buttons=("Cancel", gtk.RESPONSE_CANCEL,
+                     "Insert", gtk.RESPONSE_OK))
+        dialog.connect("response", self.on_insert_image_response)
+        
+        """
+        file_filter = gtk.FileFilter()
+        file_filter.add_pattern("*.nbk")
+        file_filter.set_name("Notebook")
+        self.filew.add_filter(file_filter)
+        
+        file_filter = gtk.FileFilter()
+        file_filter.add_pattern("*")
+        file_filter.set_name("All files")
+        self.filew.add_filter(file_filter)
+        """
+        
+        dialog.show()
+    
+    def on_insert_image_response(self, dialog, response):
+        if response == gtk.RESPONSE_OK:
+            filename = dialog.get_filename()
+            dialog.destroy()
+            
+            imgname, ext = os.path.splitext(os.path.basename(filename))
+            if ext == ".jpg":
+                imgname = imgname + ".jpg"
+            else:
+                imgname = imgname + ".png"
+            
+            try:
+                self.insert_image(filename, imgname)
+            except Exception, e:
+                self.error("Could not insert image '%s'" % filename)
+            
+        elif response == gtk.RESPONSE_CANCEL:
+            dialog.destroy()
+    
+    
+    def insert_image(self, filename, savename="image.png"):
+        pixbuf = gdk.pixbuf_new_from_file(filename)
+        img = RichTextImage()
+        img.set_from_pixbuf(pixbuf)
+        self.editor.textview.insert_image(img, savename)
+        
+                
 
     def on_choose_font(self):
         self.font_sel.clicked()
@@ -1242,6 +1297,16 @@ class TakeNoteWindow (gtk.Window):
         about.connect("response", lambda d,r: about.destroy())
         about.show()
     
+    def on_cut(self):
+        self.editor.textview.emit("cut-clipboard")
+    
+    def on_copy(self):
+        self.editor.textview.emit("copy-clipboard")
+    
+    def on_paste(self):
+        self.editor.textview.emit("paste-clipboard")
+
+    
     #================================================
     # Menubar
     
@@ -1269,14 +1334,25 @@ class TakeNoteWindow (gtk.Window):
 
             ("/_Edit", 
                 None, None, 0, "<Branch>"),
-            ("/Edit/Un_do",     
+            ("/Edit/_Undo", 
                 "<control>Z", lambda w,e: self.editor.textview.undo(), 0, None),
             ("/Edit/_Redo", 
                 "<control><shift>Z", lambda w,e: self.editor.textview.redo(), 0, None),
             ("/Edit/sep1", 
                 None, None, 0, "<Separator>"),
-            ("/Edit/Insert Screenshot",
+            ("/Edit/Cu_t", 
+                "<control>X", lambda w,e: self.on_cut(), 0, None), 
+            ("/Edit/_Copy",     
+                "<control>C", lambda w,e: self.on_copy(), 0, None), 
+            ("/Edit/_Paste",     
+                "<control>V", lambda w,e: self.on_paste(), 0, None), 
+            ("/Edit/sep2", 
+                None, None, 0, "<Separator>"),
+            ("/Edit/Insert _Image",
+                None, lambda w,e: self.on_insert_image(), 0, None),
+            ("/Edit/Insert _Screenshot",
                 "<control>Insert", lambda w,e: self.on_screenshot(), 0, None),
+                
             
             ("/_Format", 
                 None, None, 0, "<Branch>"),

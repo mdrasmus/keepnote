@@ -12,12 +12,12 @@ basedir = os.path.dirname(os.path.realpath(sys.argv[0]))
 basedir = os.path.join(basedir, "..")
 
 try:
-    import takenotelib as takenote
+    import takenote
 except ImportError:
     sys.path.append(basedir)
-    import takenotelib as takenote
+    import takenote
     
-import takenotelib.gui as gui
+import takenote.gui
 
 
 #=============================================================================
@@ -27,7 +27,7 @@ def main():
 
 
 if __name__ == "__main__":
-    app = gui.TakeNote(basedir)
+    app = takenote.gui.TakeNote(basedir)
     
     if len(sys.argv) > 1:
         app.open_notebook(sys.argv[1].rstrip("/"))
