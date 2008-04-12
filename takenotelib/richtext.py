@@ -1023,7 +1023,7 @@ class RichTextView (gtk.TextView):
     
     
     def load(self, filename):
-        self.textbuffer.begin_user_action()
+        self.undo_stack.suppress()
         
         start = self.textbuffer.get_start_iter()
         end = self.textbuffer.get_end_iter()
@@ -1034,7 +1034,7 @@ class RichTextView (gtk.TextView):
         path = os.path.dirname(filename)
         self.load_images(path)
         
-        self.textbuffer.end_user_action()
+        self.undo_stack.resume()
         self.undo_stack.reset()
         self.enable()
         
@@ -1047,13 +1047,16 @@ class RichTextView (gtk.TextView):
     
     def disable(self):
         
+        self.undo_stack.suppress()
+        
         start = self.textbuffer.get_start_iter()
         end = self.textbuffer.get_end_iter()
         self.textbuffer.remove_all_tags(start, end)
         self.textbuffer.delete(start, end)
-        self.undo_stack.reset()
         self.set_sensitive(False)
         
+        self.undo_stack.resume()
+        self.undo_stack.reset()
         self.textbuffer.unmodify()
         
     

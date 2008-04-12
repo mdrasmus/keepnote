@@ -250,6 +250,7 @@ class NoteBookNode (object):
         path = self.get_path()
         shutil.rmtree(path)
         self._valid = False
+        self._set_dirty(False)
         
         # make sure to recursively invalidate
         self._invalidate_children()
@@ -580,6 +581,10 @@ class NoteBook (NoteBookDir):
     
     def _is_dirty_node(self, node):
         return node in self._dirty
+        
+    
+    def save_needed(self):
+        return len(self._dirty) > 0
         
         
     #def create(self):
