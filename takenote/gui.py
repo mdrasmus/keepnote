@@ -171,8 +171,55 @@ def dnd_sanity_check(source_path, target_path):
     return source_path != target_path[:len(source_path)]
     
     
+class TakeNoteTreeModel (gtk.TreeStore):
+    def __init__(self, data_col, *kinds):
+        gtk.TreeStore.__init__(self, *kinds)
+        self.data_col = data_col
+        self.data2path = {}
+    
+        self.connect("row-inserted", self.on_row_inserted)
+        self.connect("row-deleted", self.on_row_deleted)
+        self.connect("rows-reordered", self.on_rows_reordered)
+        self.connect("row-changed", self.on_row_changed)
 
 
+    def on_row_inserted(self, model, path, it):
+        parent_path = path[:-1]
+        
+        nrows = model.iter_n_children(it)
+        for i in xrange(path[-1]+1, nrows):
+            self.data2path[parent_path + (i,)] = \
+                self[parent_path + (i,)][self.data_col]
+        
+        
+    def on_row_deleted(self, model, path):     
+        parent_path = path[:-1]
+        
+        if len(parent_path) > 0:
+            it = model.get_iter(parent_path)
+        else:
+            it = model.get_iter_root()
+        nrows = model.iter_n_children(it)
+        for i in xrange(path[-1], nrows):
+            self.data2path[parent_path + (i,)] = \
+                self[parent_path + (i,)][self.data_col]
+        
+    def on_rows_reordered(self, model, path, it, new_order):
+        pass #print "reordered", path
+        
+    def on_row_changed(self, model, path, it):
+        self.data2path[self[it][self.data_col]] = path
+    
+    
+    def get_data(self, path):
+        data = self[path][self.data_col]
+        self.data2path[data] = path
+        return data
+    
+    
+    def get_path_from_data(self, data):
+        return self.data2path.get(data, None)
+        
 
 class TakeNoteTreeView (gtk.TreeView):
     
@@ -183,15 +230,15 @@ class TakeNoteTreeView (gtk.TreeView):
         
         
         # create a TreeStore with one string column to use as the model
-        self.model = gtk.TreeStore(gdk.Pixbuf, str, object)
-        self.datamap = DataMap()
+        self.model = TakeNoteTreeModel(2, gdk.Pixbuf, str, object)
                         
         # init treeview
         self.set_model(self.model)
         
         self.connect("key-release-event", self.on_key_released)
         self.expanded_id = self.connect("row-expanded", self.on_row_expanded)
-        self.collapsed_id = self.connect("row-collapsed", self.on_row_collapsed) 
+        self.collapsed_id = self.connect("row-collapsed", self.on_row_collapsed)
+                 
         self.connect("drag-begin", self.on_drag_begin)
         self.connect("drag-motion", self.on_drag_motion)
         self.connect("drag-data-received", self.on_drag_data_received)
@@ -230,7 +277,7 @@ class TakeNoteTreeView (gtk.TreeView):
         self.icon = gdk.pixbuf_new_from_file(get_resource("images", "open.xpm"))
         #self.drag_source_set_icon_pixbuf(self.icon)
         
-        
+
         
     
     #=============================================
@@ -240,7 +287,7 @@ class TakeNoteTreeView (gtk.TreeView):
     def get_drag_node(self):
         model, source = self.get_selection().get_selected()
         source_path = model.get_path(source)
-        return self.datamap.get_data(source_path)
+        return self.model.get_data(source_path)
     
     
     def on_drag_begin(self, widget, drag_context):
@@ -267,7 +314,7 @@ class TakeNoteTreeView (gtk.TreeView):
             target_path, drop_position  = dest_row
             source_widget = drag_context.get_source_widget()
             source_node = source_widget.get_drag_node()
-            target_node = self.datamap.get_data(target_path)
+            target_node = self.model.get_data(target_path)
             
             # determine if drag is allowed
             if self.drop_allowed(source_node, target_node, drop_position):
@@ -282,7 +329,7 @@ class TakeNoteTreeView (gtk.TreeView):
             target_path, drop_position  = dest_row
             source_widget = drag_context.get_source_widget()
             source_node = source_widget.get_drag_node()
-            target_node = self.datamap.get_data(target_path)
+            target_node = self.model.get_data(target_path)
             
             # determine if drag is allowed
             if self.drop_allowed(source_node, target_node, drop_position) and \
@@ -312,8 +359,8 @@ class TakeNoteTreeView (gtk.TreeView):
             target_path, drop_position  = dest_row
             source_widget = drag_context.get_source_widget()
             source_node = source_widget.get_drag_node()
-            target_node = self.datamap.get_data(target_path)
-            source_path = self.datamap.get_path(source_node)
+            target_node = self.model.get_data(target_path)
+            source_path = self.model.get_path_from_data(source_node)
             
             
             # determine if drop is allowed
@@ -333,15 +380,7 @@ class TakeNoteTreeView (gtk.TreeView):
                 old_parent_path = source_path[:-1]
                 new_path = compute_new_path(self.model, target, drop_position)
                 new_parent_path = new_path[:-1]
-                new_parent = self.datamap.get_data(new_parent_path)
-
-                # remove obsolete model mappings
-                self.datamap.remove_path_all(new_parent_path, 
-                    lambda x: x.get_children())
-                if old_parent != new_parent:
-                    self.datamap.remove_path_all(old_parent_path, 
-                        lambda x: x.get_children())
-
+                new_parent = self.model.get_data(new_parent_path)
 
                 # perform move in notebook model
                 source_node.move(new_parent, new_path[-1])
@@ -354,22 +393,7 @@ class TakeNoteTreeView (gtk.TreeView):
 
                 self.handler_unblock(self.expanded_id)
                 self.handler_unblock(self.collapsed_id)
-
-
-                # record new model mappings
-                self.datamap.add_path_all(new_parent_path, new_parent,
-                    lambda x: x.get_children())
-
-                if old_parent != new_parent:
-                    old_parent_path2 = self.datamap.get_path(old_parent)
-                    if old_parent_path2 is not None:
-                        old_parent_path = old_parent_path2
-                    self.datamap.add_path_all(old_parent_path, old_parent,
-                        lambda x: x.get_children())
-
-                # DEBUG: assert that all mappings are correct
-                self.datamap.assert_path((0,), lambda x: x.get_children())
-
+                
                 # make sure to show new children
                 if (drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or
                     drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER):
@@ -388,7 +412,7 @@ class TakeNoteTreeView (gtk.TreeView):
                     target = self.model.get_iter(target_path)
                     new_path = compute_new_path(self.model, target, drop_position)
                     new_parent_path = new_path[:-1]
-                    new_parent = self.datamap.get_data(new_parent_path)
+                    new_parent = self.model.get_data(new_parent_path)
                     source_node.move(new_parent, new_path[-1])
                     drag_context.finish(True, True, eventtime)
         else:
@@ -415,10 +439,10 @@ class TakeNoteTreeView (gtk.TreeView):
     # gui callbacks    
     
     def on_row_expanded(self, treeview, it, path):
-        self.datamap.get_data(path).set_expand(True)
+        self.model.get_data(path).set_expand(True)
 
     def on_row_collapsed(self, treeview, it, path):
-        self.datamap.get_data(path).set_expand(False)
+        self.model.get_data(path).set_expand(False)
 
         
     def on_key_released(self, widget, event):
@@ -429,7 +453,7 @@ class TakeNoteTreeView (gtk.TreeView):
 
     def on_edit_title(self, cellrenderertext, path, new_text):
         try:
-            node = self.datamap.get_data(path)
+            node = self.model.get_data(path)
             node.rename(new_text)
             
             self.model[path][1] = new_text
@@ -442,14 +466,14 @@ class TakeNoteTreeView (gtk.TreeView):
         model, paths = treeselect.get_selected_rows()
         
         if len(paths) > 0 and self.on_select_node:
-            self.on_select_node(self.datamap.get_data(paths[0]))
+            self.on_select_node(self.model.get_data(paths[0]))
         return True
     
     
     def on_delete_node(self):
         
         model, it = self.get_selection().get_selected()
-        node = self.datamap.get_data(model.get_path(it))
+        node = self.model.get_data(model.get_path(it))
         parent = node.get_parent()
         
         if parent is not None:
@@ -471,7 +495,7 @@ class TakeNoteTreeView (gtk.TreeView):
         
         if self.notebook is None:
             self.model.clear()
-            self.datamap.clear_path()
+            #self.datamap.clear_path()
         
         else:
             root = self.notebook.get_root_node()
@@ -480,35 +504,33 @@ class TakeNoteTreeView (gtk.TreeView):
     
     
     def edit_node(self, node):
-        path = self.datamap.get_path(node)
+        path = self.model.get_path_from_data(node)
         self.set_cursor_on_cell(path, self.column, self.cell_text, 
                                          True)
         self.scroll_to_cell(path)
 
     
     def expand_node(self, node):
-        path = self.datamap.get_path(node)
+        path = self.model.get_path_from_data(node)
         self.expand_to_path(path)
         
     
     def add_node(self, parent, node):
         it = self.model.append(parent, [self.icon, node.get_title(), node])
         path = self.model.get_path(it)
-        self.datamap.add_path(path, node)
         
         for child in node.get_children():
             self.add_node(it, child)
         
         if node.is_expanded():
-            self.expand_to_path(self.datamap.get_path(node))
+            self.expand_to_path(self.model.get_path_from_data(node))
     
     
     def update_node(self, node):
-        path = self.datamap.get_path(node)
+        path = self.model.get_path_from_data(node)
         expanded = self.row_expanded(path)
         
         for child in self.model[path].iterchildren():
-            self.datamap.remove_path_all(child.path, lambda x: x.get_children())
             self.model.remove(child.iter)
         
         it = self.model.get_iter(path)
