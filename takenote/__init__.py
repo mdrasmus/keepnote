@@ -28,6 +28,8 @@ PREF_FILE = "notebook.nbk"
 NOTEBOOK_META_DIR = "__NOTEBOOK__"
 USER_PREF_DIR = ".takenote"
 USER_PREF_FILE = "takenote.xml"
+DEFAULT_PAGE_NAME = "New Page"
+DEFAULT_DIR_NAME = "New Folder"
 
 
 DEFAULT_WINDOW_SIZE = (800, 600)
@@ -40,6 +42,12 @@ DEFAULT_HSASH_POS = 200
 EPOC = time.mktime((1970, 1, 1, 0, 0, 0, 3, 1, 0)) - time.timezone
 
 FORMAT = "%a %b %d %I:%M:%S %p %Y"
+
+
+
+BASEDIR = ""
+def get_resource(*path_list):
+    return os.path.join(BASEDIR, *path_list)
 
 
 
@@ -342,7 +350,7 @@ class NoteBookNode (object):
             print "cannot rename '%s' to '%s'" % (path, path2)
     
     
-    def new_page(self, title):
+    def new_page(self, title=DEFAULT_PAGE_NAME):
         path = self.get_path()
         newpath = get_valid_unique_filename(path, title)
         page = NoteBookPage(newpath, title=title, parent=self, notebook=self._notebook)
@@ -355,7 +363,7 @@ class NoteBookNode (object):
         return page
     
     
-    def new_dir(self, title):
+    def new_dir(self, title=DEFAULT_DIR_NAME):
         path = self.get_path()
         newpath = get_valid_unique_filename(path, title)
         node = NoteBookDir(newpath, title=title, parent=self, notebook=self._notebook)
