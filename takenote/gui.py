@@ -48,7 +48,7 @@ def compute_new_path(model, target, drop_position):
     path = model.get_path(target)
     
     if drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or \
-       drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER:    
+       drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER:
         return path + (0,) #model.get_n_children(target),)
     elif drop_position == gtk.TREE_VIEW_DROP_BEFORE:
         return path
@@ -155,28 +155,22 @@ class DataMap (object):
             
         
     
-            
-        
 
 def str2path(pathtext):
     """Converts str to tuple path"""
     # sometime GTK returns a str instead of a tuple for a path... weird
     return tuple(map(int, pathtext.split(":")))
 
+    
+    
+class TakeNoteTreeModel (gtk.TreeModel):
+    """Provides a mapping from data back to a path in the TreeStore"""
 
-def dnd_sanity_check(source_path, target_path):
-    """The target cannot be a descendant of the source
-       i.e. You cannot become your descendent's child
-       i.e. The source path cannot be a prefix of the target path"""
-    return source_path != target_path[:len(source_path)]
-    
-    
-class TakeNoteTreeModel (gtk.TreeStore):
-    def __init__(self, data_col, *kinds):
-        gtk.TreeStore.__init__(self, *kinds)
+    def __init__(self, data_col): #, *types):
+        #gtk.TreeStore.__init__(self, *types)
         self.data_col = data_col
         self.data2path = {}
-    
+        
         self.connect("row-inserted", self.on_row_inserted)
         self.connect("row-deleted", self.on_row_deleted)
         self.connect("rows-reordered", self.on_rows_reordered)
@@ -192,7 +186,7 @@ class TakeNoteTreeModel (gtk.TreeStore):
                 self[parent_path + (i,)][self.data_col]
         
         
-    def on_row_deleted(self, model, path):     
+    def on_row_deleted(self, model, path):
         parent_path = path[:-1]
         
         if len(parent_path) > 0:
@@ -201,24 +195,29 @@ class TakeNoteTreeModel (gtk.TreeStore):
             it = model.get_iter_root()
         nrows = model.iter_n_children(it)
         for i in xrange(path[-1], nrows):
-            self.data2path[parent_path + (i,)] = \
-                self[parent_path + (i,)][self.data_col]
+            path2 = parent_path + (i,)
+            self.data2path[self[path2][self.data_col]] = path2
+                
         
     def on_rows_reordered(self, model, path, it, new_order):
-        pass #print "reordered", path
+        print "reordered", path
         
     def on_row_changed(self, model, path, it):
         self.data2path[self[it][self.data_col]] = path
     
     
     def get_data(self, path):
-        data = self[path][self.data_col]
-        self.data2path[data] = path
-        return data
+        return self[path][self.data_col]
     
     
     def get_path_from_data(self, data):
         return self.data2path.get(data, None)
+
+
+class TakeNoteTreeStore (TakeNoteTreeModel, gtk.TreeStore):
+    def __init__(self, data_col, *types):
+        gtk.TreeStore.__init__(self, *types)
+        TakeNoteTreeModel.__init__(self, data_col)
         
 
 class TakeNoteTreeView (gtk.TreeView):
@@ -230,7 +229,7 @@ class TakeNoteTreeView (gtk.TreeView):
         
         
         # create a TreeStore with one string column to use as the model
-        self.model = TakeNoteTreeModel(2, gdk.Pixbuf, str, object)
+        self.model = TakeNoteTreeStore(2, gdk.Pixbuf, str, object)
                         
         # init treeview
         self.set_model(self.model)
@@ -315,6 +314,9 @@ class TakeNoteTreeView (gtk.TreeView):
             source_widget = drag_context.get_source_widget()
             source_node = source_widget.get_drag_node()
             target_node = self.model.get_data(target_path)
+            target = self.model.get_iter(target_path)
+            new_path = compute_new_path(self.model, target, drop_position)
+            source_path = self.model.get_path_from_data(source_node)
             
             # determine if drag is allowed
             if self.drop_allowed(source_node, target_node, drop_position):
@@ -330,6 +332,8 @@ class TakeNoteTreeView (gtk.TreeView):
             source_widget = drag_context.get_source_widget()
             source_node = source_widget.get_drag_node()
             target_node = self.model.get_data(target_path)
+            new_path = compute_new_path(self.model, target, drop_position)
+            source_path = self.model.get_path_from_data(source_node)
             
             # determine if drag is allowed
             if self.drop_allowed(source_node, target_node, drop_position) and \
@@ -357,11 +361,13 @@ class TakeNoteTreeView (gtk.TreeView):
             
             # get target and source info
             target_path, drop_position  = dest_row
+            target = self.model.get_iter(target_path)
             source_widget = drag_context.get_source_widget()
             source_node = source_widget.get_drag_node()
             target_node = self.model.get_data(target_path)
             source_path = self.model.get_path_from_data(source_node)
-            
+            new_path = compute_new_path(self.model, target, drop_position)
+            print source_path
             
             # determine if drop is allowed
             if not self.drop_allowed(source_node, target_node, drop_position):
@@ -371,14 +377,12 @@ class TakeNoteTreeView (gtk.TreeView):
             # do tree move if source path is in our tree
             if source_path is not None:
                 # get target and source iters
-                target = self.model.get_iter(target_path)
                 source = self.model.get_iter(source_path)
                 
                 
                 # record old and new parent paths
                 old_parent = source_node.get_parent()
-                old_parent_path = source_path[:-1]
-                new_path = compute_new_path(self.model, target, drop_position)
+                old_parent_path = source_path[:-1]                
                 new_parent_path = new_path[:-1]
                 new_parent = self.model.get_data(new_parent_path)
 
@@ -409,8 +413,6 @@ class TakeNoteTreeView (gtk.TreeView):
                     drag_context.finish(False, False, eventtime)
                 else:
                     # process node move that is not in treeview
-                    target = self.model.get_iter(target_path)
-                    new_path = compute_new_path(self.model, target, drop_position)
                     new_parent_path = new_path[:-1]
                     new_parent = self.model.get_data(new_parent_path)
                     source_node.move(new_parent, new_path[-1])
@@ -759,8 +761,14 @@ class TakeNoteSelector (gtk.TreeView):
         for node in nodes:
             for page in node.get_pages():
                 npages += 1
-                it = self.model.append()
-                self._set_page(it, page)
+                it = self.model.append(row=
+                    (self.icon,
+                     page.get_title(),
+                     page.get_created_time_text(),
+                     page.get_created_time(),
+                     page.get_modified_time_text(),
+                     page.get_modified_time(),
+                     page))
                 path = self.model.get_path(it)
                 self.datamap.add_path(path, page)
         self.on_select_node(None)        
@@ -781,17 +789,14 @@ class TakeNoteSelector (gtk.TreeView):
         
         if path is not None:
             it = self.model.get_iter(path)
-            self._set_page(it, node)
-    
-    
-    def _set_page(self, it, page):
-        self.model.set(it, 0, self.icon)                
-        self.model.set(it, 1, page.get_title())
-        self.model.set(it, 2, page.get_created_time_text())
-        self.model.set(it, 3, page.get_created_time())
-        self.model.set(it, 4, page.get_modified_time_text())
-        self.model.set(it, 5, page.get_modified_time())
-        self.model.set(it, 6, page)
+            self.model.set(it, 
+                           0, self.icon,
+                           1, node.get_title(),
+                           2, node.get_created_time_text(),
+                           3, node.get_created_time(),
+                           4, node.get_modified_time_text(),
+                           5, node.get_modified_time())
+        
     
     def edit_node(self, page):
         path = self.datamap.get_path(page)
