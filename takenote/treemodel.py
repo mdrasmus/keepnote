@@ -121,6 +121,9 @@ class TakeNoteTreeModel (gtk.TreeModel):
         data = self[path][self.data_col]
         self.data2path[data] = path
         return data
+
+    def get_data_from_iter(self, it):
+        return self[it][self.data_col]
     
     
     def get_path_from_data(self, data):

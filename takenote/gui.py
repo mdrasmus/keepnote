@@ -556,7 +556,7 @@ class TakeNoteWindow (gtk.Window):
                 None, lambda w,e: self.on_new_notebook(), 0, None),
             ("/File/New _Page",      
                 "<control>N", lambda w,e: self.on_new_page(), 0, None),
-            ("/File/New _Directory", 
+            ("/File/New _Folder", 
                 "<control><shift>N", lambda w,e: self.on_new_dir(), 0, None),
             ("/File/_Open Notebook",          
                 "<control>O", lambda w,e: self.on_open_notebook(), 0, None),
@@ -658,6 +658,43 @@ class TakeNoteWindow (gtk.Window):
         toolbar.set_border_width(0)
         
         tips = gtk.Tooltips()
+
+        # new folder
+        icon = gtk.Image() # icon widget
+        icon.set_from_file(get_resource("images", "folder-new.png"))
+        button = gtk.ToolButton()
+        button.set_icon_widget(icon)
+        tips.set_tip(button, "New Folder")
+        button.connect("clicked", lambda w: self.on_new_dir())
+        toolbar.insert(button, -1)
+        
+        # folder delete
+        icon = gtk.Image() # icon widget
+        icon.set_from_file(get_resource("images", "folder-delete.png"))
+        button = gtk.ToolButton()
+        button.set_icon_widget(icon)
+        tips.set_tip(button, "Delete Folder")
+        button.connect("clicked", lambda w: self.on_delete_dir())
+        toolbar.insert(button, -1)
+
+        # new note
+        icon = gtk.Image() # icon widget
+        icon.set_from_file(get_resource("images", "note-new.png"))
+        button = gtk.ToolButton()
+        button.set_icon_widget(icon)
+        tips.set_tip(button, "New Note")
+        button.connect("clicked", lambda w: self.on_new_page)
+        toolbar.insert(button, -1)
+        
+        # note delete
+        icon = gtk.Image() # icon widget
+        icon.set_from_file(get_resource("images", "note-delete.png"))
+        button = gtk.ToolButton()
+        button.set_icon_widget(icon)
+        tips.set_tip(button, "Delete Folder")
+        button.connect("clicked", lambda w: self.on_delete_page())
+        toolbar.insert(button, -1)
+
         
         # bold tool
         icon = gtk.Image() # icon widget

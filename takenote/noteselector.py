@@ -33,7 +33,7 @@ class TakeNoteSelector (gtk.TreeView):
     def __init__(self):
         gtk.TreeView.__init__(self)
         self.drag_nodes = []
-    
+        self.editing = False
         self.on_select_node = None
         self.on_status = None
         self.sel_nodes = None
@@ -42,7 +42,7 @@ class TakeNoteSelector (gtk.TreeView):
         self.display_columns = []
         
         # init model
-        self.model = TakeNoteListStore(6, gdk.Pixbuf, str, str, int, str, int, object)
+        self.model = TakeNoteListStore(7, gdk.Pixbuf, str, str, int, str, int, int, object)
         
         # init view
         self.set_model(self.model)
@@ -57,24 +57,36 @@ class TakeNoteSelector (gtk.TreeView):
             [DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)                
         #self.set_fixed_height_mode(True)
         
+        
+        # directory order column
+        self.column = gtk.TreeViewColumn()
+        self.column.set_title("#")
+        self.column.set_clickable(True)
+        self.column.connect("clicked", self.on_directory_column_clicked)
+        cell_text = gtk.CellRendererText()
+        self.column.pack_start(cell_text, True)
+        self.append_column(self.column)
+        
+        # title column
         cell_icon = gtk.CellRendererPixbuf()
         self.cell_text = gtk.CellRendererText()
         self.column = gtk.TreeViewColumn()
         self.column.set_title("Title")
         self.column.set_property("resizable", True)
-        self.append_column(self.column)
-        
-        
         self.column.pack_start(cell_icon, False)
         self.column.pack_start(self.cell_text, True)
         self.cell_text.connect("edited", self.on_edit_title)
+        self.cell_text.connect("editing-started", self.on_editing_started)
+        self.cell_text.connect("editing-canceled", self.on_editing_canceled)        
         self.cell_text.set_property("editable", True)
         self.column.set_sort_column_id(1)
         # map cells to columns in model
         self.column.add_attribute(cell_icon, 'pixbuf', 0)
         self.column.add_attribute(self.cell_text, 'text', 1)
+        self.append_column(self.column)
         
         
+        # created column
         cell_text = gtk.CellRendererText()
         column = gtk.TreeViewColumn()
         column.set_title("Created")
@@ -85,7 +97,8 @@ class TakeNoteSelector (gtk.TreeView):
         column.pack_start(cell_text, True)
         column.add_attribute(cell_text, 'text', 2)
         self.append_column(column)
-
+    
+        # modified column
         cell_text = gtk.CellRendererText()
         column = gtk.TreeViewColumn()
         column.set_property("resizable", True)
@@ -98,9 +111,11 @@ class TakeNoteSelector (gtk.TreeView):
         self.append_column(column)        
         
         # set default sorting
-        self.model.set_sort_column_id(3, gtk.SORT_DESCENDING)
+        # remember sort per node
+        self.model.set_sort_column_id(6, gtk.SORT_ASCENDING)
+        #self.model.set_sort_column_id(3, gtk.SORT_DESCENDING)
         
-        self.icon = gdk.pixbuf_new_from_file(get_resource("images", "copy.xpm"))
+        self.icon = gdk.pixbuf_new_from_file(get_resource("images", "note.png"))
         
 
     #=============================================
@@ -158,14 +173,27 @@ class TakeNoteSelector (gtk.TreeView):
     #=============================================
     # gui callbacks    
             
+    def on_directory_column_clicked(self, column):
+        """sort pages by directory order"""
+        #self.model.set_default_sort_func
+        self.model.set_sort_column_id(6, gtk.SORT_ASCENDING)
+        #reset_default_sort_func()
+        
     
     def on_key_released(self, widget, event):
-        if event.keyval == gdk.keyval_from_name("Delete"):
+        if event.keyval == gdk.keyval_from_name("Delete") and \
+           not self.editing:
             self.on_delete_page()
             self.stop_emission("key-release-event")
+
+    def on_editing_started(self, cellrenderer, editable, path):
+        self.editing = True
     
+    def on_editing_canceled(self, cellrenderer):
+        self.editing = False    
 
     def on_edit_title(self, cellrenderertext, path, new_text):
+        self.editing = False
         try:
             page = self.model.get_data(path)
             if page.get_title() != new_text:
@@ -215,6 +243,7 @@ class TakeNoteSelector (gtk.TreeView):
                      page.get_created_time(),
                      page.get_modified_time_text(),
                      page.get_modified_time(),
+                     npages,
                      page))
                 path = self.model.get_path(it)
         self.on_select_node(None)        

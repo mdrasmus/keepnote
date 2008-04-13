@@ -27,10 +27,10 @@ class TakeNoteTreeView (gtk.TreeView):
         gtk.TreeView.__init__(self)
     
         self.on_select_node = None
-        
+        self.editing = False
         
         # create a TreeStore with one string column to use as the model
-        self.model = TakeNoteTreeStore(2, gdk.Pixbuf, str, object)
+        self.model = TakeNoteTreeStore(3, gdk.Pixbuf, gdk.Pixbuf, str, object)
                         
         # init treeview
         self.set_model(self.model)
@@ -63,6 +63,8 @@ class TakeNoteTreeView (gtk.TreeView):
         # create a cell renderers
         self.cell_icon = gtk.CellRendererPixbuf()
         self.cell_text = gtk.CellRendererText()
+        self.cell_text.connect("editing-started", self.on_editing_started)
+        self.cell_text.connect("editing-canceled", self.on_editing_canceled)
         self.cell_text.connect("edited", self.on_edit_title)
         self.cell_text.set_property("editable", True)        
 
@@ -72,9 +74,11 @@ class TakeNoteTreeView (gtk.TreeView):
 
         # map cells to columns in treestore
         self.column.add_attribute(self.cell_icon, 'pixbuf', 0)
-        self.column.add_attribute(self.cell_text, 'text', 1)
-        
-        self.icon = gdk.pixbuf_new_from_file(get_resource("images", "open.xpm"))
+        self.column.add_attribute(self.cell_icon, 'pixbuf-expander-open', 1)
+        self.column.add_attribute(self.cell_text, 'text', 2)
+
+        self.icon_folder_closed = gdk.pixbuf_new_from_file(get_resource("images", "folder.png"))
+        self.icon_folder_opened = gdk.pixbuf_new_from_file(get_resource("images", "folder-open.png"))
         #self.drag_source_set_icon_pixbuf(self.icon)
         
 
@@ -244,23 +248,44 @@ class TakeNoteTreeView (gtk.TreeView):
     
     def on_row_expanded(self, treeview, it, path):
         self.model.get_data(path).set_expand(True)
+        
+        # recursively expand nodes that should be expanded
+        def walk(it):
+            child = self.model.iter_children(it)
+            while child:
+                node = self.model.get_data_from_iter(child)
+                if node.is_expanded():
+                    path = self.model.get_path(child)
+                    self.expand_row(path, False)
+                    walk(child)
+                child = self.model.iter_next(child)
+        walk(it)
+            
 
     def on_row_collapsed(self, treeview, it, path):
         self.model.get_data(path).set_expand(False)
 
         
     def on_key_released(self, widget, event):
-        if event.keyval == gdk.keyval_from_name("Delete"):
+        if event.keyval == gdk.keyval_from_name("Delete") and \
+           not self.editing:
             self.on_delete_node()
             self.stop_emission("key-release-event")
-            
+
+    def on_editing_started(self, cellrenderer, editable, path):
+        self.editing = True
+    
+    def on_editing_canceled(self, cellrenderer):
+        self.editing = False
 
     def on_edit_title(self, cellrenderertext, path, new_text):
+        self.editing = False
+    
         try:
             node = self.model.get_data(path)
             node.rename(new_text)
             
-            self.model[path][1] = new_text
+            self.model[path][2] = new_text
         except Exception, e:
             print e
             print "takenote: could not rename '%s'" % node.get_title()
@@ -303,6 +328,9 @@ class TakeNoteTreeView (gtk.TreeView):
         else:
             root = self.notebook.get_root_node()
             self.add_node(None, root)
+            if root.is_expanded():
+                self.expand_to_path(self.model.get_path_from_data(root))
+
             
     
     
@@ -319,14 +347,14 @@ class TakeNoteTreeView (gtk.TreeView):
         
     
     def add_node(self, parent, node):
-        it = self.model.append(parent, [self.icon, node.get_title(), node])
+        it = self.model.append(parent, [self.icon_folder_closed, 
+                                        self.icon_folder_opened,
+                                        node.get_title(), node])
         path = self.model.get_path(it)
         
         for child in node.get_children():
             self.add_node(it, child)
         
-        if node.is_expanded():
-            self.expand_to_path(self.model.get_path_from_data(node))
     
     
     def update_node(self, node):
