@@ -302,6 +302,10 @@ class TakeNoteTreeView (gtk.TreeView):
     def on_delete_node(self):
         
         model, it = self.get_selection().get_selected()
+        
+        if it is None:
+            return
+        
         node = self.model.get_data(model.get_path(it))
         parent = node.get_parent()
         

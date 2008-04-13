@@ -216,6 +216,10 @@ class TakeNoteSelector (gtk.TreeView):
     
     def on_delete_page(self):
         model, it = self.get_selection().get_selected()
+        
+        if it is None:
+            return
+        
         path = self.model.get_path(it)
         page = self.model.get_data(model.get_path(it))
         page.delete()

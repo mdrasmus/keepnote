@@ -311,6 +311,13 @@ class TakeNoteWindow (gtk.Window):
         self.treeview.expand_node(parent)
         self.treeview.edit_node(node)
     
+    def on_delete_dir(self):
+        
+        # TODO: do delete yourself and update views
+        # I need treeview.on_notebook_changed
+    
+        self.treeview.on_delete_node()
+            
     
     def on_new_page(self):
         if len(self.sel_nodes) == 1:
@@ -322,6 +329,12 @@ class TakeNoteWindow (gtk.Window):
         self.treeview.update_node(parent)
         self.selector.update()
         self.selector.edit_node(node)
+    
+    
+    def on_delete_page(self):
+        
+        # TODO: do delete yourself and update view
+        self.selector.on_delete_page()
     
     
     def on_save(self):
@@ -683,7 +696,7 @@ class TakeNoteWindow (gtk.Window):
         button = gtk.ToolButton()
         button.set_icon_widget(icon)
         tips.set_tip(button, "New Note")
-        button.connect("clicked", lambda w: self.on_new_page)
+        button.connect("clicked", lambda w: self.on_new_page())
         toolbar.insert(button, -1)
         
         # note delete
