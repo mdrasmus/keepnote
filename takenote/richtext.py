@@ -1253,6 +1253,10 @@ class RichTextView (gtk.TextView):
             if mod not in mods:
                 self.remove_tag(self.tag_table.lookup(mod))
     
+    def on_font_size_set(self, size):
+        print size
+        self.apply_tag(self.lookup_size_tag(size))
+    
     def on_left_justify(self):
         self.apply_tag(self.left_tag)
         
@@ -1267,11 +1271,11 @@ class RichTextView (gtk.TextView):
     # UI Updating for fonts
     
     def on_update_font(self):
-        mods, justify = self.get_font()
+        mods, justify, family, size = self.get_font()
         # TODO: add size and family
         
         if self.font_callback:
-            self.font_callback(mods, justify)
+            self.font_callback(mods, justify, family, size)
     
     
     def get_font(self):
@@ -1294,8 +1298,28 @@ class RichTextView (gtk.TextView):
         if self.right_tag in self.current_tags or \
            it.has_tag(self.right_tag):
             justify = "right"
+        
+        # font family and size
+        family = "Sans"
+        size = 12
+        
+        return mods, justify, family, size
+        for tag in self.current_tags:
+            if tag in self.family_tags:
+                family = tag.get_property("name")
+            
+            if tag in self.size_tags:
+                size = int(tag.get_property("size-points"))
+        
+        for tag in it.get_tags():
+            if tag in self.family_tags:
+                family = tag.get_property("name")
+            
+            if tag in self.size_tags:
+                size = int(tag.get_property("size-points"))
 
-        return mods, justify
+
+        return mods, justify, family, size
         
     
     #===========================================================
