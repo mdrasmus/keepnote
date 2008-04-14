@@ -9,6 +9,7 @@
 
 # TODO: add NoteBookException
 
+import xmlobject as xmlo
 
 # python imports
 import os, sys, shutil, time
@@ -43,6 +44,29 @@ EPOC = time.mktime((1970, 1, 1, 0, 0, 0, 3, 1, 0)) - time.timezone
 
 FORMAT = "%a %b %d %I:%M:%S %p %Y"
 
+"""
+
+0  	tm_year  	(for example, 1993)
+1 	tm_mon 	range [1,12]
+2 	tm_mday 	range [1,31]
+3 	tm_hour 	range [0,23]
+4 	tm_min 	range [0,59]
+5 	tm_sec 	range [0,61]; see (1) in strftime() description
+6 	tm_wday 	range [0,6], Monday is 0
+7 	tm_yday 	range [1,366]
+8 	tm_isdst 	0, 1 or -1; see below
+
+"""
+
+TM_YEAR, \
+TM_MON, \
+TM_MDAY, \
+TM_HOUR, \
+TM_MIN, \
+TM_SEC, \
+TM_WDAY, \
+TM_YDAY, \
+TM_ISDST = range(9)
 
 
 BASEDIR = ""
@@ -57,8 +81,24 @@ def get_resource(*path_list):
 def get_timestamp():
 	return int(time.time() - EPOC)
 
-def get_str_timestamp(timestamp):
-	return time.strftime(FORMAT, time.localtime(timestamp + EPOC))
+def get_localtime():
+    return time.localtime(time.time() + EPOC)
+
+def get_str_timestamp(timestamp, current=None):
+    if current is None:
+        current = get_localtime()
+    local = time.localtime(timestamp + EPOC)
+    
+    if local[TM_YEAR] == current[TM_YEAR]:
+        if local[TM_MON] == current[TM_MON]:
+            if local[TM_MDAY] == current[TM_MDAY]:
+                return time.strftime("%I:%M %p", local)
+            else:
+                return time.strftime("%a, %d %I:%M %p", local)
+        else:
+	        return time.strftime("%a, %b %d %I:%M %p", local)        
+    else:
+	    return time.strftime("%a, %b %d %I:%M %p %Y", local)
 
 
 def get_dir_meta_file(nodepath):
@@ -191,6 +231,7 @@ class NoteBookNode (object):
         self._expanded = False
         
         self._set_basename(path)
+
         
 
     def create(self):
@@ -460,16 +501,6 @@ class NoteBookNode (object):
             self.write_meta_data()
             self._set_dirty(False)
             
-        #self._save_children()
-            
-        
-    '''
-    def _save_children(self):
-        """Recursively save any loaded child nodes"""
-        if self._children is not None:
-            for child in self._children:
-                child.save()
-    ''' 
     
     
     def get_meta_file(self):
@@ -484,22 +515,21 @@ class NoteBookNode (object):
         """Writes the meta file for the node"""
         raise Exception("Unimplemented")
     
-    def read_basic_meta_data(self, child):
-        if child.tagName == "title":
-            self._title = child.firstChild.nodeValue
-        if child.tagName == "order":
-            self._order = int(child.firstChild.nodeValue)
-        if child.tagName == "created_time":
-            self._created_time = int(child.firstChild.nodeValue)
-        if child.tagName == "modified_time":
-            self._modified_time = int(child.firstChild.nodeValue)
-        
-    
-    def write_basic_meta_data(self, out):
-        out.write("    <title>%s</title>\n" % self._title)
-        out.write("    <order>%d</order>\n" % self._order)
-        out.write("    <created_time>%d</created_time>\n" % self._created_time)
-        out.write("    <modified_time>%d</modified_time>\n" % self._modified_time)
+
+
+g_node_meta_data_tags = [
+    xmlo.Tag("title", 
+        getobj=("_title", None),
+        set=lambda s: s._title),
+    xmlo.Tag("order",
+        getobj=("_order", int),
+        set=lambda s: str(s._order)),
+    xmlo.Tag("created_time",
+        getobj=("_created_time", int),
+        set=lambda s: str(s._created_time)),
+    xmlo.Tag("modified_time",
+        getobj=("_modified_time", int),
+        set=lambda s: str(s._modified_time))]
 
 
 
@@ -531,17 +561,10 @@ class NoteBookPage (NoteBookNode):
     
     
     def read_meta_data(self):
-        dom = xmldom.parse(self.get_meta_file())
-        
-        root = dom.firstChild
-        assert root != None
-        
         self._created_time = None
-        self._modified_time = None
-        
-        for child in get_dom_children(root):
-            if child.nodeType == ELEMENT_NODE:
-                self.read_basic_meta_data(child)
+        self._modified_time = None    
+    
+        g_page_meta_data_parser.read(self, self.get_meta_file())
         
         if self._created_time is None:
             self._created_time = get_timestamp()
@@ -553,13 +576,13 @@ class NoteBookPage (NoteBookNode):
                 
     
     def write_meta_data(self):
-        
-        out = open(self.get_meta_file(), "w")
-        out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        out.write("<page>\n")
-        self.write_basic_meta_data(out)
-        out.write("</page>\n")
-        out.close()
+        g_page_meta_data_parser.write(self, self.get_meta_file())
+
+
+g_page_meta_data_parser = xmlo.XmlObject(
+    xmlo.Tag("page", tags=
+        g_node_meta_data_tags))
+            
 
 
 
@@ -573,48 +596,57 @@ class NoteBookDir (NoteBookNode):
     
     
     def read_meta_data(self):
-        
-        dom = xmldom.parse(self.get_meta_file())
-        
-        root = dom.firstChild
-        assert root != None
-        
         self._created_time = None
         self._modified_time = None
-       
-        for child in get_dom_children(root):
-            if child.nodeType == ELEMENT_NODE:
-                self.read_basic_meta_data(child)
-                if child.tagName == "expanded":
-                    self._expanded = bool(int(child.firstChild.nodeValue))
+        
+        g_dir_meta_data_parser.read(self, self.get_meta_file())
         
         if self._created_time is None:
             self._created_time = get_timestamp()
             self._set_dirty(True)
         if self._modified_time is None:
             self._modified_time = get_timestamp()
-            self._set_dirty(True)
-    
-    
+            self._set_dirty(True)        
+                
     def write_meta_data(self):
-        out = open(self.get_meta_file(), "w")
-        out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        out.write("<node>\n")
-        self.write_basic_meta_data(out)
-        out.write("    <expanded>%d</expanded>\n" % int(self._expanded))
-        out.write("</node>\n")
-        out.close()
+        g_dir_meta_data_parser.write(self, self.get_meta_file())
 
 
-class NoteBookPreferences (object):
+
+g_dir_meta_data_parser = xmlo.XmlObject(
+    xmlo.Tag("node", tags=
+        g_node_meta_data_tags + [
+        xmlo.Tag("expanded",
+            getobj=("_expanded", lambda x: bool(int(x))),
+            set=lambda s: str(int(s._expanded))) ]))
+            
+
+    
+
+class NoteBookPreferences (xmlo.XmlObject):
     """Preference data structure for a NoteBook"""
     def __init__(self):
+        
         self.window_size = DEFAULT_WINDOW_SIZE
         self.window_pos = DEFAULT_WINDOW_POS
         self.vsash_pos = DEFAULT_VSASH_POS
         self.hsash_pos = DEFAULT_HSASH_POS
 
-
+g_notebook_pref_parser = xmlo.XmlObject(
+    xmlo.Tag("notebook", tags=[
+        xmlo.Tag("window_size", 
+            getobj=("window_size", lambda x: tuple(map(int,x.split(",")))),
+            set=lambda s: "%d,%d" % s.window_size),
+        xmlo.Tag("window_pos",
+            getobj=("window_pos", lambda x: tuple(map(int,x.split(",")))),
+            set=lambda s: "%d,%d" % s.window_pos),
+        xmlo.Tag("vsash_pos",
+            getobj=("vhash_pos", int),
+            set=lambda s: "%d" % s.vsash_pos),
+        xmlo.Tag("hsash_pos",
+            getobj=("hsash_pos", int),
+            set=lambda s: "%d" % s.hsash_pos)]))
+            
 
 class NoteBook (NoteBookDir):
     def __init__(self, rootdir=None):
@@ -627,6 +659,8 @@ class NoteBook (NoteBookDir):
             self._title = None
         self._dirty = set()
         self._notebook = self
+        
+        
 
     def _set_dirty_node(self, node, dirty):
         if dirty:
@@ -672,7 +706,6 @@ class NoteBook (NoteBookDir):
         
         self.write_meta_data()
         self.write_preferences()
-        #self._save_children()
         
         self._set_dirty(False)
         
@@ -695,34 +728,9 @@ class NoteBook (NoteBookDir):
         if not os.path.exists(self.get_pref_dir()):
             os.mkdir(self.get_pref_dir())
         
-        out = open(self.get_pref_file(), "w")
-        out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        out.write("<notebook>\n")
-        out.write("    <window_size>%d,%d</window_size>\n" % 
-            tuple(self.pref.window_size))
-        out.write("    <window_pos>%d,%d</window_pos>\n" % 
-            tuple(self.pref.window_pos))
-        out.write("    <vsash_pos>%d</vsash_pos>\n" % self.pref.vsash_pos)
-        out.write("    <hsash_pos>%d</hsash_pos>\n" % self.pref.hsash_pos)
-        out.write("</notebook>\n")
-        out.close()
-    
+        g_notebook_pref_parser.write(self.pref, self.get_pref_file())
     
     def read_preferences(self):
-        
-        dom = xmldom.parse(self.get_pref_file())
-        
-        root = dom.firstChild
-        assert root != None
-        
-        for child in get_dom_children(root):
-            if child.nodeType == ELEMENT_NODE:
-                if child.tagName == "window_size":
-                    self.pref.window_size = map(int,child.firstChild.nodeValue.split(","))
-                if child.tagName == "window_pos":
-                    self.pref.window_pos = map(int,child.firstChild.nodeValue.split(","))
-                if child.tagName == "vsash_pos":
-                    self.pref.vsash_pos = int(child.firstChild.nodeValue)
-                if child.tagName == "hsash_pos":
-                    self.pref.hsash_pos = int(child.firstChild.nodeValue)
+        g_notebook_pref_parser.read(self.pref, self.get_pref_file())
+
                 

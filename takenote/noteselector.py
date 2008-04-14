@@ -55,26 +55,31 @@ class TakeNoteSelector (gtk.TreeView):
             gtk.gdk.BUTTON1_MASK, [DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)
         self.enable_model_drag_dest(
             [DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)                
-        #self.set_fixed_height_mode(True)
+        self.set_fixed_height_mode(True)
         
         
         # directory order column
         self.column = gtk.TreeViewColumn()
         self.column.set_title("#")
         self.column.set_clickable(True)
+        self.column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
         self.column.connect("clicked", self.on_directory_column_clicked)
         cell_text = gtk.CellRendererText()
+        cell_text.set_fixed_height_from_font(1)
         self.column.pack_start(cell_text, True)
         self.append_column(self.column)
+
         
         # title column
         cell_icon = gtk.CellRendererPixbuf()
         self.cell_text = gtk.CellRendererText()
         self.column = gtk.TreeViewColumn()
         self.column.set_title("Title")
+        self.column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
         self.column.set_property("resizable", True)
         self.column.pack_start(cell_icon, False)
         self.column.pack_start(self.cell_text, True)
+        self.cell_text.set_fixed_height_from_font(1)
         self.cell_text.connect("edited", self.on_edit_title)
         self.cell_text.connect("editing-started", self.on_editing_started)
         self.cell_text.connect("editing-canceled", self.on_editing_canceled)        
@@ -88,8 +93,11 @@ class TakeNoteSelector (gtk.TreeView):
         
         # created column
         cell_text = gtk.CellRendererText()
+        cell_text.set_fixed_height_from_font(1)
+        
         column = gtk.TreeViewColumn()
         column.set_title("Created")
+        column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
         column.set_property("resizable", True)
         column.set_sort_column_id(3)
         #column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
@@ -100,12 +108,14 @@ class TakeNoteSelector (gtk.TreeView):
     
         # modified column
         cell_text = gtk.CellRendererText()
+        cell_text.set_fixed_height_from_font(1)
         column = gtk.TreeViewColumn()
+        column.set_title("Modified")
+        column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
         column.set_property("resizable", True)
         column.set_sort_column_id(5)
         #column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
         #column.set_property("min-width", 5)
-        column.set_title("Modified")
         column.pack_start(cell_text, True)
         column.add_attribute(cell_text, 'text', 4)
         self.append_column(column)        
