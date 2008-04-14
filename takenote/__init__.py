@@ -122,7 +122,7 @@ def get_pref_dir(nodepath):
 def get_user_pref_dir(home=None):
     if home is None:
         home = os.getenv("HOME")
-    return os.path.joint(home, USER_PREF_DIR)
+    return os.path.join(home, USER_PREF_DIR)
 
 def get_user_pref_file(home=None):
     return os.path.join(get_user_pref_dir(home), USER_PREF_FILE)
@@ -211,10 +211,47 @@ class TakeNotePreferences (object):
     """Preference data structure for the TakeNote application"""
     
     def __init__(self):
-        self.window_size = DEFAULT_WINDOW_SIZE
-        self.window_pos = DEFAULT_WINDOW_POS
-        self.vsash_pos = DEFAULT_VSASH_POS
-        self.hsash_pos = DEFAULT_HSASH_POS
+        self.external_apps = {}
+        
+
+    def read(self):
+        if not os.path.exists(get_user_pref_file()):
+            # write default
+            self.write()
+        
+        g_takenote_pref_parser.read(self, get_user_pref_file())
+    
+    def write(self):
+        if not os.path.exists(get_user_pref_dir()):
+            os.mkdir(get_user_pref_dir())
+        
+        g_takenote_pref_parser.write(self, get_user_pref_file())
+        
+
+g_takenote_pref_parser = xmlo.XmlObject(
+    xmlo.Tag("takenote", tags=[
+        xmlo.Tag("external_apps", tags=[
+            xmlo.Tag("file_explorer", 
+                get=lambda s,x: s.external_apps.__setitem__(
+                    "file_explorer", x),
+                set=lambda s: s.external_apps.get("file_explorer", "")),
+            xmlo.Tag("web_browser", 
+                get=lambda s,x: s.external_apps.__setitem__(
+                    "web_browser", x),
+                set=lambda s: s.external_apps.get("web_browser", "")),
+            xmlo.Tag("image_editor", 
+                get=lambda s,x: s.external_apps.__setitem__(
+                    "image_editor", x),
+                set=lambda s: s.external_apps.get("image_editor", "")),
+            xmlo.Tag("text_editor", 
+                get=lambda s,x: s.external_apps.__setitem__(
+                    "text_editor", x),
+                set=lambda s: s.external_apps.get("text_editor", "")),
+                
+            ])
+        ]))
+        
+
 
 
 class NoteBookNode (object):

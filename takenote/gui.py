@@ -80,9 +80,9 @@ class TakeNoteEditor (object):
 
 
 class TakeNoteWindow (gtk.Window):
-    def __init__(self, basedir=""):
+    def __init__(self, app=""):
         gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
-        self.basedir = basedir
+        self.app = app
         
         self.set_title("TakeNote")
         self.set_default_size(*takenote.DEFAULT_WINDOW_SIZE)
@@ -568,6 +568,37 @@ class TakeNoteWindow (gtk.Window):
     def on_paste(self):
         self.editor.textview.emit("paste-clipboard")
 
+    def on_view_folder_file_explorer(self):
+        explorer = self.app.pref.external_apps.get("file_explorer", "")
+    
+        if len(self.sel_nodes) > 0 and explorer != "":
+            ret = os.system("%s '%s'" % (explorer, self.sel_nodes[0].get_path()))
+            
+            if ret != 0:
+                self.error("Could not open node in file explorer")
+            
+    
+    def on_view_page_web_browser(self):
+        browser = self.app.pref.external_apps.get("web_browser", "")
+    
+        if self.current_page is not None and browser != "":
+            ret = os.system("%s '%s'" % (browser, self.current_page.get_data_file()))
+            
+            if ret != 0:
+                self.error("Could not open page in web browser")
+    
+    
+    def on_view_page_text_editor(self):
+        # TODO: edit in background
+    
+        editor = self.app.pref.external_apps.get("text_editor", "")
+    
+        if self.current_page is not None and editor != "":
+            ret = os.system("%s '%s'" % (editor, self.current_page.get_data_file()))
+            
+            if ret != 0:
+                self.error("Could not open page in text editor")
+        
     
     #================================================
     # Menubar
@@ -610,7 +641,15 @@ class TakeNoteWindow (gtk.Window):
                 "<control>C", lambda w,e: self.on_copy(), 0, None), 
             ("/Edit/_Paste",     
                 "<control>V", lambda w,e: self.on_paste(), 0, None), 
+            #("/Edit/Select _All", 
+            #    "<control>A", lambda w,e: None, 0, None), 
             ("/Edit/sep2", 
+                None, None, 0, "<Separator>"),
+            ("/Edit/_Delete Folder",
+                None, lambda w,e: self.on_delete_dir(), 0, None),
+            ("/Edit/Delete _Page",     
+                None, lambda w,e: self.on_delete_page(), 0, None),             
+            ("/Edit/sep3", 
                 None, None, 0, "<Separator>"),
             ("/Edit/Insert _Image",
                 None, lambda w,e: self.on_insert_image(), 0, None),
@@ -639,8 +678,17 @@ class TakeNoteWindow (gtk.Window):
             ("/Format/Choose _Font", 
                 "<control><shift>F", lambda w, e: self.on_choose_font(), 0, None),
             
-            ("/_Go", 
-                None, None, 0, "<Branch>"),
+            ("/_View", None, None, 0, "<Branch>"),
+            ("/View/View Folder in File Explorer",
+                None, lambda w,e: self.on_view_folder_file_explorer(), 0, None),
+            ("/View/View Page in Text Editor",
+                None, lambda w,e: self.on_view_page_text_editor(), 0, None),                
+            ("/View/View Page in Web Browser",
+                None, lambda w,e: self.on_view_page_web_browser(), 0, None),
+
+                
+            
+            ("/_Go", None, None, 0, "<Branch>"),
             ("/Go/Go To _Tree View",
                 "<control>T", lambda w,e: self.on_goto_treeview(), 0, None),
             ("/Go/Go To _List View",
@@ -838,10 +886,12 @@ class TakeNote (object):
     
     def __init__(self, basedir=""):
         self.basedir = basedir
+        self.pref = takenote.TakeNotePreferences()
         
         takenote.BASEDIR = basedir
+        self.pref.read()
+        self.window = TakeNoteWindow(self)
         
-        self.window = TakeNoteWindow(basedir)
 
         
     def open_notebook(self, filename):

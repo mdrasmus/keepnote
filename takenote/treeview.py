@@ -300,11 +300,13 @@ class TakeNoteTreeView (gtk.TreeView):
     
     
     def on_delete_node(self):
+        # TODO: add folder name to message box
+    
         dialog = gtk.MessageDialog(self.get_toplevel(), 
             flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
             type=gtk.MESSAGE_QUESTION, 
             buttons=gtk.BUTTONS_YES_NO, 
-            message_format="Do you want to delete this node and all of its pages?")
+            message_format="Do you want to delete this folder and all of its pages?")
         dialog.connect("response", self.on_delete_node_response)
         dialog.show()
     
