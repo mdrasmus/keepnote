@@ -135,10 +135,7 @@ class TakeNoteWindow (gtk.Window):
         main_vbox2.pack_start(self.hpaned, True, True, 0)
         self.hpaned.set_position(takenote.DEFAULT_HSASH_POS)
 
-        # create a vertical paned widget
-        self.vpaned = gtk.VPaned()
-        self.hpaned.add2(self.vpaned)
-        self.vpaned.set_position(takenote.DEFAULT_VSASH_POS)
+        
         
         
         # status bar
@@ -155,19 +152,28 @@ class TakeNoteWindow (gtk.Window):
         
 
         # layout major widgets
+        if self.app.pref.view_mode == "vertical":
+            # create a vertical paned widget
+            self.paned2 = gtk.VPaned()
+        else:
+            self.paned2 = gtk.HPaned()
+        
+        self.hpaned.add2(self.paned2)
+        self.paned2.set_position(takenote.DEFAULT_VSASH_POS)
+
         sw = gtk.ScrolledWindow()
         sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         sw.set_shadow_type(gtk.SHADOW_IN)
         sw.add(self.treeview)
         self.hpaned.add1(sw)
-        
+
         sw = gtk.ScrolledWindow()
-        sw.set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         sw.set_shadow_type(gtk.SHADOW_IN)
         sw.add(self.selector)
-        self.vpaned.add1(sw)
-              
-        self.vpaned.add2(self.editor.view)
+        self.paned2.add1(sw)
+
+        self.paned2.add2(self.editor.view)
         
         
         self.show_all()        
@@ -195,7 +201,7 @@ class TakeNoteWindow (gtk.Window):
             self.resize(*self.notebook.pref.window_size)
             if self.notebook.pref.window_pos != [-1, -1]:
                 self.move(*self.notebook.pref.window_pos)
-            self.vpaned.set_position(self.notebook.pref.vsash_pos)
+            self.paned2.set_position(self.notebook.pref.vsash_pos)
             self.hpaned.set_position(self.notebook.pref.hsash_pos)
     
 
@@ -203,7 +209,7 @@ class TakeNoteWindow (gtk.Window):
         if self.notebook is not None:
             self.notebook.pref.window_size = self.get_size()
             self.notebook.pref.window_pos = self.get_position()
-            self.notebook.pref.vsash_pos = self.vpaned.get_position()
+            self.notebook.pref.vsash_pos = self.paned2.get_position()
             self.notebook.pref.hsash_pos = self.hpaned.get_position()
                     
 

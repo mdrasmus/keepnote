@@ -212,6 +212,7 @@ class TakeNotePreferences (object):
     
     def __init__(self):
         self.external_apps = {}
+        self.view_mode = "vertical" # "horizontal"
         
 
     def read(self):
@@ -230,6 +231,9 @@ class TakeNotePreferences (object):
 
 g_takenote_pref_parser = xmlo.XmlObject(
     xmlo.Tag("takenote", tags=[
+        xmlo.Tag("view_mode",
+            getobj=("view_mode", None),
+            set=lambda s: s.view_mode),
         xmlo.Tag("external_apps", tags=[
             xmlo.Tag("file_explorer", 
                 get=lambda s,x: s.external_apps.__setitem__(
