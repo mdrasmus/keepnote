@@ -232,6 +232,24 @@ class TakeNoteSelector (gtk.TreeView):
     
     
     def on_delete_page(self):
+        dialog = gtk.MessageDialog(self.get_toplevel(), 
+            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            type=gtk.MESSAGE_QUESTION, 
+            buttons=gtk.BUTTONS_YES_NO, 
+            message_format="Do you want to delete this page?")
+        dialog.connect("response", self.on_delete_page_response)
+        dialog.show()
+    
+    
+    def on_delete_page_response(self, dialog, response):
+        if response == gtk.RESPONSE_YES:
+            dialog.destroy()
+            self.delete_page()
+            
+        elif response == gtk.RESPONSE_NO:
+            dialog.destroy()    
+    
+    def delete_page(self):
         model, it = self.get_selection().get_selected()
         
         if it is None:

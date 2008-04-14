@@ -324,7 +324,7 @@ class TakeNoteWindow (gtk.Window):
         self.treeview.expand_node(parent)
         self.treeview.edit_node(node)
     
-    def on_delete_dir(self):
+    def on_delete_dir(self):                
         
         # TODO: do delete yourself and update views
         # I need treeview.on_notebook_changed

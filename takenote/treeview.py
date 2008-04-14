@@ -300,7 +300,25 @@ class TakeNoteTreeView (gtk.TreeView):
     
     
     def on_delete_node(self):
-        
+        dialog = gtk.MessageDialog(self.get_toplevel(), 
+            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            type=gtk.MESSAGE_QUESTION, 
+            buttons=gtk.BUTTONS_YES_NO, 
+            message_format="Do you want to delete this node and all of its pages?")
+        dialog.connect("response", self.on_delete_node_response)
+        dialog.show()
+    
+    
+    def on_delete_node_response(self, dialog, response):
+        if response == gtk.RESPONSE_YES:
+            dialog.destroy()
+            self.delete_node()
+            
+        elif response == gtk.RESPONSE_NO:
+            dialog.destroy()
+            
+    
+    def delete_node(self):
         model, it = self.get_selection().get_selected()
         
         if it is None:
