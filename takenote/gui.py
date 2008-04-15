@@ -490,7 +490,7 @@ class TakeNoteWindow (gtk.Window):
         if self.current_page is None:
             return
     
-        f, imgfile = tempfile.mkstemp(".xpm", "takenote")
+        f, imgfile = tempfile.mkstemp(".png", "takenote")
         os.close(f)
     
         os.system("import %s" % imgfile)
@@ -751,7 +751,30 @@ class TakeNoteWindow (gtk.Window):
         toolbar.set_border_width(0)
         
         tips = gtk.Tooltips()
+        tips.enable()
 
+        # open notebook
+        icon = gtk.Image() # icon widget
+        icon.set_from_file(get_resource("images", "open.png"))
+        button = gtk.ToolButton()
+        button.set_icon_widget(icon)
+        tips.set_tip(button, "Open Notebook")
+        button.connect("clicked", lambda w: self.on_open_notebook())
+        toolbar.insert(button, -1)
+
+        # save notebook
+        icon = gtk.Image() # icon widget
+        icon.set_from_file(get_resource("images", "save.png"))
+        button = gtk.ToolButton()
+        button.set_icon_widget(icon)
+        tips.set_tip(button, "Save Notebook")
+        button.connect("clicked", lambda w: self.on_save())
+        toolbar.insert(button, -1)        
+
+        # separator
+        toolbar.insert(gtk.SeparatorToolItem(), -1)
+        
+    
         # new folder
         icon = gtk.Image() # icon widget
         icon.set_from_file(get_resource("images", "folder-new.png"))
@@ -795,7 +818,7 @@ class TakeNoteWindow (gtk.Window):
         
         # bold tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "bold.xpm"))
+        icon.set_from_file(get_resource("images", "bold.png"))
         self.bold_button = gtk.ToggleToolButton()
         self.bold_button.set_icon_widget(icon)
         tips.set_tip(self.bold_button, "Bold")
@@ -805,7 +828,7 @@ class TakeNoteWindow (gtk.Window):
 
         # italic tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "italic.xpm"))
+        icon.set_from_file(get_resource("images", "italic.png"))
         self.italic_button = gtk.ToggleToolButton()
         self.italic_button.set_icon_widget(icon)
         tips.set_tip(self.italic_button, "Italic")
@@ -814,7 +837,7 @@ class TakeNoteWindow (gtk.Window):
 
         # underline tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "underline.xpm"))
+        icon.set_from_file(get_resource("images", "underline.png"))
         self.underline_button = gtk.ToggleToolButton()
         self.underline_button.set_icon_widget(icon)
         tips.set_tip(self.underline_button, "Underline")
@@ -872,7 +895,7 @@ class TakeNoteWindow (gtk.Window):
                 
         # left tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "alignleft.xpm"))
+        icon.set_from_file(get_resource("images", "alignleft.png"))
         self.left_button = gtk.ToggleToolButton()
         self.left_button.set_icon_widget(icon)
         tips.set_tip(self.left_button, "Left Justify")
@@ -881,7 +904,7 @@ class TakeNoteWindow (gtk.Window):
         
         # center tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "aligncenter.xpm"))
+        icon.set_from_file(get_resource("images", "aligncenter.png"))
         self.center_button = gtk.ToggleToolButton()
         self.center_button.set_icon_widget(icon)
         tips.set_tip(self.center_button, "Center Justify")
@@ -890,7 +913,7 @@ class TakeNoteWindow (gtk.Window):
         
         # right tool
         icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "alignright.xpm"))
+        icon.set_from_file(get_resource("images", "alignright.png"))
         self.right_button = gtk.ToggleToolButton()
         self.right_button.set_icon_widget(icon)
         tips.set_tip(self.right_button, "Right Justify")
