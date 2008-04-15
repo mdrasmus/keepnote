@@ -614,7 +614,67 @@ class TakeNoteWindow (gtk.Window):
             
             if ret != 0:
                 self.error("Could not open page in text editor")
+
+    def on_drag_and_drop_test(self):
+        self.drag_win = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        self.drag_win.connect("delete-event", lambda d,r: self.drag_win.destroy())
+        self.drag_win.drag_dest_set(0, [], gtk.gdk.ACTION_DEFAULT)
         
+        self.drag_win.set_default_size(400, 400)
+        vbox = gtk.VBox(False, 0)
+        self.drag_win.add(vbox)
+        
+        self.drag_win.mime = gtk.TextView()
+        vbox.pack_start(self.drag_win.mime, False, True, 0)
+        
+        self.drag_win.editor = gtk.TextView()
+        self.drag_win.editor.connect("drag-motion", self.on_drag_and_drop_test_motion)        
+        self.drag_win.editor.connect("drag-data-received", self.on_drag_and_drop_test_data)
+        self.drag_win.editor.connect("paste-clipboard", self.on_drag_and_drop_test_paste)
+        self.drag_win.editor.set_wrap_mode(gtk.WRAP_WORD)
+        
+        sw = gtk.ScrolledWindow()
+        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        sw.set_shadow_type(gtk.SHADOW_IN)
+        sw.add(self.drag_win.editor)
+        vbox.pack_start(sw)
+        
+        self.drag_win.show_all()
+    
+    def on_drag_and_drop_test_motion(self, textview, drag_context, x, y, timestamp):
+        buf = self.drag_win.mime.get_buffer()
+        target = buf.get_text(buf.get_start_iter(), buf.get_end_iter())
+        if target != "":
+            textview.drag_dest_set_target_list([(target, 0, 0)])
+    
+    def on_drag_and_drop_test_data(self, textview, drag_context, x, y,
+                                   selection_data, info, eventtime):
+        textview.get_buffer().insert_at_cursor("drag_context = " + 
+            str(drag_context.targets) + "\n")
+        textview.stop_emission("drag-data-received")
+        textview.get_buffer().insert_at_cursor("sel.data = " +
+            repr(selection_data.data)[:1000] + "\n")
+        drag_context.finish(False, False, eventtime)            
+
+        
+    
+    def on_drag_and_drop_test_paste(self, textview):
+        clipboard = self.get_clipboard(selection="CLIPBOARD")
+        targets = clipboard.wait_for_targets()
+        textview.get_buffer().insert_at_cursor("clipboard.targets = " + 
+            str(targets)+"\n")
+        textview.stop_emission('paste-clipboard')
+        
+        buf = self.drag_win.mime.get_buffer()
+        target = buf.get_text(buf.get_start_iter(), buf.get_end_iter())
+        if target != "":
+            clipboard.request_contents(target, self.on_drag_and_drop_test_contents)
+    
+    def on_drag_and_drop_test_contents(self, clipboard, selection_data, data):
+        buf = self.drag_win.editor.get_buffer()
+        data = selection_data.data
+        buf.insert_at_cursor("sel.targets = " + repr(selection_data.get_targets()) + "\n")
+        buf.insert_at_cursor("sel.data = " + repr(data)[:1000]+"\n")
     
     #================================================
     # Menubar
@@ -716,7 +776,9 @@ class TakeNoteWindow (gtk.Window):
                 
             
             ("/_Help",       None, None, 0, "<LastBranch>" ),
-            ("/_Help/About", None, lambda w,e: self.on_about(), 0, None ),
+            ("/Help/Drap and Drop Test",
+                None, lambda w,e: self.on_drag_and_drop_test(), 0, None),
+            ("/Help/About", None, lambda w,e: self.on_about(), 0, None ),
             )    
     
         accel_group = gtk.AccelGroup()
