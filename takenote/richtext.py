@@ -745,8 +745,18 @@ class RichTextBuffer (gtk.TextBuffer):
     def paste_clipboard(self, clipboard, override_location, default_editable):
         """Callback for paste event"""
         
-        if clipboard.wait_is_target_available(MIME_TAKENOTE):
+        targets = clipboard.wait_for_targets()
+        
+        if MIME_TAKENOTE in targets:
             clipboard.request_contents(MIME_TAKENOTE, self.do_paste)
+        elif "image/png" in targets:
+            clipboard.request_contents("image/png", self.do_paste_image)        
+        elif "image/bmp" in targets:
+            clipboard.request_contents("image/bmp", self.do_paste_image)        
+        elif "image/jpeg" in targets:
+            clipboard.request_contents("image/jpeg", self.do_paste_image)
+        elif "image/xpm" in targets:
+            clipboard.request_contents("image/xpm", self.do_paste_image)
         else:
             clipboard.request_text(self.do_paste_text)
         
@@ -757,6 +767,13 @@ class RichTextBuffer (gtk.TextBuffer):
         self.insert_at_cursor(text)
         self.end_user_action()
     
+    def do_paste_image(self, clipboard, selection_data, data):
+        
+        pixbuf = selection_data.get_pixbuf()
+        image = RichTextImage()
+        image.set_from_pixbuf(pixbuf)
+        
+        self.textview.insert_image(image)
     
     def do_paste(self, clipboard, selection_data, data):
         assert self.clipboard_contents != None
@@ -796,6 +813,11 @@ class RichTextView (gtk.TextView):
         
         self.font_callback = None
         self.ignore_font_upate = False
+        
+        self.connect("drag-data-received", self.on_drag_data_received)
+        self.drag_dest_add_image_targets()
+        #self.
+        #[('GTK_TEXT_BUFFER_CONTENTS', 1, 0), ('UTF8_STRING', 0, 0), ('COMPOUND_TEXT', 0, 0), ('TEXT', 0, 0), ('STRING', 0, 0), ('text/plain;charset=utf-8', 0, 0), ('text/plain;charset=ANSI_X3.4-1968', 0, 0), ('text/plain', 0, 0)]
         
         # signals
         self.textbuffer.connect("mark-set", self.on_mark_set)
@@ -855,6 +877,33 @@ class RichTextView (gtk.TextView):
         #                                            self.deserialize, None)
 
 
+    def on_drag_data_received(self, widget, drag_context, x, y,
+                              selection_data, info, eventtime):
+        
+        #print "a", self.drag_dest_get_target_list()
+        #targets = set(drag_context.targets)
+        #print "b", targets
+        
+        img_target = self.drag_dest_find_target(drag_context, 
+            [("image/png", 0, 0) ,
+             ("image/bmp", 0, 0) ,
+             ("image/jpeg", 0, 0),
+             ("image/xpm", 0, 0)])
+             
+        if img_target is not None:
+            #print selection_data.get_text()
+            pixbuf = selection_data.get_pixbuf()
+            #print pixbuf
+            
+            if pixbuf != None:
+                image = RichTextImage()
+                image.set_from_pixbuf(pixbuf)
+        
+                self.insert_image(image)
+            
+                drag_context.finish(True, True, eventtime)
+                self.stop_emission("drag-data-received")
+        
         
     """
     def on_popup(self, textview, menu):
@@ -1100,7 +1149,7 @@ class RichTextView (gtk.TextView):
     #===========================================================
     # Actions
         
-    def insert_image(self, image, filename="image.jpg"):
+    def insert_image(self, image, filename="image.png"):
         """Inserts an image into the textbuffer"""
                 
         self.textbuffer.begin_user_action()

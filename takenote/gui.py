@@ -582,6 +582,16 @@ class TakeNoteWindow (gtk.Window):
             
             if ret != 0:
                 self.error("Could not open node in file explorer")
+
+
+    def on_view_page_file_explorer(self):
+        explorer = self.app.pref.external_apps.get("file_explorer", "")
+    
+        if self.current_page is not None and explorer != "":
+            ret = os.system("%s '%s'" % (explorer, self.current_page.get_path()))
+            
+            if ret != 0:
+                self.error("Could not open node in file explorer")
             
     
     def on_view_page_web_browser(self):
@@ -687,6 +697,8 @@ class TakeNoteWindow (gtk.Window):
             ("/_View", None, None, 0, "<Branch>"),
             ("/View/View Folder in File Explorer",
                 None, lambda w,e: self.on_view_folder_file_explorer(), 0, None),
+            ("/View/View Page in File Explorer",
+                None, lambda w,e: self.on_view_page_file_explorer(), 0, None),
             ("/View/View Page in Text Editor",
                 None, lambda w,e: self.on_view_page_text_editor(), 0, None),                
             ("/View/View Page in Web Browser",
