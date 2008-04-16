@@ -37,6 +37,16 @@ from takenote.noteselector import TakeNoteSelector
 PROGRAM_NAME = "TakeNode"
 PROGRAM_VERSION = "0.1"
 
+g_images = {}
+
+def get_image(filename):
+    if filename in g_images:
+        return g_images[filename]
+    else:
+        img = gtk.Image()
+        img.set_from_file(filename)
+        g_images[filename] = img
+        return img
 
 
 
@@ -681,23 +691,40 @@ class TakeNoteWindow (gtk.Window):
     
     def make_menubar(self):
         # menu bar
+        folder_delete = gtk.Image()
+        folder_delete.set_from_file(get_resource("images", "folder-delete.png"))
+        
+        page_delete = gtk.Image()
+        page_delete.set_from_file(get_resource("images", "note-delete.png"))
+        
         self.menu_items = (
             ("/_File",               
                 None, None, 0, "<Branch>"),
             ("/File/_New Notebook",
-                None, lambda w,e: self.on_new_notebook(), 0, None),
+                None, lambda w,e: self.on_new_notebook(), 0, 
+                "<StockItem>", gtk.STOCK_NEW),
             ("/File/New _Page",      
-                "<control>N", lambda w,e: self.on_new_page(), 0, None),
+                "<control>N", lambda w,e: self.on_new_page(), 0, 
+                "<ImageItem>", 
+                get_image(get_resource("images", "note-new.png")).get_pixbuf()),
             ("/File/New _Folder", 
-                "<control><shift>N", lambda w,e: self.on_new_dir(), 0, None),
+                "<control><shift>N", lambda w,e: self.on_new_dir(), 0, 
+                "<ImageItem>", 
+                get_image(get_resource("images", "folder-new.png")).get_pixbuf()),
             ("/File/_Open Notebook",          
-                "<control>O", lambda w,e: self.on_open_notebook(), 0, None),
+                "<control>O", lambda w,e: self.on_open_notebook(), 0, 
+                "<ImageItem>", 
+                get_image(get_resource("images", "open.png")).get_pixbuf()),
             ("/File/_Reload Notebook",          
-                None, lambda w,e: self.on_reload_notebook(), 0, None),
+                None, lambda w,e: self.on_reload_notebook(), 0, 
+                "<StockItem>", gtk.STOCK_REVERT_TO_SAVED),
             ("/File/_Save Notebook",     
-                "<control>S", lambda w,e: self.on_save(), 0, None),
+                "<control>S", lambda w,e: self.on_save(), 0, 
+                "<ImageItem>", 
+                get_image(get_resource("images", "save.png")).get_pixbuf()),
             ("/File/_Close Notebook", 
-                "<control>W", lambda w, e: self.close_notebook(), 0, None),
+                "<control>W", lambda w, e: self.close_notebook(), 0, 
+                "<StockItem>", gtk.STOCK_CLOSE),
             ("/File/sep1", 
                 None, None, 0, "<Separator>" ),
             ("/File/Quit", 
@@ -707,25 +734,31 @@ class TakeNoteWindow (gtk.Window):
                 None, None, 0, "<Branch>"),
             ("/Edit/_Undo", 
                 "<control>Z", lambda w,e: self.editor.textview.undo(), 0, 
-                "<ImageItem>", gtk.STOCK_UNDO),
+                "<StockItem>", gtk.STOCK_UNDO),
             ("/Edit/_Redo", 
-                "<control><shift>Z", lambda w,e: self.editor.textview.redo(), 0, None),
+                "<control><shift>Z", lambda w,e: self.editor.textview.redo(), 0, 
+                "<StockItem>", gtk.STOCK_REDO),
             ("/Edit/sep1", 
                 None, None, 0, "<Separator>"),
             ("/Edit/Cu_t", 
-                "<control>X", lambda w,e: self.on_cut(), 0, None), 
+                "<control>X", lambda w,e: self.on_cut(), 0, 
+                "<StockItem>", gtk.STOCK_CUT), 
             ("/Edit/_Copy",     
-                "<control>C", lambda w,e: self.on_copy(), 0, None), 
+                "<control>C", lambda w,e: self.on_copy(), 0, 
+                "<StockItem>", gtk.STOCK_COPY), 
             ("/Edit/_Paste",     
-                "<control>V", lambda w,e: self.on_paste(), 0, None), 
+                "<control>V", lambda w,e: self.on_paste(), 0, 
+                "<StockItem>", gtk.STOCK_PASTE), 
             #("/Edit/Select _All", 
             #    "<control>A", lambda w,e: None, 0, None), 
             ("/Edit/sep2", 
                 None, None, 0, "<Separator>"),
             ("/Edit/_Delete Folder",
-                None, lambda w,e: self.on_delete_dir(), 0, None),
+                None, lambda w,e: self.on_delete_dir(), 0, 
+                "<ImageItem>", folder_delete.get_pixbuf()),
             ("/Edit/Delete _Page",     
-                None, lambda w,e: self.on_delete_page(), 0, None),             
+                None, lambda w,e: self.on_delete_page(), 0,
+                "<ImageItem>", page_delete.get_pixbuf()),
             ("/Edit/sep3", 
                 None, None, 0, "<Separator>"),
             ("/Edit/Insert _Image",
@@ -737,23 +770,37 @@ class TakeNoteWindow (gtk.Window):
             ("/_Format", 
                 None, None, 0, "<Branch>"),
             ("/Format/_Left Align", 
-                "<control>L", lambda w,e: self.on_left_justify(), 0, None ),
+                "<control>L", lambda w,e: self.on_left_justify(), 0, 
+                "<ImageItem>", 
+                get_image(get_resource("images", "alignleft.png")).get_pixbuf()),
             ("/Format/C_enter Align", 
-                "<control>E", lambda w,e: self.on_center_justify(), 0, None ),
+                "<control>E", lambda w,e: self.on_center_justify(), 0, 
+                "<ImageItem>", 
+                get_image(get_resource("images", "aligncenter.png")).get_pixbuf()),
             ("/Format/_Right Align", 
-                "<control>R", lambda w,e: self.on_right_justify(), 0, None ),
+                "<control>R", lambda w,e: self.on_right_justify(), 0, 
+                "<ImageItem>", 
+                get_image(get_resource("images", "alignright.png")).get_pixbuf()),
             ("/Format/sep1", 
                 None, None, 0, "<Separator>" ),            
             ("/Format/_Bold", 
-                "<control>B", lambda w,e: self.on_bold(), 0, None ),
+                "<control>B", lambda w,e: self.on_bold(), 0, 
+                "<ImageItem>", 
+                get_image(get_resource("images", "bold.png")).get_pixbuf()),
             ("/Format/_Italic", 
-                "<control>I", lambda w,e: self.on_italic(), 0, None ),
+                "<control>I", lambda w,e: self.on_italic(), 0, 
+                "<ImageItem>", 
+                get_image(get_resource("images", "italic.png")).get_pixbuf()),
             ("/Format/_Underline", 
-                "<control>U", lambda w,e: self.on_underline(), 0, None ),
+                "<control>U", lambda w,e: self.on_underline(), 0, 
+                "<ImageItem>", 
+                get_image(get_resource("images", "underline.png")).get_pixbuf()),
             ("/Format/sep2", 
                 None, None, 0, "<Separator>" ),
             ("/Format/Choose _Font", 
-                "<control><shift>F", lambda w, e: self.on_choose_font(), 0, None),
+                "<control><shift>F", lambda w, e: self.on_choose_font(), 0, 
+                "<ImageItem>", 
+                get_image(get_resource("images", "font.png")).get_pixbuf()),
             
             ("/_View", None, None, 0, "<Branch>"),
             ("/View/View Folder in File Explorer",
@@ -870,7 +917,7 @@ class TakeNoteWindow (gtk.Window):
         icon.set_from_file(get_resource("images", "note-delete.png"))
         button = gtk.ToolButton()
         button.set_icon_widget(icon)
-        tips.set_tip(button, "Delete Folder")
+        tips.set_tip(button, "Delete Note")
         button.connect("clicked", lambda w: self.on_delete_page())
         toolbar.insert(button, -1)
 
