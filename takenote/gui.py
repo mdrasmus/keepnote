@@ -701,7 +701,7 @@ class TakeNoteWindow (gtk.Window):
             ("/_File",               
                 None, None, 0, "<Branch>"),
             ("/File/_New Notebook",
-                None, lambda w,e: self.on_new_notebook(), 0, 
+                "", lambda w,e: self.on_new_notebook(), 0, 
                 "<StockItem>", gtk.STOCK_NEW),
             ("/File/New _Page",      
                 "<control>N", lambda w,e: self.on_new_page(), 0, 
