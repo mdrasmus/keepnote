@@ -815,6 +815,7 @@ class RichTextView (gtk.TextView):
         self.ignore_font_upate = False
         
         self.connect("drag-data-received", self.on_drag_data_received)
+        self.connect("drag-motion", self.on_drag_motion)
         self.drag_dest_add_image_targets()
         #self.
         #[('GTK_TEXT_BUFFER_CONTENTS', 1, 0), ('UTF8_STRING', 0, 0), ('COMPOUND_TEXT', 0, 0), ('TEXT', 0, 0), ('STRING', 0, 0), ('text/plain;charset=utf-8', 0, 0), ('text/plain;charset=ANSI_X3.4-1968', 0, 0), ('text/plain', 0, 0)]
@@ -877,12 +878,25 @@ class RichTextView (gtk.TextView):
         #                                            self.deserialize, None)
 
 
+    def on_drag_motion(self, textview, drag_context, x, y, timestamp):
+        
+        # check for image targets
+        img_target = self.drag_dest_find_target(drag_context, 
+            [("image/png", 0, 0) ,
+             ("image/bmp", 0, 0) ,
+             ("image/jpeg", 0, 0),
+             ("image/xpm", 0, 0)])
+             
+        if img_target is not None and img_target != "NONE":
+            textview.drag_dest_set_target_list([(img_target, 0, 0)])
+        
+        elif "application/pdf" in drag_context.targets:
+            textview.drag_dest_set_target_list([("application/pdf", 0, 0)])
+            
+    
+    
     def on_drag_data_received(self, widget, drag_context, x, y,
                               selection_data, info, eventtime):
-        
-        #print "a", self.drag_dest_get_target_list()
-        #targets = set(drag_context.targets)
-        #print "b", targets
         
         img_target = self.drag_dest_find_target(drag_context, 
             [("image/png", 0, 0) ,
@@ -890,10 +904,8 @@ class RichTextView (gtk.TextView):
              ("image/jpeg", 0, 0),
              ("image/xpm", 0, 0)])
              
-        if img_target is not None:
-            #print selection_data.get_text()
+        if img_target not in (None, "NONE"):
             pixbuf = selection_data.get_pixbuf()
-            #print pixbuf
             
             if pixbuf != None:
                 image = RichTextImage()
@@ -903,6 +915,52 @@ class RichTextView (gtk.TextView):
             
                 drag_context.finish(True, True, eventtime)
                 self.stop_emission("drag-data-received")
+                
+                
+        elif self.drag_dest_find_target(drag_context, 
+                   [("application/pdf", 0, 0)]) not in (None, "NONE"):
+            
+            
+            data = selection_data.data
+            
+            f, imgfile = tempfile.mkstemp(".png", "takenote")
+            os.close(f)
+            
+            out = os.popen("convert - %s" % imgfile, "wb")
+            out.write(data)
+            out.close()
+            
+            name, ext = os.path.splitext(imgfile)
+            imgfile2 = name + "-0" + ext
+            
+            if os.path.exists(imgfile2):
+                i = 0
+                while True:
+                    imgfile = name + "-" + str(i) + ext
+                    if not os.path.exists(imgfile):
+                        break
+                    self.insert_pdf_image(imgfile)
+                    os.remove(imgfile)
+                    i += 1
+                    
+            elif os.path.exists(imgfile):
+                
+                self.insert_pdf_image(imgfile)
+                os.remove(imgfile)
+            
+            drag_context.finish(True, True, eventtime)
+            self.stop_emission("drag-data-received")
+                        
+            
+    def insert_pdf_image(self, imgfile):
+        pixbuf = gdk.pixbuf_new_from_file(imgfile)
+        img = RichTextImage()
+        img.set_from_pixbuf(pixbuf)
+        self.insert_image(img, "pdf.png")
+
+        
+
+                
         
         
     """
