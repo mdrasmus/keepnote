@@ -502,7 +502,8 @@ class TakeNoteWindow (gtk.Window):
     
         f, imgfile = tempfile.mkstemp(".png", "takenote")
         os.close(f)
-    
+        
+        # TODO: generalize
         os.system("import %s" % imgfile)
         if os.path.exists(imgfile):
             try:
@@ -662,8 +663,12 @@ class TakeNoteWindow (gtk.Window):
         textview.get_buffer().insert_at_cursor("drag_context = " + 
             str(drag_context.targets) + "\n")
         textview.stop_emission("drag-data-received")
-        textview.get_buffer().insert_at_cursor("sel.data = " +
-            repr(selection_data.data)[:1000] + "\n")
+        
+        buf = textview.get_buffer()
+        buf.insert_at_cursor("type(sel.data) = " + 
+            str(type(selection_data.data)) + "\n")
+        buf.insert_at_cursor("sel.data = " +
+            str(selection_data.data)[:1000] + "\n")
         drag_context.finish(False, False, eventtime)            
 
         
@@ -684,7 +689,9 @@ class TakeNoteWindow (gtk.Window):
         buf = self.drag_win.editor.get_buffer()
         data = selection_data.data
         buf.insert_at_cursor("sel.targets = " + repr(selection_data.get_targets()) + "\n")
-        buf.insert_at_cursor("sel.data = " + repr(data)[:1000]+"\n")
+        buf.insert_at_cursor("type(sel.data) = " + str(type(data))+"\n")        
+        print "sel.data = " + str(data)[:1000]+"\n"
+        buf.insert_at_cursor("sel.data = " + str(data)[:1000]+"\n")
     
     #================================================
     # Menubar
