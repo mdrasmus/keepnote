@@ -669,7 +669,7 @@ class NoteBookPreferences (xmlo.XmlObject):
     def __init__(self):
         
         self.window_size = DEFAULT_WINDOW_SIZE
-        self.window_pos = DEFAULT_WINDOW_POS
+        #self.window_pos = DEFAULT_WINDOW_POS
         self.vsash_pos = DEFAULT_VSASH_POS
         self.hsash_pos = DEFAULT_HSASH_POS
 
@@ -678,9 +678,9 @@ g_notebook_pref_parser = xmlo.XmlObject(
         xmlo.Tag("window_size", 
             getobj=("window_size", lambda x: tuple(map(int,x.split(",")))),
             set=lambda s: "%d,%d" % s.window_size),
-        xmlo.Tag("window_pos",
-            getobj=("window_pos", lambda x: tuple(map(int,x.split(",")))),
-            set=lambda s: "%d,%d" % s.window_pos),
+        #xmlo.Tag("window_pos",
+        #    getobj=("window_pos", lambda x: tuple(map(int,x.split(",")))),
+        #    set=lambda s: "%d,%d" % s.window_pos),
         xmlo.Tag("vsash_pos",
             getobj=("vhash_pos", int),
             set=lambda s: "%d" % s.vsash_pos),

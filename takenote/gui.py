@@ -53,10 +53,18 @@ def get_image(filename):
 class TakeNoteEditor (object):
 
     def __init__(self):
+        self.textview = RichTextView()
+    
         sw = gtk.ScrolledWindow()
         sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         sw.set_shadow_type(gtk.SHADOW_IN)
-        self.textview = RichTextView()
+        
+        #p = gtk.VBox(False, 5)
+        #p.pack_start(self.textview)
+        #p.pack_start(gtk.HSeparator(), False, True)
+        #p.pack_start(RichTextView())
+        
+        #sw.add_with_viewport(p)
         sw.add(self.textview)
         sw.show()
         self.textview.show()
@@ -209,8 +217,8 @@ class TakeNoteWindow (gtk.Window):
     def get_preferences(self):
         if self.notebook is not None:
             self.resize(*self.notebook.pref.window_size)
-            if self.notebook.pref.window_pos != [-1, -1]:
-                self.move(*self.notebook.pref.window_pos)
+            #if self.notebook.pref.window_pos != (-1, -1):
+            #    self.move(*self.notebook.pref.window_pos)
             self.paned2.set_position(self.notebook.pref.vsash_pos)
             self.hpaned.set_position(self.notebook.pref.hsash_pos)
     
@@ -218,7 +226,7 @@ class TakeNoteWindow (gtk.Window):
     def set_preferences(self):
         if self.notebook is not None:
             self.notebook.pref.window_size = self.get_size()
-            self.notebook.pref.window_pos = self.get_position()
+            #self.notebook.pref.window_pos = self.get_position()
             self.notebook.pref.vsash_pos = self.paned2.get_position()
             self.notebook.pref.hsash_pos = self.hpaned.get_position()
                     
