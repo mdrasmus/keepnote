@@ -892,6 +892,9 @@ class RichTextView (gtk.TextView):
         
         elif "application/pdf" in drag_context.targets:
             textview.drag_dest_set_target_list([("application/pdf", 0, 0)])
+        
+        else:
+            textview.drag_dest_set_target_list([("text/plain", 0, 0)])
             
     
     
@@ -950,6 +953,11 @@ class RichTextView (gtk.TextView):
             
             drag_context.finish(True, True, eventtime)
             self.stop_emission("drag-data-received")
+        
+        elif self.drag_dest_find_target(drag_context, 
+                   [("text/plain", 0, 0)]) not in (None, "NONE"):
+            
+            self.insert_at_cursor(selection_data.get_text())
                         
             
     def insert_pdf_image(self, imgfile):
