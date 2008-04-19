@@ -10,7 +10,7 @@
 #       will eventually require lazy loading for treeview
 # TODO: add framework for customized page selector columns
 # TODO: add html links
-# TODO: make better font selector
+# TODO: make better font selecto
 # TODO: add colored text
 
 

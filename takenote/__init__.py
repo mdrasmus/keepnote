@@ -27,7 +27,7 @@ PAGE_META_FILE = "page.xml"
 PAGE_DATA_FILE = "page.html"
 PREF_FILE = "notebook.nbk"
 NOTEBOOK_META_DIR = "__NOTEBOOK__"
-USER_PREF_DIR = ".takenote"
+USER_PREF_DIR = "takenote"
 USER_PREF_FILE = "takenote.xml"
 DEFAULT_PAGE_NAME = "New Page"
 DEFAULT_DIR_NAME = "New Folder"
@@ -37,6 +37,8 @@ DEFAULT_WINDOW_SIZE = (800, 600)
 DEFAULT_WINDOW_POS = (-1, -1)
 DEFAULT_VSASH_POS = 200
 DEFAULT_HSASH_POS = 200
+
+PLATFORM = None
 
 # determine UNIX Epoc (which should be 0, unless the current platform has a 
 # different standard)
@@ -74,6 +76,23 @@ def get_resource(*path_list):
     return os.path.join(BASEDIR, *path_list)
 
 
+    
+#=============================================================================
+
+def get_platform():
+    global PLATFORM
+    
+    if PLATFORM is None:    
+        p = sys.platform    
+        if p == 'darwin':
+            PLATFORM = 'darwin'
+        elif p.startswith('win'):
+            PLATFORM = 'windows'
+        else:
+            PLATFORM = 'unix'
+                    
+    return PLATFORM
+    
 
 #=============================================================================
 # filenaming scheme
@@ -120,9 +139,17 @@ def get_pref_dir(nodepath):
     return os.path.join(nodepath, NOTEBOOK_META_DIR)
 
 def get_user_pref_dir(home=None):
-    if home is None:
-        home = os.getenv("HOME")
-    return os.path.join(home, USER_PREF_DIR)
+    p = get_platform()
+    if p == "unix":
+        if home is None:
+            home = os.getenv("HOME")
+        return os.path.join(home, "." + USER_PREF_DIR)
+    elif p == "windows":
+        appdata = os.getenv("APPDATA")
+        return os.path.join(appdata, USER_PREF_DIR)
+    else:
+        raise Exception("unknown platform '%s'" % p)
+        
 
 def get_user_pref_file(home=None):
     return os.path.join(get_user_pref_dir(home), USER_PREF_FILE)
