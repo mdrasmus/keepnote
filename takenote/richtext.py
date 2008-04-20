@@ -217,16 +217,9 @@ class HtmlBuffer (HTMLParser):
         self.out = out
         self.tag2html = {}
         self.html2tag = {}
-        self.newline = False
-        
-        self.size_tags = set()
-        self.family_tags = set()
-        self.justify_tags = set()
-        self.justify2tag = {}
-        self.tag2justify = {}
+        self.newline = False        
         
         self.tag_stack = []
-        self.richtext = None
         self.buffer = None
         
         self.entity_char_map = [("&", "amp"),
@@ -248,21 +241,8 @@ class HtmlBuffer (HTMLParser):
     
     def add_tag(self, tag, html_name):
         self.tag2html[tag] = html_name
-        self.html2tag[html_name] = tag
+        self.html2tag[html_name] = tag    
     
-    
-    def add_size_tag(self, tag):
-        self.size_tags.add(tag)
-    
-    
-    def add_family_tag(self, tag):
-        self.family_tags.add(tag)
-    
-    
-    def add_justify_tag(self, tag, justify):
-        self.justify_tags.add(tag)
-        self.tag2justify[tag] = justify
-        self.justify2tag[justify] = tag
     
     def read(self, richtext, infile):
         self.richtext = richtext
@@ -309,11 +289,11 @@ class HtmlBuffer (HTMLParser):
                 if key == "style":
                     if value.startswith("font-size"):
                         size = int(value.split(":")[1].replace("pt", ""))
-                        tag = self.richtext.lookup_size_tag(size)
+                        tag = self.buffer.lookup_size_tag(size)
                         
                     elif value.startswith("font-family"):
                         family = value.split(":")[1].strip()
-                        tag = self.richtext.lookup_family_tag(family)
+                        tag = self.buffer.lookup_family_tag(family)
                     
                     else:
                         raise Exception("unknown style '%s'" % value)
@@ -327,8 +307,14 @@ class HtmlBuffer (HTMLParser):
                 if key == "style":
                     if value.startswith("text-align"):
                         align = value.split(":")[1].strip()
-                        tag = self.justify2tag[align]
-                        
+                        if align == "left":
+                            tag = self.buffer.left_tag
+                        elif align == "center":
+                            tag = self.buffer.center_tag
+                        elif align == "right":
+                            tag = self.buffer.right_tag
+                        else:
+                            raise Exception("unknown justification '%s'" % align)
                     else:
                         raise Exception("unknown style '%s'" % value)
                 else:
@@ -371,11 +357,11 @@ class HtmlBuffer (HTMLParser):
         
     
     def write(self, richtext):
-        textbuffer = richtext.textbuffer
+        self.buffer = richtext.textbuffer
         
         self.out.write("<html><body>")
         
-        for kind, it, param in normalize_tags(iter_buffer_contents(textbuffer)):
+        for kind, it, param in normalize_tags(iter_buffer_contents(self.buffer)):
             if kind == "text":
                 text = param
                 text = text.replace("&", "&amp;")
@@ -413,16 +399,20 @@ class HtmlBuffer (HTMLParser):
         if tag in self.tag2html:
             self.out.write("<%s>" % self.tag2html[tag])
         else:
-            if tag in self.size_tags:
+            if tag in self.buffer.size_tags:
                 self.out.write("<span style='font-size: %dpt'>" % 
                           tag.get_property("size-points"))
-            elif tag in self.family_tags:
+            elif tag in self.buffer.family_tags:
                 self.out.write("<span style='font-family: %s'>" % 
                           tag.get_property("family"))
-            elif tag in self.justify_tags:
-                            
-                self.out.write("<div style='text-align: %s'>" % 
-                          self.tag2justify[tag])
+            elif tag in self.buffer.justify_tags:
+                if tag == self.buffer.left_tag:
+                    text = "left"
+                elif tag == self.buffer.center_tag:
+                    text = "center"
+                else:
+                    text = "right"
+                self.out.write("<div style='text-align: %s'>" % text)
             else:
                 raise Exception("unknown tag")
                 
@@ -430,7 +420,7 @@ class HtmlBuffer (HTMLParser):
     def write_tag_end(self, tag):
         if tag in self.tag2html:
             self.out.write("</%s>" % self.tag2html[tag])
-        elif tag in self.justify_tags:
+        elif tag in self.buffer.justify_tags:
             self.out.write("</div>")
         else:
             self.out.write("</span>")
@@ -690,7 +680,21 @@ class RichTextBuffer (gtk.TextBuffer):
         self.clipboard_contents = None
         self.textview = textview
         self._modified = False
-
+        
+        #self.tag_table = self.get_tag_table()
+        
+        self.bold_tag = self.create_tag("Bold", weight=pango.WEIGHT_BOLD)
+        self.italic_tag = self.create_tag("Italic", style=pango.STYLE_ITALIC)
+        self.underline_tag = self.create_tag("Underline", underline=pango.UNDERLINE_SINGLE)
+        
+        self.left_tag = self.create_tag("Left", justification=gtk.JUSTIFY_LEFT)
+        self.center_tag = self.create_tag("Center", justification=gtk.JUSTIFY_CENTER)
+        self.right_tag = self.create_tag("Right", justification=gtk.JUSTIFY_RIGHT)
+        
+        self.justify_tags = set([self.left_tag, self.center_tag, self.right_tag])
+        self.family_tags = set()
+        self.size_tags = set()
+        
     
     def modify(self):
         self._modified = True
@@ -800,6 +804,44 @@ class RichTextBuffer (gtk.TextBuffer):
     
     def clear_selection_data(self, clipboard, data):
         self.clipboard_contents = None
+    
+    
+    #===========================================================
+    # Font management
+    
+    def lookup_family_tag(self, family):
+        tag = self.tag_table.lookup(family)
+        if tag == None:
+            tag = self.create_tag(family, family=family)
+            self.add_family_tag(tag)
+        return tag
+    
+    def lookup_size_tag(self, size):
+        sizename = "size %d" % size
+        tag = self.tag_table.lookup(sizename)
+        if tag == None:
+            tag = self.create_tag(sizename, size_points=size)
+            self.add_size_tag(tag)
+        return tag
+    
+    def add_family_tag(self, tag):
+        self.family_tags.add(tag)        
+    
+    def add_size_tag(self, tag):
+        self.size_tags.add(tag)
+    
+
+    def parse_font(self, fontstr):
+        tokens = fontstr.split(" ")
+        size = int(tokens.pop())
+        mods = []
+        
+        while tokens[-1] in ["Bold", "Italic", "Underline"]:
+            mods.append(tokens.pop())
+
+        return " ".join(tokens), mods, size
+    
+
 
     
 
@@ -846,30 +888,15 @@ class RichTextView (gtk.TextView):
         self.first_menu = True
         
         # font tags
-        self.tag_table = self.textbuffer.get_tag_table()
         
-        self.bold_tag = self.textbuffer.create_tag("Bold", weight=pango.WEIGHT_BOLD)
-        self.italic_tag = self.textbuffer.create_tag("Italic", style=pango.STYLE_ITALIC)
-        self.underline_tag = self.textbuffer.create_tag("Underline", underline=pango.UNDERLINE_SINGLE)
-        
-        self.left_tag = self.textbuffer.create_tag("Left", justification=gtk.JUSTIFY_LEFT)
-        self.center_tag = self.textbuffer.create_tag("Center", justification=gtk.JUSTIFY_CENTER)
-        self.right_tag = self.textbuffer.create_tag("Right", justification=gtk.JUSTIFY_RIGHT)        
-        
-        self.justify_tags = set([self.left_tag, self.center_tag, self.right_tag])
-        self.family_tags = set()
-        self.size_tags = set()
         
         
         # initialize HTML buffer
         self.html_buffer = HtmlBuffer()
         
-        self.html_buffer.add_tag(self.bold_tag, "b")
-        self.html_buffer.add_tag(self.italic_tag, "i")
-        self.html_buffer.add_tag(self.underline_tag, "u")
-        self.html_buffer.add_justify_tag(self.left_tag, "left")
-        self.html_buffer.add_justify_tag(self.center_tag, "center")
-        self.html_buffer.add_justify_tag(self.right_tag, "right")
+        self.html_buffer.add_tag(self.textbuffer.bold_tag, "b")
+        self.html_buffer.add_tag(self.textbuffer.italic_tag, "i")
+        self.html_buffer.add_tag(self.textbuffer.underline_tag, "u")
         
         # requires new pygtk
         #self.textbuffer.register_serialize_format(MIME_TAKENOTE, 
@@ -877,6 +904,8 @@ class RichTextView (gtk.TextView):
         #self.textbuffer.register_deserialize_format(MIME_TAKENOTE, 
         #                                            self.deserialize, None)
 
+    #=======================================================
+    # Drag and drop
 
     def on_drag_motion(self, textview, drag_context, x, y, timestamp):
         
@@ -1010,6 +1039,12 @@ class RichTextView (gtk.TextView):
         print "deserialize"
      
     
+
+    
+    
+    #==================================================================
+    # Callbacks
+
     def on_copy(self):
         clipboard = self.get_clipboard(selection="CLIPBOARD") #gtk.clipboard_get(gdk.SELECTION_CLIPBOARD)
         self.textbuffer.copy_clipboard(clipboard)
@@ -1025,10 +1060,6 @@ class RichTextView (gtk.TextView):
         self.textbuffer.paste_clipboard(clipboard, None, self.get_editable())
         self.stop_emission('paste-clipboard')
 
-    
-    
-    #==================================================================
-    # Callbacks
     
     
     def on_mark_set(self, textbuffer, it, mark):
@@ -1303,37 +1334,37 @@ class RichTextView (gtk.TextView):
     def clear_font_tags(self, tag, start, end):
         
         # remove other justify tags
-        if tag in self.justify_tags:
-            for tag2 in self.justify_tags:
+        if tag in self.textbuffer.justify_tags:
+            for tag2 in self.textbuffer.justify_tags:
                 self.textbuffer.remove_tag(tag2, start, end)
         
         # remove other family tags        
-        if tag in self.family_tags:
-            for tag2 in self.family_tags:
+        elif tag in self.textbuffer.family_tags:
+            for tag2 in self.textbuffer.family_tags:
                 self.textbuffer.remove_tag(tag2, start, end)
         
         # remove other size tags                    
-        if tag in self.size_tags:
-            for tag2 in self.size_tags:
+        elif tag in self.textbuffer.size_tags:
+            for tag2 in self.textbuffer.size_tags:
                 self.textbuffer.remove_tag(tag2, start, end)
 
     def clear_current_font_tags(self, tag):
         
         # remove other justify tags
-        if tag in self.justify_tags:
-            for tag2 in self.justify_tags:
+        if tag in self.textbuffer.justify_tags:
+            for tag2 in self.textbuffer.justify_tags:
                 if tag2 in self.current_tags:
                     self.current_tags.remove(tag2)
         
         # remove other family tags        
-        if tag in self.family_tags:
-            for tag2 in self.family_tags:
+        elif tag in self.textbuffer.family_tags:
+            for tag2 in self.textbuffer.family_tags:
                 if tag2 in self.current_tags:
                     self.current_tags.remove(tag2)
         
         # remove other size tags                    
-        if tag in self.size_tags:
-            for tag2 in self.size_tags:
+        elif tag in self.textbuffer.size_tags:
+            for tag2 in self.textbuffer.size_tags:
                 if tag2 in self.current_tags:
                     self.current_tags.remove(tag2)
 
@@ -1342,44 +1373,44 @@ class RichTextView (gtk.TextView):
     # Callbacks for Font 
 
     def on_bold(self):
-        self.toggle_tag(self.bold_tag)
+        self.toggle_tag(self.textbuffer.bold_tag)
         
     def on_italic(self):
-        self.toggle_tag(self.italic_tag)
+        self.toggle_tag(self.textbuffer.italic_tag)
     
     def on_underline(self):
-        self.toggle_tag(self.underline_tag)       
+        self.toggle_tag(self.textbuffer.underline_tag)       
     
     def on_font_set(self, widget):
-        family, mods, size = self.parse_font(widget.get_font_name())
+        family, mods, size = self.textbuffer.parse_font(widget.get_font_name())
         
         # apply family tag
-        self.apply_tag(self.lookup_family_tag(family))
+        self.apply_tag(self.textbuffer.lookup_family_tag(family))
         
         # apply size
-        self.apply_tag(self.lookup_size_tag(size))
+        self.apply_tag(self.textbuffer.lookup_size_tag(size))
         
         # apply mods
         for mod in mods:
-            self.apply_tag(self.tag_table.lookup(mod))
+            self.apply_tag(self.textbuffer.tag_table.lookup(mod))
         
         # disable mods not given
         for mod in ["Bold", "Italic", "Underline"]:
             if mod not in mods:
-                self.remove_tag(self.tag_table.lookup(mod))
+                self.remove_tag(self.textbuffer.tag_table.lookup(mod))
     
     def on_font_size_set(self, size):
         print size
-        self.apply_tag(self.lookup_size_tag(size))
+        self.apply_tag(self.textbuffer.lookup_size_tag(size))
     
     def on_left_justify(self):
-        self.apply_tag(self.left_tag)
+        self.apply_tag(self.textbuffer.left_tag)
         
     def on_center_justify(self):
-        self.apply_tag(self.center_tag)
+        self.apply_tag(self.textbuffer.center_tag)
     
     def on_right_justify(self):
-        self.apply_tag(self.right_tag)
+        self.apply_tag(self.textbuffer.right_tag)
         
     
     #==================================================================
@@ -1396,22 +1427,22 @@ class RichTextView (gtk.TextView):
     def get_font(self):
         it = self.textbuffer.get_iter_at_mark(self.textbuffer.get_insert())
         
-        mods = {"bold":      self.bold_tag in self.current_tags or 
-                             it.has_tag(self.bold_tag),
-                "italic":    self.italic_tag in self.current_tags or 
-                             it.has_tag(self.italic_tag),
+        mods = {"bold":      self.textbuffer.bold_tag in self.current_tags or 
+                             it.has_tag(self.textbuffer.bold_tag),
+                "italic":    self.textbuffer.italic_tag in self.current_tags or 
+                             it.has_tag(self.textbuffer.italic_tag),
                              
-                "underline": self.underline_tag in self.current_tags or 
-                             it.has_tag(self.underline_tag)}
+                "underline": self.textbuffer.underline_tag in self.current_tags or 
+                             it.has_tag(self.textbuffer.underline_tag)}
 
         justify = "left"
         
-        if self.center_tag in self.current_tags or \
-           it.has_tag(self.center_tag):
+        if self.textbuffer.center_tag in self.current_tags or \
+           it.has_tag(self.textbuffer.center_tag):
             justify = "center"
 
-        if self.right_tag in self.current_tags or \
-           it.has_tag(self.right_tag):
+        if self.textbuffer.right_tag in self.current_tags or \
+           it.has_tag(self.textbuffer.right_tag):
             justify = "right"
         
         # font family and size
@@ -1419,60 +1450,26 @@ class RichTextView (gtk.TextView):
         size = 12
         
         return mods, justify, family, size
+        
+        # TODO: speed this up
+        
         for tag in self.current_tags:
-            if tag in self.family_tags:
+            if tag in self.textbuffer.family_tags:
                 family = tag.get_property("name")
             
-            if tag in self.size_tags:
+            elif tag in self.textbuffer.size_tags:
                 size = int(tag.get_property("size-points"))
         
         for tag in it.get_tags():
-            if tag in self.family_tags:
+            if tag in self.textbuffer.family_tags:
                 family = tag.get_property("name")
             
-            if tag in self.size_tags:
+            if tag in self.textbuffer.size_tags:
                 size = int(tag.get_property("size-points"))
 
 
         return mods, justify, family, size
         
-    
-    #===========================================================
-    # Font management
-    
-    def lookup_family_tag(self, family):
-        tag = self.tag_table.lookup(family)
-        if tag == None:
-            tag = self.textbuffer.create_tag(family, family=family)
-            self.add_family_tag(tag)
-        return tag
-    
-    def lookup_size_tag(self, size):
-        sizename = "size %d" % size
-        tag = self.tag_table.lookup(sizename)
-        if tag == None:
-            tag = self.textbuffer.create_tag(sizename, size_points=size)
-            self.add_size_tag(tag)
-        return tag
-    
-    def add_family_tag(self, tag):
-        self.html_buffer.add_family_tag(tag)
-        self.family_tags.add(tag)        
-    
-    def add_size_tag(self, tag):
-        self.html_buffer.add_size_tag(tag)
-        self.size_tags.add(tag)
-    
-
-    def parse_font(self, fontstr):
-        tokens = fontstr.split(" ")
-        size = int(tokens.pop())
-        mods = []
-        
-        while tokens[-1] in ["Bold", "Italic", "Underline"]:
-            mods.append(tokens.pop())
-
-        return " ".join(tokens), mods, size
     
     
     #=========================================
