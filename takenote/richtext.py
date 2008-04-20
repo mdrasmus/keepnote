@@ -137,6 +137,9 @@ def normalize_tags(items):
             yield item
 
 
+# TODO: try to decouple textview, by delaying add_child_at_anchor
+# will allow faster load times
+
 def insert_buffer_contents(textview, pos, contents):
     """Insert a content list into a textview"""
     
@@ -455,10 +458,10 @@ class ModifyAction (Action):
             self.textbuffer.unmodify()
         
 
+# do I need to record current tags
 class InsertAction (Action):
     def __init__(self, richtext, pos, text, length):
         Action.__init__(self)
-        self.richtext = richtext
         self.textbuffer = richtext.textbuffer
         self.pos = pos
         self.text = text
@@ -680,9 +683,27 @@ class RichTextBuffer (gtk.TextBuffer):
         self.clipboard_contents = None
         self.textview = textview
         self._modified = False
+        self.undo_stack = UndoStack()
         
-        #self.tag_table = self.get_tag_table()
+        # action state
+        self.insert_mark = None
+        self.next_action = None
+        self.current_tags = []        
         
+        # signals
+        self.connect("mark-set", self.on_mark_set)
+        self.connect("insert-text", self.on_insert_text)
+        self.connect("delete-range", self.on_delete_range)
+        self.connect("insert-pixbuf", self.on_insert_pixbuf)
+        self.connect("insert-child-anchor", self.on_insert_child_anchor)
+        self.connect("apply-tag", self.on_apply_tag)
+        self.connect("remove-tag", self.on_remove_tag)        
+        self.insertid = self.connect("changed", self.on_changed)
+        self.connect("begin_user_action", self.on_begin_user_action)
+        self.connect("end_user_action", self.on_end_user_action)        
+        
+        
+        # font tags        
         self.bold_tag = self.create_tag("Bold", weight=pango.WEIGHT_BOLD)
         self.italic_tag = self.create_tag("Italic", style=pango.STYLE_ITALIC)
         self.underline_tag = self.create_tag("Underline", underline=pango.UNDERLINE_SINGLE)
@@ -807,6 +828,184 @@ class RichTextBuffer (gtk.TextBuffer):
     
     
     #===========================================================
+    # Callbacks
+    
+    def on_mark_set(self, textbuffer, it, mark):
+        """Callback for mark movement"""
+        
+        if mark.get_name() == "insert":
+            self.current_tags = []
+            
+            # update UI for current fonts
+            self.textview.on_update_font()
+            
+    
+    
+    def on_insert_text(self, textbuffer, it, text, length):
+        """Callback for text insert"""
+        
+        # start new action
+        self.next_action = InsertAction(self.textview, it.get_offset(), text, length)
+        self.insert_mark = self.create_mark(None, it, True)
+
+    def on_delete_range(self, textbuffer, start, end):
+        """Callback for delete range"""
+    
+        # start next action
+        self.next_action = DeleteAction(self.textview, start.get_offset(), 
+                                        end.get_offset(),
+                                        start.get_slice(end),
+                                        self.get_iter_at_mark(
+                                            self.get_insert()).
+                                                get_offset())
+        
+    
+    def on_insert_pixbuf(self, textbuffer, it, pixbuf):
+        """Callback for inserting a pixbuf"""
+        pass
+    
+    
+    def on_insert_child_anchor(self, textbuffer, it, anchor):
+        """Callback for inserting a child anchor"""
+        self.next_action = InsertChildAction(self.textview, it.get_offset(), anchor)
+    
+    def on_apply_tag(self, textbuffer, tag, start, end):
+        """Callback for tag apply"""
+        
+        self.begin_user_action()
+        action = TagAction(self.textview, tag, start.get_offset(), 
+                           end.get_offset(), True)
+        self.undo_stack.do(action.do, action.undo, False)
+        action = ModifyAction(self)
+        self.undo_stack.do(action.do, action.undo)
+        self.end_user_action()
+    
+    def on_remove_tag(self, textbuffer, tag, start, end):
+        """Callback for tag remove"""
+    
+        self.begin_user_action()
+        action = TagAction(self.textview, tag, start.get_offset(), 
+                           end.get_offset(), False)
+        self.undo_stack.do(action.do, action.undo, False)
+        action = ModifyAction(self)
+        self.undo_stack.do(action.do, action.undo)
+        self.end_user_action()
+    
+    
+    def on_changed(self, textbuffer):
+        """Callback for buffer change"""
+    
+        # apply current style to inserted text
+        if isinstance(self.next_action, InsertAction):
+            if len(self.current_tags) > 0:
+                it = self.get_iter_at_mark(self.insert_mark)
+                it2 = it.copy()
+                it2.forward_chars(self.next_action.length)
+
+                for tag in self.current_tags:
+                    self.apply_tag(tag, it, it2)
+
+                self.delete_mark(self.insert_mark)
+                self.insert_mark = None
+        
+        
+        if self.next_action:
+            self.begin_user_action()        
+            self.undo_stack.do(self.next_action.do, self.next_action.undo, False)
+            self.next_action = None
+            action = ModifyAction(self)
+            self.undo_stack.do(action.do, action.undo)
+            
+            self.end_user_action()
+    
+    #==============================================================
+    # Tag manipulation    
+
+    def toggle_tag_selected(self, tag):
+        self.begin_user_action()
+        it = self.get_selection_bounds()
+        
+        if len(it) == 0:
+            if tag not in self.current_tags:
+                self.clear_current_font_tags(tag)
+                self.current_tags.append(tag)
+            else:
+                self.current_tags.remove(tag)
+        else:
+            if not it[0].has_tag(tag):
+                self.clear_font_tags(tag, it[0], it[1])
+                self.apply_tag(tag, it[0], it[1])
+            else:
+                self.remove_tag(tag, it[0], it[1])
+        
+        self.end_user_action()
+    
+
+    def apply_tag_selected(self, tag):
+        self.begin_user_action()    
+        it = self.get_selection_bounds()
+        
+        if len(it) == 0:
+            if tag not in self.current_tags:
+                self.clear_current_font_tags(tag)
+                self.current_tags.append(tag)
+        else:
+            self.clear_font_tags(tag, it[0], it[1])
+            self.apply_tag(tag, it[0], it[1])
+        self.end_user_action()
+
+
+    def remove_tag_selected(self, tag):
+        self.begin_user_action()
+        it = self.get_selection_bounds()
+        
+        if len(it) == 0:
+            if tag in self.current_tags:
+                self.current_tags.remove(tag)
+        else:
+            self.remove_tag(tag, it[0], it[1])
+        self.end_user_action()
+    
+    
+    def clear_font_tags(self, tag, start, end):
+        
+        # remove other justify tags
+        if tag in self.justify_tags:
+            for tag2 in self.justify_tags:
+                self.remove_tag(tag2, start, end)
+        
+        # remove other family tags        
+        elif tag in self.family_tags:
+            for tag2 in self.family_tags:
+                self.remove_tag(tag2, start, end)
+        
+        # remove other size tags                    
+        elif tag in self.size_tags:
+            for tag2 in self.size_tags:
+                self.remove_tag(tag2, start, end)
+
+    def clear_current_font_tags(self, tag):
+        
+        # remove other justify tags
+        if tag in self.justify_tags:
+            for tag2 in self.justify_tags:
+                if tag2 in self.current_tags:
+                    self.current_tags.remove(tag2)
+        
+        # remove other family tags        
+        elif tag in self.family_tags:
+            for tag2 in self.family_tags:
+                if tag2 in self.current_tags:
+                    self.current_tags.remove(tag2)
+        
+        # remove other size tags                    
+        elif tag in self.size_tags:
+            for tag2 in self.size_tags:
+                if tag2 in self.current_tags:
+                    self.current_tags.remove(tag2)
+
+    
+    #===========================================================
     # Font management
     
     def lookup_family_tag(self, family):
@@ -841,6 +1040,72 @@ class RichTextBuffer (gtk.TextBuffer):
 
         return " ".join(tokens), mods, size
     
+    def get_font(self):
+        it = self.get_iter_at_mark(self.get_insert())
+        
+        mods = {"bold":      self.bold_tag in self.current_tags or 
+                             it.has_tag(self.bold_tag),
+                "italic":    self.italic_tag in self.current_tags or 
+                             it.has_tag(self.italic_tag),
+                             
+                "underline": self.underline_tag in self.current_tags or 
+                             it.has_tag(self.underline_tag)}
+
+        justify = "left"
+        
+        if self.center_tag in self.current_tags or \
+           it.has_tag(self.center_tag):
+            justify = "center"
+
+        if self.right_tag in self.current_tags or \
+           it.has_tag(self.right_tag):
+            justify = "right"
+        
+        # font family and size
+        family = "Sans"
+        size = 12
+        
+        return mods, justify, family, size
+        
+        # TODO: speed this up
+        
+        for tag in self.current_tags:
+            if tag in self.family_tags:
+                family = tag.get_property("name")
+            
+            elif tag in self.size_tags:
+                size = int(tag.get_property("size-points"))
+        
+        for tag in it.get_tags():
+            if tag in self.family_tags:
+                family = tag.get_property("name")
+            
+            if tag in self.size_tags:
+                size = int(tag.get_property("size-points"))
+
+
+        return mods, justify, family, size
+
+
+    #=========================================
+    # undo/redo methods
+    
+    def undo(self):
+        """Undo the last action in the RichTextView"""
+        self.undo_stack.undo()
+        
+    def redo(self):
+        """Redo the last action in the RichTextView"""    
+        self.undo_stack.redo()    
+    
+    def on_begin_user_action(self, textbuffer):
+        """Begin a composite undo/redo action"""
+        self.undo_stack.begin_action()
+
+    def on_end_user_action(self, textbuffer):
+        """End a composite undo/redo action"""
+        self.undo_stack.end_action()
+
 
 
     
@@ -850,50 +1115,31 @@ class RichTextView (gtk.TextView):
     def __init__(self):
         gtk.TextView.__init__(self, RichTextBuffer(self))
         self.textbuffer = self.get_buffer()
-        self.undo_stack = UndoStack()
+        
         self.set_wrap_mode(gtk.WRAP_WORD)
+        self.set_property("right-margin", 5)
+        self.set_property("left-margin", 5)
         
         self.font_callback = None
         self.ignore_font_upate = False
-        
+        self.first_menu = True
+
+        # drag and drop
         self.connect("drag-data-received", self.on_drag_data_received)
         self.connect("drag-motion", self.on_drag_motion)
         self.drag_dest_add_image_targets()
-        #self.
-        #[('GTK_TEXT_BUFFER_CONTENTS', 1, 0), ('UTF8_STRING', 0, 0), ('COMPOUND_TEXT', 0, 0), ('TEXT', 0, 0), ('STRING', 0, 0), ('text/plain;charset=utf-8', 0, 0), ('text/plain;charset=ANSI_X3.4-1968', 0, 0), ('text/plain', 0, 0)]
-        
-        # signals
-        self.textbuffer.connect("mark-set", self.on_mark_set)
-        self.textbuffer.connect("insert-text", self.on_insert_text)
-        self.textbuffer.connect("delete-range", self.on_delete_range)
-        self.textbuffer.connect("insert-pixbuf", self.on_insert_pixbuf)
-        self.textbuffer.connect("insert-child-anchor", self.on_insert_child_anchor)
-        self.textbuffer.connect("apply-tag", self.on_apply_tag)
-        self.textbuffer.connect("remove-tag", self.on_remove_tag)        
-        self.insertid = self.textbuffer.connect("changed", self.on_changed)
-        self.textbuffer.connect("begin_user_action", self.on_begin_user_action)
-        self.textbuffer.connect("end_user_action", self.on_end_user_action)
-        #self.connect("populate-popup", self.on_popup)
-        
+
+        # clipboard
         self.connect("copy-clipboard", lambda w: self.on_copy())
         self.connect("cut-clipboard", lambda w: self.on_cut())
         self.connect("paste-clipboard", lambda w: self.on_paste())
         
-        self.set_property("right-margin", 5)
-        self.set_property("left-margin", 5)
+        #[('GTK_TEXT_BUFFER_CONTENTS', 1, 0), ('UTF8_STRING', 0, 0), ('COMPOUND_TEXT', 0, 0), ('TEXT', 0, 0), ('STRING', 0, 0), ('text/plain;charset=utf-8', 0, 0), ('text/plain;charset=ANSI_X3.4-1968', 0, 0), ('text/plain', 0, 0)]
         
-        self.insert_mark = None
-        self.next_action = None
-        self.current_tags = []
-        self.first_menu = True
-        
-        # font tags
-        
-        
+        #self.connect("populate-popup", self.on_popup)
         
         # initialize HTML buffer
         self.html_buffer = HtmlBuffer()
-        
         self.html_buffer.add_tag(self.textbuffer.bold_tag, "b")
         self.html_buffer.add_tag(self.textbuffer.italic_tag, "i")
         self.html_buffer.add_tag(self.textbuffer.underline_tag, "u")
@@ -1028,22 +1274,13 @@ class RichTextView (gtk.TextView):
     """
             
            
-    
-    def serialize(self, register_buf, content_buf, start, end, data):
-        print "serialize", content_buf
-        self.a = u"SERIALIZED"
-        return self.a 
-    
-    
-    def deserialize(self, register_buf, content_buf, it, data, create_tags, udata):
-        print "deserialize"
-     
+
     
 
     
     
     #==================================================================
-    # Callbacks
+    # Copy and Paste
 
     def on_copy(self):
         clipboard = self.get_clipboard(selection="CLIPBOARD") #gtk.clipboard_get(gdk.SELECTION_CLIPBOARD)
@@ -1059,98 +1296,6 @@ class RichTextView (gtk.TextView):
         clipboard = self.get_clipboard(selection="CLIPBOARD") #gtk.clipboard_get(gdk.SELECTION_CLIPBOARD)
         self.textbuffer.paste_clipboard(clipboard, None, self.get_editable())
         self.stop_emission('paste-clipboard')
-
-    
-    
-    def on_mark_set(self, textbuffer, it, mark):
-        """Callback for mark movement"""
-        
-        if mark.get_name() == "insert":
-            self.current_tags = []
-            
-            # update UI for current fonts
-            self.on_update_font()
-            
-    
-    
-    def on_insert_text(self, textbuffer, it, text, length):
-        """Callback for text insert"""
-        
-        # start new action
-        self.next_action = InsertAction(self, it.get_offset(), text, length)
-        self.insert_mark = self.textbuffer.create_mark(None, it, True)
-
-    def on_delete_range(self, textbuffer, start, end):
-        """Callback for delete range"""
-    
-        # start next action
-        self.next_action = DeleteAction(self, start.get_offset(), 
-                                        end.get_offset(),
-                                        start.get_slice(end),
-                                        self.textbuffer.get_iter_at_mark(
-                                            self.textbuffer.get_insert()).
-                                                get_offset())
-        
-    
-    def on_insert_pixbuf(self, textbuffer, it, pixbuf):
-        """Callback for inserting a pixbuf"""
-        pass
-    
-    
-    def on_insert_child_anchor(self, textbuffer, it, anchor):
-        """Callback for inserting a child anchor"""
-        self.next_action = InsertChildAction(self, it.get_offset(), anchor)
-    
-    def on_apply_tag(self, textbuffer, tag, start, end):
-        """Callback for tag apply"""
-        
-        self.textbuffer.begin_user_action()
-        action = TagAction(self, tag, start.get_offset(), 
-                           end.get_offset(), True)
-        self.undo_stack.do(action.do, action.undo, False)
-        action = ModifyAction(self.textbuffer)
-        self.undo_stack.do(action.do, action.undo)
-        self.textbuffer.end_user_action()
-    
-    def on_remove_tag(self, textbuffer, tag, start, end):
-        """Callback for tag remove"""
-    
-        self.textbuffer.begin_user_action()
-        action = TagAction(self, tag, start.get_offset(), 
-                           end.get_offset(), False)
-        self.undo_stack.do(action.do, action.undo, False)
-        action = ModifyAction(self.textbuffer)
-        self.undo_stack.do(action.do, action.undo)
-        self.textbuffer.end_user_action()
-    
-    
-    def on_changed(self, textbuffer):
-        """Callback for buffer change"""
-    
-        # apply current style to inserted text
-        if isinstance(self.next_action, InsertAction):
-            if len(self.current_tags) > 0:
-                it = self.textbuffer.get_iter_at_mark(self.insert_mark)
-                it2 = it.copy()
-                it2.forward_chars(self.next_action.length)
-
-                for tag in self.current_tags:
-                    self.textbuffer.apply_tag(tag, it, it2)
-
-                self.textbuffer.delete_mark(self.insert_mark)
-                self.insert_mark = None
-        
-        
-        if self.next_action:
-            self.textbuffer.begin_user_action()        
-            self.undo_stack.do(self.next_action.do, self.next_action.undo, False)
-            self.next_action = None
-            action = ModifyAction(self.textbuffer)
-            self.undo_stack.do(action.do, action.undo)
-            
-            self.textbuffer.end_user_action()
-    
-
 
     
     #==================================================================
@@ -1169,7 +1314,7 @@ class RichTextView (gtk.TextView):
     
     
     def load(self, filename):
-        self.undo_stack.suppress()
+        self.textbuffer.undo_stack.suppress()
         
         start = self.textbuffer.get_start_iter()
         end = self.textbuffer.get_end_iter()
@@ -1180,8 +1325,8 @@ class RichTextView (gtk.TextView):
         path = os.path.dirname(filename)
         self.load_images(path)
         
-        self.undo_stack.resume()
-        self.undo_stack.reset()
+        self.textbuffer.undo_stack.resume()
+        self.textbuffer.undo_stack.reset()
         self.enable()
         
         self.textbuffer.unmodify()
@@ -1193,7 +1338,7 @@ class RichTextView (gtk.TextView):
     
     def disable(self):
         
-        self.undo_stack.suppress()
+        self.textbuffer.undo_stack.suppress()
         
         start = self.textbuffer.get_start_iter()
         end = self.textbuffer.get_end_iter()
@@ -1201,8 +1346,8 @@ class RichTextView (gtk.TextView):
         self.textbuffer.delete(start, end)
         self.set_sensitive(False)
         
-        self.undo_stack.resume()
-        self.undo_stack.reset()
+        self.textbuffer.undo_stack.resume()
+        self.textbuffer.undo_stack.reset()
         self.textbuffer.unmodify()
         
     
@@ -1241,7 +1386,18 @@ class RichTextView (gtk.TextView):
     
     def is_modified(self):
         return self.textbuffer.is_modified()
-                        
+    
+    
+    """
+    def serialize(self, register_buf, content_buf, start, end, data):
+        print "serialize", content_buf
+        self.a = u"SERIALIZED"
+        return self.a 
+    
+    
+    def deserialize(self, register_buf, content_buf, it, data, create_tags, udata):
+        print "deserialize"
+    """
     
     #===========================================================
     # Actions
@@ -1282,135 +1438,50 @@ class RichTextView (gtk.TextView):
         
     
     
-    #==============================================================
-    # Tag manipulation    
-
-    def toggle_tag(self, tag):
-        self.textbuffer.begin_user_action()
-        it = self.textbuffer.get_selection_bounds()
-        
-        if len(it) == 0:
-            if tag not in self.current_tags:
-                self.clear_current_font_tags(tag)
-                self.current_tags.append(tag)
-            else:
-                self.current_tags.remove(tag)
-        else:
-            if not it[0].has_tag(tag):
-                self.clear_font_tags(tag, it[0], it[1])
-                self.textbuffer.apply_tag(tag, it[0], it[1])
-            else:
-                self.textbuffer.remove_tag(tag, it[0], it[1])
-        
-        self.textbuffer.end_user_action()
-    
-
-    def apply_tag(self, tag):
-        self.textbuffer.begin_user_action()    
-        it = self.textbuffer.get_selection_bounds()
-        
-        if len(it) == 0:
-            if tag not in self.current_tags:
-                self.clear_current_font_tags(tag)
-                self.current_tags.append(tag)
-        else:
-            self.clear_font_tags(tag, it[0], it[1])
-            self.textbuffer.apply_tag(tag, it[0], it[1])
-        self.textbuffer.end_user_action()
-
-
-    def remove_tag(self, tag):
-        self.textbuffer.begin_user_action()
-        it = self.textbuffer.get_selection_bounds()
-        
-        if len(it) == 0:
-            if tag in self.current_tags:
-                self.current_tags.remove(tag)
-        else:
-            self.textbuffer.remove_tag(tag, it[0], it[1])
-        self.textbuffer.end_user_action()
-    
-    
-    def clear_font_tags(self, tag, start, end):
-        
-        # remove other justify tags
-        if tag in self.textbuffer.justify_tags:
-            for tag2 in self.textbuffer.justify_tags:
-                self.textbuffer.remove_tag(tag2, start, end)
-        
-        # remove other family tags        
-        elif tag in self.textbuffer.family_tags:
-            for tag2 in self.textbuffer.family_tags:
-                self.textbuffer.remove_tag(tag2, start, end)
-        
-        # remove other size tags                    
-        elif tag in self.textbuffer.size_tags:
-            for tag2 in self.textbuffer.size_tags:
-                self.textbuffer.remove_tag(tag2, start, end)
-
-    def clear_current_font_tags(self, tag):
-        
-        # remove other justify tags
-        if tag in self.textbuffer.justify_tags:
-            for tag2 in self.textbuffer.justify_tags:
-                if tag2 in self.current_tags:
-                    self.current_tags.remove(tag2)
-        
-        # remove other family tags        
-        elif tag in self.textbuffer.family_tags:
-            for tag2 in self.textbuffer.family_tags:
-                if tag2 in self.current_tags:
-                    self.current_tags.remove(tag2)
-        
-        # remove other size tags                    
-        elif tag in self.textbuffer.size_tags:
-            for tag2 in self.textbuffer.size_tags:
-                if tag2 in self.current_tags:
-                    self.current_tags.remove(tag2)
 
         
     #===========================================================
     # Callbacks for Font 
 
     def on_bold(self):
-        self.toggle_tag(self.textbuffer.bold_tag)
+        self.textbuffer.toggle_tag_selected(self.textbuffer.bold_tag)
         
     def on_italic(self):
-        self.toggle_tag(self.textbuffer.italic_tag)
+        self.textbuffer.toggle_tag_selected(self.textbuffer.italic_tag)
     
     def on_underline(self):
-        self.toggle_tag(self.textbuffer.underline_tag)       
+        self.textbuffer.toggle_tag_selected(self.textbuffer.underline_tag)       
     
     def on_font_set(self, widget):
         family, mods, size = self.textbuffer.parse_font(widget.get_font_name())
         
         # apply family tag
-        self.apply_tag(self.textbuffer.lookup_family_tag(family))
+        self.textbuffer.apply_tag_selected(self.textbuffer.lookup_family_tag(family))
         
         # apply size
-        self.apply_tag(self.textbuffer.lookup_size_tag(size))
+        self.textbuffer.apply_tag_selected(self.textbuffer.lookup_size_tag(size))
         
         # apply mods
         for mod in mods:
-            self.apply_tag(self.textbuffer.tag_table.lookup(mod))
+            self.textbuffer.apply_tag_selected(self.textbuffer.tag_table.lookup(mod))
         
         # disable mods not given
         for mod in ["Bold", "Italic", "Underline"]:
             if mod not in mods:
-                self.remove_tag(self.textbuffer.tag_table.lookup(mod))
+                self.textbuffer.remove_tag_selected(self.textbuffer.tag_table.lookup(mod))
     
     def on_font_size_set(self, size):
         print size
-        self.apply_tag(self.textbuffer.lookup_size_tag(size))
+        self.textbuffer.apply_tag_selected(self.textbuffer.lookup_size_tag(size))
     
     def on_left_justify(self):
-        self.apply_tag(self.textbuffer.left_tag)
+        self.textbuffer.apply_tag_selected(self.textbuffer.left_tag)
         
     def on_center_justify(self):
-        self.apply_tag(self.textbuffer.center_tag)
+        self.textbuffer.apply_tag_selected(self.textbuffer.center_tag)
     
     def on_right_justify(self):
-        self.apply_tag(self.textbuffer.right_tag)
+        self.textbuffer.apply_tag_selected(self.textbuffer.right_tag)
         
     
     #==================================================================
@@ -1423,53 +1494,8 @@ class RichTextView (gtk.TextView):
         if self.font_callback:
             self.font_callback(mods, justify, family, size)
     
-    
     def get_font(self):
-        it = self.textbuffer.get_iter_at_mark(self.textbuffer.get_insert())
-        
-        mods = {"bold":      self.textbuffer.bold_tag in self.current_tags or 
-                             it.has_tag(self.textbuffer.bold_tag),
-                "italic":    self.textbuffer.italic_tag in self.current_tags or 
-                             it.has_tag(self.textbuffer.italic_tag),
-                             
-                "underline": self.textbuffer.underline_tag in self.current_tags or 
-                             it.has_tag(self.textbuffer.underline_tag)}
-
-        justify = "left"
-        
-        if self.textbuffer.center_tag in self.current_tags or \
-           it.has_tag(self.textbuffer.center_tag):
-            justify = "center"
-
-        if self.textbuffer.right_tag in self.current_tags or \
-           it.has_tag(self.textbuffer.right_tag):
-            justify = "right"
-        
-        # font family and size
-        family = "Sans"
-        size = 12
-        
-        return mods, justify, family, size
-        
-        # TODO: speed this up
-        
-        for tag in self.current_tags:
-            if tag in self.textbuffer.family_tags:
-                family = tag.get_property("name")
-            
-            elif tag in self.textbuffer.size_tags:
-                size = int(tag.get_property("size-points"))
-        
-        for tag in it.get_tags():
-            if tag in self.textbuffer.family_tags:
-                family = tag.get_property("name")
-            
-            if tag in self.textbuffer.size_tags:
-                size = int(tag.get_property("size-points"))
-
-
-        return mods, justify, family, size
-        
+        return self.textbuffer.get_font()
     
     
     #=========================================
@@ -1477,19 +1503,11 @@ class RichTextView (gtk.TextView):
     
     def undo(self):
         """Undo the last action in the RichTextView"""
-        self.undo_stack.undo()
+        self.textbuffer.undo()
         
     def redo(self):
         """Redo the last action in the RichTextView"""    
-        self.undo_stack.redo()    
-    
-    def on_begin_user_action(self, textbuffer):
-        """Begin a composite undo/redo action"""
-        self.undo_stack.begin_action()
-
-    def on_end_user_action(self, textbuffer):
-        """End a composite undo/redo action"""
-        self.undo_stack.end_action()
+        self.textbuffer.redo()    
 
 
 
