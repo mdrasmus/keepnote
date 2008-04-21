@@ -140,10 +140,8 @@ def normalize_tags(items):
 # TODO: try to decouple textview, by delaying add_child_at_anchor
 # will allow faster load times
 
-def insert_buffer_contents(textview, pos, contents):
+def insert_buffer_contents(textbuffer, pos, contents):
     """Insert a content list into a textview"""
-    
-    textbuffer = textview.get_buffer()
     
     textbuffer.place_cursor(pos)
     tags = {}
@@ -167,8 +165,8 @@ def insert_buffer_contents(textview, pos, contents):
         elif kind == "anchor":
             it = textbuffer.get_iter_at_mark(textbuffer.get_insert())
             anchor = textbuffer.create_child_anchor(it)
-            child = param[1][0].get_owner().copy().get_child()
-            textview.add_child_at_anchor(child, anchor)
+            child = param[1][0].get_owner().copy()
+            textbuffer.add_child_at_anchor(child, anchor)
             
             if first_insert:
                 it = textbuffer.get_iter_at_mark(textbuffer.get_insert())
@@ -186,10 +184,8 @@ def insert_buffer_contents(textview, pos, contents):
             textbuffer.apply_tag(param, start, end)
 
 
-def buffer_contents_apply_tags(textview, contents):
-    """Apply tags into a textview"""
-    
-    textbuffer = textview.get_buffer()
+def buffer_contents_apply_tags(textbuffer, contents):
+    """Apply tags to a textbuffer"""
     
     tags = {}
     
@@ -458,11 +454,11 @@ class ModifyAction (Action):
             self.textbuffer.unmodify()
         
 
-# do I need to record current tags
+# XXX: do I need to record current tags to properly redo insert?
 class InsertAction (Action):
-    def __init__(self, richtext, pos, text, length):
+    def __init__(self, textbuffer, pos, text, length):
         Action.__init__(self)
-        self.textbuffer = richtext.textbuffer
+        self.textbuffer = textbuffer
         self.pos = pos
         self.text = text
         self.length = length
@@ -481,11 +477,10 @@ class InsertAction (Action):
 
 
 class DeleteAction (Action):
-    def __init__(self, richtext, start_offset, end_offset, text,
+    def __init__(self, textbuffer, start_offset, end_offset, text,
                  cursor_offset):
         Action.__init__(self)
-        self.richtext = richtext
-        self.textbuffer = richtext.textbuffer
+        self.textbuffer = textbuffer
         self.start_offset = start_offset
         self.end_offset = end_offset
         self.text = text
@@ -506,7 +501,7 @@ class DeleteAction (Action):
         start = self.textbuffer.get_iter_at_offset(self.start_offset)
         
         self.textbuffer.begin_user_action()
-        insert_buffer_contents(self.richtext, start, self.contents)
+        insert_buffer_contents(self.textbuffer, start, self.contents)
         cursor = self.textbuffer.get_iter_at_offset(self.cursor_offset)
         self.textbuffer.place_cursor(cursor)
         self.textbuffer.end_user_action()
@@ -521,10 +516,9 @@ class DeleteAction (Action):
 
 
 class InsertChildAction (Action):
-    def __init__(self, richtext, pos, anchor):
+    def __init__(self, textbuffer, pos, anchor):
         Action.__init__(self)
-        self.richtext = richtext
-        self.textbuffer = richtext.textbuffer
+        self.textbuffer = textbuffer
         self.pos = pos
         self.anchor = anchor
         self.child = None
@@ -534,7 +528,7 @@ class InsertChildAction (Action):
         it = self.textbuffer.get_iter_at_offset(self.pos)
         self.anchor = self.textbuffer.create_child_anchor(it)
         self.child = self.child.copy()
-        self.richtext.add_child_at_anchor(self.child.get_child(), self.anchor)
+        self.textbuffer.add_child_at_anchor(self.child, self.anchor)
         
 
     
@@ -549,10 +543,9 @@ class InsertChildAction (Action):
 
 
 class TagAction (Action):
-    def __init__(self, richtext, tag, start_offset, end_offset, applied):
+    def __init__(self, textbuffer, tag, start_offset, end_offset, applied):
         Action.__init__(self)
-        self.richtext = richtext
-        self.textbuffer = richtext.textbuffer
+        self.textbuffer = textbuffer
         self.tag = tag
         self.start_offset = start_offset
         self.end_offset = end_offset
@@ -578,7 +571,7 @@ class TagAction (Action):
             self.textbuffer.remove_tag(self.tag, start, end)
         else:
             self.textbuffer.apply_tag(self.tag, start, end)
-        buffer_contents_apply_tags(self.richtext, self.contents)
+        buffer_contents_apply_tags(self.textbuffer, self.contents)
         
     
     def record_range(self):
@@ -595,20 +588,25 @@ class TagAction (Action):
 
 
 class RichTextChild (object):
-    def __init__(self):
-        self.child = None
+    """Base class of all child objects in a RichTextView"""
     
-    def get_child(self):
-        return self.child
+    def __init__(self):
+        self._widget = None
+    
+    def get_widget(self):
+        return self._widget
     
     def refresh(self):
-        return self.child
+        return self._widget
     
     def copy(slef):
         return RichTextChild()
 
 
-class BaseChild (object):
+class BaseWidget (object):
+    """This class is used to supplement widgets with a pointer back to the 
+       owner RichTextChild object"""
+    
     def __init__(self):
         self.owner = None
         
@@ -619,19 +617,24 @@ class BaseChild (object):
         return self.owner    
     
 
-class BaseImage (gtk.Image, BaseChild):
+class BaseImage (gtk.Image, BaseWidget):
+    """Subclasses gtk.Image to make an Image Widget that can be used within
+       RichTextViewS"""
+
     def __init__(self, *args, **kargs):
         gtk.Image.__init__(self, *args, **kargs)
-        BaseChild.__init__(self)
+        BaseWidget.__init__(self)
 
 
 class RichTextImage (RichTextChild):
+    """An Image child widget in a RichTextView"""
+
     def __init__(self):
         RichTextChild.__init__(self)
         self.filename = None
-        self.child = BaseImage()
-        self.child.set_owner(self)
-        self.child.connect("destroy", self.on_image_destroy)
+        self._widget = BaseImage()
+        self._widget.set_owner(self)
+        self._widget.connect("destroy", self.on_image_destroy)
         self.pixbuf = None
     
     def set_filename(self, filename):
@@ -643,35 +646,35 @@ class RichTextImage (RichTextChild):
     def set_from_file(self, filename):
         if self.filename == None:
             self.filename = os.path.basename(filename)
-        self.child.set_from_file(filename)
-        self.pixbuf = self.child.get_pixbuf()
+        self._widget.set_from_file(filename)
+        self.pixbuf = self._widget.get_pixbuf()
     
     
     def set_from_pixbuf(self, pixbuf, filename=None):
         if filename != None:
             self.filename = filename
-        self.child.set_from_pixbuf(pixbuf)
+        self._widget.set_from_pixbuf(pixbuf)
         self.pixbuf = pixbuf
     
     def refresh(self):
-        if self.child == None:
-            self.child = BaseImage()
-            self.child.set_owner(self)
-            self.child.set_from_pixbuf(self.pixbuf)
-            self.child.show()
-            self.child.connect("destroy", self.on_image_destroy)
-        return self.child
+        if self._widget == None:
+            self._widget = BaseImage()
+            self._widget.set_owner(self)
+            self._widget.set_from_pixbuf(self.pixbuf)
+            self._widget.show()
+            self._widget.connect("destroy", self.on_image_destroy)
+        return self._widget
         
     def copy(self):
         img = RichTextImage()
         img.filename = self.filename
-        img.child.set_from_pixbuf(self.pixbuf)
+        img.get_widget().set_from_pixbuf(self.pixbuf)
         img.pixbuf = self.pixbuf
-        img.child.show()
+        img.get_widget().show()
         return img
     
     def on_image_destroy(self, widget):
-        self.child = None
+        self._widget = None
         
 
 #=============================================================================
@@ -691,6 +694,8 @@ class RichTextBuffer (gtk.TextBuffer):
         self.current_tags = []        
         
         # signals
+        self.connect("begin_user_action", self.on_begin_user_action)
+        self.connect("end_user_action", self.on_end_user_action)
         self.connect("mark-set", self.on_mark_set)
         self.connect("insert-text", self.on_insert_text)
         self.connect("delete-range", self.on_delete_range)
@@ -699,8 +704,7 @@ class RichTextBuffer (gtk.TextBuffer):
         self.connect("apply-tag", self.on_apply_tag)
         self.connect("remove-tag", self.on_remove_tag)        
         self.insertid = self.connect("changed", self.on_changed)
-        self.connect("begin_user_action", self.on_begin_user_action)
-        self.connect("end_user_action", self.on_end_user_action)        
+             
         
         
         # font tags        
@@ -711,6 +715,13 @@ class RichTextBuffer (gtk.TextBuffer):
         self.left_tag = self.create_tag("Left", justification=gtk.JUSTIFY_LEFT)
         self.center_tag = self.create_tag("Center", justification=gtk.JUSTIFY_CENTER)
         self.right_tag = self.create_tag("Right", justification=gtk.JUSTIFY_RIGHT)
+        
+        self.justify2name = {
+            gtk.JUSTIFY_LEFT: "left", 
+            gtk.JUSTIFY_RIGHT: "right", 
+            gtk.JUSTIFY_CENTER: "center", 
+            gtk.JUSTIFY_FILL: "fill" # TODO: implement fully
+        }
         
         self.justify_tags = set([self.left_tag, self.center_tag, self.right_tag])
         self.family_tags = set()
@@ -733,6 +744,9 @@ class RichTextBuffer (gtk.TextBuffer):
     
     def get_textview(self):
         return self.textview
+    
+    #======================================================
+    # copy and paste
 
     def copy_clipboard(self, clipboard):
         """Callback for copy event"""
@@ -805,7 +819,7 @@ class RichTextBuffer (gtk.TextBuffer):
         
         self.begin_user_action()
         it = self.get_iter_at_mark(self.get_insert())
-        insert_buffer_contents(self.textview, it, self.clipboard_contents)
+        insert_buffer_contents(self, it, self.clipboard_contents)
         self.end_user_action()
     
     
@@ -827,6 +841,48 @@ class RichTextBuffer (gtk.TextBuffer):
         self.clipboard_contents = None
     
     
+    #============================================================
+    # actions
+    
+    def add_child_at_anchor(self, child, anchor):
+        self.textview.add_child_at_anchor(child.get_widget(), anchor)
+    
+    
+    def insert_image(self, image, filename="image.png"):
+        """Inserts an image into the textbuffer"""
+                
+        self.begin_user_action()
+        
+        it = self.get_iter_at_mark(self.get_insert())
+        anchor = self.create_child_anchor(it)
+        self.add_child_at_anchor(image, anchor)
+        image.get_widget().show()
+        
+        self.end_user_action()
+        
+        if image.get_filename() == None:
+            filename, ext = os.path.splitext(filename)
+            filenames = self.get_image_filenames()
+            filename = takenote.get_unique_filename_list(filenames, filename, ext)
+            image.set_filename(filename)
+    
+    
+    def get_image_filenames(self):
+        filenames = []
+        
+        # TODO: could be faster (specialized search_forward)
+        for kind, it, param in iter_buffer_contents(self):
+            if kind == "anchor":
+                anchor, widgets = param
+                
+                for widget in widgets:
+                    child = widget.get_owner()
+                    
+                    if isinstance(child, RichTextImage):
+                        filenames.append(child.get_filename())
+        
+        return filenames    
+    
     #===========================================================
     # Callbacks
     
@@ -845,14 +901,14 @@ class RichTextBuffer (gtk.TextBuffer):
         """Callback for text insert"""
         
         # start new action
-        self.next_action = InsertAction(self.textview, it.get_offset(), text, length)
+        self.next_action = InsertAction(self, it.get_offset(), text, length)
         self.insert_mark = self.create_mark(None, it, True)
 
     def on_delete_range(self, textbuffer, start, end):
         """Callback for delete range"""
     
         # start next action
-        self.next_action = DeleteAction(self.textview, start.get_offset(), 
+        self.next_action = DeleteAction(self, start.get_offset(), 
                                         end.get_offset(),
                                         start.get_slice(end),
                                         self.get_iter_at_mark(
@@ -867,13 +923,13 @@ class RichTextBuffer (gtk.TextBuffer):
     
     def on_insert_child_anchor(self, textbuffer, it, anchor):
         """Callback for inserting a child anchor"""
-        self.next_action = InsertChildAction(self.textview, it.get_offset(), anchor)
+        self.next_action = InsertChildAction(self, it.get_offset(), anchor)
     
     def on_apply_tag(self, textbuffer, tag, start, end):
         """Callback for tag apply"""
         
         self.begin_user_action()
-        action = TagAction(self.textview, tag, start.get_offset(), 
+        action = TagAction(self, tag, start.get_offset(), 
                            end.get_offset(), True)
         self.undo_stack.do(action.do, action.undo, False)
         action = ModifyAction(self)
@@ -884,7 +940,7 @@ class RichTextBuffer (gtk.TextBuffer):
         """Callback for tag remove"""
     
         self.begin_user_action()
-        action = TagAction(self.textview, tag, start.get_offset(), 
+        action = TagAction(self, tag, start.get_offset(), 
                            end.get_offset(), False)
         self.undo_stack.do(action.do, action.undo, False)
         action = ModifyAction(self)
@@ -1035,39 +1091,56 @@ class RichTextBuffer (gtk.TextBuffer):
         size = int(tokens.pop())
         mods = []
         
-        while tokens[-1] in ["Bold", "Italic", "Underline"]:
+        # NOTE: underline is not part of the font string and is handled separately
+        while tokens[-1] in ["Bold", "Italic"]:
             mods.append(tokens.pop())
 
         return " ".join(tokens), mods, size
     
     def get_font(self):
-        it = self.get_iter_at_mark(self.get_insert())
+        # get iter for retrieving font
+        it2 = self.get_selection_bounds()
         
-        mods = {"bold":      self.bold_tag in self.current_tags or 
-                             it.has_tag(self.bold_tag),
-                "italic":    self.italic_tag in self.current_tags or 
-                             it.has_tag(self.italic_tag),
-                             
-                "underline": self.underline_tag in self.current_tags or 
-                             it.has_tag(self.underline_tag)}
-
-        justify = "left"
+        if len(it2) == 0:
+            it = self.get_iter_at_mark(self.get_insert())
+        else:
+            it = it2[0]
+            it.forward_char()
         
-        if self.center_tag in self.current_tags or \
-           it.has_tag(self.center_tag):
+        # create a set that is fast for quering the existance of tags
+        current_tags = set(self.current_tags)        
+        
+        # get the text attributes and font at the iter
+        attr = self.textview.get_default_attributes()
+        it.get_attributes(attr)        
+        font = attr.font
+        
+        # set family
+        family = font.get_family()
+        
+        # set modifications (current tags override)
+        mods = {"bold":
+                self.bold_tag in current_tags or
+                font.get_weight() == pango.WEIGHT_BOLD,
+                "italic": 
+                self.italic_tag in current_tags or
+                font.get_style() == pango.STYLE_ITALIC,
+                "underline":
+                self.underline_tag in current_tags or
+                attr.underline != pango.UNDERLINE_NONE}      
+        
+        # set justification
+        justify = self.justify2name[attr.justification]
+        
+        # current tags override
+        if self.center_tag in current_tags:
             justify = "center"
-
-        if self.right_tag in self.current_tags or \
-           it.has_tag(self.right_tag):
+            
+        elif self.right_tag in current_tags:
             justify = "right"
         
-        # font family and size
-        family = "Sans"
-        size = 12
-        
-        return mods, justify, family, size
-        
-        # TODO: speed this up
+        # get size in points (get_size() returns pango units)
+        size = font.get_size() // 1024
         
         for tag in self.current_tags:
             if tag in self.family_tags:
@@ -1076,14 +1149,6 @@ class RichTextBuffer (gtk.TextBuffer):
             elif tag in self.size_tags:
                 size = int(tag.get_property("size-points"))
         
-        for tag in it.get_tags():
-            if tag in self.family_tags:
-                family = tag.get_property("name")
-            
-            if tag in self.size_tags:
-                size = int(tag.get_property("size-points"))
-
-
         return mods, justify, family, size
 
 
@@ -1242,10 +1307,6 @@ class RichTextView (gtk.TextView):
         self.insert_image(img, "pdf.png")
 
         
-
-                
-        
-        
     """
     def on_popup(self, textview, menu):
         return
@@ -1283,17 +1344,20 @@ class RichTextView (gtk.TextView):
     # Copy and Paste
 
     def on_copy(self):
-        clipboard = self.get_clipboard(selection="CLIPBOARD") #gtk.clipboard_get(gdk.SELECTION_CLIPBOARD)
+        """Callback for copy action"""
+        clipboard = self.get_clipboard(selection="CLIPBOARD")
         self.textbuffer.copy_clipboard(clipboard)
         self.stop_emission('copy-clipboard')
     
     def on_cut(self):
-        clipboard = self.get_clipboard(selection="CLIPBOARD") #gtk.clipboard_get(gdk.SELECTION_CLIPBOARD)
+        """Callback for cut action"""    
+        clipboard = self.get_clipboard(selection="CLIPBOARD")
         self.textbuffer.cut_clipboard(clipboard, self.get_editable())
         self.stop_emission('cut-clipboard')
     
     def on_paste(self):
-        clipboard = self.get_clipboard(selection="CLIPBOARD") #gtk.clipboard_get(gdk.SELECTION_CLIPBOARD)
+        """Callback for paste action"""    
+        clipboard = self.get_clipboard(selection="CLIPBOARD")
         self.textbuffer.paste_clipboard(clipboard, None, self.get_editable())
         self.stop_emission('paste-clipboard')
 
@@ -1363,7 +1427,7 @@ class RichTextView (gtk.TextView):
                     if isinstance(child, RichTextImage):
                         filename = os.path.join(path, child.get_filename())
                         child.set_from_file(filename)
-                        child.get_child().show()
+                        child.get_widget().show()
 
     def save_images(self, path):
         for kind, it, param in iter_buffer_contents(self.textbuffer):
@@ -1405,43 +1469,11 @@ class RichTextView (gtk.TextView):
     def insert_image(self, image, filename="image.png"):
         """Inserts an image into the textbuffer"""
                 
-        self.textbuffer.begin_user_action()
-        
-        it = self.textbuffer.get_iter_at_mark(self.textbuffer.get_insert())
-        anchor = self.textbuffer.create_child_anchor(it)
-        self.add_child_at_anchor(image.get_child(), anchor)
-        image.get_child().show()
-        
-        self.textbuffer.end_user_action()
-        
-        if image.get_filename() == None:
-            filename, ext = os.path.splitext(filename)
-            filenames = self.get_image_filenames()
-            filename = takenote.get_unique_filename_list(filenames, filename, ext)
-            image.set_filename(filename)
-    
-    
-    def get_image_filenames(self):
-        filenames = []
-    
-        for kind, it, param in iter_buffer_contents(self.textbuffer):
-            if kind == "anchor":
-                anchor, widgets = param
-                
-                for widget in widgets:
-                    child = widget.get_owner()
-                    
-                    if isinstance(child, RichTextImage):
-                        filenames.append(child.get_filename())
-        
-        return filenames
-        
-    
-    
+        self.textbuffer.insert_image(image, filename)    
 
         
     #===========================================================
-    # Callbacks for Font 
+    # Callbacks from UI to change font 
 
     def on_bold(self):
         self.textbuffer.toggle_tag_selected(self.textbuffer.bold_tag)
@@ -1471,7 +1503,6 @@ class RichTextView (gtk.TextView):
                 self.textbuffer.remove_tag_selected(self.textbuffer.tag_table.lookup(mod))
     
     def on_font_size_set(self, size):
-        print size
         self.textbuffer.apply_tag_selected(self.textbuffer.lookup_size_tag(size))
     
     def on_left_justify(self):
@@ -1485,11 +1516,10 @@ class RichTextView (gtk.TextView):
         
     
     #==================================================================
-    # UI Updating for fonts
+    # UI Updating from fonts
     
     def on_update_font(self):
         mods, justify, family, size = self.get_font()
-        # TODO: add size and family
         
         if self.font_callback:
             self.font_callback(mods, justify, family, size)

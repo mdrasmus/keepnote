@@ -500,6 +500,20 @@ class TakeNoteWindow (gtk.Window):
         self.editor.textview.on_font_set(self.font_sel)
         self.editor.textview.grab_focus()
     
+    def on_font_size_inc(self):
+        mods, justify, family, size = self.editor.textview.get_font()
+        size += 2        
+        self.editor.textview.on_font_size_set(size)
+        self.on_font_change(mods, justify, family, size)
+    
+    
+    def on_font_size_dec(self):
+        mods, justify, family, size = self.editor.textview.get_font()
+        if size > 4:
+            size -= 2
+        self.editor.textview.on_font_size_set(size)
+        self.on_font_change(mods, justify, family, size)
+
         
     #==================================================
     # callbacks
@@ -701,6 +715,8 @@ class TakeNoteWindow (gtk.Window):
         print "sel.data = " + str(data)[:1000]+"\n"
         buf.insert_at_cursor("sel.data = " + str(data)[:1000]+"\n")
     
+
+    
     #================================================
     # Menubar
     
@@ -810,7 +826,20 @@ class TakeNoteWindow (gtk.Window):
                 "<control>U", lambda w,e: self.on_underline(), 0, 
                 "<ImageItem>", 
                 get_image(get_resource("images", "underline.png")).get_pixbuf()),
+
             ("/Format/sep2", 
+                None, None, 0, "<Separator>" ),
+            ("/Format/Increase Font _Size", 
+                "<control>plus", lambda w, e: self.on_font_size_inc(), 0, 
+                "<ImageItem>", 
+                get_image(get_resource("images", "font-inc.png")).get_pixbuf()),
+            ("/Format/_Decrease Font Size", 
+                "<control>minus", lambda w, e: self.on_font_size_dec(), 0, 
+                "<ImageItem>", 
+                get_image(get_resource("images", "font-dec.png")).get_pixbuf()),
+            
+
+            ("/Format/sep3", 
                 None, None, 0, "<Separator>" ),
             ("/Format/Choose _Font", 
                 "<control><shift>F", lambda w, e: self.on_choose_font(), 0, 
@@ -986,7 +1015,7 @@ class TakeNoteWindow (gtk.Window):
         button = gtk.ToolButton()
         button.set_icon_widget(icon)
         tips.set_tip(button, "Increase Font Size")
-        #self.underline_button.connect("clicked", lambda w: self.editor.textview.on_underline())
+        button.connect("clicked", lambda w: self.on_font_size_inc())
         toolbar.insert(button, -1)        
 
         # font size decrease
@@ -995,7 +1024,7 @@ class TakeNoteWindow (gtk.Window):
         button = gtk.ToolButton()
         button.set_icon_widget(icon)
         tips.set_tip(button, "Decrease Font Size")
-        #self.underline_button.connect("clicked", lambda w: self.editor.textview.on_underline())
+        button.connect("clicked", lambda w: self.on_font_size_dec())
         toolbar.insert(button, -1)        
         
         """
