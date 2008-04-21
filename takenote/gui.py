@@ -81,17 +81,31 @@ class TakeNoteEditor (object):
             self.textview.disable()
         else:
             self.textview.enable()
-            self.textview.load(page.get_data_file())
+            
+            try:
+                self.textview.load(page.get_data_file())
+            except RichTextError, e:
+                print e
+                self.textview.disable()
+                self.page = None
+                raise
+                
     
     def save(self):
         if self.page is not None and \
            self.page.is_valid() and \
            self.textview.is_modified():
-            self.textview.save(self.page.get_data_file())
-            self.page.set_modified_time()
-            self.page.save()
-            if self.on_page_modified:
-                self.on_page_modified(self.page)
+           
+            try:
+                self.textview.save(self.page.get_data_file())
+            except RichTextError, e:
+                print e
+                raise
+            else:
+                self.page.set_modified_time()
+                self.page.save()
+                if self.on_page_modified:
+                    self.on_page_modified(self.page)
     
     def save_needed(self):
         return self.textview.is_modified()
@@ -328,7 +342,11 @@ class TakeNoteWindow (gtk.Window):
     def close_notebook(self, save=True):
         if self.notebook is not None:
             if save:
-                self.editor.save()
+                try:
+                    self.editor.save()
+                except RichTextError, e:
+                    print e
+                    self.error("Could not save opened page")
                 self.set_preferences()
                 self.notebook.save()
             
@@ -380,7 +398,11 @@ class TakeNoteWindow (gtk.Window):
                      self.editor.save_needed()
             
             self.notebook.save()
-            self.editor.save()
+            
+            try:
+                self.editor.save()
+            except RichTextError, e:
+                self.error("Could not save opened page")
             
             if needed:
                 self.set_status("Notebook saved")
@@ -403,7 +425,10 @@ class TakeNoteWindow (gtk.Window):
     
     def on_select_page(self, page):
         self.current_page = page
-        self.editor.view_page(page)
+        try:
+            self.editor.view_page(page)
+        except RichTextError:
+            self.error("Could not load page '%s'" % page.get_title())
         
     def on_page_modified(self, page):
         self.selector.update_node(page)

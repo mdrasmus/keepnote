@@ -201,8 +201,13 @@ def buffer_contents_apply_tags(textbuffer, contents):
             textbuffer.apply_tag(param, start, end)
 
 
+
 #=============================================================================
 # HTML parser for RichText
+
+class HtmlError (Exception):
+    pass
+
 
 class HtmlBuffer (HTMLParser):
     """Read and write HTML for a gtk.TextBuffer"""
@@ -264,7 +269,8 @@ class HtmlBuffer (HTMLParser):
         if tag in ("html", "body"):
             return
         
-        assert self.tag_stack[-1][0] == tag
+        if self.tag_stack[-1][0] != tag:
+            raise HtmlError("closing tag does not match opening tag")
         htmltag, attrs, mark = self.tag_stack.pop()
         
         
@@ -293,9 +299,9 @@ class HtmlBuffer (HTMLParser):
                         tag = self.buffer.lookup_family_tag(family)
                     
                     else:
-                        raise Exception("unknown style '%s'" % value)
+                        raise HtmlError("unknown style '%s'" % value)
                 else:
-                    raise Exception("unknown attr key '%s'" % key)
+                    raise HtmlError("unknown attr key '%s'" % key)
         
         elif htmltag == "div":
             # apply style
@@ -311,11 +317,11 @@ class HtmlBuffer (HTMLParser):
                         elif align == "right":
                             tag = self.buffer.right_tag
                         else:
-                            raise Exception("unknown justification '%s'" % align)
+                            raise HtmlError("unknown justification '%s'" % align)
                     else:
-                        raise Exception("unknown style '%s'" % value)
+                        raise HtmlError("unknown style '%s'" % value)
                 else:
-                    raise Exception("unknown attr key '%s'" % key)
+                    raise HtmlError("unknown attr key '%s'" % key)
         
         elif htmltag == "img":
             
@@ -326,11 +332,11 @@ class HtmlBuffer (HTMLParser):
                     self.buffer.insert_image(img)
                     pass
                 else:
-                    Exception("unknown attr key '%s'" % key)
+                    HtmlError("unknown attr key '%s'" % key)
             return
         
         else:
-            raise Exception("WARNING: unhandled tag '%s'" % htmltag)
+            raise HtmlError("WARNING: unhandled tag '%s'" % htmltag)
             
         start = self.buffer.get_iter_at_mark(mark)
         self.buffer.apply_tag(tag, start, self.buffer.get_end_iter())
@@ -384,6 +390,7 @@ class HtmlBuffer (HTMLParser):
                         self.out.write("<img src=\"%s\"/>" % child.get_filename())
                     else:
                         # warning
+                        #TODO:
                         print "unknown child element", widget
             
             elif kind == "pixbuf":
@@ -411,7 +418,7 @@ class HtmlBuffer (HTMLParser):
                     text = "right"
                 self.out.write("<div style='text-align: %s'>" % text)
             else:
-                raise Exception("unknown tag")
+                raise HtmlError("unknown tag")
                 
         
     def write_tag_end(self, tag):
@@ -677,6 +684,10 @@ class RichTextImage (RichTextChild):
 
 #=============================================================================
 # RichText classes
+
+class RichTextError (Exception):
+    pass
+
 
 class RichTextBuffer (gtk.TextBuffer):
     def __init__(self, textview=None):
@@ -1433,10 +1444,13 @@ class RichTextView (gtk.TextView):
         path = os.path.dirname(filename)
         #self.save_images(path)
         
-        out = open(filename, "w")
-        self.html_buffer.set_output(out)
-        self.html_buffer.write(self)
-        out.close()
+        try:
+            out = open(filename, "w")
+            self.html_buffer.set_output(out)
+            self.html_buffer.write(self)
+            out.close()
+        except IOError, e:
+            raise RichTextError("Could not save '%s'" % filename)
         
         self.textbuffer.unmodify()
     
@@ -1453,13 +1467,26 @@ class RichTextView (gtk.TextView):
         end = textbuffer.get_end_iter()
         textbuffer.remove_all_tags(start, end)
         textbuffer.delete(start, end)
-        self.html_buffer.read(textbuffer, open(filename, "r"))
-
-        self.set_buffer(textbuffer)        
-        textbuffer.add_deferred_anchors()
         
-        path = os.path.dirname(filename)
-        self.load_images(path)
+        try:
+            self.html_buffer.read(textbuffer, open(filename, "r"))
+        except HtmlError, e:
+            print e
+            
+            # TODO: turn into function
+            textbuffer.anchors.clear()
+            textbuffer.deferred_anchors.clear()
+            self.set_buffer(textbuffer)
+            
+            ret = False
+        else:    
+            self.set_buffer(textbuffer)        
+            textbuffer.add_deferred_anchors()
+        
+            path = os.path.dirname(filename)
+            self.load_images(path)
+            
+            ret = True
         
         textbuffer.unblock_signals()
         self.textbuffer.undo_stack.resume()
@@ -1467,7 +1494,10 @@ class RichTextView (gtk.TextView):
         self.enable()
         
         self.textbuffer.unmodify()
-                
+        
+        if not ret:
+            raise RichTextError("error loading '%s'" % filename)
+        
     
     
     def enable(self):
