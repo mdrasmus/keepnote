@@ -649,23 +649,36 @@ class RichTextImage (RichTextChild):
         return self.filename
     
     def set_from_file(self, filename):
-        if self.filename == None:
+        if self.filename is None:
             self.filename = os.path.basename(filename)
-        self._widget.set_from_file(filename)
-        self.pixbuf = self._widget.get_pixbuf()
+        
+        try:
+            self.pixbuf = gdk.pixbuf_new_from_file(filename)            
+            
+        except gobject.GError, e:            
+            self._widget.set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
+            self.pixbuf = None
+            #raise RichTextError("Cannot load image '%s'" % filename, e)
+        else:
+            self._widget.set_from_pixbuf(self.pixbuf)
+        
+        #self.pixbuf = self._widget.get_pixbuf()
     
     
     def set_from_pixbuf(self, pixbuf, filename=None):
-        if filename != None:
+        if filename is not None:
             self.filename = filename
         self._widget.set_from_pixbuf(pixbuf)
         self.pixbuf = pixbuf
     
     def refresh(self):
-        if self._widget == None:
+        if self._widget is None:
             self._widget = BaseImage()
             self._widget.set_owner(self)
-            self._widget.set_from_pixbuf(self.pixbuf)
+            if self.pixbuf:
+                self._widget.set_from_pixbuf(self.pixbuf)
+            else:
+                self._widget.set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
             self._widget.show()
             self._widget.connect("destroy", self.on_image_destroy)
         return self._widget
@@ -673,7 +686,10 @@ class RichTextImage (RichTextChild):
     def copy(self):
         img = RichTextImage()
         img.filename = self.filename
-        img.get_widget().set_from_pixbuf(self.pixbuf)
+        if self.pixbuf:
+            img.get_widget().set_from_pixbuf(self.pixbuf)
+        else:
+            img.get_widget().set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
         img.pixbuf = self.pixbuf
         img.get_widget().show()
         return img
@@ -1446,7 +1462,7 @@ class RichTextView (gtk.TextView):
     
     def save(self, filename):
         path = os.path.dirname(filename)
-        #self.save_images(path)
+        self.save_images(path)
         
         try:
             out = open(filename, "w")

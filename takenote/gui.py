@@ -73,17 +73,19 @@ class TakeNoteEditor (object):
         
         self.page = None
         
-    def view_page(self, page):
+    def view_pages(self, pages):
+        # TODO: generalize to multiple pages
         self.save()
-        self.page = page
-        
-        if page is None:
+            
+        if len(pages) == 0:
+            self.page = None
             self.textview.disable()
         else:
+            self.page = pages[0]
             self.textview.enable()
             
             try:
-                self.textview.load(page.get_data_file())
+                self.textview.load(self.page.get_data_file())
             except RichTextError, e:
                 self.textview.disable()
                 self.page = None
@@ -98,7 +100,6 @@ class TakeNoteEditor (object):
             try:
                 self.textview.save(self.page.get_data_file())
             except RichTextError, e:
-                print e
                 raise
             else:
                 self.page.set_modified_time()
@@ -126,20 +127,20 @@ class TakeNoteWindow (gtk.Window):
         # treeview
         self.treeview = TakeNoteTreeView()
         self.treeview.on_select_node = self.on_select_treenode
-
+        self.treeview.on_node_changed = self.on_treeview_node_changed
         
         # selector
         self.selector = TakeNoteSelector()
         self.selector.on_select_node = self.on_select_page
+        self.selector.on_node_changed = self.on_selector_node_changed
         self.selector.on_status = self.set_status
-        self.selector.notebook_tree = self.treeview
         
         
         # editor
         self.editor = TakeNoteEditor()
         self.editor.textview.font_callback = self.on_font_change
         self.editor.on_page_modified = self.on_page_modified
-        self.editor.view_page(None)
+        self.editor.view_pages([])
         
         #====================================
         # Layout
@@ -427,23 +428,40 @@ class TakeNoteWindow (gtk.Window):
         self.selector.view_nodes(nodes)
         
         # view page
-        for node in nodes:
-            if isinstance(node, NoteBookPage):
-                try:
-                    self.editor.view_page(node)
-                except RichTextError, e:
-                    self.error("Could not load page '%s'" % page.get_title(), e)
-                break
+        pages = [node for node in nodes 
+                 if isinstance(node, NoteBookPage)]
+        
+        if len(pages) > 0:
+            self.current_page = pages[0]
+        else:
+            self.current_page = None
+        
+        try:
+            self.editor.view_pages(pages)
+        except RichTextError, e:
+            self.error("Could not load pages", e)
+
     
     def on_select_page(self, page):
         self.current_page = page
         try:
-            self.editor.view_page(page)
+            if page is None:
+                self.editor.view_pages([])
+            else:
+                self.editor.view_pages([page])
         except RichTextError, e:
             self.error("Could not load page '%s'" % page.get_title(), e)
         
     def on_page_modified(self, page):
+        self.treeview.update_node(page)
         self.selector.update_node(page)
+
+    
+    def on_treeview_node_changed(self, node, recurse):
+        self.selector.update_node(node)
+
+    def on_selector_node_changed(self, node, recurse):
+        self.treeview.update_node(node)
         
     
     #=============================================================

@@ -76,11 +76,35 @@ class TakeNoteTreeModel (gtk.TreeModel):
         self.data_col = data_col
         self.data2path = {}
         
-        self.connect("row-inserted", self.on_row_inserted)
-        self.connect("row-deleted", self.on_row_deleted)
-        self.connect("rows-reordered", self.on_rows_reordered)
-        self.connect("row-changed", self.on_row_changed)
+        self.__signals = []
+        
+        self.__signals.append(self.connect("row-inserted", self.on_row_inserted))
+        self.__signals.append(self.connect("row-deleted", self.on_row_deleted))
+        self.__signals.append(self.connect("rows-reordered", self.on_rows_reordered))
+        self.__signals.append(self.connect("row-changed", self.on_row_changed))
 
+    def block_row_signals(self):
+        for signal in self.__signals:
+            self.handler_block(signal)
+        
+    def unblock_row_signals(self):
+        for signal in self.__signals:
+            self.handler_unblock(signal)
+        
+    def refresh_path_data(self, it):
+        
+        if it is None:
+            parent_path = ()
+        else:
+            parent_path = self.get_path(it)
+        
+        nrows = self.iter_n_children(it)
+        child = self.iter_children(it)
+        for i in xrange(nrows):
+            path2 = parent_path + (i,)
+            self.data2path[self[path2][self.data_col]] = path2
+            self.refresh_path_data(child)
+            child = self.iter_next(child)
 
     def on_row_inserted(self, model, path, it):
         parent_path = path[:-1]
@@ -92,6 +116,7 @@ class TakeNoteTreeModel (gtk.TreeModel):
         
         
     def on_row_deleted(self, model, path):
+        # TODO: do I need path2data so I can delete mapping for deleted rows
         parent_path = path[:-1]
         
         if len(parent_path) > 0:
@@ -127,6 +152,7 @@ class TakeNoteTreeModel (gtk.TreeModel):
     
     def get_path_from_data(self, data):
         return self.data2path.get(data, None)
+    
 
 
 
@@ -135,10 +161,17 @@ class TakeNoteTreeStore (TakeNoteTreeModel, gtk.TreeStore):
     def __init__(self, data_col, *types):
         gtk.TreeStore.__init__(self, *types)
         TakeNoteTreeModel.__init__(self, data_col)
-
+    
+    def clear(self):
+        self.data2path.clear()
+        gtk.TreeStore.clear(self)
 
 class TakeNoteListStore (TakeNoteTreeModel, gtk.ListStore):
     def __init__(self, data_col, *types):
         gtk.ListStore.__init__(self, *types)
         TakeNoteTreeModel.__init__(self, data_col)
+    
+    def clear(self):
+        self.data2path.clear()
+        gtk.ListStore.clear(self)
 

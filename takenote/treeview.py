@@ -27,6 +27,7 @@ class TakeNoteTreeView (gtk.TreeView):
         gtk.TreeView.__init__(self)
     
         self.on_select_node = None
+        self.on_node_changed = None
         self.editing = False
         
         # create a TreeStore with one string column to use as the model
@@ -129,7 +130,8 @@ class TakeNoteTreeView (gtk.TreeView):
         new_path = compute_new_path(self.model, target, drop_position)
         
         # process node drops
-        if "drop_node" in drag_context.targets:
+        if "drop_node" in drag_context.targets or \
+           "drop_selector" in drag_context.targets:
         
             # get source
             source_widget = drag_context.get_source_widget()
@@ -142,6 +144,7 @@ class TakeNoteTreeView (gtk.TreeView):
             else:
                 treeview.enable_model_drag_dest([DROP_NO], gtk.gdk.ACTION_MOVE)
         
+        '''        
         elif "drop_selector" in drag_context.targets:
             # NOTE: this is until pages are in treeview
             
@@ -157,6 +160,7 @@ class TakeNoteTreeView (gtk.TreeView):
                 treeview.enable_model_drag_dest([DROP_TREE_MOVE, DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)
             else:
                 treeview.enable_model_drag_dest([DROP_NO], gtk.gdk.ACTION_MOVE)
+        '''
 
         
     
@@ -221,19 +225,19 @@ class TakeNoteTreeView (gtk.TreeView):
                     treeview.expand_row(target_path, False)
                 
                 drag_context.finish(True, True, eventtime)
-            else:
-                assert source_node.is_page()
                 
-                # NOTE: this is here until pages are in treeview
-                if drop_position in (gtk.TREE_VIEW_DROP_BEFORE,
-                                     gtk.TREE_VIEW_DROP_AFTER):
-                    drag_context.finish(False, False, eventtime)
-                else:
-                    # process node move that is not in treeview
-                    new_parent_path = new_path[:-1]
-                    new_parent = self.model.get_data(new_parent_path)
-                    source_node.move(new_parent, new_path[-1])
-                    drag_context.finish(True, True, eventtime)
+                # if source_widget is not ourself, we need to do our own remove
+                # otherwise, drag-delete signal would be called on us to perform
+                # the delete
+                if source_widget != self:
+                    self.model.remove(source)
+                
+            else:                
+                # process node move that is not in treeview
+                new_parent_path = new_path[:-1]
+                new_parent = self.model.get_data(new_parent_path)
+                source_node.move(new_parent, new_path[-1])
+                drag_context.finish(True, True, eventtime)
         else:
             drag_context.finish(False, False, eventtime)
             
@@ -299,14 +303,17 @@ class TakeNoteTreeView (gtk.TreeView):
     def on_edit_title(self, cellrenderertext, path, new_text):
         self.editing = False
     
-        try:
-            node = self.model.get_data(path)
-            node.rename(new_text)
-            
+        node = self.model.get_data(path)
+        
+        # can raise NoteBookError
+        if new_text != node.get_title():
+            node.rename(new_text)            
             self.model[path][2] = new_text
-        except Exception, e:
-            print e
-            print "takenote: could not rename '%s'" % node.get_title()
+            
+            # notify listener
+            if self.on_node_changed:
+                self.on_node_changed(node, False)
+        
     
     
     def on_select_changed(self, treeselect): 
@@ -423,7 +430,13 @@ class TakeNoteTreeView (gtk.TreeView):
     
     def update_node(self, node):
         path = self.model.get_path_from_data(node)
+        if path is None:
+            return
+        
         expanded = self.row_expanded(path)
+        it = self.model.get_iter(path)
+        
+        self.model.set(it, 2, node.get_title())
         
         for child in self.model[path].iterchildren():
             self.model.remove(child.iter)
