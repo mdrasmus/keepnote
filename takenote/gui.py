@@ -26,7 +26,7 @@ from gtk import gdk
 
 # takenote imports
 import takenote
-from takenote import get_resource
+from takenote import get_resource, NoteBookError, NoteBookDir, NoteBookPage
 from takenote.undo import UndoStack
 from takenote.richtext import RichTextView, RichTextImage, RichTextError
 from takenote.treeview import TakeNoteTreeView
@@ -85,7 +85,6 @@ class TakeNoteEditor (object):
             try:
                 self.textview.load(page.get_data_file())
             except RichTextError, e:
-                print e
                 self.textview.disable()
                 self.page = None
                 raise
@@ -223,7 +222,7 @@ class TakeNoteWindow (gtk.Window):
             raise Exception("unknown bar '%s'" % bar)
 
 
-    def error(self, text):
+    def error(self, text, error):
         """Display an error message"""
         #self.set_status(text)
         
@@ -234,6 +233,8 @@ class TakeNoteWindow (gtk.Window):
             message_format=text)
         dialog.connect("response", lambda d,r: dialog.destroy())
         dialog.show()
+        
+        print error
         
     
     def get_preferences(self):
@@ -322,10 +323,9 @@ class TakeNoteWindow (gtk.Window):
             self.notebook = takenote.NoteBook(filename)
             self.notebook.create()
             self.set_status("Created '%s'" % self.notebook.get_title())
-        except Exception, e:
+        except NoteBookError, e:
             self.notebook = None
-            self.set_status("Error: Could not create new notebook")
-            print e
+            self.error("Could not create new notebook", e)
         
         self.open_notebook(filename, new=True)
         
@@ -353,8 +353,7 @@ class TakeNoteWindow (gtk.Window):
                 try:
                     self.editor.save()
                 except RichTextError, e:
-                    print e
-                    self.error("Could not save opened page")
+                    self.error("Could not save opened page", e)
                 self.set_preferences()
                 self.notebook.save()
             
@@ -410,7 +409,7 @@ class TakeNoteWindow (gtk.Window):
             try:
                 self.editor.save()
             except RichTextError, e:
-                self.error("Could not save opened page")
+                self.error("Could not save opened page", e)
             
             if needed:
                 self.set_status("Notebook saved")
@@ -423,20 +422,25 @@ class TakeNoteWindow (gtk.Window):
         return False
     
     
-    def on_select_treenode(self, node):
-        if node is not None:
-            self.sel_nodes = [node]
-            self.selector.view_nodes([node])
-        else:
-            self.sel_nodes = []
-            self.selector.view_nodes([])
+    def on_select_treenode(self, nodes):
+        self.sel_nodes = nodes
+        self.selector.view_nodes(nodes)
+        
+        # view page
+        for node in nodes:
+            if isinstance(node, NoteBookPage):
+                try:
+                    self.editor.view_page(node)
+                except RichTextError, e:
+                    self.error("Could not load page '%s'" % page.get_title(), e)
+                break
     
     def on_select_page(self, page):
         self.current_page = page
         try:
             self.editor.view_page(page)
-        except RichTextError:
-            self.error("Could not load page '%s'" % page.get_title())
+        except RichTextError, e:
+            self.error("Could not load page '%s'" % page.get_title(), e)
         
     def on_page_modified(self, page):
         self.selector.update_node(page)
@@ -564,10 +568,14 @@ class TakeNoteWindow (gtk.Window):
             try:
                 self.insert_image(imgfile, "screenshot.png")
             except Exception, e:
-                print e
-                self.error("error reading screenshot '%s'" % imgfile)
+                # TODO: make exception more specific
+                self.error("Error importing screenshot '%s'" % imgfile, e)
             
-            os.remove(imgfile)
+            try:
+                os.remove(imgfile)
+            except OSError, e:
+                self.error("Was unable to remove temp file for screenshot", e)
+                
         
     def on_insert_image(self):
         if self.current_page is None:
@@ -578,8 +586,8 @@ class TakeNoteWindow (gtk.Window):
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "Insert", gtk.RESPONSE_OK))
         dialog.connect("response", self.on_insert_image_response)
-        
         dialog.show()
+        
     
     def on_insert_image_response(self, dialog, response):
         if response == gtk.RESPONSE_OK:
@@ -595,6 +603,7 @@ class TakeNoteWindow (gtk.Window):
             try:
                 self.insert_image(filename, imgname)
             except Exception, e:
+                # TODO: make exception more specific
                 self.error("Could not insert image '%s'" % filename)
             
         elif response == gtk.RESPONSE_CANCEL:

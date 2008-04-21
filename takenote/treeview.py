@@ -18,7 +18,7 @@ from takenote.treemodel import \
     copy_row, \
     TakeNoteTreeStore
 
-from takenote import get_resource
+from takenote import get_resource, NoteBookDir, NoteBookPage, NoteBookError
 
 
 class TakeNoteTreeView (gtk.TreeView):
@@ -31,29 +31,39 @@ class TakeNoteTreeView (gtk.TreeView):
         
         # create a TreeStore with one string column to use as the model
         self.model = TakeNoteTreeStore(3, gdk.Pixbuf, gdk.Pixbuf, str, object)
-                        
+        self.temp_child = None
+        
         # init treeview
         self.set_model(self.model)
         
         self.connect("key-release-event", self.on_key_released)
+        
+        # row expand/collapse
         self.expanded_id = self.connect("row-expanded", self.on_row_expanded)
         self.collapsed_id = self.connect("row-collapsed", self.on_row_collapsed)
-                 
+        self.connect("test-expand-row", self.on_test_expand_row)
+        
+        # drag and drop         
         self.connect("drag-begin", self.on_drag_begin)
         self.connect("drag-motion", self.on_drag_motion)
         self.connect("drag-data-received", self.on_drag_data_received)
-        #self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
-        self.get_selection().connect("changed", self.on_select_changed)
-        self.set_headers_visible(False)
-        #self.set_property("enable-tree-lines", True)
-        # make treeview searchable
-        self.set_search_column(1) 
-        self.set_reorderable(True)        
+        
+        self.set_reorderable(True)
         self.enable_model_drag_source(
             gtk.gdk.BUTTON1_MASK, [DROP_TREE_MOVE], gtk.gdk.ACTION_MOVE)
         self.enable_model_drag_dest(
             [DROP_TREE_MOVE, DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)
+        
+        # selection config
+        #self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
+        self.get_selection().connect("changed", self.on_select_changed)
+        
+        self.set_headers_visible(False)
+        #self.set_property("enable-tree-lines", True)
+        # make treeview searchable
+        self.set_search_column(1)
         #self.set_fixed_height_mode(True)       
+        
 
         # create the treeview column
         self.column = gtk.TreeViewColumn()
@@ -79,6 +89,7 @@ class TakeNoteTreeView (gtk.TreeView):
 
         self.icon_folder_closed = gdk.pixbuf_new_from_file(get_resource("images", "folder.png"))
         self.icon_folder_opened = gdk.pixbuf_new_from_file(get_resource("images", "folder-open.png"))
+        self.icon_page = gdk.pixbuf_new_from_file(get_resource("images", "note.png"))
         #self.drag_source_set_icon_pixbuf(self.icon)
         
 
@@ -260,7 +271,14 @@ class TakeNoteTreeView (gtk.TreeView):
                     walk(child)
                 child = self.model.iter_next(child)
         walk(it)
-            
+    
+    def on_test_expand_row(self, treeview, it, path):
+        
+        child = self.model.iter_children(it)
+        if child and self.model.get_data(path + (0,)) is self.temp_child:
+            self.model.remove(child)
+            self.add_children(it)
+        
 
     def on_row_collapsed(self, treeview, it, path):
         self.model.get_data(path).set_expand(False)
@@ -295,7 +313,8 @@ class TakeNoteTreeView (gtk.TreeView):
         model, paths = treeselect.get_selected_rows()
         
         if len(paths) > 0 and self.on_select_node:
-            self.on_select_node(self.model.get_data(paths[0]))
+            nodes = [self.model.get_data(path) for path in paths]
+            self.on_select_node(nodes)
         return True
     
     
@@ -337,7 +356,7 @@ class TakeNoteTreeView (gtk.TreeView):
             print "Cannot delete notebook's toplevel directory"
         
         if self.on_select_node:
-            self.on_select_node(None)
+            self.on_select_node([])
            
     
     #==============================================
@@ -368,17 +387,38 @@ class TakeNoteTreeView (gtk.TreeView):
     def expand_node(self, node):
         path = self.model.get_path_from_data(node)
         self.expand_to_path(path)
-        
+
+    #================================================
+    # model manipulation        
+    
+    def get_icons(self, node):
+        if isinstance(node, NoteBookDir):
+            return self.icon_folder_closed, self.icon_folder_opened
+        else:
+            return self.icon_page, self.icon_page
+            
     
     def add_node(self, parent, node):
-        it = self.model.append(parent, [self.icon_folder_closed, 
-                                        self.icon_folder_opened,
+        closed, opened = self.get_icons(node)
+        it = self.model.append(parent, [closed, 
+                                        opened,
                                         node.get_title(), node])
         path = self.model.get_path(it)
+        children = list(node.get_children())
+
+        if len(children) > 0:
+            if self.row_expanded(path):
+                for child in children:
+                    self.add_node(it, child)
+            else:
+                self.model.append(it, [closed, 
+                                       opened,
+                                       "TEMP", self.temp_child])
         
+    def add_children(self, parent):
+        node = self.model.get_data(self.model.get_path(parent))
         for child in node.get_children():
-            self.add_node(it, child)
-        
+            self.add_node(parent, child)
     
     
     def update_node(self, node):

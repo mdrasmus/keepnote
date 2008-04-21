@@ -7,7 +7,6 @@
     Basic backend data structures for TakeNote and NoteBooks
 """
 
-# TODO: add NoteBookException
 
 import xmlobject as xmlo
 
@@ -94,25 +93,36 @@ def get_platform():
     return PLATFORM
 
 
-class NoteBookError (Exception):
+class NoteBookError (StandardError):
     def __init__(self, msg, error=None):
-        self.msg
-        self.error
+        StandardError.__init__(self)
+        self.msg = msg
+        self.error = error
     
     def __repr__(self):
-        return self.msg
+        if self.error:
+            return repr(self.error) + "\n" + self.msg
+        else:
+            return self.msg
     
 
 #=============================================================================
 # filenaming scheme
 
 def get_timestamp():
-	return int(time.time() - EPOC)
+    """Returns the current timestamp"""
+    return int(time.time() - EPOC)
 
 def get_localtime():
+    """Returns the local time"""
     return time.localtime(time.time() + EPOC)
 
 def get_str_timestamp(timestamp, current=None):
+    """
+    Get a string representation of a time stamp
+    
+    The string will be abbreviated according to the current time.
+    """
     if current is None:
         current = get_localtime()
     local = time.localtime(timestamp + EPOC)
@@ -142,12 +152,15 @@ def get_page_data_file(pagepath):
     return os.path.join(pagepath, PAGE_DATA_FILE)
 
 def get_pref_file(nodepath):
+    """Returns the filename of the notebook preference file"""
     return os.path.join(nodepath, PREF_FILE)
 
 def get_pref_dir(nodepath):
+    """Returns the directory of the notebook preference file"""
     return os.path.join(nodepath, NOTEBOOK_META_DIR)
 
 def get_user_pref_dir(home=None):
+    """Returns the directory of the application preference file"""
     p = get_platform()
     if p == "unix":
         if home is None:
@@ -161,10 +174,12 @@ def get_user_pref_dir(home=None):
         
 
 def get_user_pref_file(home=None):
+    """Returns the filename of the application preference file"""
     return os.path.join(get_user_pref_dir(home), USER_PREF_FILE)
 
 
 def init_user_pref(home=None):
+    """Initializes the application preference file"""
     pref_dir = get_user_pref_dir(home)
     pref_file = get_user_pref_file(home)
     
@@ -186,6 +201,10 @@ REGEX_SLASHES = re.compile(r"[/\\]")
 REGEX_BAD_CHARS = re.compile(r"[\?'&]")
 
 def get_valid_filename(filename):
+    """Converts a filename into a valid one
+    
+    Strips bad characters from filename
+    """
     filename = filename.strip()
     filename = re.sub(REGEX_SLASHES, "-", filename)
     filename = re.sub(REGEX_BAD_CHARS, "", filename)
@@ -198,6 +217,8 @@ def get_valid_filename(filename):
     
 
 def get_unique_filename(path, filename, ext="", sep=" ", number=2):
+    """Returns a unique version of a filename for a given directory"""
+
     if path != "":
         assert os.path.exists(path), path
     
@@ -216,11 +237,13 @@ def get_unique_filename(path, filename, ext="", sep=" ", number=2):
 
 
 def get_valid_unique_filename(path, filename, ext="", sep=" ", number=2):
+    """Returns a valid and unique version of a filename for a given path"""
     return get_unique_filename(path, get_valid_filename(filename), 
                                ext, sep, number)
     
 
 def get_unique_filename_list(filenames, filename, ext="", sep=" ", number=2):
+    """Returns a unique filename for a given list of existing files"""
     filenames = set(filenames)
     
     # try the given filename
@@ -235,17 +258,6 @@ def get_unique_filename_list(filenames, filename, ext="", sep=" ", number=2):
         if newname not in filenames:
             return newname
         i += 1
-
-
-#=============================================================================
-# misc functions
-
-def get_dom_children(node):
-    """Convenience function for iterating the children of a DOM object"""
-    child = node.firstChild
-    while child:
-        yield child
-        child = child.nextSibling
 
 
 #=============================================================================
@@ -597,8 +609,8 @@ class NoteBookNode (object):
             self._get_children()
         
         for child in self._children:
-            if isinstance(child, NoteBookDir):
-                yield child
+            #if isinstance(child, NoteBookDir):
+            yield child
     
     
     def get_pages(self):

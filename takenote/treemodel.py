@@ -72,8 +72,7 @@ def str2path(pathtext):
 class TakeNoteTreeModel (gtk.TreeModel):
     """Provides a mapping from data back to a path in the TreeStore"""
 
-    def __init__(self, data_col): #, *types):
-        #gtk.TreeStore.__init__(self, *types)
+    def __init__(self, data_col):
         self.data_col = data_col
         self.data2path = {}
         

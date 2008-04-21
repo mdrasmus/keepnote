@@ -205,7 +205,7 @@ def buffer_contents_apply_tags(textbuffer, contents):
 #=============================================================================
 # HTML parser for RichText
 
-class HtmlError (Exception):
+class HtmlError (StandardError):
     pass
 
 
@@ -685,7 +685,7 @@ class RichTextImage (RichTextChild):
 #=============================================================================
 # RichText classes
 
-class RichTextError (Exception):
+class RichTextError (StandardError):
     pass
 
 

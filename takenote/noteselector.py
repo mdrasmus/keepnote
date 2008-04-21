@@ -14,7 +14,7 @@ from takenote.treemodel import \
     copy_row, \
     TakeNoteListStore
 
-from takenote import get_resource
+from takenote import get_resource, NoteBookError, NoteBookDir, NoteBookPage
 
     
 class SelectorColumn (object):
@@ -216,9 +216,8 @@ class TakeNoteSelector (gtk.TreeView):
             if page.get_title() != new_text:
                 page.rename(new_text)
                 self.model[path][1] = new_text
-        except Exception, e:
-            print e
-            print "takenote: could not rename page '%s'" % page.get_title()
+        except NoteBookError, e:
+            self.error("Could not rename page '%s'" % page.get_title(), e)
     
     def on_select_changed(self, treeselect): 
         model, paths = treeselect.get_selected_rows()
@@ -273,7 +272,21 @@ class TakeNoteSelector (gtk.TreeView):
         
         npages = 0
         for node in nodes:
-            for page in node.get_pages():
+            if isinstance(node, NoteBookDir):
+                for page in node.get_pages():
+                    npages += 1
+                    it = self.model.append(row=
+                        (self.icon,
+                         page.get_title(),
+                         page.get_created_time_text(),
+                         page.get_created_time(),
+                         page.get_modified_time_text(),
+                         page.get_modified_time(),
+                         npages,
+                         page))
+                    path = self.model.get_path(it)
+            elif isinstance(node, NoteBookPage):
+                page = node
                 npages += 1
                 it = self.model.append(row=
                     (self.icon,
