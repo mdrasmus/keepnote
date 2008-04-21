@@ -456,12 +456,12 @@ class NoteBookNode (object):
                 os.rename(path, path2)
             except OSError, e:
                 raise NoteBookError("Do not have permission for move", e)
-            
-            self._parent.remove_child(self)
-            self._parent = parent
-            self._parent.add_child(self, index)
-            self._set_dirty(True)
-            self.save(True)
+        
+        self._parent.remove_child(self)
+        self._parent = parent
+        self._parent.add_child(self, index)
+        self._set_dirty(True)
+        self.save(True)
 
         
     
