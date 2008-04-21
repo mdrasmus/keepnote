@@ -137,9 +137,6 @@ def normalize_tags(items):
             yield item
 
 
-# TODO: try to decouple textview, by delaying add_child_at_anchor
-# will allow faster load times
-
 def insert_buffer_contents(textbuffer, pos, contents):
     """Insert a content list into a textview"""
     
@@ -243,9 +240,8 @@ class HtmlBuffer (HTMLParser):
         self.html2tag[html_name] = tag    
     
     
-    def read(self, richtext, infile):
-        self.richtext = richtext
-        self.buffer = richtext.textbuffer
+    def read(self, textbuffer, infile):
+        self.buffer = textbuffer
         
         for line in infile:
             self.feed(line)
@@ -258,7 +254,7 @@ class HtmlBuffer (HTMLParser):
         self.newline = False
         if tag in ("html", "body"):
             return
-    
+        
         mark = self.buffer.create_mark(None, self.buffer.get_end_iter(), True)
         self.tag_stack.append((tag, attrs, mark))
 
@@ -267,9 +263,11 @@ class HtmlBuffer (HTMLParser):
         self.newline = False
         if tag in ("html", "body"):
             return
-    
+        
         assert self.tag_stack[-1][0] == tag
         htmltag, attrs, mark = self.tag_stack.pop()
+        
+        
         
         if htmltag in self.html2tag:
             # get simple fonts b/i/u
@@ -325,7 +323,7 @@ class HtmlBuffer (HTMLParser):
                 if key == "src":
                     img = RichTextImage()
                     img.set_filename(value)
-                    self.richtext.insert_image(img)
+                    self.buffer.insert_image(img)
                     pass
                 else:
                     Exception("unknown attr key '%s'" % key)
@@ -691,19 +689,32 @@ class RichTextBuffer (gtk.TextBuffer):
         # action state
         self.insert_mark = None
         self.next_action = None
-        self.current_tags = []        
+        self.current_tags = []
+        self.anchors = {}
+        self.anchors_deferred = {} 
         
-        # signals
-        self.connect("begin_user_action", self.on_begin_user_action)
-        self.connect("end_user_action", self.on_end_user_action)
-        self.connect("mark-set", self.on_mark_set)
-        self.connect("insert-text", self.on_insert_text)
-        self.connect("delete-range", self.on_delete_range)
-        self.connect("insert-pixbuf", self.on_insert_pixbuf)
-        self.connect("insert-child-anchor", self.on_insert_child_anchor)
-        self.connect("apply-tag", self.on_apply_tag)
-        self.connect("remove-tag", self.on_remove_tag)        
-        self.insertid = self.connect("changed", self.on_changed)
+        # setup signals
+        self.signals = []
+        self.signals.append(self.connect("begin_user_action", 
+                                         self.on_begin_user_action))
+        self.signals.append(self.connect("end_user_action", 
+                                         self.on_end_user_action))
+        self.signals.append(self.connect("mark-set", 
+                                         self.on_mark_set))
+        self.signals.append(self.connect("insert-text", 
+                                         self.on_insert_text))
+        self.signals.append(self.connect("delete-range", 
+                                         self.on_delete_range))
+        self.signals.append(self.connect("insert-pixbuf", 
+                                         self.on_insert_pixbuf))
+        self.signals.append(self.connect("insert-child-anchor", 
+                                         self.on_insert_child_anchor))
+        self.signals.append(self.connect("apply-tag", 
+                                         self.on_apply_tag))
+        self.signals.append(self.connect("remove-tag", 
+                                         self.on_remove_tag))
+        self.signals.append(self.connect("changed", 
+                                         self.on_changed))
              
         
         
@@ -744,6 +755,15 @@ class RichTextBuffer (gtk.TextBuffer):
     
     def get_textview(self):
         return self.textview
+    
+    def block_signals(self):
+        for signal in self.signals:
+            self.handler_block(signal)
+    
+    
+    def unblock_signals(self):
+        for signal in self.signals:
+            self.handler_unblock(signal)
     
     #======================================================
     # copy and paste
@@ -812,7 +832,7 @@ class RichTextBuffer (gtk.TextBuffer):
         image = RichTextImage()
         image.set_from_pixbuf(pixbuf)
         
-        self.textview.insert_image(image)
+        self.insert_image(image)
     
     def do_paste(self, clipboard, selection_data, data):
         assert self.clipboard_contents != None
@@ -845,7 +865,23 @@ class RichTextBuffer (gtk.TextBuffer):
     # actions
     
     def add_child_at_anchor(self, child, anchor):
-        self.textview.add_child_at_anchor(child.get_widget(), anchor)
+        self.anchors.setdefault(anchor, []).append(child)
+        if self.textview:
+            self.textview.add_child_at_anchor(child.get_widget(), anchor)
+        else:
+            self.anchors_deferred.setdefault(anchor, []).append(child)
+    
+    
+    def add_deferred_anchors(self):
+        assert self.textview is not None
+        
+        for anchor, children in self.anchors_deferred.iteritems():
+            # only add anchor if it is still present (hasn't been deleted)
+            if anchor in self.anchors:
+                for child in children:
+                    self.textview.add_child_at_anchor(child.get_widget(), anchor)
+        
+        self.anchors_deferred.clear()
     
     
     def insert_image(self, image, filename="image.png"):
@@ -893,7 +929,8 @@ class RichTextBuffer (gtk.TextBuffer):
             self.current_tags = []
             
             # update UI for current fonts
-            self.textview.on_update_font()
+            if self.textview:
+                self.textview.on_update_font()
             
     
     
@@ -912,8 +949,7 @@ class RichTextBuffer (gtk.TextBuffer):
                                         end.get_offset(),
                                         start.get_slice(end),
                                         self.get_iter_at_mark(
-                                            self.get_insert()).
-                                                get_offset())
+                                            self.get_insert()).get_offset())
         
     
     def on_insert_pixbuf(self, textbuffer, it, pixbuf):
@@ -951,8 +987,10 @@ class RichTextBuffer (gtk.TextBuffer):
     def on_changed(self, textbuffer):
         """Callback for buffer change"""
     
-        # apply current style to inserted text
+        
         if isinstance(self.next_action, InsertAction):
+            # apply current style to inserted text
+            
             if len(self.current_tags) > 0:
                 it = self.get_iter_at_mark(self.insert_mark)
                 it2 = it.copy()
@@ -963,6 +1001,13 @@ class RichTextBuffer (gtk.TextBuffer):
 
                 self.delete_mark(self.insert_mark)
                 self.insert_mark = None
+                
+        elif isinstance(self.next_action, DeleteAction):
+            # deregister any deleted anchors
+            
+            for kind, offset, param in self.next_action.contents:
+                if kind == "anchor":
+                    del self.anchors[param[0]]
         
         
         if self.next_action:
@@ -1111,7 +1156,10 @@ class RichTextBuffer (gtk.TextBuffer):
         current_tags = set(self.current_tags)        
         
         # get the text attributes and font at the iter
-        attr = self.textview.get_default_attributes()
+        if self.textview:
+            attr = self.textview.get_default_attributes()
+        else:
+            attr = gtk.TextAttributes()
         it.get_attributes(attr)        
         font = attr.font
         
@@ -1214,6 +1262,22 @@ class RichTextView (gtk.TextView):
         #                                          self.serialize, None)
         #self.textbuffer.register_deserialize_format(MIME_TAKENOTE, 
         #                                            self.deserialize, None)
+
+
+    def set_buffer(self, textbuffer):
+        # tell current buffer we are detached
+        if self.textbuffer:
+            self.textbuffer.set_textview(None)
+        
+        # change buffer
+        gtk.TextView.set_buffer(self, textbuffer)
+        self.textbuffer = textbuffer
+        
+        # tell new buffer we are attached
+        if self.textbuffer:
+            self.textbuffer.set_textview(self)
+
+        
 
     #=======================================================
     # Drag and drop
@@ -1367,8 +1431,8 @@ class RichTextView (gtk.TextView):
     
     def save(self, filename):
         path = os.path.dirname(filename)
-        self.save_images(path)
-    
+        #self.save_images(path)
+        
         out = open(filename, "w")
         self.html_buffer.set_output(out)
         self.html_buffer.write(self)
@@ -1378,22 +1442,32 @@ class RichTextView (gtk.TextView):
     
     
     def load(self, filename):
-        self.textbuffer.undo_stack.suppress()
+        textbuffer = self.textbuffer
         
-        start = self.textbuffer.get_start_iter()
-        end = self.textbuffer.get_end_iter()
-        self.textbuffer.remove_all_tags(start, end)
-        self.textbuffer.delete(start, end)
-        self.html_buffer.read(self, open(filename, "r"))
+        textbuffer.undo_stack.suppress()
+        textbuffer.block_signals()
+        self.set_buffer(None)
+        textbuffer.anchors.clear()
+        
+        start = textbuffer.get_start_iter()
+        end = textbuffer.get_end_iter()
+        textbuffer.remove_all_tags(start, end)
+        textbuffer.delete(start, end)
+        self.html_buffer.read(textbuffer, open(filename, "r"))
+
+        self.set_buffer(textbuffer)        
+        textbuffer.add_deferred_anchors()
         
         path = os.path.dirname(filename)
         self.load_images(path)
         
+        textbuffer.unblock_signals()
         self.textbuffer.undo_stack.resume()
         self.textbuffer.undo_stack.reset()
         self.enable()
         
         self.textbuffer.unmodify()
+                
     
     
     def enable(self):
