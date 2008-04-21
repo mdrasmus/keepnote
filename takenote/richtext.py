@@ -953,7 +953,8 @@ class RichTextBuffer (gtk.TextBuffer):
         """Callback for mark movement"""
         
         if mark.get_name() == "insert":
-            self.current_tags = []
+            # pick up the last tags
+            self.current_tags = it.get_toggled_tags(False)
             
             # update UI for current fonts
             if self.textview:
@@ -1060,6 +1061,7 @@ class RichTextBuffer (gtk.TextBuffer):
             else:
                 self.current_tags.remove(tag)
         else:
+            self.current_tags = []
             if not it[0].has_tag(tag):
                 self.clear_font_tags(tag, it[0], it[1])
                 self.apply_tag(tag, it[0], it[1])
@@ -1078,6 +1080,7 @@ class RichTextBuffer (gtk.TextBuffer):
                 self.clear_current_font_tags(tag)
                 self.current_tags.append(tag)
         else:
+            self.current_tags = []
             self.clear_font_tags(tag, it[0], it[1])
             self.apply_tag(tag, it[0], it[1])
         self.end_user_action()
@@ -1091,6 +1094,7 @@ class RichTextBuffer (gtk.TextBuffer):
             if tag in self.current_tags:
                 self.current_tags.remove(tag)
         else:
+            self.current_tags = []
             self.remove_tag(tag, it[0], it[1])
         self.end_user_action()
     
@@ -1625,6 +1629,12 @@ class RichTextView (gtk.TextView):
         for mod in ["Bold", "Italic", "Underline"]:
             if mod not in mods:
                 self.textbuffer.remove_tag_selected(self.textbuffer.tag_table.lookup(mod))
+    
+    def on_font_family_set(self, family):
+        self.textbuffer.apply_tag_selected(self.textbuffer.lookup_family_tag(family))
+    
+    def on_font_family_toggle(self, family):
+        self.textbuffer.toggle_tag_selected(self.textbuffer.lookup_family_tag(family))
     
     def on_font_size_set(self, size):
         self.textbuffer.apply_tag_selected(self.textbuffer.lookup_size_tag(size))

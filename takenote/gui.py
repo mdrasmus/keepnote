@@ -472,7 +472,8 @@ class TakeNoteWindow (gtk.Window):
         # block toolbar handlers
         self.bold_button.handler_block(self.bold_id)
         self.italic_button.handler_block(self.italic_id)
-        self.underline_button.handler_block(self.underline_id) 
+        self.underline_button.handler_block(self.underline_id)
+        self.fixed_width_button.handler_block(self.fixed_width_id)
         self.left_button.handler_block(self.left_id)
         self.center_button.handler_block(self.center_id)
         self.right_button.handler_block(self.right_id) 
@@ -481,6 +482,7 @@ class TakeNoteWindow (gtk.Window):
         self.bold_button.set_active(mods["bold"])
         self.italic_button.set_active(mods["italic"])        
         self.underline_button.set_active(mods["underline"])
+        self.fixed_width_button.set_active(family == "Monospace")
         
         # update text justification
         self.left_button.set_active(justify == "left")
@@ -495,6 +497,7 @@ class TakeNoteWindow (gtk.Window):
         self.bold_button.handler_unblock(self.bold_id)
         self.italic_button.handler_block(self.italic_id)
         self.underline_button.handler_unblock(self.underline_id)
+        self.fixed_width_button.handler_unblock(self.fixed_width_id)
         self.left_button.handler_unblock(self.left_id)
         self.center_button.handler_unblock(self.center_id)
         self.right_button.handler_unblock(self.right_id) 
@@ -527,6 +530,15 @@ class TakeNoteWindow (gtk.Window):
         self.underline_button.set_active(mods["underline"])
         self.underline_button.handler_unblock(self.underline_id)
     
+    def on_fixed_width(self, toolbar):
+        self.editor.textview.on_font_family_toggle("Monospace")    
+        
+        if not toolbar:
+            mods, justify, family, size = self.editor.textview.get_font()
+        
+            self.fixed_width_button.handler_block(self.fixed_width_id)        
+            self.fixed_width_button.set_active(family == "Monospace")
+            self.fixed_width_button.handler_unblock(self.fixed_width_id)
 
     def on_left_justify(self):
         self.editor.textview.on_left_justify()
@@ -568,7 +580,7 @@ class TakeNoteWindow (gtk.Window):
             size -= 2
         self.editor.textview.on_font_size_set(size)
         self.on_font_change(mods, justify, family, size)
-
+    
         
     #==================================================
     # callbacks
@@ -707,7 +719,10 @@ class TakeNoteWindow (gtk.Window):
             
             if ret != 0:
                 self.error("Could not open page in text editor")
-
+    
+    #================================================
+    # Drag and drop texting dialog
+    
     def on_drag_and_drop_test(self):
         self.drag_win = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.drag_win.connect("delete-event", lambda d,r: self.drag_win.destroy())
@@ -886,7 +901,11 @@ class TakeNoteWindow (gtk.Window):
                 "<control>U", lambda w,e: self.on_underline(), 0, 
                 "<ImageItem>", 
                 get_image(get_resource("images", "underline.png")).get_pixbuf()),
-
+            ("/Format/_Monospace",
+                "<control>M", lambda w,e: self.on_fixed_width(False), 0,
+                "<ImageItem>",
+                get_image(get_resource("images", "fixed-width.png")).get_pixbuf()),
+            
             ("/Format/sep2", 
                 None, None, 0, "<Separator>" ),
             ("/Format/Increase Font _Size", 
@@ -1057,7 +1076,15 @@ class TakeNoteWindow (gtk.Window):
         tips.set_tip(self.underline_button, "Underline")
         self.underline_id = self.underline_button.connect("toggled", lambda w: self.editor.textview.on_underline())
         toolbar.insert(self.underline_button, -1)
-                
+        
+        # fixed-width tool
+        icon = gtk.Image() # icon widget
+        icon.set_from_file(get_resource("images", "fixed-width.png"))
+        self.fixed_width_button = gtk.ToggleToolButton()
+        self.fixed_width_button.set_icon_widget(icon)
+        tips.set_tip(self.underline_button, "Fixed Width")
+        self.fixed_width_id = self.fixed_width_button.connect("toggled", lambda w: self.on_fixed_width(True))
+        toolbar.insert(self.fixed_width_button, -1)               
 
         # font button
         self.font_sel = gtk.FontButton()
