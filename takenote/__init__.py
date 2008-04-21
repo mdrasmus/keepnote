@@ -12,7 +12,7 @@
 import xmlobject as xmlo
 
 # python imports
-import os, sys, shutil, time
+import os, sys, shutil, time, re
 import xml.dom.minidom as xmldom
 import xml.dom
 
@@ -92,6 +92,15 @@ def get_platform():
             PLATFORM = 'unix'
                     
     return PLATFORM
+
+
+class NoteBookError (Exception):
+    def __init__(self, msg, error=None):
+        self.msg
+        self.error
+    
+    def __repr__(self):
+        return self.msg
     
 
 #=============================================================================
@@ -173,10 +182,18 @@ def init_user_pref(home=None):
 #=============================================================================
 # filename creation functions
 
+REGEX_SLASHES = re.compile(r"[/\\]")
+REGEX_BAD_CHARS = re.compile(r"[\?'&]")
+
 def get_valid_filename(filename):
-    filename = filename.replace("/", "-")
-    filename = filename.replace("\\", "-")
-    filename = filename.replace("'", "")
+    filename = filename.strip()
+    filename = re.sub(REGEX_SLASHES, "-", filename)
+    filename = re.sub(REGEX_BAD_CHARS, "", filename)
+    filename = filename.replace("\t", " ")
+    #filename = filename.replace("?", "")
+    #filename = filename.replace("/", "-")
+    #filename = filename.replace("\\", "-")
+    #filename = filename.replace("'", "")
     return filename
     
 
@@ -246,15 +263,26 @@ class TakeNotePreferences (object):
     def read(self):
         if not os.path.exists(get_user_pref_file()):
             # write default
-            self.write()
+            try:
+                self.write()
+            except NoteBookError, e:
+                raise NoteBookError("Cannot initialize preferences", e)
         
-        g_takenote_pref_parser.read(self, get_user_pref_file())
+        try:
+            g_takenote_pref_parser.read(self, get_user_pref_file())
+        except IOError, e:
+            raise NoteBookError("Cannot read preferences", e)
+            
     
     def write(self):
-        if not os.path.exists(get_user_pref_dir()):
-            os.mkdir(get_user_pref_dir())
+        try:
+            if not os.path.exists(get_user_pref_dir()):            
+                os.mkdir(get_user_pref_dir())
         
-        g_takenote_pref_parser.write(self, get_user_pref_file())
+            g_takenote_pref_parser.write(self, get_user_pref_file())
+        except (IOError, OSError), e:
+            raise NoteBookError("Cannot save preferences", e)
+
         
 
 g_takenote_pref_parser = xmlo.XmlObject(
@@ -309,7 +337,12 @@ class NoteBookNode (object):
     def create(self):
         """Initializes the node on disk"""
         path = self.get_path()
-        os.mkdir(path)
+        
+        try:
+            os.mkdir(path)
+        except OSError, e:
+            raise NoteBookError("Cannot create node", e)
+            
         self._created_time = get_timestamp()
         self._modified_time = get_timestamp()
         self.write_meta_data()
@@ -400,25 +433,36 @@ class NoteBookNode (object):
         assert self != parent
         path = self.get_path()
         old_parent = self._parent
-        self._parent.remove_child(self)
-        self._parent = parent
-        self._parent.add_child(self, index)
-        self._set_dirty(True)
         
         # perform on-disk move is new parent
-        if old_parent != self._parent:
-            path2 = self.get_path()
+        if old_parent != parent:
+            path2 = os.path.join(parent.get_path(), self._basename)
             parent_path = os.path.dirname(path2)
             path2 = get_valid_unique_filename(parent_path, self._title)
-            os.rename(path, path2)
+            
+            try:
+                os.rename(path, path2)
+            except OSError, e:
+                raise NoteBookError("Do not have permission for move", e)
+            
+            self._parent.remove_child(self)
+            self._parent = parent
+            self._parent.add_child(self, index)
+            self._set_dirty(True)
             self.save(True)
+
         
     
     def delete(self):
         """Deletes this node from the notebook"""
-        self._parent.remove_child(self)
+
         path = self.get_path()
-        shutil.rmtree(path)
+        try:      
+            shutil.rmtree(path)
+        except OSError, e:
+            raise NoteBookError("Do not have permission to delete", e)
+        
+        self._parent.remove_child(self)
         self._valid = False
         self._set_dirty(False)
         
@@ -458,9 +502,8 @@ class NoteBookNode (object):
             self._title = title
             self._set_basename(path2)
             self.save(True)
-        except Exception, e:
-            print e
-            print "cannot rename '%s' to '%s'" % (path, path2)
+        except (OSError, NoteBookError), e:
+            raise NoteBookError("Cannot rename '%s' to '%s'" % (path, path2), e)
     
     
     def new_page(self, title=DEFAULT_PAGE_NAME):
@@ -493,24 +536,33 @@ class NoteBookNode (object):
         self._children = []
         path = self.get_path()
         
-        files = os.listdir(path)
+        try:
+            files = os.listdir(path)
+        except OSError, e:
+            raise NoteBookError("Do not have permission to read folder contents", e)
         
         for filename in files:
             path2 = os.path.join(path, filename)
             nodefile = get_dir_meta_file(path2)
             pagefile = get_page_meta_file(path2)
             
-            if os.path.exists(nodefile):
-                # create dir node
-                node = NoteBookDir(path2, parent=self, notebook=self._notebook)
-                node.read_meta_data()
-                self._children.append(node)
+            try:
+                if os.path.exists(nodefile):
+                    # create dir node
+                    node = NoteBookDir(path2, parent=self, notebook=self._notebook)
+                    node.read_meta_data()
+                    self._children.append(node)
+
+                elif os.path.exists(pagefile):
+                    # create page node
+                    page = NoteBookPage(path2, parent=self, notebook=self._notebook)
+                    page.read_meta_data()
+                    self._children.append(page)
+            except NoteBookError, e:
+                pass
                 
-            elif os.path.exists(pagefile):
-                # create page node
-                page = NoteBookPage(path2, parent=self, notebook=self._notebook)
-                page.read_meta_data()
-                self._children.append(page)
+                # TODO: raise warning, not all children read
+                
         
         # assign orders
         self._children.sort(key=lambda x: x._order)
@@ -538,8 +590,9 @@ class NoteBookNode (object):
         child._set_dirty(True)
 
         
-
+    # TODO: return pages too
     def get_children(self):
+        """Returns all children of this node"""
         if self._children is None:
             self._get_children()
         
@@ -549,6 +602,8 @@ class NoteBookNode (object):
     
     
     def get_pages(self):
+        """Returns the pages in this node"""
+        
         if self._children is None:
             self._get_children()
         
@@ -567,7 +622,7 @@ class NoteBookNode (object):
     
     
     def save(self, force=False):
-        """Recursively save any loaded nodes"""
+        """Save node if modified (dirty)"""
         
         if (force or self._is_dirty()) and self._valid:
             self.write_meta_data()
@@ -627,16 +682,23 @@ class NoteBookPage (NoteBookNode):
     
     def write_empty_data_file(self):
         datafile = self.get_data_file()
-        out = open(datafile, "w")
-        out.write("<html><body></body></html>")
-        out.close()
+        
+        try:
+            out = open(datafile, "w")
+            out.write(BLANK_NOTE)
+            out.close()
+        except IOError, e:
+            raise NoteBookError("Cannot initialize richtext file '%s'" % datafile, e)
     
     
     def read_meta_data(self):
         self._created_time = None
         self._modified_time = None    
     
-        g_page_meta_data_parser.read(self, self.get_meta_file())
+        try:
+            g_page_meta_data_parser.read(self, self.get_meta_file())
+        except IOError, e:
+            raise NoteBookError("Cannot read meta data", e)
         
         if self._created_time is None:
             self._created_time = get_timestamp()
@@ -648,7 +710,10 @@ class NoteBookPage (NoteBookNode):
                 
     
     def write_meta_data(self):
-        g_page_meta_data_parser.write(self, self.get_meta_file())
+        try:
+            g_page_meta_data_parser.write(self, self.get_meta_file())
+        except IOError, e:
+            raise NoteBookError("Cannot write meta data", e)
 
 
 g_page_meta_data_parser = xmlo.XmlObject(
@@ -671,7 +736,10 @@ class NoteBookDir (NoteBookNode):
         self._created_time = None
         self._modified_time = None
         
-        g_dir_meta_data_parser.read(self, self.get_meta_file())
+        try:
+            g_dir_meta_data_parser.read(self, self.get_meta_file())
+        except IOError, e:
+            raise NoteBookError("Cannot read meta data", e)
         
         if self._created_time is None:
             self._created_time = get_timestamp()
@@ -681,7 +749,10 @@ class NoteBookDir (NoteBookNode):
             self._set_dirty(True)        
                 
     def write_meta_data(self):
-        g_dir_meta_data_parser.write(self, self.get_meta_file())
+        try:
+            g_dir_meta_data_parser.write(self, self.get_meta_file())
+        except IOError, e:
+            raise NoteBookError("Cannot write meta data", e)
 
 
 
@@ -695,12 +766,11 @@ g_dir_meta_data_parser = xmlo.XmlObject(
 
     
 
-class NoteBookPreferences (xmlo.XmlObject):
+class NoteBookPreferences (object):
     """Preference data structure for a NoteBook"""
     def __init__(self):
         
         self.window_size = DEFAULT_WINDOW_SIZE
-        #self.window_pos = DEFAULT_WINDOW_POS
         self.vsash_pos = DEFAULT_VSASH_POS
         self.hsash_pos = DEFAULT_HSASH_POS
 
@@ -709,9 +779,6 @@ g_notebook_pref_parser = xmlo.XmlObject(
         xmlo.Tag("window_size", 
             getobj=("window_size", lambda x: tuple(map(int,x.split(",")))),
             set=lambda s: "%d,%d" % s.window_size),
-        #xmlo.Tag("window_pos",
-        #    getobj=("window_pos", lambda x: tuple(map(int,x.split(",")))),
-        #    set=lambda s: "%d,%d" % s.window_pos),
         xmlo.Tag("vsash_pos",
             getobj=("vhash_pos", int),
             set=lambda s: "%d" % s.vsash_pos),
@@ -795,14 +862,19 @@ class NoteBook (NoteBookDir):
     
     
     def write_preferences(self):
-    
-        # ensure preference directory exists
-        if not os.path.exists(self.get_pref_dir()):
-            os.mkdir(self.get_pref_dir())
-        
-        g_notebook_pref_parser.write(self.pref, self.get_pref_file())
+        try:
+            # ensure preference directory exists
+            if not os.path.exists(self.get_pref_dir()):
+                os.mkdir(self.get_pref_dir())
+
+            g_notebook_pref_parser.write(self.pref, self.get_pref_file())
+        except (IOError, OSError), e:
+            raise NoteBookError("Cannot save notebook preferences", e)
     
     def read_preferences(self):
-        g_notebook_pref_parser.read(self.pref, self.get_pref_file())
+        try:
+            g_notebook_pref_parser.read(self.pref, self.get_pref_file())
+        except IOError, e:
+            raise NoteBookError("Cannot read preferences", e)
 
                 

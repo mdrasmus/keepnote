@@ -28,7 +28,7 @@ from gtk import gdk
 import takenote
 from takenote import get_resource
 from takenote.undo import UndoStack
-from takenote.richtext import RichTextView, RichTextImage
+from takenote.richtext import RichTextView, RichTextImage, RichTextError
 from takenote.treeview import TakeNoteTreeView
 from takenote.noteselector import TakeNoteSelector
 
@@ -225,7 +225,15 @@ class TakeNoteWindow (gtk.Window):
 
     def error(self, text):
         """Display an error message"""
-        self.set_status(text)
+        #self.set_status(text)
+        
+        dialog = gtk.MessageDialog(self.get_toplevel(), 
+            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            type=gtk.MESSAGE_ERROR, 
+            buttons=gtk.BUTTONS_OK, 
+            message_format=text)
+        dialog.connect("response", lambda d,r: dialog.destroy())
+        dialog.show()
         
     
     def get_preferences(self):

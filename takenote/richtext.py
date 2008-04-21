@@ -1239,6 +1239,7 @@ class RichTextView (gtk.TextView):
     def __init__(self):
         gtk.TextView.__init__(self, RichTextBuffer(self))
         self.textbuffer = self.get_buffer()
+        self.blank_buffer = gtk.TextBuffer()
         
         self.set_wrap_mode(gtk.WRAP_WORD)
         self.set_property("right-margin", 5)
@@ -1281,7 +1282,10 @@ class RichTextView (gtk.TextView):
             self.textbuffer.set_textview(None)
         
         # change buffer
-        gtk.TextView.set_buffer(self, textbuffer)
+        if textbuffer:
+            gtk.TextView.set_buffer(self, textbuffer)
+        else:
+            gtk.TextView.set_buffer(self, self.blank_buffer)
         self.textbuffer = textbuffer
         
         # tell new buffer we are attached
