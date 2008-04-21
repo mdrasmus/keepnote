@@ -602,15 +602,12 @@ class NoteBookNode (object):
         child._set_dirty(True)
 
         
-    # TODO: return pages too
     def get_children(self):
         """Returns all children of this node"""
         if self._children is None:
             self._get_children()
         
-        for child in self._children:
-            #if isinstance(child, NoteBookDir):
-            yield child
+        return self._children
     
     
     def get_pages(self):

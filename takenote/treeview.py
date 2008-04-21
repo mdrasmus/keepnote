@@ -143,30 +143,11 @@ class TakeNoteTreeView (gtk.TreeView):
                 treeview.enable_model_drag_dest([DROP_TREE_MOVE, DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)
             else:
                 treeview.enable_model_drag_dest([DROP_NO], gtk.gdk.ACTION_MOVE)
-        
-        '''        
-        elif "drop_selector" in drag_context.targets:
-            # NOTE: this is until pages are in treeview
-            
-            # get source
-            source_widget = drag_context.get_source_widget()
-            source_node = source_widget.get_drag_node()
-            source_path = self.model.get_path_from_data(source_node)
-            
-            # determine if drag is allowed
-            if self.drop_allowed(source_node, target_node, drop_position) and \
-               drop_position not in (gtk.TREE_VIEW_DROP_BEFORE,
-                                     gtk.TREE_VIEW_DROP_AFTER):
-                treeview.enable_model_drag_dest([DROP_TREE_MOVE, DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)
-            else:
-                treeview.enable_model_drag_dest([DROP_NO], gtk.gdk.ACTION_MOVE)
-        '''
 
         
     
     def on_drag_data_received(self, treeview, drag_context, x, y,
                               selection_data, info, eventtime):
-            
          
         # determine destination row
         dest_row = treeview.get_dest_row_at_pos(x, y)
