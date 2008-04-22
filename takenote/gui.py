@@ -23,6 +23,7 @@ import pygtk
 pygtk.require('2.0')
 import gtk, gobject, pango
 from gtk import gdk
+import gtk.glade
 
 # takenote imports
 import takenote
@@ -210,6 +211,12 @@ class TakeNoteWindow (gtk.Window):
         
         self.show_all()        
         self.treeview.grab_focus()
+        
+        #gxml = gtk.glade.XML(get_resource("rc", "app_config.glade"))
+        #app_config_dialog = gxml.get_widget("app_config_dialog")
+        #app_config_dialog.set_transient_for(self)
+        #app_config_dialog.show()
+        
     
 
     def set_status(self, text, bar="status"):
@@ -369,6 +376,9 @@ class TakeNoteWindow (gtk.Window):
         else:
             parent = self.notebook.get_root_node()
         
+        if parent.is_page():
+            parent = parent.get_parent()
+        
         node = parent.new_dir()
         self.treeview.update_node(parent)
         self.treeview.expand_node(parent)
@@ -388,9 +398,12 @@ class TakeNoteWindow (gtk.Window):
         else:
             parent = self.notebook.get_root_node()
         
+        if parent.is_page():
+            parent = parent.get_parent()
+        
         node = parent.new_page()
         self.treeview.update_node(parent)
-        self.selector.update()
+        self.selector.view_nodes([parent])
         self.selector.edit_node(node)
     
     
@@ -1094,7 +1107,7 @@ class TakeNoteWindow (gtk.Window):
         icon.set_from_file(get_resource("images", "fixed-width.png"))
         self.fixed_width_button = gtk.ToggleToolButton()
         self.fixed_width_button.set_icon_widget(icon)
-        tips.set_tip(self.underline_button, "Fixed Width")
+        tips.set_tip(self.fixed_width_button, "Monospace")
         self.fixed_width_id = self.fixed_width_button.connect("toggled", lambda w: self.on_fixed_width(True))
         toolbar.insert(self.fixed_width_button, -1)               
 

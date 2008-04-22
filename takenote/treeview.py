@@ -426,5 +426,6 @@ class TakeNoteTreeView (gtk.TreeView):
         for child in node.get_children():
             self.add_node(it, child)
         
-        self.expand_to_path(path)
+        if expanded:
+            self.expand_to_path(path)
         

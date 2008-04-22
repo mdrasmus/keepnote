@@ -258,9 +258,13 @@ class TakeNoteSelector (gtk.TreeView):
         
         path = self.model.get_path(it)
         page = self.model.get_data(model.get_path(it))
+        parent = page.get_parent()
         page.delete()
         
         self.model.remove(it)
+        
+        if self.on_node_changed:
+            self.on_node_changed(parent, True)
     
     
     #====================================================
@@ -341,8 +345,8 @@ class TakeNoteSelector (gtk.TreeView):
     
     def edit_node(self, page):
         path = self.model.get_path_from_data(page)
-        self.set_cursor_on_cell(path, self.column, self.cell_text, 
-                                         True)
+        assert path is not None
+        self.set_cursor_on_cell(path, self.column, self.cell_text, True)
         path, col = self.get_cursor()
         self.scroll_to_cell(path)
     
