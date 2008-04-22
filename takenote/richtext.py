@@ -1607,7 +1607,57 @@ class RichTextView (gtk.TextView):
         """Inserts an image into the textbuffer"""
                 
         self.textbuffer.insert_image(image, filename)    
-
+    
+    
+    def find(self, text, case_sensitive=False, forward=True, next=True):
+        # TODO: non-case_sensitive is ignored
+        
+        if not self.textbuffer:
+            return
+        
+        it = self.textbuffer.get_iter_at_mark(self.textbuffer.get_insert())
+        
+        
+        if forward:
+            if next:
+                it.forward_char()
+            result = it.forward_search(text, 0)
+        else:
+            result = it.backward_search(text, 0)
+        
+        if result:
+            self.textbuffer.select_range(result[0], result[1])
+            self.scroll_mark_onscreen(self.textbuffer.get_insert())
+            return it.get_offset()
+        else:
+            return -1
+        
+        
+    def replace(self, text, replace_text, 
+                case_sensitive=False, forward=True, next=True):
+        
+        pos = self.find(text, case_sensitive, forward, next)
+        
+        if pos != -1:
+            self.textbuffer.begin_user_action()
+            self.textbuffer.delete_selection(True, self.get_editable())
+            self.textbuffer.insert_at_cursor(replace_text)
+            self.textbuffer.end_user_action()
+            
+        return pos
+        
+            
+    def replace_all(self, text, replace_text, 
+                    case_sensitive=False, forward=True):
+        found = False
+        
+        self.textbuffer.begin_user_action()
+        while self.replace(text, replace_text, case_sensitive, forward, False) != -1:
+            found = True
+        self.textbuffer.end_user_action()
+        
+        return found
+        
         
     #===========================================================
     # Callbacks from UI to change font 
@@ -1661,7 +1711,7 @@ class RichTextView (gtk.TextView):
         self.textbuffer.apply_tag_selected(self.textbuffer.fill_tag)
     
     #==================================================================
-    # UI Updating from fonts
+    # UI Updating from chaning font under cursor
     
     def on_update_font(self):
         mods, justify, family, size = self.get_font()

@@ -758,6 +758,130 @@ class TakeNoteWindow (gtk.Window):
             if ret != 0:
                 self.error("Could not open page in text editor")
     
+    #==================================================================
+    # Find dialog
+    
+    def on_find(self, replace=False, forward=None):
+        if hasattr(self, "find_dialog") and self.find_dialog:
+            self.find_dialog.present()
+            
+            # could add find again behavior here            
+            self.find_xml.get_widget("replace_checkbutton").set_active(replace)
+            self.find_xml.get_widget("replace_entry").set_sensitive(replace)
+            self.find_xml.get_widget("replace_button").set_sensitive(replace)
+            self.find_xml.get_widget("replace_all_button").set_sensitive(replace)
+            
+            if not replace:
+                if forward is None:
+                    self.on_find_response("find")
+                elif forward:
+                    self.on_find_response("find_next")
+                else:
+                    self.on_find_response("find_prev")
+            else:
+                self.on_find_response("replace")
+            
+            return
+        
+
+        
+        self.find_xml = gtk.glade.XML(get_resource("rc", "app_config.glade"))    
+        self.find_dialog = self.find_xml.get_widget("find_dialog")
+        self.find_dialog.connect("delete-event", lambda w,e: self.on_find_response("close"))
+        
+        
+            
+        
+        self.find_xml.signal_autoconnect({
+            "on_find_dialog_key_release_event":
+                self.on_find_key_released,
+            "on_close_button_clicked": 
+                lambda w: self.on_find_response("close"),
+            "on_find_button_clicked": 
+                lambda w: self.on_find_response("find"),
+            "on_replace_button_clicked": 
+                lambda w: self.on_find_response("replace"),
+            "on_replace_all_button_clicked": 
+                lambda w: self.on_find_response("replace_all"),
+            "on_replace_checkbutton_toggled":
+                lambda w: self.on_find_replace_toggled()
+            })
+        
+        if hasattr(self, "find_text"):
+            self.find_xml.get_widget("text_entry").set_text(self.find_text)
+        
+        if hasattr(self, "replace_text"):
+            self.find_xml.get_widget("replace_entry").set_text(self.replace_text)
+        
+        self.find_xml.get_widget("replace_checkbutton").set_active(replace)
+        self.find_xml.get_widget("replace_entry").set_sensitive(replace)
+        self.find_xml.get_widget("replace_button").set_sensitive(replace)
+        self.find_xml.get_widget("replace_all_button").set_sensitive(replace)
+        
+        self.find_dialog.show()
+    
+    def on_find_key_released(self, widget, event):
+        
+        if event.keyval == gdk.keyval_from_name("g") and \
+           event.state == gtk.gdk.CONTROL_MASK:
+            self.on_find_response("find_next")
+            widget.stop_emission("key-release-event")
+        
+        elif event.keyval == gdk.keyval_from_name("G") and \
+           event.state == gtk.gdk.SHIFT_MASK | gtk.gdk.CONTROL_MASK:
+            self.on_find_response("find_prev")
+            widget.stop_emission("key-release-event")
+
+    
+    
+    def on_find_response(self, response):
+        
+        # get find options
+        find_text = self.find_xml.get_widget("text_entry").get_text()
+        replace_text = self.find_xml.get_widget("replace_entry").get_text()
+        case_sensitive = self.find_xml.get_widget("case_sensitive_button").get_active()
+        search_forward = self.find_xml.get_widget("forward_button").get_active()
+        
+        #print find_text, replace_text, search_forward, case_sensitive
+        
+        self.find_text = find_text
+        self.replace_text = replace_text
+        
+        if response == "close":
+            self.find_dialog.destroy()
+            self.find_dialog = None
+            
+        elif response == "find":
+            self.editor.textview.find(find_text, case_sensitive, search_forward)
+
+        elif response == "find_next":
+            self.find_xml.get_widget("forward_button").set_active(True)
+            self.editor.textview.find(find_text, case_sensitive, True)
+
+        elif response == "find_prev":
+            self.find_xml.get_widget("backward_button").set_active(True)
+            self.editor.textview.find(find_text, case_sensitive, False)
+        
+        elif response == "replace":
+            self.editor.textview.replace(find_text, replace_text,
+                                         case_sensitive, search_forward)
+            
+        elif response == "replace_all":
+            self.editor.textview.replace_all(find_text, replace_text,
+                                             case_sensitive, search_forward)
+    
+    
+    def on_find_replace_toggled(self):
+        
+        if self.find_xml.get_widget("replace_checkbutton").get_active():
+            self.find_xml.get_widget("replace_entry").set_sensitive(True)
+            self.find_xml.get_widget("replace_button").set_sensitive(True)
+            self.find_xml.get_widget("replace_all_button").set_sensitive(True)
+        else:
+            self.find_xml.get_widget("replace_entry").set_sensitive(False)
+            self.find_xml.get_widget("replace_button").set_sensitive(False)
+            self.find_xml.get_widget("replace_all_button").set_sensitive(False)
+            
     
     #===================================================================
     # Application options
@@ -775,20 +899,30 @@ class TakeNoteWindow (gtk.Window):
                 lambda w: self.app_config_dialog.destroy(),
                 
             "on_default_notebook_button_clicked": 
-                lambda w: self.on_app_options_browse("default_notebook", 
-                                                     "Choose Default Notebook"),
+                lambda w: self.on_app_options_browse(
+                    "default_notebook", 
+                    "Choose Default Notebook",
+                    self.app.pref.default_notebook),
             "on_file_explorer_button_clicked": 
-                lambda w: self.on_app_options_browse("file_explorer",
-                                                     "Choose File Manager Application"),
+                lambda w: self.on_app_options_browse(
+                    "file_explorer",
+                    "Choose File Manager Application",
+                    self.app.pref.external_apps.get("file_explorer", "")),
             "on_web_browser_button_clicked": 
-                lambda w: self.on_app_options_browse("web_browser",
-                                                     "Choose Web Browser Application"),
+                lambda w: self.on_app_options_browse(
+                    "web_browser",
+                    "Choose Web Browser Application",
+                    self.app.pref.external_apps.get("web_browser", "")),
             "on_text_editor_button_clicked": 
-                lambda w: self.on_app_options_browse("text_editor",
-                                                     "Choose Text Editor Application"),
+                lambda w: self.on_app_options_browse(
+                    "text_editor",
+                    "Choose Text Editor Application",
+                    self.app.pref.external_apps.get("text_editor", "")),
             "on_image_editor_button_clicked": 
-                lambda w: self.on_app_options_browse("image_editor",
-                                                     "Choose Image Editor Application"),
+                lambda w: self.on_app_options_browse(
+                    "image_editor",
+                    "Choose Image Editor Application",
+                    self.app.pref.external_apps.get("image_editor", "")),
             })
         
         # populate dialog
@@ -808,7 +942,7 @@ class TakeNoteWindow (gtk.Window):
         self.app_config_dialog.show()
     
     
-    def on_app_options_browse(self, name, title):
+    def on_app_options_browse(self, name, title, filename):
         dialog = gtk.FileChooserDialog(title, self.app_config_dialog, 
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
@@ -816,6 +950,10 @@ class TakeNoteWindow (gtk.Window):
         dialog.connect("response", self.on_app_options_browse_response)
         dialog.set_transient_for(self.app_config_dialog)
         dialog.set_modal(True)
+        
+        if filename != "" and os.path.isabs(filename):
+            dialog.set_filename(filename)
+        
         
         # NOTE: monkey patch
         dialog.entry_name = name
@@ -988,9 +1126,24 @@ class TakeNoteWindow (gtk.Window):
             ("/Edit/_Paste",     
                 "<control>V", lambda w,e: self.on_paste(), 0, 
                 "<StockItem>", gtk.STOCK_PASTE), 
-            #("/Edit/Select _All", 
-            #    "<control>A", lambda w,e: None, 0, None), 
+            
             ("/Edit/sep2", 
+                None, None, 0, "<Separator>"),
+            ("/Edit/_Find In Page",     
+                "<control>F", lambda w,e: self.on_find(False), 0, 
+                "<StockItem>", gtk.STOCK_FIND), 
+            ("/Edit/Find _Next In Page",     
+                "<control>G", lambda w,e: self.on_find(False, forward=True), 0, 
+                "<StockItem>", gtk.STOCK_FIND), 
+            ("/Edit/Find Pre_vious In Page",     
+                "<control><shift>G", lambda w,e: self.on_find(False, forward=False), 0, 
+                "<StockItem>", gtk.STOCK_FIND),                 
+            ("/Edit/_Replace In Page",     
+                "<control>R", lambda w,e: self.on_find(True), 0, 
+                "<StockItem>", gtk.STOCK_FIND), 
+            
+            
+            ("/Edit/sep3", 
                 None, None, 0, "<Separator>"),
             ("/Edit/_Delete Folder",
                 None, lambda w,e: self.on_delete_dir(), 0, 
@@ -998,7 +1151,7 @@ class TakeNoteWindow (gtk.Window):
             ("/Edit/Delete _Page",     
                 None, lambda w,e: self.on_delete_page(), 0,
                 "<ImageItem>", page_delete.get_pixbuf()),
-            ("/Edit/sep3", 
+            ("/Edit/sep4", 
                 None, None, 0, "<Separator>"),
             ("/Edit/Insert _Image",
                 None, lambda w,e: self.on_insert_image(), 0, None),
@@ -1065,14 +1218,21 @@ class TakeNoteWindow (gtk.Window):
             
             ("/_View", None, None, 0, "<Branch>"),
             ("/View/View Folder in File Explorer",
-                None, lambda w,e: self.on_view_folder_file_explorer(), 0, None),
+                None, lambda w,e: self.on_view_folder_file_explorer(), 0, 
+                "<ImageItem>",
+                get_image(get_resource("images", "folder-open.png")).get_pixbuf()),
             ("/View/View Page in File Explorer",
-                None, lambda w,e: self.on_view_page_file_explorer(), 0, None),
+                None, lambda w,e: self.on_view_page_file_explorer(), 0, 
+                "<ImageItem>",
+                get_image(get_resource("images", "note.png")).get_pixbuf()),
             ("/View/View Page in Text Editor",
-                None, lambda w,e: self.on_view_page_text_editor(), 0, None),                
+                None, lambda w,e: self.on_view_page_text_editor(), 0, 
+                "<ImageItem>",
+                get_image(get_resource("images", "note.png")).get_pixbuf()),                
             ("/View/View Page in Web Browser",
-                None, lambda w,e: self.on_view_page_web_browser(), 0, None),
-
+                None, lambda w,e: self.on_view_page_web_browser(), 0, 
+                "<ImageItem>",
+                get_image(get_resource("images", "note.png")).get_pixbuf()),
                 
             
             ("/_Go", None, None, 0, "<Branch>"),
@@ -1084,13 +1244,14 @@ class TakeNoteWindow (gtk.Window):
                 "<control>D", lambda w,e: self.on_goto_editor(), 0, None),
             
             ("/_Options", None, None, 0, "<Branch>"),
-            ("/Options/sep1", None, None, 0, "<Separator>"),
             ("/Options/_Horizontal Layout",
                 None, lambda w,e: self.set_view_mode("horizontal"), 0, 
                 None),
             ("/Options/_Vertical Layout",
                 None, lambda w,e: self.set_view_mode("vertical"), 0, 
                 None),
+                
+            ("/Options/sep1", None, None, 0, "<Separator>"),
             ("/Options/_TakeNote Options",
                 None, lambda w,e: self.on_app_options(), 0, 
                 "<StockItem>", gtk.STOCK_PREFERENCES),
@@ -1098,6 +1259,7 @@ class TakeNoteWindow (gtk.Window):
             ("/_Help",       None, None, 0, "<LastBranch>" ),
             ("/Help/Drap and Drop Test",
                 None, lambda w,e: self.on_drag_and_drop_test(), 0, None),
+            ("/Help/sep1", None, None, 0, "<Separator>"),
             ("/Help/About", None, lambda w,e: self.on_about(), 0, None ),
             )    
     
