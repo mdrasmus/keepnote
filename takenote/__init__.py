@@ -789,7 +789,7 @@ g_notebook_pref_parser = xmlo.XmlObject(
             getobj=("window_size", lambda x: tuple(map(int,x.split(",")))),
             set=lambda s: "%d,%d" % s.window_size),
         xmlo.Tag("vsash_pos",
-            getobj=("vhash_pos", int),
+            getobj=("vsash_pos", int),
             set=lambda s: "%d" % s.vsash_pos),
         xmlo.Tag("hsash_pos",
             getobj=("hsash_pos", int),
