@@ -200,11 +200,11 @@ class TakeNoteWindow (gtk.Window):
         sw.add(self.treeview)
         self.hpaned.add1(sw)
 
-        sw = gtk.ScrolledWindow()
-        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        sw.set_shadow_type(gtk.SHADOW_IN)
-        sw.add(self.selector)
-        self.paned2.add1(sw)
+        self.selector_sw = gtk.ScrolledWindow()
+        self.selector_sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.selector_sw.set_shadow_type(gtk.SHADOW_IN)
+        self.selector_sw.add(self.selector)
+        self.paned2.add1(self.selector_sw)
 
         self.paned2.add2(self.editor.view)
         
@@ -212,13 +212,31 @@ class TakeNoteWindow (gtk.Window):
         self.show_all()        
         self.treeview.grab_focus()
         
-        #gxml = gtk.glade.XML(get_resource("rc", "app_config.glade"))
-        #app_config_dialog = gxml.get_widget("app_config_dialog")
-        #app_config_dialog.set_transient_for(self)
-        #app_config_dialog.show()
-        
     
-
+    def set_view_mode(self, mode):
+        
+        self.paned2.remove(self.selector_sw)
+        self.paned2.remove(self.editor.view)
+        self.hpaned.remove(self.paned2)
+        
+        if mode == "vertical":
+            # create a vertical paned widget
+            self.paned2 = gtk.VPaned()
+        else:
+            self.paned2 = gtk.HPaned()
+        self.paned2.set_position(self.notebook.pref.vsash_pos)
+        self.paned2.show()
+        
+        self.hpaned.add2(self.paned2)
+        self.hpaned.show()
+        
+        self.paned2.add1(self.selector_sw)
+        self.paned2.add2(self.editor.view)
+        
+        self.app.pref.view_mode = mode
+        self.app.pref.write()
+    
+    
     def set_status(self, text, bar="status"):
         if bar == "status":
             self.status_bar.pop(0)
@@ -228,8 +246,8 @@ class TakeNoteWindow (gtk.Window):
             self.stats_bar.push(0, text)
         else:
             raise Exception("unknown bar '%s'" % bar)
-
-
+    
+    
     def error(self, text, error):
         """Display an error message"""
         #self.set_status(text)
@@ -740,6 +758,101 @@ class TakeNoteWindow (gtk.Window):
             if ret != 0:
                 self.error("Could not open page in text editor")
     
+    
+    #===================================================================
+    # Application options
+    
+    def on_app_options(self):
+        self.app_config_xml = gtk.glade.XML(get_resource("rc", "app_config.glade"))    
+        self.app_config_dialog = self.app_config_xml.get_widget("app_config_dialog")
+        self.app_config_dialog.set_transient_for(self)
+        
+        
+        self.app_config_xml.signal_autoconnect({
+            "on_ok_button_clicked": 
+                lambda w: self.on_app_options_ok(),
+            "on_cancel_button_clicked": 
+                lambda w: self.app_config_dialog.destroy(),
+                
+            "on_default_notebook_button_clicked": 
+                lambda w: self.on_app_options_browse("default_notebook", 
+                                                     "Choose Default Notebook"),
+            "on_file_explorer_button_clicked": 
+                lambda w: self.on_app_options_browse("file_explorer",
+                                                     "Choose File Manager Application"),
+            "on_web_browser_button_clicked": 
+                lambda w: self.on_app_options_browse("web_browser",
+                                                     "Choose Web Browser Application"),
+            "on_text_editor_button_clicked": 
+                lambda w: self.on_app_options_browse("text_editor",
+                                                     "Choose Text Editor Application"),
+            "on_image_editor_button_clicked": 
+                lambda w: self.on_app_options_browse("image_editor",
+                                                     "Choose Image Editor Application"),
+            })
+        
+        # populate dialog
+        self.app_config_xml.get_widget("default_notebook_entry").\
+            set_text(self.app.pref.default_notebook)
+        
+        self.app_config_xml.get_widget("file_explorer_entry").\
+            set_text(self.app.pref.external_apps.get("file_explorer", ""))
+        self.app_config_xml.get_widget("web_browser_entry").\
+            set_text(self.app.pref.external_apps.get("web_browser", ""))
+        self.app_config_xml.get_widget("text_editor_entry").\
+            set_text(self.app.pref.external_apps.get("text_editor", ""))
+        self.app_config_xml.get_widget("image_editor_entry").\
+            set_text(self.app.pref.external_apps.get("image_editor", ""))
+        
+        
+        self.app_config_dialog.show()
+    
+    
+    def on_app_options_browse(self, name, title):
+        dialog = gtk.FileChooserDialog(title, self.app_config_dialog, 
+            action=gtk.FILE_CHOOSER_ACTION_OPEN,
+            buttons=("Cancel", gtk.RESPONSE_CANCEL,
+                     "Open", gtk.RESPONSE_OK))
+        dialog.connect("response", self.on_app_options_browse_response)
+        dialog.set_transient_for(self.app_config_dialog)
+        dialog.set_modal(True)
+        
+        # NOTE: monkey patch
+        dialog.entry_name = name
+        
+        dialog.show()
+    
+    
+    def on_app_options_browse_response(self, dialog, response):
+        if response == gtk.RESPONSE_OK:
+            filename = dialog.get_filename()
+            dialog.destroy()
+            
+            self.app_config_xml.get_widget(dialog.entry_name + "_entry").\
+                set_text(filename)
+            
+        elif response == gtk.RESPONSE_CANCEL:
+            dialog.destroy()
+    
+    
+    def on_app_options_ok(self):
+        self.app.pref.default_notebook = \
+            self.app_config_xml.get_widget("default_notebook_entry").get_text()
+        
+        self.app.pref.external_apps["file_explorer"] = \
+            self.app_config_xml.get_widget("file_explorer_entry").get_text()
+        self.app.pref.external_apps["web_browser"] = \
+            self.app_config_xml.get_widget("web_browser_entry").get_text()
+        self.app.pref.external_apps["text_editor"] = \
+            self.app_config_xml.get_widget("text_editor_entry").get_text()
+        self.app.pref.external_apps["image_editor"] = \
+            self.app_config_xml.get_widget("image_editor_entry").get_text()
+        
+        self.app.pref.write()
+        
+        self.app_config_dialog.destroy()
+        self.app_config_dialog = None
+    
     #================================================
     # Drag and drop texting dialog
     
@@ -969,7 +1082,18 @@ class TakeNoteWindow (gtk.Window):
                 "<control>Y", lambda w,e: self.on_goto_listview(), 0, None),
             ("/Go/Go To _Editor",
                 "<control>D", lambda w,e: self.on_goto_editor(), 0, None),
-                
+            
+            ("/_Options", None, None, 0, "<Branch>"),
+            ("/Options/sep1", None, None, 0, "<Separator>"),
+            ("/Options/_Horizontal Layout",
+                None, lambda w,e: self.set_view_mode("horizontal"), 0, 
+                None),
+            ("/Options/_Vertical Layout",
+                None, lambda w,e: self.set_view_mode("vertical"), 0, 
+                None),
+            ("/Options/_TakeNote Options",
+                None, lambda w,e: self.on_app_options(), 0, 
+                "<StockItem>", gtk.STOCK_PREFERENCES),
             
             ("/_Help",       None, None, 0, "<LastBranch>" ),
             ("/Help/Drap and Drop Test",
@@ -1202,6 +1326,7 @@ class TakeNote (object):
     def __init__(self, basedir=""):
         self.basedir = basedir
         self.pref = takenote.TakeNotePreferences()
+        
         
         takenote.BASEDIR = basedir
         self.pref.read()
