@@ -316,6 +316,8 @@ class HtmlBuffer (HTMLParser):
                             tag = self.buffer.center_tag
                         elif align == "right":
                             tag = self.buffer.right_tag
+                        elif align == "justify":
+                            tag = self.buffer.fill_tag
                         else:
                             raise HtmlError("unknown justification '%s'" % align)
                     else:
@@ -414,8 +416,10 @@ class HtmlBuffer (HTMLParser):
                     text = "left"
                 elif tag == self.buffer.center_tag:
                     text = "center"
-                else:
+                elif tag == self.buffer.right_tag:
                     text = "right"
+                else:
+                    text = "justify"
                 self.out.write("<div style='text-align: %s'>" % text)
             else:
                 raise HtmlError("unknown tag")
@@ -753,6 +757,7 @@ class RichTextBuffer (gtk.TextBuffer):
         self.left_tag = self.create_tag("Left", justification=gtk.JUSTIFY_LEFT)
         self.center_tag = self.create_tag("Center", justification=gtk.JUSTIFY_CENTER)
         self.right_tag = self.create_tag("Right", justification=gtk.JUSTIFY_RIGHT)
+        self.fill_tag = self.create_tag("Fill", justification=gtk.JUSTIFY_FILL)
         
         self.justify2name = {
             gtk.JUSTIFY_LEFT: "left", 
@@ -761,7 +766,8 @@ class RichTextBuffer (gtk.TextBuffer):
             gtk.JUSTIFY_FILL: "fill" # TODO: implement fully
         }
         
-        self.justify_tags = set([self.left_tag, self.center_tag, self.right_tag])
+        self.justify_tags = set([self.left_tag, self.center_tag, self.right_tag,
+                                 self.fill_tag])
         self.family_tags = set()
         self.size_tags = set()
         
@@ -1218,6 +1224,9 @@ class RichTextBuffer (gtk.TextBuffer):
         elif self.right_tag in current_tags:
             justify = "right"
         
+        elif self.fill_tag in current_tags:
+            justify = "fill"
+        
         # get size in points (get_size() returns pango units)
         size = font.get_size() // 1024
         
@@ -1647,7 +1656,9 @@ class RichTextView (gtk.TextView):
     
     def on_right_justify(self):
         self.textbuffer.apply_tag_selected(self.textbuffer.right_tag)
-        
+    
+    def on_fill_justify(self):
+        self.textbuffer.apply_tag_selected(self.textbuffer.fill_tag)
     
     #==================================================================
     # UI Updating from fonts

@@ -476,7 +476,8 @@ class TakeNoteWindow (gtk.Window):
         self.fixed_width_button.handler_block(self.fixed_width_id)
         self.left_button.handler_block(self.left_id)
         self.center_button.handler_block(self.center_id)
-        self.right_button.handler_block(self.right_id) 
+        self.right_button.handler_block(self.right_id)
+        self.fill_button.handler_block(self.fill_id)
         
         # update font mods
         self.bold_button.set_active(mods["bold"])
@@ -487,7 +488,8 @@ class TakeNoteWindow (gtk.Window):
         # update text justification
         self.left_button.set_active(justify == "left")
         self.center_button.set_active(justify == "center")
-        self.right_button.set_active(justify == "right")                
+        self.right_button.set_active(justify == "right")
+        self.fill_button.set_active(justify == "fill")
         
         # update font button
         self.font_sel.set_font_name("%s %d" % (family, size))
@@ -501,7 +503,7 @@ class TakeNoteWindow (gtk.Window):
         self.left_button.handler_unblock(self.left_id)
         self.center_button.handler_unblock(self.center_id)
         self.right_button.handler_unblock(self.right_id) 
-        
+        self.fill_button.handler_unblock(self.fill_id)
         
 
     def on_bold(self):
@@ -555,7 +557,12 @@ class TakeNoteWindow (gtk.Window):
         mods, justify, family, size = self.editor.textview.get_font()
         self.on_font_change(mods, justify, family, size)
 
-
+    def on_fill_justify(self):
+        self.editor.textview.on_fill_justify()
+        mods, justify, family, size = self.editor.textview.get_font()
+        self.on_font_change(mods, justify, family, size)
+    
+    
     #==================================================
     # font callbacks
 
@@ -887,6 +894,11 @@ class TakeNoteWindow (gtk.Window):
                 "<control>R", lambda w,e: self.on_right_justify(), 0, 
                 "<ImageItem>", 
                 get_image(get_resource("images", "alignright.png")).get_pixbuf()),
+            ("/Format/_Justify Align", 
+                "<control>J", lambda w,e: self.on_fill_justify(), 0, 
+                "<ImageItem>", 
+                get_image(get_resource("images", "alignjustify.png")).get_pixbuf()),
+            
             ("/Format/sep1", 
                 None, None, 0, "<Separator>" ),            
             ("/Format/_Bold", 
@@ -1139,8 +1151,8 @@ class TakeNoteWindow (gtk.Window):
         icon.set_from_file(get_resource("images", "alignleft.png"))
         self.left_button = gtk.ToggleToolButton()
         self.left_button.set_icon_widget(icon)
-        tips.set_tip(self.left_button, "Left Justify")
-        self.left_id = self.left_button.connect("toggled", lambda w: self.editor.textview.on_left_justify())
+        tips.set_tip(self.left_button, "Left Align")
+        self.left_id = self.left_button.connect("toggled", lambda w: self.on_left_justify())
         toolbar.insert(self.left_button, -1)
         
         # center tool
@@ -1148,8 +1160,8 @@ class TakeNoteWindow (gtk.Window):
         icon.set_from_file(get_resource("images", "aligncenter.png"))
         self.center_button = gtk.ToggleToolButton()
         self.center_button.set_icon_widget(icon)
-        tips.set_tip(self.center_button, "Center Justify")
-        self.center_id = self.center_button.connect("toggled", lambda w: self.editor.textview.on_center_justify())
+        tips.set_tip(self.center_button, "Center Align")
+        self.center_id = self.center_button.connect("toggled", lambda w: self.on_center_justify())
         toolbar.insert(self.center_button, -1)
         
         # right tool
@@ -1157,10 +1169,18 @@ class TakeNoteWindow (gtk.Window):
         icon.set_from_file(get_resource("images", "alignright.png"))
         self.right_button = gtk.ToggleToolButton()
         self.right_button.set_icon_widget(icon)
-        tips.set_tip(self.right_button, "Right Justify")
-        self.right_id = self.right_button.connect("toggled", lambda w: self.editor.textview.on_right_justify())
+        tips.set_tip(self.right_button, "Right Align")
+        self.right_id = self.right_button.connect("toggled", lambda w: self.on_right_justify())
         toolbar.insert(self.right_button, -1)
         
+        # justify tool
+        icon = gtk.Image() # icon widget
+        icon.set_from_file(get_resource("images", "alignjustify.png"))
+        self.fill_button = gtk.ToggleToolButton()
+        self.fill_button.set_icon_widget(icon)
+        tips.set_tip(self.fill_button, "Justify Align")
+        self.fill_id = self.fill_button.connect("toggled", lambda w: self.on_fill_justify())
+        toolbar.insert(self.fill_button, -1)
         return toolbar
 
 
