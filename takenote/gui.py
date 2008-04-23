@@ -52,20 +52,26 @@ class TakeNoteEditor (gtk.ScrolledWindow):
 
     def __init__(self):
         gtk.ScrolledWindow.__init__(self)
-        self.textview = RichTextView()
-    
+        
+        # state
+        self._textview = RichTextView()
+        self._page = None
+        
+        # callbacks
+        self.on_page_modified = None
+        
         self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         self.set_shadow_type(gtk.SHADOW_IN)
         
-        self.add(self.textview)
+        self.add(self._textview)
         self.show()
-        self.textview.show()
-        self.on_page_modified = None
+        self._textview.show()
+
         
-        self.page = None
+        
         
     def get_textview(self):
-        return self.textview
+        return self._textview
     
         
     def view_pages(self, pages):
@@ -73,37 +79,37 @@ class TakeNoteEditor (gtk.ScrolledWindow):
         self.save()
             
         if len(pages) == 0:
-            self.page = None
-            self.textview.disable()
+            self._page = None
+            self._textview.disable()
         else:
-            self.page = pages[0]
-            self.textview.enable()
+            self._page = pages[0]
+            self._textview.enable()
             
             try:
-                self.textview.load(self.page.get_data_file())
+                self._textview.load(self._page.get_data_file())
             except RichTextError, e:
-                self.textview.disable()
-                self.page = None
+                self._textview.disable()
+                self._page = None
                 raise
                 
     
     def save(self):
-        if self.page is not None and \
-           self.page.is_valid() and \
-           self.textview.is_modified():
+        if self._page is not None and \
+           self._page.is_valid() and \
+           self._textview.is_modified():
            
             try:
-                self.textview.save(self.page.get_data_file())
+                self._textview.save(self._page.get_data_file())
             except RichTextError, e:
                 raise
             else:
-                self.page.set_modified_time()
-                self.page.save()
+                self._page.set_modified_time()
+                self._page.save()
                 if self.on_page_modified:
-                    self.on_page_modified(self.page)
+                    self.on_page_modified(self._page)
     
     def save_needed(self):
-        return self.textview.is_modified()
+        return self._textview.is_modified()
 
 
 class TakeNoteWindow (gtk.Window):
@@ -533,7 +539,7 @@ class TakeNoteWindow (gtk.Window):
 
     def on_bold(self):
         self.editor.get_textview().on_bold()
-        mods, justify, family, size = self.editor.get_textview.get_font()
+        mods, justify, family, size = self.editor.get_textview().get_font()
         
         self.bold_button.handler_block(self.bold_id)
         self.bold_button.set_active(mods["bold"])
@@ -886,7 +892,7 @@ class TakeNoteWindow (gtk.Window):
         self.app_config_xml = gtk.glade.XML(get_resource("rc", "app_config.glade"))    
         self.app_config_dialog = self.app_config_xml.get_widget("app_config_dialog")
         self.app_config_dialog.set_transient_for(self)
-        
+
         
         self.app_config_xml.signal_autoconnect({
             "on_ok_button_clicked": 
@@ -936,6 +942,7 @@ class TakeNoteWindow (gtk.Window):
         
         
         self.app_config_dialog.show()
+        
     
     
     def on_app_options_browse(self, name, title, filename):
@@ -946,6 +953,7 @@ class TakeNoteWindow (gtk.Window):
         dialog.connect("response", self.on_app_options_browse_response)
         dialog.set_transient_for(self.app_config_dialog)
         dialog.set_modal(True)
+                
         
         if filename != "" and os.path.isabs(filename):
             dialog.set_filename(filename)
@@ -955,6 +963,7 @@ class TakeNoteWindow (gtk.Window):
         dialog.entry_name = name
         
         dialog.show()
+        dialog.move(*self.get_position())
     
     
     def on_app_options_browse_response(self, dialog, response):
@@ -1123,21 +1132,6 @@ class TakeNoteWindow (gtk.Window):
                 "<control>V", lambda w,e: self.on_paste(), 0, 
                 "<StockItem>", gtk.STOCK_PASTE), 
             
-            ("/Edit/sep2", 
-                None, None, 0, "<Separator>"),
-            ("/Edit/_Find In Page",     
-                "<control>F", lambda w,e: self.on_find(False), 0, 
-                "<StockItem>", gtk.STOCK_FIND), 
-            ("/Edit/Find _Next In Page",     
-                "<control>G", lambda w,e: self.on_find(False, forward=True), 0, 
-                "<StockItem>", gtk.STOCK_FIND), 
-            ("/Edit/Find Pre_vious In Page",     
-                "<control><shift>G", lambda w,e: self.on_find(False, forward=False), 0, 
-                "<StockItem>", gtk.STOCK_FIND),                 
-            ("/Edit/_Replace In Page",     
-                "<control>R", lambda w,e: self.on_find(True), 0, 
-                "<StockItem>", gtk.STOCK_FIND), 
-            
             
             ("/Edit/sep3", 
                 None, None, 0, "<Separator>"),
@@ -1153,6 +1147,21 @@ class TakeNoteWindow (gtk.Window):
                 None, lambda w,e: self.on_insert_image(), 0, None),
             ("/Edit/Insert _Screenshot",
                 "<control>Insert", lambda w,e: self.on_screenshot(), 0, None),
+            
+            
+            ("/_Search", None, None, 0, "<Branch>"),
+            ("/Search/_Find In Page",     
+                "<control>F", lambda w,e: self.on_find(False), 0, 
+                "<StockItem>", gtk.STOCK_FIND), 
+            ("/Search/Find _Next In Page",     
+                "<control>G", lambda w,e: self.on_find(False, forward=True), 0, 
+                "<StockItem>", gtk.STOCK_FIND), 
+            ("/Search/Find Pre_vious In Page",     
+                "<control><shift>G", lambda w,e: self.on_find(False, forward=False), 0, 
+                "<StockItem>", gtk.STOCK_FIND),                 
+            ("/Search/_Replace In Page",     
+                "<control>R", lambda w,e: self.on_find(True), 0, 
+                "<StockItem>", gtk.STOCK_FIND), 
                 
             
             ("/_Format", 
