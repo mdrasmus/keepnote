@@ -6,11 +6,8 @@
 """
 
 # TODO: shade undo/redo
-# TODO: add pages in treeview
-#       will eventually require lazy loading for treeview
 # TODO: add framework for customized page selector columns
 # TODO: add html links
-# TODO: make better font selecto
 # TODO: add colored text
 
 
@@ -51,28 +48,25 @@ def get_image(filename):
 
 
 
-class TakeNoteEditor (object):
+class TakeNoteEditor (gtk.ScrolledWindow):
 
     def __init__(self):
+        gtk.ScrolledWindow.__init__(self)
         self.textview = RichTextView()
     
-        sw = gtk.ScrolledWindow()
-        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        sw.set_shadow_type(gtk.SHADOW_IN)
+        self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.set_shadow_type(gtk.SHADOW_IN)
         
-        #p = gtk.VBox(False, 5)
-        #p.pack_start(self.textview)
-        #p.pack_start(gtk.HSeparator(), False, True)
-        #p.pack_start(RichTextView())
-        
-        #sw.add_with_viewport(p)
-        sw.add(self.textview)
-        sw.show()
+        self.add(self.textview)
+        self.show()
         self.textview.show()
-        self.view = sw
         self.on_page_modified = None
         
         self.page = None
+        
+    def get_textview(self):
+        return self.textview
+    
         
     def view_pages(self, pages):
         # TODO: generalize to multiple pages
@@ -139,7 +133,7 @@ class TakeNoteWindow (gtk.Window):
         
         # editor
         self.editor = TakeNoteEditor()
-        self.editor.textview.font_callback = self.on_font_change
+        self.editor.get_textview().font_callback = self.on_font_change
         self.editor.on_page_modified = self.on_page_modified
         self.editor.view_pages([])
         
@@ -206,7 +200,7 @@ class TakeNoteWindow (gtk.Window):
         self.selector_sw.add(self.selector)
         self.paned2.add1(self.selector_sw)
 
-        self.paned2.add2(self.editor.view)
+        self.paned2.add2(self.editor)
         
         
         self.show_all()        
@@ -216,7 +210,7 @@ class TakeNoteWindow (gtk.Window):
     def set_view_mode(self, mode):
         
         self.paned2.remove(self.selector_sw)
-        self.paned2.remove(self.editor.view)
+        self.paned2.remove(self.editor)
         self.hpaned.remove(self.paned2)
         
         if mode == "vertical":
@@ -231,7 +225,7 @@ class TakeNoteWindow (gtk.Window):
         self.hpaned.show()
         
         self.paned2.add1(self.selector_sw)
-        self.paned2.add2(self.editor.view)
+        self.paned2.add2(self.editor)
         
         self.app.pref.view_mode = mode
         self.app.pref.write()
@@ -538,8 +532,8 @@ class TakeNoteWindow (gtk.Window):
         
 
     def on_bold(self):
-        self.editor.textview.on_bold()
-        mods, justify, family, size = self.editor.textview.get_font()
+        self.editor.get_textview().on_bold()
+        mods, justify, family, size = self.editor.get_textview.get_font()
         
         self.bold_button.handler_block(self.bold_id)
         self.bold_button.set_active(mods["bold"])
@@ -547,8 +541,8 @@ class TakeNoteWindow (gtk.Window):
     
     
     def on_italic(self):
-        self.editor.textview.on_italic()
-        mods, justify, family, size = self.editor.textview.get_font()
+        self.editor.get_textview().on_italic()
+        mods, justify, family, size = self.editor.get_textview().get_font()
         
         self.italic_button.handler_block(self.italic_id)
         self.italic_button.set_active(mods["italic"])
@@ -556,41 +550,41 @@ class TakeNoteWindow (gtk.Window):
     
     
     def on_underline(self):
-        self.editor.textview.on_underline()
-        mods, justify, family, size = self.editor.textview.get_font()
+        self.editor.get_textview().on_underline()
+        mods, justify, family, size = self.editor.get_textview().get_font()
         
         self.underline_button.handler_block(self.underline_id)        
         self.underline_button.set_active(mods["underline"])
         self.underline_button.handler_unblock(self.underline_id)
     
     def on_fixed_width(self, toolbar):
-        self.editor.textview.on_font_family_toggle("Monospace")    
+        self.editor.get_textview().on_font_family_toggle("Monospace")    
         
         if not toolbar:
-            mods, justify, family, size = self.editor.textview.get_font()
+            mods, justify, family, size = self.editor.get_textview().get_font()
         
             self.fixed_width_button.handler_block(self.fixed_width_id)        
             self.fixed_width_button.set_active(family == "Monospace")
             self.fixed_width_button.handler_unblock(self.fixed_width_id)
 
     def on_left_justify(self):
-        self.editor.textview.on_left_justify()
-        mods, justify, family, size = self.editor.textview.get_font()
+        self.editor.get_textview().on_left_justify()
+        mods, justify, family, size = self.editor.get_textview().get_font()
         self.on_font_change(mods, justify, family, size)
 
     def on_center_justify(self):
-        self.editor.textview.on_center_justify()
-        mods, justify, family, size = self.editor.textview.get_font()
+        self.editor.get_textview().on_center_justify()
+        mods, justify, family, size = self.editor.get_textview().get_font()
         self.on_font_change(mods, justify, family, size)
 
     def on_right_justify(self):
-        self.editor.textview.on_right_justify()
-        mods, justify, family, size = self.editor.textview.get_font()
+        self.editor.get_textview().on_right_justify()
+        mods, justify, family, size = self.editor.get_textview().get_font()
         self.on_font_change(mods, justify, family, size)
 
     def on_fill_justify(self):
-        self.editor.textview.on_fill_justify()
-        mods, justify, family, size = self.editor.textview.get_font()
+        self.editor.get_textview().on_fill_justify()
+        mods, justify, family, size = self.editor.get_textview().get_font()
         self.on_font_change(mods, justify, family, size)
     
     
@@ -602,21 +596,21 @@ class TakeNoteWindow (gtk.Window):
     
     
     def on_font_set(self):
-        self.editor.textview.on_font_set(self.font_sel)
-        self.editor.textview.grab_focus()
+        self.editor.get_textview().on_font_set(self.font_sel)
+        self.editor.get_textview().grab_focus()
     
     def on_font_size_inc(self):
-        mods, justify, family, size = self.editor.textview.get_font()
+        mods, justify, family, size = self.editor.get_textview().get_font()
         size += 2        
-        self.editor.textview.on_font_size_set(size)
+        self.editor.get_textview().on_font_size_set(size)
         self.on_font_change(mods, justify, family, size)
     
     
     def on_font_size_dec(self):
-        mods, justify, family, size = self.editor.textview.get_font()
+        mods, justify, family, size = self.editor.get_textview().get_font()
         if size > 4:
             size -= 2
-        self.editor.textview.on_font_size_set(size)
+        self.editor.get_textview().on_font_size_set(size)
         self.on_font_change(mods, justify, family, size)
     
         
@@ -682,7 +676,7 @@ class TakeNoteWindow (gtk.Window):
         pixbuf = gdk.pixbuf_new_from_file(filename)
         img = RichTextImage()
         img.set_from_pixbuf(pixbuf)
-        self.editor.textview.insert_image(img, savename)
+        self.editor.get_textview().insert_image(img, savename)
         
                 
 
@@ -694,7 +688,7 @@ class TakeNoteWindow (gtk.Window):
         self.selector.grab_focus()
         
     def on_goto_editor(self):
-        self.editor.textview.grab_focus()
+        self.editor.get_textview().grab_focus()
     
     def on_about(self):
         """Display about dialog"""
@@ -709,13 +703,13 @@ class TakeNoteWindow (gtk.Window):
         about.show()
     
     def on_cut(self):
-        self.editor.textview.emit("cut-clipboard")
+        self.editor.get_textview().emit("cut-clipboard")
     
     def on_copy(self):
-        self.editor.textview.emit("copy-clipboard")
+        self.editor.get_textview().emit("copy-clipboard")
     
     def on_paste(self):
-        self.editor.textview.emit("paste-clipboard")
+        self.editor.get_textview().emit("paste-clipboard")
 
     def on_view_folder_file_explorer(self):
         explorer = self.app.pref.external_apps.get("file_explorer", "")
@@ -788,7 +782,7 @@ class TakeNoteWindow (gtk.Window):
         self.find_xml = gtk.glade.XML(get_resource("rc", "app_config.glade"))    
         self.find_dialog = self.find_xml.get_widget("find_dialog")
         self.find_dialog.connect("delete-event", lambda w,e: self.on_find_response("close"))
-        
+        self.find_last_pos = -1
         
             
         
@@ -822,14 +816,15 @@ class TakeNoteWindow (gtk.Window):
     
     def on_find_key_released(self, widget, event):
         
-        if event.keyval == gdk.keyval_from_name("g") and \
-           event.state == gtk.gdk.CONTROL_MASK:
-            self.on_find_response("find_next")
+        if event.keyval == gdk.keyval_from_name("G") and \
+           event.state & gtk.gdk.SHIFT_MASK and \
+           event.state & gtk.gdk.CONTROL_MASK:
+            self.on_find_response("find_prev")
             widget.stop_emission("key-release-event")
         
-        elif event.keyval == gdk.keyval_from_name("G") and \
-           event.state == gtk.gdk.SHIFT_MASK | gtk.gdk.CONTROL_MASK:
-            self.on_find_response("find_prev")
+        elif event.keyval == gdk.keyval_from_name("g") and \
+           event.state & gtk.gdk.CONTROL_MASK:
+            self.on_find_response("find_next")
             widget.stop_emission("key-release-event")
 
     
@@ -842,32 +837,33 @@ class TakeNoteWindow (gtk.Window):
         case_sensitive = self.find_xml.get_widget("case_sensitive_button").get_active()
         search_forward = self.find_xml.get_widget("forward_button").get_active()
         
-        #print find_text, replace_text, search_forward, case_sensitive
-        
         self.find_text = find_text
         self.replace_text = replace_text
+        next = (self.find_last_pos != -1)
         
+                
         if response == "close":
             self.find_dialog.destroy()
             self.find_dialog = None
             
         elif response == "find":
-            self.editor.textview.find(find_text, case_sensitive, search_forward)
+            self.find_last_pos = self.editor.get_textview().find(find_text, case_sensitive, search_forward,
+                                      next)
 
         elif response == "find_next":
             self.find_xml.get_widget("forward_button").set_active(True)
-            self.editor.textview.find(find_text, case_sensitive, True)
+            self.find_last_pos = self.editor.get_textview().find(find_text, case_sensitive, True)
 
         elif response == "find_prev":
             self.find_xml.get_widget("backward_button").set_active(True)
-            self.editor.textview.find(find_text, case_sensitive, False)
+            self.find_last_pos = self.editor.get_textview().find(find_text, case_sensitive, False)
         
         elif response == "replace":
-            self.editor.textview.replace(find_text, replace_text,
+            self.find_last_pos = self.editor.get_textview().replace(find_text, replace_text,
                                          case_sensitive, search_forward)
             
         elif response == "replace_all":
-            self.editor.textview.replace_all(find_text, replace_text,
+            self.editor.get_textview().replace_all(find_text, replace_text,
                                              case_sensitive, search_forward)
     
     
@@ -1110,10 +1106,10 @@ class TakeNoteWindow (gtk.Window):
             ("/_Edit", 
                 None, None, 0, "<Branch>"),
             ("/Edit/_Undo", 
-                "<control>Z", lambda w,e: self.editor.textview.undo(), 0, 
+                "<control>Z", lambda w,e: self.editor.get_textview().undo(), 0, 
                 "<StockItem>", gtk.STOCK_UNDO),
             ("/Edit/_Redo", 
-                "<control><shift>Z", lambda w,e: self.editor.textview.redo(), 0, 
+                "<control><shift>Z", lambda w,e: self.editor.get_textview().redo(), 0, 
                 "<StockItem>", gtk.STOCK_REDO),
             ("/Edit/sep1", 
                 None, None, 0, "<Separator>"),
@@ -1366,7 +1362,7 @@ class TakeNoteWindow (gtk.Window):
         self.bold_button = gtk.ToggleToolButton()
         self.bold_button.set_icon_widget(icon)
         tips.set_tip(self.bold_button, "Bold")
-        self.bold_id = self.bold_button.connect("toggled", lambda w: self.editor.textview.on_bold())
+        self.bold_id = self.bold_button.connect("toggled", lambda w: self.editor.get_textview().on_bold())
         toolbar.insert(self.bold_button, -1)
 
 
@@ -1376,7 +1372,7 @@ class TakeNoteWindow (gtk.Window):
         self.italic_button = gtk.ToggleToolButton()
         self.italic_button.set_icon_widget(icon)
         tips.set_tip(self.italic_button, "Italic")
-        self.italic_id = self.italic_button.connect("toggled", lambda w: self.editor.textview.on_italic())
+        self.italic_id = self.italic_button.connect("toggled", lambda w: self.editor.get_textview().on_italic())
         toolbar.insert(self.italic_button, -1)
 
         # underline tool
@@ -1385,7 +1381,7 @@ class TakeNoteWindow (gtk.Window):
         self.underline_button = gtk.ToggleToolButton()
         self.underline_button.set_icon_widget(icon)
         tips.set_tip(self.underline_button, "Underline")
-        self.underline_id = self.underline_button.connect("toggled", lambda w: self.editor.textview.on_underline())
+        self.underline_id = self.underline_button.connect("toggled", lambda w: self.editor.get_textview().on_underline())
         toolbar.insert(self.underline_button, -1)
         
         # fixed-width tool

@@ -1628,7 +1628,7 @@ class RichTextView (gtk.TextView):
         if result:
             self.textbuffer.select_range(result[0], result[1])
             self.scroll_mark_onscreen(self.textbuffer.get_insert())
-            return it.get_offset()
+            return result[0].get_offset()
         else:
             return -1
         
