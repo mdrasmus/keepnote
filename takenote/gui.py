@@ -211,7 +211,9 @@ class TakeNoteWindow (gtk.Window):
         
         self.show_all()        
         self.treeview.grab_focus()
-        
+    
+    
+
     
     def set_view_mode(self, mode):
         
@@ -626,7 +628,13 @@ class TakeNoteWindow (gtk.Window):
     def on_screenshot(self):
         if self.current_page is None:
             return
-    
+        
+        # TODO: add timer in case minimize fails
+        sig = self.connect("window-state-event", self.on_window_state)
+        self.iconify()
+        gtk.main()
+        self.disconnect(sig)
+        
         f, imgfile = tempfile.mkstemp(".png", "takenote")
         os.close(f)
         
@@ -643,6 +651,15 @@ class TakeNoteWindow (gtk.Window):
                 os.remove(imgfile)
             except OSError, e:
                 self.error("Was unable to remove temp file for screenshot", e)
+        
+        self.deiconify()
+        self.present()
+
+    
+
+    def on_window_state(self, window, event):
+        if event.new_window_state & gtk.gdk.WINDOW_STATE_ICONIFIED:
+            gtk.main_quit()
                 
         
     def on_insert_image(self):

@@ -34,7 +34,7 @@ DEFAULT_HSASH_POS = 200
 
 
 # determine UNIX Epoc (which should be 0, unless the current platform has a 
-# different standard)
+# different definition of epoc)
 EPOC = time.mktime((1970, 1, 1, 0, 0, 0, 3, 1, 0)) - time.timezone
 
 #FORMAT = "%a %b %d %I:%M:%S %p %Y"
@@ -160,7 +160,7 @@ def get_str_timestamp(timestamp, current=None):
         else:
 	        return time.strftime("%a, %b %d %I:%M %p", local)        
     else:
-	    return time.strftime("%a, %b %d %I:%M %p %Y", local)
+	    return time.strftime("%a, %b %d, %Y", local)
 
 
 def get_dir_meta_file(nodepath):
