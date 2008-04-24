@@ -48,68 +48,125 @@ def get_image(filename):
 
 
 
-class TakeNoteEditor (gtk.ScrolledWindow):
+class TakeNoteEditor (gtk.Notebook): #(gtk.ScrolledWindow):
 
     def __init__(self):
-        gtk.ScrolledWindow.__init__(self)
+        gtk.Notebook.__init__(self)
+        self.set_scrollable(True)
+        
+        # TODO: may need to update fonts on page change
+        # TODO: add page reorder
+        # TODO: add close button on labels
         
         # state
-        self._textview = RichTextView()
-        self._page = None
+        self._textviews = []
+        self._pages = []
+        
         
         # callbacks
         self.on_page_modified = None
+        self.on_font_change = None
         
-        self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        self.set_shadow_type(gtk.SHADOW_IN)
-        
-        self.add(self._textview)
+        self.new_tab()
         self.show()
-        self._textview.show()
 
-        
-        
+    
+    def on_font_callback(self,  mods, justify, family, size):
+        if self.on_font_change:
+            self.on_font_change(mods, justify, family, size)
         
     def get_textview(self):
-        return self._textview
+        pos = self.get_current_page()
+        
+        if pos == -1:
+            return None
+        else:    
+            return self._textviews[pos]
     
+    
+    def new_tab(self):
+        self._textviews.append(RichTextView())
+        self._pages.append(None)
+        
+        sw = gtk.ScrolledWindow()
+        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        sw.set_shadow_type(gtk.SHADOW_IN)       
+        sw.add(self._textviews[-1])
+        self.append_page(sw, gtk.Label("(Untitled)"))
+        self._textviews[-1].font_callback = self.on_font_callback
+        self._textviews[-1].disable()
+        self._textviews[-1].show()
+        sw.show()
+        self.show()
+        
+        
+    def close_tab(self, pos=None):
+        if self.get_n_pages() <= 1:
+            return
+    
+        if pos is None:
+            pos = self.get_current_page()
+        
+        self.save_tab(pos)
+
+        del self._pages[pos]
+        del self._textviews[pos]
+        self.remove_page(pos)
+            
         
     def view_pages(self, pages):
         # TODO: generalize to multiple pages
         self.save()
-            
+        
         if len(pages) == 0:
-            self._page = None
-            self._textview.disable()
+            if self.get_n_pages() > 0:
+                pos = self.get_current_page()
+                self._pages[pos] = None
+                self._textviews[pos].disable()
         else:
-            self._page = pages[0]
-            self._textview.enable()
+            if self.get_n_pages() == 0:
+                self.new_tab()
+            
+            pos = self.get_current_page()
+            self._pages[pos] = pages[0]
+            self._textviews[pos].enable()
+            self.set_tab_label_text(self.get_children()[pos], 
+                                    self._pages[pos].get_title())
+
             
             try:
-                self._textview.load(self._page.get_data_file())
+                self._textviews[pos].load(self._pages[pos].get_data_file())
             except RichTextError, e:
-                self._textview.disable()
-                self._page = None
+                self._textviews[pos].disable()
+                self._pages[pos] = None
                 raise
                 
     
     def save(self):
-        if self._page is not None and \
-           self._page.is_valid() and \
-           self._textview.is_modified():
-           
-            try:
-                self._textview.save(self._page.get_data_file())
-            except RichTextError, e:
-                raise
-            else:
-                self._page.set_modified_time()
-                self._page.save()
-                if self.on_page_modified:
-                    self.on_page_modified(self._page)
+        for pos in xrange(self.get_n_pages()):
+            self.save_tab(pos)
+            
+    
+    def save_tab(self, pos):
+        if self._pages[pos] is not None and \
+            self._pages[pos].is_valid() and \
+            self._textviews[pos].is_modified():
+
+             try:
+                 self._textviews[pos].save(self._pages[pos].get_data_file())
+             except RichTextError, e:
+                 raise
+             else:
+                 self._pages[pos].set_modified_time()
+                 self._pages[pos].save()
+                 if self.on_page_modified:
+                     self.on_page_modified(self._pages[pos])
     
     def save_needed(self):
-        return self._textview.is_modified()
+        for textview in self._textviews:
+            if textview.is_modified():
+                return True
+        return False
 
 
 class TakeNoteWindow (gtk.Window):
@@ -139,7 +196,7 @@ class TakeNoteWindow (gtk.Window):
         
         # editor
         self.editor = TakeNoteEditor()
-        self.editor.get_textview().font_callback = self.on_font_change
+        self.editor.on_font_change = self.on_font_change
         self.editor.on_page_modified = self.on_page_modified
         self.editor.view_pages([])
         
@@ -466,21 +523,26 @@ class TakeNoteWindow (gtk.Window):
         
         if len(pages) > 0:
             self.current_page = pages[0]
+            try:
+                self.editor.view_pages(pages)
+            except RichTextError, e:
+                self.error("Could not load pages", e)
+            
         else:
-            self.current_page = None
+            pass
+            #self.current_page = None
         
-        try:
-            self.editor.view_pages(pages)
-        except RichTextError, e:
-            self.error("Could not load pages", e)
 
     
     def on_select_page(self, page):
-        self.current_page = page
+    
+        
         try:
             if page is None:
-                self.editor.view_pages([])
+                pass
+                #self.editor.view_pages([])
             else:
+                self.current_page = page
                 self.editor.view_pages([page])
         except RichTextError, e:
             self.error("Could not load page '%s'" % page.get_title(), e)
@@ -1110,6 +1172,16 @@ class TakeNoteWindow (gtk.Window):
                 "<control><shift>N", lambda w,e: self.on_new_dir(), 0, 
                 "<ImageItem>", 
                 get_image(get_resource("images", "folder-new.png")).get_pixbuf()),
+            ("/File/sep1", 
+                None, None, 0, "<Separator>" ),
+                
+            ("/File/New _Tab",
+                "<control>T", lambda w,e: self.editor.new_tab(), 0, None),
+            ("/File/C_lose Tab", 
+                "<control>W", lambda w,e: self.editor.close_tab(), 0, None),
+                
+            ("/File/sep2", 
+                None, None, 0, "<Separator>" ),
             ("/File/_Open Notebook",          
                 "<control>O", lambda w,e: self.on_open_notebook(), 0, 
                 "<ImageItem>", 
@@ -1122,9 +1194,10 @@ class TakeNoteWindow (gtk.Window):
                 "<ImageItem>", 
                 get_image(get_resource("images", "save.png")).get_pixbuf()),
             ("/File/_Close Notebook", 
-                "<control>W", lambda w, e: self.close_notebook(), 0, 
+                None, lambda w, e: self.close_notebook(), 0, 
                 "<StockItem>", gtk.STOCK_CLOSE),
-            ("/File/sep1", 
+                
+            ("/File/sep3", 
                 None, None, 0, "<Separator>" ),
             ("/File/Quit", 
                 "<control>Q", lambda w,e: self.on_close(), 0, None),
@@ -1259,7 +1332,7 @@ class TakeNoteWindow (gtk.Window):
             
             ("/_Go", None, None, 0, "<Branch>"),
             ("/Go/Go To _Tree View",
-                "<control>T", lambda w,e: self.on_goto_treeview(), 0, None),
+                "<control><shift>T", lambda w,e: self.on_goto_treeview(), 0, None),
             ("/Go/Go To _List View",
                 "<control>Y", lambda w,e: self.on_goto_listview(), 0, None),
             ("/Go/Go To _Editor",
