@@ -48,11 +48,12 @@ def get_image(filename):
 
 
 
-class TakeNoteEditor (gtk.Notebook): #(gtk.ScrolledWindow):
+class TakeNoteEditor (gtk.VBox): #(gtk.Notebook): #(gtk.ScrolledWindow):
 
     def __init__(self):
-        gtk.Notebook.__init__(self)
-        self.set_scrollable(True)
+        #gtk.Notebook.__init__(self)
+        gtk.VBox.__init__(self, False, 0)
+        #self.set_scrollable(True)
         
         # TODO: may need to update fonts on page change
         # TODO: add page reorder
@@ -76,7 +77,8 @@ class TakeNoteEditor (gtk.Notebook): #(gtk.ScrolledWindow):
             self.on_font_change(mods, justify, family, size)
         
     def get_textview(self):
-        pos = self.get_current_page()
+        #pos = self.get_current_page()
+        pos = 0
         
         if pos == -1:
             return None
@@ -92,14 +94,15 @@ class TakeNoteEditor (gtk.Notebook): #(gtk.ScrolledWindow):
         sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         sw.set_shadow_type(gtk.SHADOW_IN)       
         sw.add(self._textviews[-1])
-        self.append_page(sw, gtk.Label("(Untitled)"))
+        #self.append_page(sw, gtk.Label("(Untitled)"))
+        self.pack_start(sw)
         self._textviews[-1].font_callback = self.on_font_callback
         self._textviews[-1].disable()
         self._textviews[-1].show()
         sw.show()
         self.show()
         
-        
+    '''
     def close_tab(self, pos=None):
         if self.get_n_pages() <= 1:
             return
@@ -112,7 +115,13 @@ class TakeNoteEditor (gtk.Notebook): #(gtk.ScrolledWindow):
         del self._pages[pos]
         del self._textviews[pos]
         self.remove_page(pos)
-            
+    '''
+    
+    def get_n_pages(self):
+        return 1
+    
+    def get_current_page(self):
+        return 0
         
     def view_pages(self, pages):
         # TODO: generalize to multiple pages
@@ -130,8 +139,8 @@ class TakeNoteEditor (gtk.Notebook): #(gtk.ScrolledWindow):
             pos = self.get_current_page()
             self._pages[pos] = pages[0]
             self._textviews[pos].enable()
-            self.set_tab_label_text(self.get_children()[pos], 
-                                    self._pages[pos].get_title())
+            #self.set_tab_label_text(self.get_children()[pos], 
+            #                        self._pages[pos].get_title())
 
             
             try:
@@ -529,8 +538,8 @@ class TakeNoteWindow (gtk.Window):
                 self.error("Could not load pages", e)
             
         else:
-            pass
-            #self.current_page = None
+            self.editor.view_pages([])
+            self.current_page = None
         
 
     
@@ -539,8 +548,7 @@ class TakeNoteWindow (gtk.Window):
         
         try:
             if page is None:
-                pass
-                #self.editor.view_pages([])
+                self.editor.view_pages([])
             else:
                 self.current_page = page
                 self.editor.view_pages([page])
