@@ -1609,6 +1609,52 @@ class RichTextView (gtk.TextView):
         self.textbuffer.insert_image(image, filename)    
     
     
+    def forward_search(self, it, text, case_sensitive):
+        it = it.copy()
+        text = unicode(text, "utf8")
+        if not case_sensitive:
+            text = text.lower()
+        
+        textlen = len(text)
+        
+        while True:
+            end = it.copy()
+            end.forward_chars(textlen)
+                        
+            text2 = it.get_slice(end)
+            if not case_sensitive:
+                text2 = text2.lower()
+            
+            if text2 == text:
+                return it, end
+            if not it.forward_char():
+                return None
+    
+    
+    def backward_search(self, it, text, case_sensitive):
+        it = it.copy()
+        it.backward_char()
+        text = unicode(text, "utf8")
+        if not case_sensitive:
+            text = text.lower()
+        
+        textlen = len(text)
+        
+        while True:
+            end = it.copy()
+            end.forward_chars(textlen)
+                        
+            text2 = it.get_slice(end)
+            if not case_sensitive:
+                text2 = text2.lower()
+            
+            if text2 == text:
+                return it, end
+            if not it.backward_char():
+                return None
+
+        
+    
     def find(self, text, case_sensitive=False, forward=True, next=True):
         # TODO: non-case_sensitive is ignored
         
@@ -1621,9 +1667,9 @@ class RichTextView (gtk.TextView):
         if forward:
             if next:
                 it.forward_char()
-            result = it.forward_search(text, 0)
+            result = self.forward_search(it, text, case_sensitive)
         else:
-            result = it.backward_search(text, 0)
+            result = self.backward_search(it, text, case_sensitive)
         
         if result:
             self.textbuffer.select_range(result[0], result[1])

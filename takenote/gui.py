@@ -906,6 +906,7 @@ class TakeNoteWindow (gtk.Window):
         self.find_xml.get_widget("replace_all_button").set_sensitive(replace)
         
         self.find_dialog.show()
+        self.find_dialog.move(*self.get_position())
     
     def on_find_key_released(self, widget, event):
         
@@ -1050,7 +1051,6 @@ class TakeNoteWindow (gtk.Window):
         dialog.entry_name = name
         
         dialog.show()
-        dialog.move(*self.get_position())
     
     
     def on_app_options_browse_response(self, dialog, response):
