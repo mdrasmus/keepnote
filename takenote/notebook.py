@@ -211,7 +211,7 @@ class NoteBookError (StandardError):
     
     def __str__(self):
         if self.error:
-            return repr(self.error) + "\n" + self.msg
+            return str(self.error) + "\n" + self.msg
         else:
             return self.msg
 
@@ -674,7 +674,7 @@ class NoteBookDir (NoteBookNode):
         try:
             g_dir_meta_data_parser.write(self, self.get_meta_file())
         except IOError, e:
-            raise NoteBookError("Cannot write meta data", e)
+            raise NoteBookError("Cannot write meta data.", e)
 
 
 
@@ -698,12 +698,12 @@ class NoteBookTrash (NoteBookDir):
             assert parent == self._parent
             NoteBookDir.move(self, parent, index)
         else:
-            raise NoteBookError("Trash folder cannot be within any other folder")
+            raise NoteBookError("The Trash folder must be a top-level folder.")
     
     def delete(self):
         """Trash folder cannot be deleted"""
         
-        raise NoteBookError("Cannot delete trash folder")
+        raise NoteBookError("The Trash folder cannot be deleted.")
 
 
 class NoteBookPreferences (object):

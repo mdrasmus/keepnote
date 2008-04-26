@@ -662,11 +662,9 @@ class RichTextImage (RichTextChild):
         except gobject.GError, e:            
             self._widget.set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
             self.pixbuf = None
-            #raise RichTextError("Cannot load image '%s'" % filename, e)
         else:
             self._widget.set_from_pixbuf(self.pixbuf)
         
-        #self.pixbuf = self._widget.get_pixbuf()
     
     
     def set_from_pixbuf(self, pixbuf, filename=None):
@@ -706,13 +704,16 @@ class RichTextImage (RichTextChild):
 # RichText classes
 
 class RichTextError (StandardError):
-    def __init__(self, msg, err):
-        StandardError.__init__(msg)
+    def __init__(self, msg, error):
+        StandardError.__init__(self, msg)
         self.msg = msg
-        self.err = err
+        self.error = error
     
-    def __repr__(self):
-        return str(msg)
+    def __str__(self):
+        if self.error:
+            return str(self.error) + "\n" + self.msg
+        else:
+            return self.msg
 
 
 class RichTextBuffer (gtk.TextBuffer):
@@ -1262,7 +1263,7 @@ class RichTextView (gtk.TextView):
     def __init__(self):
         gtk.TextView.__init__(self, RichTextBuffer(self))
         self.textbuffer = self.get_buffer()
-        self.blank_buffer = gtk.TextBuffer()
+        self.blank_buffer = RichTextBuffer(self)
         
         # signals
         self.textbuffer.connect("modified-changed", self.on_modified_changed)
@@ -1486,7 +1487,7 @@ class RichTextView (gtk.TextView):
             self.html_buffer.write(self)
             out.close()
         except IOError, e:
-            raise RichTextError("Could not save '%s'" % filename)
+            raise RichTextError("Could not save '%s'." % filename)
         
         self.textbuffer.set_modified(False)
     
@@ -1508,16 +1509,16 @@ class RichTextView (gtk.TextView):
         err = None
         try:
             self.html_buffer.read(textbuffer, open(filename, "r"))
-        except HtmlError, e:
+        except (HtmlError, IOError), e:
             err = e
             
             # TODO: turn into function
             textbuffer.anchors.clear()
-            textbuffer.deferred_anchors.clear()
+            textbuffer.anchors_deferred.clear()
             self.set_buffer(textbuffer)
             
             ret = False
-        else:    
+        else:
             self.set_buffer(textbuffer)        
             textbuffer.add_deferred_anchors()
         
@@ -1536,7 +1537,7 @@ class RichTextView (gtk.TextView):
 
         
         if not ret:
-            raise RichTextError("error loading '%s'" % filename, e)
+            raise RichTextError("Error loading '%s'." % filename, e)
         
     
     
@@ -1793,5 +1794,6 @@ gobject.signal_new("modified", RichTextView, gobject.SIGNAL_RUN_LAST,
     gobject.TYPE_NONE, (bool,))
 gobject.signal_new("font-change", RichTextView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object, str, str, int))
-
+#gobject.signal_new("error", RichTextView, gobject.SIGNAL_RUN_LAST, 
+#    gobject.TYPE_NONE, (str, object,))
 

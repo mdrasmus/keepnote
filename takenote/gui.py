@@ -75,6 +75,9 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook): #(gtk.ScrolledWindow):
     def on_modified_callback(self, page_num, modified):
         self.emit("modified", self._pages[page_num], modified)
     
+    #def on_error_callback(self, widget, text, error):
+    #    self.emit("error", text, error)
+        
     
     def get_textview(self):
         #pos = self.get_current_page()
@@ -99,6 +102,7 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook): #(gtk.ScrolledWindow):
         self._textviews[-1].connect("font-change", self.on_font_callback)
         self._textviews[-1].connect("modified", lambda t, m:
             self.on_modified_callback(len(self._pages)-1, m))
+        #self._textviews[-1].connect("error", self.on_error_callback)
         self._textviews[-1].disable()
         self._textviews[-1].show()
         sw.show()
@@ -150,7 +154,8 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook): #(gtk.ScrolledWindow):
             except RichTextError, e:
                 self._textviews[pos].disable()
                 self._pages[pos] = None
-                raise
+                
+                self.emit("error", e.msg, e)
                 
     
     def save(self):
@@ -163,13 +168,18 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook): #(gtk.ScrolledWindow):
             self._pages[pos].is_valid() and \
             self._textviews[pos].is_modified():
 
-             try:
-                 self._textviews[pos].save(self._pages[pos].get_data_file())
-             except RichTextError, e:
-                 raise
-             else:
-                 self._pages[pos].set_modified_time()
-                 self._pages[pos].save()
+            try:
+                self._textviews[pos].save(self._pages[pos].get_data_file())
+            except RichTextError, e:
+                self.emit("error", e.msg, e)
+                return
+            
+            self._pages[pos].set_modified_time()
+            
+            try:
+                self._pages[pos].save()
+            except NoteBookError, e:
+                self.emit("error", e.msg, e)
     
     def save_needed(self):
         for textview in self._textviews:
@@ -183,7 +193,8 @@ gobject.signal_new("modified", TakeNoteEditor, gobject.SIGNAL_RUN_LAST,
     gobject.TYPE_NONE, (object, bool))
 gobject.signal_new("font-change", TakeNoteEditor, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object, str, str, int))
-
+gobject.signal_new("error", TakeNoteEditor, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (str, object,))
 
 
 class TakeNoteWindow (gtk.Window):
@@ -203,11 +214,13 @@ class TakeNoteWindow (gtk.Window):
         self.treeview = TakeNoteTreeView()
         self.treeview.connect("select-nodes", self.on_select_treenode)
         self.treeview.connect("node-modified", self.on_treeview_modified)
+        self.treeview.connect("error", lambda w,t,e: self.error(t, e))
         
         # selector
         self.selector = TakeNoteSelector()
         self.selector.connect("select-nodes", self.on_select_pages)
         self.selector.connect("node-modified", self.on_selector_modified)
+        self.selector.connect("error", lambda w,t,e: self.error(t, e))
         self.selector.on_status = self.set_status
         
         
@@ -215,6 +228,7 @@ class TakeNoteWindow (gtk.Window):
         self.editor = TakeNoteEditor()
         self.editor.connect("font-change", self.on_font_change)
         self.editor.connect("modified", self.on_page_editor_modified)
+        self.editor.connect("error", lambda w,t,e: self.error(t, e))  
         self.editor.view_pages([])
         
         #====================================
@@ -323,6 +337,7 @@ class TakeNoteWindow (gtk.Window):
         else:
             raise Exception("unknown bar '%s'" % bar)
     
+            
     
     def error(self, text, error):
         """Display an error message"""
@@ -1080,7 +1095,7 @@ class TakeNoteWindow (gtk.Window):
             dialog.set_filename(filename)
         
         
-        # NOTE: monkey patch
+        # NOTE: monkey patch (note_1)
         dialog.entry_name = name
         
         dialog.show()
@@ -1091,6 +1106,7 @@ class TakeNoteWindow (gtk.Window):
             filename = dialog.get_filename()
             dialog.destroy()
             
+            # NOTE: using monkey patch (note_1)
             self.app_config_xml.get_widget(dialog.entry_name + "_entry").\
                 set_text(filename)
             
@@ -1099,6 +1115,8 @@ class TakeNoteWindow (gtk.Window):
     
     
     def on_app_options_ok(self):
+        # TODO: add arguments
+    
         self.app.pref.default_notebook = \
             self.app_config_xml.get_widget("default_notebook_entry").get_text()
         

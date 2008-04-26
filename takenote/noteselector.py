@@ -211,11 +211,13 @@ class TakeNoteSelector (gtk.TreeView):
         
         page = self.model.get_data(path)
         if page.get_title() != new_text:
-            # NOTE: can raise NoteBookError
-            page.rename(new_text)
-            self.model[path][1] = new_text
+            try:
+                page.rename(new_text)
+                self.model[path][1] = new_text
             
-            self.emit("node-modified", True, page, False)
+                self.emit("node-modified", True, page, False)
+            except NoteBookError, e:
+                self.emit("error", e.msg, e)
         
     
     def on_select_changed(self, treeselect): 
@@ -256,13 +258,17 @@ class TakeNoteSelector (gtk.TreeView):
         path = self.model.get_path(it)
         page = self.model.get_data(model.get_path(it))
         parent = page.get_parent()
-        #page.delete()
-        page.trash()
         
-        self.model.remove(it)
+        try:
+            page.trash()
+            self.model.remove(it)
+
+            self.emit("node-modified", True, parent, True)
+            self.emit("node-modified", True, self.notebook.get_trash(), True)
+            
+        except NoteBookError, e:
+            self.emit("error", e.msg, e)
         
-        self.emit("node-modified", True, parent, True)
-        self.emit("node-modified", True, self.notebook.get_trash(), True)
     
     
     #====================================================
@@ -372,3 +378,5 @@ gobject.signal_new("node-modified", TakeNoteSelector, gobject.SIGNAL_RUN_LAST,
     gobject.TYPE_NONE, (bool, object, bool))
 gobject.signal_new("select-nodes", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object,))
+gobject.signal_new("error", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (str, object,))

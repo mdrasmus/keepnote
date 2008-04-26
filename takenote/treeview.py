@@ -193,10 +193,8 @@ class TakeNoteTreeView (gtk.TreeView):
                 try:
                     source_node.move(new_parent, new_path[-1])
                 except NoteBookError, e:
-                    # TODO: add error box
-                    print "except", e
-                    
                     drag_context.finish(False, False, eventtime)
+                    self.emit("error", e.msg, e)
                     return
 
                 # perform move in tree model
@@ -302,11 +300,14 @@ class TakeNoteTreeView (gtk.TreeView):
         
         # can raise NoteBookError
         if new_text != node.get_title():
-            node.rename(new_text)            
-            self.model[path][2] = new_text
+            try:
+                node.rename(new_text)            
+                self.model[path][2] = new_text
             
-            # notify listeners
-            self.emit("node-modified", True, node, False)
+                # notify listeners
+                self.emit("node-modified", True, node, False)
+            except NoteBookError, e:
+                self.emit("error", e.msg, e)
         
     
     
@@ -328,7 +329,10 @@ class TakeNoteTreeView (gtk.TreeView):
             return    
         node = self.model.get_data(model.get_path(it))
         
-        if node.is_page():
+        if isinstance(node, NoteBookTrash):
+            self.emit("error", "The Trash folder cannot be deleted.", None)
+            return
+        elif node.is_page():
             message = "Do you want to delete this page?"
         else:
             message = "Do you want to delete this folder and all of its pages?"
@@ -361,13 +365,16 @@ class TakeNoteTreeView (gtk.TreeView):
         parent = node.get_parent()
         
         if parent is not None:
-            #node.delete()
-            node.trash()
-            self.update_node(parent)
-            self.update_node(self.notebook.get_trash())
+            try:
+                node.trash()
+                self.update_node(parent)
+                self.update_node(self.notebook.get_trash())
+            except NoteBookError, e:
+                self.emit("error", e.msg, e)
+                
         else:
             # warn
-            print "Cannot delete notebook's toplevel directory"
+            self.emit("error", "Cannot delete notebook's toplevel directory", None)
         
         self.emit("node-modified", True, parent, True)
         self.emit("node-modified", True, self.notebook.get_trash(), True)
@@ -465,3 +472,5 @@ gobject.signal_new("node-modified", TakeNoteTreeView, gobject.SIGNAL_RUN_LAST,
     gobject.TYPE_NONE, (bool, object, bool))
 gobject.signal_new("select-nodes", TakeNoteTreeView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object,))
+gobject.signal_new("error", TakeNoteTreeView, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (str, object,))
