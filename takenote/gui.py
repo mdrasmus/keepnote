@@ -75,7 +75,11 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook): #(gtk.ScrolledWindow):
     def on_font_callback(self,  mods, justify, family, size):
         if self.on_font_change:
             self.on_font_change(mods, justify, family, size)
-        
+    
+    def on_modified_callback(self, page_num, modified):
+        if self.on_page_modified:
+            self.on_page_modified(self._pages[page_num], modified)
+    
     def get_textview(self):
         #pos = self.get_current_page()
         pos = 0
@@ -97,6 +101,8 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook): #(gtk.ScrolledWindow):
         #self.append_page(sw, gtk.Label("(Untitled)"))
         self.pack_start(sw)
         self._textviews[-1].font_callback = self.on_font_callback
+        self._textviews[-1].set_on_modified(lambda m: 
+            self.on_modified_callback(len(self._pages)-1, m))
         self._textviews[-1].disable()
         self._textviews[-1].show()
         sw.show()
@@ -168,8 +174,6 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook): #(gtk.ScrolledWindow):
              else:
                  self._pages[pos].set_modified_time()
                  self._pages[pos].save()
-                 if self.on_page_modified:
-                     self.on_page_modified(self._pages[pos])
     
     def save_needed(self):
         for textview in self._textviews:
@@ -545,7 +549,6 @@ class TakeNoteWindow (gtk.Window):
     
     def on_select_page(self, page):
     
-        
         try:
             if page is None:
                 self.editor.view_pages([])
@@ -555,9 +558,18 @@ class TakeNoteWindow (gtk.Window):
         except RichTextError, e:
             self.error("Could not load page '%s'" % page.get_title(), e)
         
-    def on_page_modified(self, page):
-        self.treeview.update_node(page)
-        self.selector.update_node(page)
+    def on_page_modified(self, page, modified):
+        if page is None:
+            self.set_title("TakeNote")
+            return
+    
+        if not modified:
+            self.set_title("%s" % self.notebook.get_title())
+            self.treeview.update_node(page)
+            self.selector.update_node(page)
+
+        else:
+            self.set_title("* %s" % self.notebook.get_title())
 
     
     def on_treeview_node_changed(self, node, recurse):

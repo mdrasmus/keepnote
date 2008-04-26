@@ -717,6 +717,9 @@ class RichTextBuffer (gtk.TextBuffer):
         self._modified = False
         self.undo_stack = UndoStack()
         
+        # callbacks
+        self.on_modified = None
+        
         # action state
         self.insert_mark = None
         self.next_action = None
@@ -773,10 +776,17 @@ class RichTextBuffer (gtk.TextBuffer):
         
     
     def modify(self):
+        tmp = self._modified
         self._modified = True
+        if not tmp and self.on_modified:
+            self.on_modified(True)
+
     
     def unmodify(self):
         self._modified = False
+        if self.on_modified:
+            self.on_modified(False)
+
         
     
     def is_modified(self):
@@ -1275,6 +1285,7 @@ class RichTextView (gtk.TextView):
         self.set_property("left-margin", 5)
         
         self.font_callback = None
+        
         self.ignore_font_upate = False
         self.first_menu = True
 
@@ -1304,6 +1315,11 @@ class RichTextView (gtk.TextView):
         #self.textbuffer.register_deserialize_format(MIME_TAKENOTE, 
         #                                            self.deserialize, None)
 
+
+    def set_on_modified(self, func):
+        assert self.textbuffer
+        
+        self.textbuffer.on_modified = func
 
     def set_buffer(self, textbuffer):
         # tell current buffer we are detached
