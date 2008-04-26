@@ -1266,7 +1266,7 @@ class RichTextView (gtk.TextView):
         
         # signals
         self.textbuffer.connect("modified-changed", self.on_modified_changed)
-        
+        self.block_modified = False
         
         self.set_wrap_mode(gtk.WRAP_WORD)
         self.set_property("right-margin", 5)
@@ -1304,7 +1304,8 @@ class RichTextView (gtk.TextView):
     def on_modified_changed(self, textbuffer):
         
         # progate modified signal to listeners of this textview
-        self.emit("modified", textbuffer.get_modified())
+        if not self.block_modified:
+            self.emit("modified", textbuffer.get_modified())
     
     
     def set_buffer(self, textbuffer):
@@ -1493,6 +1494,7 @@ class RichTextView (gtk.TextView):
     def load(self, filename):
         textbuffer = self.textbuffer
         
+        self.block_modified = True
         textbuffer.undo_stack.suppress()
         textbuffer.block_signals()
         self.set_buffer(None)
@@ -1528,8 +1530,10 @@ class RichTextView (gtk.TextView):
         self.textbuffer.undo_stack.resume()
         self.textbuffer.undo_stack.reset()
         self.enable()
-        
+
+        self.block_modified = False        
         self.textbuffer.set_modified(False)
+
         
         if not ret:
             raise RichTextError("error loading '%s'" % filename, e)
@@ -1542,6 +1546,7 @@ class RichTextView (gtk.TextView):
     
     def disable(self):
         
+        self.block_modified = True
         self.textbuffer.undo_stack.suppress()
         
         start = self.textbuffer.get_start_iter()
@@ -1552,6 +1557,7 @@ class RichTextView (gtk.TextView):
         
         self.textbuffer.undo_stack.resume()
         self.textbuffer.undo_stack.reset()
+        self.block_modified = False
         self.textbuffer.set_modified(False)
         
     
@@ -1784,7 +1790,7 @@ class RichTextView (gtk.TextView):
 
 gobject.type_register(RichTextView)
 gobject.signal_new("modified", RichTextView, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,))
+    gobject.TYPE_NONE, (bool,))
 gobject.signal_new("font-change", RichTextView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object, str, str, int))
 

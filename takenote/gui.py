@@ -201,20 +201,20 @@ class TakeNoteWindow (gtk.Window):
 
         # treeview
         self.treeview = TakeNoteTreeView()
-        self.treeview.on_select_node = self.on_select_treenode
-        self.treeview.on_node_changed = self.on_treeview_node_changed
+        self.treeview.connect("select-nodes", self.on_select_treenode)
+        self.treeview.connect("node-modified", self.on_treeview_modified)
         
         # selector
         self.selector = TakeNoteSelector()
-        self.selector.on_select_node = self.on_select_page
-        self.selector.on_node_changed = self.on_selector_node_changed
+        self.selector.connect("select-nodes", self.on_select_pages)
+        self.selector.connect("node-modified", self.on_selector_modified)
         self.selector.on_status = self.set_status
         
         
         # editor
         self.editor = TakeNoteEditor()
         self.editor.connect("font-change", self.on_font_change)
-        self.editor.connect("modified", self.on_page_modified)
+        self.editor.connect("modified", self.on_page_editor_modified)
         self.editor.view_pages([])
         
         #====================================
@@ -448,6 +448,8 @@ class TakeNoteWindow (gtk.Window):
         if not new:
             self.set_status("Loaded '%s'" % self.notebook.get_title())
         
+        self.set_notebook_modified(False)
+        
         
     def close_notebook(self, save=True):
         if self.notebook is not None:
@@ -521,6 +523,8 @@ class TakeNoteWindow (gtk.Window):
             
             if needed:
                 self.set_status("Notebook saved")
+            
+            self.set_notebook_modified(False)
     
     
     def on_close(self):
@@ -530,7 +534,7 @@ class TakeNoteWindow (gtk.Window):
         return False
     
     
-    def on_select_treenode(self, nodes):
+    def on_select_treenode(self, treeview, nodes):
         self.sel_nodes = nodes
         self.selector.view_nodes(nodes)
         
@@ -551,37 +555,50 @@ class TakeNoteWindow (gtk.Window):
         
 
     
-    def on_select_page(self, page):
-    
-        try:
-            if page is None:
-                self.editor.view_pages([])
-            else:
-                self.current_page = page
-                self.editor.view_pages([page])
-        except RichTextError, e:
-            self.error("Could not load page '%s'" % page.get_title(), e)
+    def on_select_pages(self, selector, pages):
+
+        # TODO: will need to generalize of multiple pages
         
-    def on_page_modified(self, editor, page, modified):
-        if page is None:
-            self.set_title("TakeNote")
-            return
-    
-        if not modified:
-            self.set_title("%s" % self.notebook.get_title())
+        try:
+            if len(pages) > 0:
+                self.current_page = pages[0]
+            else:
+                self.current_page = None
+            self.editor.view_pages(pages)
+        except RichTextError, e:
+            self.error("Could not load page '%s'" % pages[0].get_title(), e)
+        
+    def on_page_editor_modified(self, editor, page, modified):
+        if page and not modified:
             self.treeview.update_node(page)
             self.selector.update_node(page)
-
-        else:
-            self.set_title("* %s" % self.notebook.get_title())
-
-    
-    def on_treeview_node_changed(self, node, recurse):
-        self.selector.update_node(node)
-
-    def on_selector_node_changed(self, node, recurse):
-        self.treeview.update_node(node)
         
+        if modified:
+            self.set_notebook_modified(modified)
+    
+    
+    def on_treeview_modified(self, treeview, modified, node, recurse):
+        self.set_notebook_modified(modified)
+        
+        if node:
+            self.selector.update_node(node)
+    
+    
+    def on_selector_modified(self, selector, modified, node, recurse):
+        self.set_notebook_modified(modified)
+        
+        if node:
+            self.treeview.update_node(node)
+    
+    
+    def set_notebook_modified(self, modified):
+        if self.notebook is None:
+            self.set_title("TakeNote")
+        else:
+            if modified:
+                self.set_title("* %s" % self.notebook.get_title())
+            else:
+                self.set_title("%s" % self.notebook.get_title())
     
     #=============================================================
     # Font UI Update

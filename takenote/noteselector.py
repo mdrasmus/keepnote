@@ -34,8 +34,6 @@ class TakeNoteSelector (gtk.TreeView):
         gtk.TreeView.__init__(self)
         self.drag_nodes = []
         self.editing = False
-        self.on_select_node = None
-        self.on_node_changed = None
         self.on_status = None
         self.sel_nodes = None
         
@@ -217,18 +215,17 @@ class TakeNoteSelector (gtk.TreeView):
             page.rename(new_text)
             self.model[path][1] = new_text
             
-            if self.on_node_changed:
-                self.on_node_changed(page, False)
+            self.emit("node-modified", True, page, False)
         
     
     def on_select_changed(self, treeselect): 
         model, paths = treeselect.get_selected_rows()
         
-        if len(paths) > 0 and self.on_select_node:
+        if len(paths) > 0:
             node = self.model.get_data(paths[0])
-            self.on_select_node(node)
+            self.emit("select-nodes", [node])
         else:
-            self.on_select_node(None)
+            self.emit("select-nodes", [])
         return True
     
     
@@ -263,8 +260,7 @@ class TakeNoteSelector (gtk.TreeView):
         
         self.model.remove(it)
         
-        if self.on_node_changed:
-            self.on_node_changed(parent, True)
+        self.emit("node-modified", True, parent, True)
     
     
     #====================================================
@@ -309,7 +305,7 @@ class TakeNoteSelector (gtk.TreeView):
                      page.get_modified_time(),
                      npages,
                      page))
-        self.on_select_node(None)
+        self.emit("select-nodes", [])
         
         # reactivate model
         self.model.unblock_row_signals()
@@ -369,4 +365,8 @@ class TakeNoteSelector (gtk.TreeView):
         if self.on_status:
             self.on_status(text, bar=bar)
 
-
+gobject.type_register(TakeNoteSelector)
+gobject.signal_new("node-modified", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (bool, object, bool))
+gobject.signal_new("select-nodes", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (object,))

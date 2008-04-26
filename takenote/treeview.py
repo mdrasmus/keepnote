@@ -26,8 +26,6 @@ class TakeNoteTreeView (gtk.TreeView):
     def __init__(self):
         gtk.TreeView.__init__(self)
     
-        self.on_select_node = None
-        self.on_node_changed = None
         self.editing = False
         
         # create a TreeStore with one string column to use as the model
@@ -213,6 +211,8 @@ class TakeNoteTreeView (gtk.TreeView):
                 if source_widget != self:
                     self.model.remove(source)
                 
+                self.emit("modified", True, None, False)
+                
             else:                
                 # process node move that is not in treeview
                 new_parent_path = new_path[:-1]
@@ -286,23 +286,26 @@ class TakeNoteTreeView (gtk.TreeView):
     
         node = self.model.get_data(path)
         
+        # do not allow empty names
+        if new_text.strip() == "":
+            return
+        
         # can raise NoteBookError
         if new_text != node.get_title():
             node.rename(new_text)            
             self.model[path][2] = new_text
             
-            # notify listener
-            if self.on_node_changed:
-                self.on_node_changed(node, False)
+            # notify listeners
+            self.emit("modified", True, node, False)
         
     
     
     def on_select_changed(self, treeselect): 
         model, paths = treeselect.get_selected_rows()
         
-        if len(paths) > 0 and self.on_select_node:
+        if len(paths) > 0:
             nodes = [self.model.get_data(path) for path in paths]
-            self.on_select_node(nodes)
+            self.emit("select-nodes", nodes)
         return True
     
     
@@ -343,9 +346,9 @@ class TakeNoteTreeView (gtk.TreeView):
             # warn
             print "Cannot delete notebook's toplevel directory"
         
-        if self.on_select_node:
-            self.on_select_node([])
-           
+        self.emit("modified", True, parent, True)
+        self.emit("select-nodes", [])
+        
     
     #==============================================
     # actions
@@ -429,3 +432,10 @@ class TakeNoteTreeView (gtk.TreeView):
         if expanded:
             self.expand_to_path(path)
         
+
+# new signals
+gobject.type_register(TakeNoteTreeView)
+gobject.signal_new("node-modified", TakeNoteTreeView, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (bool, object, bool))
+gobject.signal_new("select-nodes", TakeNoteTreeView, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (object,))
