@@ -50,6 +50,8 @@ def get_image(filename):
 
 class TakeNoteEditor (gtk.VBox): #(gtk.Notebook): #(gtk.ScrolledWindow):
 
+
+
     def __init__(self):
         #gtk.Notebook.__init__(self)
         gtk.VBox.__init__(self, False, 0)
@@ -63,22 +65,16 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook): #(gtk.ScrolledWindow):
         self._textviews = []
         self._pages = []
         
-        
-        # callbacks
-        self.on_page_modified = None
-        self.on_font_change = None
-        
         self.new_tab()
         self.show()
 
     
-    def on_font_callback(self,  mods, justify, family, size):
-        if self.on_font_change:
-            self.on_font_change(mods, justify, family, size)
+    def on_font_callback(self, textview, mods, justify, family, size):
+        self.emit("font-change", mods, justify, family, size)
     
     def on_modified_callback(self, page_num, modified):
-        if self.on_page_modified:
-            self.on_page_modified(self._pages[page_num], modified)
+        self.emit("modified", self._pages[page_num], modified)
+    
     
     def get_textview(self):
         #pos = self.get_current_page()
@@ -100,8 +96,8 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook): #(gtk.ScrolledWindow):
         sw.add(self._textviews[-1])
         #self.append_page(sw, gtk.Label("(Untitled)"))
         self.pack_start(sw)
-        self._textviews[-1].font_callback = self.on_font_callback
-        self._textviews[-1].set_on_modified(lambda m: 
+        self._textviews[-1].connect("font-change", self.on_font_callback)
+        self._textviews[-1].connect("modified", lambda t, m:
             self.on_modified_callback(len(self._pages)-1, m))
         self._textviews[-1].disable()
         self._textviews[-1].show()
@@ -181,6 +177,14 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook): #(gtk.ScrolledWindow):
                 return True
         return False
 
+# add new signals to TakeNoteEditor
+gobject.type_register(TakeNoteEditor)
+gobject.signal_new("modified", TakeNoteEditor, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (object, bool))
+gobject.signal_new("font-change", TakeNoteEditor, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (object, str, str, int))
+
+
 
 class TakeNoteWindow (gtk.Window):
     def __init__(self, app=""):
@@ -209,8 +213,8 @@ class TakeNoteWindow (gtk.Window):
         
         # editor
         self.editor = TakeNoteEditor()
-        self.editor.on_font_change = self.on_font_change
-        self.editor.on_page_modified = self.on_page_modified
+        self.editor.connect("font-change", self.on_font_change)
+        self.editor.connect("modified", self.on_page_modified)
         self.editor.view_pages([])
         
         #====================================
@@ -558,7 +562,7 @@ class TakeNoteWindow (gtk.Window):
         except RichTextError, e:
             self.error("Could not load page '%s'" % page.get_title(), e)
         
-    def on_page_modified(self, page, modified):
+    def on_page_modified(self, editor, page, modified):
         if page is None:
             self.set_title("TakeNote")
             return
@@ -582,7 +586,7 @@ class TakeNoteWindow (gtk.Window):
     #=============================================================
     # Font UI Update
     
-    def on_font_change(self, mods, justify, family, size):
+    def on_font_change(self, editor, mods, justify, family, size):
         
         # block toolbar handlers
         self.bold_button.handler_block(self.bold_id)

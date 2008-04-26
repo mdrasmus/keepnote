@@ -455,12 +455,12 @@ class ModifyAction (Action):
         self.was_modified = False
     
     def do(self):
-        self.was_modified = self.textbuffer.is_modified()
-        self.textbuffer.modify()
+        self.was_modified = self.textbuffer.get_modified()
+        self.textbuffer.set_modified(True)
     
     def undo(self):
         if not self.was_modified:
-            self.textbuffer.unmodify()
+            self.textbuffer.set_modified(False)
         
 
 # XXX: do I need to record current tags to properly redo insert?
@@ -706,7 +706,13 @@ class RichTextImage (RichTextChild):
 # RichText classes
 
 class RichTextError (StandardError):
-    pass
+    def __init__(self, msg, err):
+        StandardError.__init__(msg)
+        self.msg = msg
+        self.err = err
+    
+    def __repr__(self):
+        return str(msg)
 
 
 class RichTextBuffer (gtk.TextBuffer):
@@ -714,11 +720,8 @@ class RichTextBuffer (gtk.TextBuffer):
         gtk.TextBuffer.__init__(self)
         self.clipboard_contents = None
         self.textview = textview
-        self._modified = False
         self.undo_stack = UndoStack()
         
-        # callbacks
-        self.on_modified = None
         
         # action state
         self.insert_mark = None
@@ -773,25 +776,7 @@ class RichTextBuffer (gtk.TextBuffer):
                                  self.fill_tag])
         self.family_tags = set()
         self.size_tags = set()
-        
-    
-    def modify(self):
-        tmp = self._modified
-        self._modified = True
-        if not tmp and self.on_modified:
-            self.on_modified(True)
-
-    
-    def unmodify(self):
-        self._modified = False
-        if self.on_modified:
-            self.on_modified(False)
-
-        
-    
-    def is_modified(self):
-        return self._modified
-        
+           
     
     def set_textview(self, textview):
         self.textview = textview
@@ -1009,22 +994,22 @@ class RichTextBuffer (gtk.TextBuffer):
         """Callback for tag apply"""
         
         self.begin_user_action()
+        action = ModifyAction(self)
+        self.undo_stack.do(action.do, action.undo)
         action = TagAction(self, tag, start.get_offset(), 
                            end.get_offset(), True)
         self.undo_stack.do(action.do, action.undo, False)
-        action = ModifyAction(self)
-        self.undo_stack.do(action.do, action.undo)
         self.end_user_action()
     
     def on_remove_tag(self, textbuffer, tag, start, end):
         """Callback for tag remove"""
     
         self.begin_user_action()
+        action = ModifyAction(self)
+        self.undo_stack.do(action.do, action.undo)
         action = TagAction(self, tag, start.get_offset(), 
                            end.get_offset(), False)
         self.undo_stack.do(action.do, action.undo, False)
-        action = ModifyAction(self)
-        self.undo_stack.do(action.do, action.undo)
         self.end_user_action()
     
     
@@ -1056,11 +1041,10 @@ class RichTextBuffer (gtk.TextBuffer):
         
         if self.next_action:
             self.begin_user_action()        
-            self.undo_stack.do(self.next_action.do, self.next_action.undo, False)
-            self.next_action = None
             action = ModifyAction(self)
             self.undo_stack.do(action.do, action.undo)
-            
+            self.undo_stack.do(self.next_action.do, self.next_action.undo, False)
+            self.next_action = None            
             self.end_user_action()
     
     #==============================================================
@@ -1271,7 +1255,7 @@ class RichTextBuffer (gtk.TextBuffer):
 
 
 
-    
+
 
 class RichTextView (gtk.TextView):
 
@@ -1280,11 +1264,13 @@ class RichTextView (gtk.TextView):
         self.textbuffer = self.get_buffer()
         self.blank_buffer = gtk.TextBuffer()
         
+        # signals
+        self.textbuffer.connect("modified-changed", self.on_modified_changed)
+        
+        
         self.set_wrap_mode(gtk.WRAP_WORD)
         self.set_property("right-margin", 5)
         self.set_property("left-margin", 5)
-        
-        self.font_callback = None
         
         self.ignore_font_upate = False
         self.first_menu = True
@@ -1315,12 +1301,12 @@ class RichTextView (gtk.TextView):
         #self.textbuffer.register_deserialize_format(MIME_TAKENOTE, 
         #                                            self.deserialize, None)
 
-
-    def set_on_modified(self, func):
-        assert self.textbuffer
+    def on_modified_changed(self, textbuffer):
         
-        self.textbuffer.on_modified = func
-
+        # progate modified signal to listeners of this textview
+        self.emit("modified", textbuffer.get_modified())
+    
+    
     def set_buffer(self, textbuffer):
         # tell current buffer we are detached
         if self.textbuffer:
@@ -1501,7 +1487,7 @@ class RichTextView (gtk.TextView):
         except IOError, e:
             raise RichTextError("Could not save '%s'" % filename)
         
-        self.textbuffer.unmodify()
+        self.textbuffer.set_modified(False)
     
     
     def load(self, filename):
@@ -1517,10 +1503,11 @@ class RichTextView (gtk.TextView):
         textbuffer.remove_all_tags(start, end)
         textbuffer.delete(start, end)
         
+        err = None
         try:
             self.html_buffer.read(textbuffer, open(filename, "r"))
         except HtmlError, e:
-            print e
+            err = e
             
             # TODO: turn into function
             textbuffer.anchors.clear()
@@ -1542,10 +1529,10 @@ class RichTextView (gtk.TextView):
         self.textbuffer.undo_stack.reset()
         self.enable()
         
-        self.textbuffer.unmodify()
+        self.textbuffer.set_modified(False)
         
         if not ret:
-            raise RichTextError("error loading '%s'" % filename)
+            raise RichTextError("error loading '%s'" % filename, e)
         
     
     
@@ -1565,7 +1552,7 @@ class RichTextView (gtk.TextView):
         
         self.textbuffer.undo_stack.resume()
         self.textbuffer.undo_stack.reset()
-        self.textbuffer.unmodify()
+        self.textbuffer.set_modified(False)
         
     
     def load_images(self, path):
@@ -1602,7 +1589,7 @@ class RichTextView (gtk.TextView):
 
     
     def is_modified(self):
-        return self.textbuffer.is_modified()
+        return self.textbuffer.get_modified()
     
     
     """
@@ -1777,9 +1764,7 @@ class RichTextView (gtk.TextView):
     
     def on_update_font(self):
         mods, justify, family, size = self.get_font()
-        
-        if self.font_callback:
-            self.font_callback(mods, justify, family, size)
+        self.emit("font-change", mods, justify, family, size)
     
     def get_font(self):
         return self.textbuffer.get_font()
@@ -1797,6 +1782,10 @@ class RichTextView (gtk.TextView):
         self.textbuffer.redo()    
 
 
-
+gobject.type_register(RichTextView)
+gobject.signal_new("modified", RichTextView, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (gobject.TYPE_BOOLEAN,))
+gobject.signal_new("font-change", RichTextView, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (object, str, str, int))
 
 
