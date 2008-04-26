@@ -23,6 +23,8 @@ PAGE_META_FILE = "page.xml"
 PAGE_DATA_FILE = "page.html"
 PREF_FILE = "notebook.nbk"
 NOTEBOOK_META_DIR = "__NOTEBOOK__"
+TRASH_DIR = "__TRASH__"
+TRASH_NAME = "Trash"
 DEFAULT_PAGE_NAME = "New Page"
 DEFAULT_DIR_NAME = "New Folder"
 
@@ -83,6 +85,18 @@ def get_valid_filename(filename):
     #filename = filename.replace("/", "-")
     #filename = filename.replace("\\", "-")
     #filename = filename.replace("'", "")
+    
+    # don't allow files to start with two underscores
+    if filename.startswith("__"):
+        filename = filename[2:]
+    
+    # don't allow pure whitespace filenames
+    if filename.strip() == "":
+        filename = "folder"
+    
+    # use only lower case, some filesystems have trouble with mixed case
+    filename = filename.lower()
+    
     return filename
     
 
@@ -183,6 +197,9 @@ def get_pref_dir(nodepath):
     """Returns the directory of the notebook preference file"""
     return os.path.join(nodepath, NOTEBOOK_META_DIR)
 
+def get_trash_dir(nodepath):
+    """Returns the trash directory of the notebook"""
+    return os.path.join(nodepath, TRASH_DIR)
 
 
 class NoteBookError (StandardError):
@@ -191,7 +208,8 @@ class NoteBookError (StandardError):
         self.msg = msg
         self.error = error
     
-    def __repr__(self):
+    
+    def __str__(self):
         if self.error:
             return repr(self.error) + "\n" + self.msg
         else:
@@ -327,6 +345,8 @@ class NoteBookNode (object):
             except OSError, e:
                 raise NoteBookError("Do not have permission for move", e)
         
+            self._set_basename(path2)
+            
         self._parent.remove_child(self)
         self._parent = parent
         self._parent.add_child(self, index)
@@ -350,7 +370,30 @@ class NoteBookNode (object):
         
         # make sure to recursively invalidate
         self._invalidate_children()
+    
+    
+    def trash(self):
         
+        if self.in_trash():
+            # delete if in trash folder already
+            self.delete()
+            
+        else:
+            # move to trash
+            self.move(self._notebook._trash)
+        
+        
+    
+    def in_trash(self):
+        """Determines if node is inside Trash folder"""
+        
+        ptr = self._parent
+        while ptr is not None:
+            if ptr == self._notebook._trash:
+                return True
+            ptr = ptr._parent
+        return False
+            
     
     def _invalidate_children(self):
         
@@ -393,10 +436,7 @@ class NoteBookNode (object):
         newpath = get_valid_unique_filename(path, title)
         page = NoteBookPage(newpath, title=title, parent=self, notebook=self._notebook)
         page.create()
-        if self._children is None:
-            self._get_children()
-        page._order = len(self._children)
-        self._children.append(page)
+        self.add_child(page)
         page.save(True)
         return page
     
@@ -406,10 +446,7 @@ class NoteBookNode (object):
         newpath = get_valid_unique_filename(path, title)
         node = NoteBookDir(newpath, title=title, parent=self, notebook=self._notebook)
         node.create()
-        if self._children is None:
-            self._get_children()
-        node._order = len(self._children)
-        self._children.append(node)
+        self.add_child(node)
         node.save(True)
         return node
     
@@ -429,7 +466,13 @@ class NoteBookNode (object):
             pagefile = get_page_meta_file(path2)
             
             try:
-                if os.path.exists(nodefile):
+                if filename == TRASH_DIR:
+                    # create trash node
+                    node = NoteBookTrash(TRASH_NAME, self._notebook)
+                    node.read_meta_data()
+                    self._children.append(node)
+                    
+                elif os.path.exists(nodefile):
                     # create dir node
                     node = NoteBookDir(path2, parent=self, notebook=self._notebook)
                     node.read_meta_data()
@@ -457,14 +500,14 @@ class NoteBookNode (object):
                 child._set_dirty(True)
             
 
-    def add_child(self, child, index):
+    def add_child(self, child, index=None):
         child._notebook = self._notebook
         
         if self._children is None:
             self._get_children()
         
-        if index == None:
-            child._order = self._children[-1]._order + 1
+        if index is None:
+            child._order = len(self._children)
             self._children.append(child)
         else:
             self._children.insert(index, child)
@@ -643,7 +686,25 @@ g_dir_meta_data_parser = xmlo.XmlObject(
             set=lambda s: str(int(s._expanded))) ]))
             
 
+class NoteBookTrash (NoteBookDir):
+    def __init__(self, name, notebook):
+        NoteBookDir.__init__(self, get_trash_dir(notebook.get_path()), 
+                             name, parent=notebook, notebook=notebook)
+        
+    def move(self, parent, index=None):
+        """Trash folder only be under root directory"""
+        
+        if parent == self._notebook:
+            assert parent == self._parent
+            NoteBookDir.move(self, parent, index)
+        else:
+            raise NoteBookError("Trash folder cannot be within any other folder")
     
+    def delete(self):
+        """Trash folder cannot be deleted"""
+        
+        raise NoteBookError("Cannot delete trash folder")
+
 
 class NoteBookPreferences (object):
     """Preference data structure for a NoteBook"""
@@ -669,16 +730,21 @@ g_notebook_pref_parser = xmlo.XmlObject(
 class NoteBook (NoteBookDir):
     def __init__(self, rootdir=None):
         """rootdir -- Root directory of notebook"""
-        NoteBookDir.__init__(self, rootdir)
+        NoteBookDir.__init__(self, rootdir, notebook=self)
         self.pref = NoteBookPreferences()
         if rootdir is not None:
             self._title = os.path.basename(rootdir)
         else:
             self._title = None
         self._dirty = set()
-        self._notebook = self
+        self._trash = None
         
+        if rootdir:
+            self._trash_path = get_trash_dir(self.get_path())
         
+
+    def get_trash(self):
+        return self._trash        
 
     def _set_dirty_node(self, node, dirty):
         if dirty:
@@ -715,6 +781,8 @@ class NoteBook (NoteBookDir):
                 self._set_basename(filename)
             else:
                 raise Exception("cannot load notebook '%s'" % filename)
+            
+            self._trash_path = get_trash_dir(self.get_path())
         self.read_meta_data()
         self.read_preferences()
     
@@ -732,6 +800,37 @@ class NoteBook (NoteBookDir):
         
         assert len(self._dirty) == 0
     
+    
+    def get_children(self):
+        """Returns all children of this node"""
+        if self._children is None:
+            self._get_children()
+            
+            # ensure trash directory exists
+            self._trash = None
+            for child in self._children:
+                if self.is_trash_dir(child):
+                    self._trash = child
+                    break
+            
+            if self._trash is None:
+                try:
+                    self._trash = NoteBookTrash(TRASH_NAME, self)
+                    self._trash.create()
+                    self.add_child(self._trash)
+                except NoteBookError, e:
+                    raise NoteBookError("Cannot create Trash folder", e)
+
+        
+        
+        return self._children
+    
+    
+    def is_trash_dir(self, child):
+        return child.get_path() == self._trash_path
+    
+    #===============================================
+    # preferences
     
     def get_pref_file(self):
         return get_pref_file(self.get_path())

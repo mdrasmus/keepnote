@@ -256,11 +256,13 @@ class TakeNoteSelector (gtk.TreeView):
         path = self.model.get_path(it)
         page = self.model.get_data(model.get_path(it))
         parent = page.get_parent()
-        page.delete()
+        #page.delete()
+        page.trash()
         
         self.model.remove(it)
         
         self.emit("node-modified", True, parent, True)
+        self.emit("node-modified", True, self.notebook.get_trash(), True)
     
     
     #====================================================

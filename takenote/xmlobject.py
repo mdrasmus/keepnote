@@ -187,7 +187,7 @@ class XmlObject (object):
 
             
     def write(self, obj, filename):
-        if isinstance(filename, str):
+        if not hasattr(filename, "write"):
             out = file(filename, "w")
             need_close = True
         else:

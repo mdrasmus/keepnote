@@ -18,7 +18,9 @@ from takenote.treemodel import \
     copy_row, \
     TakeNoteTreeStore
 
-from takenote import get_resource, NoteBookDir, NoteBookPage, NoteBookError
+from takenote import get_resource
+from takenote.notebook import NoteBookDir, NoteBookPage, NoteBookTrash, \
+              NoteBookError
 
 
 class TakeNoteTreeView (gtk.TreeView):
@@ -89,6 +91,7 @@ class TakeNoteTreeView (gtk.TreeView):
         self.icon_folder_closed = gdk.pixbuf_new_from_file(get_resource("images", "folder.png"))
         self.icon_folder_opened = gdk.pixbuf_new_from_file(get_resource("images", "folder-open.png"))
         self.icon_page = gdk.pixbuf_new_from_file(get_resource("images", "note.png"))
+        self.icon_trash = gdk.pixbuf_new_from_file(get_resource("images", "trash.png"))
         #self.drag_source_set_icon_pixbuf(self.icon)
         
 
@@ -187,7 +190,14 @@ class TakeNoteTreeView (gtk.TreeView):
                 new_parent = self.model.get_data(new_parent_path)
 
                 # perform move in notebook model
-                source_node.move(new_parent, new_path[-1])
+                try:
+                    source_node.move(new_parent, new_path[-1])
+                except NoteBookError, e:
+                    # TODO: add error box
+                    print "except", e
+                    
+                    drag_context.finish(False, False, eventtime)
+                    return
 
                 # perform move in tree model
                 self.handler_block(self.expanded_id)
@@ -211,7 +221,7 @@ class TakeNoteTreeView (gtk.TreeView):
                 if source_widget != self:
                     self.model.remove(source)
                 
-                self.emit("modified", True, None, False)
+                self.emit("node-modified", True, None, False)
                 
             else:                
                 # process node move that is not in treeview
@@ -296,7 +306,7 @@ class TakeNoteTreeView (gtk.TreeView):
             self.model[path][2] = new_text
             
             # notify listeners
-            self.emit("modified", True, node, False)
+            self.emit("node-modified", True, node, False)
         
     
     
@@ -311,12 +321,23 @@ class TakeNoteTreeView (gtk.TreeView):
     
     def on_delete_node(self):
         # TODO: add folder name to message box
-    
+        
+        # get node to delete
+        model, it = self.get_selection().get_selected()
+        if it is None:
+            return    
+        node = self.model.get_data(model.get_path(it))
+        
+        if node.is_page():
+            message = "Do you want to delete this page?"
+        else:
+            message = "Do you want to delete this folder and all of its pages?"
+        
         dialog = gtk.MessageDialog(self.get_toplevel(), 
             flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
             type=gtk.MESSAGE_QUESTION, 
             buttons=gtk.BUTTONS_YES_NO, 
-            message_format="Do you want to delete this folder and all of its pages?")
+            message_format=message)
         dialog.connect("response", self.on_delete_node_response)
         dialog.show()
     
@@ -340,13 +361,16 @@ class TakeNoteTreeView (gtk.TreeView):
         parent = node.get_parent()
         
         if parent is not None:
-            node.delete()
+            #node.delete()
+            node.trash()
             self.update_node(parent)
+            self.update_node(self.notebook.get_trash())
         else:
             # warn
             print "Cannot delete notebook's toplevel directory"
         
-        self.emit("modified", True, parent, True)
+        self.emit("node-modified", True, parent, True)
+        self.emit("node-modified", True, self.notebook.get_trash(), True)
         self.emit("select-nodes", [])
         
     
@@ -383,7 +407,9 @@ class TakeNoteTreeView (gtk.TreeView):
     # model manipulation        
     
     def get_icons(self, node):
-        if isinstance(node, NoteBookDir):
+        if isinstance(node, NoteBookTrash):
+            return self.icon_trash, self.icon_trash
+        elif isinstance(node, NoteBookDir):
             return self.icon_folder_closed, self.icon_folder_opened
         else:
             return self.icon_page, self.icon_page
@@ -396,7 +422,7 @@ class TakeNoteTreeView (gtk.TreeView):
                                         node.get_title(), node])
         path = self.model.get_path(it)
         children = list(node.get_children())
-
+        
         if len(children) > 0:
             if self.row_expanded(path):
                 for child in children:
