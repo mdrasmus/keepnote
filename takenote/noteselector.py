@@ -14,7 +14,10 @@ from takenote.treemodel import \
     copy_row, \
     TakeNoteListStore
 
-from takenote import get_resource, NoteBookError, NoteBookDir, NoteBookPage
+from takenote import get_resource
+from takenote import notebook
+from takenote.notebook import NoteBookError, NoteBookDir, NoteBookPage
+
 
     
 class SelectorColumn (object):
@@ -263,9 +266,6 @@ class TakeNoteSelector (gtk.TreeView):
         try:
             page.trash()
             self.model.remove(it)
-
-            #self.emit("node-modified", True, parent, True)
-            #self.emit("node-modified", True, self.notebook.get_trash(), True)
             
         except NoteBookError, e:
             self.emit("error", e.msg, e)
@@ -284,13 +284,38 @@ class TakeNoteSelector (gtk.TreeView):
         self.model.block_row_signals()
         #self.model.set_default_sort_func(None)
         #self.model.set_sort_column_id(-1, gtk.SORT_ASCENDING)
-        self.set_model(None)
         
-        self.sel_nodes = nodes
-        self.model.clear()
+        
+        # set sort
+        if self.sel_nodes is not None and len(self.sel_nodes) == 1:
+            info_sort, sort_dir = self.model.get_sort_column_id()
+            node = self.sel_nodes[0]
+            
+            if sort_dir == gtk.SORT_ASCENDING:
+                sort_dir = 1
+            else:
+                sort_dir = 0
+            
+            if info_sort == 6 or info_sort == -1:
+                node.set_info_sort(notebook.INFO_SORT_MANUAL, sort_dir)
+                
+            elif info_sort == 1:
+                node.set_info_sort(notebook.INFO_SORT_TITLE, sort_dir)
+                
+            elif info_sort == 3:
+                node.set_info_sort(notebook.INFO_SORT_CREATED_TIME, sort_dir)
+                
+            elif info_sort == 5:
+                node.set_info_sort(notebook.INFO_SORT_MODIFIED_TIME, sort_dir)
+        
         
         #from rasmus import util
         #util.tic("view")
+        
+        self.set_model(None)
+        
+        self.sel_nodes = nodes
+        self.model.clear()        
         
         npages = 0
         for node in nodes:
@@ -324,6 +349,26 @@ class TakeNoteSelector (gtk.TreeView):
         self.model.unblock_row_signals()
         self.model.refresh_path_data(None)
         self.set_model(self.model)
+        
+        # get sort
+        if len(nodes) == 1:
+            info_sort, sort_dir = nodes[0].get_info_sort()
+            
+            if sort_dir:
+                sort_dir = gtk.SORT_ASCENDING
+            else:
+                sort_dir = gtk.SORT_DESCENDING
+            
+            
+            if info_sort == notebook.INFO_SORT_MANUAL or \
+               info_sort == notebook.INFO_SORT_NONE:
+                self.model.set_sort_column_id(6, sort_dir)
+            elif info_sort == notebook.INFO_SORT_TITLE:
+                self.model.set_sort_column_id(1, sort_dir)            
+            elif info_sort == notebook.INFO_SORT_CREATED_TIME:
+                self.model.set_sort_column_id(3, sort_dir)
+            elif info_sort == notebook.INFO_SORT_MODIFIED_TIME:
+                self.model.set_sort_column_id(5, sort_dir)
         
         #util.toc()
         

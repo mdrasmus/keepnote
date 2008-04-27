@@ -331,6 +331,9 @@ class TakeNoteTreeView (gtk.TreeView):
         if isinstance(node, NoteBookTrash):
             self.emit("error", "The Trash folder cannot be deleted.", None)
             return
+        elif node.get_parent() == None:
+            self.emit("error", "The top-level folder cannot be deleted.", None)
+            return
         elif node.is_page():
             message = "Do you want to delete this page?"
         else:

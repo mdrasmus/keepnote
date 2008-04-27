@@ -41,7 +41,6 @@ DEFAULT_HSASH_POS = 200
 # different definition of epoc)
 EPOC = time.mktime((1970, 1, 1, 0, 0, 0, 3, 1, 0)) - time.timezone
 
-#FORMAT = "%a %b %d %I:%M:%S %p %Y"
 
 """
 
@@ -66,6 +65,14 @@ TM_SEC, \
 TM_WDAY, \
 TM_YDAY, \
 TM_ISDST = range(9)
+
+
+# information sort constants
+INFO_SORT_NONE, \
+INFO_SORT_MANUAL, \
+INFO_SORT_TITLE, \
+INFO_SORT_CREATED_TIME, \
+INFO_SORT_MODIFIED_TIME = range(5)
 
 
 #=============================================================================
@@ -219,7 +226,10 @@ class NoteBookError (StandardError):
 
 
 
+
 class NoteBookNode (object):
+    """A general base class for all nodes in a NoteBook"""
+
     def __init__(self, path, title=None, parent=None, notebook=None):
         self._notebook = notebook
         self._title = title
@@ -231,13 +241,14 @@ class NoteBookNode (object):
         self._order = sys.maxint
         self._children = None
         self._expanded = False
+        self._info_sort = [INFO_SORT_NONE, 1]
         
         self._set_basename(path)
 
         
 
     def create(self):
-        """Initializes the node on disk"""
+        """Initializes the node on disk (create required files/directories)"""
         path = self.get_path()
         
         try:
@@ -323,6 +334,12 @@ class NoteBookNode (object):
     def is_expanded(self):
         return self._expanded
 
+    def set_info_sort(self, info, sort_dir):
+        self._info_sort = (info, sort_dir)
+        self._set_dirty(True)
+    
+    def get_info_sort(self):
+        return self._info_sort
 
     def _set_dirty(self, dirty):
         self._notebook._set_dirty_node(self, dirty)
@@ -601,7 +618,13 @@ g_node_meta_data_tags = [
         set=lambda s: str(s._created_time)),
     xmlo.Tag("modified_time",
         getobj=("_modified_time", int),
-        set=lambda s: str(s._modified_time))]
+        set=lambda s: str(s._modified_time)),
+    xmlo.Tag("info_sort", 
+        get=lambda s, x: s._info_sort.__setitem__(0, int(x)),
+        set=lambda s: str(s._info_sort[0])),
+    xmlo.Tag("info_sort_dir", 
+        get=lambda s, x: s._info_sort.__setitem__(1, int(x)),
+        set=lambda s: str(s._info_sort[1]))]
 
 
 
