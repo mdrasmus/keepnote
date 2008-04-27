@@ -194,7 +194,7 @@ gobject.signal_new("modified", TakeNoteEditor, gobject.SIGNAL_RUN_LAST,
 gobject.signal_new("font-change", TakeNoteEditor, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object, str, str, int))
 gobject.signal_new("error", TakeNoteEditor, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (str, object,))
+    gobject.TYPE_NONE, (str, object))
 
 
 class TakeNoteWindow (gtk.Window):
@@ -349,6 +349,7 @@ class TakeNoteWindow (gtk.Window):
             buttons=gtk.BUTTONS_OK, 
             message_format=text)
         dialog.connect("response", lambda d,r: dialog.destroy())
+        dialog.set_title("Error")
         dialog.show()
         
         print error
@@ -898,6 +899,12 @@ class TakeNoteWindow (gtk.Window):
             if ret != 0:
                 self.error("Could not open page in text editor")
     
+    def on_spell_check_toggle(self, num, widget):
+    
+        textview = self.editor.get_textview()
+        if textview is not None:
+            textview.enable_spell_check(widget.get_active())
+    
     #==================================================================
     # Find dialog
     
@@ -1403,6 +1410,11 @@ class TakeNoteWindow (gtk.Window):
                 "<control>D", lambda w,e: self.on_goto_editor(), 0, None),
             
             ("/_Options", None, None, 0, "<Branch>"),
+            ("/Options/_Spell check", 
+                None, self.on_spell_check_toggle, 0,
+                "<ToggleItem>"),
+                
+            ("/Options/sep1", None, None, 0, "<Separator>"),
             ("/Options/_Horizontal Layout",
                 None, lambda w,e: self.set_view_mode("horizontal"), 0, 
                 None),

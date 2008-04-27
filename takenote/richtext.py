@@ -1284,8 +1284,9 @@ class RichTextView (gtk.TextView):
         self.textbuffer = self.get_buffer()
         self.blank_buffer = RichTextBuffer(self)
         
-        if gtkspell:
-            gtkspell.Spell(self)
+        # spell checker
+        self._spell_checker = None
+        self.enable_spell_check(True)
         
         # signals
         self.textbuffer.connect("modified-changed", self.on_modified_changed)
@@ -1561,27 +1562,7 @@ class RichTextView (gtk.TextView):
         if not ret:
             raise RichTextError("Error loading '%s'." % filename, e)
         
-    
-    
-    def enable(self):
-        self.set_sensitive(True)
-    
-    
-    def disable(self):
-        
-        self.block_modified = True
-        self.textbuffer.undo_stack.suppress()
-        
-        start = self.textbuffer.get_start_iter()
-        end = self.textbuffer.get_end_iter()
-        self.textbuffer.remove_all_tags(start, end)
-        self.textbuffer.delete(start, end)
-        self.set_sensitive(False)
-        
-        self.textbuffer.undo_stack.resume()
-        self.textbuffer.undo_stack.reset()
-        self.block_modified = False
-        self.textbuffer.set_modified(False)
+   
         
     
     def load_images(self, path):
@@ -1616,10 +1597,32 @@ class RichTextView (gtk.TextView):
                         
                         child.pixbuf.save(filename, ext) #, {"quality":"100"})
 
+    #=============================================
+    # State
     
     def is_modified(self):
         return self.textbuffer.get_modified()
     
+        
+    def enable(self):
+        self.set_sensitive(True)
+    
+    
+    def disable(self):
+        
+        self.block_modified = True
+        self.textbuffer.undo_stack.suppress()
+        
+        start = self.textbuffer.get_start_iter()
+        end = self.textbuffer.get_end_iter()
+        self.textbuffer.remove_all_tags(start, end)
+        self.textbuffer.delete(start, end)
+        self.set_sensitive(False)
+        
+        self.textbuffer.undo_stack.resume()
+        self.textbuffer.undo_stack.reset()
+        self.block_modified = False
+        self.textbuffer.set_modified(False)
     
     """
     def serialize(self, register_buf, content_buf, start, end, data):
@@ -1736,6 +1739,21 @@ class RichTextView (gtk.TextView):
         
         return found
         
+    
+    def can_spell_check(self):
+        return gtkspell is not None
+    
+    def enable_spell_check(self, enabled=True):
+        if not self.can_spell_check():
+            return           
+        
+        if enabled:
+            if self._spell_checker is None:
+                self._spell_checker = gtkspell.Spell(self)
+        else:
+            if self._spell_checker is not None:
+                self._spell_checker.detach()
+                self._spell_checker = None
         
     #===========================================================
     # Callbacks from UI to change font 
