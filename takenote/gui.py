@@ -213,13 +213,13 @@ class TakeNoteWindow (gtk.Window):
         # treeview
         self.treeview = TakeNoteTreeView()
         self.treeview.connect("select-nodes", self.on_select_treenode)
-        self.treeview.connect("node-modified", self.on_treeview_modified)
+        #self.treeview.connect("node-modified", self.on_treeview_modified)
         self.treeview.connect("error", lambda w,t,e: self.error(t, e))
         
         # selector
         self.selector = TakeNoteSelector()
         self.selector.connect("select-nodes", self.on_select_pages)
-        self.selector.connect("node-modified", self.on_selector_modified)
+        #self.selector.connect("node-modified", self.on_selector_modified)
         self.selector.connect("error", lambda w,t,e: self.error(t, e))
         self.selector.on_status = self.set_status
         
@@ -453,6 +453,7 @@ class TakeNoteWindow (gtk.Window):
             self.close_notebook()
         
         self.notebook = takenote.NoteBook()
+        self.notebook.node_changed.add(self.on_notebook_node_changed)
         self.notebook.load(filename)
         self.selector.set_notebook(self.notebook)
         self.treeview.set_notebook(self.notebook)
@@ -475,6 +476,7 @@ class TakeNoteWindow (gtk.Window):
                     self.error("Could not save opened page", e)
                 self.set_preferences()
                 self.notebook.save()
+            self.notebook.node_changed.remove(self.on_notebook_node_changed)
             
             self.notebook = None
             self.selector.set_notebook(self.notebook)
@@ -592,19 +594,22 @@ class TakeNoteWindow (gtk.Window):
             self.set_notebook_modified(modified)
     
     
-    def on_treeview_modified(self, treeview, modified, node, recurse):
-        self.set_notebook_modified(modified)
+    #def on_treeview_modified(self, treeview, modified, node, recurse):
+    #    self.set_notebook_modified(modified)
+    #    
+    #    if node:
+    #        self.selector.update_node(node)
+    
+    
+    #def on_selector_modified(self, selector, modified, node, recurse):
+    #    self.set_notebook_modified(modified)
         
-        if node:
-            self.selector.update_node(node)
+        #if node:
+        #    self.treeview.update_node(node)
     
-    
-    def on_selector_modified(self, selector, modified, node, recurse):
-        self.set_notebook_modified(modified)
+    def on_notebook_node_changed(self, node, recurse):
+        self.set_notebook_modified(True)
         
-        if node:
-            self.treeview.update_node(node)
-    
     
     def set_notebook_modified(self, modified):
         if self.notebook is None:

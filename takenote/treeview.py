@@ -28,6 +28,7 @@ class TakeNoteTreeView (gtk.TreeView):
     def __init__(self):
         gtk.TreeView.__init__(self)
     
+        self.notebook = None
         self.editing = False
         
         # create a TreeStore with one string column to use as the model
@@ -191,7 +192,9 @@ class TakeNoteTreeView (gtk.TreeView):
 
                 # perform move in notebook model
                 try:
+                    source_node.suppress_change(self.on_node_changed)
                     source_node.move(new_parent, new_path[-1])
+                    source_node.resume_change(self.on_node_changed)
                 except NoteBookError, e:
                     drag_context.finish(False, False, eventtime)
                     self.emit("error", e.msg, e)
@@ -218,8 +221,6 @@ class TakeNoteTreeView (gtk.TreeView):
                 # the delete
                 if source_widget != self:
                     self.model.remove(source)
-                
-                self.emit("node-modified", True, None, False)
                 
             else:                
                 # process node move that is not in treeview
@@ -304,8 +305,6 @@ class TakeNoteTreeView (gtk.TreeView):
                 node.rename(new_text)            
                 self.model[path][2] = new_text
             
-                # notify listeners
-                self.emit("node-modified", True, node, False)
             except NoteBookError, e:
                 self.emit("error", e.msg, e)
         
@@ -367,8 +366,8 @@ class TakeNoteTreeView (gtk.TreeView):
         if parent is not None:
             try:
                 node.trash()
-                self.update_node(parent)
-                self.update_node(self.notebook.get_trash())
+                #self.update_node(parent)
+                #self.update_node(self.notebook.get_trash())
             except NoteBookError, e:
                 self.emit("error", e.msg, e)
                 
@@ -376,15 +375,20 @@ class TakeNoteTreeView (gtk.TreeView):
             # warn
             self.emit("error", "Cannot delete notebook's toplevel directory", None)
         
-        self.emit("node-modified", True, parent, True)
-        self.emit("node-modified", True, self.notebook.get_trash(), True)
         self.emit("select-nodes", [])
         
+    
+    def on_node_changed(self, node, recurse):
+        #print "changed", node.get_title()
+        self.update_node(node, recurse)
     
     #==============================================
     # actions
     
     def set_notebook(self, notebook):
+        if self.notebook:
+            self.notebook.node_changed.remove(self.on_node_changed)
+    
         self.notebook = notebook
         
         if self.notebook is None:
@@ -392,6 +396,7 @@ class TakeNoteTreeView (gtk.TreeView):
         
         else:
             root = self.notebook.get_root_node()
+            self.notebook.node_changed.add(self.on_node_changed)
             self.add_node(None, root)
             if root.is_expanded():
                 self.expand_to_path(self.model.get_path_from_data(root))
@@ -445,31 +450,35 @@ class TakeNoteTreeView (gtk.TreeView):
             self.add_node(parent, child)
     
     
-    def update_node(self, node):
+    def update_node(self, node, recurse=True):
         path = self.model.get_path_from_data(node)
         if path is None:
             return
-        
-        expanded = self.row_expanded(path)
+
+        # set node title        
         it = self.model.get_iter(path)
-        
         self.model.set(it, 2, node.get_title())
         
-        for child in self.model[path].iterchildren():
-            self.model.remove(child.iter)
-        
-        it = self.model.get_iter(path)
-        for child in node.get_children():
-            self.add_node(it, child)
-        
-        if expanded:
-            self.expand_to_path(path)
+        if recurse:
+            # save expand state
+            expanded = self.row_expanded(path)
+
+            # remove all children
+            for child in self.model[path].iterchildren():
+                self.model.remove(child.iter)
+
+            # readd children
+            it = self.model.get_iter(path)
+            for child in node.get_children():
+                self.add_node(it, child)
+
+            # restore previous expand state
+            if expanded:
+                self.expand_to_path(path)
         
 
 # new signals
 gobject.type_register(TakeNoteTreeView)
-gobject.signal_new("node-modified", TakeNoteTreeView, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (bool, object, bool))
 gobject.signal_new("select-nodes", TakeNoteTreeView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object,))
 gobject.signal_new("error", TakeNoteTreeView, gobject.SIGNAL_RUN_LAST, 

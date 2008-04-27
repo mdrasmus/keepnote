@@ -6,7 +6,9 @@
 
 """
 
+# takenote imports
 import xmlobject as xmlo
+from listening import Listeners
 
 # python imports
 import os, sys, shutil, time, re
@@ -347,11 +349,14 @@ class NoteBookNode (object):
         
             self._set_basename(path2)
             
-        self._parent.remove_child(self)
+        self._parent._remove_child(self)
         self._parent = parent
-        self._parent.add_child(self, index)
+        self._parent._add_child(self, index)
         self._set_dirty(True)
         self.save(True)
+        
+        parent.notify_change(True)
+        old_parent.notify_change(True)
 
         
     
@@ -364,12 +369,14 @@ class NoteBookNode (object):
         except OSError, e:
             raise NoteBookError("Do not have permission to delete", e)
         
-        self._parent.remove_child(self)
+        self._parent._remove_child(self)
         self._valid = False
         self._set_dirty(False)
         
         # make sure to recursively invalidate
         self._invalidate_children()
+        
+        self._parent.notify_change(True)
     
     
     def trash(self):
@@ -429,6 +436,8 @@ class NoteBookNode (object):
             self.save(True)
         except (OSError, NoteBookError), e:
             raise NoteBookError("Cannot rename '%s' to '%s'" % (path, path2), e)
+        
+        self.notify_change(False)
     
     
     def new_page(self, title=DEFAULT_PAGE_NAME):
@@ -436,8 +445,9 @@ class NoteBookNode (object):
         newpath = get_valid_unique_filename(path, title)
         page = NoteBookPage(newpath, title=title, parent=self, notebook=self._notebook)
         page.create()
-        self.add_child(page)
+        self._add_child(page)
         page.save(True)
+        self.notify_change(True)
         return page
     
     
@@ -446,8 +456,9 @@ class NoteBookNode (object):
         newpath = get_valid_unique_filename(path, title)
         node = NoteBookDir(newpath, title=title, parent=self, notebook=self._notebook)
         node.create()
-        self.add_child(node)
+        self._add_child(node)
         node.save(True)
+        self.notify_change(True)
         return node
     
     
@@ -500,7 +511,7 @@ class NoteBookNode (object):
                 child._set_dirty(True)
             
 
-    def add_child(self, child, index=None):
+    def _add_child(self, child, index=None):
         child._notebook = self._notebook
         
         if self._children is None:
@@ -533,11 +544,23 @@ class NoteBookNode (object):
             if isinstance(child, NoteBookPage):
                 yield child
 
-    def remove_child(self, child):
+    def _remove_child(self, child):
         if self._children is None:
             self._get_children()
         self._children.remove(child)
-           
+    
+    
+    def notify_change(self, recurse):
+        if self._notebook:
+            self._notebook.node_changed.notify(self, recurse)
+    
+    def suppress_change(self, listener=None):
+        if self._notebook:
+            self._notebook.node_changed.suppress(listener)
+
+    def resume_change(self, listener=None):
+        if self._notebook:
+            self._notebook.node_changed.resume(listener)
     
     def load(self):
         self.read_meta_data()
@@ -742,6 +765,9 @@ class NoteBook (NoteBookDir):
         if rootdir:
             self._trash_path = get_trash_dir(self.get_path())
         
+        # listeners
+        self.node_changed = Listeners()  # node, recurse
+        
 
     def get_trash(self):
         return self._trash        
@@ -785,6 +811,7 @@ class NoteBook (NoteBookDir):
             self._trash_path = get_trash_dir(self.get_path())
         self.read_meta_data()
         self.read_preferences()
+        self.notify_change(True)
     
     
     def save(self, force=False):
@@ -817,7 +844,7 @@ class NoteBook (NoteBookDir):
                 try:
                     self._trash = NoteBookTrash(TRASH_NAME, self)
                     self._trash.create()
-                    self.add_child(self._trash)
+                    self._add_child(self._trash)
                 except NoteBookError, e:
                     raise NoteBookError("Cannot create Trash folder", e)
 

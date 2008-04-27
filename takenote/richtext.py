@@ -11,6 +11,11 @@
 import sys, os, tempfile, re
 from HTMLParser import HTMLParser
 
+try:
+    import gtkspell
+except ImportError:
+    gtkspell = None
+
 
 # pygtk imports
 import pygtk
@@ -26,10 +31,14 @@ from takenote.undo import UndoStack
 # constants
 MIME_TAKENOTE = "application/x-takenote"
 
+IGNORE_TAGS = set(["gtkspell-misspelled"])
+
+
 #=============================================================================
 # functions for iterating and inserting into textbuffers
 
-def iter_buffer_contents(textbuffer, start=None, end=None):
+def iter_buffer_contents(textbuffer, start=None, end=None,
+                         ignore_tags=IGNORE_TAGS):
     """Iterate over the items of a textbuffer"""
     
     if start == None:
@@ -44,6 +53,8 @@ def iter_buffer_contents(textbuffer, start=None, end=None):
 
     # yield opening tags at begining of region
     for tag in it.get_tags():
+        if tag.get_property("name") in ignore_tags:
+            continue
         yield ("begin", it, tag)
     
     while True:
@@ -79,10 +90,14 @@ def iter_buffer_contents(textbuffer, start=None, end=None):
         
         # yield closing tags
         for tag in it.get_toggled_tags(False):
+            if tag.get_property("name") in ignore_tags:
+                continue
             yield ("end", it, tag)
 
         # yield opening tags
         for tag in it.get_toggled_tags(True):
+            if tag.get_property("name") in ignore_tags:
+                continue
             yield ("begin", it, tag)
         
         last = it.copy()
@@ -94,6 +109,8 @@ def iter_buffer_contents(textbuffer, start=None, end=None):
     toggled = set(end.get_toggled_tags(False))
     for tag in end.get_tags():
         if tag not in toggled:
+            if tag.get_property("name") in ignore_tags:
+                continue
             yield ("end", end, tag)
 
 
@@ -421,8 +438,10 @@ class HtmlBuffer (HTMLParser):
                 else:
                     text = "justify"
                 self.out.write("<div style='text-align: %s'>" % text)
+            elif tag.get_property("name") in IGNORE_TAGS:
+                pass
             else:
-                raise HtmlError("unknown tag")
+                raise HtmlError("unknown tag '%s'" % tag.get_property("name"))
                 
         
     def write_tag_end(self, tag):
@@ -1264,6 +1283,9 @@ class RichTextView (gtk.TextView):
         gtk.TextView.__init__(self, RichTextBuffer(self))
         self.textbuffer = self.get_buffer()
         self.blank_buffer = RichTextBuffer(self)
+        
+        if gtkspell:
+            gtkspell.Spell(self)
         
         # signals
         self.textbuffer.connect("modified-changed", self.on_modified_changed)

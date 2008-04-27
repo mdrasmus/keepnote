@@ -32,6 +32,7 @@ class TakeNoteSelector (gtk.TreeView):
     
     def __init__(self):
         gtk.TreeView.__init__(self)
+        self.notebook = None
         self.drag_nodes = []
         self.editing = False
         self.on_status = None
@@ -215,7 +216,7 @@ class TakeNoteSelector (gtk.TreeView):
                 page.rename(new_text)
                 self.model[path][1] = new_text
             
-                self.emit("node-modified", True, page, False)
+                #self.emit("node-modified", True, page, False)
             except NoteBookError, e:
                 self.emit("error", e.msg, e)
         
@@ -263,8 +264,8 @@ class TakeNoteSelector (gtk.TreeView):
             page.trash()
             self.model.remove(it)
 
-            self.emit("node-modified", True, parent, True)
-            self.emit("node-modified", True, self.notebook.get_trash(), True)
+            #self.emit("node-modified", True, parent, True)
+            #self.emit("node-modified", True, self.notebook.get_trash(), True)
             
         except NoteBookError, e:
             self.emit("error", e.msg, e)
@@ -273,6 +274,10 @@ class TakeNoteSelector (gtk.TreeView):
     
     #====================================================
     # actions
+    
+    def on_node_changed(self, node, recurse):
+        self.update_node(node)
+        
     
     def view_nodes(self, nodes):
         # deactivate expensive updates for model
@@ -363,10 +368,15 @@ class TakeNoteSelector (gtk.TreeView):
 
     
     def set_notebook(self, notebook):
+        if self.notebook:
+            self.notebook.node_changed.remove(self.on_node_changed)
+        
         self.notebook = notebook
         
         if self.notebook is None:
             self.model.clear()
+        else:
+            self.notebook.node_changed.add(self.on_node_changed)
     
     
     def set_status(self, text, bar="status"):
@@ -374,8 +384,8 @@ class TakeNoteSelector (gtk.TreeView):
             self.on_status(text, bar=bar)
 
 gobject.type_register(TakeNoteSelector)
-gobject.signal_new("node-modified", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (bool, object, bool))
+#gobject.signal_new("node-modified", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
+#    gobject.TYPE_NONE, (bool, object, bool))
 gobject.signal_new("select-nodes", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object,))
 gobject.signal_new("error", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
