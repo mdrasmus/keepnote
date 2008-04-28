@@ -10,107 +10,6 @@ import xml.parsers.expat
 
 
 
-
-def get_dom_children(node):
-    """Convenience function for iterating the children of a DOM object"""
-    child = node.firstChild
-    while child:
-        yield child
-        child = child.nextSibling
-
-
-"""
-class Tag (object):
-    def __init__(self, name, get=None, set=None, tags=[]):
-        self.name = name
-        self.get = get
-        self.set = set
-        
-        self.tags = {}
-        self.tag_list = tags[:]
-        for tag in tags:
-            self.tags[tag.name] = tag
-        
-        self.data = None
-        
-        
-    def write(self, out):
-        out.write(self.set())
-    
-    
-    def add(self, tag):
-        self.tag_list.append(tag)
-        self.tags[tag.name] = tag
-
-
-
-
-class XmlObject (object):
-    def __init__(self, *tags):
-        self.root_tag = Tag("", tags=tags)
-        self.current_tags = [self.root_tag]
-        
-        self.parser = xml.parsers.expat.ParserCreate()
-        self.parser.StartElementHandler = self.__start_element
-        self.parser.EndElementHandler = self.__end_element
-        self.parser.CharacterDataHandler = self.__char_data
-        
-        
-    
-    def __start_element(self, name, attrs):
-        if len(self.current_tags) > 0:
-            last_tag = self.current_tags[-1]
-            if name in last_tag.tags:
-                self.current_tags.append(last_tag.tags[name])
-        
-    def __end_element(self, name):
-        if len(self.current_tags) > 0:
-            if name == self.current_tags[-1].name:
-                self.current_tags.pop()
-        
-    def __char_data(self, data):
-        if len(self.current_tags) > 0:
-            tag = self.current_tags[-1]
-            if tag.get is not None:
-                obj, attr, func = tag.get
-                setattr(obj, attr, func(data))
-            
-            
-    
-    def read(self, filename):
-        if isinstance(filename, str):
-            infile = file(filename)
-        else:
-            infile = filename
-        self.parser.ParseFile(file(filename))
-
-            
-    def write(self, filename):
-        if isinstance(filename, str):
-            out = file(filename, "w")
-        else:
-            out = filename
-        
-        out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
-        self.__write_tag(out, self.root_tag)
-        out.write("\n")
-        out.close()
-        
-        
-    def __write_tag(self, out, tag):
-        if tag.name != "":
-            out.write("<%s>" % tag.name)
-        if len(tag.tags) > 0:
-            out.write("\n")
-            for child_tag in tag.tag_list:
-                self.__write_tag(out, child_tag)
-        else:
-            tag.write(out)
-        if tag.name != "":
-            out.write("</%s>\n" % tag.name)
-
-"""
-
 class Tag (object):
     def __init__(self, name, get=None, set=None, getobj=None, tags=[]):
         self.name = name
@@ -258,3 +157,16 @@ if __name__ == "__main__":
     
     util.toc()
     
+
+
+
+
+'''
+def get_dom_children(node):
+    """Convenience function for iterating the children of a DOM object"""
+    child = node.firstChild
+    while child:
+        yield child
+        child = child.nextSibling
+'''
+

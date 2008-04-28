@@ -301,7 +301,8 @@ class HtmlBuffer (HTMLParser):
             self.buffer.insert(self.buffer.get_end_iter(), "\n")
             self.newline = True
             return
-            
+        
+          
         elif htmltag == "span":
             # apply style
             
@@ -356,26 +357,31 @@ class HtmlBuffer (HTMLParser):
         
         else:
             raise HtmlError("WARNING: unhandled tag '%s'" % htmltag)
-            
+        
+          
         start = self.buffer.get_iter_at_mark(mark)
         self.buffer.apply_tag(tag, start, self.buffer.get_end_iter())
         self.buffer.delete_mark(mark)
 
     def handle_data(self, data):
+        
         if self.newline:
             data = re.sub("\n[\n ]*", "", data)
             self.newline = False
         else:
             data = re.sub("[\n ]+", " ", data)
-        self.buffer.insert(self.buffer.get_end_iter(), data)
+        #self.buffer.insert(self.buffer.get_end_iter(), data)
+        self.buffer.insert_at_cursor(data)
     
     def handle_entityref(self, name):
-        self.buffer.insert(self.buffer.get_end_iter(),
-                           self.entity2char.get(name, ""))
+        #self.buffer.insert(self.buffer.get_end_iter(),
+        #                   self.entity2char.get(name, ""))
+        self.buffer.insert_at_cursor(self.entity2char.get(name, ""))
     
     def handle_charref(self, name):
-        self.buffer.insert(self.buffer.get_end_iter(),
-                           self.charref2char.get(name, ""))
+        #self.buffer.insert(self.buffer.get_end_iter(),
+        #                   self.charref2char.get(name, ""))
+        self.buffer.insert_at_cursor(self.charref2char.get(name, ""))
         
     
     def write(self, richtext):
@@ -1518,12 +1524,14 @@ class RichTextView (gtk.TextView):
     def load(self, filename):
         textbuffer = self.textbuffer
         
+        # unhook expensive callbacks
         self.block_modified = True
         textbuffer.undo_stack.suppress()
         textbuffer.block_signals()
         self.set_buffer(None)
-        textbuffer.anchors.clear()
         
+        # clear buffer
+        textbuffer.anchors.clear()
         start = textbuffer.get_start_iter()
         end = textbuffer.get_end_iter()
         textbuffer.remove_all_tags(start, end)
@@ -1531,7 +1539,13 @@ class RichTextView (gtk.TextView):
         
         err = None
         try:
+            #from rasmus import util
+            #util.tic("read")
+        
             self.html_buffer.read(textbuffer, open(filename, "r"))
+            
+            #util.toc()
+            
         except (HtmlError, IOError), e:
             err = e
             
@@ -1550,6 +1564,7 @@ class RichTextView (gtk.TextView):
             
             ret = True
         
+        # rehook up callbacks
         textbuffer.unblock_signals()
         self.textbuffer.undo_stack.resume()
         self.textbuffer.undo_stack.reset()

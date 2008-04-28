@@ -1,0 +1,11 @@
+
+Required libraries
+  
+  $ apt-get install python python-gtk2 python-glade2 libgtk2.0-dev
+
+
+Optional libraries
+
+  Spell checking
+    
+  $ apt-get install python-gnome2-extras

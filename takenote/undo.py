@@ -62,6 +62,7 @@ class UndoStack (object):
     
     def end_action(self):
         self.action_stack -= 1
+        assert self.action_stack >= 0
 
         if self.action_stack == 0:
             if len(self.pending_actions) > 0:
@@ -77,6 +78,9 @@ class UndoStack (object):
     def resume(self):
         self.suppress_stack -= 1
         assert self.suppress_stack >= 0
+    
+    def is_suppressed(self):
+        return self.suppress_stack > 0
     
     def reset(self):
         self.undo_actions = []

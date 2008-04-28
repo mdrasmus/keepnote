@@ -24,8 +24,8 @@ import gtk.glade
 
 # takenote imports
 import takenote
-from takenote import get_resource, NoteBookError, NoteBookDir, NoteBookPage
-from takenote.undo import UndoStack
+from takenote import get_resource
+from takenote.notebook import NoteBookError, NoteBookDir, NoteBookPage
 from takenote.richtext import RichTextView, RichTextImage, RichTextError
 from takenote.treeview import TakeNoteTreeView
 from takenote.noteselector import TakeNoteSelector
@@ -34,6 +34,8 @@ from takenote.noteselector import TakeNoteSelector
 # constants
 PROGRAM_NAME = "TakeNode"
 PROGRAM_VERSION = "0.1"
+IMAGE_DIR = "images"
+
 
 g_images = {}
 
@@ -45,6 +47,9 @@ def get_image(filename):
         img.set_from_file(filename)
         g_images[filename] = img
         return img
+
+def get_resource_image(*path_list):
+    return get_image(get_resource(IMAGE_DIR, *path_list))
 
 
 
@@ -197,14 +202,18 @@ gobject.signal_new("error", TakeNoteEditor, gobject.SIGNAL_RUN_LAST,
     gobject.TYPE_NONE, (str, object))
 
 
+
+
 class TakeNoteWindow (gtk.Window):
+    """Main windows for TakeNote"""
+
     def __init__(self, app=""):
         gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
         self.app = app
         
         self.set_title("TakeNote")
         self.set_default_size(*takenote.DEFAULT_WINDOW_SIZE)
-        self.connect("delete-event", lambda w,e: self.on_close())
+        self.connect("delete-event", lambda w,e: self.on_quit())
         
         self.notebook = None
         self.sel_nodes = []
@@ -249,25 +258,23 @@ class TakeNoteWindow (gtk.Window):
         main_vbox2 = gtk.VBox(False, 0)
         main_vbox2.set_border_width(1)
         main_vbox.pack_start(main_vbox2, True, True, 0)
-        
-        #==========================================
+                
         # create a horizontal paned widget
         self.hpaned = gtk.HPaned()
         main_vbox2.pack_start(self.hpaned, True, True, 0)
         self.hpaned.set_position(takenote.DEFAULT_HSASH_POS)
-
-        
-        
         
         # status bar
         status_hbox = gtk.HBox(False, 0)
         main_vbox.pack_start(status_hbox, False, True, 0)
         
+        # message bar
         self.status_bar = gtk.Statusbar()      
         status_hbox.pack_start(self.status_bar, False, True, 0)
         self.status_bar.set_property("has-resize-grip", False)
         self.status_bar.set_size_request(300, -1)
         
+        # stats bar
         self.stats_bar = gtk.Statusbar()
         status_hbox.pack_start(self.stats_bar, True, True, 0)
         
@@ -281,19 +288,22 @@ class TakeNoteWindow (gtk.Window):
         
         self.hpaned.add2(self.paned2)
         self.paned2.set_position(takenote.DEFAULT_VSASH_POS)
-
+        
+        # treeview and scrollbars
         sw = gtk.ScrolledWindow()
         sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         sw.set_shadow_type(gtk.SHADOW_IN)
         sw.add(self.treeview)
         self.hpaned.add1(sw)
-
+        
+        # selector with scrollbars
         self.selector_sw = gtk.ScrolledWindow()
         self.selector_sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         self.selector_sw.set_shadow_type(gtk.SHADOW_IN)
         self.selector_sw.add(self.selector)
         self.paned2.add1(self.selector_sw)
-
+        
+        # layout editor
         self.paned2.add2(self.editor)
         
         
@@ -302,29 +312,8 @@ class TakeNoteWindow (gtk.Window):
     
     
 
-    
-    def set_view_mode(self, mode):
-        
-        self.paned2.remove(self.selector_sw)
-        self.paned2.remove(self.editor)
-        self.hpaned.remove(self.paned2)
-        
-        if mode == "vertical":
-            # create a vertical paned widget
-            self.paned2 = gtk.VPaned()
-        else:
-            self.paned2 = gtk.HPaned()
-        self.paned2.set_position(self.notebook.pref.vsash_pos)
-        self.paned2.show()
-        
-        self.hpaned.add2(self.paned2)
-        self.hpaned.show()
-        
-        self.paned2.add1(self.selector_sw)
-        self.paned2.add2(self.editor)
-        
-        self.app.pref.view_mode = mode
-        self.app.pref.write()
+    #===========================================
+    # Messages, warnings, errors UI/dialogs
     
     
     def set_status(self, text, bar="status"):
@@ -353,13 +342,13 @@ class TakeNoteWindow (gtk.Window):
         dialog.show()
         
         print error
-        
+    
+    #==============================================
+    # Notebook perferences        
     
     def get_preferences(self):
         if self.notebook is not None:
             self.resize(*self.notebook.pref.window_size)
-            #if self.notebook.pref.window_pos != (-1, -1):
-            #    self.move(*self.notebook.pref.window_pos)
             self.paned2.set_position(self.notebook.pref.vsash_pos)
             self.hpaned.set_position(self.notebook.pref.hsash_pos)
     
@@ -367,10 +356,11 @@ class TakeNoteWindow (gtk.Window):
     def set_preferences(self):
         if self.notebook is not None:
             self.notebook.pref.window_size = self.get_size()
-            #self.notebook.pref.window_pos = self.get_position()
             self.notebook.pref.vsash_pos = self.paned2.get_position()
             self.notebook.pref.hsash_pos = self.hpaned.get_position()
-                    
+           
+    #=============================================
+    # Notebook open/save/close UI         
 
     def on_new_notebook(self):
         self.filew = gtk.FileChooserDialog("New Notebook", self, 
@@ -421,8 +411,36 @@ class TakeNoteWindow (gtk.Window):
         elif response == gtk.RESPONSE_CANCEL:
             dialog.destroy()
 
+    def on_save(self):
+        if self.notebook is not None:
+            needed = self.notebook.save_needed() or \
+                     self.editor.save_needed()
+            
+            self.notebook.save()
+            
+            try:
+                self.editor.save()
+            except RichTextError, e:
+                self.error("Could not save opened page", e)
+            
+            if needed:
+                self.set_status("Notebook saved")
+            
+            self.set_notebook_modified(False)
     
-    def on_reload_notebook(self):
+    
+    def on_quit(self):
+        """close the window and quit"""
+        self.close_notebook()
+        gtk.main_quit()
+        return False
+    
+    
+    #===============================================
+    # Notebook actions
+    
+    
+    def reload_notebook(self):
         if self.notebook is None:
             self.error("Reloading only works when a notebook is open")
             return
@@ -444,12 +462,14 @@ class TakeNoteWindow (gtk.Window):
         except NoteBookError, e:
             self.notebook = None
             self.error("Could not create new notebook", e)
+            return None
         
-        self.open_notebook(filename, new=True)
+        return self.open_notebook(filename, new=True)
         
         
     
     def open_notebook(self, filename, new=False):
+        """Opens a new notebook"""
         if self.notebook is not None:
             self.close_notebook()
         
@@ -467,6 +487,8 @@ class TakeNoteWindow (gtk.Window):
         
         self.set_notebook_modified(False)
         
+        return self.notebook
+        
         
     def close_notebook(self, save=True):
         if self.notebook is not None:
@@ -474,7 +496,9 @@ class TakeNoteWindow (gtk.Window):
                 try:
                     self.editor.save()
                 except RichTextError, e:
+                    # TODO: should ask question, like try again?
                     self.error("Could not save opened page", e)
+                    
                 self.set_preferences()
                 self.notebook.save()
             self.notebook.node_changed.remove(self.on_notebook_node_changed)
@@ -483,6 +507,10 @@ class TakeNoteWindow (gtk.Window):
             self.selector.set_notebook(self.notebook)
             self.treeview.set_notebook(self.notebook)
     
+    
+    
+    #===========================================================
+    # page and folder actions
     
     def on_new_dir(self):
         if len(self.sel_nodes) == 1:
@@ -498,12 +526,6 @@ class TakeNoteWindow (gtk.Window):
         self.treeview.expand_node(parent)
         self.treeview.edit_node(node)
     
-    def on_delete_dir(self):                
-        
-        # TODO: do delete yourself and update views
-        # I need treeview.on_notebook_changed
-    
-        self.treeview.on_delete_node()
             
     
     def on_new_page(self):
@@ -520,6 +542,13 @@ class TakeNoteWindow (gtk.Window):
         self.selector.view_nodes([parent])
         self.selector.edit_node(node)
     
+    def on_delete_dir(self):                
+        
+        # TODO: do delete yourself and update views
+        # I need treeview.on_notebook_changed
+    
+        self.treeview.on_delete_node()
+    
     
     def on_delete_page(self):
         
@@ -527,29 +556,8 @@ class TakeNoteWindow (gtk.Window):
         self.selector.on_delete_page()
     
     
-    def on_save(self):
-        if self.notebook is not None:
-            needed = self.notebook.save_needed() or \
-                     self.editor.save_needed()
-            
-            self.notebook.save()
-            
-            try:
-                self.editor.save()
-            except RichTextError, e:
-                self.error("Could not save opened page", e)
-            
-            if needed:
-                self.set_status("Notebook saved")
-            
-            self.set_notebook_modified(False)
-    
-    
-    def on_close(self):
-        """close the window and quit"""
-        self.close_notebook()
-        gtk.main_quit()
-        return False
+    #=============================================================
+    # Treeview and listview callbacks
     
     
     def on_select_treenode(self, treeview, nodes):
@@ -595,18 +603,8 @@ class TakeNoteWindow (gtk.Window):
             self.set_notebook_modified(modified)
     
     
-    #def on_treeview_modified(self, treeview, modified, node, recurse):
-    #    self.set_notebook_modified(modified)
-    #    
-    #    if node:
-    #        self.selector.update_node(node)
-    
-    
-    #def on_selector_modified(self, selector, modified, node, recurse):
-    #    self.set_notebook_modified(modified)
-        
-        #if node:
-        #    self.treeview.update_node(node)
+    #=====================================================
+    # Notebook callbacks
     
     def on_notebook_node_changed(self, node, recurse):
         self.set_notebook_modified(True)
@@ -621,8 +619,41 @@ class TakeNoteWindow (gtk.Window):
             else:
                 self.set_title("%s" % self.notebook.get_title())
     
+    
+    #=================================================
+    # view config
+        
+    def set_view_mode(self, mode):
+        """Sets the view mode of the window
+        
+        modes:
+            vertical
+            horizontal
+        """
+        
+        self.paned2.remove(self.selector_sw)
+        self.paned2.remove(self.editor)
+        self.hpaned.remove(self.paned2)
+        
+        if mode == "vertical":
+            # create a vertical paned widget
+            self.paned2 = gtk.VPaned()
+        else:
+            self.paned2 = gtk.HPaned()
+        self.paned2.set_position(self.notebook.pref.vsash_pos)
+        self.paned2.show()
+        
+        self.hpaned.add2(self.paned2)
+        self.hpaned.show()
+        
+        self.paned2.add1(self.selector_sw)
+        self.paned2.add2(self.editor)
+        
+        self.app.pref.view_mode = mode
+        self.app.pref.write()
+    
     #=============================================================
-    # Font UI Update
+    # Update UI (menubar) from font under cursor
     
     def on_font_change(self, editor, mods, justify, family, size):
         
@@ -661,7 +692,10 @@ class TakeNoteWindow (gtk.Window):
         self.center_button.handler_unblock(self.center_id)
         self.right_button.handler_unblock(self.right_id) 
         self.fill_button.handler_unblock(self.fill_id)
-        
+
+
+    #==================================================
+    # changing font handlers
 
     def on_bold(self):
         self.editor.get_textview().on_bold()
@@ -720,8 +754,6 @@ class TakeNoteWindow (gtk.Window):
         self.on_font_change(mods, justify, family, size)
     
     
-    #==================================================
-    # font callbacks
 
     def on_choose_font(self):
         self.font_sel.clicked()
@@ -747,7 +779,7 @@ class TakeNoteWindow (gtk.Window):
     
         
     #==================================================
-    # callbacks
+    # Image/screenshot actions
 
     def on_screenshot(self):
         if self.current_page is None:
@@ -826,7 +858,8 @@ class TakeNoteWindow (gtk.Window):
         self.editor.get_textview().insert_image(img, savename)
         
                 
-
+    #=============================================
+    # Goto menu options
     
     def on_goto_treeview(self):
         self.treeview.grab_focus()
@@ -837,17 +870,10 @@ class TakeNoteWindow (gtk.Window):
     def on_goto_editor(self):
         self.editor.get_textview().grab_focus()
     
-    def on_about(self):
-        """Display about dialog"""
-        
-        about = gtk.AboutDialog()
-        about.set_name(PROGRAM_NAME)
-        about.set_version("v%s" % (PROGRAM_VERSION) )
-        about.set_copyright("Copyright Matt Rasmussen 2008")
-        about.set_transient_for(self)
-        about.set_position(gtk.WIN_POS_CENTER_ON_PARENT)
-        about.connect("response", lambda d,r: about.destroy())
-        about.show()
+    
+    
+    #=====================================================
+    # Cut/copy/paste
     
     def on_cut(self):
         self.editor.get_textview().emit("cut-clipboard")
@@ -857,7 +883,11 @@ class TakeNoteWindow (gtk.Window):
     
     def on_paste(self):
         self.editor.get_textview().emit("paste-clipboard")
-
+    
+    
+    #=====================================================
+    # External app viewers
+    
     def on_view_folder_file_explorer(self):
         explorer = self.app.pref.external_apps.get("file_explorer", "")
     
@@ -904,6 +934,7 @@ class TakeNoteWindow (gtk.Window):
         textview = self.editor.get_textview()
         if textview is not None:
             textview.enable_spell_check(widget.get_active())
+    
     
     #==================================================================
     # Find dialog
@@ -1216,18 +1247,30 @@ class TakeNoteWindow (gtk.Window):
         print "sel.data = " + str(data)[:1000]+"\n"
         buf.insert_at_cursor("sel.data = " + str(data)[:1000]+"\n")
     
-
+    
+    #==================================================
+    # Help/about dialog
+    
+    def on_about(self):
+        """Display about dialog"""
+        
+        about = gtk.AboutDialog()
+        about.set_name(PROGRAM_NAME)
+        about.set_version("v%s" % (PROGRAM_VERSION) )
+        about.set_copyright("Copyright Matt Rasmussen 2008")
+        about.set_transient_for(self)
+        about.set_position(gtk.WIN_POS_CENTER_ON_PARENT)
+        about.connect("response", lambda d,r: about.destroy())
+        about.show()
     
     #================================================
     # Menubar
     
     def make_menubar(self):
         # menu bar
-        folder_delete = gtk.Image()
-        folder_delete.set_from_file(get_resource("images", "folder-delete.png"))
+        folder_delete = get_resource_image("folder-delete.png")
         
-        page_delete = gtk.Image()
-        page_delete.set_from_file(get_resource("images", "note-delete.png"))
+        page_delete = get_resource_image("note-delete.png")
         
         self.menu_items = (
             ("/_File",               
@@ -1238,11 +1281,11 @@ class TakeNoteWindow (gtk.Window):
             ("/File/New _Page",      
                 "<control>N", lambda w,e: self.on_new_page(), 0, 
                 "<ImageItem>", 
-                get_image(get_resource("images", "note-new.png")).get_pixbuf()),
+                get_resource_image("note-new.png").get_pixbuf()),
             ("/File/New _Folder", 
                 "<control><shift>N", lambda w,e: self.on_new_dir(), 0, 
                 "<ImageItem>", 
-                get_image(get_resource("images", "folder-new.png")).get_pixbuf()),
+                get_resource_image("folder-new.png").get_pixbuf()),
             ("/File/sep1", 
                 None, None, 0, "<Separator>" ),
                 
@@ -1256,14 +1299,14 @@ class TakeNoteWindow (gtk.Window):
             ("/File/_Open Notebook",          
                 "<control>O", lambda w,e: self.on_open_notebook(), 0, 
                 "<ImageItem>", 
-                get_image(get_resource("images", "open.png")).get_pixbuf()),
+                get_resource_image("open.png").get_pixbuf()),
             ("/File/_Reload Notebook",          
-                None, lambda w,e: self.on_reload_notebook(), 0, 
+                None, lambda w,e: self.reload_notebook(), 0, 
                 "<StockItem>", gtk.STOCK_REVERT_TO_SAVED),
             ("/File/_Save Notebook",     
                 "<control>S", lambda w,e: self.on_save(), 0, 
                 "<ImageItem>", 
-                get_image(get_resource("images", "save.png")).get_pixbuf()),
+                get_resource_image("save.png").get_pixbuf()),
             ("/File/_Close Notebook", 
                 None, lambda w, e: self.close_notebook(), 0, 
                 "<StockItem>", gtk.STOCK_CLOSE),
@@ -1271,7 +1314,7 @@ class TakeNoteWindow (gtk.Window):
             ("/File/sep3", 
                 None, None, 0, "<Separator>" ),
             ("/File/Quit", 
-                "<control>Q", lambda w,e: self.on_close(), 0, None),
+                "<control>Q", lambda w,e: self.on_quit(), 0, None),
 
             ("/_Edit", 
                 None, None, 0, "<Branch>"),
@@ -1294,14 +1337,14 @@ class TakeNoteWindow (gtk.Window):
                 "<StockItem>", gtk.STOCK_PASTE), 
             
             
-            ("/Edit/sep3", 
-                None, None, 0, "<Separator>"),
-            ("/Edit/_Delete Folder",
-                None, lambda w,e: self.on_delete_dir(), 0, 
-                "<ImageItem>", folder_delete.get_pixbuf()),
-            ("/Edit/Delete _Page",     
-                None, lambda w,e: self.on_delete_page(), 0,
-                "<ImageItem>", page_delete.get_pixbuf()),
+            #("/Edit/sep3", 
+            #    None, None, 0, "<Separator>"),
+            #("/Edit/_Delete Folder",
+            #    None, lambda w,e: self.on_delete_dir(), 0, 
+            #    "<ImageItem>", folder_delete.get_pixbuf()),
+            #("/Edit/Delete _Page",     
+            #    None, lambda w,e: self.on_delete_page(), 0,
+            #    "<ImageItem>", page_delete.get_pixbuf()),
             ("/Edit/sep4", 
                 None, None, 0, "<Separator>"),
             ("/Edit/Insert _Image",
@@ -1330,49 +1373,49 @@ class TakeNoteWindow (gtk.Window):
             ("/Format/_Left Align", 
                 "<control>L", lambda w,e: self.on_left_justify(), 0, 
                 "<ImageItem>", 
-                get_image(get_resource("images", "alignleft.png")).get_pixbuf()),
+                get_resource_image("alignleft.png").get_pixbuf()),
             ("/Format/C_enter Align", 
                 "<control>E", lambda w,e: self.on_center_justify(), 0, 
                 "<ImageItem>", 
-                get_image(get_resource("images", "aligncenter.png")).get_pixbuf()),
+                get_resource_image("aligncenter.png").get_pixbuf()),
             ("/Format/_Right Align", 
                 "<control>R", lambda w,e: self.on_right_justify(), 0, 
                 "<ImageItem>", 
-                get_image(get_resource("images", "alignright.png")).get_pixbuf()),
+                get_resource_image("alignright.png").get_pixbuf()),
             ("/Format/_Justify Align", 
                 "<control>J", lambda w,e: self.on_fill_justify(), 0, 
                 "<ImageItem>", 
-                get_image(get_resource("images", "alignjustify.png")).get_pixbuf()),
+                get_resource_image("alignjustify.png").get_pixbuf()),
             
             ("/Format/sep1", 
                 None, None, 0, "<Separator>" ),            
             ("/Format/_Bold", 
                 "<control>B", lambda w,e: self.on_bold(), 0, 
                 "<ImageItem>", 
-                get_image(get_resource("images", "bold.png")).get_pixbuf()),
+                get_resource_image("bold.png").get_pixbuf()),
             ("/Format/_Italic", 
                 "<control>I", lambda w,e: self.on_italic(), 0, 
                 "<ImageItem>", 
-                get_image(get_resource("images", "italic.png")).get_pixbuf()),
+                get_resource_image("italic.png").get_pixbuf()),
             ("/Format/_Underline", 
                 "<control>U", lambda w,e: self.on_underline(), 0, 
                 "<ImageItem>", 
-                get_image(get_resource("images", "underline.png")).get_pixbuf()),
+                get_resource_image("underline.png").get_pixbuf()),
             ("/Format/_Monospace",
                 "<control>M", lambda w,e: self.on_fixed_width(False), 0,
                 "<ImageItem>",
-                get_image(get_resource("images", "fixed-width.png")).get_pixbuf()),
+                get_resource_image("fixed-width.png").get_pixbuf()),
             
             ("/Format/sep2", 
                 None, None, 0, "<Separator>" ),
             ("/Format/Increase Font _Size", 
                 "<control>plus", lambda w, e: self.on_font_size_inc(), 0, 
                 "<ImageItem>", 
-                get_image(get_resource("images", "font-inc.png")).get_pixbuf()),
+                get_resource_image("font-inc.png").get_pixbuf()),
             ("/Format/_Decrease Font Size", 
                 "<control>minus", lambda w, e: self.on_font_size_dec(), 0, 
                 "<ImageItem>", 
-                get_image(get_resource("images", "font-dec.png")).get_pixbuf()),
+                get_resource_image("font-dec.png").get_pixbuf()),
             
 
             ("/Format/sep3", 
@@ -1380,25 +1423,25 @@ class TakeNoteWindow (gtk.Window):
             ("/Format/Choose _Font", 
                 "<control><shift>F", lambda w, e: self.on_choose_font(), 0, 
                 "<ImageItem>", 
-                get_image(get_resource("images", "font.png")).get_pixbuf()),
+                get_resource_image("font.png").get_pixbuf()),
             
             ("/_View", None, None, 0, "<Branch>"),
             ("/View/View Folder in File Explorer",
                 None, lambda w,e: self.on_view_folder_file_explorer(), 0, 
                 "<ImageItem>",
-                get_image(get_resource("images", "folder-open.png")).get_pixbuf()),
+                get_resource_image("folder-open.png").get_pixbuf()),
             ("/View/View Page in File Explorer",
                 None, lambda w,e: self.on_view_page_file_explorer(), 0, 
                 "<ImageItem>",
-                get_image(get_resource("images", "note.png")).get_pixbuf()),
+                get_resource_image("note.png").get_pixbuf()),
             ("/View/View Page in Text Editor",
                 None, lambda w,e: self.on_view_page_text_editor(), 0, 
                 "<ImageItem>",
-                get_image(get_resource("images", "note.png")).get_pixbuf()),                
+                get_resource_image("note.png").get_pixbuf()),
             ("/View/View Page in Web Browser",
                 None, lambda w,e: self.on_view_page_web_browser(), 0, 
                 "<ImageItem>",
-                get_image(get_resource("images", "note.png")).get_pixbuf()),
+                get_resource_image("note.png").get_pixbuf()),
                 
             
             ("/_Go", None, None, 0, "<Branch>"),
@@ -1469,19 +1512,15 @@ class TakeNoteWindow (gtk.Window):
         tips.enable()
 
         # open notebook
-        icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "open.png"))
         button = gtk.ToolButton()
-        button.set_icon_widget(icon)
+        button.set_icon_widget(get_resource_image("open.png"))
         tips.set_tip(button, "Open Notebook")
         button.connect("clicked", lambda w: self.on_open_notebook())
         toolbar.insert(button, -1)
 
         # save notebook
-        icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "save.png"))
         button = gtk.ToolButton()
-        button.set_icon_widget(icon)
+        button.set_icon_widget(get_resource_image("save.png"))
         tips.set_tip(button, "Save Notebook")
         button.connect("clicked", lambda w: self.on_save())
         toolbar.insert(button, -1)        
@@ -1491,40 +1530,32 @@ class TakeNoteWindow (gtk.Window):
         
     
         # new folder
-        icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "folder-new.png"))
         button = gtk.ToolButton()
-        button.set_icon_widget(icon)
+        button.set_icon_widget(get_resource_image("folder-new.png"))
         tips.set_tip(button, "New Folder")
         button.connect("clicked", lambda w: self.on_new_dir())
         toolbar.insert(button, -1)
         
         # folder delete
-        icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "folder-delete.png"))
-        button = gtk.ToolButton()
-        button.set_icon_widget(icon)
-        tips.set_tip(button, "Delete Folder")
-        button.connect("clicked", lambda w: self.on_delete_dir())
-        toolbar.insert(button, -1)
+        #button = gtk.ToolButton()
+        #button.set_icon_widget(get_resource_image("folder-delete.png"))
+        #tips.set_tip(button, "Delete Folder")
+        #button.connect("clicked", lambda w: self.on_delete_dir())
+        #toolbar.insert(button, -1)
 
         # new note
-        icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "note-new.png"))
         button = gtk.ToolButton()
-        button.set_icon_widget(icon)
+        button.set_icon_widget(get_resource_image("note-new.png"))
         tips.set_tip(button, "New Note")
         button.connect("clicked", lambda w: self.on_new_page())
         toolbar.insert(button, -1)
         
         # note delete
-        icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "note-delete.png"))
-        button = gtk.ToolButton()
-        button.set_icon_widget(icon)
-        tips.set_tip(button, "Delete Note")
-        button.connect("clicked", lambda w: self.on_delete_page())
-        toolbar.insert(button, -1)
+        #button = gtk.ToolButton()
+        #button.set_icon_widget(get_resource_image("note-delete.png"))
+        #tips.set_tip(button, "Delete Note")
+        #button.connect("clicked", lambda w: self.on_delete_page())
+        #toolbar.insert(button, -1)
 
 
         # separator
@@ -1532,38 +1563,30 @@ class TakeNoteWindow (gtk.Window):
         
         
         # bold tool
-        icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "bold.png"))
         self.bold_button = gtk.ToggleToolButton()
-        self.bold_button.set_icon_widget(icon)
+        self.bold_button.set_icon_widget(get_resource_image("bold.png"))
         tips.set_tip(self.bold_button, "Bold")
         self.bold_id = self.bold_button.connect("toggled", lambda w: self.editor.get_textview().on_bold())
         toolbar.insert(self.bold_button, -1)
 
 
         # italic tool
-        icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "italic.png"))
         self.italic_button = gtk.ToggleToolButton()
-        self.italic_button.set_icon_widget(icon)
+        self.italic_button.set_icon_widget(get_resource_image("italic.png"))
         tips.set_tip(self.italic_button, "Italic")
         self.italic_id = self.italic_button.connect("toggled", lambda w: self.editor.get_textview().on_italic())
         toolbar.insert(self.italic_button, -1)
 
         # underline tool
-        icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "underline.png"))
         self.underline_button = gtk.ToggleToolButton()
-        self.underline_button.set_icon_widget(icon)
+        self.underline_button.set_icon_widget(get_resource_image("underline.png"))
         tips.set_tip(self.underline_button, "Underline")
         self.underline_id = self.underline_button.connect("toggled", lambda w: self.editor.get_textview().on_underline())
         toolbar.insert(self.underline_button, -1)
         
         # fixed-width tool
-        icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "fixed-width.png"))
         self.fixed_width_button = gtk.ToggleToolButton()
-        self.fixed_width_button.set_icon_widget(icon)
+        self.fixed_width_button.set_icon_widget(get_resource_image("fixed-width.png"))
         tips.set_tip(self.fixed_width_button, "Monospace")
         self.fixed_width_id = self.fixed_width_button.connect("toggled", lambda w: self.on_fixed_width(True))
         toolbar.insert(self.fixed_width_button, -1)               
@@ -1579,19 +1602,15 @@ class TakeNoteWindow (gtk.Window):
         self.font_sel.connect("font-set", lambda w: self.on_font_set())
         
         # font size increase
-        icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "font-inc.png"))
         button = gtk.ToolButton()
-        button.set_icon_widget(icon)
+        button.set_icon_widget(get_resource_image("font-inc.png"))
         tips.set_tip(button, "Increase Font Size")
         button.connect("clicked", lambda w: self.on_font_size_inc())
         toolbar.insert(button, -1)        
 
         # font size decrease
-        icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "font-dec.png"))
         button = gtk.ToolButton()
-        button.set_icon_widget(icon)
+        button.set_icon_widget(get_resource_image("font-dec.png"))
         tips.set_tip(button, "Decrease Font Size")
         button.connect("clicked", lambda w: self.on_font_size_dec())
         toolbar.insert(button, -1)        
@@ -1617,37 +1636,29 @@ class TakeNoteWindow (gtk.Window):
         
                 
         # left tool
-        icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "alignleft.png"))
         self.left_button = gtk.ToggleToolButton()
-        self.left_button.set_icon_widget(icon)
+        self.left_button.set_icon_widget(get_resource_image("alignleft.png"))
         tips.set_tip(self.left_button, "Left Align")
         self.left_id = self.left_button.connect("toggled", lambda w: self.on_left_justify())
         toolbar.insert(self.left_button, -1)
         
         # center tool
-        icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "aligncenter.png"))
         self.center_button = gtk.ToggleToolButton()
-        self.center_button.set_icon_widget(icon)
+        self.center_button.set_icon_widget(get_resource_image("aligncenter.png"))
         tips.set_tip(self.center_button, "Center Align")
         self.center_id = self.center_button.connect("toggled", lambda w: self.on_center_justify())
         toolbar.insert(self.center_button, -1)
         
         # right tool
-        icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "alignright.png"))
         self.right_button = gtk.ToggleToolButton()
-        self.right_button.set_icon_widget(icon)
+        self.right_button.set_icon_widget(get_resource_image("alignright.png"))
         tips.set_tip(self.right_button, "Right Align")
         self.right_id = self.right_button.connect("toggled", lambda w: self.on_right_justify())
         toolbar.insert(self.right_button, -1)
         
         # justify tool
-        icon = gtk.Image() # icon widget
-        icon.set_from_file(get_resource("images", "alignjustify.png"))
         self.fill_button = gtk.ToggleToolButton()
-        self.fill_button.set_icon_widget(icon)
+        self.fill_button.set_icon_widget(get_resource_image("alignjustify.png"))
         tips.set_tip(self.fill_button, "Justify Align")
         self.fill_id = self.fill_button.connect("toggled", lambda w: self.on_fill_justify())
         toolbar.insert(self.fill_button, -1)
@@ -1657,12 +1668,15 @@ class TakeNoteWindow (gtk.Window):
 class TakeNote (object):
     
     def __init__(self, basedir=""):
+        takenote.set_basedir(basedir)
+        
         self.basedir = basedir
+        
+        # load application preferences
         self.pref = takenote.TakeNotePreferences()
-        
-        
-        takenote.BASEDIR = basedir
         self.pref.read()
+        
+        # open main window
         self.window = TakeNoteWindow(self)
         
 

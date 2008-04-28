@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <page>
 <title>aaa</title>
-<order>2</order>
+<order>4</order>
 <created_time>1208310329</created_time>
 <modified_time>1208390331</modified_time>
+<info_sort>1</info_sort>
+<info_sort_dir>1</info_sort_dir>
 </page>
 

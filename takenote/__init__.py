@@ -34,6 +34,10 @@ from takenote.notebook import \
 
 
 BASEDIR = ""
+def set_basedir(basedir):
+    global BASEDIR
+    BASEDIR = basedir
+
 def get_resource(*path_list):
     return os.path.join(BASEDIR, *path_list)
 
