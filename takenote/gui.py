@@ -310,38 +310,54 @@ class TakeNoteWindow (gtk.Window):
         self.show_all()        
         self.treeview.grab_focus()
     
-    
 
-    #===========================================
-    # Messages, warnings, errors UI/dialogs
+    
+    #=============================================================
+    # Treeview and listview callbacks
     
     
-    def set_status(self, text, bar="status"):
-        if bar == "status":
-            self.status_bar.pop(0)
-            self.status_bar.push(0, text)
-        elif bar == "stats":
-            self.stats_bar.pop(0)
-            self.stats_bar.push(0, text)
-        else:
-            raise Exception("unknown bar '%s'" % bar)
-    
+    def on_select_treenode(self, treeview, nodes):
+        self.sel_nodes = nodes
+        self.selector.view_nodes(nodes)
+        
+        # view page
+        pages = [node for node in nodes 
+                 if isinstance(node, NoteBookPage)]
+        
+        if len(pages) > 0:
+            self.current_page = pages[0]
+            try:
+                self.editor.view_pages(pages)
+            except RichTextError, e:
+                self.error("Could not load pages", e)
             
+        else:
+            self.editor.view_pages([])
+            self.current_page = None
+        
+
     
-    def error(self, text, error):
-        """Display an error message"""
-        #self.set_status(text)
+    def on_select_pages(self, selector, pages):
+
+        # TODO: will need to generalize of multiple pages
         
-        dialog = gtk.MessageDialog(self.get_toplevel(), 
-            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-            type=gtk.MESSAGE_ERROR, 
-            buttons=gtk.BUTTONS_OK, 
-            message_format=text)
-        dialog.connect("response", lambda d,r: dialog.destroy())
-        dialog.set_title("Error")
-        dialog.show()
+        try:
+            if len(pages) > 0:
+                self.current_page = pages[0]
+            else:
+                self.current_page = None
+            self.editor.view_pages(pages)
+        except RichTextError, e:
+            self.error("Could not load page '%s'" % pages[0].get_title(), e)
         
-        print error
+    def on_page_editor_modified(self, editor, page, modified):
+        if page and not modified:
+            self.treeview.update_node(page)
+            self.selector.update_node(page)
+        
+        if modified:
+            self.set_notebook_modified(modified)
+    
     
     #==============================================
     # Notebook perferences        
@@ -449,6 +465,8 @@ class TakeNoteWindow (gtk.Window):
         self.close_notebook(False)
         self.open_notebook(filename)
         
+        self.set_status("Notebook reloaded")
+        
         
     
     def new_notebook(self, filename):
@@ -462,9 +480,11 @@ class TakeNoteWindow (gtk.Window):
         except NoteBookError, e:
             self.notebook = None
             self.error("Could not create new notebook", e)
+            self.set_status("")
             return None
         
-        return self.open_notebook(filename, new=True)
+        notebook = self.open_notebook(filename, new=True)
+        return notebook
         
         
     
@@ -475,7 +495,13 @@ class TakeNoteWindow (gtk.Window):
         
         self.notebook = takenote.NoteBook()
         self.notebook.node_changed.add(self.on_notebook_node_changed)
-        self.notebook.load(filename)
+        
+        try:
+            self.notebook.load(filename)
+        except NoteBookError, e:
+            self.error("Could not load notebook '%s'" % filename)
+            return None
+        
         self.selector.set_notebook(self.notebook)
         self.treeview.set_notebook(self.notebook)
         self.get_preferences()
@@ -506,6 +532,8 @@ class TakeNoteWindow (gtk.Window):
             self.notebook = None
             self.selector.set_notebook(self.notebook)
             self.treeview.set_notebook(self.notebook)
+            
+            self.set_status("Notebook closed")
     
     
     
@@ -556,51 +584,6 @@ class TakeNoteWindow (gtk.Window):
         self.selector.on_delete_page()
     
     
-    #=============================================================
-    # Treeview and listview callbacks
-    
-    
-    def on_select_treenode(self, treeview, nodes):
-        self.sel_nodes = nodes
-        self.selector.view_nodes(nodes)
-        
-        # view page
-        pages = [node for node in nodes 
-                 if isinstance(node, NoteBookPage)]
-        
-        if len(pages) > 0:
-            self.current_page = pages[0]
-            try:
-                self.editor.view_pages(pages)
-            except RichTextError, e:
-                self.error("Could not load pages", e)
-            
-        else:
-            self.editor.view_pages([])
-            self.current_page = None
-        
-
-    
-    def on_select_pages(self, selector, pages):
-
-        # TODO: will need to generalize of multiple pages
-        
-        try:
-            if len(pages) > 0:
-                self.current_page = pages[0]
-            else:
-                self.current_page = None
-            self.editor.view_pages(pages)
-        except RichTextError, e:
-            self.error("Could not load page '%s'" % pages[0].get_title(), e)
-        
-    def on_page_editor_modified(self, editor, page, modified):
-        if page and not modified:
-            self.treeview.update_node(page)
-            self.selector.update_node(page)
-        
-        if modified:
-            self.set_notebook_modified(modified)
     
     
     #=====================================================
@@ -616,6 +599,7 @@ class TakeNoteWindow (gtk.Window):
         else:
             if modified:
                 self.set_title("* %s" % self.notebook.get_title())
+                self.set_status("Notebook modified")
             else:
                 self.set_title("%s" % self.notebook.get_title())
     
@@ -1263,6 +1247,39 @@ class TakeNoteWindow (gtk.Window):
         about.connect("response", lambda d,r: about.destroy())
         about.show()
     
+        
+
+    #===========================================
+    # Messages, warnings, errors UI/dialogs
+    
+    def set_status(self, text, bar="status"):
+        if bar == "status":
+            self.status_bar.pop(0)
+            self.status_bar.push(0, text)
+        elif bar == "stats":
+            self.stats_bar.pop(0)
+            self.stats_bar.push(0, text)
+        else:
+            raise Exception("unknown bar '%s'" % bar)
+    
+            
+    
+    def error(self, text, error):
+        """Display an error message"""
+        #self.set_status(text)
+        
+        dialog = gtk.MessageDialog(self.get_toplevel(), 
+            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            type=gtk.MESSAGE_ERROR, 
+            buttons=gtk.BUTTONS_OK, 
+            message_format=text)
+        dialog.connect("response", lambda d,r: dialog.destroy())
+        dialog.set_title("Error")
+        dialog.show()
+        
+        print error
+    
+    
     #================================================
     # Menubar
     
@@ -1480,11 +1497,6 @@ class TakeNoteWindow (gtk.Window):
         accel_group = gtk.AccelGroup()
 
         # This function initializes the item factory.
-        # Param 1: The type of menu - can be MenuBar, Menu,
-        #          or OptionMenu.
-        # Param 2: The path of the menu.
-        # Param 3: A reference to an AccelGroup. The item factory sets up
-        #          the accelerator table while generating menus.
         item_factory = gtk.ItemFactory(gtk.MenuBar, "<main>", accel_group)
 
         # This method generates the menu items. Pass to the item factory
@@ -1496,7 +1508,7 @@ class TakeNoteWindow (gtk.Window):
 
         # need to keep a reference to item_factory to prevent its destruction
         self.item_factory = item_factory
-        # Finally, return the actual menu bar created by the item factory.
+        
         return item_factory.get_widget("<main>")
 
 
@@ -1662,6 +1674,8 @@ class TakeNoteWindow (gtk.Window):
         tips.set_tip(self.fill_button, "Justify Align")
         self.fill_id = self.fill_button.connect("toggled", lambda w: self.on_fill_justify())
         toolbar.insert(self.fill_button, -1)
+        
+        
         return toolbar
 
 

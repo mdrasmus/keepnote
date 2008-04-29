@@ -62,11 +62,15 @@ class TakeNoteSelector (gtk.TreeView):
         
         # directory order column
         self.column = gtk.TreeViewColumn()
-        self.column.set_title("#")
+        img = gtk.Image()
+        img.set_from_file(get_resource("images", "folder.png"))
+        img.show()
+        self.column.set_widget(img)
         self.column.set_clickable(True)
         self.column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
-        self.column.set_min_width(20)
-        self.column.set_fixed_width(20)
+        w, h = img.size_request()
+        self.column.set_min_width(w+10)
+        self.column.set_fixed_width(w+10)
         self.column.connect("clicked", self.on_directory_column_clicked)
         cell_text = gtk.CellRendererText()
         cell_text.set_fixed_height_from_font(1)
