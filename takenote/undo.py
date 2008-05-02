@@ -7,6 +7,10 @@
 
 
 def cat_funcs(funcs):
+    """Concatenate a list of functions [f,g,h,...] that take no arguments
+       into one function: cat = { lambda: f(); g(); h(); }
+    """
+
     def f():
         for func in funcs:
             func()

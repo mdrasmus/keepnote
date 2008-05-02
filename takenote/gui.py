@@ -13,7 +13,7 @@
 
 
 # python imports
-import sys, os, tempfile, re
+import sys, os, tempfile, re, subprocess, shlex
 
 # pygtk imports
 import pygtk
@@ -51,6 +51,13 @@ def get_image(filename):
 def get_resource_image(*path_list):
     return get_image(get_resource(IMAGE_DIR, *path_list))
 
+
+def quote_filename(filename):
+    if " " in filename:
+        filename.replace("\\", "\\\\")
+        filename.replace('"', '\"')
+        filename = '"%s"' % filename
+    return filename
 
 
 class TakeNoteEditor (gtk.VBox): #(gtk.Notebook): #(gtk.ScrolledWindow):
@@ -239,6 +246,13 @@ class TakeNoteWindow (gtk.Window):
         self.editor.connect("modified", self.on_page_editor_modified)
         self.editor.connect("error", lambda w,t,e: self.error(t, e))  
         self.editor.view_pages([])
+        
+        #====================================
+        # Dialogs
+        
+        self.app_options_dialog = ApplicationOptionsDialog(self)
+        self.find_dialog = TakeNoteFindDialog(self)
+        self.drag_test = DragDropTextDialog(self)
         
         #====================================
         # Layout
@@ -775,12 +789,17 @@ class TakeNoteWindow (gtk.Window):
         gtk.main()
         self.disconnect(sig)
         
+        # create temp file
         f, imgfile = tempfile.mkstemp(".png", "takenote")
         os.close(f)
         
         # TODO: generalize
-        os.system("import %s" % imgfile)
-        if os.path.exists(imgfile):
+        proc = subprocess.Popen(["import", imgfile])
+        if proc.wait() != 0:
+            self.error("The screenshot program encountered an error")
+        elif not os.path.exists(imgfile):
+            self.error("The screenshot program did not create the necessary image file '%s'" % imgfile)
+        else:
             try:
                 self.insert_image(imgfile, "screenshot.png")
             except Exception, e:
@@ -876,30 +895,30 @@ class TakeNoteWindow (gtk.Window):
         explorer = self.app.pref.external_apps.get("file_explorer", "")
     
         if len(self.sel_nodes) > 0 and explorer != "":
-            ret = os.system("%s '%s'" % (explorer, self.sel_nodes[0].get_path()))
+            proc = subprocess.Popen([explorer, self.sel_nodes[0].get_path()])
             
-            if ret != 0:
-                self.error("Could not open node in file explorer")
+            #if proc.wait() != 0:
+            #    self.error("Could not open node in file explorer")
 
 
     def on_view_page_file_explorer(self):
         explorer = self.app.pref.external_apps.get("file_explorer", "")
     
         if self.current_page is not None and explorer != "":
-            ret = os.system("%s '%s'" % (explorer, self.current_page.get_path()))
+            subprocess.Popen([explorer, self.current_page.get_path()])
             
-            if ret != 0:
-                self.error("Could not open node in file explorer")
+            #if ret != 0:
+            #    self.error("Could not open node in file explorer")
             
     
     def on_view_page_web_browser(self):
         browser = self.app.pref.external_apps.get("web_browser", "")
     
         if self.current_page is not None and browser != "":
-            ret = os.system("%s '%s'" % (browser, self.current_page.get_data_file()))
+            proc = subprocess.Popen([browser, self.current_page.get_data_file()])
             
-            if ret != 0:
-                self.error("Could not open page in web browser")
+            #if ret != 0:
+            #    self.error("Could not open page in web browser")
     
     
     def on_view_page_text_editor(self):
@@ -908,329 +927,19 @@ class TakeNoteWindow (gtk.Window):
         editor = self.app.pref.external_apps.get("text_editor", "")
     
         if self.current_page is not None and editor != "":
-            ret = os.system("%s '%s'" % (editor, self.current_page.get_data_file()))
+            proc = subprocess.Popen([editor, self.current_page.get_data_file()])
             
-            if ret != 0:
-                self.error("Could not open page in text editor")
+            #if ret != 0:
+            #    self.error("Could not open page in text editor")
     
     def on_spell_check_toggle(self, num, widget):
     
         textview = self.editor.get_textview()
         if textview is not None:
             textview.enable_spell_check(widget.get_active())
-    
-    
-    #==================================================================
-    # Find dialog
-    
-    def on_find(self, replace=False, forward=None):
-        if hasattr(self, "find_dialog") and self.find_dialog:
-            self.find_dialog.present()
-            
-            # could add find again behavior here            
-            self.find_xml.get_widget("replace_checkbutton").set_active(replace)
-            self.find_xml.get_widget("replace_entry").set_sensitive(replace)
-            self.find_xml.get_widget("replace_button").set_sensitive(replace)
-            self.find_xml.get_widget("replace_all_button").set_sensitive(replace)
-            
-            if not replace:
-                if forward is None:
-                    self.on_find_response("find")
-                elif forward:
-                    self.on_find_response("find_next")
-                else:
-                    self.on_find_response("find_prev")
-            else:
-                self.on_find_response("replace")
-            
-            return
         
 
-        
-        self.find_xml = gtk.glade.XML(get_resource("rc", "app_config.glade"))    
-        self.find_dialog = self.find_xml.get_widget("find_dialog")
-        self.find_dialog.connect("delete-event", lambda w,e: self.on_find_response("close"))
-        self.find_last_pos = -1
-        
-            
-        
-        self.find_xml.signal_autoconnect({
-            "on_find_dialog_key_release_event":
-                self.on_find_key_released,
-            "on_close_button_clicked": 
-                lambda w: self.on_find_response("close"),
-            "on_find_button_clicked": 
-                lambda w: self.on_find_response("find"),
-            "on_replace_button_clicked": 
-                lambda w: self.on_find_response("replace"),
-            "on_replace_all_button_clicked": 
-                lambda w: self.on_find_response("replace_all"),
-            "on_replace_checkbutton_toggled":
-                lambda w: self.on_find_replace_toggled()
-            })
-        
-        if hasattr(self, "find_text"):
-            self.find_xml.get_widget("text_entry").set_text(self.find_text)
-        
-        if hasattr(self, "replace_text"):
-            self.find_xml.get_widget("replace_entry").set_text(self.replace_text)
-        
-        self.find_xml.get_widget("replace_checkbutton").set_active(replace)
-        self.find_xml.get_widget("replace_entry").set_sensitive(replace)
-        self.find_xml.get_widget("replace_button").set_sensitive(replace)
-        self.find_xml.get_widget("replace_all_button").set_sensitive(replace)
-        
-        self.find_dialog.show()
-        self.find_dialog.move(*self.get_position())
-    
-    def on_find_key_released(self, widget, event):
-        
-        if event.keyval == gdk.keyval_from_name("G") and \
-           event.state & gtk.gdk.SHIFT_MASK and \
-           event.state & gtk.gdk.CONTROL_MASK:
-            self.on_find_response("find_prev")
-            widget.stop_emission("key-release-event")
-        
-        elif event.keyval == gdk.keyval_from_name("g") and \
-           event.state & gtk.gdk.CONTROL_MASK:
-            self.on_find_response("find_next")
-            widget.stop_emission("key-release-event")
-
-    
-    
-    def on_find_response(self, response):
-        
-        # get find options
-        find_text = self.find_xml.get_widget("text_entry").get_text()
-        replace_text = self.find_xml.get_widget("replace_entry").get_text()
-        case_sensitive = self.find_xml.get_widget("case_sensitive_button").get_active()
-        search_forward = self.find_xml.get_widget("forward_button").get_active()
-        
-        self.find_text = find_text
-        self.replace_text = replace_text
-        next = (self.find_last_pos != -1)
-        
-                
-        if response == "close":
-            self.find_dialog.destroy()
-            self.find_dialog = None
-            
-        elif response == "find":
-            self.find_last_pos = self.editor.get_textview().find(find_text, case_sensitive, search_forward,
-                                      next)
-
-        elif response == "find_next":
-            self.find_xml.get_widget("forward_button").set_active(True)
-            self.find_last_pos = self.editor.get_textview().find(find_text, case_sensitive, True)
-
-        elif response == "find_prev":
-            self.find_xml.get_widget("backward_button").set_active(True)
-            self.find_last_pos = self.editor.get_textview().find(find_text, case_sensitive, False)
-        
-        elif response == "replace":
-            self.find_last_pos = self.editor.get_textview().replace(find_text, replace_text,
-                                         case_sensitive, search_forward)
-            
-        elif response == "replace_all":
-            self.editor.get_textview().replace_all(find_text, replace_text,
-                                             case_sensitive, search_forward)
-    
-    
-    def on_find_replace_toggled(self):
-        
-        if self.find_xml.get_widget("replace_checkbutton").get_active():
-            self.find_xml.get_widget("replace_entry").set_sensitive(True)
-            self.find_xml.get_widget("replace_button").set_sensitive(True)
-            self.find_xml.get_widget("replace_all_button").set_sensitive(True)
-        else:
-            self.find_xml.get_widget("replace_entry").set_sensitive(False)
-            self.find_xml.get_widget("replace_button").set_sensitive(False)
-            self.find_xml.get_widget("replace_all_button").set_sensitive(False)
-            
-    
-    #===================================================================
-    # Application options
-    
-    def on_app_options(self):
-        self.app_config_xml = gtk.glade.XML(get_resource("rc", "app_config.glade"))    
-        self.app_config_dialog = self.app_config_xml.get_widget("app_config_dialog")
-        self.app_config_dialog.set_transient_for(self)
-
-        
-        self.app_config_xml.signal_autoconnect({
-            "on_ok_button_clicked": 
-                lambda w: self.on_app_options_ok(),
-            "on_cancel_button_clicked": 
-                lambda w: self.app_config_dialog.destroy(),
-                
-            "on_default_notebook_button_clicked": 
-                lambda w: self.on_app_options_browse(
-                    "default_notebook", 
-                    "Choose Default Notebook",
-                    self.app.pref.default_notebook),
-            "on_file_explorer_button_clicked": 
-                lambda w: self.on_app_options_browse(
-                    "file_explorer",
-                    "Choose File Manager Application",
-                    self.app.pref.external_apps.get("file_explorer", "")),
-            "on_web_browser_button_clicked": 
-                lambda w: self.on_app_options_browse(
-                    "web_browser",
-                    "Choose Web Browser Application",
-                    self.app.pref.external_apps.get("web_browser", "")),
-            "on_text_editor_button_clicked": 
-                lambda w: self.on_app_options_browse(
-                    "text_editor",
-                    "Choose Text Editor Application",
-                    self.app.pref.external_apps.get("text_editor", "")),
-            "on_image_editor_button_clicked": 
-                lambda w: self.on_app_options_browse(
-                    "image_editor",
-                    "Choose Image Editor Application",
-                    self.app.pref.external_apps.get("image_editor", "")),
-            })
-        
-        # populate dialog
-        self.app_config_xml.get_widget("default_notebook_entry").\
-            set_text(self.app.pref.default_notebook)
-        
-        self.app_config_xml.get_widget("file_explorer_entry").\
-            set_text(self.app.pref.external_apps.get("file_explorer", ""))
-        self.app_config_xml.get_widget("web_browser_entry").\
-            set_text(self.app.pref.external_apps.get("web_browser", ""))
-        self.app_config_xml.get_widget("text_editor_entry").\
-            set_text(self.app.pref.external_apps.get("text_editor", ""))
-        self.app_config_xml.get_widget("image_editor_entry").\
-            set_text(self.app.pref.external_apps.get("image_editor", ""))
-        
-        
-        self.app_config_dialog.show()
-        
-    
-    
-    def on_app_options_browse(self, name, title, filename):
-        dialog = gtk.FileChooserDialog(title, self.app_config_dialog, 
-            action=gtk.FILE_CHOOSER_ACTION_OPEN,
-            buttons=("Cancel", gtk.RESPONSE_CANCEL,
-                     "Open", gtk.RESPONSE_OK))
-        dialog.connect("response", self.on_app_options_browse_response)
-        dialog.set_transient_for(self.app_config_dialog)
-        dialog.set_modal(True)
-                
-        
-        if filename != "" and os.path.isabs(filename):
-            dialog.set_filename(filename)
-        
-        
-        # NOTE: monkey patch (note_1)
-        dialog.entry_name = name
-        
-        dialog.show()
-    
-    
-    def on_app_options_browse_response(self, dialog, response):
-        if response == gtk.RESPONSE_OK:
-            filename = dialog.get_filename()
-            dialog.destroy()
-            
-            # NOTE: using monkey patch (note_1)
-            self.app_config_xml.get_widget(dialog.entry_name + "_entry").\
-                set_text(filename)
-            
-        elif response == gtk.RESPONSE_CANCEL:
-            dialog.destroy()
-    
-    
-    def on_app_options_ok(self):
-        # TODO: add arguments
-    
-        self.app.pref.default_notebook = \
-            self.app_config_xml.get_widget("default_notebook_entry").get_text()
-        
-        self.app.pref.external_apps["file_explorer"] = \
-            self.app_config_xml.get_widget("file_explorer_entry").get_text()
-        self.app.pref.external_apps["web_browser"] = \
-            self.app_config_xml.get_widget("web_browser_entry").get_text()
-        self.app.pref.external_apps["text_editor"] = \
-            self.app_config_xml.get_widget("text_editor_entry").get_text()
-        self.app.pref.external_apps["image_editor"] = \
-            self.app_config_xml.get_widget("image_editor_entry").get_text()
-        
-        self.app.pref.write()
-        
-        self.app_config_dialog.destroy()
-        self.app_config_dialog = None
-    
-    #================================================
-    # Drag and drop texting dialog
-    
-    def on_drag_and_drop_test(self):
-        self.drag_win = gtk.Window(gtk.WINDOW_TOPLEVEL)
-        self.drag_win.connect("delete-event", lambda d,r: self.drag_win.destroy())
-        self.drag_win.drag_dest_set(0, [], gtk.gdk.ACTION_DEFAULT)
-        
-        self.drag_win.set_default_size(400, 400)
-        vbox = gtk.VBox(False, 0)
-        self.drag_win.add(vbox)
-        
-        self.drag_win.mime = gtk.TextView()
-        vbox.pack_start(self.drag_win.mime, False, True, 0)
-        
-        self.drag_win.editor = gtk.TextView()
-        self.drag_win.editor.connect("drag-motion", self.on_drag_and_drop_test_motion)        
-        self.drag_win.editor.connect("drag-data-received", self.on_drag_and_drop_test_data)
-        self.drag_win.editor.connect("paste-clipboard", self.on_drag_and_drop_test_paste)
-        self.drag_win.editor.set_wrap_mode(gtk.WRAP_WORD)
-        
-        sw = gtk.ScrolledWindow()
-        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        sw.set_shadow_type(gtk.SHADOW_IN)
-        sw.add(self.drag_win.editor)
-        vbox.pack_start(sw)
-        
-        self.drag_win.show_all()
-    
-    def on_drag_and_drop_test_motion(self, textview, drag_context, x, y, timestamp):
-        buf = self.drag_win.mime.get_buffer()
-        target = buf.get_text(buf.get_start_iter(), buf.get_end_iter())
-        if target != "":
-            textview.drag_dest_set_target_list([(target, 0, 0)])
-    
-    def on_drag_and_drop_test_data(self, textview, drag_context, x, y,
-                                   selection_data, info, eventtime):
-        textview.get_buffer().insert_at_cursor("drag_context = " + 
-            str(drag_context.targets) + "\n")
-        textview.stop_emission("drag-data-received")
-        
-        buf = textview.get_buffer()
-        buf.insert_at_cursor("type(sel.data) = " + 
-            str(type(selection_data.data)) + "\n")
-        buf.insert_at_cursor("sel.data = " +
-            str(selection_data.data)[:1000] + "\n")
-        drag_context.finish(False, False, eventtime)            
-
-        
-    
-    def on_drag_and_drop_test_paste(self, textview):
-        clipboard = self.get_clipboard(selection="CLIPBOARD")
-        targets = clipboard.wait_for_targets()
-        textview.get_buffer().insert_at_cursor("clipboard.targets = " + 
-            str(targets)+"\n")
-        textview.stop_emission('paste-clipboard')
-        
-        buf = self.drag_win.mime.get_buffer()
-        target = buf.get_text(buf.get_start_iter(), buf.get_end_iter())
-        if target != "":
-            clipboard.request_contents(target, self.on_drag_and_drop_test_contents)
-    
-    def on_drag_and_drop_test_contents(self, clipboard, selection_data, data):
-        buf = self.drag_win.editor.get_buffer()
-        data = selection_data.data
-        buf.insert_at_cursor("sel.targets = " + repr(selection_data.get_targets()) + "\n")
-        buf.insert_at_cursor("type(sel.data) = " + str(type(data))+"\n")        
-        print "sel.data = " + str(data)[:1000]+"\n"
-        buf.insert_at_cursor("sel.data = " + str(data)[:1000]+"\n")
-    
+   
     
     #==================================================
     # Help/about dialog
@@ -1372,16 +1081,16 @@ class TakeNoteWindow (gtk.Window):
             
             ("/_Search", None, None, 0, "<Branch>"),
             ("/Search/_Find In Page",     
-                "<control>F", lambda w,e: self.on_find(False), 0, 
+                "<control>F", lambda w,e: self.find_dialog.on_find(False), 0, 
                 "<StockItem>", gtk.STOCK_FIND), 
             ("/Search/Find _Next In Page",     
-                "<control>G", lambda w,e: self.on_find(False, forward=True), 0, 
+                "<control>G", lambda w,e: self.find_dialog.on_find(False, forward=True), 0, 
                 "<StockItem>", gtk.STOCK_FIND), 
             ("/Search/Find Pre_vious In Page",     
-                "<control><shift>G", lambda w,e: self.on_find(False, forward=False), 0, 
+                "<control><shift>G", lambda w,e: self.find_dialog.on_find(False, forward=False), 0, 
                 "<StockItem>", gtk.STOCK_FIND),                 
             ("/Search/_Replace In Page",     
-                "<control>R", lambda w,e: self.on_find(True), 0, 
+                "<control>R", lambda w,e: self.find_dialog.on_find(True), 0, 
                 "<StockItem>", gtk.STOCK_FIND), 
                 
             
@@ -1484,12 +1193,12 @@ class TakeNoteWindow (gtk.Window):
                 
             ("/Options/sep1", None, None, 0, "<Separator>"),
             ("/Options/_TakeNote Options",
-                None, lambda w,e: self.on_app_options(), 0, 
+                None, lambda w,e: self.app_options_dialog.on_app_options(), 0, 
                 "<StockItem>", gtk.STOCK_PREFERENCES),
             
             ("/_Help",       None, None, 0, "<LastBranch>" ),
             ("/Help/Drap and Drop Test",
-                None, lambda w,e: self.on_drag_and_drop_test(), 0, None),
+                None, lambda w,e: self.drag_test.on_drag_and_drop_test(), 0, None),
             ("/Help/sep1", None, None, 0, "<Separator>"),
             ("/Help/About", None, lambda w,e: self.on_about(), 0, None ),
             )    
@@ -1678,8 +1387,344 @@ class TakeNoteWindow (gtk.Window):
         
         return toolbar
 
+#===================================================================
+
+class ApplicationOptionsDialog (object):
+    """Application options"""
+    
+    def __init__(self, main_window):
+        self.main_window = main_window
+        self.app = main_window.app
+    
+    def on_app_options(self):
+        self.app_config_xml = gtk.glade.XML(get_resource("rc", "app_config.glade"))
+        self.app_config_dialog = self.app_config_xml.get_widget("app_config_dialog")
+        self.app_config_dialog.set_transient_for(self.main_window)
+        self.app_config_dialog.show()
+        
+        self.app_config_xml.signal_autoconnect({
+            "on_ok_button_clicked": 
+                lambda w: self.on_app_options_ok(),
+            "on_cancel_button_clicked": 
+                lambda w: self.app_config_dialog.destroy(),
+                
+            "on_default_notebook_button_clicked": 
+                lambda w: self.on_app_options_browse(
+                    "default_notebook", 
+                    "Choose Default Notebook",
+                    self.app.pref.default_notebook),
+            "on_file_explorer_button_clicked": 
+                lambda w: self.on_app_options_browse(
+                    "file_explorer",
+                    "Choose File Manager Application",
+                    self.app.pref.external_apps.get("file_explorer", "")),
+            "on_web_browser_button_clicked": 
+                lambda w: self.on_app_options_browse(
+                    "web_browser",
+                    "Choose Web Browser Application",
+                    self.app.pref.external_apps.get("web_browser", "")),
+            "on_text_editor_button_clicked": 
+                lambda w: self.on_app_options_browse(
+                    "text_editor",
+                    "Choose Text Editor Application",
+                    self.app.pref.external_apps.get("text_editor", "")),
+            "on_image_editor_button_clicked": 
+                lambda w: self.on_app_options_browse(
+                    "image_editor",
+                    "Choose Image Editor Application",
+                    self.app.pref.external_apps.get("image_editor", "")),
+            })
+        
+        # populate dialog
+        self.app_config_xml.get_widget("default_notebook_entry").\
+            set_text(self.app.pref.default_notebook)
+        
+        self.app_config_xml.get_widget("file_explorer_entry").\
+            set_text(self.app.pref.external_apps.get("file_explorer", ""))
+        self.app_config_xml.get_widget("web_browser_entry").\
+            set_text(self.app.pref.external_apps.get("web_browser", ""))
+        self.app_config_xml.get_widget("text_editor_entry").\
+            set_text(self.app.pref.external_apps.get("text_editor", ""))
+        self.app_config_xml.get_widget("image_editor_entry").\
+            set_text(self.app.pref.external_apps.get("image_editor", ""))
+        
+        
+        self.app_config_dialog.show()
+        
+    
+    
+    def on_app_options_browse(self, name, title, filename):
+        dialog = gtk.FileChooserDialog(title, self.app_config_dialog, 
+            action=gtk.FILE_CHOOSER_ACTION_OPEN,
+            buttons=("Cancel", gtk.RESPONSE_CANCEL,
+                     "Open", gtk.RESPONSE_OK))
+        dialog.connect("response", self.on_app_options_browse_response)
+        dialog.set_transient_for(self.app_config_dialog)
+        dialog.set_modal(True)
+                
+        
+        if os.path.isabs(filename):            
+            dialog.set_filename(filename)
+        
+        
+        # NOTE: monkey patch (note_1)
+        dialog.entry_name = name
+        
+        dialog.show()
+    
+    
+    def on_app_options_browse_response(self, dialog, response):
+        if response == gtk.RESPONSE_OK:
+            filename = dialog.get_filename()
+            dialog.destroy()
+            
+            # NOTE: using monkey patch (note_1)
+            self.app_config_xml.get_widget(dialog.entry_name + "_entry").\
+                set_text(filename)
+            
+        elif response == gtk.RESPONSE_CANCEL:
+            dialog.destroy()
+    
+    
+    def on_app_options_ok(self):
+        # TODO: add arguments
+    
+        self.app.pref.default_notebook = \
+            self.app_config_xml.get_widget("default_notebook_entry").get_text()
+        
+        self.app.pref.external_apps["file_explorer"] = \
+            self.app_config_xml.get_widget("file_explorer_entry").get_text()
+        self.app.pref.external_apps["web_browser"] = \
+            self.app_config_xml.get_widget("web_browser_entry").get_text()
+        self.app.pref.external_apps["text_editor"] = \
+            self.app_config_xml.get_widget("text_editor_entry").get_text()
+        self.app.pref.external_apps["image_editor"] = \
+            self.app_config_xml.get_widget("image_editor_entry").get_text()
+        
+        self.app.pref.write()
+        
+        self.app_config_dialog.destroy()
+        self.app_config_dialog = None
+    
+    
+
+#=============================================================================
+
+class DragDropTextDialog (object):
+    """Drag and drop texting dialog"""
+    
+    def __init__(self, main_window):
+        self.main_window = main_window
+    
+    def on_drag_and_drop_test(self):
+        self.drag_win = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        self.drag_win.connect("delete-event", lambda d,r: self.drag_win.destroy())
+        self.drag_win.drag_dest_set(0, [], gtk.gdk.ACTION_DEFAULT)
+        
+        self.drag_win.set_default_size(400, 400)
+        vbox = gtk.VBox(False, 0)
+        self.drag_win.add(vbox)
+        
+        self.drag_win.mime = gtk.TextView()
+        vbox.pack_start(self.drag_win.mime, False, True, 0)
+        
+        self.drag_win.editor = gtk.TextView()
+        self.drag_win.editor.connect("drag-motion", self.on_drag_and_drop_test_motion)        
+        self.drag_win.editor.connect("drag-data-received", self.on_drag_and_drop_test_data)
+        self.drag_win.editor.connect("paste-clipboard", self.on_drag_and_drop_test_paste)
+        self.drag_win.editor.set_wrap_mode(gtk.WRAP_WORD)
+        
+        sw = gtk.ScrolledWindow()
+        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        sw.set_shadow_type(gtk.SHADOW_IN)
+        sw.add(self.drag_win.editor)
+        vbox.pack_start(sw)
+        
+        self.drag_win.show_all()
+    
+    def on_drag_and_drop_test_motion(self, textview, drag_context, x, y, timestamp):
+        buf = self.drag_win.mime.get_buffer()
+        target = buf.get_text(buf.get_start_iter(), buf.get_end_iter())
+        if target != "":
+            textview.drag_dest_set_target_list([(target, 0, 0)])
+    
+    def on_drag_and_drop_test_data(self, textview, drag_context, x, y,
+                                   selection_data, info, eventtime):
+        textview.get_buffer().insert_at_cursor("drag_context = " + 
+            str(drag_context.targets) + "\n")
+        textview.stop_emission("drag-data-received")
+        
+        buf = textview.get_buffer()
+        buf.insert_at_cursor("type(sel.data) = " + 
+            str(type(selection_data.data)) + "\n")
+        buf.insert_at_cursor("sel.data = " +
+            str(selection_data.data)[:1000] + "\n")
+        drag_context.finish(False, False, eventtime)            
+
+        
+    
+    def on_drag_and_drop_test_paste(self, textview):
+        clipboard = self.main_window.get_clipboard(selection="CLIPBOARD")
+        targets = clipboard.wait_for_targets()
+        textview.get_buffer().insert_at_cursor("clipboard.targets = " + 
+            str(targets)+"\n")
+        textview.stop_emission('paste-clipboard')
+        
+        buf = self.drag_win.mime.get_buffer()
+        target = buf.get_text(buf.get_start_iter(), buf.get_end_iter())
+        if target != "":
+            clipboard.request_contents(target, self.on_drag_and_drop_test_contents)
+    
+    def on_drag_and_drop_test_contents(self, clipboard, selection_data, data):
+        buf = self.drag_win.editor.get_buffer()
+        data = selection_data.data
+        buf.insert_at_cursor("sel.targets = " + repr(selection_data.get_targets()) + "\n")
+        buf.insert_at_cursor("type(sel.data) = " + str(type(data))+"\n")        
+        print "sel.data = " + str(data)[:1000]+"\n"
+        buf.insert_at_cursor("sel.data = " + str(data)[:1000]+"\n")
+
+
+
+#=============================================================================
+
+class TakeNoteFindDialog (object):
+    """ Find dialog """
+    
+    def __init__(self, main_window):
+        self.main_window = main_window
+
+    
+    def on_find(self, replace=False, forward=None):
+        if hasattr(self, "find_dialog") and self.find_dialog:
+            self.find_dialog.present()
+            
+            # could add find again behavior here            
+            self.find_xml.get_widget("replace_checkbutton").set_active(replace)
+            self.find_xml.get_widget("replace_entry").set_sensitive(replace)
+            self.find_xml.get_widget("replace_button").set_sensitive(replace)
+            self.find_xml.get_widget("replace_all_button").set_sensitive(replace)
+            
+            if not replace:
+                if forward is None:
+                    self.on_find_response("find")
+                elif forward:
+                    self.on_find_response("find_next")
+                else:
+                    self.on_find_response("find_prev")
+            else:
+                self.on_find_response("replace")
+            
+            return
+        
+
+        
+        self.find_xml = gtk.glade.XML(get_resource("rc", "app_config.glade"))    
+        self.find_dialog = self.find_xml.get_widget("find_dialog")
+        self.find_dialog.connect("delete-event", lambda w,e: self.on_find_response("close"))
+        self.find_last_pos = -1
+        
+            
+        
+        self.find_xml.signal_autoconnect({
+            "on_find_dialog_key_release_event":
+                self.on_find_key_released,
+            "on_close_button_clicked": 
+                lambda w: self.on_find_response("close"),
+            "on_find_button_clicked": 
+                lambda w: self.on_find_response("find"),
+            "on_replace_button_clicked": 
+                lambda w: self.on_find_response("replace"),
+            "on_replace_all_button_clicked": 
+                lambda w: self.on_find_response("replace_all"),
+            "on_replace_checkbutton_toggled":
+                lambda w: self.on_find_replace_toggled()
+            })
+        
+        if hasattr(self, "find_text"):
+            self.find_xml.get_widget("text_entry").set_text(self.find_text)
+        
+        if hasattr(self, "replace_text"):
+            self.find_xml.get_widget("replace_entry").set_text(self.replace_text)
+        
+        self.find_xml.get_widget("replace_checkbutton").set_active(replace)
+        self.find_xml.get_widget("replace_entry").set_sensitive(replace)
+        self.find_xml.get_widget("replace_button").set_sensitive(replace)
+        self.find_xml.get_widget("replace_all_button").set_sensitive(replace)
+        
+        self.find_dialog.show()
+        self.find_dialog.move(*self.main_window.get_position())
+    
+    def on_find_key_released(self, widget, event):
+        
+        if event.keyval == gdk.keyval_from_name("G") and \
+           event.state & gtk.gdk.SHIFT_MASK and \
+           event.state & gtk.gdk.CONTROL_MASK:
+            self.on_find_response("find_prev")
+            widget.stop_emission("key-release-event")
+        
+        elif event.keyval == gdk.keyval_from_name("g") and \
+           event.state & gtk.gdk.CONTROL_MASK:
+            self.on_find_response("find_next")
+            widget.stop_emission("key-release-event")
+
+    
+    
+    def on_find_response(self, response):
+        
+        # get find options
+        find_text = self.find_xml.get_widget("text_entry").get_text()
+        replace_text = self.find_xml.get_widget("replace_entry").get_text()
+        case_sensitive = self.find_xml.get_widget("case_sensitive_button").get_active()
+        search_forward = self.find_xml.get_widget("forward_button").get_active()
+        
+        self.find_text = find_text
+        self.replace_text = replace_text
+        next = (self.find_last_pos != -1)
+        
+                
+        if response == "close":
+            self.find_dialog.destroy()
+            self.find_dialog = None
+            
+        elif response == "find":
+            self.find_last_pos = self.main_window.editor.get_textview().find(find_text, case_sensitive, search_forward,
+                                      next)
+
+        elif response == "find_next":
+            self.find_xml.get_widget("forward_button").set_active(True)
+            self.find_last_pos = self.main_window.editor.get_textview().find(find_text, case_sensitive, True)
+
+        elif response == "find_prev":
+            self.find_xml.get_widget("backward_button").set_active(True)
+            self.find_last_pos = self.main_window.editor.get_textview().find(find_text, case_sensitive, False)
+        
+        elif response == "replace":
+            self.find_last_pos = self.main_window.editor.get_textview().replace(find_text, replace_text,
+                                         case_sensitive, search_forward)
+            
+        elif response == "replace_all":
+            self.main_window.editor.get_textview().replace_all(find_text, replace_text,
+                                             case_sensitive, search_forward)
+    
+    
+    def on_find_replace_toggled(self):
+        
+        if self.find_xml.get_widget("replace_checkbutton").get_active():
+            self.find_xml.get_widget("replace_entry").set_sensitive(True)
+            self.find_xml.get_widget("replace_button").set_sensitive(True)
+            self.find_xml.get_widget("replace_all_button").set_sensitive(True)
+        else:
+            self.find_xml.get_widget("replace_entry").set_sensitive(False)
+            self.find_xml.get_widget("replace_button").set_sensitive(False)
+            self.find_xml.get_widget("replace_all_button").set_sensitive(False)
+            
+
+#=============================================================================
+# Application class
 
 class TakeNote (object):
+    """TakeNote application class"""
+
     
     def __init__(self, basedir=""):
         takenote.set_basedir(basedir)
@@ -1697,4 +1742,28 @@ class TakeNote (object):
         
     def open_notebook(self, filename):
         self.window.open_notebook(filename)
+
+    def run_helper(self, app, filename, wait=True):
+        helper_cmd = self.pref.external_apps.get(app, "")
+        
+        if helper_cmd == "":
+            return 1 # error    
+        
+        args = shlex.split(helper_cmd)
+        if "%s" not in helper_cmd:
+            args.append(filename)
+        else:
+            for i in xrange(len(args)):
+                if args[i] == "%s":
+                    args[i] = filename
+        
+        proc = subprocess.Popen(args)
+        
+        if wait:
+            return proc.wait()
+
+
+
+
+
 

@@ -651,13 +651,36 @@ class BaseWidget (object):
         return self.owner    
     
 
-class BaseImage (gtk.Image, BaseWidget):
+class BaseImage (gtk.EventBox, BaseWidget):
     """Subclasses gtk.Image to make an Image Widget that can be used within
        RichTextViewS"""
 
     def __init__(self, *args, **kargs):
-        gtk.Image.__init__(self, *args, **kargs)
+        gtk.EventBox.__init__(self)
         BaseWidget.__init__(self)
+        self.img = gtk.Image(*args, **kargs)
+        self.add(self.img)
+        gtk.EventBox.connect(self, "enter-notify-event", self.on_enter_notify)
+        gtk.EventBox.connect(self, "leave-notify-event", self.on_leave_notify)
+    
+    def on_enter_notify(self, widget, event):
+        self.drag_highlight()
+    
+    def on_leave_notify(self, widget, event):
+        self.drag_unhighlight()
+    
+    def connect(self, *args):
+        self.img.connect(*args)
+    
+    def set_from_pixbuf(self, pixbuf):
+        self.img.set_from_pixbuf(pixbuf)
+    
+    def set_from_stock(self, stock, size):
+        self.img.set_from_stock(stock, size)
+    
+    def show(self):
+        gtk.EventBox.show(self)
+        self.img.show()
 
 
 class RichTextImage (RichTextChild):
@@ -1232,7 +1255,7 @@ class RichTextBuffer (gtk.TextBuffer):
                 font.get_style() == pango.STYLE_ITALIC,
                 "underline":
                 self.underline_tag in current_tags or
-                attr.underline != pango.UNDERLINE_NONE}      
+                attr.underline == pango.UNDERLINE_SINGLE}
         
         # set justification
         justify = self.justify2name[attr.justification]
@@ -1438,7 +1461,7 @@ class RichTextView (gtk.TextView):
         elif self.drag_dest_find_target(drag_context, 
                    [("text/plain", 0, 0)]) not in (None, "NONE"):
             
-            self.insert_at_cursor(selection_data.get_text())
+            self.textbuffer.insert_at_cursor(selection_data.get_text())
                         
             
     def insert_pdf_image(self, imgfile):
