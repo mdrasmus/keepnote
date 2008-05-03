@@ -19,7 +19,7 @@ from takenote import notebook
 from takenote.notebook import NoteBookError, NoteBookDir, NoteBookPage
 
 
-    
+'''    
 class SelectorColumn (object):
     def __init__(self, name, kind, col):
         self.name = name
@@ -29,7 +29,7 @@ class SelectorColumn (object):
 TITLE_COLUMN = SelectorColumn("Title", str, 0)
 CREATED_COLUMN = SelectorColumn("Created", str, 1)
 MODIFIED_COLUMN = SelectorColumn("Modified", str, 2)
-
+'''
 
 class TakeNoteSelector (gtk.TreeView):
     
@@ -433,8 +433,6 @@ class TakeNoteSelector (gtk.TreeView):
             self.on_status(text, bar=bar)
 
 gobject.type_register(TakeNoteSelector)
-#gobject.signal_new("node-modified", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
-#    gobject.TYPE_NONE, (bool, object, bool))
 gobject.signal_new("select-nodes", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object,))
 gobject.signal_new("error", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 

@@ -226,7 +226,7 @@ class HtmlError (StandardError):
 
 
 class HtmlBuffer (HTMLParser):
-    """Read and write HTML for a gtk.TextBuffer"""
+    """Read and write HTML for a RichTextBuffer"""
     
     def __init__(self, out=None):
         HTMLParser.__init__(self)
@@ -253,15 +253,18 @@ class HtmlBuffer (HTMLParser):
         
     
     def set_output(self, out):
+        """Set the output stream for HTML"""
         self.out = out
     
     
     def add_tag(self, tag, html_name):
+        """Register a gtk.TextTag for HTML output"""
         self.tag2html[tag] = html_name
         self.html2tag[html_name] = tag    
     
     
     def read(self, textbuffer, infile):
+        """Read from stream infile to populate textbuffer"""
         self.buffer = textbuffer
         
         for line in infile:
@@ -272,6 +275,7 @@ class HtmlBuffer (HTMLParser):
     
     
     def handle_starttag(self, tag, attrs):
+        """Callback for parsing a starting HTML tag"""
         self.newline = False
         if tag in ("html", "body"):
             return
@@ -281,10 +285,13 @@ class HtmlBuffer (HTMLParser):
 
 
     def handle_endtag(self, tag):
+        """Callback for parsing a ending HTML tag"""
+        
         self.newline = False
         if tag in ("html", "body"):
             return
         
+        # ensure closing tags match opened tags
         if self.tag_stack[-1][0] != tag:
             raise HtmlError("closing tag does not match opening tag")
         htmltag, attrs, mark = self.tag_stack.pop()
@@ -343,7 +350,7 @@ class HtmlBuffer (HTMLParser):
                     raise HtmlError("unknown attr key '%s'" % key)
         
         elif htmltag == "img":
-            
+            # insert image
             for key, value in attrs:
                 if key == "src":
                     img = RichTextImage()
@@ -361,25 +368,22 @@ class HtmlBuffer (HTMLParser):
         start = self.buffer.get_iter_at_mark(mark)
         self.buffer.apply_tag(tag, start, self.buffer.get_end_iter())
         self.buffer.delete_mark(mark)
-
+    
+    
     def handle_data(self, data):
+        """Callback for character data"""
         
         if self.newline:
             data = re.sub("\n[\n ]*", "", data)
             self.newline = False
         else:
             data = re.sub("[\n ]+", " ", data)
-        #self.buffer.insert(self.buffer.get_end_iter(), data)
         self.buffer.insert_at_cursor(data)
     
     def handle_entityref(self, name):
-        #self.buffer.insert(self.buffer.get_end_iter(),
-        #                   self.entity2char.get(name, ""))
         self.buffer.insert_at_cursor(self.entity2char.get(name, ""))
     
     def handle_charref(self, name):
-        #self.buffer.insert(self.buffer.get_end_iter(),
-        #                   self.charref2char.get(name, ""))
         self.buffer.insert_at_cursor(self.charref2char.get(name, ""))
         
     
@@ -492,6 +496,7 @@ class InsertAction (Action):
     def __init__(self, textbuffer, pos, text, length):
         Action.__init__(self)
         self.textbuffer = textbuffer
+        self.current_tags = list(textbuffer.get_current_tags())
         self.pos = pos
         self.text = text
         self.length = length
@@ -499,7 +504,7 @@ class InsertAction (Action):
     def do(self):
         start = self.textbuffer.get_iter_at_offset(self.pos)
         self.textbuffer.place_cursor(start)
-        self.textbuffer.insert_at_cursor(self.text)
+        self.textbuffer.insert_with_tags(start, self.text, *self.current_tags)
     
     def undo(self):
         start = self.textbuffer.get_iter_at_offset(self.pos)
@@ -643,7 +648,9 @@ class RichTextAnchor (gtk.TextChildAnchor):
 
 gobject.type_register(RichTextAnchor)
 gobject.signal_new("selected", RichTextAnchor, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, ())
+                   gobject.TYPE_NONE, ())
+gobject.signal_new("popup-menu", RichTextAnchor, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, (int, object))
 
 
 class BaseWidget (object):
@@ -770,7 +777,16 @@ class RichTextImage (RichTextAnchor):
         self._widget = None
     
     def on_clicked(self, widget, event):
-        self.emit("selected")
+        if event.button == 1:
+            self._widget.grab_focus()
+            self.emit("selected")
+            return True
+        elif event.button == 3:
+            # popup menu
+            self.emit("selected")
+            self.emit("popup-menu", event.button, event.time)
+            return True
+            
         
 
 #=============================================================================
@@ -858,6 +874,9 @@ class RichTextBuffer (gtk.TextBuffer):
     def get_textview(self):
         return self.textview
     
+    def get_current_tags(self):
+        return self.current_tags
+    
     def block_signals(self):
         for signal in self.signals:
             self.handler_block(signal)
@@ -889,6 +908,7 @@ class RichTextBuffer (gtk.TextBuffer):
                    ("TEXT", 0, -3)]
         
         sel = self.get_selection_bounds()
+        print sel
         if sel:
             start, end = sel
             contents = list(iter_buffer_contents(self, start, end))
@@ -970,6 +990,7 @@ class RichTextBuffer (gtk.TextBuffer):
     def add_child(self, it, child):
         self.anchors.add(child)
         child.connect("selected", self.on_child_selected)
+        child.connect("popup-menu", self.on_child_popup_menu)
         self.insert_child_anchor(it, child)
         if self.textview:
             self.textview.add_child_at_anchor(child.get_widget(), child)
@@ -1129,8 +1150,14 @@ class RichTextBuffer (gtk.TextBuffer):
     def on_child_selected(self, child):
         it = self.get_iter_at_child_anchor(child)
         end = it.copy()
-        end.forward_char()
+        end.forward_char() #cursor_position()
         self.select_range(it, end)
+        print self.get_selection_bounds()
+
+    def on_child_popup_menu(self, child, button, activate_time):
+        if self.textview:
+            self.textview.on_child_popup_menu(child, button, activate_time)
+            
     
     def highlight_children(self):
         sel = self.get_selection_bounds()
@@ -1391,7 +1418,7 @@ class RichTextView (gtk.TextView):
         self.connect("copy-clipboard", lambda w: self.on_copy())
         self.connect("cut-clipboard", lambda w: self.on_cut())
         self.connect("paste-clipboard", lambda w: self.on_paste())
-        
+        self.connect("button-press-event", self.on_button_press)
         
         
         #[('GTK_TEXT_BUFFER_CONTENTS', 1, 0), ('UTF8_STRING', 0, 0), ('COMPOUND_TEXT', 0, 0), ('TEXT', 0, 0), ('STRING', 0, 0), ('text/plain;charset=utf-8', 0, 0), ('text/plain;charset=ANSI_X3.4-1968', 0, 0), ('text/plain', 0, 0)]
@@ -1403,6 +1430,27 @@ class RichTextView (gtk.TextView):
         self.html_buffer.add_tag(self.textbuffer.bold_tag, "b")
         self.html_buffer.add_tag(self.textbuffer.italic_tag, "i")
         self.html_buffer.add_tag(self.textbuffer.underline_tag, "u")
+
+        # popup menus
+        self.image_menu = gtk.Menu()
+        self.image_menu.attach_to_widget(self, lambda w,m:None)
+
+        item = gtk.ImageMenuItem(gtk.STOCK_CUT)
+        item.connect("activate", lambda w: self.emit("cut-clipboard"))
+        self.image_menu.append(item)
+        item.show()
+        
+        item = gtk.ImageMenuItem(gtk.STOCK_COPY)
+        item.connect("activate", lambda w: self.emit("copy-clipboard"))
+        self.image_menu.append(item)
+        item.show()
+
+        item = gtk.ImageMenuItem(gtk.STOCK_DELETE)
+        item.connect("activate", lambda w: self.textbuffer.delete_selection(True, True))
+        self.image_menu.append(item)
+        item.show()
+        
+
         
         # requires new pygtk
         #self.textbuffer.register_serialize_format(MIME_TAKENOTE, 
@@ -1434,8 +1482,10 @@ class RichTextView (gtk.TextView):
             self.textbuffer.set_textview(self)
 
 
+    def on_button_press(self, widget, event):
+        pass #print "click"
 
-        
+    
 
     #=======================================================
     # Drag and drop
@@ -1730,6 +1780,19 @@ class RichTextView (gtk.TextView):
     def deserialize(self, register_buf, content_buf, it, data, create_tags, udata):
         print "deserialize"
     """
+
+    #=====================================================
+    # Popup Menus
+
+    def on_child_popup_menu(self, child, button, activate_time):
+        if isinstance(child, RichTextImage):
+            print "image menu"
+            self.image_menu.popup(None, None, None, button, activate_time)
+            self.image_menu.show()
+            
+    def get_image_menu(self):
+        return self.image_menu
+        
     
     #===========================================================
     # Actions
