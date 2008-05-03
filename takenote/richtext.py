@@ -29,7 +29,7 @@ from takenote.undo import UndoStack
 
 
 # constants
-MIME_TAKENOTE = "application/x-takenote"
+MIME_TAKENOTE = "application/x-takespnote"
 
 IGNORE_TAGS = set(["gtkspell-misspelled"])
 
@@ -1152,7 +1152,7 @@ class RichTextBuffer (gtk.TextBuffer):
         end = it.copy()
         end.forward_char() #cursor_position()
         self.select_range(it, end)
-        print self.get_selection_bounds()
+        
 
     def on_child_popup_menu(self, child, button, activate_time):
         if self.textview:
@@ -1384,6 +1384,17 @@ class RichTextBuffer (gtk.TextBuffer):
         self.undo_stack.end_action()
 
 
+class RichTextMenu (gtk.Menu):
+    def __inti__(self):
+        gkt.Menu.__init__(self)
+        self._child = None
+
+    def set_child(self, child):
+        self._child = child
+
+    def get_child(self):
+        return self._child
+
 
 
 
@@ -1432,7 +1443,7 @@ class RichTextView (gtk.TextView):
         self.html_buffer.add_tag(self.textbuffer.underline_tag, "u")
 
         # popup menus
-        self.image_menu = gtk.Menu()
+        self.image_menu = RichTextMenu()
         self.image_menu.attach_to_widget(self, lambda w,m:None)
 
         item = gtk.ImageMenuItem(gtk.STOCK_CUT)
@@ -1785,8 +1796,9 @@ class RichTextView (gtk.TextView):
     # Popup Menus
 
     def on_child_popup_menu(self, child, button, activate_time):
+        self.image_menu.set_child(child)
+        
         if isinstance(child, RichTextImage):
-            print "image menu"
             self.image_menu.popup(None, None, None, button, activate_time)
             self.image_menu.show()
             

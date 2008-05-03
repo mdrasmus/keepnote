@@ -60,9 +60,7 @@ def quote_filename(filename):
     return filename
 
 
-class TakeNoteEditor (gtk.VBox): #(gtk.Notebook): #(gtk.ScrolledWindow):
-
-
+class TakeNoteEditor (gtk.VBox): #(gtk.Notebook):
 
     def __init__(self):
         #gtk.Notebook.__init__(self)
@@ -246,6 +244,11 @@ class TakeNoteWindow (gtk.Window):
         self.editor.connect("modified", self.on_page_editor_modified)
         self.editor.connect("error", lambda w,t,e: self.error(t, e))  
         self.editor.view_pages([])
+
+        item = gtk.MenuItem("Edit Image")
+        item.connect("activate", self.on_edit_image)
+        item.show()
+        self.editor.get_textview().get_image_menu().append(item)
         
         #====================================
         # Dialogs
@@ -859,7 +862,23 @@ class TakeNoteWindow (gtk.Window):
         img = RichTextImage()
         img.set_from_pixbuf(pixbuf)
         self.editor.get_textview().insert_image(img, savename)
+
+
+    def on_edit_image(self, menuitem):
+
+        if self.current_page is None:
+            return
         
+        # get image filename
+        image_filename = menuitem.get_parent().get_child().get_filename()
+
+        image_path = os.path.join(self.current_page.get_path(), image_filename)
+        editor = self.app.pref.external_apps.get("image_editor", "")
+    
+        if editor != "":
+            proc = subprocess.Popen([editor, image_path])
+    
+
                 
     #=============================================
     # Goto menu options
