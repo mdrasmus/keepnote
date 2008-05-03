@@ -79,7 +79,7 @@ def iter_buffer_contents(textbuffer, start=None, end=None,
             # yield text in between tags
             yield ("text", it2, it2.get_text(a))
             if anchor != None:
-                yield ("anchor", a, (anchor, anchor.get_widgets()))
+                yield ("anchor", a, (anchor, [anchor.get_widget()]))
             else:
                 yield ("pixbuf", a, a.get_pixbuf())
             it2 = b
@@ -178,9 +178,8 @@ def insert_buffer_contents(textbuffer, pos, contents):
             
         elif kind == "anchor":
             it = textbuffer.get_iter_at_mark(textbuffer.get_insert())
-            anchor = textbuffer.create_child_anchor(it)
-            child = param[1][0].get_owner().copy()
-            textbuffer.add_child_at_anchor(child, anchor)
+            anchor = param[1][0].get_owner().copy()
+            textbuffer.add_child(it, anchor)
             
             if first_insert:
                 it = textbuffer.get_iter_at_mark(textbuffer.get_insert())
@@ -550,26 +549,23 @@ class DeleteAction (Action):
 
 
 class InsertChildAction (Action):
-    def __init__(self, textbuffer, pos, anchor):
+    def __init__(self, textbuffer, pos, child):
         Action.__init__(self)
         self.textbuffer = textbuffer
         self.pos = pos
-        self.anchor = anchor
-        self.child = None
+        self.child = child
         
     
     def do(self):
         it = self.textbuffer.get_iter_at_offset(self.pos)
-        self.anchor = self.textbuffer.create_child_anchor(it)
         self.child = self.child.copy()
-        self.textbuffer.add_child_at_anchor(self.child, self.anchor)
+        self.textbuffer.add_child(it, self.child)
         
 
     
     def undo(self):
         it = self.textbuffer.get_iter_at_offset(self.pos)
-        self.anchor = it.get_child_anchor()
-        self.child = self.anchor.get_widgets()[0].get_owner()
+        self.child = it.get_child_anchor()
         it2 = it.copy()
         it2.forward_char()
         self.textbuffer.delete(it, it2)
@@ -621,10 +617,11 @@ class TagAction (Action):
 # RichText child objects
 
 
-class RichTextChild (object):
-    """Base class of all child objects in a RichTextView"""
+class RichTextAnchor (gtk.TextChildAnchor):
+    """Base class of all anchor objects in a RichTextView"""
     
     def __init__(self):
+        gtk.TextChildAnchor.__init__(self)
         self._widget = None
     
     def get_widget(self):
@@ -634,12 +631,24 @@ class RichTextChild (object):
         return self._widget
     
     def copy(slef):
-        return RichTextChild()
+        return RichTextAnchor()
+    
+    def highlight(self):
+        if self._widget:
+            self._widget.highlight()
+    
+    def unhighlight(self):
+        if self._widget:
+            self._widget.unhighlight()
+
+gobject.type_register(RichTextAnchor)
+gobject.signal_new("selected", RichTextAnchor, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, ())
 
 
 class BaseWidget (object):
     """This class is used to supplement widgets with a pointer back to the 
-       owner RichTextChild object"""
+       owner RichTextAnchor object"""
     
     def __init__(self):
         self.owner = None
@@ -648,7 +657,13 @@ class BaseWidget (object):
         self.owner = owner
     
     def get_owner(self):
-        return self.owner    
+        return self.owner
+    
+    def highlight(self):
+        pass
+    
+    def unhighlight(self):
+        pass
     
 
 class BaseImage (gtk.EventBox, BaseWidget):
@@ -659,18 +674,24 @@ class BaseImage (gtk.EventBox, BaseWidget):
         gtk.EventBox.__init__(self)
         BaseWidget.__init__(self)
         self.img = gtk.Image(*args, **kargs)
-        self.add(self.img)
-        gtk.EventBox.connect(self, "enter-notify-event", self.on_enter_notify)
-        gtk.EventBox.connect(self, "leave-notify-event", self.on_leave_notify)
+        self.add(self.img)        
+        #gtk.EventBox.connect(self, "enter-notify-event", self.on_enter_notify)
+        #gtk.EventBox.connect(self, "leave-notify-event", self.on_leave_notify)
     
-    def on_enter_notify(self, widget, event):
+    #def on_enter_notify(self, widget, event):
+    #    self.drag_highlight()
+    
+    #def on_leave_notify(self, widget, event):
+    #    self.drag_unhighlight()
+    
+    def highlight(self):
         self.drag_highlight()
     
-    def on_leave_notify(self, widget, event):
+    def unhighlight(self):
         self.drag_unhighlight()
     
-    def connect(self, *args):
-        self.img.connect(*args)
+    #def connect(self, *args):
+    #    self.img.connect(*args)
     
     def set_from_pixbuf(self, pixbuf):
         self.img.set_from_pixbuf(pixbuf)
@@ -683,15 +704,16 @@ class BaseImage (gtk.EventBox, BaseWidget):
         self.img.show()
 
 
-class RichTextImage (RichTextChild):
+class RichTextImage (RichTextAnchor):
     """An Image child widget in a RichTextView"""
 
     def __init__(self):
-        RichTextChild.__init__(self)
+        RichTextAnchor.__init__(self)
         self.filename = None
         self._widget = BaseImage()
         self._widget.set_owner(self)
         self._widget.connect("destroy", self.on_image_destroy)
+        self._widget.connect("button-press-event", self.on_clicked)
         self.pixbuf = None
     
     def set_filename(self, filename):
@@ -746,6 +768,9 @@ class RichTextImage (RichTextChild):
     
     def on_image_destroy(self, widget):
         self._widget = None
+    
+    def on_clicked(self, widget, event):
+        self.emit("selected")
         
 
 #=============================================================================
@@ -776,8 +801,8 @@ class RichTextBuffer (gtk.TextBuffer):
         self.insert_mark = None
         self.next_action = None
         self.current_tags = []
-        self.anchors = {}
-        self.anchors_deferred = {} 
+        self.anchors = set()
+        self.anchors_deferred = set()
         
         # setup signals
         self.signals = []
@@ -841,6 +866,7 @@ class RichTextBuffer (gtk.TextBuffer):
     def unblock_signals(self):
         for signal in self.signals:
             self.handler_unblock(signal)
+    
     
     #======================================================
     # copy and paste
@@ -941,22 +967,23 @@ class RichTextBuffer (gtk.TextBuffer):
     #============================================================
     # actions
     
-    def add_child_at_anchor(self, child, anchor):
-        self.anchors.setdefault(anchor, []).append(child)
+    def add_child(self, it, child):
+        self.anchors.add(child)
+        child.connect("selected", self.on_child_selected)
+        self.insert_child_anchor(it, child)
         if self.textview:
-            self.textview.add_child_at_anchor(child.get_widget(), anchor)
+            self.textview.add_child_at_anchor(child.get_widget(), child)
         else:
-            self.anchors_deferred.setdefault(anchor, []).append(child)
+            self.anchors_deferred.add(child)
     
     
     def add_deferred_anchors(self):
         assert self.textview is not None
         
-        for anchor, children in self.anchors_deferred.iteritems():
+        for child in self.anchors_deferred:
             # only add anchor if it is still present (hasn't been deleted)
-            if anchor in self.anchors:
-                for child in children:
-                    self.textview.add_child_at_anchor(child.get_widget(), anchor)
+            if child in self.anchors:
+                self.textview.add_child_at_anchor(child.get_widget(), child)
         
         self.anchors_deferred.clear()
     
@@ -967,8 +994,7 @@ class RichTextBuffer (gtk.TextBuffer):
         self.begin_user_action()
         
         it = self.get_iter_at_mark(self.get_insert())
-        anchor = self.create_child_anchor(it)
-        self.add_child_at_anchor(image, anchor)
+        self.add_child(it, image)
         image.get_widget().show()
         
         self.end_user_action()
@@ -986,13 +1012,14 @@ class RichTextBuffer (gtk.TextBuffer):
         # TODO: could be faster (specialized search_forward)
         for kind, it, param in iter_buffer_contents(self):
             if kind == "anchor":
-                anchor, widgets = param
-                
-                for widget in widgets:
-                    child = widget.get_owner()
-                    
-                    if isinstance(child, RichTextImage):
-                        filenames.append(child.get_filename())
+                #anchor, widgets = param
+                #
+                #for widget in widgets:
+                #    child = widget.get_owner()
+                #
+                child, widget = param    
+                if isinstance(child, RichTextImage):
+                    filenames.append(child.get_filename())
         
         return filenames    
     
@@ -1010,6 +1037,8 @@ class RichTextBuffer (gtk.TextBuffer):
             if self.textview:
                 self.textview.on_update_font()
             
+            self.highlight_children()
+
     
     
     def on_insert_text(self, textbuffer, it, text, length):
@@ -1085,7 +1114,7 @@ class RichTextBuffer (gtk.TextBuffer):
             
             for kind, offset, param in self.next_action.contents:
                 if kind == "anchor":
-                    del self.anchors[param[0]]
+                    self.anchors.remove(param[0])
         
         
         if self.next_action:
@@ -1095,6 +1124,31 @@ class RichTextBuffer (gtk.TextBuffer):
             self.undo_stack.do(self.next_action.do, self.next_action.undo, False)
             self.next_action = None            
             self.end_user_action()
+
+
+    def on_child_selected(self, child):
+        it = self.get_iter_at_child_anchor(child)
+        end = it.copy()
+        end.forward_char()
+        self.select_range(it, end)
+    
+    def highlight_children(self):
+        sel = self.get_selection_bounds()
+        
+        if len(sel) > 0:
+            a = sel[0].get_offset()
+            b = sel[1].get_offset()
+            for child in self.anchors:
+                it = self.get_iter_at_child_anchor(child)
+                offset = it.get_offset()
+                if a <= offset < b:
+                    child.highlight()
+                else:
+                    child.unhighlight()
+        else:
+            # unselect all children
+            for child in self.anchors:
+                child.unhighlight()
     
     #==============================================================
     # Tag manipulation    
@@ -1338,6 +1392,8 @@ class RichTextView (gtk.TextView):
         self.connect("cut-clipboard", lambda w: self.on_cut())
         self.connect("paste-clipboard", lambda w: self.on_paste())
         
+        
+        
         #[('GTK_TEXT_BUFFER_CONTENTS', 1, 0), ('UTF8_STRING', 0, 0), ('COMPOUND_TEXT', 0, 0), ('TEXT', 0, 0), ('STRING', 0, 0), ('text/plain;charset=utf-8', 0, 0), ('text/plain;charset=ANSI_X3.4-1968', 0, 0), ('text/plain', 0, 0)]
         
         #self.connect("populate-popup", self.on_popup)
@@ -1376,6 +1432,8 @@ class RichTextView (gtk.TextView):
         # tell new buffer we are attached
         if self.textbuffer:
             self.textbuffer.set_textview(self)
+
+
 
         
 
@@ -1607,33 +1665,33 @@ class RichTextView (gtk.TextView):
         
         for kind, it, param in iter_buffer_contents(self.textbuffer):
             if kind == "anchor":
-                anchor, widgets = param
+                child, widgets = param
                 
-                for widget in widgets:
-                    child = widget.get_owner()
+                #for widget in widgets:
+                #    child = widget.get_owner()
                     
-                    if isinstance(child, RichTextImage):
-                        filename = os.path.join(path, child.get_filename())
-                        child.set_from_file(filename)
-                        child.get_widget().show()
+                if isinstance(child, RichTextImage):
+                    filename = os.path.join(path, child.get_filename())
+                    child.set_from_file(filename)
+                    child.get_widget().show()
 
     def save_images(self, path):
         for kind, it, param in iter_buffer_contents(self.textbuffer):
             if kind == "anchor":
-                anchor, widgets = param
+                child, widgets = param
                 
-                for widget in widgets:
-                    child = widget.get_owner()
+                #for widget in widgets:
+                #    child = widget.get_owner()
                     
-                    if isinstance(child, RichTextImage):
-                        filename = os.path.join(path, child.get_filename())
-                        
-                        f, ext = os.path.splitext(filename)
-                        ext = ext.replace(".", "")
-                        if ext == "jpg":
-                            ext = "jpeg"
-                        
-                        child.pixbuf.save(filename, ext) #, {"quality":"100"})
+                if isinstance(child, RichTextImage):
+                    filename = os.path.join(path, child.get_filename())
+
+                    f, ext = os.path.splitext(filename)
+                    ext = ext.replace(".", "")
+                    if ext == "jpg":
+                        ext = "jpeg"
+
+                    child.pixbuf.save(filename, ext)
 
     #=============================================
     # State
