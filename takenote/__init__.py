@@ -112,15 +112,11 @@ class TakeNotePreferences (object):
     
     def __init__(self):
         self.external_apps = {}
-        self.external_apps2 = {}
-        self.external_apps_items = []
         self.view_mode = "vertical" # "horizontal"
         self.default_notebook = ""
         
-        self._last_app = None
-        self._last_prog = None
-        self._last_args = None
-        
+        self._last_app_name = ""
+        self._last_app_program = ""
 
     def read(self):
         if not os.path.exists(get_user_pref_file()):
@@ -177,19 +173,19 @@ g_takenote_pref_parser = xmlo.XmlObject(
         xmlo.Tag("external_apps", tags=[
             xmlo.TagMany("app",
                 iterfunc=lambda s: range(len(s.external_apps)),
-                before=lambda s,i: s.external_apps_items.append([None, None]),
-                after=lambda s,i: s.external_apps.__setitem__(
-                    s.external_apps_items[i][0],
-                    s.external_apps_items[i][1]),
-                tags=[                         
+                before=lambda (s,i): setattr(s, "_last_app_name", "") or
+                                     setattr(s, "_last_app_program", ""),
+                after=lambda (s,i): s.external_apps.__setitem__(
+                    s._last_app_name,
+                    s._last_app_program),
+                tags=[
                     xmlo.Tag("name",
-                        get=lambda (s,i),x: s.external_apps_items[i].__setitem__(0, x),
+                        get=lambda (s,i),x: s.__setattr__("_last_app_name", x),
                         set=lambda (s,i): s.external_apps.keys()[i]),
                     xmlo.Tag("program",                             
-                        get=lambda (s,i),x: s.external_apps_items[i].__setitem__(1, x),
+                        get=lambda (s,i),x: s.__setattr__("_last_app_program",x),
                         set=lambda (s,i): s.external_apps.values()[i])]
            )]
         )
     ]))
-        
 

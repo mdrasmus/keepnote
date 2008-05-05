@@ -106,11 +106,11 @@ class TagMany (Tag):
 
     def start_tag(self):
         if self.beforefunc:
-            self.beforefunc(self.obj, self.index)
+            self.beforefunc((self.obj, self.index))
 
     def end_tag(self):
         if self.afterfunc:
-            self.afterfunc(self.obj, self.index)
+            self.afterfunc((self.obj, self.index))
         self.index += 1
     
     def write(self, obj, out):
