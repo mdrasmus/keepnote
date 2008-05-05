@@ -13,7 +13,7 @@
 
 
 # python imports
-import sys, os, tempfile, re, subprocess, shlex
+import sys, os, tempfile, re, subprocess, shlex, shutil
 
 # pygtk imports
 import pygtk
@@ -245,8 +245,16 @@ class TakeNoteWindow (gtk.Window):
         self.editor.connect("error", lambda w,t,e: self.error(t, e))  
         self.editor.view_pages([])
 
+        #=====================================
+        # context menus
+        # image context menu
         item = gtk.MenuItem("Edit Image")
         item.connect("activate", self.on_edit_image)
+        item.show()
+        self.editor.get_textview().get_image_menu().append(item)
+
+        item = gtk.MenuItem("Save Image As...")
+        item.connect("activate", self.on_save_image_as)
         item.show()
         self.editor.get_textview().get_image_menu().append(item)
         
@@ -879,6 +887,37 @@ class TakeNoteWindow (gtk.Window):
             proc = subprocess.Popen([editor, image_path])
     
 
+    def on_save_image_as(self, menuitem):
+        
+        if self.current_page is None:
+            return
+        
+        # get image filename
+        image = menuitem.get_parent().get_child()
+        image_filename = menuitem.get_parent().get_child().get_filename()
+        image_path = os.path.join(self.current_page.get_path(), image_filename)
+
+        dialog = gtk.FileChooserDialog("Save Image As...", self, 
+            action=gtk.FILE_CHOOSER_ACTION_SAVE,
+            buttons=("Cancel", gtk.RESPONSE_CANCEL,
+                     "Save", gtk.RESPONSE_OK))
+        dialog.set_default_response(gtk.RESPONSE_OK)
+        response = dialog.run()
+        
+
+        if response == gtk.RESPONSE_OK:
+            if dialog.get_filename() == "":
+                self.error("Must specify a filename for the image.")
+            else:
+                try:                
+                    image.write(dialog.get_filename())
+                except:
+                    self.error("Could not save image '%s'" % dialog.get_filename(), e)
+
+        dialog.destroy()
+                            
+        
+        
                 
     #=============================================
     # Goto menu options

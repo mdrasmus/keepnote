@@ -749,6 +749,16 @@ class RichTextImage (RichTextAnchor):
             self.filename = filename
         self._widget.set_from_pixbuf(pixbuf)
         self.pixbuf = pixbuf
+
+
+    def write(self, filename):
+        f, ext = os.path.splitext(filename)
+        ext = ext.replace(".", "")
+        if ext == "jpg":
+            ext = "jpeg"
+            
+        self.pixbuf.save(filename, ext)
+        
     
     def refresh(self):
         if self._widget is None:
@@ -1746,13 +1756,14 @@ class RichTextView (gtk.TextView):
                     
                 if isinstance(child, RichTextImage):
                     filename = os.path.join(path, child.get_filename())
-
-                    f, ext = os.path.splitext(filename)
-                    ext = ext.replace(".", "")
-                    if ext == "jpg":
-                        ext = "jpeg"
-
-                    child.pixbuf.save(filename, ext)
+                    child.write(filename)
+                    
+                    #f, ext = os.path.splitext(filename)
+                    #ext = ext.replace(".", "")
+                    #if ext == "jpg":
+                    #    ext = "jpeg"
+                    #
+                    #child.pixbuf.save(filename, ext)
 
     #=============================================
     # State
