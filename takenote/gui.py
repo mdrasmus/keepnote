@@ -851,7 +851,7 @@ class TakeNoteWindow (gtk.Window):
                 self.insert_image(filename, imgname)
             except Exception, e:
                 # TODO: make exception more specific
-                self.error("Could not insert image '%s'" % filename)
+                self.error("Could not insert image '%s'" % filename, e)
             
         elif response == gtk.RESPONSE_CANCEL:
             dialog.destroy()
@@ -992,7 +992,7 @@ class TakeNoteWindow (gtk.Window):
     
             
     
-    def error(self, text, error):
+    def error(self, text, error=None):
         """Display an error message"""
         #self.set_status(text)
         
@@ -1004,8 +1004,9 @@ class TakeNoteWindow (gtk.Window):
         dialog.connect("response", lambda d,r: dialog.destroy())
         dialog.set_title("Error")
         dialog.show()
-        
-        print error
+
+        if error is not None:
+            print error
     
     
     #================================================

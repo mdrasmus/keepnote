@@ -112,8 +112,14 @@ class TakeNotePreferences (object):
     
     def __init__(self):
         self.external_apps = {}
+        self.external_apps2 = {}
+        self.external_apps_items = []
         self.view_mode = "vertical" # "horizontal"
         self.default_notebook = ""
+        
+        self._last_app = None
+        self._last_prog = None
+        self._last_args = None
         
 
     def read(self):
@@ -149,25 +155,41 @@ g_takenote_pref_parser = xmlo.XmlObject(
         xmlo.Tag("view_mode",
             getobj=("view_mode", str),
             set=lambda s: s.view_mode),
+        #xmlo.Tag("external_apps", tags=[
+        #    xmlo.Tag("file_explorer", 
+        #        get=lambda s,x: s.external_apps.__setitem__(
+        #            "file_explorer", x),
+        #        set=lambda s: s.external_apps.get("file_explorer", "")),
+        #    xmlo.Tag("web_browser", 
+        #        get=lambda s,x: s.external_apps.__setitem__(
+        #            "web_browser", x),
+        #        set=lambda s: s.external_apps.get("web_browser", "")),
+        #    xmlo.Tag("image_editor", 
+        #        get=lambda s,x: s.external_apps.__setitem__(
+        #            "image_editor", x),
+        #        set=lambda s: s.external_apps.get("image_editor", "")),
+        #    xmlo.Tag("text_editor", 
+        #        get=lambda s,x: s.external_apps.__setitem__(
+        #            "text_editor", x),
+        #        set=lambda s: s.external_apps.get("text_editor", "")),
+        #        
+        #    ]),
         xmlo.Tag("external_apps", tags=[
-            xmlo.Tag("file_explorer", 
-                get=lambda s,x: s.external_apps.__setitem__(
-                    "file_explorer", x),
-                set=lambda s: s.external_apps.get("file_explorer", "")),
-            xmlo.Tag("web_browser", 
-                get=lambda s,x: s.external_apps.__setitem__(
-                    "web_browser", x),
-                set=lambda s: s.external_apps.get("web_browser", "")),
-            xmlo.Tag("image_editor", 
-                get=lambda s,x: s.external_apps.__setitem__(
-                    "image_editor", x),
-                set=lambda s: s.external_apps.get("image_editor", "")),
-            xmlo.Tag("text_editor", 
-                get=lambda s,x: s.external_apps.__setitem__(
-                    "text_editor", x),
-                set=lambda s: s.external_apps.get("text_editor", "")),
-                
-            ])
-        ]))
+            xmlo.TagMany("app",
+                iterfunc=lambda s: range(len(s.external_apps)),
+                before=lambda s,i: s.external_apps_items.append([None, None]),
+                after=lambda s,i: s.external_apps.__setitem__(
+                    s.external_apps_items[i][0],
+                    s.external_apps_items[i][1]),
+                tags=[                         
+                    xmlo.Tag("name",
+                        get=lambda (s,i),x: s.external_apps_items[i].__setitem__(0, x),
+                        set=lambda (s,i): s.external_apps.keys()[i]),
+                    xmlo.Tag("program",                             
+                        get=lambda (s,i),x: s.external_apps_items[i].__setitem__(1, x),
+                        set=lambda (s,i): s.external_apps.values()[i])]
+           )]
+        )
+    ]))
         
 
