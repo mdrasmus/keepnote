@@ -1,8 +1,6 @@
 
 
 
-
-
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
@@ -188,7 +186,9 @@ class TakeNoteTreeView (gtk.TreeView):
             if source_path is not None:
                 # get target and source iters
                 source = self.model.get_iter(source_path)
-                
+
+                # make sure target is populated first in treeview
+                self.on_test_expand_row(treeview, target, target_path)
                 
                 # record old and new parent paths
                 old_parent = source_node.get_parent()
@@ -273,7 +273,6 @@ class TakeNoteTreeView (gtk.TreeView):
         walk(it)
     
     def on_test_expand_row(self, treeview, it, path):
-        
         child = self.model.iter_children(it)
         if child and self.model.get_data(path + (0,)) is self.temp_child:
             self.model.remove(child)
