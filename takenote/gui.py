@@ -248,15 +248,62 @@ class TakeNoteWindow (gtk.Window):
         #=====================================
         # context menus
         # image context menu
-        item = gtk.MenuItem("Edit Image")
+        item = gtk.SeparatorMenuItem()
+        item.show()
+        self.editor.get_textview().get_image_menu().append(item)
+            
+        # image/edit
+        item = gtk.MenuItem("Edit Image...")
         item.connect("activate", self.on_edit_image)
         item.show()
         self.editor.get_textview().get_image_menu().append(item)
 
-        item = gtk.MenuItem("Save Image As...")
+        # image/save
+        item = gtk.ImageMenuItem("Save Image As...")
         item.connect("activate", self.on_save_image_as)
         item.show()
         self.editor.get_textview().get_image_menu().append(item)
+
+     
+        # treeview context menu
+        # treeview/new folder
+        item = gtk.MenuItem("New _Folder")
+        item.connect("activate", lambda w: self.on_new_dir())
+        self.treeview.menu.append(item)
+        item.show()
+        
+        # treeview/new page
+        item = gtk.MenuItem("New _Page")
+        item.connect("activate", lambda w: self.on_new_page())
+        self.treeview.menu.append(item)
+        item.show()
+
+        # treeview/delete node
+        item = gtk.ImageMenuItem(gtk.STOCK_DELETE)
+        item.connect("activate", lambda w: self.treeview.on_delete_node())
+        self.treeview.menu.append(item)
+        item.show()
+
+        # note selector context menu
+        # selector/new folder
+        #item = gtk.MenuItem("New _Folder")
+        #item.connect("activate", lambda w: self.on_new_dir())
+        #self.selector.menu.append(item)
+        #item.show()
+        
+        # selector/new page
+        item = gtk.MenuItem("New _Page")
+        item.connect("activate", lambda w: self.on_new_page())
+        self.selector.menu.append(item)
+        item.show()
+
+        # selector/delete node
+        item = gtk.ImageMenuItem(gtk.STOCK_DELETE)
+        item.connect("activate", lambda w: self.selector.on_delete_page())
+        self.selector.menu.append(item)
+        item.show()
+
+
         
         #====================================
         # Dialogs
@@ -575,7 +622,7 @@ class TakeNoteWindow (gtk.Window):
             parent = parent.get_parent()
         
         node = parent.new_dir()
-        self.treeview.update_node(parent)
+        #self.treeview.update_node(parent)
         self.treeview.expand_node(parent)
         self.treeview.edit_node(node)
     
@@ -591,7 +638,7 @@ class TakeNoteWindow (gtk.Window):
             parent = parent.get_parent()
         
         node = parent.new_page()
-        self.treeview.update_node(parent)
+        #self.treeview.update_node(parent)
         self.selector.view_nodes([parent])
         self.selector.edit_node(node)
     

@@ -682,23 +682,12 @@ class BaseImage (gtk.EventBox, BaseWidget):
         BaseWidget.__init__(self)
         self.img = gtk.Image(*args, **kargs)
         self.add(self.img)        
-        #gtk.EventBox.connect(self, "enter-notify-event", self.on_enter_notify)
-        #gtk.EventBox.connect(self, "leave-notify-event", self.on_leave_notify)
-    
-    #def on_enter_notify(self, widget, event):
-    #    self.drag_highlight()
-    
-    #def on_leave_notify(self, widget, event):
-    #    self.drag_unhighlight()
     
     def highlight(self):
         self.drag_highlight()
     
     def unhighlight(self):
         self.drag_unhighlight()
-    
-    #def connect(self, *args):
-    #    self.img.connect(*args)
     
     def set_from_pixbuf(self, pixbuf):
         self.img.set_from_pixbuf(pixbuf)
@@ -1668,7 +1657,7 @@ class RichTextView (gtk.TextView):
             self.html_buffer.write(self)
             out.close()
         except IOError, e:
-            raise RichTextError("Could not save '%s'." % filename)
+            raise RichTextError("Could not save '%s'." % filename, e)
         
         self.textbuffer.set_modified(False)
     

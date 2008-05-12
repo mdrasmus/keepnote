@@ -38,7 +38,9 @@ class TakeNoteTreeView (gtk.TreeView):
         # init treeview
         self.set_model(self.model)
         
+        # treeview signals
         self.connect("key-release-event", self.on_key_released)
+        self.connect("button-press-event", self.on_button_press)
         
         # row expand/collapse
         self.expanded_id = self.connect("row-expanded", self.on_row_expanded)
@@ -94,7 +96,11 @@ class TakeNoteTreeView (gtk.TreeView):
         self.icon_page = gdk.pixbuf_new_from_file(get_resource("images", "note.png"))
         self.icon_trash = gdk.pixbuf_new_from_file(get_resource("images", "trash.png"))
         #self.drag_source_set_icon_pixbuf(self.icon)
-        
+
+        self.menu = gtk.Menu()
+        self.menu.attach_to_widget(self, lambda w,m:None)
+
+
 
         
     
@@ -283,6 +289,20 @@ class TakeNoteTreeView (gtk.TreeView):
            not self.editing:
             self.on_delete_node()
             self.stop_emission("key-release-event")
+
+    def on_button_press(self, widget, event):
+        if event.button == 3:            
+            # popup menu
+            path = self.get_path_at_pos(int(event.x), int(event.y))
+
+            if path is not None:
+                path = path[0]
+                self.get_selection().select_path(path)
+            
+                self.menu.popup(None, None, None,
+                                event.button, event.time)
+                self.menu.show()
+                return True
 
     def on_editing_started(self, cellrenderer, editable, path):
         self.editing = True
