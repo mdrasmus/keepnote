@@ -24,7 +24,7 @@ import gtk.glade
 
 # takenote imports
 import takenote
-from takenote import get_resource
+from takenote import get_resource, get_resource_image, get_resource_pixbuf
 from takenote.notebook import NoteBookError, NoteBookDir, NoteBookPage
 from takenote.richtext import RichTextView, RichTextImage, RichTextError
 from takenote.treeview import TakeNoteTreeView
@@ -34,22 +34,7 @@ from takenote.noteselector import TakeNoteSelector
 # constants
 PROGRAM_NAME = "TakeNode"
 PROGRAM_VERSION = "0.1"
-IMAGE_DIR = "images"
 
-
-g_images = {}
-
-def get_image(filename):
-    if filename in g_images:
-        return g_images[filename]
-    else:
-        img = gtk.Image()
-        img.set_from_file(filename)
-        g_images[filename] = img
-        return img
-
-def get_resource_image(*path_list):
-    return get_image(get_resource(IMAGE_DIR, *path_list))
 
 
 def quote_filename(filename):
@@ -1100,9 +1085,9 @@ class TakeNoteWindow (gtk.Window):
     
     def make_menubar(self):
         # menu bar
-        folder_delete = get_resource_image("folder-delete.png")
+        #folder_delete = get_resource_image("folder-delete.png")
         
-        page_delete = get_resource_image("note-delete.png")
+        #page_delete = get_resource_image("note-delete.png")
         
         self.menu_items = (
             ("/_File",               
@@ -1113,11 +1098,11 @@ class TakeNoteWindow (gtk.Window):
             ("/File/New _Page",      
                 "<control>N", lambda w,e: self.on_new_page(), 0, 
                 "<ImageItem>", 
-                get_resource_image("note-new.png").get_pixbuf()),
+                get_resource_pixbuf("note-new.png")),
             ("/File/New _Folder", 
                 "<control><shift>N", lambda w,e: self.on_new_dir(), 0, 
                 "<ImageItem>", 
-                get_resource_image("folder-new.png").get_pixbuf()),
+                get_resource_pixbuf("folder-new.png")),
             ("/File/sep1", 
                 None, None, 0, "<Separator>" ),
                 
@@ -1131,14 +1116,14 @@ class TakeNoteWindow (gtk.Window):
             ("/File/_Open Notebook",          
                 "<control>O", lambda w,e: self.on_open_notebook(), 0, 
                 "<ImageItem>", 
-                get_resource_image("open.png").get_pixbuf()),
+                get_resource_pixbuf("open.png")),
             ("/File/_Reload Notebook",          
                 None, lambda w,e: self.reload_notebook(), 0, 
                 "<StockItem>", gtk.STOCK_REVERT_TO_SAVED),
             ("/File/_Save Notebook",     
                 "<control>S", lambda w,e: self.on_save(), 0, 
                 "<ImageItem>", 
-                get_resource_image("save.png").get_pixbuf()),
+                get_resource_pixbuf("save.png")),
             ("/File/_Close Notebook", 
                 None, lambda w, e: self.close_notebook(), 0, 
                 "<StockItem>", gtk.STOCK_CLOSE),
@@ -1205,49 +1190,49 @@ class TakeNoteWindow (gtk.Window):
             ("/Format/_Left Align", 
                 "<control>L", lambda w,e: self.on_left_justify(), 0, 
                 "<ImageItem>", 
-                get_resource_image("alignleft.png").get_pixbuf()),
+                get_resource_pixbuf("alignleft.png")),
             ("/Format/C_enter Align", 
                 "<control>E", lambda w,e: self.on_center_justify(), 0, 
                 "<ImageItem>", 
-                get_resource_image("aligncenter.png").get_pixbuf()),
+                get_resource_pixbuf("aligncenter.png")),
             ("/Format/_Right Align", 
                 "<control>R", lambda w,e: self.on_right_justify(), 0, 
                 "<ImageItem>", 
-                get_resource_image("alignright.png").get_pixbuf()),
+                get_resource_pixbuf("alignright.png")),
             ("/Format/_Justify Align", 
                 "<control>J", lambda w,e: self.on_fill_justify(), 0, 
                 "<ImageItem>", 
-                get_resource_image("alignjustify.png").get_pixbuf()),
+                get_resource_pixbuf("alignjustify.png")),
             
             ("/Format/sep1", 
                 None, None, 0, "<Separator>" ),            
             ("/Format/_Bold", 
                 "<control>B", lambda w,e: self.on_bold(), 0, 
                 "<ImageItem>", 
-                get_resource_image("bold.png").get_pixbuf()),
+                get_resource_pixbuf("bold.png")),
             ("/Format/_Italic", 
                 "<control>I", lambda w,e: self.on_italic(), 0, 
                 "<ImageItem>", 
-                get_resource_image("italic.png").get_pixbuf()),
+                get_resource_pixbuf("italic.png")),
             ("/Format/_Underline", 
                 "<control>U", lambda w,e: self.on_underline(), 0, 
                 "<ImageItem>", 
-                get_resource_image("underline.png").get_pixbuf()),
+                get_resource_pixbuf("underline.png")),
             ("/Format/_Monospace",
                 "<control>M", lambda w,e: self.on_fixed_width(False), 0,
                 "<ImageItem>",
-                get_resource_image("fixed-width.png").get_pixbuf()),
+                get_resource_pixbuf("fixed-width.png")),
             
             ("/Format/sep2", 
                 None, None, 0, "<Separator>" ),
             ("/Format/Increase Font _Size", 
                 "<control>plus", lambda w, e: self.on_font_size_inc(), 0, 
                 "<ImageItem>", 
-                get_resource_image("font-inc.png").get_pixbuf()),
+                get_resource_pixbuf("font-inc.png")),
             ("/Format/_Decrease Font Size", 
                 "<control>minus", lambda w, e: self.on_font_size_dec(), 0, 
                 "<ImageItem>", 
-                get_resource_image("font-dec.png").get_pixbuf()),
+                get_resource_pixbuf("font-dec.png")),
             
 
             ("/Format/sep3", 
@@ -1255,25 +1240,25 @@ class TakeNoteWindow (gtk.Window):
             ("/Format/Choose _Font", 
                 "<control><shift>F", lambda w, e: self.on_choose_font(), 0, 
                 "<ImageItem>", 
-                get_resource_image("font.png").get_pixbuf()),
+                get_resource_pixbuf("font.png")),
             
             ("/_View", None, None, 0, "<Branch>"),
             ("/View/View Folder in File Explorer",
                 None, lambda w,e: self.on_view_folder_file_explorer(), 0, 
                 "<ImageItem>",
-                get_resource_image("folder-open.png").get_pixbuf()),
+                get_resource_pixbuf("folder-open.png")),
             ("/View/View Page in File Explorer",
                 None, lambda w,e: self.on_view_page_file_explorer(), 0, 
                 "<ImageItem>",
-                get_resource_image("note.png").get_pixbuf()),
+                get_resource_pixbuf("note.png")),
             ("/View/View Page in Text Editor",
                 None, lambda w,e: self.on_view_page_text_editor(), 0, 
                 "<ImageItem>",
-                get_resource_image("note.png").get_pixbuf()),
+                get_resource_pixbuf("note.png")),
             ("/View/View Page in Web Browser",
                 None, lambda w,e: self.on_view_page_web_browser(), 0, 
                 "<ImageItem>",
-                get_resource_image("note.png").get_pixbuf()),
+                get_resource_pixbuf("note.png")),
                 
             
             ("/_Go", None, None, 0, "<Branch>"),

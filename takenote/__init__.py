@@ -32,8 +32,22 @@ from takenote.notebook import \
     NoteBook
 
 
+#=============================================================================
+# globals
 
 BASEDIR = ""
+IMAGE_DIR = "images"
+PLATFORM = None
+
+USER_PREF_DIR = "takenote"
+USER_PREF_FILE = "takenote.xml"
+
+g_pixbufs = {}
+
+
+#=============================================================================
+# GUI resources
+
 def set_basedir(basedir):
     global BASEDIR
     BASEDIR = basedir
@@ -41,10 +55,41 @@ def set_basedir(basedir):
 def get_resource(*path_list):
     return os.path.join(BASEDIR, *path_list)
 
-PLATFORM = None
+def get_image(filename):
 
-USER_PREF_DIR = "takenote"
-USER_PREF_FILE = "takenote.xml"
+    # NOTE: I want to make sure gtk is not a requirement for __init__
+    # TODO: maybe I will make a base module for gtk interaction
+    import gtk
+    
+    img = gtk.Image()
+    img.set_from_file(filename)    
+    return img
+
+
+def get_pixbuf(filename):
+    # NOTE: I want to make sure gtk is not a requirement for __init__
+    # TODO: maybe I will make a base module for gtk interaction
+    import gtk
+    
+    if filename in g_pixbufs:
+        return g_pixbufs[filename]
+    else:
+
+        # raises GError
+        pixbuf = gtk.gdk.pixbuf_new_from_file(filename)
+        g_pixbufs[filename] = pixbuf
+        return pixbuf
+    
+
+def get_resource_image(*path_list):
+    return get_image(get_resource(IMAGE_DIR, *path_list))
+
+def get_resource_pixbuf(*path_list):
+    # raises GError
+    return get_pixbuf(get_resource(IMAGE_DIR, *path_list))
+        
+
+
 
 
 #=============================================================================
@@ -114,7 +159,8 @@ class TakeNotePreferences (object):
         self.external_apps = {}
         self.view_mode = "vertical" # "horizontal"
         self.default_notebook = ""
-        
+
+        # temp variables for parsing
         self._last_app_name = ""
         self._last_app_program = ""
 
@@ -151,25 +197,6 @@ g_takenote_pref_parser = xmlo.XmlObject(
         xmlo.Tag("view_mode",
             getobj=("view_mode", str),
             set=lambda s: s.view_mode),
-        #xmlo.Tag("external_apps", tags=[
-        #    xmlo.Tag("file_explorer", 
-        #        get=lambda s,x: s.external_apps.__setitem__(
-        #            "file_explorer", x),
-        #        set=lambda s: s.external_apps.get("file_explorer", "")),
-        #    xmlo.Tag("web_browser", 
-        #        get=lambda s,x: s.external_apps.__setitem__(
-        #            "web_browser", x),
-        #        set=lambda s: s.external_apps.get("web_browser", "")),
-        #    xmlo.Tag("image_editor", 
-        #        get=lambda s,x: s.external_apps.__setitem__(
-        #            "image_editor", x),
-        #        set=lambda s: s.external_apps.get("image_editor", "")),
-        #    xmlo.Tag("text_editor", 
-        #        get=lambda s,x: s.external_apps.__setitem__(
-        #            "text_editor", x),
-        #        set=lambda s: s.external_apps.get("text_editor", "")),
-        #        
-        #    ]),
         xmlo.Tag("external_apps", tags=[
             xmlo.TagMany("app",
                 iterfunc=lambda s: range(len(s.external_apps)),
