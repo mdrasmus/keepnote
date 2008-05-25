@@ -75,6 +75,7 @@ setup(
     }
     )
 
-    
+
+# execute post-build script
 if "py2exe" in sys.argv:
-    exec("pst_py2exe.py")
+    execfile("post_py2exe.py")
