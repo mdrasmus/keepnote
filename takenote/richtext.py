@@ -1652,7 +1652,7 @@ class RichTextView (gtk.TextView):
         self.save_images(path)
         
         try:
-            out = open(filename, "w")
+            out = open(filename, "wb")
             self.html_buffer.set_output(out)
             self.html_buffer.write(self)
             out.close()
