@@ -1,6 +1,9 @@
 
 import os, sys, shutil
 
+from pywin import find_path
+
+
 def include(src, dest):
     if not os.path.exists(dest):
         print "copying %s..." % dest
@@ -15,9 +18,9 @@ def prune(path):
             os.remove(path)
 
         
-include("c:/GTK/lib", "dist/lib")
-include("c:/GTK/etc", "dist/etc")
-include("c:/GTK/share", "dist/share")
+include(find_path("GTK/lib"), "dist/lib")
+include(find_path("GTK/etc"), "dist/etc")
+include(find_path("GTK/share"), "dist/share")
 
 prune("dist/share/doc")
 prune("dist/share/gtk-doc")
