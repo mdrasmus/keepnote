@@ -9,9 +9,12 @@ pygtk.require('2.0')
 import gtk
 
 basedir = os.path.dirname(os.path.realpath(sys.argv[0]))
-basedir = os.path.split(basedir)[0]
 
+print basedir
 
+# look for images directory
+if not os.path.isdir(os.path.join(basedir, "images")):
+    basedir = os.path.split(basedir)[0]
 
 try:
     import takenote

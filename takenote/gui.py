@@ -5,11 +5,6 @@
     Graphical User Interface for TakeNote Application
 """
 
-# TODO: shade undo/redo
-# TODO: add framework for customized page selector columns
-# TODO: add html links
-# TODO: add colored text
-
 
 
 # python imports
@@ -457,27 +452,29 @@ class TakeNoteWindow (gtk.Window):
     
     
     def on_open_notebook(self):
-        self.filew = gtk.FileChooserDialog("Open Notebook", self, 
+        dialog = gtk.FileChooserDialog("Open Notebook", self, 
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "Open", gtk.RESPONSE_OK))
-        self.filew.connect("response", self.on_open_notebook_response)
+        #self.filew.connect("response", self.on_open_notebook_response)
         
         file_filter = gtk.FileFilter()
         file_filter.add_pattern("*.nbk")
         file_filter.set_name("Notebook")
-        self.filew.add_filter(file_filter)
+        dialog.add_filter(file_filter)
         
         file_filter = gtk.FileFilter()
         file_filter.add_pattern("*")
         file_filter.set_name("All files")
-        self.filew.add_filter(file_filter)
+        dialog.add_filter(file_filter)
         
-        self.filew.show()
+        #self.filew.show()
+        response = dialog.run()
     
-    def on_open_notebook_response(self, dialog, response):
+        #def on_open_notebook_response(self, dialog, response):
+
         if response == gtk.RESPONSE_OK:
-            filename = self.filew.get_filename()
+            filename = dialog.get_filename()
             dialog.destroy()
             self.open_notebook(filename)
             
@@ -531,16 +528,17 @@ class TakeNoteWindow (gtk.Window):
             self.close_notebook()
         
         try:
-            self.notebook = takenote.NoteBook(filename)
-            self.notebook.create()
-            self.set_status("Created '%s'" % self.notebook.get_title())
+            notebook = takenote.NoteBook(filename)
+            notebook.create()
+            self.set_status("Created '%s'" % notebook.get_title())
         except NoteBookError, e:
-            self.notebook = None
             self.error("Could not create new notebook", e)
             self.set_status("")
             return None
         
         notebook = self.open_notebook(filename, new=True)
+        self.treeview.expand_node(notebook.get_root_node())
+        
         return notebook
         
         
@@ -550,15 +548,16 @@ class TakeNoteWindow (gtk.Window):
         if self.notebook is not None:
             self.close_notebook()
         
-        self.notebook = takenote.NoteBook()
-        self.notebook.node_changed.add(self.on_notebook_node_changed)
+        notebook = takenote.NoteBook()
+        notebook.node_changed.add(self.on_notebook_node_changed)
         
         try:
-            self.notebook.load(filename)
+            notebook.load(filename)
         except NoteBookError, e:
             self.error("Could not load notebook '%s'" % filename)
             return None
-        
+
+        self.notebook = notebook
         self.selector.set_notebook(self.notebook)
         self.treeview.set_notebook(self.notebook)
         self.get_preferences()

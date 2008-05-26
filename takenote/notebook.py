@@ -534,12 +534,19 @@ class NoteBookNode (object):
         if self._children is None:
             self._get_children()
         
-        if index is None:
-            child._order = len(self._children)
-            self._children.append(child)
-        else:
+        if index is not None:
             self._children.insert(index, child)
             self._set_child_order()
+        elif self._notebook and len(self._children) > 0:
+            # append child before trash
+            if self._children[-1] == self._notebook.get_trash():
+                self._children.insert(len(self._children)-1, child)
+            self._set_child_order()
+        else:
+            # append child at end of list
+            child._order = len(self._children)
+            self._children.append(child)
+
         child._set_dirty(True)
 
         
@@ -814,6 +821,8 @@ class NoteBook (NoteBookDir):
     def create(self):
         NoteBookDir.create(self)
         os.mkdir(self.get_pref_dir())
+        self.write_meta_data()
+        self.write_preferences()
 
     
     def get_root_node(self):
