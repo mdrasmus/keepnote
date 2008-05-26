@@ -180,10 +180,10 @@ g_takenote_pref_parser = xmlo.XmlObject(
                     s._last_app_program),
                 tags=[
                     xmlo.Tag("name",
-                        get=lambda (s,i),x: s.__setattr__("_last_app_name", x),
+                        get=lambda (s,i),x: setattr(s, "_last_app_name", x),
                         set=lambda (s,i): s.external_apps.keys()[i]),
                     xmlo.Tag("program",                             
-                        get=lambda (s,i),x: s.__setattr__("_last_app_program",x),
+                        get=lambda (s,i),x: setattr(s, "_last_app_program", x),
                         set=lambda (s,i): s.external_apps.values()[i])]
            )]
         )
