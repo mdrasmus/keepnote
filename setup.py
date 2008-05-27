@@ -51,9 +51,7 @@ setup(
           'Programming Language :: Python',
           ],
     
-    #package_dir = {'': 'lib'},
     packages=['takenote'],
-    #py_modules=['summon_config'],
     scripts=['bin/takenote'],
     data_files=[
         ('images', image_files),

@@ -18,9 +18,9 @@ import sys, os, tempfile, re, subprocess, shlex, shutil
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
-import gtk, gobject, pango
 from gtk import gdk
 import gtk.glade
+import gobject
 
 # takenote imports
 import takenote
@@ -29,7 +29,7 @@ from takenote.notebook import NoteBookError, NoteBookDir, NoteBookPage
 from takenote.richtext import RichTextView, RichTextImage, RichTextError
 from takenote.treeview import TakeNoteTreeView
 from takenote.noteselector import TakeNoteSelector
-
+from takenote import screenshot_win
 
 # constants
 PROGRAM_NAME = "TakeNode"
@@ -847,27 +847,52 @@ class TakeNoteWindow (gtk.Window):
         gtk.main()
         self.disconnect(sig)
         
-        # create temp file
-        f, imgfile = tempfile.mkstemp(".png", "takenote")
-        os.close(f)
-        
         # TODO: generalize
-        proc = subprocess.Popen(["import", imgfile])
-        if proc.wait() != 0:
-            self.error("The screenshot program encountered an error")
-        elif not os.path.exists(imgfile):
-            self.error("The screenshot program did not create the necessary image file '%s'" % imgfile)
-        else:
-            try:
-                self.insert_image(imgfile, "screenshot.png")
-            except Exception, e:
-                # TODO: make exception more specific
-                self.error("Error importing screenshot '%s'" % imgfile, e)
+        try:
+            if takenote.get_platform() == "windows":
+                # use win32api to take screenshot
+                # create temp file
+                f, imgfile = tempfile.mkstemp(".bmp", "takenote")
+                os.close(f)
+                screenshot_win.take_screenshot(imgfile)
+            else:
+                # use external app for screen shot
+                # create temp file
+                f, imgfile = tempfile.mkstemp(".png", "takenote")
+                os.close(f)
+                proc = subprocess.Popen(["import", imgfile])
+                if proc.wait() != 0:
+                    raise Exception("Program returned error code", e)
             
-            try:
-                os.remove(imgfile)
-            except OSError, e:
-                self.error("Was unable to remove temp file for screenshot", e)
+        except Exception, e:        
+            # catch exceptions for screenshot program
+            self.deiconify()
+            self.present()
+            self.error("The screenshot program encountered an error", e)
+            
+        else:
+            if not os.path.exists(imgfile):
+                # catch error if image is not created
+                self.deiconify()
+                self.present()
+                self.error("The screenshot program did not create the necessary image file '%s'" % imgfile)
+            else:
+                # insert image
+                try:
+                    self.insert_image(imgfile, "screenshot.png")
+                except Exception, e:
+                    # TODO: make exception more specific
+                    self.deiconify()
+                    self.present()
+                    self.error("Error importing screenshot '%s'" % imgfile, e)
+            
+        # remove temp file
+        try:
+            os.remove(imgfile)
+        except OSError, e:
+            self.deiconify()
+            self.present()
+            self.error("TakeNote was unable to remove temp file for screenshot", e)
         
         self.deiconify()
         self.present()
