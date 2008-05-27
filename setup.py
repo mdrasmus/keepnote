@@ -12,6 +12,7 @@ import py2exe
 
 TAKENOTE_VERSION = '1.0'
 
+# get images
 image_dir = "images"
 image_files = [os.path.join(image_dir, x) 
                for x in os.listdir("images")]

@@ -14,7 +14,7 @@ from takenote.treemodel import \
     copy_row, \
     TakeNoteListStore
 
-from takenote import get_resource
+from takenote import get_resource, get_resource_image, get_resource_pixbuf
 from takenote import notebook
 from takenote.notebook import NoteBookError, NoteBookDir, NoteBookPage
 
@@ -63,8 +63,7 @@ class TakeNoteSelector (gtk.TreeView):
         
         # directory order column
         self.column = gtk.TreeViewColumn()
-        img = gtk.Image()
-        img.set_from_file(get_resource("images", "folder.png"))
+        img = get_resource_image("folder.png")
         img.show()
         self.column.set_widget(img)
         self.column.set_clickable(True)
@@ -141,7 +140,7 @@ class TakeNoteSelector (gtk.TreeView):
         #self.model.set_sort_column_id(3, gtk.SORT_DESCENDING)
         
         
-        self.icon = gdk.pixbuf_new_from_file(get_resource("images", "note.png"))
+        self.icon = get_resource_pixbuf("note.png")
 
         self.menu = gtk.Menu()
         self.menu.attach_to_widget(self, lambda w,m:None)

@@ -1,4 +1,10 @@
+"""
 
+    TakeNote
+    
+    TreeView 
+
+"""
 
 
 # pygtk imports
@@ -7,7 +13,7 @@ pygtk.require('2.0')
 import gtk, gobject, pango
 from gtk import gdk
 
-
+# takenote imports
 from takenote.treemodel import \
     DROP_TREE_MOVE, \
     DROP_PAGE_MOVE, \
@@ -16,12 +22,15 @@ from takenote.treemodel import \
     copy_row, \
     TakeNoteTreeStore
 
-from takenote import get_resource
+from takenote import get_resource, get_resource_image, get_resource_pixbuf
 from takenote.notebook import NoteBookDir, NoteBookPage, NoteBookTrash, \
               NoteBookError
 
 
 class TakeNoteTreeView (gtk.TreeView):
+    """
+    TreeView widget for the TakeNote NoteBook
+    """
     
     def __init__(self):
         gtk.TreeView.__init__(self)
@@ -61,11 +70,17 @@ class TakeNoteTreeView (gtk.TreeView):
         self.get_selection().connect("changed", self.on_select_changed)
         
         self.set_headers_visible(False)
-        #self.set_property("enable-tree-lines", True)
+
         # make treeview searchable
         self.set_search_column(1)
         #self.set_fixed_height_mode(True)       
-        
+
+        # tree style
+        try:
+            self.set_property("enable-tree-lines", True)
+        except TypeError, e:
+            pass
+
 
         # create the treeview column
         self.column = gtk.TreeViewColumn()
@@ -89,10 +104,10 @@ class TakeNoteTreeView (gtk.TreeView):
         self.column.add_attribute(self.cell_icon, 'pixbuf-expander-open', 1)
         self.column.add_attribute(self.cell_text, 'text', 2)
 
-        self.icon_folder_closed = gdk.pixbuf_new_from_file(get_resource("images", "folder.png"))
-        self.icon_folder_opened = gdk.pixbuf_new_from_file(get_resource("images", "folder-open.png"))
-        self.icon_page = gdk.pixbuf_new_from_file(get_resource("images", "note.png"))
-        self.icon_trash = gdk.pixbuf_new_from_file(get_resource("images", "trash.png"))
+        self.icon_folder_closed = get_resource_pixbuf("folder.png")
+        self.icon_folder_opened = get_resource_pixbuf("folder-open.png")
+        self.icon_page = get_resource_pixbuf("note.png")
+        self.icon_trash = get_resource_pixbuf("trash.png")
         #self.drag_source_set_icon_pixbuf(self.icon)
 
         self.menu = gtk.Menu()
