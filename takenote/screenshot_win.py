@@ -10,6 +10,8 @@ try:
 except ImportError:
     pass
 
+_g_class_num = 0
+ 
 
 def capture_screen(filename, x, y, x2, y2):
     """Captures a screenshot from a region of the screen"""
@@ -35,8 +37,7 @@ def capture_screen(filename, x, y, x2, y2):
 
     shot_bitmap.SaveBitmapFile(shot_dc, filename)
 
-    
-    
+   
 class Window (object):
     """Class for basic MS Windows window"""
 
@@ -46,26 +47,25 @@ class Window (object):
                  pos=(0, 0),
                  size=(400, 400),
                  background = win32con.COLOR_WINDOW,
-                 message_map = {}):
+                 message_map = {},
+                 cursor=win32con.IDC_ARROW):
+        global _g_class_num
         
         self._instance = win32api.GetModuleHandle(None)
-        
-        class_name = "class_name"
-        wc = win32gui.WNDCLASS()
-        wc.hInstance = self._instance
         
         self.message_map = {win32con.WM_DESTROY: self._on_destroy}
         self.message_map.update(message_map)
         
+        _g_class_num += 1
+        class_name = "class_name%d" % _g_class_num
+        wc = win32gui.WNDCLASS()
+        wc.hInstance = self._instance
         wc.lpfnWndProc = self.message_map # could also specify a wndproc
-        
-       
-        
         wc.lpszClassName = class_name
         wc.style = win32con.CS_HREDRAW | win32con.CS_VREDRAW
         wc.hbrBackground = background
         wc.cbWndExtra = 0
-        wc.hCursor = win32gui.LoadCursor(0, win32con.IDC_ARROW)
+        wc.hCursor = win32gui.LoadCursor(0, cursor)
         wc.hIcon = win32gui.LoadIcon(0, win32con.IDI_APPLICATION)
        
         class_atom = win32gui.RegisterClass(wc)
@@ -88,21 +88,43 @@ class Window (object):
             win32gui.ShowWindow(self._handle, win32con.SW_SHOW)
         else:
             win32gui.ShowWindow(self._handle, win32con.SW_HIDE)
-        
+
+    def maximize(self):
+        win32gui.ShowWindow(self._handle, win32con.SW_SHOWMAXIMIZED)
+    
+    def activate(self):
+        win32gui.SetForegroundWindow(self._handle) #SwitchToThisWindow(self._handle, False)
+    
     def _on_destroy(self, hwnd, message, wparam, lparam):
         self.close()
         return True
     
     def close(self):
-        win32gui.PostQuitMessage(0)
+        #win32gui.PostQuitMessage(0)
+        win32gui.DestroyWindow(self._handle)
 
+
+        
+class WinLoop (object):
+    def __init__(self):
+        self._running = True
     
+    def start(self):
+        while self._running:
+            b, msg = win32gui.GetMessage(0, 0, 0)
+            if not msg:
+                break
+            win32gui.TranslateMessage(msg)
+            win32gui.DispatchMessage(msg)
+    
+    def stop(self):
+        self._running = False
 
         
 class ScreenShotWindow (Window):
     """ScreenShot Window"""
 
-    def __init__(self, filename):
+    def __init__(self, filename, shot_callback=None):
         x, y, w, h = win32gui.GetWindowRect(win32gui.GetDesktopWindow())
         
         Window.__init__(self, 
@@ -114,9 +136,11 @@ class ScreenShotWindow (Window):
                 win32con.WM_MOUSEMOVE: self._on_mouse_move,
                 win32con.WM_LBUTTONDOWN: self._on_mouse_down,
                 win32con.WM_LBUTTONUP: self._on_mouse_up
-            })
+            },
+            cursor=win32con.IDC_CROSS)
         
         self._filename = filename
+        self._shot_callback = shot_callback
         self._drag = False
         self._draw = False
     
@@ -145,6 +169,10 @@ class ScreenShotWindow (Window):
                            self._end[0], self._end[1])
     
         self.close()
+        
+        if self._shot_callback:
+            self._shot_callback()
+            
     
     def _on_mouse_move(self, hwnd, message, wparam, lparam):
         """Mouse moving event"""
@@ -174,10 +202,16 @@ class ScreenShotWindow (Window):
 def take_screenshot(filename):
     win32gui.InitCommonControls()
 
-    win = ScreenShotWindow(filename)
-    win.show()
-
-    win32gui.PumpMessages()
+    def click():
+        loop.stop()
+    
+    loop = WinLoop()
+    win = ScreenShotWindow(filename, click)
+    win.maximize()
+    win.activate()
+    loop.start()
+    
+    #win32gui.PumpMessages()
             
 
             
