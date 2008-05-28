@@ -1,3 +1,10 @@
+"""
+
+    TakeNote
+    NoteSelector View
+
+"""
+
 
 # pygtk imports
 import pygtk
@@ -307,8 +314,9 @@ class TakeNoteSelector (gtk.TreeView):
         #self.model.set_default_sort_func(None)
         #self.model.set_sort_column_id(-1, gtk.SORT_ASCENDING)
         
-        
-        # set sort
+
+        # TODO: remove magic column numbers
+        # save sorting if a single node was selected
         if self.sel_nodes is not None and len(self.sel_nodes) == 1:
             info_sort, sort_dir = self.model.get_sort_column_id()
             node = self.sel_nodes[0]
@@ -333,12 +341,13 @@ class TakeNoteSelector (gtk.TreeView):
         
         #from rasmus import util
         #util.tic("view")
-        
+
         self.set_model(None)
         
         self.sel_nodes = nodes
         self.model.clear()        
-        
+
+        # populate model
         npages = 0
         for node in nodes:
             if isinstance(node, NoteBookDir):
@@ -372,7 +381,8 @@ class TakeNoteSelector (gtk.TreeView):
         self.model.refresh_path_data(None)
         self.set_model(self.model)
         
-        # get sort
+        # get sorting if single node is selected
+        # TODO: remove magic numbers
         if len(nodes) == 1:
             info_sort, sort_dir = nodes[0].get_info_sort()
             

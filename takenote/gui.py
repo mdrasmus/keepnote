@@ -27,8 +27,8 @@ from takenote.noteselector import TakeNoteSelector
 from takenote import screenshot_win
 
 # constants
-PROGRAM_NAME = "TakeNode"
-PROGRAM_VERSION = "0.1"
+PROGRAM_NAME = "TakeNote"
+PROGRAM_VERSION = "0.4"
 
 
 

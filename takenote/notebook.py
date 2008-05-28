@@ -212,6 +212,8 @@ def get_trash_dir(nodepath):
 
 
 class NoteBookError (StandardError):
+    """Exception that occurs when manipulating NoteBook's"""
+    
     def __init__(self, msg, error=None):
         StandardError.__init__(self)
         self.msg = msg
@@ -302,58 +304,75 @@ class NoteBookNode (object):
         return self._valid
     
     def get_created_time(self):
+        """Gets the creation time of the node"""
         return self._created_time
 
     def get_created_time_text(self):
+        """Gets the creation time string of the node"""
         return get_str_timestamp(self._created_time)
     
     def get_modified_time(self):
+        """Gets the modification time of the node"""
         return self._modified_time
 
     def get_modified_time_text(self):
+        """Gets the modified time string of the node"""
         return get_str_timestamp(self._modified_time)
     
     
     def set_created_time(self, timestamp=None):
+        """Sets the creation time of the node"""
         if timestamp is None:
             self._created_time = get_timestamp()
             self._set_dirty(True)
         
     def set_modified_time(self, timestamp=None):
+        """Sets the modification time of node"""
         if timestamp is None:
             self._modified_time = get_timestamp()
             self._set_dirty(True)
     
     def is_page(self):
+        """Returns True if node is a page"""
         return False
     
     def set_expand(self, expanded):
+        """Set expand state in treeview"""
         self._expanded = expanded
         self._set_dirty(True)
     
     def is_expanded(self):
+        """Returns True if node is expanded in treeview"""
+
+        # TODO: will need is_expanded2() for selectorview
         return self._expanded
 
     def set_info_sort(self, info, sort_dir):
+        """Sets the sorting information of the node"""
         self._info_sort = (info, sort_dir)
         self._set_dirty(True)
     
     def get_info_sort(self):
+        """Gets the sorting information of the node"""
         return self._info_sort
 
     def _set_dirty(self, dirty):
+        """Sets the dirty bit to indicates whether node needs saving"""
         self._notebook._set_dirty_node(self, dirty)
         
     def _is_dirty(self):
+        """Returns True if node needs saving"""
         return self._notebook._is_dirty_node(self)
 
     
     def move(self, parent, index=None):
+        """Move this node to be the child of another node 'parent'"""
+        
         assert self != parent
         path = self.get_path()
         old_parent = self._parent
         
-        # perform on-disk move is new parent
+        # perform on-disk move if new parent
         if old_parent != parent:
             path2 = os.path.join(parent.get_path(), self._basename)
             parent_path = os.path.dirname(path2)
@@ -365,13 +384,15 @@ class NoteBookNode (object):
                 raise NoteBookError("Do not have permission for move", e)
         
             self._set_basename(path2)
-            
+
+        # perform move in data structure
         self._parent._remove_child(self)
         self._parent = parent
         self._parent._add_child(self, index)
         self._set_dirty(True)
         self.save(True)
-        
+
+        # notify listeners
         parent.notify_change(True)
         old_parent.notify_change(True)
 
@@ -392,18 +413,23 @@ class NoteBookNode (object):
         
         # make sure to recursively invalidate
         self._invalidate_children()
-        
+
+        # parent node notifies listeners of change
         self._parent.notify_change(True)
     
     
     def trash(self):
+        """Places node in the notebook's trash folder"""
+
+        if self._notebook is None:
+            raise NoteBookError("This node is not part of any notebook")
         
         if self.in_trash():
             # delete if in trash folder already
             self.delete()
             
         else:
-            # move to trash
+            # move to trash            
             self.move(self._notebook._trash)
         
         
@@ -420,6 +446,7 @@ class NoteBookNode (object):
             
     
     def _invalidate_children(self):
+        """Uncache children list"""
         
         if self._children is not None:
             for child in self._children:
@@ -458,6 +485,7 @@ class NoteBookNode (object):
     
     
     def new_page(self, title=DEFAULT_PAGE_NAME):
+        """Add a new page under node"""
         path = self.get_path()
         newpath = get_valid_unique_filename(path, title)
         page = NoteBookPage(newpath, title=title, parent=self, notebook=self._notebook)
@@ -469,6 +497,7 @@ class NoteBookNode (object):
     
     
     def new_dir(self, title=DEFAULT_DIR_NAME):
+        """Add a new folder under node"""
         path = self.get_path()
         newpath = get_valid_unique_filename(path, title)
         node = NoteBookDir(newpath, title=title, parent=self, notebook=self._notebook)
@@ -480,6 +509,7 @@ class NoteBookNode (object):
     
     
     def _get_children(self):
+        """Load children list from filesystem"""
         self._children = []
         path = self.get_path()
         
@@ -522,6 +552,7 @@ class NoteBookNode (object):
         self._set_child_order()
     
     def _set_child_order(self):
+        """Ensures that child know their order in the children list"""
         for i, child in enumerate(self._children):
             if child._order != i:
                 child._order = i
@@ -529,12 +560,16 @@ class NoteBookNode (object):
             
 
     def _add_child(self, child, index=None):
+        """Add a node as a child"""
+        
+        # propogate notebook
         child._notebook = self._notebook
         
         if self._children is None:
             self._get_children()
         
         if index is not None:
+            # insert child at index
             self._children.insert(index, child)
             self._set_child_order()
         elif self._notebook and \
@@ -570,24 +605,29 @@ class NoteBookNode (object):
                 yield child
 
     def _remove_child(self, child):
+        """Remove a child node"""
         if self._children is None:
             self._get_children()
         self._children.remove(child)
     
     
     def notify_change(self, recurse):
+        """Notify listeners that node has changed"""
         if self._notebook:
             self._notebook.node_changed.notify(self, recurse)
     
     def suppress_change(self, listener=None):
+        """Suppress notification of listeners for node changes"""
         if self._notebook:
             self._notebook.node_changed.suppress(listener)
 
     def resume_change(self, listener=None):
+        """Resume notification of listeners for node changes"""        
         if self._notebook:
             self._notebook.node_changed.resume(listener)
     
     def load(self):
+        """Loada node from filesystem"""
         self.read_meta_data()
     
     
@@ -613,7 +653,7 @@ class NoteBookNode (object):
         raise Exception("Unimplemented")
     
 
-
+# basic file format for all NoteBookNode's
 g_node_meta_data_tags = [
     xmlo.Tag("title", 
         getobj=("_title", None),
@@ -637,26 +677,33 @@ g_node_meta_data_tags = [
 
 
 class NoteBookPage (NoteBookNode):
+    """Class that represents a Page in the NoteBook"""
+    
     def __init__(self, path, title=None, parent=None, notebook=None):
         NoteBookNode.__init__(self, path, title, parent, notebook)
     
     
     def create(self):
+        """Create page on file-system"""
         NoteBookNode.create(self)
         self.write_empty_data_file()
     
     def is_page(self):
+        """Returns True if node is a page"""
         return True
     
     def get_data_file(self):
+        """Returns filename of data/text/html/etc"""
         return get_page_data_file(self.get_path())
     
     
     def get_meta_file(self):
+        """Returns filename of meta file"""
         return get_page_meta_file(self.get_path())
         
     
     def write_empty_data_file(self):
+        """Initializes an empty data file on file-system"""
         datafile = self.get_data_file()
         
         try:
@@ -668,6 +715,7 @@ class NoteBookPage (NoteBookNode):
     
     
     def read_meta_data(self):
+        """Read meta data from file-system"""
         self._created_time = None
         self._modified_time = None    
     
@@ -686,12 +734,14 @@ class NoteBookPage (NoteBookNode):
                 
     
     def write_meta_data(self):
+        """Write meta data to file-system"""
         try:
             g_page_meta_data_parser.write(self, self.get_meta_file())
         except IOError, e:
             raise NoteBookError("Cannot write meta data", e)
 
 
+# file format of Pages in NoteBook
 g_page_meta_data_parser = xmlo.XmlObject(
     xmlo.Tag("page", tags=
         g_node_meta_data_tags))
@@ -700,15 +750,19 @@ g_page_meta_data_parser = xmlo.XmlObject(
 
 
 class NoteBookDir (NoteBookNode):
+    """Class that represents Folders in NoteBook"""
+    
     def __init__(self, path, title=None, parent=None, notebook=None):
         NoteBookNode.__init__(self, path, title, parent, notebook)
         
         
-    def get_meta_file(self):    
+    def get_meta_file(self):
+        """Returns the meta file for the node"""
         return get_dir_meta_file(self.get_path())
     
     
     def read_meta_data(self):
+        """Reads the node meta data from file-system"""
         self._created_time = None
         self._modified_time = None
         
@@ -725,13 +779,14 @@ class NoteBookDir (NoteBookNode):
             self._set_dirty(True)        
                 
     def write_meta_data(self):
+        """Write the node meta data from the file-system"""
         try:
             g_dir_meta_data_parser.write(self, self.get_meta_file())
         except IOError, e:
             raise NoteBookError("Cannot write meta data.", e)
 
 
-
+# file format of Folders in NoteBook
 g_dir_meta_data_parser = xmlo.XmlObject(
     xmlo.Tag("node", tags=
         g_node_meta_data_tags + [
@@ -741,6 +796,8 @@ g_dir_meta_data_parser = xmlo.XmlObject(
             
 
 class NoteBookTrash (NoteBookDir):
+    """Class represents the Trash Folder in a NoteBook"""
+
     def __init__(self, name, notebook):
         NoteBookDir.__init__(self, get_trash_dir(notebook.get_path()), 
                              name, parent=notebook, notebook=notebook)
@@ -768,6 +825,7 @@ class NoteBookPreferences (object):
         self.vsash_pos = DEFAULT_VSASH_POS
         self.hsash_pos = DEFAULT_HSASH_POS
 
+# file format for NoteBook preferences
 g_notebook_pref_parser = xmlo.XmlObject(
     xmlo.Tag("notebook", tags=[
         xmlo.Tag("window_size", 
@@ -782,6 +840,8 @@ g_notebook_pref_parser = xmlo.XmlObject(
             
 
 class NoteBook (NoteBookDir):
+    """Class represents a NoteBook"""
+    
     def __init__(self, rootdir=None):
         """rootdir -- Root directory of notebook"""
         NoteBookDir.__init__(self, rootdir, notebook=self)
@@ -801,9 +861,11 @@ class NoteBook (NoteBookDir):
         
 
     def get_trash(self):
+        """Returns the Trash Folder for the NoteBook"""
         return self._trash        
 
     def _set_dirty_node(self, node, dirty):
+        """Mark a node to be dirty (needs saving) in NoteBook"""
         if dirty:
             self._dirty.add(node)
         else:
@@ -812,14 +874,17 @@ class NoteBook (NoteBookDir):
     
     
     def _is_dirty_node(self, node):
+        """Returns True if node is dirty (needs saving)"""
         return node in self._dirty
         
     
     def save_needed(self):
+        """Returns True if save is needed"""
         return len(self._dirty) > 0
         
         
     def create(self):
+        """Initialize NoteBook on the file-system"""
         NoteBookDir.create(self)
         os.mkdir(self.get_pref_dir())
         self.write_meta_data()
@@ -832,6 +897,7 @@ class NoteBook (NoteBookDir):
     
     
     def load(self, filename=None):
+        """Load the NoteBook from the file-system"""
         if filename is not None:
             if os.path.isdir(filename):
                 self._set_basename(filename)
@@ -887,19 +953,23 @@ class NoteBook (NoteBookDir):
     
     
     def is_trash_dir(self, child):
+        """Returns True if child node is the Trash Folder"""
         return child.get_path() == self._trash_path
     
     #===============================================
     # preferences
     
     def get_pref_file(self):
+        """Gets the NoteBook's preference file"""
         return get_pref_file(self.get_path())
     
     def get_pref_dir(self):
+        """Gets the NoteBook's preference directory"""
         return get_pref_dir(self.get_path())
     
     
     def write_preferences(self):
+        """Writes the NoteBooks preferences to the file-system"""
         try:
             # ensure preference directory exists
             if not os.path.exists(self.get_pref_dir()):
@@ -910,6 +980,7 @@ class NoteBook (NoteBookDir):
             raise NoteBookError("Cannot save notebook preferences", e)
     
     def read_preferences(self):
+        """Reads the NoteBook's preferneces from the file-system"""
         try:
             g_notebook_pref_parser.read(self.pref, self.get_pref_file())
         except IOError, e:
