@@ -537,10 +537,11 @@ class NoteBookNode (object):
         if index is not None:
             self._children.insert(index, child)
             self._set_child_order()
-        elif self._notebook and len(self._children) > 0:
+        elif self._notebook and \
+             len(self._children) > 0 and \
+             self._children[-1] == self._notebook.get_trash():
             # append child before trash
-            if self._children[-1] == self._notebook.get_trash():
-                self._children.insert(len(self._children)-1, child)
+            self._children.insert(len(self._children)-1, child)
             self._set_child_order()
         else:
             # append child at end of list
