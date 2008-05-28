@@ -42,14 +42,24 @@ class Window (object):
     """Class for basic MS Windows window"""
 
     def __init__(self, title="Untitled",
-                 style=win32con.WS_OVERLAPPEDWINDOW, 
-                 exstyle=win32con.WS_EX_LEFT,
+                 style=None, 
+                 exstyle=None,
                  pos=(0, 0),
                  size=(400, 400),
-                 background = win32con.COLOR_WINDOW,
+                 background=None,
                  message_map = {},
-                 cursor=win32con.IDC_ARROW):
+                 cursor=None):
         global _g_class_num
+
+        if style is None:
+            style = win32con.WS_OVERLAPPEDWINDOW
+        if exstyle is None:
+            style = win32con.WS_EX_LEFT
+        if background is None:
+            background = win32con.COLOR_WINDOW
+        if cursor is None:
+            cursor = win32con.IDC_ARROW
+
         
         self._instance = win32api.GetModuleHandle(None)
         
