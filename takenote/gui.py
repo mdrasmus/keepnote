@@ -1532,13 +1532,65 @@ class ApplicationOptionsDialog (object):
     def __init__(self, main_window):
         self.main_window = main_window
         self.app = main_window.app
+        self.entries = {}
     
     def on_app_options(self):
         self.app_config_xml = gtk.glade.XML(get_resource("rc", "app_config.glade"))
         self.app_config_dialog = self.app_config_xml.get_widget("app_config_dialog")
         self.app_config_dialog.set_transient_for(self.main_window)
         self.app_config_dialog.show()
+
+
+        # populate dialog
+        self.app_config_xml.get_widget("default_notebook_entry").\
+            set_text(self.app.pref.default_notebook)
+
+
+        # populate external apps
+        apps_widget = self.app_config_xml.get_widget("external_apps_frame")
+        table = gtk.Table(len(self.app.pref.external_apps), 3)
+        apps_widget.add(table)
+        self.entries = {}
+        for i, (key, prog) in enumerate(self.app.pref.external_apps.iteritems()):
+            # program label
+            label = gtk.Label(self.app.pref.external_app_names[key] +":")
+            label.set_justify(gtk.JUSTIFY_RIGHT)
+            label.set_alignment(1.0, 0.5)
+            label.show()
+            table.attach(label, 0, 1, i, i+1,
+                         xoptions=gtk.FILL, yoptions=0,
+                         xpadding=2, ypadding=2)
+
+            # program entry
+            entry = gtk.Entry()
+            entry.set_text(prog)
+            entry.show()
+            self.entries[key] = entry
+            table.attach(entry, 1, 2, i, i+1,
+                         xoptions=gtk.FILL | gtk.EXPAND, yoptions=0,
+                         xpadding=2, ypadding=2)
+
+            # browse button
+            button = gtk.Button("Browse...")
+            
+            button.set_image(
+                gtk.image_new_from_stock(gtk.STOCK_OPEN,
+                                         gtk.ICON_SIZE_SMALL_TOOLBAR))
+            #button.set_label("Browse...")
+            button.show()
+            button.connect("activate",
+                           lambda w: self.on_app_options_browse(
+                           "file_explorer",
+                           "Choose File Manager Application",
+                           prog))
+            table.attach(button, 2, 3, i, i+1,
+                         xoptions=0, yoptions=0,
+                         xpadding=2, ypadding=2)
+
+        table.show()
+
         
+
         self.app_config_xml.signal_autoconnect({
             "on_ok_button_clicked": 
                 lambda w: self.on_app_options_ok(),
@@ -1550,6 +1602,9 @@ class ApplicationOptionsDialog (object):
                     "default_notebook", 
                     "Choose Default Notebook",
                     self.app.pref.default_notebook),
+            })
+
+        '''
             "on_file_explorer_button_clicked": 
                 lambda w: self.on_app_options_browse(
                     "file_explorer",
@@ -1577,10 +1632,7 @@ class ApplicationOptionsDialog (object):
                     self.app.pref.external_apps.get("image_viewer", "")),
             })
         
-        # populate dialog
-        self.app_config_xml.get_widget("default_notebook_entry").\
-            set_text(self.app.pref.default_notebook)
-        
+                
         self.app_config_xml.get_widget("file_explorer_entry").\
             set_text(self.app.pref.external_apps.get("file_explorer", ""))
         self.app_config_xml.get_widget("web_browser_entry").\
@@ -1591,8 +1643,8 @@ class ApplicationOptionsDialog (object):
             set_text(self.app.pref.external_apps.get("image_editor", ""))
         self.app_config_xml.get_widget("image_viewer_entry").\
             set_text(self.app.pref.external_apps.get("image_viewer", ""))       
+        '''
         
-        self.app_config_dialog.show()
         
     
     
@@ -1634,17 +1686,11 @@ class ApplicationOptionsDialog (object):
     
         self.app.pref.default_notebook = \
             self.app_config_xml.get_widget("default_notebook_entry").get_text()
-        
-        self.app.pref.external_apps["file_explorer"] = \
-            self.app_config_xml.get_widget("file_explorer_entry").get_text()
-        self.app.pref.external_apps["web_browser"] = \
-            self.app_config_xml.get_widget("web_browser_entry").get_text()
-        self.app.pref.external_apps["text_editor"] = \
-            self.app_config_xml.get_widget("text_editor_entry").get_text()
-        self.app.pref.external_apps["image_editor"] = \
-            self.app_config_xml.get_widget("image_editor_entry").get_text()
-        self.app.pref.external_apps["image_viewer"] = \
-            self.app_config_xml.get_widget("image_viewer_entry").get_text()
+
+
+        for key, entry in self.entries.iteritems():
+            self.app.pref.external_apps[key] = \
+                self.entries[key].get_text()
         
         self.app.pref.write()
         

@@ -157,10 +157,12 @@ class TakeNotePreferences (object):
     
     def __init__(self):
         self.external_apps = {}
+        self.external_app_names = {}
         self.view_mode = "vertical" # "horizontal"
         self.default_notebook = ""
 
         # temp variables for parsing
+        self._last_app_key = ""
         self._last_app_name = ""
         self._last_app_program = ""
 
@@ -171,7 +173,18 @@ class TakeNotePreferences (object):
                 self.write()
             except NoteBookError, e:
                 raise NoteBookError("Cannot initialize preferences", e)
-        
+
+        self.external_apps = {"web_browser": "",
+                              "file_explorer": "",
+                              "text_editor": "",
+                              "image_editor": "",
+                              "image_viewer": ""}
+        self.external_app_names = {"web_browser": "Web Browser",
+                                   "file_explorer": "File Explorer",
+                                   "text_editor": "Text Editor",
+                                   "image_editor": "Image Editor",
+                                   "image_viewer": "Image Viewer"}
+            
         try:
             g_takenote_pref_parser.read(self, get_user_pref_file())
         except IOError, e:
@@ -200,14 +213,20 @@ g_takenote_pref_parser = xmlo.XmlObject(
         xmlo.Tag("external_apps", tags=[
             xmlo.TagMany("app",
                 iterfunc=lambda s: range(len(s.external_apps)),
-                before=lambda (s,i): setattr(s, "_last_app_name", "") or
+                before=lambda (s,i): setattr(s, "_last_app_key", "") or
+                                     setattr(s, "_last_app_name", "") or 
                                      setattr(s, "_last_app_program", ""),
-                after=lambda (s,i): s.external_apps.__setitem__(
-                    s._last_app_name,
-                    s._last_app_program),
+                after=lambda (s,i):
+                    s.external_apps.__setitem__(s._last_app_key,
+                                                s._last_app_program) or
+                    s.external_app_names.__setitem__(s._last_app_key,
+                                                     s._last_app_name),
                 tags=[
-                    xmlo.Tag("name",
+                    xmlo.Tag("title",
                         get=lambda (s,i),x: setattr(s, "_last_app_name", x),
+                        set=lambda (s,i): s.external_app_names.values()[i]),
+                    xmlo.Tag("name",
+                        get=lambda (s,i),x: setattr(s, "_last_app_key", x),
                         set=lambda (s,i): s.external_apps.keys()[i]),
                     xmlo.Tag("program",                             
                         get=lambda (s,i),x: setattr(s, "_last_app_program", x),
