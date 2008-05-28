@@ -233,6 +233,11 @@ class TakeNoteWindow (gtk.Window):
         self.editor.get_textview().get_image_menu().append(item)
             
         # image/edit
+        item = gtk.MenuItem("View Image...")
+        item.connect("activate", self.on_view_image)
+        item.show()
+        self.editor.get_textview().get_image_menu().append(item)
+        
         item = gtk.MenuItem("Edit Image...")
         item.connect("activate", self.on_edit_image)
         item.show()
@@ -928,6 +933,22 @@ class TakeNoteWindow (gtk.Window):
         self.editor.get_textview().insert_image(img, savename)
 
 
+    def on_view_image(self, menuitem):
+
+        if self.current_page is None:
+            return
+        
+        # get image filename
+        image_filename = menuitem.get_parent().get_child().get_filename()
+
+        image_path = os.path.join(self.current_page.get_path(), image_filename)
+        viewer = self.app.pref.external_apps.get("image_viewer", "")
+    
+        if viewer != "":
+            # TODO: add error handling
+            proc = subprocess.Popen([viewer, image_path])
+
+
     def on_edit_image(self, menuitem):
 
         if self.current_page is None:
@@ -940,8 +961,9 @@ class TakeNoteWindow (gtk.Window):
         editor = self.app.pref.external_apps.get("image_editor", "")
     
         if editor != "":
+            # TODO: add error handling
             proc = subprocess.Popen([editor, image_path])
-    
+
 
     def on_save_image_as(self, menuitem):
         
@@ -1548,6 +1570,11 @@ class ApplicationOptionsDialog (object):
                     "image_editor",
                     "Choose Image Editor Application",
                     self.app.pref.external_apps.get("image_editor", "")),
+            "on_image_viewer_button_clicked": 
+                lambda w: self.on_app_options_browse(
+                    "image_viewer",
+                    "Choose Image Viewer Application",
+                    self.app.pref.external_apps.get("image_viewer", "")),
             })
         
         # populate dialog
@@ -1562,7 +1589,8 @@ class ApplicationOptionsDialog (object):
             set_text(self.app.pref.external_apps.get("text_editor", ""))
         self.app_config_xml.get_widget("image_editor_entry").\
             set_text(self.app.pref.external_apps.get("image_editor", ""))
-        
+        self.app_config_xml.get_widget("image_viewer_entry").\
+            set_text(self.app.pref.external_apps.get("image_viewer", ""))       
         
         self.app_config_dialog.show()
         
@@ -1615,6 +1643,8 @@ class ApplicationOptionsDialog (object):
             self.app_config_xml.get_widget("text_editor_entry").get_text()
         self.app.pref.external_apps["image_editor"] = \
             self.app_config_xml.get_widget("image_editor_entry").get_text()
+        self.app.pref.external_apps["image_viewer"] = \
+            self.app_config_xml.get_widget("image_viewer_entry").get_text()
         
         self.app.pref.write()
         
