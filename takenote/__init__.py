@@ -178,12 +178,14 @@ class TakeNotePreferences (object):
                               "file_explorer": "",
                               "text_editor": "",
                               "image_editor": "",
-                              "image_viewer": ""}
+                              "image_viewer": "",
+                              "screen_shot": ""}
         self.external_app_names = {"web_browser": "Web Browser",
                                    "file_explorer": "File Explorer",
                                    "text_editor": "Text Editor",
                                    "image_editor": "Image Editor",
-                                   "image_viewer": "Image Viewer"}
+                                   "image_viewer": "Image Viewer",
+                                   "screen_shot": "Screen Shot"}
             
         try:
             g_takenote_pref_parser.read(self, get_user_pref_file())
