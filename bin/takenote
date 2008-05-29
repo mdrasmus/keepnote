@@ -8,15 +8,17 @@ import pygtk
 pygtk.require('2.0')
 import gtk
 
+# determine base dir from program path
 basedir = os.path.dirname(os.path.realpath(sys.argv[0]))
 
-print basedir
 
 # look for images directory
 if not os.path.isdir(os.path.join(basedir, "images")):
+    # if no images dir try one directory up
     basedir = os.path.split(basedir)[0]
 
 try:
+    # try to import from python path first
     import takenote
     
 except ImportError:
