@@ -1,7 +1,7 @@
 """
 
     TakeNote
-    Application Options Dialog
+    Find Dialog
 
 """
 

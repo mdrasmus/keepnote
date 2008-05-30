@@ -28,6 +28,7 @@ from takenote import screenshot_win
 import takenote.dialog_app_options
 import takenote.dialog_find
 import takenote.dialog_drag_drop_test
+import takenote.dialog_image_resize
 
 # constants
 PROGRAM_NAME = "TakeNote"
@@ -228,69 +229,6 @@ class TakeNoteWindow (gtk.Window):
         self.editor.connect("error", lambda w,t,e: self.error(t, e))  
         self.editor.view_pages([])
 
-        #=====================================
-        # context menus
-        # image context menu
-        item = gtk.SeparatorMenuItem()
-        item.show()
-        self.editor.get_textview().get_image_menu().append(item)
-            
-        # image/edit
-        item = gtk.MenuItem("View Image...")
-        item.connect("activate", self.on_view_image)
-        item.show()
-        self.editor.get_textview().get_image_menu().append(item)
-        
-        item = gtk.MenuItem("Edit Image...")
-        item.connect("activate", self.on_edit_image)
-        item.show()
-        self.editor.get_textview().get_image_menu().append(item)
-
-        # image/save
-        item = gtk.ImageMenuItem("Save Image As...")
-        item.connect("activate", self.on_save_image_as)
-        item.show()
-        self.editor.get_textview().get_image_menu().append(item)
-
-     
-        # treeview context menu
-        # treeview/new folder
-        item = gtk.MenuItem("New _Folder")
-        item.connect("activate", lambda w: self.on_new_dir())
-        self.treeview.menu.append(item)
-        item.show()
-        
-        # treeview/new page
-        item = gtk.MenuItem("New _Page")
-        item.connect("activate", lambda w: self.on_new_page())
-        self.treeview.menu.append(item)
-        item.show()
-
-        # treeview/delete node
-        item = gtk.ImageMenuItem(gtk.STOCK_DELETE)
-        item.connect("activate", lambda w: self.treeview.on_delete_node())
-        self.treeview.menu.append(item)
-        item.show()
-
-        # note selector context menu
-        # selector/new folder
-        #item = gtk.MenuItem("New _Folder")
-        #item.connect("activate", lambda w: self.on_new_dir())
-        #self.selector.menu.append(item)
-        #item.show()
-        
-        # selector/new page
-        item = gtk.MenuItem("New _Page")
-        item.connect("activate", lambda w: self.on_new_page())
-        self.selector.menu.append(item)
-        item.show()
-
-        # selector/delete node
-        item = gtk.ImageMenuItem(gtk.STOCK_DELETE)
-        item.connect("activate", lambda w: self.selector.on_delete_page())
-        self.selector.menu.append(item)
-        item.show()
-
 
         
         #====================================
@@ -299,6 +237,10 @@ class TakeNoteWindow (gtk.Window):
         self.app_options_dialog = takenote.dialog_app_options.ApplicationOptionsDialog(self)
         self.find_dialog = takenote.dialog_find.TakeNoteFindDialog(self)
         self.drag_test = takenote.dialog_drag_drop_test.DragDropTestDialog(self)
+        self.image_resize_dialog = takenote.dialog_image_resize.ImageResizeDialog(self)
+
+        # context menus
+        self.make_context_menus()
         
         #====================================
         # Layout
@@ -369,8 +311,7 @@ class TakeNoteWindow (gtk.Window):
         
         self.show_all()        
         self.treeview.grab_focus()
-    
-
+            
     
     #=============================================================
     # Treeview and listview callbacks
@@ -878,8 +819,8 @@ class TakeNoteWindow (gtk.Window):
                 screenshot_win.take_screenshot(imgfile)
             else:
                 # use external app for screen shot
-                screenshot = self.app.pref.external_apps["screen_shot"]
-                if screenshot == "":
+                screenshot = self.app.pref.get_external_app("screen_shot")
+                if screenshot is None:
                     self.error("You must specify a Screen Shot program in Application Options")
                     return
 
@@ -888,7 +829,7 @@ class TakeNoteWindow (gtk.Window):
                 os.close(f)
 
                 try:
-                    proc = subprocess.Popen([screenshot, imgfile])
+                    proc = subprocess.Popen([screenshot.prog, imgfile])
                     if proc.wait() != 0:
                         raise OSError("Exited with error")
                 except OSError, e:
@@ -983,11 +924,11 @@ class TakeNoteWindow (gtk.Window):
         image_filename = menuitem.get_parent().get_child().get_filename()
 
         image_path = os.path.join(self.current_page.get_path(), image_filename)
-        viewer = self.app.pref.external_apps.get("image_viewer", "")
-    
-        if viewer != "":
+        viewer = self.app.pref.get_external_app("image_viewer")
+        
+        if viewer is not None:
             try:
-                proc = subprocess.Popen([viewer, image_path])
+                proc = subprocess.Popen([viewer.prog, image_path])
             except OSError, e:
                 self.error("Could not open Image Viewer", e)
         else:
@@ -1004,15 +945,26 @@ class TakeNoteWindow (gtk.Window):
         image_filename = menuitem.get_parent().get_child().get_filename()
 
         image_path = os.path.join(self.current_page.get_path(), image_filename)
-        editor = self.app.pref.external_apps.get("image_editor", "")
+        editor = self.app.pref.get_external_app("image_editor")
     
-        if editor != "":
+        if editor is not None:
             try:
-                proc = subprocess.Popen([editor, image_path])
+                proc = subprocess.Popen([editor.prog, image_path])
             except OSError, e:
                 self.error("Could not open Image Editor", e)
         else:
             self.error("You specify an Image Editor in Application Options""")
+
+
+    def on_resize_image(self, menuitem):
+        """Resize image"""
+        
+        if self.current_page is None:
+            return
+        
+        image = menuitem.get_parent().get_child()
+        self.image_resize_dialog.on_resize(image)
+        
 
 
     def on_save_image_as(self, menuitem):
@@ -1086,44 +1038,44 @@ class TakeNoteWindow (gtk.Window):
     
     def on_view_folder_file_explorer(self):
         """View folder in file explorer"""
-        explorer = self.app.pref.external_apps.get("file_explorer", "")
+        explorer = self.app.pref.get_external_app("file_explorer")
     
-        if len(self.sel_nodes) > 0 and explorer != "":
+        if len(self.sel_nodes) > 0 and explorer is not None:
             try:
-                proc = subprocess.Popen([explorer, self.sel_nodes[0].get_path()])
+                proc = subprocess.Popen([explorer.prog, self.sel_nodes[0].get_path()])
             except OSError, e:
                 self.error("Could not open folder in file explorer", e)
 
 
     def on_view_page_file_explorer(self):
         """View current page in file explorer"""
-        explorer = self.app.pref.external_apps.get("file_explorer", "")
+        explorer = self.app.pref.get_external_app("file_explorer")
     
-        if self.current_page is not None and explorer != "":
+        if self.current_page is not None and explorer is not "":
             try:
-                subprocess.Popen([explorer, self.current_page.get_path()])
+                subprocess.Popen([explorer.prog, self.current_page.get_path()])
             except OSError, e:
                 self.error("Could not open page in file explorer", e)
             
     
     def on_view_page_web_browser(self):
         """View current page in web browser"""
-        browser = self.app.pref.external_apps.get("web_browser", "")
+        browser = self.app.pref.get_external_app("web_browser")
     
-        if self.current_page is not None and browser != "":
+        if self.current_page is not None and browser is not None:
             try:
-                proc = subprocess.Popen([browser, self.current_page.get_data_file()])
+                proc = subprocess.Popen([browser.prog, self.current_page.get_data_file()])
             except OSError, e:
                 self.error("Could not open page in web browser", e)
     
     
     def on_view_page_text_editor(self):
         """View current page in text editor"""
-        editor = self.app.pref.external_apps.get("text_editor", "")
+        editor = self.app.pref.get_external_app("text_editor")
     
-        if self.current_page is not None and editor != "":
+        if self.current_page is not None and editor is not None:
             try:
-                proc = subprocess.Popen([editor, self.current_page.get_data_file()])
+                proc = subprocess.Popen([editor.prog, self.current_page.get_data_file()])
             except OSError, e:
                 self.error("Could not open page in text editor", e)
 
@@ -1188,7 +1140,7 @@ class TakeNoteWindow (gtk.Window):
     
     
     #================================================
-    # Menubar
+    # Menus
     
     def make_menubar(self):
         """Initialize the menu bar"""
@@ -1400,20 +1352,11 @@ class TakeNoteWindow (gtk.Window):
     
         accel_group = gtk.AccelGroup()
 
-        # This function initializes the item factory.
-        item_factory = gtk.ItemFactory(gtk.MenuBar, "<main>", accel_group)
-
-        # This method generates the menu items. Pass to the item factory
-        #  the list of menu items
-        item_factory.create_items(self.menu_items)
-
-        # Attach the new accelerator group to the window.
+        # Create item factory
+        self.item_factory = gtk.ItemFactory(gtk.MenuBar, "<main>", accel_group)
+        self.item_factory.create_items(self.menu_items)
         self.add_accel_group(accel_group)
-
-        # need to keep a reference to item_factory to prevent its destruction
-        self.item_factory = item_factory
-        
-        return item_factory.get_widget("<main>")
+        return self.item_factory.get_widget("<main>")
 
 
     
@@ -1444,7 +1387,7 @@ class TakeNoteWindow (gtk.Window):
         # separator
         toolbar.insert(gtk.SeparatorToolItem(), -1)
         
-    
+        
         # new folder
         button = gtk.ToolButton()
         button.set_icon_widget(get_resource_image("folder-new.png"))
@@ -1578,9 +1521,80 @@ class TakeNoteWindow (gtk.Window):
         tips.set_tip(self.fill_button, "Justify Align")
         self.fill_id = self.fill_button.connect("toggled", lambda w: self.on_fill_justify())
         toolbar.insert(self.fill_button, -1)
-        
-        
+                
         return toolbar
+
+
+    def make_context_menus(self):
+        """Initialize context menus"""
+
+        #==========================
+        # image context menu
+        item = gtk.SeparatorMenuItem()
+        item.show()
+        self.editor.get_textview().get_image_menu().append(item)
+            
+        # image/edit
+        item = gtk.MenuItem("View Image...")
+        item.connect("activate", self.on_view_image)
+        item.show()
+        self.editor.get_textview().get_image_menu().append(item)
+        
+        item = gtk.MenuItem("Edit Image...")
+        item.connect("activate", self.on_edit_image)
+        item.show()
+        self.editor.get_textview().get_image_menu().append(item)
+
+        item = gtk.MenuItem("Resize Image...")
+        item.connect("activate", self.on_resize_image)
+        item.show()
+        self.editor.get_textview().get_image_menu().append(item)
+
+        # image/save
+        item = gtk.ImageMenuItem("Save Image As...")
+        item.connect("activate", self.on_save_image_as)
+        item.show()
+        self.editor.get_textview().get_image_menu().append(item)
+
+        #===============================
+        # treeview context menu
+        # treeview/new folder
+        item = gtk.MenuItem("New _Folder")
+        item.connect("activate", lambda w: self.on_new_dir())
+        self.treeview.menu.append(item)
+        item.show()
+        
+        # treeview/new page
+        item = gtk.MenuItem("New _Page")
+        item.connect("activate", lambda w: self.on_new_page())
+        self.treeview.menu.append(item)
+        item.show()
+
+        # treeview/delete node
+        item = gtk.ImageMenuItem(gtk.STOCK_DELETE)
+        item.connect("activate", lambda w: self.treeview.on_delete_node())
+        self.treeview.menu.append(item)
+        item.show()
+
+        #=================================
+        # note selector context menu
+        # selector/new folder
+        #item = gtk.MenuItem("New _Folder")
+        #item.connect("activate", lambda w: self.on_new_dir())
+        #self.selector.menu.append(item)
+        #item.show()
+        
+        # selector/new page
+        item = gtk.MenuItem("New _Page")
+        item.connect("activate", lambda w: self.on_new_page())
+        self.selector.menu.append(item)
+        item.show()
+
+        # selector/delete node
+        item = gtk.ImageMenuItem(gtk.STOCK_DELETE)
+        item.connect("activate", lambda w: self.selector.on_delete_page())
+        self.selector.menu.append(item)
+        item.show()
           
 
 #=============================================================================
@@ -1607,21 +1621,24 @@ class TakeNote (object):
     def open_notebook(self, filename):
         self.window.open_notebook(filename)
 
-    def run_helper(self, app, filename, wait=True):
-        helper_cmd = self.pref.external_apps.get(app, "")
+    def run_helper(self, app_key, filename, wait=True):
+        app = self.pref.get_external_app(app_key)
         
-        if helper_cmd == "":
-            return 1 # error    
+        if app is None:
+            raise Exception("Must specify program in Application Options")
         
-        args = shlex.split(helper_cmd)
-        if "%s" not in helper_cmd:
+        args = [app.prog] + app.args
+        if "%s" not in args:
             args.append(filename)
         else:
             for i in xrange(len(args)):
                 if args[i] == "%s":
                     args[i] = filename
-        
-        proc = subprocess.Popen(args)
+
+        try:
+            proc = subprocess.Popen(args)
+        except OSError, e:
+            raise Exception("Error running program ")
         
         if wait:
             return proc.wait()

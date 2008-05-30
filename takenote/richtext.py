@@ -351,14 +351,28 @@ class HtmlBuffer (HTMLParser):
         
         elif htmltag == "img":
             # insert image
+            img = RichTextImage()
+            width, height = None, None
+            
             for key, value in attrs:
                 if key == "src":
-                    img = RichTextImage()
                     img.set_filename(value)
-                    self.buffer.insert_image(img)
-                    pass
+                elif key == "width":
+                    try:
+                        width = int(value)
+                    except ValueError, e:
+                        raise HtmlError("expected integer for image width '%s'" % value)
+                elif key == "height":
+                    try:
+                        height = int(value)
+                    except ValueError, e:
+                        raise HtmlError("expected integer for image height '%s'" % value)
                 else:
                     HtmlError("unknown attr key '%s'" % key)
+
+            img.set_size(width, height)
+            self.buffer.insert_image(img)
+            
             return
         
         else:
@@ -415,7 +429,17 @@ class HtmlBuffer (HTMLParser):
                 for widget in param[1]:
                     child = widget.get_owner()
                     if isinstance(child, RichTextImage):
-                        self.out.write("<img src=\"%s\"/>" % child.get_filename())
+                        # write image
+                        size_str = ""
+                        size = child.get_size()
+                        
+                        if size[0] is not None:
+                            size_str += " width=\"%d\"" % size[0]
+                        if size[1] is not None:
+                            size_str += " height=\"%d\"" % size[1]
+                        
+                        self.out.write("<img src=\"%s\" %s />" % 
+                                       (child.get_filename(), size_str))
                     else:
                         # warning
                         #TODO:
@@ -705,39 +729,120 @@ class RichTextImage (RichTextAnchor):
 
     def __init__(self):
         RichTextAnchor.__init__(self)
-        self.filename = None
+        self._filename = None
         self._widget = BaseImage()
         self._widget.set_owner(self)
         self._widget.connect("destroy", self.on_image_destroy)
         self._widget.connect("button-press-event", self.on_clicked)
-        self.pixbuf = None
+        self._pixbuf = None
+        self._pixbuf_original = None
+        self._size = [None, None]
+        self._buffer = None
     
     def set_filename(self, filename):
-        self.filename = filename
+        self._filename = filename
     
     def get_filename(self):
-        return self.filename
+        return self._filename
+
+    def set_buffer(self, buf):
+        self._buffer = buf
     
     def set_from_file(self, filename):
-        if self.filename is None:
-            self.filename = os.path.basename(filename)
+        if self._filename is None:
+            self._filename = os.path.basename(filename)
         
         try:
-            self.pixbuf = gdk.pixbuf_new_from_file(filename)            
+            self._pixbuf_original = gdk.pixbuf_new_from_file(filename)
             
         except gobject.GError, e:            
             self._widget.set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
-            self.pixbuf = None
+            self._pixbuf_original = None
+            self._pixbuf = None
         else:
-            self._widget.set_from_pixbuf(self.pixbuf)
+            self._pixbuf = self._pixbuf_original
+            
+            if self.is_size_set():
+                self.scale(self._size[0], self._size[1], False)
+            self._widget.set_from_pixbuf(self._pixbuf)
+
+
+    def set_from_pixbuf(self, pixbuf):
+        self._pixbuf = pixbuf
+        self._pixbuf_original = pixbuf
+        if self.is_size_set():
+            self.scale(self._size[0], self._size[1], False)
+        self._widget.set_from_pixbuf(self._pixbuf)
+
         
+    def set_size(self, width, height):
+        self._size = [width, height]
+
+        
+    def get_size(self, actual_size=False):
+        if actual_size:
+            if self._pixbuf_original is not None:
+                w, h = self._size
+                if w is None:
+                    w = self._pixbuf_original.get_width()
+                if h is None:
+                    h = self._pixbuf_original.get_height()
+                return [w, h]
+            else:
+                return [0, 0]
+        else:
+            return self._size
+
+    def get_original_size(self):
+        return [self._pixbuf_original.get_width(),
+                self._pixbuf_original.get_height()]
+
+
+    def is_size_set(self):
+        return self._size[0] is not None or self._size[1] is not None
     
+
+    def scale(self, width, height, set_widget=True):
+        """Scale the image to a new width and height"""
+        
+        self._size = [width, height]
+
+        if not self.is_size_set():
+            # use original image size
+            if self._pixbuf != self._pixbuf_original:
+                self._pixbuf = self._pixbuf_original
+                self._widget.set_from_pixbuf(self._pixbuf)
+        
+        elif self._pixbuf_original is not None:
+            # perform scaling
+            
+            width2 = self._pixbuf_original.get_width()
+            height2 = self._pixbuf_original.get_height()
+            
+            if width is None:
+                factor = height / float(height2)
+                width = factor * width2
+            if height is None:
+                factor = width / float(width2)
+                height = factor * height2
+            
+            self._pixbuf = self._pixbuf_original.scale_simple(
+                width, height, gtk.gdk.INTERP_BILINEAR)
+
+            if set_widget:
+                self._widget.set_from_pixbuf(self._pixbuf)
+
+        self._buffer.set_modified(True)
+
     
     def set_from_pixbuf(self, pixbuf, filename=None):
         if filename is not None:
-            self.filename = filename
+            self._filename = filename
         self._widget.set_from_pixbuf(pixbuf)
-        self.pixbuf = pixbuf
+        self._pixbuf = pixbuf
+
+        if self.is_size_set():
+            self.scale(self._size[0], self._size[1])
 
 
     def write(self, filename):
@@ -746,15 +851,15 @@ class RichTextImage (RichTextAnchor):
         if ext == "jpg":
             ext = "jpeg"
             
-        self.pixbuf.save(filename, ext)
+        self._pixbuf.save(filename, ext)
         
     
     def refresh(self):
         if self._widget is None:
             self._widget = BaseImage()
             self._widget.set_owner(self)
-            if self.pixbuf:
-                self._widget.set_from_pixbuf(self.pixbuf)
+            if self._pixbuf:
+                self._widget.set_from_pixbuf(self._pixbuf)
             else:
                 self._widget.set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
             self._widget.show()
@@ -763,12 +868,14 @@ class RichTextImage (RichTextAnchor):
         
     def copy(self):
         img = RichTextImage()
-        img.filename = self.filename
-        if self.pixbuf:
-            img.get_widget().set_from_pixbuf(self.pixbuf)
+        img.set_filename(self._filename)
+        img.set_size(*self.get_size())
+        
+        if self._pixbuf:
+            img.get_widget().set_from_pixbuf(self._pixbuf)
         else:
             img.get_widget().set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
-        img.pixbuf = self.pixbuf
+        img._pixbuf = self._pixbuf
         img.get_widget().show()
         return img
     
@@ -907,7 +1014,7 @@ class RichTextBuffer (gtk.TextBuffer):
                    ("TEXT", 0, -3)]
         
         sel = self.get_selection_bounds()
-        print sel
+
         if sel:
             start, end = sel
             contents = list(iter_buffer_contents(self, start, end))
@@ -1016,10 +1123,11 @@ class RichTextBuffer (gtk.TextBuffer):
         it = self.get_iter_at_mark(self.get_insert())
         self.add_child(it, image)
         image.get_widget().show()
+        image.set_buffer(self)
         
         self.end_user_action()
         
-        if image.get_filename() == None:
+        if image.get_filename() is None:
             filename, ext = os.path.splitext(filename)
             filenames = self.get_image_filenames()
             filename = takenote.get_unique_filename_list(filenames, filename, ext)
@@ -1470,7 +1578,7 @@ class RichTextView (gtk.TextView):
 
     def on_modified_changed(self, textbuffer):
         
-        # progate modified signal to listeners of this textview
+        # propogate modified signal to listeners of this textview
         if not self.block_modified:
             self.emit("modified", textbuffer.get_modified())
     
@@ -1722,13 +1830,11 @@ class RichTextView (gtk.TextView):
         
     
     def load_images(self, path):
+        """Load images present in textbuffer"""
         
         for kind, it, param in iter_buffer_contents(self.textbuffer):
             if kind == "anchor":
                 child, widgets = param
-                
-                #for widget in widgets:
-                #    child = widget.get_owner()
                     
                 if isinstance(child, RichTextImage):
                     filename = os.path.join(path, child.get_filename())
@@ -1736,23 +1842,17 @@ class RichTextView (gtk.TextView):
                     child.get_widget().show()
 
     def save_images(self, path):
+        """Save images present in text buffer"""
+        
         for kind, it, param in iter_buffer_contents(self.textbuffer):
             if kind == "anchor":
                 child, widgets = param
-                
-                #for widget in widgets:
-                #    child = widget.get_owner()
                     
                 if isinstance(child, RichTextImage):
                     filename = os.path.join(path, child.get_filename())
-                    child.write(filename)
+                    if not os.path.exists(filename):
+                        child.write(filename)
                     
-                    #f, ext = os.path.splitext(filename)
-                    #ext = ext.replace(".", "")
-                    #if ext == "jpg":
-                    #    ext = "jpeg"
-                    #
-                    #child.pixbuf.save(filename, ext)
 
     #=============================================
     # State

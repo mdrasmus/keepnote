@@ -31,7 +31,6 @@ class ApplicationOptionsDialog (object):
         self.app_config_xml = gtk.glade.XML(get_resource("rc", "takenote.glade"))
         self.app_config_dialog = self.app_config_xml.get_widget("app_config_dialog")
         self.app_config_dialog.set_transient_for(self.main_window)
-        self.app_config_dialog.show()
 
 
         # populate dialog
@@ -44,8 +43,10 @@ class ApplicationOptionsDialog (object):
         table = gtk.Table(len(self.app.pref.external_apps), 3)
         apps_widget.add(table)
         self.entries = {}
-        for i, (key, prog) in enumerate(self.app.pref.external_apps.iteritems()):
-            app_title = self.app.pref.external_app_names[key]
+        for i, app in enumerate(self.app.pref.external_apps):
+            key = app.key
+            app_title = app.title
+            prog = app.prog
             
             # program label
             label = gtk.Label(app_title +":")
@@ -96,7 +97,9 @@ class ApplicationOptionsDialog (object):
                     "default_notebook", 
                     "Choose Default Notebook",
                     self.app.pref.default_notebook),
-            })                
+            })
+
+        self.app_config_dialog.show()
     
     
     def on_app_options_browse(self, name, title, filename):

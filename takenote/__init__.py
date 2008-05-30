@@ -152,18 +152,37 @@ def init_user_pref(home=None):
 #=============================================================================
 # NoteBook data structures
 
+class ExternalApp (object):
+    def __init__(self, key, title, prog, args=[]):
+        self.key = key
+        self.title = title
+        self.prog = prog
+        self.args = args
+
+
+DEFAULT_EXTERNAL_APPS = [
+    ExternalApp("web_browser", "Web Browser", ""),
+    ExternalApp("file_explorer", "File Explorer", ""),
+    ExternalApp("text_editor", "Text Editor", ""),
+    ExternalApp("image_editor", "Image Editor", ""),
+    ExternalApp("image_viewer", "Image Viewer", ""),
+    ExternalApp("screen_shot", "Screen Shot", "")
+]
+
+
+
 class TakeNotePreferences (object):
     """Preference data structure for the TakeNote application"""
     
     def __init__(self):
-        self.external_apps = {}
-        self.external_app_names = {}
-        self.view_mode = "vertical" # "horizontal"
+        self._external_apps = []
+        self._external_apps_lookup = {}
+        self.view_mode = "vertical"
         self.default_notebook = ""
 
         # temp variables for parsing
         self._last_app_key = ""
-        self._last_app_name = ""
+        self._last_app_title = ""
         self._last_app_program = ""
 
     def read(self):
@@ -174,24 +193,35 @@ class TakeNotePreferences (object):
             except NoteBookError, e:
                 raise NoteBookError("Cannot initialize preferences", e)
 
-        self.external_apps = {"web_browser": "",
-                              "file_explorer": "",
-                              "text_editor": "",
-                              "image_editor": "",
-                              "image_viewer": "",
-                              "screen_shot": ""}
-        self.external_app_names = {"web_browser": "Web Browser",
-                                   "file_explorer": "File Explorer",
-                                   "text_editor": "Text Editor",
-                                   "image_editor": "Image Editor",
-                                   "image_viewer": "Image Viewer",
-                                   "screen_shot": "Screen Shot"}
-            
+        # clear external apps vars
+        self.external_apps = []
+        self._external_apps_lookup = {}
+
+        
         try:
             g_takenote_pref_parser.read(self, get_user_pref_file())
         except IOError, e:
             raise NoteBookError("Cannot read preferences", e)
-            
+        
+        # make lookup
+        for app in self.external_apps:
+            self._external_apps_lookup[app.key] = app
+
+        # add default programs
+        for defapp in DEFAULT_EXTERNAL_APPS:
+            if defapp.key not in self._external_apps_lookup:
+                self.external_apps.append(defapp)
+                self._external_apps_lookup[defapp.key] = defapp
+
+        # place default apps first
+        lookup = dict((x.key, i) for i, x in enumerate(DEFAULT_EXTERNAL_APPS))
+        top = len(DEFAULT_EXTERNAL_APPS)
+        self.external_apps.sort(key=lambda x: (lookup.get(x, top), x))
+        
+        
+    def get_external_app(self, key):
+        return self._external_apps_lookup.get(key, None)
+
     
     def write(self):
         try:
@@ -201,6 +231,7 @@ class TakeNotePreferences (object):
             g_takenote_pref_parser.write(self, get_user_pref_file())
         except (IOError, OSError), e:
             raise NoteBookError("Cannot save preferences", e)
+
 
         
 
@@ -216,23 +247,23 @@ g_takenote_pref_parser = xmlo.XmlObject(
             xmlo.TagMany("app",
                 iterfunc=lambda s: range(len(s.external_apps)),
                 before=lambda (s,i): setattr(s, "_last_app_key", "") or
-                                     setattr(s, "_last_app_name", "") or 
+                                     setattr(s, "_last_app_title", "") or 
                                      setattr(s, "_last_app_program", ""),
                 after=lambda (s,i):
-                    s.external_apps.__setitem__(s._last_app_key,
-                                                s._last_app_program) or
-                    s.external_app_names.__setitem__(s._last_app_key,
-                                                     s._last_app_name),
+                    s.external_apps.append(ExternalApp(
+                        s._last_app_key,
+                        s._last_app_title,
+                        s._last_app_program)),
                 tags=[
                     xmlo.Tag("title",
-                        get=lambda (s,i),x: setattr(s, "_last_app_name", x),
-                        set=lambda (s,i): s.external_app_names.values()[i]),
+                        get=lambda (s,i),x: setattr(s, "_last_app_title", x),
+                        set=lambda (s,i): s.external_apps[i].title),
                     xmlo.Tag("name",
                         get=lambda (s,i),x: setattr(s, "_last_app_key", x),
-                        set=lambda (s,i): s.external_apps.keys()[i]),
+                        set=lambda (s,i): s.external_apps[i].key),
                     xmlo.Tag("program",                             
                         get=lambda (s,i),x: setattr(s, "_last_app_program", x),
-                        set=lambda (s,i): s.external_apps.values()[i])]
+                        set=lambda (s,i): s.external_apps[i].prog)]
            )]
         )
     ]))
