@@ -222,6 +222,7 @@ def buffer_contents_apply_tags(textbuffer, contents):
 # HTML parser for RichText
 
 class HtmlError (StandardError):
+    """Error for HTML parsing"""
     pass
 
 
@@ -238,6 +239,7 @@ class HtmlBuffer (HTMLParser):
         
         self.tag_stack = []
         self.buffer = None
+        self.text_queue = []
         
         self.entity_char_map = [("&", "amp"),
                                 (">", "gt"),
@@ -266,21 +268,37 @@ class HtmlBuffer (HTMLParser):
     def read(self, textbuffer, infile):
         """Read from stream infile to populate textbuffer"""
         self.buffer = textbuffer
+        self.text_queue = []
         
         for line in infile:
             self.feed(line)
         self.close()
+        self.flush_text()
         
         self.buffer.place_cursor(self.buffer.get_start_iter())
-    
+
+
+    def flush_text(self):
+        if len(self.text_queue) > 0:
+            self.buffer.insert_at_cursor("".join(self.text_queue))
+            self.text_queue[:] = []
+
+    def queue_text(self, text):
+        self.text_queue.append(text)
+        
     
     def handle_starttag(self, tag, attrs):
         """Callback for parsing a starting HTML tag"""
         self.newline = False
         if tag in ("html", "body"):
             return
-        
-        mark = self.buffer.create_mark(None, self.buffer.get_end_iter(), True)
+
+        if tag in ("hr", "br", "img"):
+            mark = None
+        else:
+            self.flush_text()
+            mark = self.buffer.create_mark(None, self.buffer.get_end_iter(),
+                                           True)
         self.tag_stack.append((tag, attrs, mark))
 
 
@@ -290,6 +308,7 @@ class HtmlBuffer (HTMLParser):
         self.newline = False
         if tag in ("html", "body"):
             return
+
         
         # ensure closing tags match opened tags
         if self.tag_stack[-1][0] != tag:
@@ -301,14 +320,10 @@ class HtmlBuffer (HTMLParser):
         if htmltag in self.html2tag:
             # get simple fonts b/i/u
             tag = self.html2tag[htmltag]
-            
-        elif htmltag == "br":
-            # insert newline
-            self.buffer.insert(self.buffer.get_end_iter(), "\n")
-            self.newline = True
-            return
-        
-          
+            self.flush_text()
+            start = self.buffer.get_iter_at_mark(mark)
+            self.buffer.apply_tag(tag, start, self.buffer.get_end_iter())
+
         elif htmltag == "span":
             # apply style
             
@@ -326,6 +341,10 @@ class HtmlBuffer (HTMLParser):
                         raise HtmlError("unknown style '%s'" % value)
                 else:
                     raise HtmlError("unknown attr key '%s'" % key)
+
+            self.flush_text()
+            start = self.buffer.get_iter_at_mark(mark)            
+            self.buffer.apply_tag(tag, start, self.buffer.get_end_iter())
         
         elif htmltag == "div":
             # apply style
@@ -348,6 +367,19 @@ class HtmlBuffer (HTMLParser):
                         raise HtmlError("unknown style '%s'" % value)
                 else:
                     raise HtmlError("unknown attr key '%s'" % key)
+
+            self.flush_text()
+            start = self.buffer.get_iter_at_mark(mark)
+            self.buffer.apply_tag(tag, start, self.buffer.get_end_iter())    
+            
+        elif htmltag == "br":
+            # insert newline
+            self.queue_text("\n")
+            self.newline = True
+
+        elif htmltag == "hr":
+            # horizontal break
+            pass
         
         elif htmltag == "img":
             # insert image
@@ -371,17 +403,18 @@ class HtmlBuffer (HTMLParser):
                     HtmlError("unknown attr key '%s'" % key)
 
             img.set_size(width, height)
+            self.flush_text()
             self.buffer.insert_image(img)
             
-            return
         
         else:
             raise HtmlError("WARNING: unhandled tag '%s'" % htmltag)
+
         
-          
-        start = self.buffer.get_iter_at_mark(mark)
-        self.buffer.apply_tag(tag, start, self.buffer.get_end_iter())
-        self.buffer.delete_mark(mark)
+        # delete mark created with start tag
+        if mark is not None:
+            self.buffer.delete_mark(mark)
+        
     
     
     def handle_data(self, data):
@@ -392,13 +425,15 @@ class HtmlBuffer (HTMLParser):
             self.newline = False
         else:
             data = re.sub("[\n ]+", " ", data)
-        self.buffer.insert_at_cursor(data)
+        self.queue_text(data)
+
     
     def handle_entityref(self, name):
-        self.buffer.insert_at_cursor(self.entity2char.get(name, ""))
+        self.queue_text(self.entity2char.get(name, ""))
+    
     
     def handle_charref(self, name):
-        self.buffer.insert_at_cursor(self.charref2char.get(name, ""))
+        self.queue_text(self.charref2char.get(name, ""))
         
     
     def write(self, richtext):
