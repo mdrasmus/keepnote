@@ -167,6 +167,7 @@ def insert_buffer_contents(textbuffer, pos, contents):
         kind, offset, param = item
         
         if kind == "text":
+            # insert text
             textbuffer.insert_at_cursor(param)
             
             if first_insert:
@@ -177,8 +178,9 @@ def insert_buffer_contents(textbuffer, pos, contents):
                 first_insert = False
             
         elif kind == "anchor":
+            # insert widget            
             it = textbuffer.get_iter_at_mark(textbuffer.get_insert())
-            anchor = param[1][0].get_owner().copy()
+            anchor = param[0].copy()
             textbuffer.add_child(it, anchor)
             
             if first_insert:
@@ -379,7 +381,8 @@ class HtmlBuffer (HTMLParser):
 
         elif htmltag == "hr":
             # horizontal break
-            pass
+            self.flush_text()
+            self.buffer.insert_hr()
         
         elif htmltag == "img":
             # insert image
@@ -461,24 +464,28 @@ class HtmlBuffer (HTMLParser):
                 self.write_tag_end(tag)
             
             elif kind == "anchor":
-                for widget in param[1]:
-                    child = widget.get_owner()
-                    if isinstance(child, RichTextImage):
-                        # write image
-                        size_str = ""
-                        size = child.get_size()
+                child = param[0]
+
+                if isinstance(child, RichTextImage):
+                    # write image
+                    size_str = ""
+                    size = child.get_size()
                         
-                        if size[0] is not None:
-                            size_str += " width=\"%d\"" % size[0]
-                        if size[1] is not None:
-                            size_str += " height=\"%d\"" % size[1]
+                    if size[0] is not None:
+                        size_str += " width=\"%d\"" % size[0]
+                    if size[1] is not None:
+                        size_str += " height=\"%d\"" % size[1]
                         
-                        self.out.write("<img src=\"%s\" %s />" % 
-                                       (child.get_filename(), size_str))
-                    else:
-                        # warning
-                        #TODO:
-                        print "unknown child element", widget
+                    self.out.write("<img src=\"%s\" %s />" % 
+                                   (child.get_filename(), size_str))
+
+                elif isinstance(child, RichTextHorizontalRule):
+                    self.out.write("<hr/>")
+                    
+                else:
+                    # warning
+                    #TODO:
+                    print "unknown child element", widget
             
             elif kind == "pixbuf":
                 self.out.write("")
@@ -691,9 +698,6 @@ class RichTextAnchor (gtk.TextChildAnchor):
     def get_widget(self):
         return self._widget
     
-    def refresh(self):
-        return self._widget
-    
     def copy(slef):
         return RichTextAnchor()
     
@@ -713,24 +717,39 @@ gobject.signal_new("popup-menu", RichTextAnchor, gobject.SIGNAL_RUN_LAST,
 
 
 class BaseWidget (object):
-    """This class is used to supplement widgets with a pointer back to the 
-       owner RichTextAnchor object"""
+    """Widgets in RichTextBuffer must support this interface"""
     
     def __init__(self):
         self.owner = None
         
-    def set_owner(self, owner):
-        self.owner = owner
-    
-    def get_owner(self):
-        return self.owner
-    
     def highlight(self):
         pass
     
     def unhighlight(self):
         pass
     
+
+class RichTextHorizontalRule (RichTextAnchor):
+    def __init__(self):
+        gtk.TextChildAnchor.__init__(self)
+        self._widget = BaseImage()
+        width = 400
+        height = 1
+        color = 0 # black
+        padding = 5
+
+        pixbuf = gdk.Pixbuf(gdk.COLORSPACE_RGB, False, 8, width, height)
+        pixbuf.fill(color)
+        self._widget.set_from_pixbuf(pixbuf)
+        self._widget.img.set_padding(0, padding)
+        self._widget.show()
+    
+    def get_widget(self):
+        return self._widget
+    
+    def copy(slef):
+        return RichTextHorizontalRule()
+       
 
 class BaseImage (gtk.EventBox, BaseWidget):
     """Subclasses gtk.Image to make an Image Widget that can be used within
@@ -740,7 +759,16 @@ class BaseImage (gtk.EventBox, BaseWidget):
         gtk.EventBox.__init__(self)
         BaseWidget.__init__(self)
         self.img = gtk.Image(*args, **kargs)
-        self.add(self.img)        
+        self.add(self.img)
+
+        # set to white background
+        self.modify_bg(gtk.STATE_NORMAL, gdk.Color(65535, 65535, 65535))
+
+        # gtk.STATE_ACTIVE
+        # gtk.STATE_PRELIGHT
+        # gtk.STATE_SELECTED
+        # gtk.STATE_INSENSITIVE
+
     
     def highlight(self):
         self.drag_highlight()
@@ -766,13 +794,15 @@ class RichTextImage (RichTextAnchor):
         RichTextAnchor.__init__(self)
         self._filename = None
         self._widget = BaseImage()
-        self._widget.set_owner(self)
-        self._widget.connect("destroy", self.on_image_destroy)
-        self._widget.connect("button-press-event", self.on_clicked)
+        self._widget.connect("destroy", self._on_image_destroy)
+        self._widget.connect("button-press-event", self._on_clicked)
         self._pixbuf = None
         self._pixbuf_original = None
         self._size = [None, None]
         self._buffer = None
+
+    def is_valid(self):
+        return self._pixbuf is not None
     
     def set_filename(self, filename):
         self._filename = filename
@@ -802,12 +832,14 @@ class RichTextImage (RichTextAnchor):
             self._widget.set_from_pixbuf(self._pixbuf)
 
 
-    def set_from_pixbuf(self, pixbuf):
+    def set_from_pixbuf(self, pixbuf, filename=None):
+        if filename is not None:
+            self._filename = filename
         self._pixbuf = pixbuf
         self._pixbuf_original = pixbuf
+
         if self.is_size_set():
-            self.scale(self._size[0], self._size[1], False)
-        self._widget.set_from_pixbuf(self._pixbuf)
+            self.scale(self._size[0], self._size[1])
 
         
     def set_size(self, width, height):
@@ -870,16 +902,6 @@ class RichTextImage (RichTextAnchor):
         self._buffer.set_modified(True)
 
     
-    def set_from_pixbuf(self, pixbuf, filename=None):
-        if filename is not None:
-            self._filename = filename
-        self._widget.set_from_pixbuf(pixbuf)
-        self._pixbuf = pixbuf
-
-        if self.is_size_set():
-            self.scale(self._size[0], self._size[1])
-
-
     def write(self, filename):
         f, ext = os.path.splitext(filename)
         ext = ext.replace(".", "")
@@ -888,18 +910,6 @@ class RichTextImage (RichTextAnchor):
             
         self._pixbuf.save(filename, ext)
         
-    
-    def refresh(self):
-        if self._widget is None:
-            self._widget = BaseImage()
-            self._widget.set_owner(self)
-            if self._pixbuf:
-                self._widget.set_from_pixbuf(self._pixbuf)
-            else:
-                self._widget.set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
-            self._widget.show()
-            self._widget.connect("destroy", self.on_image_destroy)
-        return self._widget
         
     def copy(self):
         img = RichTextImage()
@@ -914,10 +924,10 @@ class RichTextImage (RichTextAnchor):
         img.get_widget().show()
         return img
     
-    def on_image_destroy(self, widget):
+    def _on_image_destroy(self, widget):
         self._widget = None
     
-    def on_clicked(self, widget, event):
+    def _on_clicked(self, widget, event):
         if event.button == 1:
             self._widget.grab_focus()
             self.emit("selected")
@@ -927,7 +937,22 @@ class RichTextImage (RichTextAnchor):
             self.emit("selected")
             self.emit("popup-menu", event.button, event.time)
             return True
-            
+
+
+'''
+    def refresh(self):
+        if self._widget is None:
+            self._widget = BaseImage()
+            self._widget.set_owner(self)
+            if self._pixbuf:
+                self._widget.set_from_pixbuf(self._pixbuf)
+            else:
+                self._widget.set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
+            self._widget.show()
+            self._widget.connect("destroy", self.on_image_destroy)
+        return self._widget
+    '''
+
         
 
 #=============================================================================
@@ -1167,7 +1192,16 @@ class RichTextBuffer (gtk.TextBuffer):
             filenames = self.get_image_filenames()
             filename = takenote.get_unique_filename_list(filenames, filename, ext)
             image.set_filename(filename)
-    
+
+
+    def insert_hr(self):
+        self.begin_user_action()
+
+        it = self.get_iter_at_mark(self.get_insert())
+        hr = RichTextHorizontalRule()
+        self.add_child(it, hr)
+        
+        self.end_user_action()
     
     def get_image_filenames(self):
         filenames = []
@@ -1175,11 +1209,6 @@ class RichTextBuffer (gtk.TextBuffer):
         # TODO: could be faster (specialized search_forward)
         for kind, it, param in iter_buffer_contents(self):
             if kind == "anchor":
-                #anchor, widgets = param
-                #
-                #for widget in widgets:
-                #    child = widget.get_owner()
-                #
                 child, widget = param    
                 if isinstance(child, RichTextImage):
                     filenames.append(child.get_filename())
@@ -1290,10 +1319,11 @@ class RichTextBuffer (gtk.TextBuffer):
 
 
     def on_child_selected(self, child):
-        it = self.get_iter_at_child_anchor(child)
-        end = it.copy()
+        it = self.get_iter_at_child_anchor(child)        
+        end = it.copy()        
         end.forward_char() #cursor_position()
         self.select_range(it, end)
+        #self.place_cursor(it)
         
 
     def on_child_popup_menu(self, child, button, activate_time):
@@ -1302,6 +1332,7 @@ class RichTextBuffer (gtk.TextBuffer):
             
     
     def highlight_children(self):
+        #return
         sel = self.get_selection_bounds()
         
         if len(sel) > 0:
@@ -1314,6 +1345,10 @@ class RichTextBuffer (gtk.TextBuffer):
                     child.highlight()
                 else:
                     child.unhighlight()
+
+            # make sure textview does not lose focus
+            if self.textview:
+                self.textview.grab_focus()
         else:
             # unselect all children
             for child in self.anchors:
