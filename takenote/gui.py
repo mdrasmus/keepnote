@@ -508,7 +508,7 @@ class TakeNoteWindow (gtk.Window):
         try:
             notebook.load(filename)
         except NoteBookError, e:
-            self.error("Could not load notebook '%s'" % filename)
+            self.error("Could not load notebook '%s'" % filename, e)
             return None
 
         self.notebook = notebook

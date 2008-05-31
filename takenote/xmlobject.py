@@ -10,6 +10,11 @@ import xml.parsers.expat
 
 
 
+class XmlError (StandardError):
+    """Error for parsing XML"""
+    pass
+
+
 class Tag (object):
     def __init__(self, name,
                  get=None,
@@ -159,7 +164,11 @@ class XmlObject (object):
         if len(self.current_tags) > 0:
             tag = self.current_tags[-1]
             if tag.get is not None:
-                tag.get(tag.obj, data)
+                try:
+                    tag.get(tag.obj, data)
+                except Exception, e:
+                    raise XmlError("Error parsing tag '%s': %s" % (tag.name,
+                                                                   str(e)))
             
             
     

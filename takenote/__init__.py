@@ -216,7 +216,7 @@ class TakeNotePreferences (object):
         # place default apps first
         lookup = dict((x.key, i) for i, x in enumerate(DEFAULT_EXTERNAL_APPS))
         top = len(DEFAULT_EXTERNAL_APPS)
-        self.external_apps.sort(key=lambda x: (lookup.get(x, top), x))
+        self.external_apps.sort(key=lambda x: (lookup.get(x.key, top), x.key))
         
         
     def get_external_app(self, key):

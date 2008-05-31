@@ -19,6 +19,7 @@ import xml.dom
 # constants
 BLANK_NOTE = "<html><body></body></html>"
 
+NOTEBOOK_FORMAT_VERSION = 1
 ELEMENT_NODE = 1
 NODE_META_FILE = "node.xml"
 PAGE_META_FILE = "page.xml"
@@ -29,6 +30,7 @@ TRASH_DIR = "__TRASH__"
 TRASH_NAME = "Trash"
 DEFAULT_PAGE_NAME = "New Page"
 DEFAULT_DIR_NAME = "New Folder"
+
 
 
 DEFAULT_WINDOW_SIZE = (800, 600)
@@ -244,6 +246,7 @@ class NoteBookNode (object):
         self._children = None
         self._expanded = False
         self._info_sort = [INFO_SORT_NONE, 1]
+        self._version = NOTEBOOK_FORMAT_VERSION
         
         self._set_basename(path)
 
@@ -655,6 +658,9 @@ class NoteBookNode (object):
 
 # basic file format for all NoteBookNode's
 g_node_meta_data_tags = [
+    xmlo.Tag("version",
+        getobj=("_version", int),
+        set=lambda s: str(NOTEBOOK_FORMAT_VERSION)),
     xmlo.Tag("title", 
         getobj=("_title", None),
         set=lambda s: s._title),
@@ -770,6 +776,9 @@ class NoteBookDir (NoteBookNode):
             g_dir_meta_data_parser.read(self, self.get_meta_file())
         except IOError, e:
             raise NoteBookError("Cannot read meta data", e)
+        except xmlo.XmlError, e:
+            raise NoteBookError("Folder meta data is corrupt for note '%s'" %
+                                self.get_path(),  e)
         
         if self._created_time is None:
             self._created_time = get_timestamp()
@@ -824,10 +833,15 @@ class NoteBookPreferences (object):
         self.window_size = DEFAULT_WINDOW_SIZE
         self.vsash_pos = DEFAULT_VSASH_POS
         self.hsash_pos = DEFAULT_HSASH_POS
+        self.version = NOTEBOOK_FORMAT_VERSION
+
 
 # file format for NoteBook preferences
 g_notebook_pref_parser = xmlo.XmlObject(
     xmlo.Tag("notebook", tags=[
+        xmlo.Tag("version",
+            getobj=("version", int),
+            set=lambda s: str(s.version)),
         xmlo.Tag("window_size", 
             getobj=("window_size", lambda x: tuple(map(int,x.split(",")))),
             set=lambda s: "%d,%d" % s.window_size),

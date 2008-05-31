@@ -41,7 +41,8 @@ class ApplicationOptionsDialog (object):
         # populate external apps
         apps_widget = self.app_config_xml.get_widget("external_apps_frame")
         table = gtk.Table(len(self.app.pref.external_apps), 3)
-        apps_widget.add(table)
+        apps_widget.add_with_viewport(table)
+        apps_widget.get_child().set_property("shadow-type", gtk.SHADOW_NONE)
         self.entries = {}
         for i, app in enumerate(self.app.pref.external_apps):
             key = app.key
@@ -133,7 +134,7 @@ class ApplicationOptionsDialog (object):
 
 
         for key, entry in self.entries.iteritems():
-            self.app.pref.external_apps[key] = \
+            self.app.pref._external_apps_lookup[key].prog = \
                 self.entries[key].get_text()
         
         self.app.pref.write()
