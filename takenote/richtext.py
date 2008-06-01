@@ -31,7 +31,11 @@ from takenote.undo import UndoStack
 # constants
 MIME_TAKENOTE = "application/x-takespnote"
 
-IGNORE_TAGS = set(["gtkspell-misspelled"])
+# these tags will not be enumerated by iter_buffer_contents
+IGNORE_TAGS = set(["gtkspell-misspelled", "hr"])
+
+# TextBuffer uses this char for anchors and pixbufs
+ANCHOR_CHAR = u'\ufffc'
 
 
 #=============================================================================
@@ -39,15 +43,21 @@ IGNORE_TAGS = set(["gtkspell-misspelled"])
 
 def iter_buffer_contents(textbuffer, start=None, end=None,
                          ignore_tags=IGNORE_TAGS):
-    """Iterate over the items of a textbuffer"""
-    
-    if start == None:
+    """Iterate over the items of a textbuffer
+
+    textbuffer -- buffer to iterate over
+    start      -- starting position (TextIter)
+    end        -- ending position (TextIter)
+    """
+
+    # initialize iterators
+    if start is None:
         it = textbuffer.get_start_iter()
     else:
         it = start.copy()
     last = it.copy()
 
-    if end == None:
+    if end is None:
         end = textbuffer.get_end_iter()
 
 
@@ -67,9 +77,9 @@ def iter_buffer_contents(textbuffer, start=None, end=None,
                 stop = it
             else:
                 stop = end
-            ret = it2.forward_search(u'\ufffc', (), stop)
+            ret = it2.forward_search(ANCHOR_CHAR, (), stop)
             
-            if ret == None:
+            if ret is None:
                 yield ("text", it2, it2.get_text(stop))
                 break
             
@@ -78,8 +88,8 @@ def iter_buffer_contents(textbuffer, start=None, end=None,
             
             # yield text in between tags
             yield ("text", it2, it2.get_text(a))
-            if anchor != None:
-                yield ("anchor", a, (anchor, [anchor.get_widget()]))
+            if anchor is not None:
+                yield ("anchor", a, (anchor, anchor.get_widgets()))
             else:
                 yield ("pixbuf", a, a.get_pixbuf())
             it2 = b
@@ -122,7 +132,9 @@ def buffer_contents_iter_to_offset(contents):
     
 
 def normalize_tags(items):
-    """Normalize open and close tags to ensure proper nesting"""
+    """Normalize open and close tags to ensure proper nesting
+       This is especially useful for saving to HTML
+    """
 
     open_stack = []
 
@@ -155,7 +167,7 @@ def normalize_tags(items):
 
 
 def insert_buffer_contents(textbuffer, pos, contents):
-    """Insert a content list into a textview"""
+    """Insert a content list into a RichTextBuffer"""
     
     textbuffer.place_cursor(pos)
     tags = {}
@@ -235,13 +247,22 @@ class HtmlBuffer (HTMLParser):
         HTMLParser.__init__(self)
     
         self.out = out
-        self.tag2html = {}
-        self.html2tag = {}
-        self.newline = False        
+        self.mod_tags = "biu"
+        self.mod_tag2buffer_tag = {
+            "b": "Bold",
+            "i": "Italic",
+            "u": "Underline"}
+        self.buffer_tag2mod_tag = {
+            "Bold": "b",
+            "Italic": "i",
+            "Underline": "u"
+            }
+        self.newline = False
         
         self.tag_stack = []
         self.buffer = None
         self.text_queue = []
+        self.within_body = False
         
         self.entity_char_map = [("&", "amp"),
                                 (">", "gt"),
@@ -261,16 +282,11 @@ class HtmlBuffer (HTMLParser):
         self.out = out
     
     
-    def add_tag(self, tag, html_name):
-        """Register a gtk.TextTag for HTML output"""
-        self.tag2html[tag] = html_name
-        self.html2tag[html_name] = tag    
-    
-    
     def read(self, textbuffer, infile):
         """Read from stream infile to populate textbuffer"""
         self.buffer = textbuffer
         self.text_queue = []
+        self.within_body = False
         
         for line in infile:
             self.feed(line)
@@ -292,10 +308,14 @@ class HtmlBuffer (HTMLParser):
     def handle_starttag(self, tag, attrs):
         """Callback for parsing a starting HTML tag"""
         self.newline = False
-        if tag in ("html", "body"):
+        if tag == "html":
+            return
+        
+        elif tag == "body":
+            self.within_body = True
             return
 
-        if tag in ("hr", "br", "img"):
+        elif tag in ("hr", "br", "img"):
             mark = None
         else:
             self.flush_text()
@@ -308,7 +328,7 @@ class HtmlBuffer (HTMLParser):
         """Callback for parsing a ending HTML tag"""
         
         self.newline = False
-        if tag in ("html", "body"):
+        if tag in ("html", "body") or not self.within_body:
             return
 
         
@@ -319,9 +339,9 @@ class HtmlBuffer (HTMLParser):
         
         
         
-        if htmltag in self.html2tag:
+        if htmltag in self.mod_tag2buffer_tag:
             # get simple fonts b/i/u
-            tag = self.html2tag[htmltag]
+            tag = self.buffer.lookup_mod_tag(self.mod_tag2buffer_tag[htmltag])
             self.flush_text()
             start = self.buffer.get_iter_at_mark(mark)
             self.buffer.apply_tag(tag, start, self.buffer.get_end_iter())
@@ -422,6 +442,9 @@ class HtmlBuffer (HTMLParser):
     
     def handle_data(self, data):
         """Callback for character data"""
+
+        if not self.within_body:
+            return
         
         if self.newline:
             data = re.sub("\n[\n ]*", "", data)
@@ -432,21 +455,30 @@ class HtmlBuffer (HTMLParser):
 
     
     def handle_entityref(self, name):
+        if not self.within_body:
+            return
         self.queue_text(self.entity2char.get(name, ""))
     
     
     def handle_charref(self, name):
+        if not self.within_body:
+            return
         self.queue_text(self.charref2char.get(name, ""))
         
     
     def write(self, richtext):
         self.buffer = richtext.textbuffer
         
-        self.out.write("<html><body>")
+        #self.out.write("<html><body>")
+        self.out.write("""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<body>""")
         
         for kind, it, param in normalize_tags(iter_buffer_contents(self.buffer)):
             if kind == "text":
                 text = param
+
+                # TODO: could try to speed this up
                 text = text.replace("&", "&amp;")
                 text = text.replace(">", "&gt;")
                 text = text.replace("<", "&lt;")
@@ -485,17 +517,19 @@ class HtmlBuffer (HTMLParser):
                 else:
                     # warning
                     #TODO:
-                    print "unknown child element", widget
+                    print "unknown child element", child
             
             elif kind == "pixbuf":
                 self.out.write("")
+            else:
+                raise Exception("unknown kind '%s'" % str(kind))
         
         self.out.write("</body></html>")
         
     
     def write_tag_begin(self, tag):
-        if tag in self.tag2html:
-            self.out.write("<%s>" % self.tag2html[tag])
+        if tag in self.buffer.mod_tags:
+            self.out.write("<%s>" % self.buffer_tag2mod_tag[tag.get_property("name")])
         else:
             if tag in self.buffer.size_tags:
                 self.out.write("<span style='font-size: %dpt'>" % 
@@ -520,8 +554,8 @@ class HtmlBuffer (HTMLParser):
                 
         
     def write_tag_end(self, tag):
-        if tag in self.tag2html:
-            self.out.write("</%s>" % self.tag2html[tag])
+        if tag in self.buffer.mod_tags:
+            self.out.write("</%s>" % self.buffer_tag2mod_tag[tag.name])
         elif tag in self.buffer.justify_tags:
             self.out.write("</div>")
         else:
@@ -720,28 +754,45 @@ class BaseWidget (object):
     """Widgets in RichTextBuffer must support this interface"""
     
     def __init__(self):
-        self.owner = None
+        pass
         
     def highlight(self):
         pass
     
     def unhighlight(self):
         pass
+
+
+class RichTextSep (gtk.HSeparator, BaseWidget):
+    def __init__(self):
+        #gtk.EventBox.__init__(self)
+        gtk.HSeparator.__init__(self)
+        BaseWidget.__init__(self)
+        #self.sep = gtk.HSeparator()
+        #self.add(self.sep)
+        self.modify_bg(gtk.STATE_NORMAL, gdk.Color(0, 0, 0))
+        self.modify_fg(gtk.STATE_NORMAL, gdk.Color(0, 0, 0))
+        self.connect("size-request", self.on_resize)
+
+    def on_resize(self, sep, req):
+        req.height = 10
+        req.width = self.get_parent().get_allocation().width - 20
+        
     
 
 class RichTextHorizontalRule (RichTextAnchor):
     def __init__(self):
         gtk.TextChildAnchor.__init__(self)
-        self._widget = BaseImage()
-        width = 400
-        height = 1
-        color = 0 # black
-        padding = 5
+        self._widget = RichTextSep()
+        #width = 400
+        #height = 1
+        #color = 0 # black
+        #padding = 5
 
-        pixbuf = gdk.Pixbuf(gdk.COLORSPACE_RGB, False, 8, width, height)
-        pixbuf.fill(color)
-        self._widget.set_from_pixbuf(pixbuf)
-        self._widget.img.set_padding(0, padding)
+        #pixbuf = gdk.Pixbuf(gdk.COLORSPACE_RGB, False, 8, width, height)
+        #pixbuf.fill(color)
+        #self._widget.set_from_pixbuf(pixbuf)
+        #self._widget.img.set_padding(0, padding)
         self._widget.show()
     
     def get_widget(self):
@@ -1015,6 +1066,8 @@ class RichTextBuffer (gtk.TextBuffer):
         self.bold_tag = self.create_tag("Bold", weight=pango.WEIGHT_BOLD)
         self.italic_tag = self.create_tag("Italic", style=pango.STYLE_ITALIC)
         self.underline_tag = self.create_tag("Underline", underline=pango.UNDERLINE_SINGLE)
+        self.mod_tags = set([self.bold_tag, self.italic_tag,
+                             self.underline_tag])
         
         self.left_tag = self.create_tag("Left", justification=gtk.JUSTIFY_LEFT)
         self.center_tag = self.create_tag("Center", justification=gtk.JUSTIFY_CENTER)
@@ -1202,6 +1255,7 @@ class RichTextBuffer (gtk.TextBuffer):
         self.add_child(it, hr)
         
         self.end_user_action()
+
     
     def get_image_filenames(self):
         filenames = []
@@ -1446,6 +1500,12 @@ class RichTextBuffer (gtk.TextBuffer):
     
     #===========================================================
     # Font management
+
+
+    def lookup_mod_tag(self, mod):
+        """Lookup Bold, Italic, and Underline"""
+        return self.tag_table.lookup(mod)
+    
     
     def lookup_family_tag(self, family):
         tag = self.tag_table.lookup(family)
@@ -1562,6 +1622,7 @@ class RichTextBuffer (gtk.TextBuffer):
 
 
 class RichTextMenu (gtk.Menu):
+    """A popup menu for child widgets in a RichTextView"""
     def __inti__(self):
         gkt.Menu.__init__(self)
         self._child = None
@@ -1576,6 +1637,7 @@ class RichTextMenu (gtk.Menu):
 
 
 class RichTextView (gtk.TextView):
+    """A RichText editor widget"""
 
     def __init__(self):
         gtk.TextView.__init__(self, RichTextBuffer(self))
@@ -1615,10 +1677,7 @@ class RichTextView (gtk.TextView):
         
         # initialize HTML buffer
         self.html_buffer = HtmlBuffer()
-        self.html_buffer.add_tag(self.textbuffer.bold_tag, "b")
-        self.html_buffer.add_tag(self.textbuffer.italic_tag, "i")
-        self.html_buffer.add_tag(self.textbuffer.underline_tag, "u")
-
+        
         # popup menus
         self.image_menu = RichTextMenu()
         self.image_menu.attach_to_widget(self, lambda w,m:None)
@@ -1983,7 +2042,11 @@ class RichTextView (gtk.TextView):
         """Inserts an image into the textbuffer"""
                 
         self.textbuffer.insert_image(image, filename)    
-    
+
+
+    def insert_hr(self):
+        self.textbuffer.insert_hr()
+        
     
     def forward_search(self, it, text, case_sensitive):
         it = it.copy()

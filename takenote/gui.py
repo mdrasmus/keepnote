@@ -864,7 +864,12 @@ class TakeNoteWindow (gtk.Window):
         self.restore_window()
 
 
-                    
+    def on_insert_hr(self):
+
+        if self.current_page is None:
+            return
+
+        self.editor.get_textview().insert_hr()
         
     def on_insert_image(self):
         """Displays the Insert Image Dialog"""
@@ -1220,6 +1225,8 @@ class TakeNoteWindow (gtk.Window):
             #    "<ImageItem>", page_delete.get_pixbuf()),
             ("/Edit/sep4", 
                 None, None, 0, "<Separator>"),
+            ("/Edit/Insert _Horizontal Rule",
+                "<control>H", lambda w,e: self.on_insert_hr(), 0, None),
             ("/Edit/Insert _Image",
                 None, lambda w,e: self.on_insert_image(), 0, None),
             ("/Edit/Insert _Screenshot",

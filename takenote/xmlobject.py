@@ -1,13 +1,25 @@
+"""
 
+    XmlObject
+
+    The modules allows concise definitions of XML file formats for python
+    objects.
+
+"""
+
+
+# python imports
 import sys
+import codecs
 
+# xml imports
 import xml.dom.minidom as xmldom
 import xml.dom
-
-ELEMENT_NODE = xml.dom.Node.ELEMENT_NODE
-
 import xml.parsers.expat
 
+
+# constants
+ELEMENT_NODE = xml.dom.Node.ELEMENT_NODE
 
 
 class XmlError (StandardError):
@@ -173,8 +185,8 @@ class XmlObject (object):
             
     
     def read(self, obj, filename):
-        if isinstance(filename, str):
-            infile = file(filename)
+        if isinstance(filename, basestring):
+            infile = open(filename, "r")
         else:
             infile = filename
         self.obj = obj
@@ -189,15 +201,15 @@ class XmlObject (object):
 
             
     def write(self, obj, filename):
-        if not hasattr(filename, "write"):
-            out = file(filename, "w")
+        if isinstance(filename, basestring):
+            out = codecs.open(filename, "w", "utf-8")
+            #out = file(filename, "w")
             need_close = True
         else:
             out = filename
             need_close = False
         
         out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
-        #self.__write_tag(obj, out, self.root_tag)
         self.root_tag.write(obj, out)
         out.write("\n")
         if need_close:
