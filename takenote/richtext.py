@@ -555,7 +555,7 @@ class HtmlBuffer (HTMLParser):
         
     def write_tag_end(self, tag):
         if tag in self.buffer.mod_tags:
-            self.out.write("</%s>" % self.buffer_tag2mod_tag[tag.get_property("name"])
+            self.out.write("</%s>" % self.buffer_tag2mod_tag[tag.get_property("name")])
         elif tag in self.buffer.justify_tags:
             self.out.write("</div>")
         else:
