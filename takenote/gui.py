@@ -735,22 +735,22 @@ class TakeNoteWindow (gtk.Window):
     def on_left_justify(self):
         self.editor.get_textview().on_left_justify()
         mods, justify, family, size = self.editor.get_textview().get_font()
-        self.on_font_change(mods, justify, family, size)
+        self.on_font_change(self.editor, mods, justify, family, size)
 
     def on_center_justify(self):
         self.editor.get_textview().on_center_justify()
         mods, justify, family, size = self.editor.get_textview().get_font()
-        self.on_font_change(mods, justify, family, size)
+        self.on_font_change(self.editor, mods, justify, family, size)
 
     def on_right_justify(self):
         self.editor.get_textview().on_right_justify()
         mods, justify, family, size = self.editor.get_textview().get_font()
-        self.on_font_change(mods, justify, family, size)
+        self.on_font_change(self.editor, mods, justify, family, size)
 
     def on_fill_justify(self):
         self.editor.get_textview().on_fill_justify()
         mods, justify, family, size = self.editor.get_textview().get_font()
-        self.on_font_change(mods, justify, family, size)
+        self.on_font_change(self.editor, mods, justify, family, size)
     
     
 
@@ -766,7 +766,7 @@ class TakeNoteWindow (gtk.Window):
         mods, justify, family, size = self.editor.get_textview().get_font()
         size += 2        
         self.editor.get_textview().on_font_size_set(size)
-        self.on_font_change(mods, justify, family, size)
+        self.on_font_change(self.editor, mods, justify, family, size)
     
     
     def on_font_size_dec(self):
@@ -774,7 +774,7 @@ class TakeNoteWindow (gtk.Window):
         if size > 4:
             size -= 2
         self.editor.get_textview().on_font_size_set(size)
-        self.on_font_change(mods, justify, family, size)
+        self.on_font_change(self.editor, mods, justify, family, size)
 
     #=================================================
     # Window manipulation
