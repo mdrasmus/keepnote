@@ -175,6 +175,7 @@ class TakeNotePreferences (object):
     """Preference data structure for the TakeNote application"""
     
     def __init__(self):
+        self.external_apps = []
         self._external_apps = []
         self._external_apps_lookup = {}
         self.view_mode = "vertical"

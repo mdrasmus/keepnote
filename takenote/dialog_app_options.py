@@ -33,17 +33,19 @@ class ApplicationOptionsDialog (object):
         self.app_config_dialog.set_transient_for(self.main_window)
 
 
-        # populate dialog
+        # populate dialog        
         self.app_config_xml.get_widget("default_notebook_entry").\
             set_text(self.app.pref.default_notebook)
 
 
+
         # populate external apps
+        self.entries = {}
         apps_widget = self.app_config_xml.get_widget("external_apps_frame")
         table = gtk.Table(len(self.app.pref.external_apps), 3)
         apps_widget.add_with_viewport(table)
         apps_widget.get_child().set_property("shadow-type", gtk.SHADOW_NONE)
-        self.entries = {}
+        
         for i, app in enumerate(self.app.pref.external_apps):
             key = app.key
             app_title = app.title
@@ -120,7 +122,12 @@ class ApplicationOptionsDialog (object):
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
             dialog.destroy()
-            self.entries[name].set_text(filename)
+
+            if name == "default_notebook":
+                self.app_config_xml.get_widget("default_notebook_entry").\
+                    set_text(filename)
+            else:
+                self.entries[name].set_text(filename)
             
         elif response == gtk.RESPONSE_CANCEL:
             dialog.destroy()
