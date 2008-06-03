@@ -10,7 +10,7 @@ import os, sys, shutil
 from distutils.core import setup, Extension
 import py2exe
 
-TAKENOTE_VERSION = '1.0'
+TAKENOTE_VERSION = '.4'
 
 # get images
 image_dir = "images"
@@ -56,7 +56,7 @@ setup(
     scripts=['bin/takenote'],
     data_files=[
         ('images', image_files),
-        ('rc', ['rc/app_config.glade'])
+        ('rc', ['rc/takenote.glade'])
     ],
     
     windows=[{
