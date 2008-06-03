@@ -890,7 +890,8 @@ class RichTextImage (RichTextAnchor):
         self._pixbuf_original = pixbuf
 
         if self.is_size_set():
-            self.scale(self._size[0], self._size[1])
+            self.scale(self._size[0], self._size[1], False)
+        self._widget.set_from_pixbuf(self._pixbuf)
 
         
     def set_size(self, width, height):
@@ -1147,6 +1148,11 @@ class RichTextBuffer (gtk.TextBuffer):
         """Callback for paste event"""
         
         targets = clipboard.wait_for_targets()
+
+        if targets is None:
+            # do nothing
+            return
+            
         
         if MIME_TAKENOTE in targets:
             clipboard.request_contents(MIME_TAKENOTE, self.do_paste)
@@ -1177,7 +1183,9 @@ class RichTextBuffer (gtk.TextBuffer):
         self.insert_image(image)
     
     def do_paste(self, clipboard, selection_data, data):
-        assert self.clipboard_contents != None
+        if self.clipboard_contents is None:
+            # do nothing
+            return
         
         self.begin_user_action()
         it = self.get_iter_at_mark(self.get_insert())
