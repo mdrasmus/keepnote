@@ -728,12 +728,18 @@ class RichTextAnchor (gtk.TextChildAnchor):
     def __init__(self):
         gtk.TextChildAnchor.__init__(self)
         self._widget = None
+        self._buffer = None
     
     def get_widget(self):
         return self._widget
+
+    def set_buffer(self, buf):
+        self._buffer = buf
     
     def copy(slef):
-        return RichTextAnchor()
+        anchor = RichTextAnchor()
+        anchor.set_buffer(self._buffer)
+        return anchor
     
     def highlight(self):
         if self._widget:
@@ -851,6 +857,8 @@ class RichTextImage (RichTextAnchor):
         self._pixbuf_original = None
         self._size = [None, None]
         self._buffer = None
+        self._save_needed = False
+        
 
     def is_valid(self):
         return self._pixbuf is not None
@@ -861,8 +869,11 @@ class RichTextImage (RichTextAnchor):
     def get_filename(self):
         return self._filename
 
-    def set_buffer(self, buf):
-        self._buffer = buf
+    def set_save_needed(self, save):
+        self._save_needed = save
+
+    def save_needed(self):
+        return self._save_needed
     
     def set_from_file(self, filename):
         if self._filename is None:
@@ -951,7 +962,8 @@ class RichTextImage (RichTextAnchor):
             if set_widget:
                 self._widget.set_from_pixbuf(self._pixbuf)
 
-        self._buffer.set_modified(True)
+        if self._buffer is not None:
+            self._buffer.set_modified(True)
 
     
     def write(self, filename):
@@ -960,7 +972,7 @@ class RichTextImage (RichTextAnchor):
         if ext == "jpg":
             ext = "jpeg"
             
-        self._pixbuf.save(filename, ext)
+        self._pixbuf_original.save(filename, ext)
         
         
     def copy(self):
@@ -973,6 +985,7 @@ class RichTextImage (RichTextAnchor):
         else:
             img.get_widget().set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
         img._pixbuf = self._pixbuf
+        img._pixbuf_original = self._pixbuf_original
         img.get_widget().show()
         return img
     
@@ -1216,6 +1229,7 @@ class RichTextBuffer (gtk.TextBuffer):
     
     def add_child(self, it, child):
         self.anchors.add(child)
+        child.set_buffer(self)
         child.connect("selected", self.on_child_selected)
         child.connect("popup-menu", self.on_child_popup_menu)
         self.insert_child_anchor(it, child)
@@ -1244,15 +1258,16 @@ class RichTextBuffer (gtk.TextBuffer):
         it = self.get_iter_at_mark(self.get_insert())
         self.add_child(it, image)
         image.get_widget().show()
-        image.set_buffer(self)
         
         self.end_user_action()
         
         if image.get_filename() is None:
-            filename, ext = os.path.splitext(filename)
+            image.set_save_needed(True)
+            filename2, ext = os.path.splitext(filename)
             filenames = self.get_image_filenames()
-            filename = takenote.get_unique_filename_list(filenames, filename, ext)
+            filename = takenote.get_unique_filename_list(filenames, filename2, ext)
             image.set_filename(filename)
+
 
 
     def insert_hr(self):
@@ -1987,8 +2002,9 @@ class RichTextView (gtk.TextView):
                     
                 if isinstance(child, RichTextImage):
                     filename = os.path.join(path, child.get_filename())
-                    if not os.path.exists(filename):
+                    if child.save_needed():
                         child.write(filename)
+                        child.set_save_needed(False)
                     
 
     #=============================================
