@@ -31,6 +31,12 @@ from takenote.notebook import NoteBookDir, NoteBookPage, NoteBookTrash, \
               NoteBookError
 
 
+COL_ICON        = 0
+COL_ICON_EXPAND = 1
+COL_TITLE       = 2
+COL_NODE        = 3
+
+
 class TakeNoteTreeView (gtk.TreeView):
     """
     TreeView widget for the TakeNote NoteBook
@@ -43,7 +49,7 @@ class TakeNoteTreeView (gtk.TreeView):
         self.editing = False
         
         # create a TreeStore with one string column to use as the model
-        self.model = TakeNoteTreeStore(3, gdk.Pixbuf, gdk.Pixbuf, str, object)
+        self.model = TakeNoteTreeStore(COL_NODE, gdk.Pixbuf, gdk.Pixbuf, str, object)
         self.temp_child = None
         
         # init treeview
@@ -76,7 +82,7 @@ class TakeNoteTreeView (gtk.TreeView):
         self.set_headers_visible(False)
 
         # make treeview searchable
-        self.set_search_column(1)
+        self.set_search_column(COL_TITLE)
         #self.set_fixed_height_mode(True)       
 
         # tree style
@@ -104,9 +110,9 @@ class TakeNoteTreeView (gtk.TreeView):
         self.column.pack_start(self.cell_text, True)
 
         # map cells to columns in treestore
-        self.column.add_attribute(self.cell_icon, 'pixbuf', 0)
-        self.column.add_attribute(self.cell_icon, 'pixbuf-expander-open', 1)
-        self.column.add_attribute(self.cell_text, 'text', 2)
+        self.column.add_attribute(self.cell_icon, 'pixbuf', COL_ICON)
+        self.column.add_attribute(self.cell_icon, 'pixbuf-expander-open', COL_ICON_EXPAND)
+        self.column.add_attribute(self.cell_text, 'text', COL_TITLE)
 
         #self.drag_source_set_icon_pixbuf(self.icon)
 
@@ -333,7 +339,6 @@ class TakeNoteTreeView (gtk.TreeView):
         if new_text.strip() == "":
             return
         
-        # can raise NoteBookError
         if new_text != node.get_title():
             try:
                 node.rename(new_text)            
@@ -404,8 +409,6 @@ class TakeNoteTreeView (gtk.TreeView):
         if parent is not None:
             try:
                 node.trash()
-                #self.update_node(parent)
-                #self.update_node(self.notebook.get_trash())
             except NoteBookError, e:
                 self.emit("error", e.msg, e)
                 
@@ -471,8 +474,8 @@ class TakeNoteTreeView (gtk.TreeView):
                 for child in children:
                     self.add_node(it, child)
             else:
-                self.model.append(it, [closed, 
-                                       opened,
+                self.model.append(it, [None, #closed, 
+                                       None, #opened,
                                        "TEMP", self.temp_child])
         
     def add_children(self, parent):
@@ -488,7 +491,7 @@ class TakeNoteTreeView (gtk.TreeView):
 
         # set node title        
         it = self.model.get_iter(path)
-        self.model.set(it, 2, node.get_title())
+        self.model.set(it, COL_TITLE, node.get_title())
         
         if recurse:
             # save expand state

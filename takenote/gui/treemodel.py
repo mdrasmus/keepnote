@@ -126,7 +126,9 @@ class TakeNoteTreeModel (gtk.TreeModel):
         nrows = model.iter_n_children(it)
         for i in xrange(path[-1], nrows):
             path2 = parent_path + (i,)
-            self.data2path[self[path2][self.data_col]] = path2
+            if path2 in self:
+                self.data2path[self[path2][self.data_col]] = path2
+
                 
         
     def on_rows_reordered(self, model, path, it, new_order):
@@ -145,6 +147,9 @@ class TakeNoteTreeModel (gtk.TreeModel):
         data = self[path][self.data_col]
         self.data2path[data] = path
         return data
+
+    def set_data(self, path, data):
+        self.data2path[data] = path
 
     def get_data_from_iter(self, it):
         return self[it][self.data_col]

@@ -392,6 +392,7 @@ class TakeNoteSelector (gtk.TreeView):
                                 node.get_modified_time(),
                                 order,
                                 node))
+        self.model.set_data(self.model.get_path(it), node)
 
         if recursive and len(node.get_children()) > 0:
             for order2, child in enumerate(node.get_children()):
