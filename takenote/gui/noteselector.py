@@ -21,9 +21,24 @@ from takenote.gui.treemodel import \
     copy_row, \
     TakeNoteTreeStore
 
-from takenote.gui import get_resource, get_resource_image, get_resource_pixbuf
+from takenote.gui import \
+     get_resource, \
+     get_resource_image, \
+     get_resource_pixbuf, \
+     get_node_icon
 from takenote import notebook
 from takenote.notebook import NoteBookError, NoteBookDir, NoteBookPage
+
+
+COL_ICON          = 0
+COL_ICON_EXPAND   = 1
+COL_TITLE         = 2
+COL_CREATED_TEXT  = 3
+COL_CREATED_INT   = 4
+COL_MODIFIED_TEXT = 5
+COL_MODIFIED_INT  = 6
+COL_MANUAL        = 7
+COL_NODE          = 8
 
 
 '''    
@@ -52,7 +67,9 @@ class TakeNoteSelector (gtk.TreeView):
         
         # init model
         #self.model = TakeNoteListStore(7, gdk.Pixbuf, str, str, int, str, int, int, object)
-        self.model = TakeNoteTreeStore(7, gdk.Pixbuf, str, str, int, str, int, int, object)
+        self.model = TakeNoteTreeStore(COL_NODE,
+                                       gdk.Pixbuf, gdk.Pixbuf, str, str,
+                                       int, str, int, int, object)
         
         # init view
         self.set_model(self.model)
@@ -70,43 +87,43 @@ class TakeNoteSelector (gtk.TreeView):
         
         
         # directory order column
-        self.column = gtk.TreeViewColumn()
+        column = gtk.TreeViewColumn()
         img = get_resource_image("folder.png")
         img.show()
-        self.column.set_widget(img)
-        self.column.set_clickable(True)
-        self.column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
+        column.set_widget(img)
+        column.set_clickable(True)
+        column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
         w, h = img.size_request()
-        self.column.set_min_width(w+10)
-        self.column.set_fixed_width(w+10)
-        self.column.connect("clicked", self.on_directory_column_clicked)
+        column.set_min_width(w+10)
+        column.set_fixed_width(w+10)
+        column.connect("clicked", self.on_directory_column_clicked)
         cell_text = gtk.CellRendererText()
         cell_text.set_fixed_height_from_font(1)
-        self.column.pack_start(cell_text, True)
-        self.append_column(self.column)
+        column.pack_start(cell_text, True)
+        self.append_column(column)
 
         
         # title column
         cell_icon = gtk.CellRendererPixbuf()
-        self.cell_text = gtk.CellRendererText()
-        self.column = gtk.TreeViewColumn()
-        self.column.set_title("Title")
-        self.column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
-        self.column.set_min_width(10)
-        self.column.set_fixed_width(250)
-        self.column.set_property("resizable", True)
-        self.column.pack_start(cell_icon, False)
-        self.column.pack_start(self.cell_text, True)
-        self.cell_text.set_fixed_height_from_font(1)
-        self.cell_text.connect("edited", self.on_edit_title)
-        self.cell_text.connect("editing-started", self.on_editing_started)
-        self.cell_text.connect("editing-canceled", self.on_editing_canceled)        
-        self.cell_text.set_property("editable", True)
-        self.column.set_sort_column_id(1)
+        self.title_text = gtk.CellRendererText()
+        self.title_column = gtk.TreeViewColumn()
+        self.title_column.set_title("Title")
+        self.title_column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
+        self.title_column.set_min_width(10)
+        self.title_column.set_fixed_width(250)
+        self.title_column.set_property("resizable", True)
+        self.title_column.pack_start(cell_icon, False)
+        self.title_column.pack_start(self.title_text, True)
+        self.title_text.set_fixed_height_from_font(1)
+        self.title_text.connect("edited", self.on_edit_title)
+        self.title_text.connect("editing-started", self.on_editing_started)
+        self.title_text.connect("editing-canceled", self.on_editing_canceled)        
+        self.title_text.set_property("editable", True)
+        self.title_column.set_sort_column_id(COL_TITLE)
         # map cells to columns in model
-        self.column.add_attribute(cell_icon, 'pixbuf', 0)
-        self.column.add_attribute(self.cell_text, 'text', 1)
-        self.append_column(self.column)
+        self.title_column.add_attribute(cell_icon, 'pixbuf', COL_ICON)
+        self.title_column.add_attribute(self.title_text, 'text', COL_TITLE)
+        self.append_column(self.title_column)
         
         
         # created column
@@ -118,11 +135,11 @@ class TakeNoteSelector (gtk.TreeView):
         column.set_property("resizable", True)
         column.set_min_width(10)
         column.set_fixed_width(150)
-        column.set_sort_column_id(3)
+        column.set_sort_column_id(COL_CREATED_INT)
         #column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
         #column.set_property("min-width", 5)
         column.pack_start(cell_text, True)
-        column.add_attribute(cell_text, 'text', 2)
+        column.add_attribute(cell_text, 'text', COL_CREATED_TEXT)
         self.append_column(column)
     
         # modified column
@@ -134,23 +151,23 @@ class TakeNoteSelector (gtk.TreeView):
         column.set_property("resizable", True)
         column.set_min_width(10)
         column.set_fixed_width(150)
-        column.set_sort_column_id(5)
+        column.set_sort_column_id(COL_MODIFIED_INT)
         #column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
         #column.set_property("min-width", 5)
         column.pack_start(cell_text, True)
-        column.add_attribute(cell_text, 'text', 4)
-        self.append_column(column)        
+        column.add_attribute(cell_text, 'text', COL_MODIFIED_TEXT)
+        self.append_column(column)
         
         
         # set default sorting
         # remember sort per node
-        self.model.set_sort_column_id(6, gtk.SORT_ASCENDING)
+        self.model.set_sort_column_id(COL_MANUAL, gtk.SORT_ASCENDING)
         #self.model.set_sort_column_id(3, gtk.SORT_DESCENDING)
         
         
         self.page_icon = get_resource_pixbuf("note.png")
-        self.folder_icon = get_resource_pixbuf("folder.png")
-        self.folder_open_icon = get_resource_pixbuf("folder-open.png")
+        #self.folder_icon = get_resource_pixbuf("folder.png")
+        #self.folder_open_icon = get_resource_pixbuf("folder-open.png")
 
         self.menu = gtk.Menu()
         self.menu.attach_to_widget(self, lambda w,m:None)
@@ -249,7 +266,7 @@ class TakeNoteSelector (gtk.TreeView):
         if page.get_title() != new_text:
             try:
                 page.rename(new_text)
-                self.model[path][1] = new_text
+                self.model[path][COL_TITLE] = new_text
             
                 #self.emit("node-modified", True, page, False)
             except NoteBookError, e:
@@ -320,7 +337,6 @@ class TakeNoteSelector (gtk.TreeView):
         #self.model.set_sort_column_id(-1, gtk.SORT_ASCENDING)
         
 
-        # TODO: remove magic column numbers
         # save sorting if a single node was selected
         if self.sel_nodes is not None and len(self.sel_nodes) == 1:
             self.save_sorting(self.sel_nodes[0])
@@ -338,29 +354,14 @@ class TakeNoteSelector (gtk.TreeView):
         npages = 0
         for node in nodes:
             if isinstance(node, NoteBookDir):
-                for page in node.get_children(): #pages():
+                for child in node.get_children():
                     npages += 1
-                    it = self.model.append(None,
-                        (self.page_icon,
-                         page.get_title(),
-                         page.get_created_time_text(),
-                         page.get_created_time(),
-                         page.get_modified_time_text(),
-                         page.get_modified_time(),
-                         npages,
-                         page))
+                    self.add_node(None, child, npages)
             elif isinstance(node, NoteBookPage):
                 page = node
                 npages += 1
-                it = self.model.append(None,
-                    (self.page_icon,
-                     page.get_title(),
-                     page.get_created_time_text(),
-                     page.get_created_time(),
-                     page.get_modified_time_text(),
-                     page.get_modified_time(),
-                     npages,
-                     page))
+                self.add_node(None, page, npages)
+        
         self.emit("select-nodes", [])
         
         # reactivate model
@@ -368,8 +369,7 @@ class TakeNoteSelector (gtk.TreeView):
         self.model.refresh_path_data(None)
         self.set_model(self.model)
         
-        # get sorting if single node is selected
-        # TODO: remove magic numbers
+        # load sorting if single node is selected
         if len(nodes) == 1:
             self.load_sorting(nodes[0])
             
@@ -381,7 +381,24 @@ class TakeNoteSelector (gtk.TreeView):
         else:
             self.set_status("1 page", "stats")
         
+
+    def add_node(self, parent, node, order):
+        if parent is not None:
+            parent_path = self.model.get_path_from_data(parent)
+        else:
+            parent_path = None
         
+        it = self.model.append(parent_path,
+                               (get_node_icon(node, False),
+                                get_node_icon(node, True),
+                                node.get_title(),
+                                node.get_created_time_text(),
+                                node.get_created_time(),
+                                node.get_modified_time_text(),
+                                node.get_modified_time(),
+                                order,
+                                node))
+        return it
     
     
     def update(self):
@@ -393,18 +410,18 @@ class TakeNoteSelector (gtk.TreeView):
         if path is not None:
             it = self.model.get_iter(path)
             self.model.set(it, 
-                           0, self.page_icon,
-                           1, node.get_title(),
-                           2, node.get_created_time_text(),
-                           3, node.get_created_time(),
-                           4, node.get_modified_time_text(),
-                           5, node.get_modified_time())
+                           COL_ICON, self.page_icon,
+                           COL_TITLE, node.get_title(),
+                           COL_CREATED_TEXT, node.get_created_time_text(),
+                           COL_CREATED_INT, node.get_created_time(),
+                           COL_MODIFIED_TEXT, node.get_modified_time_text(),
+                           COL_MODIFIED_INT, node.get_modified_time())
         
     
     def edit_node(self, page):
         path = self.model.get_path_from_data(page)
         assert path is not None
-        self.set_cursor_on_cell(path, self.column, self.cell_text, True)
+        self.set_cursor_on_cell(path, self.title_column, self.title_text, True)
         path, col = self.get_cursor()
         self.scroll_to_cell(path)
     
@@ -439,16 +456,16 @@ class TakeNoteSelector (gtk.TreeView):
         else:
             sort_dir = 0
 
-        if info_sort == 6 or info_sort == -1:
+        if info_sort == COL_MANUAL or info_sort == -1:
             node.set_info_sort(notebook.INFO_SORT_MANUAL, sort_dir)
 
-        elif info_sort == 1:
+        elif info_sort == COL_TITLE:
             node.set_info_sort(notebook.INFO_SORT_TITLE, sort_dir)
             
-        elif info_sort == 3:
+        elif info_sort == COL_CREATED_INT:
             node.set_info_sort(notebook.INFO_SORT_CREATED_TIME, sort_dir)
 
-        elif info_sort == 5:
+        elif info_sort == COL_MODIFIED_INT:
             node.set_info_sort(notebook.INFO_SORT_MODIFIED_TIME, sort_dir)
 
 
@@ -464,13 +481,13 @@ class TakeNoteSelector (gtk.TreeView):
             
         if info_sort == notebook.INFO_SORT_MANUAL or \
            info_sort == notebook.INFO_SORT_NONE:
-            self.model.set_sort_column_id(6, sort_dir)
+            self.model.set_sort_column_id(COL_MANUAL, sort_dir)
         elif info_sort == notebook.INFO_SORT_TITLE:
-            self.model.set_sort_column_id(1, sort_dir)            
+            self.model.set_sort_column_id(COL_TITLE, sort_dir)            
         elif info_sort == notebook.INFO_SORT_CREATED_TIME:
-            self.model.set_sort_column_id(3, sort_dir)
+            self.model.set_sort_column_id(COL_CREATED_INT, sort_dir)
         elif info_sort == notebook.INFO_SORT_MODIFIED_TIME:
-            self.model.set_sort_column_id(5, sort_dir)
+            self.model.set_sort_column_id(COL_MODIFIED_INT, sort_dir)
 
     
     def set_status(self, text, bar="status"):

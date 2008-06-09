@@ -22,7 +22,11 @@ from takenote.gui.treemodel import \
     copy_row, \
     TakeNoteTreeStore
 
-from takenote.gui import get_resource, get_resource_image, get_resource_pixbuf
+from takenote.gui import \
+     get_resource, \
+     get_resource_image, \
+     get_resource_pixbuf, \
+     get_node_icon
 from takenote.notebook import NoteBookDir, NoteBookPage, NoteBookTrash, \
               NoteBookError
 
@@ -104,10 +108,6 @@ class TakeNoteTreeView (gtk.TreeView):
         self.column.add_attribute(self.cell_icon, 'pixbuf-expander-open', 1)
         self.column.add_attribute(self.cell_text, 'text', 2)
 
-        self.icon_folder_closed = get_resource_pixbuf("folder.png")
-        self.icon_folder_opened = get_resource_pixbuf("folder-open.png")
-        self.icon_page = get_resource_pixbuf("note.png")
-        self.icon_trash = get_resource_pixbuf("trash.png")
         #self.drag_source_set_icon_pixbuf(self.icon)
 
         self.menu = gtk.Menu()
@@ -456,17 +456,10 @@ class TakeNoteTreeView (gtk.TreeView):
     #================================================
     # model manipulation        
     
-    def get_icons(self, node):
-        if isinstance(node, NoteBookTrash):
-            return self.icon_trash, self.icon_trash
-        elif isinstance(node, NoteBookDir):
-            return self.icon_folder_closed, self.icon_folder_opened
-        else:
-            return self.icon_page, self.icon_page
-            
     
     def add_node(self, parent, node):
-        closed, opened = self.get_icons(node)
+        closed = get_node_icon(node, False)
+        opened = get_node_icon(node, True)
         it = self.model.append(parent, [closed, 
                                         opened,
                                         node.get_title(), node])

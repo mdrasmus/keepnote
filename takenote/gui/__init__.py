@@ -20,11 +20,15 @@ import gobject
 # takenote imports
 import takenote
 from takenote import get_resource
-from takenote.notebook import NoteBookError, NoteBookDir, NoteBookPage
+from takenote.notebook import \
+     NoteBookError, \
+     NoteBookDir, \
+     NoteBookPage, \
+     NoteBookTrash
 
 # globals
 _g_pixbufs = {}
-
+_g_node_icons = {}
 
 def quote_filename(filename):
     if " " in filename:
@@ -59,13 +63,38 @@ def get_resource_pixbuf(*path_list):
     # raises GError
     return get_pixbuf(get_resource(takenote.IMAGE_DIR, *path_list))
         
-def get_node_icon_filename(node):
-    if isinstance(node, NoteBookPage):
-        return get_resource(takenote.IMAGE_DIR, "note.png")
+def get_node_icon_filenames(node):
+    if isinstance(node, NoteBookTrash):
+        return (get_resource(takenote.IMAGE_DIR, "trash.png"),
+                get_resource(takenote.IMAGE_DIR, "trash.png"))
     
     elif isinstance(node, NoteBookDir):
-        return get_resource(takenote.IMAGE_DIR, "folder.png")
+        return (get_resource(takenote.IMAGE_DIR, "folder.png"),
+                get_resource(takenote.IMAGE_DIR, "folder-open.png"))
+    
+    elif isinstance(node, NoteBookPage):
+        filename = get_resource(takenote.IMAGE_DIR, "note.png")
+        return (filename, filename)
 
+    else:
+        raise Exception("Unknown node type")
+
+
+    
+
+def get_node_icon(node, expand=False):
+    if node in _g_node_icons:
+        return _g_node_icons[node][int(expand)]
+    else:
+        filenames = get_node_icon_filenames(node)
+        pixbufs  = (get_pixbuf(filenames[0]),
+                    get_pixbuf(filenames[1]))
+        _g_node_icons[node] = pixbufs
+        return pixbufs[int(expand)]
+
+        
+        
+        
 
 
 #=============================================================================
