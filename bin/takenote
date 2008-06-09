@@ -27,7 +27,7 @@ except ImportError:
     sys.path.append(basedir)
     import takenote
     
-import takenote.gui
+import takenote.gui.main_window
 
 
 

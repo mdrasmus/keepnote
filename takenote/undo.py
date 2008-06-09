@@ -10,7 +10,8 @@ def cat_funcs(funcs):
     """Concatenate a list of functions [f,g,h,...] that take no arguments
        into one function: cat = { lambda: f(); g(); h(); }
     """
-
+    
+    funcs = list(funcs)
     def f():
         for func in funcs:
             func()
@@ -73,7 +74,7 @@ class UndoStack (object):
                 actions, undos = zip(*self.pending_actions)
                 
                 self.undo_actions.append((cat_funcs(actions), 
-                                          cat_funcs(list(reversed(undos)))))
+                                          cat_funcs(reversed(undos))))
                 self.pending_actions = []
 
     def suppress(self):

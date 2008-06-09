@@ -33,7 +33,21 @@ from takenote.notebook import \
 
 
 #=============================================================================
-# globals
+# globals / constants
+
+PROGRAM_NAME = "TakeNote"
+PROGRAM_VERSION_MAJOR = 0
+PROGRAM_VERSION_MINOR = 4
+PROGRAM_VERSION_RELEASE = 0
+
+if PROGRAM_VERSION_RELEASE != 0:
+    PROGRAM_VERSION_TEXT = "%d.%d.%d" % (PROGRAM_VERSION_MAJOR,
+                                         PROGRAM_VERSION_MINOR,
+                                         PROGRAM_VERSION_RELEASE)
+else:
+    PROGRAM_VERSION_TEXT = "%d.%d" % (PROGRAM_VERSION_MAJOR,
+                                      PROGRAM_VERSION_MINOR)
+
 
 BASEDIR = ""
 IMAGE_DIR = "images"
@@ -42,11 +56,10 @@ PLATFORM = None
 USER_PREF_DIR = "takenote"
 USER_PREF_FILE = "takenote.xml"
 
-g_pixbufs = {}
 
 
 #=============================================================================
-# GUI resources
+# application resources
 
 def set_basedir(basedir):
     global BASEDIR
@@ -54,42 +67,6 @@ def set_basedir(basedir):
 
 def get_resource(*path_list):
     return os.path.join(BASEDIR, *path_list)
-
-def get_image(filename):
-
-    # NOTE: I want to make sure gtk is not a requirement for __init__
-    # TODO: maybe I will make a base module for gtk interaction
-    import gtk
-    
-    img = gtk.Image()
-    img.set_from_file(filename)    
-    return img
-
-
-def get_pixbuf(filename):
-    # NOTE: I want to make sure gtk is not a requirement for __init__
-    # TODO: maybe I will make a base module for gtk interaction
-    import gtk
-    
-    if filename in g_pixbufs:
-        return g_pixbufs[filename]
-    else:
-
-        # raises GError
-        pixbuf = gtk.gdk.pixbuf_new_from_file(filename)
-        g_pixbufs[filename] = pixbuf
-        return pixbuf
-    
-
-def get_resource_image(*path_list):
-    return get_image(get_resource(IMAGE_DIR, *path_list))
-
-def get_resource_pixbuf(*path_list):
-    # raises GError
-    return get_pixbuf(get_resource(IMAGE_DIR, *path_list))
-        
-
-
 
 
 #=============================================================================
