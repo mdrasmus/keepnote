@@ -122,8 +122,10 @@ class TakeNoteSelector (gtk.TreeView):
         self.title_column.set_sort_column_id(COL_TITLE)
         # map cells to columns in model
         self.title_column.add_attribute(cell_icon, 'pixbuf', COL_ICON)
+        self.title_column.add_attribute(cell_icon, 'pixbuf-expander-open', COL_ICON_EXPAND)
         self.title_column.add_attribute(self.title_text, 'text', COL_TITLE)
         self.append_column(self.title_column)
+        self.set_expander_column(self.title_column)
         
         
         # created column
@@ -163,12 +165,9 @@ class TakeNoteSelector (gtk.TreeView):
         # remember sort per node
         self.model.set_sort_column_id(COL_MANUAL, gtk.SORT_ASCENDING)
         #self.model.set_sort_column_id(3, gtk.SORT_DESCENDING)
-        
-        
-        self.page_icon = get_resource_pixbuf("note.png")
-        #self.folder_icon = get_resource_pixbuf("folder.png")
-        #self.folder_open_icon = get_resource_pixbuf("folder-open.png")
 
+
+        
         self.menu = gtk.Menu()
         self.menu.attach_to_widget(self, lambda w,m:None)
         
@@ -356,7 +355,7 @@ class TakeNoteSelector (gtk.TreeView):
             if isinstance(node, NoteBookDir):
                 for child in node.get_children():
                     npages += 1
-                    self.add_node(None, child, npages)
+                    self.add_node(None, child, npages, True)
             elif isinstance(node, NoteBookPage):
                 page = node
                 npages += 1
@@ -382,13 +381,8 @@ class TakeNoteSelector (gtk.TreeView):
             self.set_status("1 page", "stats")
         
 
-    def add_node(self, parent, node, order):
-        if parent is not None:
-            parent_path = self.model.get_path_from_data(parent)
-        else:
-            parent_path = None
-        
-        it = self.model.append(parent_path,
+    def add_node(self, parent, node, order, recursive=False):
+        it = self.model.append(parent,
                                (get_node_icon(node, False),
                                 get_node_icon(node, True),
                                 node.get_title(),
@@ -398,6 +392,11 @@ class TakeNoteSelector (gtk.TreeView):
                                 node.get_modified_time(),
                                 order,
                                 node))
+
+        if recursive and len(node.get_children()) > 0:
+            for order2, child in enumerate(node.get_children()):
+                self.add_node(it, child, order2, True)
+        
         return it
     
     
@@ -410,7 +409,8 @@ class TakeNoteSelector (gtk.TreeView):
         if path is not None:
             it = self.model.get_iter(path)
             self.model.set(it, 
-                           COL_ICON, self.page_icon,
+                           COL_ICON, get_node_icon(node, False),
+                           COL_ICON_EXPAND, get_node_icon(node, True),
                            COL_TITLE, node.get_title(),
                            COL_CREATED_TEXT, node.get_created_time_text(),
                            COL_CREATED_INT, node.get_created_time(),
