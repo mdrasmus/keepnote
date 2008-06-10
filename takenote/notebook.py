@@ -300,7 +300,13 @@ class NoteBookNode (object):
     def get_parent(self):
         """Returns the parent of the node"""
         return self._parent
-    
+
+    def get_notebook(self):
+        """Returns the notebook that owns this node"""
+        return self._notebook
+
+    def get_order(self):
+        return self._order
     
     def is_valid(self):
         """Returns True if node is valid (not deleted)"""
@@ -866,6 +872,7 @@ class NoteBook (NoteBookDir):
             self._title = None
         self._dirty = set()
         self._trash = None
+        self._order = 0
         
         if rootdir:
             self._trash_path = get_trash_dir(self.get_path())

@@ -1,10 +1,13 @@
 
 
+
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
 import gtk, gobject, pango
 from gtk import gdk
+
+from takenote.gui import get_node_icon
 
 
 
@@ -180,41 +183,142 @@ COL_NODE          = 8
 
 class TakeNoteTreeModel (gtk.GenericTreeModel):
 
-    def __init__(self, root):
-        self._data_col = data_col
-        self._col_types = [gdk.Pixbuf, gdk.Pixbuf, str, str,
-                           int, str, int, int, object]
-        self._root = root
+    _col_types = [gdk.Pixbuf, gdk.Pixbuf, str, str,
+                  int, str, int, int, object]
+
+    def __init__(self, roots=[]):
+        gtk.GenericTreeModel.__init__(self)
+        self.set_property("leak-references", False)
         
-    def set_root_node(self, root):
-        self._root = root
+        
+        self._notebook = None
+        self._refs = {}
+        self.set_root_nodes(roots)
+
+
+        
+    def set_root_nodes(self, roots=[]):
+        self._roots = list(roots)
+        self._root_set = {}
+        for i, node in enumerate(self._roots):
+            self._root_set[node] = i
+
+        if self._notebook is not None:
+            self._notebook.node_changed.remove(self.on_node_changed)
+            self._notebook = None
+
+        if len(roots) > 0:
+            self._notebook = roots[0].get_notebook()
+            self._notebook.node_changed.add(self.on_node_changed)
+
+            
+        # since roots have changed invalidate all iters
+        for node, path in self._refs.iteritems():
+            try:
+                self.row_deleted(path)
+            except:
+                print path
+                raise
+        self._refs.clear()
+
+        for node in self._roots:
+            self._ensure_ref(node)
+
+    '''
+    def _add_node(self, node):
+        return
+    
+        path = self.on_get_path(node)
+        rowref = self.create_tree_iter(node)
+        self._refs[node] = path
+        self.row_inserted(path, rowref)
+
+        # add only first child
+        if len(node.get_children()) > 0:
+            self.row_has_child_toggled(path, rowref)
+            self._add_node(node.get_children()[0])
+
+    '''
+    def _ensure_ref(self, node, path=None):
+        if node is None:
+            return None
+        if node not in self._refs:
+            if path is None:
+                path = self.on_get_path(node)
+            self._refs[node] = path
+        return node
+    
+
+    def on_node_changed(self, node, recurse):
+        print "changed"
+        
+        #self.invalidate_iters()
+        path = self.on_get_path(node)
+        rowref = self.create_tree_iter(node)
+        self.row_changed(path, rowref)
+
+        dels = []
+        for node2, path2 in self._refs.iteritems():
+            if not node2.is_valid() or \
+               self.on_get_path(node2) != path2:
+                self.row_deleted(path2)
+                dels.append(node2)
+        for d in dels:
+            del self._refs[node2]
+        
+        def walk(node, path):
+            for i, child in enumerate(node.get_children()):
+                path2 = path + (i,)
+                if child not in self._refs:
+                    self._refs[child] = path2
+                    rowref = self.create_tree_iter(child)
+                    self.row_inserted(path2, rowref)
+                walk(child, path2)
+        if recurse:
+            walk(node, path)
+        
 
     
     def on_get_flags(self):
-        return 0
+        return gtk.TREE_MODEL_ITERS_PERSIST
     
     def on_get_n_columns(self):
         return len(self._col_types)
 
     def on_get_column_type(self, index):
-        return self._col_types[index]    
+        return self._col_types[index]
     
     def on_get_iter(self, path):
-        if len(path) == 0:
-            return self._root
-        else:
-            node = self._root
-            for i in path:
-                if i >= len(node.get_children()):
-                    raise ValueError()
-                node = node.get_children()[i]
+        #print "get_iter", path, self._roots
+        
+        if path[0] >= len(self._roots):
+            return None
+        
+        node = self._roots[path[0]]
+                
+        for i in path[1:]:
+            if i >= len(node.get_children()):
+                raise ValueError()
+            node = node.get_children()[i]
+
+        self._ensure_ref(node)
+        return node
     
     def on_get_path(self, rowref):
+        #print "get_path", rowref
+
+        if rowref is None:
+            return ()
+        
         path = []
         node = rowref
-        while node is not None:
+        while node not in self._root_set:
             path.append(node.get_order())
             node = node.get_parent()
+            if node is None:
+                raise Exception("treeiter is not part of model")
+        path.append(self._root_set[node])
+        
         return tuple(reversed(path))
     
     def on_get_value(self, rowref, column):
@@ -240,33 +344,86 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
             return node
     
     def on_iter_next(self, rowref):
+        #print "iter_next", rowref
+        
         parent = rowref.get_parent()
+
+        if parent is None:
+            n = self._root_set[rowref]
+            if n >= len(self._roots) - 1:
+                return None
+            else:
+                return self._roots[n+1]
+        
         children = parent.get_children()
         order = rowref.get_order()
 
         if order >= len(children) - 1:
             return None
         else:
-            return children[order]
+            return self._ensure_ref(children[order+1])
+
     
     def on_iter_children(self, parent):
-        if len(parent.get_children()) > 0:
-            return parent.get_children()[0]
+        #print "iter_children", parent
+        
+        if parent is None:
+            if len(self._roots) > 0:
+                return self._roots[0]
+            else:
+                return None        
+        elif len(parent.get_children()) > 0:
+            return self._ensure_ref(parent.get_children()[0])
         else:
             return None
     
     def on_iter_has_child(self, rowref):
+        #print "iter_has_child", rowref
+        
         return len(rowref.get_children()) > 0
     
     def on_iter_n_children(self, rowref):
+        #print "iter_n_children", rowref
+
+        if rowref is None:
+            return len(self._roots)
+        
         return len(rowref.get_children())
     
     def on_iter_nth_child(self, parent, n):
-        return parent.get_children()[n]
+        if parent is None:
+            if n >= len(self._roots):
+                return None
+            else:
+                return self._roots[n]
+        else:
+            children = parent.get_children()
+            if n >= len(children):
+                return None
+            else:
+                return self._ensure_ref(children[n])
     
     def on_iter_parent(self, child):
-        return child.get_parent()
+        if child in self._root_set:
+            return None
+        else:
+            parent = child.get_parent()
+            if parent is not None:
+                self._ensure_ref(parent)
+            return parent
     
+
+    def get_data(self, path):
+        return self._ensure_ref(self.on_get_iter(path))
+        
+
+    def get_data_from_iter(self, it):
+        return self.get_user_data(it)
+    
+    
+    def get_path_from_data(self, data):
+        return self.on_get_path(data)
+
 
 
 class TakeNoteTreeStore (DataTreeModel, gtk.TreeStore):

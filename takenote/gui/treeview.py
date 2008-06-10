@@ -21,6 +21,7 @@ from takenote.gui.treemodel import \
     compute_new_path, \
     copy_row, \
     TakeNoteTreeStore
+from takenote.gui import treemodel
 
 from takenote.gui import \
      get_resource, \
@@ -49,7 +50,9 @@ class TakeNoteTreeView (gtk.TreeView):
         self.editing = False
         
         # create a TreeStore with one string column to use as the model
-        self.model = TakeNoteTreeStore(COL_NODE, gdk.Pixbuf, gdk.Pixbuf, str, object)
+        #self.model = TakeNoteTreeStore(COL_NODE, gdk.Pixbuf, gdk.Pixbuf, str, object)
+        self.model = treemodel.TakeNoteTreeModel()
+        
         
         # init treeview
         self.set_model(self.model)
@@ -61,14 +64,14 @@ class TakeNoteTreeView (gtk.TreeView):
         # row expand/collapse
         self.expanded_id = self.connect("row-expanded", self.on_row_expanded)
         self.collapsed_id = self.connect("row-collapsed", self.on_row_collapsed)
-        self.connect("test-expand-row", self.on_test_expand_row)
+        #self.connect("test-expand-row", self.on_test_expand_row)
         
         # drag and drop         
         self.connect("drag-begin", self.on_drag_begin)
         self.connect("drag-motion", self.on_drag_motion)
         self.connect("drag-data-received", self.on_drag_data_received)
         
-        self.set_reorderable(True)
+        #self.set_reorderable(True)
         self.enable_model_drag_source(
             gtk.gdk.BUTTON1_MASK, [DROP_TREE_MOVE], gtk.gdk.ACTION_MOVE)
         self.enable_model_drag_dest(
@@ -81,7 +84,7 @@ class TakeNoteTreeView (gtk.TreeView):
         self.set_headers_visible(False)
 
         # make treeview searchable
-        self.set_search_column(COL_TITLE)
+        self.set_search_column(treemodel.COL_TITLE)
         #self.set_fixed_height_mode(True)       
 
         # tree style
@@ -109,9 +112,9 @@ class TakeNoteTreeView (gtk.TreeView):
         self.column.pack_start(self.cell_text, True)
 
         # map cells to columns in treestore
-        self.column.add_attribute(self.cell_icon, 'pixbuf', COL_ICON)
-        self.column.add_attribute(self.cell_icon, 'pixbuf-expander-open', COL_ICON_EXPAND)
-        self.column.add_attribute(self.cell_text, 'text', COL_TITLE)
+        self.column.add_attribute(self.cell_icon, 'pixbuf', treemodel.COL_ICON)
+        self.column.add_attribute(self.cell_icon, 'pixbuf-expander-open', treemodel.COL_ICON_EXPAND)
+        self.column.add_attribute(self.cell_text, 'text', treemodel.COL_TITLE)
 
         #self.drag_source_set_icon_pixbuf(self.icon)
 
@@ -132,7 +135,7 @@ class TakeNoteTreeView (gtk.TreeView):
         return self.model.get_data(source_path)
     
     
-    def on_drag_begin(self, widget, drag_context):
+    def on_drag_begin(self, widget, drag_context):        
         pass
         #drag_context.drag_set_selection("tree")
         #drag_context.set_icon_pixbuf(self.icon, 0, 0)
@@ -141,7 +144,9 @@ class TakeNoteTreeView (gtk.TreeView):
     
     def on_drag_motion(self, treeview, drag_context, x, y, eventtime):
         """Callback for drag motion.
-           Indicate which drops are allowed"""
+           Indicate which drops are allowed"""        
+
+        print "motion"
         
         # determine destination row   
         dest_row = treeview.get_dest_row_at_pos(x, y)
@@ -218,22 +223,22 @@ class TakeNoteTreeView (gtk.TreeView):
 
                 # perform move in notebook model
                 try:
-                    source_node.suppress_change(self.on_node_changed)
+                    #source_node.suppress_change(self.on_node_changed)
                     source_node.move(new_parent, new_path[-1])
-                    source_node.resume_change(self.on_node_changed)
+                    #source_node.resume_change(self.on_node_changed)
                 except NoteBookError, e:
                     drag_context.finish(False, False, eventtime)
                     self.emit("error", e.msg, e)
                     return
 
                 # perform move in tree model
-                self.handler_block(self.expanded_id)
-                self.handler_block(self.collapsed_id)
+                #self.handler_block(self.expanded_id)
+                #self.handler_block(self.collapsed_id)
 
-                copy_row(treeview, self.model, source, target, drop_position)
+                #copy_row(treeview, self.model, source, target, drop_position)
 
-                self.handler_unblock(self.expanded_id)
-                self.handler_unblock(self.collapsed_id)
+                #self.handler_unblock(self.expanded_id)
+                #self.handler_unblock(self.collapsed_id)
                 
                 # make sure to show new children
                 if (drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or
@@ -245,8 +250,8 @@ class TakeNoteTreeView (gtk.TreeView):
                 # if source_widget is not ourself, we need to do our own remove
                 # otherwise, drag-delete signal would be called on us to perform
                 # the delete
-                if source_widget != self:
-                    self.model.remove(source)
+                #if source_widget != self:
+                #    self.model.remove(source)
                 
             else:                
                 # process node move that is not in treeview
@@ -279,7 +284,7 @@ class TakeNoteTreeView (gtk.TreeView):
     
     def on_row_expanded(self, treeview, it, path):
         self.model.get_data(path).set_expand(True)
-        
+
         # recursively expand nodes that should be expanded
         def walk(it):
             child = self.model.iter_children(it)
@@ -333,6 +338,9 @@ class TakeNoteTreeView (gtk.TreeView):
         self.editing = False
     
         node = self.model.get_data(path)
+
+        if node is None:
+            return
         
         # do not allow empty names
         if new_text.strip() == "":
@@ -341,7 +349,7 @@ class TakeNoteTreeView (gtk.TreeView):
         if new_text != node.get_title():
             try:
                 node.rename(new_text)            
-                self.model[path][2] = new_text
+                #self.model[path][2] = new_text
             
             except NoteBookError, e:
                 self.emit("error", e.msg, e)
@@ -420,26 +428,32 @@ class TakeNoteTreeView (gtk.TreeView):
     
     def on_node_changed(self, node, recurse):
         #print "changed", node.get_title()
-        self.update_node(node, recurse)
+        #self.update_node(node, recurse)
+        pass
     
     #==============================================
     # actions
     
     def set_notebook(self, notebook):
-        if self.notebook:
-            self.notebook.node_changed.remove(self.on_node_changed)
+        #if self.notebook:
+        #    self.notebook.node_changed.remove(self.on_node_changed)
     
         self.notebook = notebook
         
         if self.notebook is None:
-            self.model.clear()
+            #self.model.clear()
+            self.model.set_root_nodes([])
         
         else:
             root = self.notebook.get_root_node()
-            self.notebook.node_changed.add(self.on_node_changed)
-            self.add_node(None, root)
+            #self.notebook.node_changed.add(self.on_node_changed)
+            #self.add_node(None, root)
+            self.set_model(None)
+            self.model.set_root_nodes([root])
+            self.set_model(self.model)
+            
             if root.is_expanded():
-                self.expand_to_path(self.model.get_path_from_data(root))
+                self.expand_to_path((0,))#self.model.get_path_from_data(root))
 
             
     
@@ -458,7 +472,7 @@ class TakeNoteTreeView (gtk.TreeView):
     #================================================
     # model manipulation        
     
-    
+    '''
     def add_node(self, parent, node):
         closed = get_node_icon(node, False)
         opened = get_node_icon(node, True)
@@ -481,33 +495,37 @@ class TakeNoteTreeView (gtk.TreeView):
         node = self.model.get_data(self.model.get_path(parent))
         for child in node.get_children():
             self.add_node(parent, child)
-    
+    '''
     
     def update_node(self, node, recurse=True):
+        # do nothing
+        return
+        
         path = self.model.get_path_from_data(node)
         if path is None:
             return
 
-        # set node title        
+        # set node title
         it = self.model.get_iter(path)
-        self.model.set(it, COL_TITLE, node.get_title())
+        #self.model.set(it, COL_TITLE, node.get_title())
         
         if recurse:
+            pass
             # save expand state
-            expanded = self.row_expanded(path)
+            #expanded = self.row_expanded(path)
 
             # remove all children
-            for child in self.model[path].iterchildren():
-                self.model.remove(child.iter)
+            #for child in self.model[path].iterchildren():
+            #    self.model.remove(child.iter)
 
             # readd children
-            it = self.model.get_iter(path)
-            for child in node.get_children():
-                self.add_node(it, child)
+            #it = self.model.get_iter(path)
+            #for child in node.get_children():
+            #    self.add_node(it, child)
 
             # restore previous expand state
-            if expanded:
-                self.expand_to_path(path)
+            #if expanded:
+            #    self.expand_to_path(path)
         
 
 # new signals
