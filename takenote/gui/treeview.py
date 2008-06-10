@@ -32,11 +32,6 @@ from takenote.notebook import NoteBookDir, NoteBookPage, NoteBookTrash, \
               NoteBookError
 
 
-COL_ICON        = 0
-COL_ICON_EXPAND = 1
-COL_TITLE       = 2
-COL_NODE        = 3
-
 
 class TakeNoteTreeView (gtk.TreeView):
     """
@@ -69,14 +64,25 @@ class TakeNoteTreeView (gtk.TreeView):
         # drag and drop         
         self.connect("drag-begin", self.on_drag_begin)
         self.connect("drag-motion", self.on_drag_motion)
+        #self.connect("drag-leave", self.on_drag_leave)
+        self.connect("drag-drop", self.on_drag_drop)
+        self.connect("drag-data-delete", self.on_drag_data_delete)
+        self.connect("drag-data-get", self.on_drag_data_get)
         self.connect("drag-data-received", self.on_drag_data_received)
+        self.connect("drag-end", self.on_drag_end)
         
-        #self.set_reorderable(True)
+        self.set_reorderable(True)
         self.enable_model_drag_source(
-            gtk.gdk.BUTTON1_MASK, [DROP_TREE_MOVE], gtk.gdk.ACTION_MOVE)
+           gtk.gdk.BUTTON1_MASK, [DROP_TREE_MOVE], gtk.gdk.ACTION_MOVE)
+        self.drag_source_set(
+            gtk.gdk.BUTTON1_MASK,
+            [DROP_TREE_MOVE],
+             gtk.gdk.ACTION_MOVE)
         self.enable_model_drag_dest(
-            [DROP_TREE_MOVE, DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)
-        
+           [DROP_TREE_MOVE, DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)
+        self.drag_dest_set(gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_MOTION,
+            [DROP_TREE_MOVE, DROP_PAGE_MOVE],
+             gtk.gdk.ACTION_MOVE)
         # selection config
         #self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
         self.get_selection().connect("changed", self.on_select_changed)
@@ -139,8 +145,11 @@ class TakeNoteTreeView (gtk.TreeView):
         pass
         #drag_context.drag_set_selection("tree")
         #drag_context.set_icon_pixbuf(self.icon, 0, 0)
-        #self.stop_emission("drag-begin")
+        #elf.stop_emission("drag-begin")
      
+    def on_drag_end(self, widget, drag_context):
+        print "end"
+        print drag_context.drag_drop_succeeded()
     
     def on_drag_motion(self, treeview, drag_context, x, y, eventtime):
         """Callback for drag motion.
@@ -148,11 +157,14 @@ class TakeNoteTreeView (gtk.TreeView):
 
         print "motion"
         
+        self.stop_emission("drag-motion")
+        
         # determine destination row   
         dest_row = treeview.get_dest_row_at_pos(x, y)
         
         if dest_row is None:
-            return
+            #self.unset_rows_drag_dest()
+            return 
         
         # get target info
         target_path, drop_position  = dest_row
@@ -163,7 +175,7 @@ class TakeNoteTreeView (gtk.TreeView):
         # process node drops
         if "drop_node" in drag_context.targets or \
            "drop_selector" in drag_context.targets:
-        
+
             # get source
             source_widget = drag_context.get_source_widget()
             source_node = source_widget.get_drag_node()
@@ -171,14 +183,65 @@ class TakeNoteTreeView (gtk.TreeView):
             
             # determine if drag is allowed
             if self.drop_allowed(source_node, target_node, drop_position):
-                treeview.enable_model_drag_dest([DROP_TREE_MOVE, DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)
+                #reeview.enable_model_drag_dest([DROP_TREE_MOVE, DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)
+                #elf.drag_dest_set(gtk.DEST_DEFAULT_HIGHLIGHT,
+                #                   [DROP_TREE_MOVE, DROP_PAGE_MOVE],
+                #                   gtk.gdk.ACTION_MOVE)
+                print "good"
+                self.set_drag_dest_row(target_path, drop_position)
+                return
+                #drag_context.drop_reply(True, eventtime)
+
             else:
-                treeview.enable_model_drag_dest([DROP_NO], gtk.gdk.ACTION_MOVE)
+                #treeview.enable_model_drag_dest([DROP_NO], gtk.gdk.ACTION_MOVE)
+                #self.drag_dest_set(gtk.DEST_DEFAULT_HIGHLIGHT,
+                #                    [DROP_NO],
+                #                    gtk.gdk.ACTION_MOVE)
+                pass
 
         
+        self.set_drag_dest_row(source_path, gtk.TREE_VIEW_DROP_INTO_OR_AFTER)
+        #self.unset_rows_drag_dest()
+
+
+    def on_drag_leave(self, widget, drag_context, timestamp):
+        print "leave"
+        self.stop_emission("drag-leave")
+
+
+    def on_drag_drop(self, widget, drag_context, x, y, timestamp):
+        print "drop"
+        self.stop_emission("drag-drop")
+
+        self.drag_get_data(drag_context, "drop_node")
+        
+        #self.on_drag_data_received(widget, drag_context, x, y,
+        #                           selection_data, info, eventtime)
+
+        #drag_context.finish(True, True, timestamp)
+        return True
+
+
+    def on_drag_data_delete(self, widget, drag_context):
+        self.stop_emission("drag-data-delete")
+        print "delete"
+
+    def on_drag_data_get(self, widget, drag_context, selection_data,
+                         info, timestamp):
+        self.stop_emission("drag-data-get")
+        print "get"
+
+        model, source = self.get_selection().get_selected()
+        source_path = model.get_path(source)
+        selection_data.tree_set_row_drag_data(model, source_path)
+        
+    
     
     def on_drag_data_received(self, treeview, drag_context, x, y,
                               selection_data, info, eventtime):
+
+        print "received"
+        self.stop_emission("drag-data-received")
          
         # determine destination row
         dest_row = treeview.get_dest_row_at_pos(x, y)

@@ -402,8 +402,8 @@ class NoteBookNode (object):
         self.save(True)
 
         # notify listeners
-        parent.notify_change(True)
         old_parent.notify_change(True)
+        parent.notify_change(True)
 
         
     
