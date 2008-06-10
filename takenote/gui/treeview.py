@@ -50,7 +50,6 @@ class TakeNoteTreeView (gtk.TreeView):
         
         # create a TreeStore with one string column to use as the model
         self.model = TakeNoteTreeStore(COL_NODE, gdk.Pixbuf, gdk.Pixbuf, str, object)
-        self.temp_child = None
         
         # init treeview
         self.set_model(self.model)
@@ -295,7 +294,7 @@ class TakeNoteTreeView (gtk.TreeView):
     
     def on_test_expand_row(self, treeview, it, path):
         child = self.model.iter_children(it)
-        if child and self.model.get_data(path + (0,)) is self.temp_child:
+        if child and self.model.get_data(path + (0,)) is None:
             self.model.remove(child)
             self.add_children(it)
         
@@ -474,9 +473,9 @@ class TakeNoteTreeView (gtk.TreeView):
                 for child in children:
                     self.add_node(it, child)
             else:
-                self.model.append(it, [None, #closed, 
-                                       None, #opened,
-                                       "TEMP", self.temp_child])
+                self.model.append_temp(it) #, [None, #closed, 
+                                       #None, #opened,
+                                       #None, None]) #"TEMP", self.temp_child])
         
     def add_children(self, parent):
         node = self.model.get_data(self.model.get_path(parent))

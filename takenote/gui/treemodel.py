@@ -69,19 +69,23 @@ def str2path(pathtext):
 
     
     
-class TakeNoteTreeModel (gtk.TreeModel):
-    """Provides a mapping from data back to a path in the TreeStore"""
+class DataTreeModel (gtk.TreeModel):
+    """Provides a mapping from data back to a path in the TreeModel"""
 
-    def __init__(self, data_col):
+    def __init__(self, data_col, *types):
         self.data_col = data_col
+        self.types = types
         self.data2path = {}
         
         self.__signals = []
         
-        self.__signals.append(self.connect("row-inserted", self.on_row_inserted))
-        self.__signals.append(self.connect("row-deleted", self.on_row_deleted))
-        self.__signals.append(self.connect("rows-reordered", self.on_rows_reordered))
-        self.__signals.append(self.connect("row-changed", self.on_row_changed))
+        self.__signals.append(self.connect("row-inserted", self._on_row_inserted))
+        self.__signals.append(self.connect("row-deleted", self._on_row_deleted))
+        self.__signals.append(self.connect("rows-reordered", self._on_rows_reordered))
+        self.__signals.append(self.connect("row-changed", self._on_row_changed))
+
+    #===================================
+    # signals
 
     def block_row_signals(self):
         for signal in self.__signals:
@@ -91,22 +95,7 @@ class TakeNoteTreeModel (gtk.TreeModel):
         for signal in self.__signals:
             self.handler_unblock(signal)
         
-    def refresh_path_data(self, it):
-        
-        if it is None:
-            parent_path = ()
-        else:
-            parent_path = self.get_path(it)
-        
-        nrows = self.iter_n_children(it)
-        child = self.iter_children(it)
-        for i in xrange(nrows):
-            path2 = parent_path + (i,)
-            self.data2path[self[path2][self.data_col]] = path2
-            self.refresh_path_data(child)
-            child = self.iter_next(child)
-
-    def on_row_inserted(self, model, path, it):
+    def _on_row_inserted(self, model, path, it):
         parent_path = path[:-1]
         
         nrows = model.iter_n_children(it)
@@ -115,7 +104,7 @@ class TakeNoteTreeModel (gtk.TreeModel):
                 self[parent_path + (i,)][self.data_col]
         
         
-    def on_row_deleted(self, model, path):
+    def _on_row_deleted(self, model, path):
         # TODO: do I need path2data so I can delete mapping for deleted rows
         parent_path = path[:-1]
         
@@ -131,15 +120,18 @@ class TakeNoteTreeModel (gtk.TreeModel):
 
                 
         
-    def on_rows_reordered(self, model, path, it, new_order):
+    def _on_rows_reordered(self, model, path, it, new_order):
         nrows = model.iter_n_children(it)
         for i in xrange(nrows):
             path2 = path + (i,)
             self.data2path[self[path2][self.data_col]] = path2
         
-    def on_row_changed(self, model, path, it):
+    def _on_row_changed(self, model, path, it):
         self.data2path[self[it][self.data_col]] = path
-    
+
+
+    #=========================
+    # data interface
     
     def get_data(self, path):
         if isinstance(path, str):
@@ -157,24 +149,144 @@ class TakeNoteTreeModel (gtk.TreeModel):
     
     def get_path_from_data(self, data):
         return self.data2path.get(data, None)
+
+
+    def refresh_path_data(self, it):
+        
+        if it is None:
+            parent_path = ()
+        else:
+            parent_path = self.get_path(it)
+        
+        nrows = self.iter_n_children(it)
+        child = self.iter_children(it)
+        for i in xrange(nrows):
+            path2 = parent_path + (i,)
+            self.data2path[self[path2][self.data_col]] = path2
+            self.refresh_path_data(child)
+            child = self.iter_next(child)
+
+
+COL_ICON          = 0
+COL_ICON_EXPAND   = 1
+COL_TITLE         = 2
+COL_CREATED_TEXT  = 3
+COL_CREATED_INT   = 4
+COL_MODIFIED_TEXT = 5
+COL_MODIFIED_INT  = 6
+COL_MANUAL        = 7
+COL_NODE          = 8
+
+
+class TakeNoteTreeModel (gtk.GenericTreeModel):
+
+    def __init__(self, root):
+        self._data_col = data_col
+        self._col_types = [gdk.Pixbuf, gdk.Pixbuf, str, str,
+                           int, str, int, int, object]
+        self._root = root
+        
+    def set_root_node(self, root):
+        self._root = root
+
+    
+    def on_get_flags(self):
+        return 0
+    
+    def on_get_n_columns(self):
+        return len(self._col_types)
+
+    def on_get_column_type(self, index):
+        return self._col_types[index]    
+    
+    def on_get_iter(self, path):
+        if len(path) == 0:
+            return self._root
+        else:
+            node = self._root
+            for i in path:
+                if i >= len(node.get_children()):
+                    raise ValueError()
+                node = node.get_children()[i]
+    
+    def on_get_path(self, rowref):
+        path = []
+        node = rowref
+        while node is not None:
+            path.append(node.get_order())
+            node = node.get_parent()
+        return tuple(reversed(path))
+    
+    def on_get_value(self, rowref, column):
+        node = rowref
+
+        if column == COL_ICON:
+            return get_node_icon(node, False)
+        elif column == COL_ICON:
+            return get_node_icon(node, True)
+        elif column == COL_TITLE:
+            return node.get_title()
+        elif column == COL_CREATED_TEXT:
+             return node.get_created_time_text()
+        elif column == COL_CREATED_INT:
+            return node.get_created_time()
+        elif column == COL_MODIFIED_TEXT:
+            return node.get_modified_time_text()
+        elif column == COL_MODIFIED_INT:
+            return node.get_modified_time()
+        elif column == COL_MANUAL:
+            return node.get_order()
+        elif column == COL_NODE:
+            return node
+    
+    def on_iter_next(self, rowref):
+        parent = rowref.get_parent()
+        children = parent.get_children()
+        order = rowref.get_order()
+
+        if order >= len(children) - 1:
+            return None
+        else:
+            return children[order]
+    
+    def on_iter_children(self, parent):
+        if len(parent.get_children()) > 0:
+            return parent.get_children()[0]
+        else:
+            return None
+    
+    def on_iter_has_child(self, rowref):
+        return len(rowref.get_children()) > 0
+    
+    def on_iter_n_children(self, rowref):
+        return len(rowref.get_children())
+    
+    def on_iter_nth_child(self, parent, n):
+        return parent.get_children()[n]
+    
+    def on_iter_parent(self, child):
+        return child.get_parent()
     
 
 
-
-
-class TakeNoteTreeStore (TakeNoteTreeModel, gtk.TreeStore):
+class TakeNoteTreeStore (DataTreeModel, gtk.TreeStore):
     def __init__(self, data_col, *types):
         gtk.TreeStore.__init__(self, *types)
-        TakeNoteTreeModel.__init__(self, data_col)
+        DataTreeModel.__init__(self, data_col, *types)
     
     def clear(self):
         self.data2path.clear()
         gtk.TreeStore.clear(self)
 
-class TakeNoteListStore (TakeNoteTreeModel, gtk.ListStore):
+    def append_temp(self, parent):        
+        self.append(parent, [None] * len(self.types))
+
+
+
+class TakeNoteListStore (DataTreeModel, gtk.ListStore):
     def __init__(self, data_col, *types):
         gtk.ListStore.__init__(self, *types)
-        TakeNoteTreeModel.__init__(self, data_col)
+        DataTreeModel.__init__(self, data_col, *types)
     
     def clear(self):
         self.data2path.clear()

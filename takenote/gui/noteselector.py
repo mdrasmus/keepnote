@@ -347,7 +347,7 @@ class TakeNoteSelector (gtk.TreeView):
         self.set_model(None)
         
         self.sel_nodes = nodes
-        self.model.clear()        
+        self.model.clear()
 
         # populate model
         npages = 0
@@ -360,17 +360,17 @@ class TakeNoteSelector (gtk.TreeView):
                 page = node
                 npages += 1
                 self.add_node(None, page, npages)
-        
-        self.emit("select-nodes", [])
+
+        # load sorting if single node is selected
+        if len(nodes) == 1:
+            self.load_sorting(nodes[0])
         
         # reactivate model
         self.model.unblock_row_signals()
         self.model.refresh_path_data(None)
         self.set_model(self.model)
         
-        # load sorting if single node is selected
-        if len(nodes) == 1:
-            self.load_sorting(nodes[0])
+
             
         #util.toc()
 
@@ -379,6 +379,8 @@ class TakeNoteSelector (gtk.TreeView):
             self.set_status("%d pages" % npages, "stats")
         else:
             self.set_status("1 page", "stats")
+
+        self.emit("select-nodes", [])
         
 
     def add_node(self, parent, node, order, recursive=False):
@@ -392,13 +394,13 @@ class TakeNoteSelector (gtk.TreeView):
                                 node.get_modified_time(),
                                 order,
                                 node))
-        self.model.set_data(self.model.get_path(it), node)
+        #self.model.set_data(self.model.get_path(it), node)
 
-        if recursive and len(node.get_children()) > 0:
-            for order2, child in enumerate(node.get_children()):
-                self.add_node(it, child, order2, True)
+        #if recursive and len(node.get_children()) > 0:
+        #    for order2, child in enumerate(node.get_children()):
+        #        self.add_node(it, child, order2, True)
         
-        return it
+        
     
     
     def update(self):
