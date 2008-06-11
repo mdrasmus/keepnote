@@ -237,6 +237,10 @@ class TakeNoteBaseTreeView (gtk.TreeView):
                 new_parent = self.model.get_data(new_parent_path)
                 source_node.move(new_parent, new_path[-1])
                 drag_context.finish(True, True, eventtime)
+
+                if new_parent.is_expanded():
+                    self.expand_to_path(new_parent_path)
+                                
         else:
             drag_context.finish(False, False, eventtime)
             

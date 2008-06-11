@@ -306,6 +306,8 @@ class NoteBookNode (object):
         return self._notebook
 
     def get_order(self):
+        #assert self._parent is not None
+        #assert self._parent.get_children().index(self) == self._order
         return self._order
     
     def is_valid(self):
@@ -399,7 +401,11 @@ class NoteBookNode (object):
         if self._parent != parent:
             self._parent._set_child_order()
             self._parent = parent
-        self._parent._add_child(self, index)
+            self._parent._add_child(self, index)
+        else:
+            if self._order < index:
+                index -= 1
+            self._parent._add_child(self, index)
         self._set_dirty(True)
         self.save(True)
 
