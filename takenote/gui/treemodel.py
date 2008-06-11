@@ -201,8 +201,15 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
         #                         gtk.GenericTreeModel.get_data(self, it)
 
 
-    def create_tree_iter(self, node):
-        return self.get_iter(self.on_get_path(node))
+    if gtk.ver < (2, 10):
+        # NOTE: not available in pygtk 2.8?
+        
+        def create_tree_iter(self, node):
+            return self.get_iter(self.on_get_path(node))
+
+        def get_user_data(self, it):
+            return self.on_get_iter(self.get_path(it))        
+
 
         
     def set_root_nodes(self, roots=[]):
@@ -230,21 +237,7 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
         for node in self._roots:
             self._ensure_ref(node)
 
-    '''
-    def _add_node(self, node):
-        return
-    
-        path = self.on_get_path(node)
-        rowref = self.create_tree_iter(node)
-        self._refs[node] = path
-        self.row_inserted(path, rowref)
 
-        # add only first child
-        if len(node.get_children()) > 0:
-            self.row_has_child_toggled(path, rowref)
-            self._add_node(node.get_children()[0])
-
-    '''
     def _ensure_ref(self, node, path=None):
         if node is None:
             return None
@@ -256,51 +249,27 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
     
 
     def on_node_changed(self, node, recurse):
-        print "changed"
-
-        path = self.on_get_path(node)
-        rowref = self.create_tree_iter(node)
-        self.row_changed(path, rowref)
-
-    
-    '''
-            dels = []
-            ins = []
-            for node2, path2 in self._refs.iteritems():
-                if not node2.is_valid():
-                    dels.append((node2, path2))
-                
-                else:
-                    path3 = self.on_get_path(node2)
-                    if path3 != path2:
-                        ins.append((node2, path3))
-                        dels.append((node2, path2))
-
-            dels.sort(key=lambda x: x[1], reverse=True)
-            print "dels", [x[1] for x in dels]
-            for node2, path2 in dels:
-                self.row_deleted(path2)
-                del self._refs[node2]
-
-            ins.sort(key=lambda x: x[1])
-            print "ins", [x[1] for x in ins]
-            for node2, path2 in ins:
-                rowref = self.create_tree_iter(node2)
-                self._refs[node2] = path2
-                self.row_inserted(path2, rowref)
-
-
         
-            def walk(node, path):
-                for i, child in enumerate(node.get_children()):
-                    path2 = path + (i,)
-                    if child not in self._refs:
-                        self._refs[child] = path2
-                        rowref = self.create_tree_iter(child)
-                        self.row_inserted(path2, rowref)
-                    walk(child, path2)
-            walk(node, path)
-    '''
+        if not recurse:
+            path = self.on_get_path(node)
+            rowref = self.create_tree_iter(node)
+            self.row_changed(path, rowref)
+
+        else:
+            path = self.on_get_path(node)
+            rowref = self.get_iter(path)
+            
+            def walk(node):
+                for child in node.get_children():
+                    if child in self._refs:
+                        del self._refs[child]
+                    walk(child)
+            walk(node)
+
+            self.row_deleted(path)
+            self.row_inserted(path, rowref)
+            self.row_has_child_toggled(path, rowref)
+
 
     
     def on_get_flags(self):
@@ -322,6 +291,7 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
                 
         for i in path[1:]:
             if i >= len(node.get_children()):
+                print i
                 raise ValueError()
             node = node.get_children()[i]
 
@@ -329,8 +299,6 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
 
     
     def on_get_path(self, rowref):
-        #print "get_path", rowref
-
         if rowref is None:
             return ()
         
@@ -441,10 +409,7 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
 
     def get_data_from_iter(self, it):
         #print dir(it)
-        return self.on_get_iter(self.get_path(it))
-
-        # NOTE: not available in pygtk 2.8?
-        #return self.get_user_data(it)
+        return self.get_user_data(it)
     
     
     def get_path_from_data(self, data):

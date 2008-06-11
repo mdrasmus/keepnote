@@ -361,7 +361,6 @@ class TakeNoteWindow (gtk.Window):
         
     def on_page_editor_modified(self, editor, page, modified):
         if page and not modified:
-            self.treeview.update_node(page)
             self.selector.update_node(page)
         
         if modified:

@@ -396,7 +396,9 @@ class NoteBookNode (object):
 
         # perform move in data structure
         self._parent._remove_child(self)
-        self._parent = parent
+        if self._parent != parent:
+            self._parent._set_child_order()
+            self._parent = parent
         self._parent._add_child(self, index)
         self._set_dirty(True)
         self.save(True)
@@ -417,6 +419,7 @@ class NoteBookNode (object):
             raise NoteBookError("Do not have permission to delete", e)
         
         self._parent._remove_child(self)
+        self._parent._set_child_order()
         self._valid = False
         self._set_dirty(False)
         

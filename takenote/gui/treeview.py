@@ -33,44 +33,29 @@ from takenote.notebook import NoteBookDir, NoteBookPage, NoteBookTrash, \
 
 
 
-class TakeNoteTreeView (gtk.TreeView):
-    """
-    TreeView widget for the TakeNote NoteBook
-    """
-    
+class TakeNoteBaseTreeView (gtk.TreeView):
+    """Base class for treeviews of a NoteBook notes"""
+
     def __init__(self):
         gtk.TreeView.__init__(self)
-    
-        self.notebook = None
-        self.editing = False
-        
-        # create a TreeStore with one string column to use as the model
-        #self.model = TakeNoteTreeStore(COL_NODE, gdk.Pixbuf, gdk.Pixbuf, str, object)
+
+        # init model        
         self.model = treemodel.TakeNoteTreeModel()
-        
-        
-        # init treeview
+        self.model.connect("row-inserted", self.on_row_inserted)
+        self.model.connect("row-has-child-toggled", self.on_row_inserted)
         self.set_model(self.model)
-        
-        # treeview signals
-        self.connect("key-release-event", self.on_key_released)
-        self.connect("button-press-event", self.on_button_press)
-        
+
         # row expand/collapse
         self.expanded_id = self.connect("row-expanded", self.on_row_expanded)
         self.collapsed_id = self.connect("row-collapsed", self.on_row_collapsed)
-        #self.connect("test-expand-row", self.on_test_expand_row)
-        
+
         # drag and drop         
-        self.connect("drag-begin", self.on_drag_begin)
         self.connect("drag-motion", self.on_drag_motion)
-        #self.connect("drag-leave", self.on_drag_leave)
         self.connect("drag-drop", self.on_drag_drop)
         self.connect("drag-data-delete", self.on_drag_data_delete)
         self.connect("drag-data-get", self.on_drag_data_get)
         self.connect("drag-data-received", self.on_drag_data_received)
-        self.connect("drag-end", self.on_drag_end)
-        
+
         self.set_reorderable(True)
         self.enable_model_drag_source(
            gtk.gdk.BUTTON1_MASK, [DROP_TREE_MOVE], gtk.gdk.ACTION_MOVE)
@@ -83,53 +68,34 @@ class TakeNoteTreeView (gtk.TreeView):
         self.drag_dest_set(gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_MOTION,
             [DROP_TREE_MOVE, DROP_PAGE_MOVE],
              gtk.gdk.ACTION_MOVE)
-        # selection config
-        #self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
-        self.get_selection().connect("changed", self.on_select_changed)
-        
-        self.set_headers_visible(False)
-
-        # make treeview searchable
-        self.set_search_column(treemodel.COL_TITLE)
-        #self.set_fixed_height_mode(True)       
-
-        # tree style
-        try:
-            self.set_property("enable-tree-lines", True)
-        except TypeError, e:
-            pass
-
-
-        # create the treeview column
-        self.column = gtk.TreeViewColumn()
-        self.column.set_clickable(False)
-        self.append_column(self.column)
-
-        # create a cell renderers
-        self.cell_icon = gtk.CellRendererPixbuf()
-        self.cell_text = gtk.CellRendererText()
-        self.cell_text.connect("editing-started", self.on_editing_started)
-        self.cell_text.connect("editing-canceled", self.on_editing_canceled)
-        self.cell_text.connect("edited", self.on_edit_title)
-        self.cell_text.set_property("editable", True)        
-
-        # add the cells to column
-        self.column.pack_start(self.cell_icon, False)
-        self.column.pack_start(self.cell_text, True)
-
-        # map cells to columns in treestore
-        self.column.add_attribute(self.cell_icon, 'pixbuf', treemodel.COL_ICON)
-        self.column.add_attribute(self.cell_icon, 'pixbuf-expander-open', treemodel.COL_ICON_EXPAND)
-        self.column.add_attribute(self.cell_text, 'text', treemodel.COL_TITLE)
-
-        #self.drag_source_set_icon_pixbuf(self.icon)
-
-        self.menu = gtk.Menu()
-        self.menu.attach_to_widget(self, lambda w,m:None)
 
 
 
-        
+    def on_row_expanded(self, treeview, it, path):
+        self.model.get_data(path).set_expand(True)
+
+        # recursively expand nodes that should be expanded
+        def walk(it):
+            child = self.model.iter_children(it)
+            while child:
+                node = self.model.get_data_from_iter(child)
+                if node.is_expanded():
+                    path = self.model.get_path(child)
+                    self.expand_row(path, False)
+                    walk(child)
+                child = self.model.iter_next(child)
+        walk(it)
+    
+    def on_row_collapsed(self, treeview, it, path):
+        self.model.get_data(path).set_expand(False)
+
+
+    def on_row_inserted(self, treemodel, path, it):
+        node = self.model.get_data_from_iter(it)
+        if node.is_expanded():
+            self.expand_row(path, False)
+
+
     
     #=============================================
     # drag and drop callbacks    
@@ -140,30 +106,18 @@ class TakeNoteTreeView (gtk.TreeView):
         source_path = model.get_path(source)
         return self.model.get_data(source_path)
     
-    
-    def on_drag_begin(self, widget, drag_context):        
-        pass
-        #drag_context.drag_set_selection("tree")
-        #drag_context.set_icon_pixbuf(self.icon, 0, 0)
-        #elf.stop_emission("drag-begin")
-     
-    def on_drag_end(self, widget, drag_context):
-        print "end"
-        print drag_context.drag_drop_succeeded()
-    
+        
     def on_drag_motion(self, treeview, drag_context, x, y, eventtime):
         """Callback for drag motion.
            Indicate which drops are allowed"""        
 
-        print "motion"
-        
         self.stop_emission("drag-motion")
         
         # determine destination row   
         dest_row = treeview.get_dest_row_at_pos(x, y)
         
         if dest_row is None:
-            #self.unset_rows_drag_dest()
+            self.set_drag_dest_row(source_path, gtk.TREE_VIEW_DROP_INTO_OR_AFTER)
             return 
         
         # get target info
@@ -183,53 +137,29 @@ class TakeNoteTreeView (gtk.TreeView):
             
             # determine if drag is allowed
             if self.drop_allowed(source_node, target_node, drop_position):
-                #reeview.enable_model_drag_dest([DROP_TREE_MOVE, DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)
-                #elf.drag_dest_set(gtk.DEST_DEFAULT_HIGHLIGHT,
-                #                   [DROP_TREE_MOVE, DROP_PAGE_MOVE],
-                #                   gtk.gdk.ACTION_MOVE)
-                print "good"
                 self.set_drag_dest_row(target_path, drop_position)
                 return
-                #drag_context.drop_reply(True, eventtime)
 
-            else:
-                #treeview.enable_model_drag_dest([DROP_NO], gtk.gdk.ACTION_MOVE)
-                #self.drag_dest_set(gtk.DEST_DEFAULT_HIGHLIGHT,
-                #                    [DROP_NO],
-                #                    gtk.gdk.ACTION_MOVE)
-                pass
-
-        
+        # reset dest
         self.set_drag_dest_row(source_path, gtk.TREE_VIEW_DROP_INTO_OR_AFTER)
         #self.unset_rows_drag_dest()
 
 
-    def on_drag_leave(self, widget, drag_context, timestamp):
-        print "leave"
-        self.stop_emission("drag-leave")
-
 
     def on_drag_drop(self, widget, drag_context, x, y, timestamp):
-        print "drop"
+
         self.stop_emission("drag-drop")
-
         self.drag_get_data(drag_context, "drop_node")
-        
-        #self.on_drag_data_received(widget, drag_context, x, y,
-        #                           selection_data, info, eventtime)
-
-        #drag_context.finish(True, True, timestamp)
         return True
 
 
     def on_drag_data_delete(self, widget, drag_context):
         self.stop_emission("drag-data-delete")
-        print "delete"
+
 
     def on_drag_data_get(self, widget, drag_context, selection_data,
                          info, timestamp):
         self.stop_emission("drag-data-get")
-        print "get"
 
         model, source = self.get_selection().get_selected()
         source_path = model.get_path(source)
@@ -240,7 +170,6 @@ class TakeNoteTreeView (gtk.TreeView):
     def on_drag_data_received(self, treeview, drag_context, x, y,
                               selection_data, info, eventtime):
 
-        print "received"
         self.stop_emission("drag-data-received")
          
         # determine destination row
@@ -275,9 +204,6 @@ class TakeNoteTreeView (gtk.TreeView):
                 # get target and source iters
                 source = self.model.get_iter(source_path)
 
-                # make sure target is populated first in treeview
-                self.on_test_expand_row(treeview, target, target_path)
-                
                 # record old and new parent paths
                 old_parent = source_node.get_parent()
                 old_parent_path = source_path[:-1]                
@@ -286,22 +212,17 @@ class TakeNoteTreeView (gtk.TreeView):
 
                 # perform move in notebook model
                 try:
-                    #source_node.suppress_change(self.on_node_changed)
                     source_node.move(new_parent, new_path[-1])
-                    #source_node.resume_change(self.on_node_changed)
                 except NoteBookError, e:
                     drag_context.finish(False, False, eventtime)
                     self.emit("error", e.msg, e)
                     return
 
-                # perform move in tree model
-                #self.handler_block(self.expanded_id)
-                #self.handler_block(self.collapsed_id)
-
-                #copy_row(treeview, self.model, source, target, drop_position)
-
-                #self.handler_unblock(self.expanded_id)
-                #self.handler_unblock(self.collapsed_id)
+                if old_parent.is_expanded():
+                    self.expand_to_path(old_parent_path)
+                
+                if new_parent.is_expanded():
+                    self.expand_to_path(new_parent_path)
                 
                 # make sure to show new children
                 if (drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or
@@ -309,12 +230,6 @@ class TakeNoteTreeView (gtk.TreeView):
                     treeview.expand_row(target_path, False)
                 
                 drag_context.finish(True, True, eventtime)
-                
-                # if source_widget is not ourself, we need to do our own remove
-                # otherwise, drag-delete signal would be called on us to perform
-                # the delete
-                #if source_widget != self:
-                #    self.model.remove(source)
                 
             else:                
                 # process node move that is not in treeview
@@ -337,47 +252,96 @@ class TakeNoteTreeView (gtk.TreeView):
                 return False
             ptr = ptr.get_parent()
         
-        
+
+        # (1) do not let nodes move out of notebook root
+        # (2) do not let nodes move into pages
         return not (target_node.get_parent() is None and \
                     (drop_position == gtk.TREE_VIEW_DROP_BEFORE or 
-                     drop_position == gtk.TREE_VIEW_DROP_AFTER))
+                     drop_position == gtk.TREE_VIEW_DROP_AFTER)) and \
+               not (target_node.is_page() and \
+                    (drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or 
+                     drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER))
+
+
+
+class TakeNoteTreeView (TakeNoteBaseTreeView):
+    """
+    TreeView widget for the TakeNote NoteBook
+    """
+    
+    def __init__(self):
+        TakeNoteBaseTreeView.__init__(self)
+
+        self.notebook = None
+        self.editing = False
+                
+        # treeview signals
+        self.connect("key-release-event", self.on_key_released)
+        self.connect("button-press-event", self.on_button_press)
+        
+        
+        # selection config
+        #self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
+        self.get_selection().connect("changed", self.on_select_changed)
+        
+        self.set_headers_visible(False)
+
+        # make treeview searchable
+        self.set_search_column(treemodel.COL_TITLE)
+        #self.set_fixed_height_mode(True)       
+
+        # tree style
+        try:
+            # available only on gtk > 2.8
+            self.set_property("enable-tree-lines", True)
+        except TypeError, e:
+            pass
+
+
+        # create the treeview column
+        self.column = gtk.TreeViewColumn()
+        self.column.set_clickable(False)
+        self.append_column(self.column)
+
+        # create a cell renderers
+        self.cell_icon = gtk.CellRendererPixbuf()
+        self.cell_text = gtk.CellRendererText()
+        self.cell_text.connect("editing-started", self.on_editing_started)
+        self.cell_text.connect("editing-canceled", self.on_editing_canceled)
+        self.cell_text.connect("edited", self.on_edit_title)
+        self.cell_text.set_property("editable", True)        
+
+        # add the cells to column
+        self.column.pack_start(self.cell_icon, False)
+        self.column.pack_start(self.cell_text, True)
+
+        # map cells to columns in treestore
+        self.column.add_attribute(self.cell_icon, 'pixbuf', treemodel.COL_ICON)
+        self.column.add_attribute(self.cell_icon, 'pixbuf-expander-open', treemodel.COL_ICON_EXPAND)
+        self.column.add_attribute(self.cell_text, 'text', treemodel.COL_TITLE)
+
+        self.menu = gtk.Menu()
+        self.menu.attach_to_widget(self, lambda w,m:None)
+
+
+
+        
     
     #=============================================
-    # gui callbacks    
+    # gui callbacks
     
-    def on_row_expanded(self, treeview, it, path):
-        self.model.get_data(path).set_expand(True)
-
-        # recursively expand nodes that should be expanded
-        def walk(it):
-            child = self.model.iter_children(it)
-            while child:
-                node = self.model.get_data_from_iter(child)
-                if node.is_expanded():
-                    path = self.model.get_path(child)
-                    self.expand_row(path, False)
-                    walk(child)
-                child = self.model.iter_next(child)
-        walk(it)
-    
-    def on_test_expand_row(self, treeview, it, path):
-        child = self.model.iter_children(it)
-        if child and self.model.get_data(path + (0,)) is None:
-            self.model.remove(child)
-            self.add_children(it)
-        
-
-    def on_row_collapsed(self, treeview, it, path):
-        self.model.get_data(path).set_expand(False)
-
         
     def on_key_released(self, widget, event):
+        """Process delete key"""
+        
         if event.keyval == gdk.keyval_from_name("Delete") and \
            not self.editing:
             self.on_delete_node()
             self.stop_emission("key-release-event")
 
     def on_button_press(self, widget, event):
+        """Process context popup menu"""
+        
         if event.button == 3:            
             # popup menu
             path = self.get_path_at_pos(int(event.x), int(event.y))
@@ -391,6 +355,9 @@ class TakeNoteTreeView (gtk.TreeView):
                 self.menu.show()
                 return True
 
+    #=====================================
+    # node title editing
+
     def on_editing_started(self, cellrenderer, editable, path):
         self.editing = True
     
@@ -399,21 +366,19 @@ class TakeNoteTreeView (gtk.TreeView):
 
     def on_edit_title(self, cellrenderertext, path, new_text):
         self.editing = False
-    
+        
         node = self.model.get_data(path)
-
         if node is None:
             return
         
         # do not allow empty names
         if new_text.strip() == "":
             return
-        
+
+        # set new title and catch errors
         if new_text != node.get_title():
             try:
                 node.rename(new_text)            
-                #self.model[path][2] = new_text
-            
             except NoteBookError, e:
                 self.emit("error", e.msg, e)
         
@@ -453,27 +418,18 @@ class TakeNoteTreeView (gtk.TreeView):
             type=gtk.MESSAGE_QUESTION, 
             buttons=gtk.BUTTONS_YES_NO, 
             message_format=message)
-        #dialog.connect("response", self.on_delete_node_response)
-        #dialog.show()    
-        #def on_delete_node_response(self, dialog, response):
 
         response = dialog.run()
         
         if response == gtk.RESPONSE_YES:
             dialog.destroy()
-            self.delete_node()
+            self._delete_node(node)
             
         elif response == gtk.RESPONSE_NO:
             dialog.destroy()
             
     
-    def delete_node(self):
-        model, it = self.get_selection().get_selected()
-        
-        if it is None:
-            return
-        
-        node = self.model.get_data(model.get_path(it))
+    def _delete_node(self, node):
         parent = node.get_parent()
         
         if parent is not None:
@@ -481,7 +437,6 @@ class TakeNoteTreeView (gtk.TreeView):
                 node.trash()
             except NoteBookError, e:
                 self.emit("error", e.msg, e)
-                
         else:
             # warn
             self.emit("error", "Cannot delete notebook's toplevel directory", None)
@@ -489,34 +444,24 @@ class TakeNoteTreeView (gtk.TreeView):
         self.emit("select-nodes", [])
         
     
-    def on_node_changed(self, node, recurse):
-        #print "changed", node.get_title()
-        #self.update_node(node, recurse)
-        pass
     
     #==============================================
     # actions
     
     def set_notebook(self, notebook):
-        #if self.notebook:
-        #    self.notebook.node_changed.remove(self.on_node_changed)
-    
         self.notebook = notebook
         
         if self.notebook is None:
-            #self.model.clear()
             self.model.set_root_nodes([])
         
         else:
             root = self.notebook.get_root_node()
-            #self.notebook.node_changed.add(self.on_node_changed)
-            #self.add_node(None, root)
             self.set_model(None)
             self.model.set_root_nodes([root])
             self.set_model(self.model)
             
             if root.is_expanded():
-                self.expand_to_path((0,))#self.model.get_path_from_data(root))
+                self.expand_to_path((0,))
 
             
     
@@ -532,64 +477,7 @@ class TakeNoteTreeView (gtk.TreeView):
         path = self.model.get_path_from_data(node)
         self.expand_to_path(path)
 
-    #================================================
-    # model manipulation        
-    
-    '''
-    def add_node(self, parent, node):
-        closed = get_node_icon(node, False)
-        opened = get_node_icon(node, True)
-        it = self.model.append(parent, [closed, 
-                                        opened,
-                                        node.get_title(), node])
-        path = self.model.get_path(it)
-        children = list(node.get_children())
-        
-        if len(children) > 0:
-            if self.row_expanded(path):
-                for child in children:
-                    self.add_node(it, child)
-            else:
-                self.model.append_temp(it) #, [None, #closed, 
-                                       #None, #opened,
-                                       #None, None]) #"TEMP", self.temp_child])
-        
-    def add_children(self, parent):
-        node = self.model.get_data(self.model.get_path(parent))
-        for child in node.get_children():
-            self.add_node(parent, child)
-    '''
-    
-    def update_node(self, node, recurse=True):
-        # do nothing
-        return
-        
-        path = self.model.get_path_from_data(node)
-        if path is None:
-            return
 
-        # set node title
-        it = self.model.get_iter(path)
-        #self.model.set(it, COL_TITLE, node.get_title())
-        
-        if recurse:
-            pass
-            # save expand state
-            #expanded = self.row_expanded(path)
-
-            # remove all children
-            #for child in self.model[path].iterchildren():
-            #    self.model.remove(child.iter)
-
-            # readd children
-            #it = self.model.get_iter(path)
-            #for child in node.get_children():
-            #    self.add_node(it, child)
-
-            # restore previous expand state
-            #if expanded:
-            #    self.expand_to_path(path)
-        
 
 # new signals
 gobject.type_register(TakeNoteTreeView)
