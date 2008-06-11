@@ -360,9 +360,6 @@ class TakeNoteWindow (gtk.Window):
             self.error("Could not load page '%s'" % pages[0].get_title(), e)
         
     def on_page_editor_modified(self, editor, page, modified):
-        if page and not modified:
-            self.selector.update_node(page)
-        
         if modified:
             self.set_notebook_modified(modified)
     

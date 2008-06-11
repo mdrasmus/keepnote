@@ -17,28 +17,26 @@ from takenote.gui.treemodel import \
     DROP_TREE_MOVE, \
     DROP_PAGE_MOVE, \
     DROP_NO, \
-    compute_new_path, \
-    copy_row, \
-    TakeNoteTreeStore
+    COL_ICON, \
+    COL_ICON_EXPAND, \
+    COL_TITLE, \
+    COL_CREATED_TEXT, \
+    COL_CREATED_INT, \
+    COL_MODIFIED_TEXT, \
+    COL_MODIFIED_INT, \
+    COL_MANUAL, \
+    COL_NODE, \
+    compute_new_path
 
 from takenote.gui import \
      get_resource, \
      get_resource_image, \
      get_resource_pixbuf, \
      get_node_icon
+from takenote.gui import treemodel
 from takenote import notebook
 from takenote.notebook import NoteBookError, NoteBookDir, NoteBookPage
 
-
-COL_ICON          = 0
-COL_ICON_EXPAND   = 1
-COL_TITLE         = 2
-COL_CREATED_TEXT  = 3
-COL_CREATED_INT   = 4
-COL_MODIFIED_TEXT = 5
-COL_MODIFIED_INT  = 6
-COL_MANUAL        = 7
-COL_NODE          = 8
 
 
 '''    
@@ -53,11 +51,10 @@ CREATED_COLUMN = SelectorColumn("Created", str, 1)
 MODIFIED_COLUMN = SelectorColumn("Modified", str, 2)
 '''
 
-class TakeNoteSelector (gtk.TreeView):
+class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
     
     def __init__(self):
-        gtk.TreeView.__init__(self)
-        self.notebook = None
+        treemodel.TakeNoteBaseTreeView.__init__(self)
         self.drag_nodes = []
         self.editing = False
         self.on_status = None
@@ -66,23 +63,19 @@ class TakeNoteSelector (gtk.TreeView):
         self.display_columns = []
         
         # init model
-        #self.model = TakeNoteListStore(7, gdk.Pixbuf, str, str, int, str, int, int, object)
-        self.model = TakeNoteTreeStore(COL_NODE,
-                                       gdk.Pixbuf, gdk.Pixbuf, str, str,
-                                       int, str, int, int, object)
+        self.model = gtk.TreeModelSort(treemodel.TakeNoteTreeModel())
         
         # init view
         self.set_model(self.model)
         self.connect("key-release-event", self.on_key_released)
         self.connect("button-press-event", self.on_button_press)
         self.get_selection().connect("changed", self.on_select_changed)
-        self.connect("drag-motion", self.on_drag_motion)
-        self.connect("drag-data-delete", self.on_drag_data_delete)
         self.set_rules_hint(True)
-        self.enable_model_drag_source(
-            gtk.gdk.BUTTON1_MASK, [DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)
-        self.enable_model_drag_dest(
-            [DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)                
+
+        #self.enable_model_drag_source(
+        #    gtk.gdk.BUTTON1_MASK, [DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)
+        #self.enable_model_drag_dest(
+        #    [DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)
         self.set_fixed_height_mode(True)
         
         
@@ -164,8 +157,6 @@ class TakeNoteSelector (gtk.TreeView):
         # set default sorting
         # remember sort per node
         self.model.set_sort_column_id(COL_MANUAL, gtk.SORT_ASCENDING)
-        #self.model.set_sort_column_id(3, gtk.SORT_DESCENDING)
-
 
         
         self.menu = gtk.Menu()
@@ -175,23 +166,15 @@ class TakeNoteSelector (gtk.TreeView):
     #=============================================
     # drag and drop callbacks
     
-    def get_drag_node(self):
-        model, source = self.get_selection().get_selected()
-        source_path = model.get_path(source)
-        node = self.model.get_data(source_path)
-        self.drag_nodes = [node]
-        return node
-    
-    
     def on_drag_motion(self, treeview, drag_context, x, y, eventtime):
         """Callback for drag motion.
            Indicate which drops are allowed"""
-        
+        self.stop_emission("drag-motion")
         
         # determine destination row
-        dest_row = treeview.get_dest_row_at_pos(x, y)
-        if dest_row is None:
-            return
+        #dest_row = treeview.get_dest_row_at_pos(x, y)
+        #if dest_row is None:
+        #    return
         
         # TODO: allow reorder in selector
         """
@@ -208,26 +191,13 @@ class TakeNoteSelector (gtk.TreeView):
         """
     
     
-    def on_drag_data_delete(self, widget, drag_context):
-        if drag_context.drag_drop_succeeded():
-            node = self.drag_nodes[0]
-            path = self.model.get_path_from_data(node)
-                        
-            # remove row
-            it = self.model.get_iter(path)
-            self.model.remove(it)
-            
-        
-        self.drag_nodes = []
-    
-    
     #=============================================
     # gui callbacks    
             
     def on_directory_column_clicked(self, column):
         """sort pages by directory order"""
         #self.model.set_default_sort_func
-        self.model.set_sort_column_id(6, gtk.SORT_ASCENDING)
+        self.model.set_sort_column_id(COL_MANUAL, gtk.SORT_ASCENDING)
         #reset_default_sort_func()
         
     
@@ -261,7 +231,7 @@ class TakeNoteSelector (gtk.TreeView):
     def on_edit_title(self, cellrenderertext, path, new_text):
         self.editing = False
         
-        page = self.model.get_data(path)
+        page = self.model.get_value(path, COL_NODE)
         if page.get_title() != new_text:
             try:
                 page.rename(new_text)
@@ -276,7 +246,8 @@ class TakeNoteSelector (gtk.TreeView):
         model, paths = treeselect.get_selected_rows()
         
         if len(paths) > 0:
-            nodes = [self.model.get_data(x) for x in paths]
+            nodes = [self.model.get_value(self.model.get_iter(x), COL_NODE)
+                     for x in paths]
             self.emit("select-nodes", nodes)
         else:
             self.emit("select-nodes", [])
@@ -308,12 +279,12 @@ class TakeNoteSelector (gtk.TreeView):
             return
         
         path = self.model.get_path(it)
-        page = self.model.get_data(model.get_path(it))
+        page = self.model.get_value(it, COL_NODE)
         parent = page.get_parent()
         
         try:
             page.trash()
-            self.model.remove(it)
+            #self.model.remove(it)
             
         except NoteBookError, e:
             self.emit("error", e.msg, e)
@@ -323,19 +294,11 @@ class TakeNoteSelector (gtk.TreeView):
     #====================================================
     # actions
     
-    def on_node_changed(self, node, recurse):
-        self.update_node(node)        
-        
-    
     def view_nodes(self, nodes):
-        # deactivate expensive updates for model
-        self.model.block_row_signals()
-
         # TODO: learn how to deactivate expensive sorting
         #self.model.set_default_sort_func(None)
         #self.model.set_sort_column_id(-1, gtk.SORT_ASCENDING)
         
-
         # save sorting if a single node was selected
         if self.sel_nodes is not None and len(self.sel_nodes) == 1:
             self.save_sorting(self.sel_nodes[0])
@@ -344,85 +307,43 @@ class TakeNoteSelector (gtk.TreeView):
         #from rasmus import util
         #util.tic("view")
 
-        self.set_model(None)
-        
+        self.set_model(None)        
         self.sel_nodes = nodes
-        self.model.clear()
 
         # populate model
-        npages = 0
+        roots = []
         for node in nodes:
             if isinstance(node, NoteBookDir):
                 for child in node.get_children():
-                    npages += 1
-                    self.add_node(None, child, npages, True)
+                    roots.append(child)
             elif isinstance(node, NoteBookPage):
-                page = node
-                npages += 1
-                self.add_node(None, page, npages)
+                roots.append(node)
 
+        self.model.get_model().set_root_nodes(roots)
+        
         # load sorting if single node is selected
         if len(nodes) == 1:
             self.load_sorting(nodes[0])
         
         # reactivate model
-        self.model.unblock_row_signals()
-        self.model.refresh_path_data(None)
         self.set_model(self.model)
         
-
-            
         #util.toc()
 
         # update status
+        npages = len(roots)
         if npages != 1:
             self.set_status("%d pages" % npages, "stats")
         else:
             self.set_status("1 page", "stats")
 
         self.emit("select-nodes", [])
-        
-
-    def add_node(self, parent, node, order, recursive=False):
-        it = self.model.append(parent,
-                               (get_node_icon(node, False),
-                                get_node_icon(node, True),
-                                node.get_title(),
-                                node.get_created_time_text(),
-                                node.get_created_time(),
-                                node.get_modified_time_text(),
-                                node.get_modified_time(),
-                                order,
-                                node))
-        #self.model.set_data(self.model.get_path(it), node)
-
-        #if recursive and len(node.get_children()) > 0:
-        #    for order2, child in enumerate(node.get_children()):
-        #        self.add_node(it, child, order2, True)
-        
-        
+                
     
-    
-    def update(self):
-        self.view_nodes(self.sel_nodes)    
-    
-    def update_node(self, node):
-        path = self.model.get_path_from_data(node)
-        
-        if path is not None:
-            it = self.model.get_iter(path)
-            self.model.set(it, 
-                           COL_ICON, get_node_icon(node, False),
-                           COL_ICON_EXPAND, get_node_icon(node, True),
-                           COL_TITLE, node.get_title(),
-                           COL_CREATED_TEXT, node.get_created_time_text(),
-                           COL_CREATED_INT, node.get_created_time(),
-                           COL_MODIFIED_TEXT, node.get_modified_time_text(),
-                           COL_MODIFIED_INT, node.get_modified_time())
         
     
     def edit_node(self, page):
-        path = self.model.get_path_from_data(page)
+        path = treemodel.get_path_from_data(self.model, page)
         assert path is not None
         self.set_cursor_on_cell(path, self.title_column, self.title_text, True)
         path, col = self.get_cursor()
@@ -431,21 +352,13 @@ class TakeNoteSelector (gtk.TreeView):
     
     def select_pages(self, pages):
         page = pages[0]
-        path = self.model.get_path_from_data(page)
+        path = treemodel.get_path_from_data(self.model, page)
         if path is not None:
             self.set_cursor_on_cell(path)
 
     
     def set_notebook(self, notebook):
-        if self.notebook:
-            self.notebook.node_changed.remove(self.on_node_changed)
-        
-        self.notebook = notebook
-        
-        if self.notebook is None:
-            self.model.clear()
-        else:
-            self.notebook.node_changed.add(self.on_node_changed)
+        self.model.get_model().set_root_nodes([])
 
 
     
