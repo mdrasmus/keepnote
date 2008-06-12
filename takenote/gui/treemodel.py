@@ -334,16 +334,22 @@ class TakeNoteBaseTreeView (gtk.TreeView):
                                                    self.on_row_inserted)
 
 
+    def is_node_expanded(self, node):
+        return node.is_expanded()
+
+    def set_node_expanded(self, node, expand):
+        node.set_expand(expand)
+        
 
     def on_row_expanded(self, treeview, it, path):
-        self.model.get_value(it, COL_NODE).set_expand(True)
+        self.set_node_expanded(self.model.get_value(it, COL_NODE), True)
 
         # recursively expand nodes that should be expanded
         def walk(it):
             child = self.model.iter_children(it)
             while child:
                 node = self.model.get_value(child, COL_NODE)
-                if node.is_expanded():
+                if self.is_node_expanded(node):
                     path = self.model.get_path(child)
                     self.expand_row(path, False)
                     walk(child)
@@ -351,12 +357,12 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         walk(it)
     
     def on_row_collapsed(self, treeview, it, path):
-        self.model.get_value(it, COL_NODE).set_expand(False)
+        self.set_node_expanded(self.model.get_value(it, COL_NODE), False)
 
 
     def on_row_inserted(self, treemodel, path, it):
         node = self.model.get_value(it, COL_NODE)
-        if node.is_expanded():
+        if self.is_node_expanded(node):
             self.expand_row(path, False)
 
 

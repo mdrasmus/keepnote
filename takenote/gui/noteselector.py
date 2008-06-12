@@ -163,6 +163,14 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
     #=============================================
     # gui callbacks    
 
+
+    def is_node_expanded(self, node):
+        return node.is_expanded2()
+
+    def set_node_expanded(self, node, expand):
+        node.set_expand2(expand)
+        
+
     def on_column_clicked(self, column):
         self.set_reorderable(False)
             
@@ -209,9 +217,6 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         if page.get_title() != new_text:
             try:
                 page.rename(new_text)
-                self.model[path][COL_TITLE] = new_text
-            
-                #self.emit("node-modified", True, page, False)
             except NoteBookError, e:
                 self.emit("error", e.msg, e)
         
@@ -302,6 +307,11 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         
         #util.toc()
 
+        # expand rows
+        for node in roots:
+            if node.is_expanded2():
+                self.expand_to_path(treemodel.get_path_from_node(self.model, node))
+
         # update status
         npages = len(roots)
         if npages != 1:
@@ -315,7 +325,7 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         
     
     def edit_node(self, page):
-        path = treemodel.get_path_from_data(self.model, page)
+        path = treemodel.get_path_from_node(self.model, page)
         assert path is not None
         self.set_cursor_on_cell(path, self.title_column, self.title_text, True)
         path, col = self.get_cursor()
@@ -324,7 +334,7 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
     
     def select_pages(self, pages):
         page = pages[0]
-        path = treemodel.get_path_from_data(self.model, page)
+        path = treemodel.get_path_from_node(self.model, page)
         if path is not None:
             self.set_cursor_on_cell(path)
 

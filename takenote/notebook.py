@@ -245,6 +245,7 @@ class NoteBookNode (object):
         self._order = sys.maxint
         self._children = None
         self._expanded = False
+        self._expanded2 = False
         self._info_sort = [INFO_SORT_NONE, 1]
         self._version = NOTEBOOK_FORMAT_VERSION
         
@@ -348,15 +349,23 @@ class NoteBookNode (object):
         return False
     
     def set_expand(self, expanded):
-        """Set expand state in treeview"""
+        """Set expand state in sidebar"""
         self._expanded = expanded
         self._set_dirty(True)
     
     def is_expanded(self):
-        """Returns True if node is expanded in treeview"""
-
-        # TODO: will need is_expanded2() for selectorview
+        """Returns True if node is expanded in sidebar"""
         return self._expanded
+
+    def set_expand2(self, expanded):
+        """Set expand state in selector"""
+        self._expanded2 = expanded
+        self._set_dirty(True)
+    
+    def is_expanded2(self):
+        """Returns True if node is expanded in selector"""
+        return self._expanded2
+
 
     def set_info_sort(self, info, sort_dir):
         """Sets the sorting information of the node"""
@@ -816,7 +825,10 @@ g_dir_meta_data_parser = xmlo.XmlObject(
         g_node_meta_data_tags + [
         xmlo.Tag("expanded",
             getobj=("_expanded", lambda x: bool(int(x))),
-            set=lambda s: str(int(s._expanded))) ]))
+            set=lambda s: str(int(s._expanded))),
+        xmlo.Tag("expanded2",
+            getobj=("_expanded2", lambda x: bool(int(x))),
+            set=lambda s: str(int(s._expanded2))) ]))
             
 
 class NoteBookTrash (NoteBookDir):
