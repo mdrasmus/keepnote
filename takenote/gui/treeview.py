@@ -51,6 +51,8 @@ class TakeNoteTreeView (treemodel.TakeNoteBaseTreeView):
 
         self.notebook = None
         self.editing = False
+
+        self.set_model(treemodel.TakeNoteTreeModel())
                 
         # treeview signals
         self.connect("key-release-event", self.on_key_released)
@@ -234,9 +236,10 @@ class TakeNoteTreeView (treemodel.TakeNoteBaseTreeView):
         
         else:
             root = self.notebook.get_root_node()
+            model = self.model
             self.set_model(None)
-            self.model.set_root_nodes([root])
-            self.set_model(self.model)
+            model.set_root_nodes([root])
+            self.set_model(model)
             
             if root.is_expanded():
                 self.expand_to_path((0,))

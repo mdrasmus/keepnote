@@ -63,10 +63,9 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         self.display_columns = []
         
         # init model
-        self.model = gtk.TreeModelSort(treemodel.TakeNoteTreeModel())
+        self.set_model(gtk.TreeModelSort(treemodel.TakeNoteTreeModel()))
         
         # init view
-        self.set_model(self.model)
         self.connect("key-release-event", self.on_key_released)
         self.connect("button-press-event", self.on_button_press)
         self.get_selection().connect("changed", self.on_select_changed)
@@ -170,6 +169,8 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         """Callback for drag motion.
            Indicate which drops are allowed"""
         self.stop_emission("drag-motion")
+
+        print "motion"
         
         # determine destination row
         #dest_row = treeview.get_dest_row_at_pos(x, y)
@@ -307,6 +308,7 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         #from rasmus import util
         #util.tic("view")
 
+        model = self.model
         self.set_model(None)        
         self.sel_nodes = nodes
 
@@ -319,14 +321,14 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
             elif isinstance(node, NoteBookPage):
                 roots.append(node)
 
-        self.model.get_model().set_root_nodes(roots)
+        model.get_model().set_root_nodes(roots)
         
         # load sorting if single node is selected
         if len(nodes) == 1:
-            self.load_sorting(nodes[0])
+            self.load_sorting(nodes[0], model)
         
         # reactivate model
-        self.set_model(self.model)
+        self.set_model(model)
         
         #util.toc()
 
@@ -358,7 +360,8 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
 
     
     def set_notebook(self, notebook):
-        self.model.get_model().set_root_nodes([])
+        if self.model is not None:
+            self.model.get_model().set_root_nodes([])
 
 
     
@@ -385,7 +388,7 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
             node.set_info_sort(notebook.INFO_SORT_MODIFIED_TIME, sort_dir)
 
 
-    def load_sorting(self, node):
+    def load_sorting(self, node, model):
         """Load sorting information from node"""
 
         info_sort, sort_dir = node.get_info_sort()
@@ -397,13 +400,13 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
             
         if info_sort == notebook.INFO_SORT_MANUAL or \
            info_sort == notebook.INFO_SORT_NONE:
-            self.model.set_sort_column_id(COL_MANUAL, sort_dir)
+            model.set_sort_column_id(COL_MANUAL, sort_dir)
         elif info_sort == notebook.INFO_SORT_TITLE:
-            self.model.set_sort_column_id(COL_TITLE, sort_dir)            
+            model.set_sort_column_id(COL_TITLE, sort_dir)            
         elif info_sort == notebook.INFO_SORT_CREATED_TIME:
-            self.model.set_sort_column_id(COL_CREATED_INT, sort_dir)
+            model.set_sort_column_id(COL_CREATED_INT, sort_dir)
         elif info_sort == notebook.INFO_SORT_MODIFIED_TIME:
-            self.model.set_sort_column_id(COL_MODIFIED_INT, sort_dir)
+            model.set_sort_column_id(COL_MODIFIED_INT, sort_dir)
 
     
     def set_status(self, text, bar="status"):

@@ -61,7 +61,7 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
         self.set_root_nodes(roots)
 
 
-    if gtk.ver < (2, 10):
+    if gtk.gtk_version < (2, 10):
         # NOTE: not available in pygtk 2.8?
         
         def create_tree_iter(self, node):
@@ -284,16 +284,15 @@ class TakeNoteBaseTreeView (gtk.TreeView):
     def __init__(self):
         gtk.TreeView.__init__(self)
 
-        # init model        
-        self.model = TakeNoteTreeModel()
-        self.model.connect("row-inserted", self.on_row_inserted)
-        self.model.connect("row-has-child-toggled", self.on_row_inserted)
-        self.set_model(self.model)
+        self.model = None
 
         # row expand/collapse
-        self.expanded_id = self.connect("row-expanded", self.on_row_expanded)
-        self.collapsed_id = self.connect("row-collapsed", self.on_row_collapsed)
+        self.expanded_id = self.connect("row-expanded",
+                                        self.on_row_expanded)
+        self.collapsed_id = self.connect("row-collapsed",
+                                         self.on_row_collapsed)
 
+        
         # drag and drop         
         self.connect("drag-motion", self.on_drag_motion)
         self.connect("drag-drop", self.on_drag_drop)
@@ -313,6 +312,22 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         self.drag_dest_set(gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_MOTION,
             [DROP_TREE_MOVE, DROP_PAGE_MOVE],
              gtk.gdk.ACTION_MOVE)
+
+
+    def set_model(self, model):
+        if self.model is not None:
+            self.model.disconnect(self.insert_id)
+            self.model.disconnect(self.has_child_id)
+
+        self.model = model
+        gtk.TreeView.set_model(self, self.model)
+
+        if model is not None:
+            # init model        
+            self.insert_id = self.model.connect("row-inserted",
+                                                self.on_row_inserted)
+            self.has_child_id = self.model.connect("row-has-child-toggled",
+                                                   self.on_row_inserted)
 
 
 
@@ -357,6 +372,8 @@ class TakeNoteBaseTreeView (gtk.TreeView):
            Indicate which drops are allowed"""        
 
         self.stop_emission("drag-motion")
+        print "base motion"
+        
         
         # determine destination row   
         dest_row = treeview.get_dest_row_at_pos(x, y)
