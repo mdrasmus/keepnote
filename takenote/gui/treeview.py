@@ -16,7 +16,6 @@ from gtk import gdk
 # takenote imports
 from takenote.gui.treemodel import \
     DROP_TREE_MOVE, \
-    DROP_PAGE_MOVE, \
     DROP_NO, \
     COL_ICON, \
     COL_ICON_EXPAND, \

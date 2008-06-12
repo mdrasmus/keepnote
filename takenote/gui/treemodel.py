@@ -12,8 +12,7 @@ from takenote.gui import get_node_icon
 
 
 # constants
-DROP_TREE_MOVE = ("drop_node", gtk.TARGET_SAME_WIDGET, 0)
-DROP_PAGE_MOVE = ("drop_selector", gtk.TARGET_SAME_APP, 1)
+DROP_TREE_MOVE = ("drop_node", gtk.TARGET_SAME_APP, 0)
 DROP_NO = ("drop_no", gtk.TARGET_SAME_WIDGET, 0)
 
 
@@ -285,6 +284,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         gtk.TreeView.__init__(self)
 
         self.model = None
+        self._reorderable = True
 
         # row expand/collapse
         self.expanded_id = self.connect("row-expanded",
@@ -300,7 +300,6 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         self.connect("drag-data-get", self.on_drag_data_get)
         self.connect("drag-data-received", self.on_drag_data_received)
 
-        self.set_reorderable(True)
         self.enable_model_drag_source(
            gtk.gdk.BUTTON1_MASK, [DROP_TREE_MOVE], gtk.gdk.ACTION_MOVE)
         self.drag_source_set(
@@ -308,11 +307,16 @@ class TakeNoteBaseTreeView (gtk.TreeView):
             [DROP_TREE_MOVE],
              gtk.gdk.ACTION_MOVE)
         self.enable_model_drag_dest(
-           [DROP_TREE_MOVE, DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)
+           [DROP_TREE_MOVE], gtk.gdk.ACTION_MOVE)
         self.drag_dest_set(gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_MOTION,
-            [DROP_TREE_MOVE, DROP_PAGE_MOVE],
+            [DROP_TREE_MOVE],
              gtk.gdk.ACTION_MOVE)
 
+    def set_reorderable(self, order):
+        self._reorderable = order
+
+    def get_reorderable(self):
+        return self._reorderable
 
     def set_model(self, model):
         if self.model is not None:
@@ -372,13 +376,17 @@ class TakeNoteBaseTreeView (gtk.TreeView):
            Indicate which drops are allowed"""        
 
         self.stop_emission("drag-motion")
-        print "base motion"
-        
+
+        if not self._reorderable:
+            return False
         
         # determine destination row   
         dest_row = treeview.get_dest_row_at_pos(x, y)
         
         if dest_row is None:
+            source_widget = drag_context.get_source_widget()
+            source_node = source_widget.get_drag_node()
+            source_path = get_path_from_node(self.model, source_node)
             self.set_drag_dest_row(source_path, gtk.TREE_VIEW_DROP_INTO_OR_AFTER)
             return 
         
@@ -389,8 +397,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         new_path = compute_new_path(self.model, target, drop_position)
         
         # process node drops
-        if "drop_node" in drag_context.targets or \
-           "drop_selector" in drag_context.targets:
+        if "drop_node" in drag_context.targets:
 
             # get source
             source_widget = drag_context.get_source_widget()
@@ -411,6 +418,10 @@ class TakeNoteBaseTreeView (gtk.TreeView):
     def on_drag_drop(self, widget, drag_context, x, y, timestamp):
 
         self.stop_emission("drag-drop")
+
+        if not self._reorderable:
+            return False
+        
         self.drag_get_data(drag_context, "drop_node")
         return True
 
@@ -441,8 +452,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
             return
         
         # process node drops
-        if "drop_node" in drag_context.targets or \
-           "drop_selector" in drag_context.targets:
+        if "drop_node" in drag_context.targets:
             
             # get target
             target_path, drop_position  = dest_row

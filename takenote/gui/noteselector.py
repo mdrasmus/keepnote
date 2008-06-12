@@ -15,7 +15,6 @@ from gtk import gdk
 
 from takenote.gui.treemodel import \
     DROP_TREE_MOVE, \
-    DROP_PAGE_MOVE, \
     DROP_NO, \
     COL_ICON, \
     COL_ICON_EXPAND, \
@@ -70,11 +69,6 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         self.connect("button-press-event", self.on_button_press)
         self.get_selection().connect("changed", self.on_select_changed)
         self.set_rules_hint(True)
-
-        #self.enable_model_drag_source(
-        #    gtk.gdk.BUTTON1_MASK, [DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)
-        #self.enable_model_drag_dest(
-        #    [DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)
         self.set_fixed_height_mode(True)
         
         
@@ -106,6 +100,7 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         self.title_column.set_property("resizable", True)
         self.title_column.pack_start(cell_icon, False)
         self.title_column.pack_start(self.title_text, True)
+        self.title_column.connect("clicked", self.on_column_clicked)
         self.title_text.set_fixed_height_from_font(1)
         self.title_text.connect("edited", self.on_edit_title)
         self.title_text.connect("editing-started", self.on_editing_started)
@@ -130,6 +125,7 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         column.set_min_width(10)
         column.set_fixed_width(150)
         column.set_sort_column_id(COL_CREATED_INT)
+        column.connect("clicked", self.on_column_clicked)
         #column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
         #column.set_property("min-width", 5)
         column.pack_start(cell_text, True)
@@ -146,6 +142,7 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         column.set_min_width(10)
         column.set_fixed_width(150)
         column.set_sort_column_id(COL_MODIFIED_INT)
+        column.connect("clicked", self.on_column_clicked)
         #column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
         #column.set_property("min-width", 5)
         column.pack_start(cell_text, True)
@@ -156,49 +153,24 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         # set default sorting
         # remember sort per node
         self.model.set_sort_column_id(COL_MANUAL, gtk.SORT_ASCENDING)
-
+        self.set_reorderable(True)
         
         self.menu = gtk.Menu()
         self.menu.attach_to_widget(self, lambda w,m:None)
-        
 
-    #=============================================
-    # drag and drop callbacks
-    
-    def on_drag_motion(self, treeview, drag_context, x, y, eventtime):
-        """Callback for drag motion.
-           Indicate which drops are allowed"""
-        self.stop_emission("drag-motion")
-
-        print "motion"
-        
-        # determine destination row
-        #dest_row = treeview.get_dest_row_at_pos(x, y)
-        #if dest_row is None:
-        #    return
-        
-        # TODO: allow reorder in selector
-        """
-        # get target and source
-        target_path, drop_position  = dest_row    
-        model, source = treeview.get_selection().get_selected()
-        source_path = model.get_path(source)
-        
-        # determine if drag is allowed
-        if self.drop_allowed(source_path, target_path, drop_position):
-            treeview.enable_model_drag_dest([DROP_PAGE_MOVE], gtk.gdk.ACTION_MOVE)
-        else:
-            treeview.enable_model_drag_dest([DROP_NO], gtk.gdk.ACTION_MOVE)    
-        """
     
     
     #=============================================
     # gui callbacks    
+
+    def on_column_clicked(self, column):
+        self.set_reorderable(False)
             
     def on_directory_column_clicked(self, column):
         """sort pages by directory order"""
         #self.model.set_default_sort_func
         self.model.set_sort_column_id(COL_MANUAL, gtk.SORT_ASCENDING)
+        self.set_reorderable(True)
         #reset_default_sort_func()
         
     
@@ -231,8 +203,9 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
 
     def on_edit_title(self, cellrenderertext, path, new_text):
         self.editing = False
-        
-        page = self.model.get_value(path, COL_NODE)
+
+        it = self.model.get_iter(path)
+        page = self.model.get_value(it, COL_NODE)
         if page.get_title() != new_text:
             try:
                 page.rename(new_text)
@@ -262,10 +235,9 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
             buttons=gtk.BUTTONS_YES_NO, 
             message_format="Do you want to delete this page?")
         dialog.connect("response", self.on_delete_page_response)
-        dialog.show()
-    
-    
-    def on_delete_page_response(self, dialog, response):
+
+        response = dialog.run()
+        
         if response == gtk.RESPONSE_YES:
             dialog.destroy()
             self.delete_page()
@@ -285,8 +257,6 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         
         try:
             page.trash()
-            #self.model.remove(it)
-            
         except NoteBookError, e:
             self.emit("error", e.msg, e)
         
@@ -397,6 +367,8 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
             sort_dir = gtk.SORT_ASCENDING
         else:
             sort_dir = gtk.SORT_DESCENDING            
+
+        self.set_reorderable(info_sort == notebook.INFO_SORT_MANUAL)
             
         if info_sort == notebook.INFO_SORT_MANUAL or \
            info_sort == notebook.INFO_SORT_NONE:
