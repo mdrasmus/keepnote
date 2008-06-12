@@ -161,7 +161,7 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
 
         if column == COL_ICON:
             return get_node_icon(node, False)
-        elif column == COL_ICON:
+        elif column == COL_ICON_EXPAND:
             return get_node_icon(node, True)
         elif column == COL_TITLE:
             return node.get_title()
@@ -293,7 +293,8 @@ class TakeNoteBaseTreeView (gtk.TreeView):
                                          self.on_row_collapsed)
 
         
-        # drag and drop         
+        # drag and drop
+        self.connect("drag-begin", self.on_drag_begin)
         self.connect("drag-motion", self.on_drag_motion)
         self.connect("drag-drop", self.on_drag_drop)
         self.connect("drag-data-delete", self.on_drag_data_delete)
@@ -376,6 +377,16 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         source_path = model.get_path(source)
         return self.model.get_value(source, COL_NODE)
 
+
+    def on_drag_begin(self, treeview, drag_context):
+        self.stop_emission("drag-begin")
+        
+        model, source = self.get_selection().get_selected()
+        pixbuf = self.model.get_value(source, COL_ICON)
+        pixbuf = pixbuf.scale_simple(40, 40, gtk.gdk.INTERP_BILINEAR)
+        self.drag_source_set_icon_pixbuf(pixbuf)
+        source_path = model.get_path(source)
+
         
     def on_drag_motion(self, treeview, drag_context, x, y, eventtime):
         """Callback for drag motion.
@@ -426,6 +437,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         self.stop_emission("drag-drop")
 
         if not self._reorderable:
+            drag_context.finish(False, False, timestamp)
             return False
         
         self.drag_get_data(drag_context, "drop_node")
