@@ -28,7 +28,7 @@ setup(
         - rich text editing
         - hierarchical organization for notes
         - inline images
-        - integrated screenshot imports
+        - integrated screenshot
         - spell checking (via gtkspell)
     """,
     author='Matt Rasmussen',
@@ -52,10 +52,11 @@ setup(
           'Programming Language :: Python',
           ],
     
-    packages=['takenote'],
+    packages=['takenote', 'takenote.gui'],
     scripts=['bin/takenote'],
     data_files=[
         ('images', image_files),
+        
         ('rc', ['rc/takenote.glade'])
     ],
     

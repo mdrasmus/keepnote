@@ -520,7 +520,7 @@ class HtmlBuffer (HTMLParser):
                     print "unknown child element", child
             
             elif kind == "pixbuf":
-                self.out.write("")
+                pass
             else:
                 raise Exception("unknown kind '%s'" % str(kind))
         
@@ -771,11 +771,8 @@ class BaseWidget (object):
 
 class RichTextSep (gtk.HSeparator, BaseWidget):
     def __init__(self):
-        #gtk.EventBox.__init__(self)
         gtk.HSeparator.__init__(self)
         BaseWidget.__init__(self)
-        #self.sep = gtk.HSeparator()
-        #self.add(self.sep)
         self.modify_bg(gtk.STATE_NORMAL, gdk.Color(0, 0, 0))
         self.modify_fg(gtk.STATE_NORMAL, gdk.Color(0, 0, 0))
         self.connect("size-request", self.on_resize)
@@ -904,6 +901,10 @@ class RichTextImage (RichTextAnchor):
             self.scale(self._size[0], self._size[1], False)
         self._widget.set_from_pixbuf(self._pixbuf)
 
+
+    def get_original_pixbuf(self):
+        return self._pixbuf_original
+
         
     def set_size(self, width, height):
         self._size = [width, height]
@@ -973,6 +974,7 @@ class RichTextImage (RichTextAnchor):
             ext = "jpeg"
             
         self._pixbuf_original.save(filename, ext)
+        self._save_needed = False
         
         
     def copy(self):
@@ -988,6 +990,9 @@ class RichTextImage (RichTextAnchor):
         img._pixbuf_original = self._pixbuf_original
         img.get_widget().show()
         return img
+
+    #==========================
+    # GUI callbacks
     
     def _on_image_destroy(self, widget):
         self._widget = None
@@ -1004,19 +1009,6 @@ class RichTextImage (RichTextAnchor):
             return True
 
 
-'''
-    def refresh(self):
-        if self._widget is None:
-            self._widget = BaseImage()
-            self._widget.set_owner(self)
-            if self._pixbuf:
-                self._widget.set_from_pixbuf(self._pixbuf)
-            else:
-                self._widget.set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
-            self._widget.show()
-            self._widget.connect("destroy", self.on_image_destroy)
-        return self._widget
-    '''
 
         
 
@@ -1048,8 +1040,13 @@ class RichTextBuffer (gtk.TextBuffer):
         self.insert_mark = None
         self.next_action = None
         self.current_tags = []
+
+        # set of all anchors in buffer
         self.anchors = set()
-        self.anchors_deferred = set()
+
+        # anchors that still need to be added,
+        # they are defferred because textview was not available at insert-time
+        self.anchors_deferred = set() 
         
         # setup signals
         self.signals = []
@@ -1118,19 +1115,25 @@ class RichTextBuffer (gtk.TextBuffer):
     def unblock_signals(self):
         for signal in self.signals:
             self.handler_unblock(signal)
-    
+
+
+    def clear(self):
+        """Clear buffer contents"""
+        
+        self.anchors.clear()
+        self.anchors_deferred.clear()
+        start = self.get_start_iter()
+        end = self.get_end_iter()
+        self.remove_all_tags(start, end)
+        self.delete(start, end)
+
     
     #======================================================
     # copy and paste
 
     def copy_clipboard(self, clipboard):
         """Callback for copy event"""
-        
-        #targets = [(MIME_TAKENOTE, gtk.TARGET_SAME_APP | gtk.TARGET_SAME_WIDGET, 0),
-        #           ("application/x-gtk-text-buffer-rich-text", gtk.TARGET_SAME_APP, 0),
-        #           ("GTK_TEXT_BUFFER_CONTENTS", gtk.TARGET_SAME_APP, -1),
-        #           ("text/plain", 0, -3)]
-        
+                
         targets = [(MIME_TAKENOTE, gtk.TARGET_SAME_APP, -3),
                    ("text/plain", 0, -3),
                    ("text/plain;charset=utf-8", 0, -3),
@@ -1225,21 +1228,31 @@ class RichTextBuffer (gtk.TextBuffer):
     
     
     #============================================================
-    # actions
+    # child actions
     
     def add_child(self, it, child):
+
+        # preprocess child
+        if isinstance(child, RichTextImage):
+            self.determine_image_name(child)
+
+        # setup child
         self.anchors.add(child)
         child.set_buffer(self)
         child.connect("selected", self.on_child_selected)
         child.connect("popup-menu", self.on_child_popup_menu)
         self.insert_child_anchor(it, child)
+
+        # if textview is attaced, let it display child
         if self.textview:
             self.textview.add_child_at_anchor(child.get_widget(), child)
         else:
+            # defer display of child
             self.anchors_deferred.add(child)
     
     
     def add_deferred_anchors(self):
+        """Add anchors that were deferred"""
         assert self.textview is not None
         
         for child in self.anchors_deferred:
@@ -1251,23 +1264,18 @@ class RichTextBuffer (gtk.TextBuffer):
     
     
     def insert_image(self, image, filename="image.png"):
-        """Inserts an image into the textbuffer"""
-                
-        self.begin_user_action()
+        """Inserts an image into the textbuffer at current position"""
+
+        # set default filename
+        if image.get_filename() is None:
+            image.set_filename(filename)
         
+        # insert image into buffer
+        self.begin_user_action()
         it = self.get_iter_at_mark(self.get_insert())
         self.add_child(it, image)
         image.get_widget().show()
-        
         self.end_user_action()
-        
-        if image.get_filename() is None:
-            image.set_save_needed(True)
-            filename2, ext = os.path.splitext(filename)
-            filenames = self.get_image_filenames()
-            filename = takenote.get_unique_filename_list(filenames, filename2, ext)
-            image.set_filename(filename)
-
 
 
     def insert_hr(self):
@@ -1279,18 +1287,47 @@ class RichTextBuffer (gtk.TextBuffer):
         
         self.end_user_action()
 
+
+    #===================================
+    # Image management
+
+    def determine_image_name(self, image):
+        """Determines image filename"""
+        
+        if self.is_new_pixbuf(image.get_original_pixbuf()):
+            filename, ext = os.path.splitext(image.get_filename())
+            filenames = self.get_image_filenames()
+            filename2 = takenote.get_unique_filename_list(filenames,
+                                                          filename, ext)
+            image.set_filename(filename2)
+            image.set_save_needed(True)
+        
     
     def get_image_filenames(self):
         filenames = []
         
         # TODO: could be faster (specialized search_forward)
-        for kind, it, param in iter_buffer_contents(self):
-            if kind == "anchor":
-                child, widget = param    
-                if isinstance(child, RichTextImage):
-                    filenames.append(child.get_filename())
+        #for kind, it, param in iter_buffer_contents(self):
+        #    if kind == "anchor":
+
+        for child in self.anchors:
+            if isinstance(child, RichTextImage):
+                filenames.append(child.get_filename())
         
-        return filenames    
+        return filenames
+
+    def is_new_pixbuf(self, pixbuf):
+
+        # cannot tell if pixbuf is new because it is not loaded
+        if pixbuf is None:
+            return False
+        
+        for child in self.anchors:
+            if isinstance(child, RichTextImage):
+                if pixbuf == child.get_original_pixbuf():
+                    return False
+        return True
+        
     
     #===========================================================
     # Callbacks
@@ -1931,12 +1968,8 @@ class RichTextView (gtk.TextView):
         textbuffer.block_signals()
         self.set_buffer(None)
         
-        # clear buffer
-        textbuffer.anchors.clear()
-        start = textbuffer.get_start_iter()
-        end = textbuffer.get_end_iter()
-        textbuffer.remove_all_tags(start, end)
-        textbuffer.delete(start, end)
+        # clear buffer        
+        textbuffer.clear()
         
         err = None
         try:
@@ -1951,13 +1984,12 @@ class RichTextView (gtk.TextView):
             err = e
             
             # TODO: turn into function
-            textbuffer.anchors.clear()
-            textbuffer.anchors_deferred.clear()
+            textbuffer.clear()
             self.set_buffer(textbuffer)
             
             ret = False
         else:
-            self.set_buffer(textbuffer)        
+            self.set_buffer(textbuffer)
             textbuffer.add_deferred_anchors()
         
             path = os.path.dirname(filename)
@@ -1993,6 +2025,7 @@ class RichTextView (gtk.TextView):
                     child.set_from_file(filename)
                     child.get_widget().show()
 
+    
     def save_images(self, path):
         """Save images present in text buffer"""
         
@@ -2004,7 +2037,6 @@ class RichTextView (gtk.TextView):
                     filename = os.path.join(path, child.get_filename())
                     if child.save_needed():
                         child.write(filename)
-                        child.set_save_needed(False)
                     
 
     #=============================================
