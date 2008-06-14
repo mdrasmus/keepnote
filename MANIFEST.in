@@ -1,0 +1,23 @@
+include CHANGES
+include COPYING
+include COPYING.LESSER
+include LICENSE
+include INSTALL
+include README
+include Makefile
+include Makefile.cygwin
+include Makefile.mingw
+include make-wininst.bat
+include setup-macosx.py
+include setup-windows.py
+recursive-include examples *.* README*
+recursive-include src *.cpp *.h Makefile*
+recursive-include windows *
+include doc/summon_manual.pdf
+recursive-include doc *.html
+recursive-include doc/html *.*
+include bin/summon
+include bin/summatrix
+include bin/sumtree
+include bin/python-i
+prune src/notes

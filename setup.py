@@ -54,11 +54,14 @@ setup(
     
     packages=['takenote', 'takenote.gui'],
     scripts=['bin/takenote'],
-    data_files=[
-        ('images', image_files),
-        
-        ('rc', ['rc/takenote.glade'])
-    ],
+    #data_files=[
+    #    ('images', image_files),
+    #    
+    #    ('rc', ['rc/takenote.glade'])
+    #],
+
+    #package_dir={'mypkg': 'src/mypkg'},
+    package_data={'takenote': image_files + ["rc/takenote.glade"]},
     
     windows=[{
         'script': 'bin/takenote',

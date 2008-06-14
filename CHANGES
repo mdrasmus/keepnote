@@ -1,0 +1,11 @@
+TakeNote Change Log
+-----------------
+
+
+NEXT RELEASE
+------------
+ - rich text editing
+ - hierarchical organization for notes
+ - inline images
+ - integrated screenshot
+ - spell checking (via gtkspell)

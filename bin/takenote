@@ -2,20 +2,19 @@
 
 import sys, os
 
-
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
 import gtk
 
 # determine base dir from program path
-basedir = os.path.dirname(os.path.realpath(sys.argv[0]))
-
+pkgdir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
+basedir = os.path.join(pkgdir, "takenote")
 
 # look for images directory
 if not os.path.isdir(os.path.join(basedir, "images")):
     # if no images dir try one directory up
-    basedir = os.path.split(basedir)[0]
+    basedir = os.path.dirname(basedir)
 
 try:
     # try to import from python path first
@@ -24,7 +23,7 @@ try:
 except ImportError:
     # try to infer takenote lib path from program path
     
-    sys.path.append(basedir)
+    sys.path.append(pkgdir)
     import takenote
     
 import takenote.gui.main_window

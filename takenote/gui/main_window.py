@@ -1588,6 +1588,7 @@ class TakeNoteWindow (gtk.Window):
         self.treeview.menu.append(item)
         item.show()
 
+
         #=================================
         # note selector context menu
         # selector/new folder
