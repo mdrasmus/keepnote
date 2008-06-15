@@ -1,30 +1,71 @@
 #!/usr/bin/env python
 
 import sys, os
+from os.path import basename, dirname, realpath, join, isdir
 
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
 import gtk
 
-# determine base dir from program path
-pkgdir = os.path.dirname(os.path.dirname(os.path.realpath(sys.argv[0])))
-basedir = os.path.join(pkgdir, "takenote")
+"""
+Three ways to run TakeNote
 
-# look for images directory
-if not os.path.isdir(os.path.join(basedir, "images")):
-    # if no images dir try one directory up
-    basedir = os.path.dirname(basedir)
+(1) directly from source dir
+    
+    pkgdir = bin_path + "../takenote"
+    basedir = pkgdir
+    sys.path.append(pkgdir)
+
+    src/bin/takenote
+    src/takenote/__init__.py
+    src/takenote/images
+    src/takenote/rc
+
+(2) from installation location by setup.py 
+
+    basedir = takenote.get_basedir()
+
+    prefix/bin/takenote
+    prefix/lib/python-XXX/site-packages/takenote/__init__.py
+    prefix/lib/python-XXX/site-packages/takenote/images
+    prefix/lib/python-XXX/site-packages/takenote/rc
+    
+
+(3) windows py2exe dir
+
+    pkgdir = bin_path
+    basedir = bin_path
+
+    dir/takenote.exe
+    dir/library.zip
+    dir/images
+    dir/rc
+
+"""
 
 try:
     # try to import from python path first
     import takenote
     
+    # sucessful import, therefore we are running with (2) or (3)
+    
+    # attempt to use basedir for (2)
+    basedir = takenote.get_basedir()
+    
+    if not isdir(join(basedir, "images")):
+        # we must be running (3)
+        basedir = dirname(realpath(sys.argv[0]))
+    
 except ImportError:
     # try to infer takenote lib path from program path
-    
+    pkgdir = dirname(dirname(realpath(sys.argv[0])))
     sys.path.append(pkgdir)
     import takenote
+    
+    # if this works we know we are running from src_path (1)
+    basedir = takenote.get_basedir()
+
     
 import takenote.gui.main_window
 

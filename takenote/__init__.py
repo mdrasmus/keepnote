@@ -61,6 +61,9 @@ USER_PREF_FILE = "takenote.xml"
 #=============================================================================
 # application resources
 
+def get_basedir():
+    return os.path.dirname(__file__)
+
 def set_basedir(basedir):
     global BASEDIR
     BASEDIR = basedir

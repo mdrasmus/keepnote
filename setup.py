@@ -8,21 +8,37 @@
 
 import os, sys, shutil
 from distutils.core import setup, Extension
-import py2exe
 
-TAKENOTE_VERSION = '.4'
+try:
+    import py2exe
+except ImportError:
+    pass
+
+
+TAKENOTE_VERSION = '0.4'
 
 # get images
-image_dir = "images"
+image_dir = "takenote/images"
 image_files = [os.path.join(image_dir, x) 
-               for x in os.listdir("images")]
+               for x in os.listdir("takenote/images")]
+
+
+if "py2exe" in sys.argv:
+    data_files = [
+        ('images', image_files),
+        
+        ('rc', ['takenote/rc/takenote.glade'])
+    ]
+else:
+    data_files = []
+
 
 setup(
     name='takenote',
     version=TAKENOTE_VERSION,
     description='A cross-platform note taking application',
     long_description = """
-        TakeNote is a cross-platform note taking application.  It's features 
+        TakeNote is a cross-platform note taking application.  Its features 
         include:
         
         - rich text editing
@@ -54,18 +70,13 @@ setup(
     
     packages=['takenote', 'takenote.gui'],
     scripts=['bin/takenote'],
-    #data_files=[
-    #    ('images', image_files),
-    #    
-    #    ('rc', ['rc/takenote.glade'])
-    #],
-
-    #package_dir={'mypkg': 'src/mypkg'},
+    data_files=data_files,
+    
     package_data={'takenote': image_files + ["rc/takenote.glade"]},
     
     windows=[{
         'script': 'bin/takenote',
-        'icon_resources': [(1, 'images/note.ico')],
+        'icon_resources': [(1, 'takenote/images/note.ico')],
         }],
     options = {
         'py2exe' : {
