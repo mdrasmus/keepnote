@@ -30,7 +30,7 @@ TRASH_DIR = "__TRASH__"
 TRASH_NAME = "Trash"
 DEFAULT_PAGE_NAME = "New Page"
 DEFAULT_DIR_NAME = "New Folder"
-
+DEFAULT_FONT = "Sans 10"
 
 
 DEFAULT_WINDOW_SIZE = (800, 600)
@@ -862,6 +862,7 @@ class NoteBookPreferences (object):
         self.vsash_pos = DEFAULT_VSASH_POS
         self.hsash_pos = DEFAULT_HSASH_POS
         self.version = NOTEBOOK_FORMAT_VERSION
+        self.default_font = DEFAULT_FONT
 
 
 # file format for NoteBook preferences
@@ -878,7 +879,10 @@ g_notebook_pref_parser = xmlo.XmlObject(
             set=lambda s: "%d" % s.vsash_pos),
         xmlo.Tag("hsash_pos",
             getobj=("hsash_pos", int),
-            set=lambda s: "%d" % s.hsash_pos)]))
+            set=lambda s: "%d" % s.hsash_pos),
+        xmlo.Tag("default_font",
+            getobj=("default_font", str),
+            set=lambda s: s.default_font)]))
             
 
 class NoteBook (NoteBookDir):

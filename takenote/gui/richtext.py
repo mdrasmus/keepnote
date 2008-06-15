@@ -30,6 +30,7 @@ from takenote.undo import UndoStack
 
 # constants
 MIME_TAKENOTE = "application/x-takespnote"
+DEFAULT_FONT = "Sans 10"
 
 # these tags will not be enumerated by iter_buffer_contents
 IGNORE_TAGS = set(["gtkspell-misspelled", "hr"])
@@ -1034,8 +1035,7 @@ class RichTextBuffer (gtk.TextBuffer):
         self.clipboard_contents = None
         self.textview = textview
         self.undo_stack = UndoStack()
-        
-        
+
         # action state
         self.insert_mark = None
         self.next_action = None
@@ -1703,6 +1703,8 @@ class RichTextView (gtk.TextView):
         gtk.TextView.__init__(self, RichTextBuffer(self))
         self.textbuffer = self.get_buffer()
         self.blank_buffer = RichTextBuffer(self)
+        self.set_default_font(DEFAULT_FONT)
+        
         
         # spell checker
         self._spell_checker = None
@@ -2275,6 +2277,15 @@ class RichTextView (gtk.TextView):
     
     def get_font(self):
         return self.textbuffer.get_font()
+
+    def set_default_font(self, font):
+        try:
+            f = pango.FontDescription(font)
+            self.modify_font(f)
+        except:
+            # TODO: think about how to handle this error
+            pass
+
     
     
     #=========================================

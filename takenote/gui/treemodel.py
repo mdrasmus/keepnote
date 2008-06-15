@@ -146,6 +146,8 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
             self._root_set[node] = i
             rowref = self.create_tree_iter(node)
             self.row_inserted((i,), rowref)
+            self.row_has_child_toggled((i,), rowref)
+            self.row_has_child_toggled((i,), rowref)
 
         if self._notebook is not None:
             self._notebook.node_changed.remove(self.on_node_changed)

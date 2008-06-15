@@ -21,6 +21,7 @@ import gobject
 import takenote
 from takenote.gui import get_resource, get_resource_image, get_resource_pixbuf
 from takenote.notebook import NoteBookError, NoteBookDir, NoteBookPage
+from takenote.gui import richtext
 from takenote.gui.richtext import RichTextView, RichTextImage, RichTextError
 from takenote.gui.treeview import TakeNoteTreeView
 from takenote.gui.noteselector import TakeNoteSelector
@@ -47,6 +48,7 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook):
         #gtk.Notebook.__init__(self)
         gtk.VBox.__init__(self, False, 0)
         #self.set_scrollable(True)
+        self._notebook = None
         
         # TODO: may need to update fonts on page change
         # TODO: add page reorder
@@ -59,6 +61,12 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook):
         self.new_tab()
         self.show()
 
+    def set_notebook(self, notebook):
+        self._notebook = notebook
+
+        if self._notebook:
+            for view in self._textviews:
+                view.set_default_font(self._notebook.pref.default_font)
     
     def on_font_callback(self, textview, mods, justify, family, size):
         self.emit("font-change", mods, justify, family, size)
@@ -82,6 +90,9 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook):
     
     def new_tab(self):
         self._textviews.append(RichTextView())
+
+        if self._notebook:
+            self._textviews[-1].set_default_font(self._notebook.pref.default_font)
         self._pages.append(None)
         
         sw = gtk.ScrolledWindow()
@@ -518,6 +529,7 @@ class TakeNoteWindow (gtk.Window):
         self.notebook = notebook
         self.selector.set_notebook(self.notebook)
         self.treeview.set_notebook(self.notebook)
+        self.editor.set_notebook(self.notebook)
         self.get_preferences()
         
         self.treeview.grab_focus()
@@ -548,6 +560,7 @@ class TakeNoteWindow (gtk.Window):
             self.notebook = None
             self.selector.set_notebook(self.notebook)
             self.treeview.set_notebook(self.notebook)
+            self.editor.set_notebook(self.notebook)
             
             self.set_status("Notebook closed")
     
