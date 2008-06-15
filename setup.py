@@ -29,8 +29,11 @@ if "py2exe" in sys.argv:
         
         ('rc', ['takenote/rc/takenote.glade'])
     ]
+    package_data = {}
 else:
     data_files = []
+    package_data = {'takenote': image_files + [
+                                "rc/takenote.glade"]}
 
 
 setup(
@@ -71,8 +74,7 @@ setup(
     packages=['takenote', 'takenote.gui'],
     scripts=['bin/takenote'],
     data_files=data_files,
-    
-    package_data={'takenote': image_files + ["rc/takenote.glade"]},
+    package_data=package_data,
     
     windows=[{
         'script': 'bin/takenote',

@@ -7,23 +7,43 @@ pygtk.require('2.0')
 import gtk, gobject, pango
 from gtk import gdk
 
+# takenote imports
 from takenote.gui import get_node_icon
+from takenote.notebook import NoteBookError
 
 
-
-# constants
+# treeview drag and drop config
 DROP_TREE_MOVE = ("drop_node", gtk.TARGET_SAME_APP, 0)
 DROP_NO = ("drop_no", gtk.TARGET_SAME_WIDGET, 0)
 
 
+# treeview reorder rules
+REORDER_NONE = 0
+REORDER_FOLDER = 1
+REORDER_ALL = 2
+
+
+# treeview column numbers
+COL_ICON          = 0
+COL_ICON_EXPAND   = 1
+COL_TITLE         = 2
+COL_CREATED_TEXT  = 3
+COL_CREATED_INT   = 4
+COL_MODIFIED_TEXT = 5
+COL_MODIFIED_INT  = 6
+COL_MANUAL        = 7
+COL_NODE          = 8
+
 
 
 def compute_new_path(model, target, drop_position):
+    """Compute the new path of a tagret rowiter in a treemodel"""
+    
     path = model.get_path(target)
     
     if drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or \
        drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER:
-        return path + (0,) #model.get_n_children(target),)
+        return path + (0,)
     elif drop_position == gtk.TREE_VIEW_DROP_BEFORE:
         return path
     elif drop_position == gtk.TREE_VIEW_DROP_AFTER:
@@ -34,15 +54,52 @@ def compute_new_path(model, target, drop_position):
 
 
 
-COL_ICON          = 0
-COL_ICON_EXPAND   = 1
-COL_TITLE         = 2
-COL_CREATED_TEXT  = 3
-COL_CREATED_INT   = 4
-COL_MODIFIED_TEXT = 5
-COL_MODIFIED_INT  = 6
-COL_MANUAL        = 7
-COL_NODE          = 8
+def get_path_from_node(model, node):
+    """Determine the path of a node in a treemodel"""
+
+    # NOTE: I must make no assumptions about the type of the model
+    # I could change that if I make a wrapper around TreeSortModel
+    
+    if node is None:
+        return ()
+
+    # determine root set
+    root_set = {}
+    child = model.iter_children(None)
+    i = 0
+    while child is not None:
+        root_set[model.get_value(child, COL_NODE)] = i
+        child = model.iter_next(child)
+        i += 1
+
+    # walk up parent path until root set
+    node_path = []
+    while node not in root_set:
+        node_path.append(node)
+        node = node.get_parent()
+        if node is None:
+            raise Exception("treeiter is not part of model")
+
+    # walk back down are record path
+    path = [root_set[node]]
+    it = model.get_iter(tuple(path))
+    for node in reversed(node_path):
+        child = model.iter_children(it)
+        i = 0
+
+        while child is not None:
+            if model.get_value(child, COL_NODE) == node:
+                path.append(i)
+                it = child
+                break
+            child = model.iter_next(child)
+            i += 1
+        else:
+            raise Exception("bad model")
+
+    return tuple(path)
+        
+
 
 
 class TakeNoteTreeModel (gtk.GenericTreeModel):
@@ -57,6 +114,7 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
         
         self._notebook = None
         self._roots = []
+        self._master_node = None
         self.set_root_nodes(roots)
 
 
@@ -70,17 +128,24 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
             return self.on_get_iter(self.get_path(it))        
 
 
+    def set_master_node(self, node):
+        self._master_node = node
+
+    def get_master_node(self):
+        return self._master_node
         
     def set_root_nodes(self, roots=[]):
 
         for i in xrange(len(self._roots)-1, -1, -1):
             self.row_deleted((i,))
         
-        
-        self._roots = list(roots)
+        self._roots = []
         self._root_set = {}
-        for i, node in enumerate(self._roots):
+        for i, node in enumerate(roots):
+            self._roots.append(node)
             self._root_set[node] = i
+            rowref = self.create_tree_iter(node)
+            self.row_inserted((i,), rowref)
 
         if self._notebook is not None:
             self._notebook.node_changed.remove(self.on_node_changed)
@@ -93,26 +158,28 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
 
 
     def on_node_changed(self, node, recurse):
-        try:
-            path = self.on_get_path(node)
-        except:
-            # node is not part of model, ignore it
-            return
-        rowref = self.create_tree_iter(node)
+        if node == self._master_node:
+            # reset roots
+            self.set_root_nodes(self._master_node.get_children())
+        else:                        
+            try:
+                path = self.on_get_path(node)
+            except:
+                # node is not part of model, ignore it
+                return
+            rowref = self.create_tree_iter(node)
         
-        if not recurse:
-            self.row_changed(path, rowref)
-        else:
-            #print "changed", node.get_title(), path
-
-            for i, child in enumerate(node.get_children()):
-                path2 = path + (i,)
-                self.row_deleted(path2)                    
+            if not recurse:
+                self.row_changed(path, rowref)
+            else:
+                for i, child in enumerate(node.get_children()):
+                    path2 = path + (i,)
+                    self.row_deleted(path2)                    
             
-            self.row_deleted(path)
-            self.row_inserted(path, rowref)
-            self.row_has_child_toggled(path, rowref)
-            self.row_has_child_toggled(path, rowref)
+                self.row_deleted(path)
+                self.row_inserted(path, rowref)
+                self.row_has_child_toggled(path, rowref)
+                self.row_has_child_toggled(path, rowref)
 
 
     
@@ -126,8 +193,6 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
         return self._col_types[index]
     
     def on_get_iter(self, path):
-        #print "get_iter", path, self._roots
-        
         if path[0] >= len(self._roots):
             return None
         
@@ -140,7 +205,7 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
 
         return node
 
-    
+
     def on_get_path(self, rowref):
         if rowref is None:
             return ()
@@ -251,31 +316,8 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
         else:
             parent = child.get_parent()
             return parent
-        
-
-
-def get_path_from_node(model, node):
-    if node is None:
-        return ()
-
-    root_set = {}
-    child = model.iter_children(None)
-    i = 0
-    while child is not None:
-        root_set[model.get_value(child, COL_NODE)] = i
-        child = model.iter_next(child)
-        i += 1
-     
-    path = []
-    while node not in root_set:
-        path.append(node.get_order())
-        node = node.get_parent()
-        if node is None:
-            raise Exception("treeiter is not part of model")
-    path.append(root_set[node])
     
-    return tuple(reversed(path))
-    
+
 
 class TakeNoteBaseTreeView (gtk.TreeView):
     """Base class for treeviews of a NoteBook notes"""
@@ -284,7 +326,9 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         gtk.TreeView.__init__(self)
 
         self.model = None
-        self._reorderable = True
+        self._reorder = REORDER_ALL
+        self._dest_row = None
+        self._master_node = None
 
         # row expand/collapse
         self.expanded_id = self.connect("row-expanded",
@@ -313,11 +357,16 @@ class TakeNoteBaseTreeView (gtk.TreeView):
             [DROP_TREE_MOVE],
              gtk.gdk.ACTION_MOVE)
 
-    def set_reorderable(self, order):
-        self._reorderable = order
+
+    def set_master_node(self, node):
+        self._master_node = node
+
+    def set_reorder(self, order):
+        self._reorder = order
 
     def get_reorderable(self):
-        return self._reorderable
+        return self._reorder
+
 
     def set_model(self, model):
         if self.model is not None:
@@ -386,6 +435,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         pixbuf = pixbuf.scale_simple(40, 40, gtk.gdk.INTERP_BILINEAR)
         self.drag_source_set_icon_pixbuf(pixbuf)
         source_path = model.get_path(source)
+        self._dest_row = None
 
         
     def on_drag_motion(self, treeview, drag_context, x, y, eventtime):
@@ -394,49 +444,36 @@ class TakeNoteBaseTreeView (gtk.TreeView):
 
         self.stop_emission("drag-motion")
 
-        if not self._reorderable:
+        if self._reorder == REORDER_NONE:
             return False
         
         # determine destination row   
         dest_row = treeview.get_dest_row_at_pos(x, y)
         
-        if dest_row is None:
-            source_widget = drag_context.get_source_widget()
-            source_node = source_widget.get_drag_node()
-            source_path = get_path_from_node(self.model, source_node)
-            self.set_drag_dest_row(source_path, gtk.TREE_VIEW_DROP_INTO_OR_AFTER)
-            return 
+        if dest_row is not None:
+            # get target info
+            target_path, drop_position = dest_row
+            target = self.model.get_iter(target_path)
+            target_node = self.model.get_value(target, COL_NODE)
         
-        # get target info
-        target_path, drop_position  = dest_row
-        target = self.model.get_iter(target_path)
-        target_node = self.model.get_value(target, COL_NODE)
-        new_path = compute_new_path(self.model, target, drop_position)
-        
-        # process node drops
-        if "drop_node" in drag_context.targets:
-
-            # get source
-            source_widget = drag_context.get_source_widget()
-            source_node = source_widget.get_drag_node()
-            source_path = get_path_from_node(self.model, source_node)
+            # process node drops
+            if "drop_node" in drag_context.targets:
+                # get source
+                source_widget = drag_context.get_source_widget()
+                source_node = source_widget.get_drag_node()
+                source_path = get_path_from_node(self.model, source_node)
             
-            # determine if drag is allowed
-            if self.drop_allowed(source_node, target_node, drop_position):
-                self.set_drag_dest_row(target_path, drop_position)
-                return
-
-        # reset dest
-        self.set_drag_dest_row(source_path, gtk.TREE_VIEW_DROP_INTO_OR_AFTER)
-        #self.unset_rows_drag_dest()
-
+                # determine if drag is allowed
+                if self.drop_allowed(source_node, target_node, drop_position):
+                    self.set_drag_dest_row(target_path, drop_position)
+                    self._dest_row = target_path, drop_position
 
 
     def on_drag_drop(self, widget, drag_context, x, y, timestamp):
 
         self.stop_emission("drag-drop")
 
-        if not self._reorderable:
+        if self._reorder == REORDER_NONE:
             drag_context.finish(False, False, timestamp)
             return False
         
@@ -463,9 +500,8 @@ class TakeNoteBaseTreeView (gtk.TreeView):
 
         self.stop_emission("drag-data-received")
          
-        # determine destination row
-        dest_row = treeview.get_dest_row_at_pos(x, y)
-        if dest_row is None:
+        # if no destination, give up
+        if self._dest_row is None:
             drag_context.finish(False, False, eventtime)
             return
         
@@ -473,7 +509,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         if "drop_node" in drag_context.targets:
             
             # get target
-            target_path, drop_position  = dest_row
+            target_path, drop_position  = self._dest_row
             target = self.model.get_iter(target_path)
             target_node = self.model.get_value(target, COL_NODE)
             new_path = compute_new_path(self.model, target, drop_position)
@@ -498,8 +534,12 @@ class TakeNoteBaseTreeView (gtk.TreeView):
                 old_parent = source_node.get_parent()
                 old_parent_path = source_path[:-1]                
                 new_parent_path = new_path[:-1]
-                new_parent_it = self.model.get_iter(new_parent_path)
-                new_parent = self.model.get_value(new_parent_it, COL_NODE)
+                if len(new_parent_path) == 0:
+                    new_parent = self._master_node
+                    assert self._master_node is not None
+                else:
+                    new_parent_it = self.model.get_iter(new_parent_path)
+                    new_parent = self.model.get_value(new_parent_it, COL_NODE)
 
                 # perform move in notebook model
                 try:
@@ -509,10 +549,10 @@ class TakeNoteBaseTreeView (gtk.TreeView):
                     self.emit("error", e.msg, e)
                     return
 
-                if old_parent.is_expanded():
+                if len(old_parent_path) > 0 and old_parent.is_expanded():
                     self.expand_to_path(old_parent_path)
                 
-                if new_parent.is_expanded():
+                if len(new_parent_path) > 0 and new_parent.is_expanded():
                     self.expand_to_path(new_parent_path)
                 
                 # make sure to show new children
@@ -525,8 +565,12 @@ class TakeNoteBaseTreeView (gtk.TreeView):
             else:                
                 # process node move that is not in treeview
                 new_parent_path = new_path[:-1]
-                new_parent_it = self.model.get_iter(new_parent_path)
-                new_parent = self.model.get_value(new_parent_it, COL_NODE)
+                if len(new_parent_path) == 0:
+                    new_parent = self._master_node
+                    assert self._master_node is not None
+                else:
+                    new_parent_it = self.model.get_iter(new_parent_path)
+                    new_parent = self.model.get_value(new_parent_it, COL_NODE)
                 source_node.move(new_parent, new_path[-1])
                 drag_context.finish(True, True, eventtime)
 
@@ -551,12 +595,16 @@ class TakeNoteBaseTreeView (gtk.TreeView):
 
         # (1) do not let nodes move out of notebook root
         # (2) do not let nodes move into pages
+        # (3) only allow INTO drops if reorder == FOLDER
         return not (target_node.get_parent() is None and \
                     (drop_position == gtk.TREE_VIEW_DROP_BEFORE or 
                      drop_position == gtk.TREE_VIEW_DROP_AFTER)) and \
                not (target_node.is_page() and \
                     (drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or 
-                     drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER))
+                     drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER)) and \
+               not (self._reorder == REORDER_FOLDER and \
+                    (drop_position not in (gtk.TREE_VIEW_DROP_INTO_OR_BEFORE,
+                                           gtk.TREE_VIEW_DROP_INTO_OR_AFTER)))
 
 
 

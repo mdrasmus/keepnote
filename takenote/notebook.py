@@ -420,7 +420,8 @@ class NoteBookNode (object):
 
         # notify listeners
         old_parent.notify_change(True)
-        parent.notify_change(True)
+        if parent != old_parent:
+            parent.notify_change(True)
 
         
     

@@ -170,16 +170,24 @@ class TakeNoteTreeView (treemodel.TakeNoteBaseTreeView):
                      for path in paths]
             self.emit("select-nodes", nodes)
         return True
+
+
+    def get_selected_nodes(self):
+        model, it = self.get_selection().get_selected()
+        if it is None:
+            return []
+        node = self.model.get_value(it, COL_NODE)
+        return [node]
     
     
     def on_delete_node(self):
         # TODO: add folder name to message box
         
         # get node to delete
-        model, it = self.get_selection().get_selected()
-        if it is None:
-            return    
-        node = self.model.get_value(it, COL_NODE)
+        nodes = self.get_selected_nodes()
+        if len(nodes) == 0:
+            return
+        node = nodes[0]
         
         if isinstance(node, NoteBookTrash):
             self.emit("error", "The Trash folder cannot be deleted.", None)
@@ -254,7 +262,7 @@ class TakeNoteTreeView (treemodel.TakeNoteBaseTreeView):
 
     
     def expand_node(self, node):
-        path = treemodel.get_path_from_data(self.model, node)
+        path = treemodel.get_path_from_node(self.model, node)
         self.expand_to_path(path)
 
 

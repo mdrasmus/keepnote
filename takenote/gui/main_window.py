@@ -556,35 +556,66 @@ class TakeNoteWindow (gtk.Window):
     #===========================================================
     # page and folder actions
     
-    def on_new_dir(self):
+    def on_new_dir(self, widget):
         """Add new folder near selected nodes"""
-        if len(self.sel_nodes) == 1:
-            parent = self.sel_nodes[0]
+
+        if widget == "treeview":
+            nodes = self.treeview.get_selected_nodes()
+        elif widget == "selector":
+            nodes = self.selector.get_selected_nodes()
+        else:
+            raise Exception("unknown widget '%s'" % widget)
+        
+        if len(nodes) == 1:
+            parent = nodes[0]
         else:
             parent = self.notebook.get_root_node()
         
         if parent.is_page():
             parent = parent.get_parent()
-        
         node = parent.new_dir()
-        self.treeview.expand_node(parent)
-        self.treeview.edit_node(node)
+
+        if widget == "treeview":
+            self.treeview.expand_node(parent)
+            self.treeview.edit_node(node)
+        elif widget == "selector":
+            #self.selector.view_nodes([parent])
+            self.selector.expand_node(parent)
+            self.selector.edit_node(node)
+        else:
+            raise Exception("unknown widget '%s'" % widget)            
     
             
     
-    def on_new_page(self):
+    def on_new_page(self, widget):
         """Add new page near selected nodes"""
-        if len(self.sel_nodes) == 1:
-            parent = self.sel_nodes[0]
+
+        if widget == "treeview":
+            nodes = self.treeview.get_selected_nodes()
+        elif widget == "selector":
+            nodes = self.selector.get_selected_nodes()
+        else:
+            raise Exception("unknown widget '%s'" % widget)
+        
+        if len(nodes) == 1:
+            parent = nodes[0]
         else:
             parent = self.notebook.get_root_node()
-        
+
         if parent.is_page():
             parent = parent.get_parent()
-        
         node = parent.new_page()
-        self.selector.view_nodes([parent])
-        self.selector.edit_node(node)
+
+        if widget == "treeview":
+            self.treeview.expand_node(parent)
+            self.treeview.edit_node(node)
+        elif widget == "selector":
+            #self.selector.view_nodes([parent])
+            self.selector.expand_node(parent)
+            self.selector.edit_node(node)
+        else:
+            raise Exception("unknown widget '%s'" % widget)       
+
 
     
     def on_delete_dir(self):
@@ -1572,13 +1603,13 @@ class TakeNoteWindow (gtk.Window):
         # treeview context menu
         # treeview/new folder
         item = gtk.MenuItem("New _Folder")
-        item.connect("activate", lambda w: self.on_new_dir())
+        item.connect("activate", lambda w: self.on_new_dir("treeview"))
         self.treeview.menu.append(item)
         item.show()
         
         # treeview/new page
         item = gtk.MenuItem("New _Page")
-        item.connect("activate", lambda w: self.on_new_page())
+        item.connect("activate", lambda w: self.on_new_page("treeview"))
         self.treeview.menu.append(item)
         item.show()
 
@@ -1592,14 +1623,14 @@ class TakeNoteWindow (gtk.Window):
         #=================================
         # note selector context menu
         # selector/new folder
-        #item = gtk.MenuItem("New _Folder")
-        #item.connect("activate", lambda w: self.on_new_dir())
-        #self.selector.menu.append(item)
-        #item.show()
+        item = gtk.MenuItem("New _Folder")
+        item.connect("activate", lambda w: self.on_new_dir("selector"))
+        self.selector.menu.append(item)
+        item.show()
         
         # selector/new page
         item = gtk.MenuItem("New _Page")
-        item.connect("activate", lambda w: self.on_new_page())
+        item.connect("activate", lambda w: self.on_new_page("selector"))
         self.selector.menu.append(item)
         item.show()
 

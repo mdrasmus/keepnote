@@ -153,7 +153,7 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         # set default sorting
         # remember sort per node
         self.model.set_sort_column_id(COL_MANUAL, gtk.SORT_ASCENDING)
-        self.set_reorderable(True)
+        self.set_reorder(treemodel.REORDER_ALL)
         
         self.menu = gtk.Menu()
         self.menu.attach_to_widget(self, lambda w,m:None)
@@ -172,13 +172,13 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         
 
     def on_column_clicked(self, column):
-        self.set_reorderable(False)
+        self.set_reorder(treemodel.REORDER_FOLDER)
             
     def on_directory_column_clicked(self, column):
         """sort pages by directory order"""
         #self.model.set_default_sort_func
         self.model.set_sort_column_id(COL_MANUAL, gtk.SORT_ASCENDING)
-        self.set_reorderable(True)
+        self.set_reorder(treemodel.REORDER_ALL)
         #reset_default_sort_func()
         
     
@@ -239,7 +239,6 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
             type=gtk.MESSAGE_QUESTION, 
             buttons=gtk.BUTTONS_YES_NO, 
             message_format="Do you want to delete this page?")
-        dialog.connect("response", self.on_delete_page_response)
 
         response = dialog.run()
         
@@ -249,6 +248,14 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
             
         elif response == gtk.RESPONSE_NO:
             dialog.destroy()    
+
+
+    def get_selected_nodes(self):
+        model, it = self.get_selection().get_selected()        
+        if it is None:
+            return []
+        return [self.model.get_value(it, COL_NODE)]
+        
     
     def delete_page(self):
         model, it = self.get_selection().get_selected()
@@ -287,6 +294,13 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         self.set_model(None)        
         self.sel_nodes = nodes
 
+        if len(nodes) == 1:
+            model.get_model().set_master_node(nodes[0])
+            self.set_master_node(nodes[0])
+        else:
+            model.get_model().set_master_node(None)
+            self.set_master_node(None)
+        
         # populate model
         roots = []
         for node in nodes:
@@ -320,8 +334,14 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
             self.set_status("1 page", "stats")
 
         self.emit("select-nodes", [])
+
                 
-    
+    def expand_node(self, node):
+        try:
+            path = treemodel.get_path_from_node(self.model, node)        
+            self.expand_to_path(path)
+        except Exception:
+            pass
         
     
     def edit_node(self, page):
@@ -378,17 +398,20 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         else:
             sort_dir = gtk.SORT_DESCENDING            
 
-        self.set_reorderable(info_sort == notebook.INFO_SORT_MANUAL)
             
         if info_sort == notebook.INFO_SORT_MANUAL or \
            info_sort == notebook.INFO_SORT_NONE:
             model.set_sort_column_id(COL_MANUAL, sort_dir)
+            self.set_reorder(treemodel.REORDER_ALL)
         elif info_sort == notebook.INFO_SORT_TITLE:
-            model.set_sort_column_id(COL_TITLE, sort_dir)            
+            model.set_sort_column_id(COL_TITLE, sort_dir)
+            self.set_reorder(treemodel.REORDER_FOLDER)
         elif info_sort == notebook.INFO_SORT_CREATED_TIME:
             model.set_sort_column_id(COL_CREATED_INT, sort_dir)
+            self.set_reorder(treemodel.REORDER_FOLDER)
         elif info_sort == notebook.INFO_SORT_MODIFIED_TIME:
             model.set_sort_column_id(COL_MODIFIED_INT, sort_dir)
+            self.set_reorder(treemodel.REORDER_FOLDER)
 
     
     def set_status(self, text, bar="status"):
