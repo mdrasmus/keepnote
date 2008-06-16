@@ -582,8 +582,14 @@ class TakeNoteWindow (gtk.Window):
     #===========================================================
     # page and folder actions
     
-    def on_new_dir(self, widget):
+    def on_new_dir(self, widget="focus"):
         """Add new folder near selected nodes"""
+
+        if widget == "focus":
+            if self.selector.is_focus():
+                widget = "selector"
+            else:
+                widget = "treeview"
 
         if widget == "treeview":
             nodes = self.treeview.get_selected_nodes()
@@ -613,8 +619,14 @@ class TakeNoteWindow (gtk.Window):
     
             
     
-    def on_new_page(self, widget):
+    def on_new_page(self, widget="focus"):
         """Add new page near selected nodes"""
+
+        if widget == "focus":
+            if self.selector.is_focus():
+                widget = "selector"
+            else:
+                widget = "treeview"
 
         if widget == "treeview":
             nodes = self.treeview.get_selected_nodes()
@@ -1106,46 +1118,60 @@ class TakeNoteWindow (gtk.Window):
     #=====================================================
     # External app viewers
     
-    def on_view_folder_file_explorer(self):
+    def on_view_folder_file_explorer(self, node=None):
         """View folder in file explorer"""
         explorer = self.app.pref.get_external_app("file_explorer")
+
+        if node is None:
+            if len(self.sel_nodes) > 1:
+                return
+            node = self.sel_nodes[0]
     
-        if len(self.sel_nodes) > 0 and explorer is not None:
+        if explorer is not None:
             try:
-                proc = subprocess.Popen([explorer.prog, self.sel_nodes[0].get_path()])
+                proc = subprocess.Popen([explorer.prog, node.get_path()])
             except OSError, e:
                 self.error("Could not open folder in file explorer", e)
 
 
-    def on_view_page_file_explorer(self):
+    def on_view_page_file_explorer(self, node=None):
         """View current page in file explorer"""
         explorer = self.app.pref.get_external_app("file_explorer")
+
+        if node is None:
+            node = self.current_page
     
-        if self.current_page is not None and explorer is not "":
+        if node is not None and explorer is not None:
             try:
-                subprocess.Popen([explorer.prog, self.current_page.get_path()])
+                subprocess.Popen([explorer.prog, node.get_path()])
             except OSError, e:
                 self.error("Could not open page in file explorer", e)
             
     
-    def on_view_page_web_browser(self):
+    def on_view_page_web_browser(self, node=None):
         """View current page in web browser"""
         browser = self.app.pref.get_external_app("web_browser")
+
+        if node is None:
+            node = self.current_page
     
-        if self.current_page is not None and browser is not None:
+        if node is not None and browser is not None:
             try:
-                proc = subprocess.Popen([browser.prog, self.current_page.get_data_file()])
+                proc = subprocess.Popen([browser.prog, node.get_data_file()])
             except OSError, e:
                 self.error("Could not open page in web browser", e)
     
     
-    def on_view_page_text_editor(self):
+    def on_view_page_text_editor(self, node=None):
         """View current page in text editor"""
         editor = self.app.pref.get_external_app("text_editor")
+
+        if node is None:
+            node = self.current_page    
     
-        if self.current_page is not None and editor is not None:
+        if node is not None and editor is not None:
             try:
-                proc = subprocess.Popen([editor.prog, self.current_page.get_data_file()])
+                proc = subprocess.Popen([editor.prog, node.get_data_file()])
             except OSError, e:
                 self.error("Could not open page in text editor", e)
 
@@ -1354,7 +1380,7 @@ class TakeNoteWindow (gtk.Window):
             ("/Format/sep2", 
                 None, None, 0, "<Separator>" ),
             ("/Format/Increase Font _Size", 
-                "<control>plus", lambda w, e: self.on_font_size_inc(), 0, 
+                "<control>equal", lambda w, e: self.on_font_size_inc(), 0, 
                 "<ImageItem>", 
                 get_resource_pixbuf("font-inc.png")),
             ("/Format/_Decrease Font Size", 
@@ -1648,7 +1674,17 @@ class TakeNoteWindow (gtk.Window):
         self.treeview.menu.append(item)
         item.show()
 
+        item = gtk.SeparatorMenuItem()
+        item.show()
+        self.treeview.menu.append(item)
 
+        # treeview/file explorer
+        item = gtk.MenuItem("View in File Explorer")
+        item.connect("activate", lambda w: self.on_view_folder_file_explorer())
+        self.treeview.menu.append(item)
+        item.show()        
+
+        
         #=================================
         # note selector context menu
         # selector/new folder
@@ -1668,7 +1704,16 @@ class TakeNoteWindow (gtk.Window):
         item.connect("activate", lambda w: self.selector.on_delete_page())
         self.selector.menu.append(item)
         item.show()
-          
+
+        item = gtk.SeparatorMenuItem()
+        item.show()
+        self.treeview.menu.append(item)
+        
+        # selector/file explorer
+        item = gtk.MenuItem("View in File Explorer")
+        item.connect("activate", lambda w: self.on_view_page_file_explorer())
+        self.selector.menu.append(item)
+        item.show()
 
 
 

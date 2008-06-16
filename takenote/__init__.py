@@ -201,7 +201,10 @@ class TakeNotePreferences (object):
         
         
     def get_external_app(self, key):
-        return self._external_apps_lookup.get(key, None)
+        app = self._external_apps_lookup.get(key, None)
+        if app == "":
+            app = None
+        return app
 
     
     def write(self):
