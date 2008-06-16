@@ -1,7 +1,5 @@
-SUMMON is copyrighted by Matt Rasmussen and is licensed under the LGPL (see
+TakeNote is copyrighted by Matt Rasmussen and is licensed under the LGPL (see
 COPYING.LESSER for details).
 
-For easing Windows installation, two third party packages are also included
-under the windows directory.  OpenGLUT and SDL  have their own copyrights and
-licenses, which are listed in windows/openglut/ and windows/sdl/ directories, 
-respectively.
+For easing Windows installation, third party packages have been included.  They
+each have their own copyright and licensing.

@@ -73,6 +73,9 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook):
     
     def on_modified_callback(self, page_num, modified):
         self.emit("modified", self._pages[page_num], modified)
+
+    def on_child_activated(self, textview, child):
+        self.emit("child-activated", textview, child)
     
     #def on_error_callback(self, widget, text, error):
     #    self.emit("error", text, error)
@@ -104,6 +107,7 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook):
         self._textviews[-1].connect("font-change", self.on_font_callback)
         self._textviews[-1].connect("modified", lambda t, m:
             self.on_modified_callback(len(self._pages)-1, m))
+        self._textviews[-1].connect("child-activated", self.on_child_activated)
         #self._textviews[-1].connect("error", self.on_error_callback)
         self._textviews[-1].disable()
         self._textviews[-1].show()
@@ -208,6 +212,8 @@ gobject.signal_new("font-change", TakeNoteEditor, gobject.SIGNAL_RUN_LAST,
     gobject.TYPE_NONE, (object, str, str, int))
 gobject.signal_new("error", TakeNoteEditor, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (str, object))
+gobject.signal_new("child-activated", TakeNoteEditor, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (object, object))
 
 
 
@@ -245,7 +251,8 @@ class TakeNoteWindow (gtk.Window):
         self.editor = TakeNoteEditor()
         self.editor.connect("font-change", self.on_font_change)
         self.editor.connect("modified", self.on_page_editor_modified)
-        self.editor.connect("error", lambda w,t,e: self.error(t, e))  
+        self.editor.connect("error", lambda w,t,e: self.error(t, e))
+        self.editor.connect("child-activated", self.on_child_activated)
         self.editor.view_pages([])
 
 
@@ -373,6 +380,12 @@ class TakeNoteWindow (gtk.Window):
     def on_page_editor_modified(self, editor, page, modified):
         if modified:
             self.set_notebook_modified(modified)
+
+    def on_child_activated(self, editor, textview, child):
+
+        if isinstance(child, richtext.RichTextImage):
+            self.view_image(child.get_filename())
+    
     
     
     #==============================================
@@ -976,7 +989,10 @@ class TakeNoteWindow (gtk.Window):
         
         # get image filename
         image_filename = menuitem.get_parent().get_child().get_filename()
+        self.view_image(image_filename)
+        
 
+    def view_image(self, image_filename):
         image_path = os.path.join(self.current_page.get_path(), image_filename)
         viewer = self.app.pref.get_external_app("image_viewer")
         

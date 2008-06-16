@@ -753,6 +753,8 @@ class RichTextAnchor (gtk.TextChildAnchor):
 gobject.type_register(RichTextAnchor)
 gobject.signal_new("selected", RichTextAnchor, gobject.SIGNAL_RUN_LAST, 
                    gobject.TYPE_NONE, ())
+gobject.signal_new("activated", RichTextAnchor, gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, ())
 gobject.signal_new("popup-menu", RichTextAnchor, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, (int, object))
 
@@ -1002,6 +1004,10 @@ class RichTextImage (RichTextAnchor):
         if event.button == 1:
             self._widget.grab_focus()
             self.emit("selected")
+
+            if event.type == gtk.gdk._2BUTTON_PRESS:
+                self.emit("activated")
+            
             return True
         elif event.button == 3:
             # popup menu
@@ -1239,6 +1245,7 @@ class RichTextBuffer (gtk.TextBuffer):
         # setup child
         self.anchors.add(child)
         child.set_buffer(self)
+        child.connect("activated", self.on_child_activated)
         child.connect("selected", self.on_child_selected)
         child.connect("popup-menu", self.on_child_popup_menu)
         self.insert_child_anchor(it, child)
@@ -1356,7 +1363,9 @@ class RichTextBuffer (gtk.TextBuffer):
 
     def on_delete_range(self, textbuffer, start, end):
         """Callback for delete range"""
-    
+
+        # TODO: deregister children in selection?
+        
         # start next action
         self.next_action = DeleteAction(self, start.get_offset(), 
                                         end.get_offset(),
@@ -1438,7 +1447,12 @@ class RichTextBuffer (gtk.TextBuffer):
         end.forward_char() #cursor_position()
         self.select_range(it, end)
         #self.place_cursor(it)
-        
+
+
+    def on_child_activated(self, child):
+        if self.textview:
+            self.textview.on_child_activated(child)
+    
 
     def on_child_popup_menu(self, child, button, activate_time):
         if self.textview:
@@ -1694,6 +1708,8 @@ class RichTextMenu (gtk.Menu):
         return self._child
 
 
+# TODO: perhaps all callbacks from buffer to view should be signals?
+# this would allow multiple views to share a buffer?
 
 
 class RichTextView (gtk.TextView):
@@ -2091,6 +2107,12 @@ class RichTextView (gtk.TextView):
             
     def get_image_menu(self):
         return self.image_menu
+
+    #==========================================
+    # child events
+
+    def on_child_activated(self, child):
+        self.emit("child-activated", child)
         
     
     #===========================================================
@@ -2305,6 +2327,8 @@ gobject.signal_new("modified", RichTextView, gobject.SIGNAL_RUN_LAST,
     gobject.TYPE_NONE, (bool,))
 gobject.signal_new("font-change", RichTextView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object, str, str, int))
+gobject.signal_new("child-activated", RichTextView, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (object,))
 #gobject.signal_new("error", RichTextView, gobject.SIGNAL_RUN_LAST, 
 #    gobject.TYPE_NONE, (str, object,))
 
