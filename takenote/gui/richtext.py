@@ -38,6 +38,8 @@ IGNORE_TAGS = set(["gtkspell-misspelled", "hr"])
 # TextBuffer uses this char for anchors and pixbufs
 ANCHOR_CHAR = u'\ufffc'
 
+MAX_UNDOS = 100
+
 
 #=============================================================================
 # functions for iterating and inserting into textbuffers
@@ -1040,7 +1042,7 @@ class RichTextBuffer (gtk.TextBuffer):
         gtk.TextBuffer.__init__(self)
         self.clipboard_contents = None
         self.textview = textview
-        self.undo_stack = UndoStack()
+        self.undo_stack = UndoStack(MAX_UNDOS)
 
         # action state
         self.insert_mark = None

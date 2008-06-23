@@ -4,6 +4,11 @@
 
 """
 
+import sys
+
+from takenote.linked_list import LinkedList
+
+
 
 
 def cat_funcs(funcs):
@@ -19,78 +24,89 @@ def cat_funcs(funcs):
             
 
 class UndoStack (object):
-    def __init__(self):
-        self.undo_actions = []
-        self.redo_actions = []
-        self.action_stack = 0
-        self.pending_actions = []
-        self.suppress_stack = 0
+    def __init__(self, maxsize=sys.maxint):
+        self._undo_actions = LinkedList()
+        self._redo_actions = []
+        self._action_stack = 0
+        self._pending_actions = []
+        self._suppress_stack = 0
+        self._maxsize = maxsize
     
     
     def do(self, action, undo, execute=True):
-        if self.suppress_stack > 0:
+        if self._suppress_stack > 0:
             return    
     
-        if self.action_stack == 0:
-            self.undo_actions.append((action, undo))
-            self.redo_actions = []
+        if self._action_stack == 0:
+            self._undo_actions.append((action, undo))
+            self._redo_actions = []
             if execute:
                 action()
+
+            while len(self._undo_actions) > self._maxsize:
+                self._undo_actions.pop_front()
         else:
-            self.pending_actions.append((action, undo))
-            self.redo_actions = []
+            self._pending_actions.append((action, undo))
+            self._redo_actions = []
             if execute:
                 action()
+
     
     def undo(self):
-        assert self.action_stack == 0       
+        assert self._action_stack == 0       
         
-        if len(self.undo_actions) > 0:
-            action, undo = self.undo_actions.pop()
+        if len(self._undo_actions) > 0:
+            action, undo = self._undo_actions.pop()
             self.suppress()
             undo()
             self.resume()
-            self.redo_actions.append((action, undo))
+            self._redo_actions.append((action, undo))
     
     def redo(self):
-        assert self.action_stack == 0
+        assert self._action_stack == 0
     
-        if len(self.redo_actions) > 0:
-            action, undo = self.redo_actions.pop()
+        if len(self._redo_actions) > 0:
+            action, undo = self._redo_actions.pop()
             self.suppress()            
             action()
             self.resume()
-            self.undo_actions.append((action, undo))
+            self._undo_actions.append((action, undo))
+
+            while len(self._undo_actions) > self._maxsize:
+                self._undo_actions.pop_front()
     
     def begin_action(self):
-        self.action_stack += 1
+        self._action_stack += 1
     
     def end_action(self):
-        self.action_stack -= 1
-        assert self.action_stack >= 0
+        self._action_stack -= 1
+        assert self._action_stack >= 0
 
-        if self.action_stack == 0:
-            if len(self.pending_actions) > 0:
-                actions, undos = zip(*self.pending_actions)
+        if self._action_stack == 0:
+            if len(self._pending_actions) > 0:
+                actions, undos = zip(*self._pending_actions)
                 
-                self.undo_actions.append((cat_funcs(actions), 
-                                          cat_funcs(reversed(undos))))
-                self.pending_actions = []
+                self._undo_actions.append((cat_funcs(actions), 
+                                           cat_funcs(reversed(undos))))
+                self._pending_actions = []
+
+                while len(self._undo_actions) > self._maxsize:
+                    self._undo_actions.pop_front()
 
     def suppress(self):
-        self.suppress_stack += 1
+        self._suppress_stack += 1
     
     def resume(self):
-        self.suppress_stack -= 1
-        assert self.suppress_stack >= 0
+        self._suppress_stack -= 1
+        assert self._suppress_stack >= 0
     
     def is_suppressed(self):
-        return self.suppress_stack > 0
+        return self._suppress_stack > 0
     
     def reset(self):
-        self.undo_actions = []
-        self.redo_actions = []
-        self.action_stack = 0
-        self.pending_actions = []
-        self.suppress_stack = 0
+        self._undo_actions.clear()
+        self._redo_actions = []
+        self._action_stack = 0
+        self._pending_actions = []
+        self._suppress_stack = 0
 

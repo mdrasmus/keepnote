@@ -971,7 +971,7 @@ class NoteBook (NoteBookDir):
         for node in list(self._dirty):
             node.save()
         
-        assert len(self._dirty) == 0
+        self._dirty.clear()
     
     
     def get_children(self):

@@ -33,6 +33,8 @@ from takenote.gui import \
     dialog_image_resize
 
 
+AUTOSAVE_TIME = 10 * 1000 # 1 min (in msec)
+
 
 def quote_filename(filename):
     if " " in filename:
@@ -337,7 +339,10 @@ class TakeNoteWindow (gtk.Window):
         
         self.show_all()        
         self.treeview.grab_focus()
-            
+
+        
+
+        
     
     #=============================================================
     # Treeview and listview callbacks
@@ -411,20 +416,23 @@ class TakeNoteWindow (gtk.Window):
         """Launches New NoteBook dialog"""
         
         dialog = gtk.FileChooserDialog("New Notebook", self, 
-            action=gtk.FILE_CHOOSER_ACTION_CREATE_FOLDER,
+            action=gtk.FILE_CHOOSER_ACTION_SAVE, #CREATE_FOLDER,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "New", gtk.RESPONSE_OK))
         
         response = dialog.run()
+
+        print response
         
         if response == gtk.RESPONSE_OK:
-            filename = dialog.get_filename()
-            dialog.destroy()
-            os.rmdir(filename)
+            filename = dialog.get_filename()            
+            #os.rmdir(filename)
             self.new_notebook(filename)
             
         elif response == gtk.RESPONSE_CANCEL:
-            dialog.destroy()
+            pass
+
+        dialog.destroy()
     
     
     def on_open_notebook(self):
@@ -457,24 +465,24 @@ class TakeNoteWindow (gtk.Window):
             dialog.destroy()
 
 
-    def on_save(self):
+    def on_save(self, silent=False):
         """Saves the current NoteBook"""
         if self.notebook is not None:
-            needed = self.notebook.save_needed() or \
-                     self.editor.save_needed()
-            
-            self.notebook.save()
-            
+
             try:
                 self.editor.save()
-            except RichTextError, e:
-                self.error("Could not save opened page", e)
-            
-            if needed:
-                self.set_status("Notebook saved")
+                self.set_preferences()
+                self.notebook.save()
+            except Exception, e:
+                if not silent:
+                    self.error("Could not save notebook", e)
+                    self.set_status("Error saving notebook")
+                    return
             
             self.set_notebook_modified(False)
-    
+
+        self.set_status("Notebook saved")
+
     
     def on_quit(self):
         """Close the window and quit"""        
@@ -539,10 +547,7 @@ class TakeNoteWindow (gtk.Window):
             self.error("Could not load notebook '%s'" % filename, e)
             return None
 
-        self.notebook = notebook
-        self.selector.set_notebook(self.notebook)
-        self.treeview.set_notebook(self.notebook)
-        self.editor.set_notebook(self.notebook)
+        self.set_notebook(notebook)
         self.get_preferences()
         
         self.treeview.grab_focus()
@@ -551,6 +556,9 @@ class TakeNoteWindow (gtk.Window):
             self.set_status("Loaded '%s'" % self.notebook.get_title())
         
         self.set_notebook_modified(False)
+
+        # setup auto-saving
+        self.begin_auto_save()
         
         return self.notebook
         
@@ -562,28 +570,47 @@ class TakeNoteWindow (gtk.Window):
             if save:
                 try:
                     self.editor.save()
-                except RichTextError, e:
+                    self.set_preferences()
+                    self.notebook.save()
+                except Exception, e:
                     # TODO: should ask question, like try again?
-                    self.error("Could not save opened page", e)
-                    
-                self.set_preferences()
-                self.notebook.save()
+                    self.error("Could not save notebook", e)
+
             self.notebook.node_changed.remove(self.on_notebook_node_changed)
             
-            self.notebook = None
-            self.selector.set_notebook(self.notebook)
-            self.treeview.set_notebook(self.notebook)
-            self.editor.set_notebook(self.notebook)
-            
+            self.set_notebook(None)
             self.set_status("Notebook closed")
+
+
+    def begin_auto_save(self):
+        gobject.timeout_add(AUTOSAVE_TIME, self.auto_save)
+        
+
+    def auto_save(self):
+        """Callback for autosaving"""
+        
+        if self.notebook is not None:
+            self.on_save(True)
+            return True
+        else:
+            return False
     
-    
+
+    def set_notebook(self, notebook):
+        self.notebook = notebook
+        self.selector.set_notebook(notebook)
+        self.treeview.set_notebook(notebook)
+        self.editor.set_notebook(notebook)
+
     
     #===========================================================
     # page and folder actions
     
     def on_new_dir(self, widget="focus"):
         """Add new folder near selected nodes"""
+
+        if self.notebook is None:
+            return
 
         if widget == "focus":
             if self.selector.is_focus():
@@ -622,6 +649,9 @@ class TakeNoteWindow (gtk.Window):
     def on_new_page(self, widget="focus"):
         """Add new page near selected nodes"""
 
+        if self.notebook is None:
+            return
+
         if widget == "focus":
             if self.selector.is_focus():
                 widget = "selector"
@@ -648,7 +678,6 @@ class TakeNoteWindow (gtk.Window):
             self.treeview.expand_node(parent)
             self.treeview.edit_node(node)
         elif widget == "selector":
-            #self.selector.view_nodes([parent])
             self.selector.expand_node(parent)
             self.selector.edit_node(node)
         else:
@@ -958,10 +987,11 @@ class TakeNoteWindow (gtk.Window):
         # run dialog
         response = dialog.run()
 
+        
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
             dialog.destroy()
-            
+                        
             imgname, ext = os.path.splitext(os.path.basename(filename))
             if ext == ".jpg":
                 imgname = imgname + ".jpg"
@@ -976,6 +1006,7 @@ class TakeNoteWindow (gtk.Window):
             
         elif response == gtk.RESPONSE_CANCEL:
             dialog.destroy()
+        
     
     
     def insert_image(self, filename, savename="image.png"):
@@ -1335,7 +1366,7 @@ class TakeNoteWindow (gtk.Window):
                 "<control><shift>G", lambda w,e: self.find_dialog.on_find(False, forward=False), 0, 
                 "<StockItem>", gtk.STOCK_FIND),                 
             ("/Search/_Replace In Page",     
-                "<control>R", lambda w,e: self.find_dialog.on_find(True), 0, 
+                "<control><shift>R", lambda w,e: self.find_dialog.on_find(True), 0, 
                 "<StockItem>", gtk.STOCK_FIND), 
                 
             
@@ -1707,7 +1738,7 @@ class TakeNoteWindow (gtk.Window):
 
         item = gtk.SeparatorMenuItem()
         item.show()
-        self.treeview.menu.append(item)
+        self.selector.menu.append(item)
         
         # selector/file explorer
         item = gtk.MenuItem("View in File Explorer")
