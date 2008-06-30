@@ -55,7 +55,6 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
     def __init__(self):
         treemodel.TakeNoteBaseTreeView.__init__(self)
         self.drag_nodes = []
-        self.editing = False
         self.on_status = None
         self.sel_nodes = None
         
@@ -202,24 +201,6 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
                 self.menu.show()
                 return True
 
-
-    def on_editing_started(self, cellrenderer, editable, path):
-        self.editing = True
-    
-    def on_editing_canceled(self, cellrenderer):
-        self.editing = False    
-
-    def on_edit_title(self, cellrenderertext, path, new_text):
-        self.editing = False
-
-        it = self.model.get_iter(path)
-        page = self.model.get_value(it, COL_NODE)
-        if page.get_title() != new_text:
-            try:
-                page.rename(new_text)
-            except NoteBookError, e:
-                self.emit("error", e.msg, e)
-        
     
     def on_select_changed(self, treeselect): 
         model, paths = treeselect.get_selected_rows()

@@ -171,7 +171,7 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
                 return
             rowref = self.create_tree_iter(node)
         
-            if not recurse:
+            if False: #not recurse:
                 self.row_changed(path, rowref)
             else:
                 for i, child in enumerate(node.get_children()):
@@ -331,6 +331,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         self._reorder = REORDER_ALL
         self._dest_row = None
         self._master_node = None
+        self.editing = False
 
         # row expand/collapse
         self.expanded_id = self.connect("row-expanded",
@@ -417,6 +418,38 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         if self.is_node_expanded(node):
             self.expand_row(path, False)
 
+
+    #============================================
+    # editing titles
+    
+    def on_editing_started(self, cellrenderer, editable, path):
+        self.editing = True
+    
+    def on_editing_canceled(self, cellrenderer):
+        self.editing = False
+
+    def on_edit_title(self, cellrenderertext, path, new_text):
+        self.editing = False
+        
+        node = self.model.get_value(self.model.get_iter(path), COL_NODE)
+        if node is None:
+            return
+        
+        # do not allow empty names
+        if new_text.strip() == "":
+            return
+
+        # set new title and catch errors
+        if new_text != node.get_title():
+            try:
+                node.rename(new_text)            
+            except NoteBookError, e:
+                self.emit("error", e.msg, e)
+
+        # reselect node
+        self.set_cursor(path)
+        
+    
 
     
     #=============================================

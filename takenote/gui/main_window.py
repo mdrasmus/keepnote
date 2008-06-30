@@ -421,8 +421,6 @@ class TakeNoteWindow (gtk.Window):
                      "New", gtk.RESPONSE_OK))
         
         response = dialog.run()
-
-        print response
         
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()            

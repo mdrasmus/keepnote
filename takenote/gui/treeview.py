@@ -49,7 +49,6 @@ class TakeNoteTreeView (treemodel.TakeNoteBaseTreeView):
         treemodel.TakeNoteBaseTreeView.__init__(self)
 
         self.notebook = None
-        self.editing = False
 
         self.set_model(treemodel.TakeNoteTreeModel())
                 
@@ -134,33 +133,7 @@ class TakeNoteTreeView (treemodel.TakeNoteBaseTreeView):
                 return True
 
     #=====================================
-    # node title editing
-
-    def on_editing_started(self, cellrenderer, editable, path):
-        self.editing = True
-    
-    def on_editing_canceled(self, cellrenderer):
-        self.editing = False
-
-    def on_edit_title(self, cellrenderertext, path, new_text):
-        self.editing = False
-        
-        node = self.model.get_value(self.model.get_iter(path), COL_NODE)
-        if node is None:
-            return
-        
-        # do not allow empty names
-        if new_text.strip() == "":
-            return
-
-        # set new title and catch errors
-        if new_text != node.get_title():
-            try:
-                node.rename(new_text)            
-            except NoteBookError, e:
-                self.emit("error", e.msg, e)
-        
-    
+    # selections
     
     def on_select_changed(self, treeselect): 
         model, paths = treeselect.get_selected_rows()
