@@ -17,7 +17,8 @@ import xml.dom
 
 
 # constants
-BLANK_NOTE = "<html><body></body></html>"
+BLANK_NOTE = """<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><body></body></html>"""
 
 NOTEBOOK_FORMAT_VERSION = 1
 ELEMENT_NODE = 1
@@ -67,6 +68,14 @@ TM_SEC, \
 TM_WDAY, \
 TM_YDAY, \
 TM_ISDST = range(9)
+
+
+DEFAULT_TIMESTAMP_FORMATS = {
+    "same_day": "%I:%M %p",
+    "same_month": "%a, %d %I:%M %p",
+    "same_year": "%a, %b %d %I:%M %p",
+    "diff_year": "%a, %b %d, %Y"
+}
 
 
 # information sort constants
@@ -157,7 +166,6 @@ def get_unique_filename_list(filenames, filename, ext="", sep=" ", number=2):
 #=============================================================================
 # File naming scheme
 
-
 def get_timestamp():
     """Returns the current timestamp"""
     return int(time.time() - EPOC)
@@ -166,26 +174,34 @@ def get_localtime():
     """Returns the local time"""
     return time.localtime(time.time() + EPOC)
 
-def get_str_timestamp(timestamp, current=None):
+def get_str_timestamp(timestamp, current=None,
+                      formats=DEFAULT_TIMESTAMP_FORMATS):
     """
     Get a string representation of a time stamp
     
     The string will be abbreviated according to the current time.
     """
-    if current is None:
-        current = get_localtime()
-    local = time.localtime(timestamp + EPOC)
+
+    if formats is None:
+        formats = DEFAULT_TIMESTAMP_FORMATS
+
+    try:
+        if current is None:
+            current = get_localtime()
+        local = time.localtime(timestamp + EPOC)
     
-    if local[TM_YEAR] == current[TM_YEAR]:
-        if local[TM_MON] == current[TM_MON]:
-            if local[TM_MDAY] == current[TM_MDAY]:
-                return time.strftime("%I:%M %p", local)
+        if local[TM_YEAR] == current[TM_YEAR]:
+            if local[TM_MON] == current[TM_MON]:
+                if local[TM_MDAY] == current[TM_MDAY]:
+                    return time.strftime(formats["same_day"], local)
+                else:
+                    return time.strftime(formats["same_month"], local)
             else:
-                return time.strftime("%a, %d %I:%M %p", local)
+                return time.strftime(formats["same_year"], local)        
         else:
-	        return time.strftime("%a, %b %d %I:%M %p", local)        
-    else:
-	    return time.strftime("%a, %b %d, %Y", local)
+            return time.strftime(formats["diff_year"], local)
+    except:
+        return "[formatting error]"
 
 
 def get_dir_meta_file(nodepath):
@@ -319,17 +335,17 @@ class NoteBookNode (object):
         """Gets the creation time of the node"""
         return self._created_time
 
-    def get_created_time_text(self):
+    def get_created_time_text(self, formats=DEFAULT_TIMESTAMP_FORMATS):
         """Gets the creation time string of the node"""
-        return get_str_timestamp(self._created_time)
+        return get_str_timestamp(self._created_time, formats=formats)
     
     def get_modified_time(self):
         """Gets the modification time of the node"""
         return self._modified_time
 
-    def get_modified_time_text(self):
+    def get_modified_time_text(self, formats=DEFAULT_TIMESTAMP_FORMATS):
         """Gets the modified time string of the node"""
-        return get_str_timestamp(self._modified_time)
+        return get_str_timestamp(self._modified_time, formats=formats)
     
     
     def set_created_time(self, timestamp=None):
@@ -857,12 +873,15 @@ class NoteBookTrash (NoteBookDir):
 class NoteBookPreferences (object):
     """Preference data structure for a NoteBook"""
     def __init__(self):
-        
+
+        # TODO: maybe move window size etc to app.pref
         self.window_size = DEFAULT_WINDOW_SIZE
         self.vsash_pos = DEFAULT_VSASH_POS
         self.hsash_pos = DEFAULT_HSASH_POS
+        
         self.version = NOTEBOOK_FORMAT_VERSION
         self.default_font = DEFAULT_FONT
+
 
 
 # file format for NoteBook preferences
@@ -882,7 +901,8 @@ g_notebook_pref_parser = xmlo.XmlObject(
             set=lambda s: "%d" % s.hsash_pos),
         xmlo.Tag("default_font",
             getobj=("default_font", str),
-            set=lambda s: s.default_font)]))
+            set=lambda s: s.default_font),
+        ]))
             
 
 class NoteBook (NoteBookDir):

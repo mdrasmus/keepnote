@@ -115,6 +115,7 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
         self._notebook = None
         self._roots = []
         self._master_node = None
+        self._date_formats = None
         self.set_root_nodes(roots)
 
 
@@ -133,7 +134,10 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
 
     def get_master_node(self):
         return self._master_node
-        
+
+    def set_date_formats(self, formats):
+        self._date_formats = formats
+    
     def set_root_nodes(self, roots=[]):
 
         for i in xrange(len(self._roots)-1, -1, -1):
@@ -233,11 +237,11 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
         elif column == COL_TITLE:
             return node.get_title()
         elif column == COL_CREATED_TEXT:
-             return node.get_created_time_text()
+             return node.get_created_time_text(self._date_formats)
         elif column == COL_CREATED_INT:
             return node.get_created_time()
         elif column == COL_MODIFIED_TEXT:
-            return node.get_modified_time_text()
+            return node.get_modified_time_text(self._date_formats)
         elif column == COL_MODIFIED_INT:
             return node.get_modified_time()
         elif column == COL_MANUAL:
@@ -358,8 +362,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         self.drag_dest_set(gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_MOTION,
             [DROP_TREE_MOVE],
              gtk.gdk.ACTION_MOVE)
-
-
+    
     def set_master_node(self, node):
         self._master_node = node
 
