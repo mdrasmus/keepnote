@@ -21,6 +21,7 @@ from takenote.notebook import \
     get_valid_unique_filename, \
     get_unique_filename_list, \
     get_str_timestamp, \
+    DEFAULT_TIMESTAMP_FORMATS, \
     DEFAULT_WINDOW_SIZE, \
     DEFAULT_WINDOW_POS, \
     DEFAULT_VSASH_POS, \
@@ -160,11 +161,15 @@ class TakeNotePreferences (object):
         self._external_apps_lookup = {}
         self.view_mode = "vertical"
         self.default_notebook = ""
+        self.timestamp_formats = dict(DEFAULT_TIMESTAMP_FORMATS)
 
         # temp variables for parsing
         self._last_app_key = ""
         self._last_app_title = ""
         self._last_app_program = ""
+        self._last_timestamp_name = ""
+        self._last_timestamp_format = ""
+        
 
     def read(self):
         if not os.path.exists(get_user_pref_file()):
@@ -249,6 +254,25 @@ g_takenote_pref_parser = xmlo.XmlObject(
                         get=lambda (s,i),x: setattr(s, "_last_app_program", x),
                         set=lambda (s,i): s.external_apps[i].prog)]
            )]
+        ),
+        xmlo.Tag("timestamp_formats", tags=[
+            xmlo.TagMany("timestamp_format",
+                iterfunc=lambda s: range(len(s.timestamp_formats)),
+                before=lambda (s,i): setattr(s, "_last_timestamp_name", "") or
+                                     setattr(s, "_last_timestamp_format", ""),
+                after=lambda (s,i):
+                    s.timestamp_formats.__setitem__(
+                        s._last_timestamp_name,
+                        s._last_timestamp_format),
+                tags=[
+                    xmlo.Tag("name",
+                        get=lambda (s,i),x: setattr(s, "_last_timestamp_name", x),
+                        set=lambda (s,i): s.timestamp_formats.keys()[i]),
+                    xmlo.Tag("format",
+                        get=lambda (s,i),x: setattr(s, "_last_timestamp_format", x),
+                        set=lambda (s,i): s.timestamp_formats.values()[i])
+                    ]
+            )]
         )
     ]))
 

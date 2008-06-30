@@ -37,6 +37,10 @@ class ApplicationOptionsDialog (object):
         self.app_config_xml.get_widget("default_notebook_entry").\
             set_text(self.app.pref.default_notebook)
 
+        # populate dates
+        for name in ["same_day", "same_month", "same_year", "diff_year"]:
+            self.app_config_xml.get_widget("date_%s_entry" % name).\
+                set_text(self.app.pref.timestamp_formats[name])
 
 
         # populate external apps
@@ -139,6 +143,11 @@ class ApplicationOptionsDialog (object):
         self.app.pref.default_notebook = \
             self.app_config_xml.get_widget("default_notebook_entry").get_text()
 
+        # save date formatting
+        for name in ["same_day", "same_month", "same_year", "diff_year"]:
+            self.app.pref.timestamp_formats[name] = \
+                self.app_config_xml.get_widget("date_%s_entry" % name).get_text()
+        
 
         for key, entry in self.entries.iteritems():
             self.app.pref._external_apps_lookup[key].prog = \

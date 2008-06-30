@@ -337,7 +337,7 @@ class TakeNoteWindow (gtk.Window):
         self.paned2.add2(self.editor)
         
         
-        self.show_all()        
+        #self.show_all()
         self.treeview.grab_focus()
 
         
