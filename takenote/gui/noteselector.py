@@ -307,6 +307,12 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
             if node.is_expanded2():
                 self.expand_to_path(treemodel.get_path_from_node(self.model, node))
 
+        # disable if no roots
+        if len(roots) == 0:
+            self.set_sensitive(False)
+        else:
+            self.set_sensitive(True)
+
         # update status
         npages = len(roots)
         if npages != 1:

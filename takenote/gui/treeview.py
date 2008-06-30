@@ -138,10 +138,9 @@ class TakeNoteTreeView (treemodel.TakeNoteBaseTreeView):
     def on_select_changed(self, treeselect): 
         model, paths = treeselect.get_selected_rows()
         
-        if len(paths) > 0:
-            nodes = [self.model.get_value(self.model.get_iter(path), COL_NODE)
-                     for path in paths]
-            self.emit("select-nodes", nodes)
+        nodes = [self.model.get_value(self.model.get_iter(path), COL_NODE)
+                 for path in paths]
+        self.emit("select-nodes", nodes)
         return True
 
 

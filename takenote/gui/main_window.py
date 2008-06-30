@@ -237,7 +237,7 @@ class TakeNoteWindow (gtk.Window):
 
         # treeview
         self.treeview = TakeNoteTreeView()
-        self.treeview.connect("select-nodes", self.on_select_treenode)
+        self.treeview.connect("select-nodes", self.on_tree_select)
         #self.treeview.connect("node-modified", self.on_treeview_modified)
         self.treeview.connect("error", lambda w,t,e: self.error(t, e))
         
@@ -348,14 +348,14 @@ class TakeNoteWindow (gtk.Window):
     # Treeview and listview callbacks
     
     
-    def on_select_treenode(self, treeview, nodes):
+    def on_tree_select(self, treeview, nodes):
         self.sel_nodes = nodes
         self.selector.view_nodes(nodes)
         
         # view page
         pages = [node for node in nodes 
                  if isinstance(node, NoteBookPage)]
-        
+
         if len(pages) > 0:
             self.current_page = pages[0]
             try:
@@ -366,7 +366,6 @@ class TakeNoteWindow (gtk.Window):
         else:
             self.editor.view_pages([])
             self.current_page = None
-        
 
     
     def on_list_select(self, selector, pages):
@@ -381,13 +380,14 @@ class TakeNoteWindow (gtk.Window):
             self.editor.view_pages(pages)
         except RichTextError, e:
             self.error("Could not load page '%s'" % pages[0].get_title(), e)
+
         
     def on_page_editor_modified(self, editor, page, modified):
         if modified:
             self.set_notebook_modified(modified)
 
-    def on_child_activated(self, editor, textview, child):
 
+    def on_child_activated(self, editor, textview, child):
         if isinstance(child, richtext.RichTextImage):
             self.view_image(child.get_filename())
     
