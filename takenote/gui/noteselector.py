@@ -157,6 +157,9 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         self.menu = gtk.Menu()
         self.menu.attach_to_widget(self, lambda w,m:None)
 
+
+    def set_date_formats(self, formats):
+        self.model.get_model().set_date_formats(formats)
     
     
     #=============================================

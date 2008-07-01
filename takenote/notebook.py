@@ -7,8 +7,8 @@
 """
 
 # takenote imports
-import xmlobject as xmlo
-from listening import Listeners
+import takenote.xmlobject as xmlo
+from takenote.listening import Listeners
 
 # python imports
 import os, sys, shutil, time, re

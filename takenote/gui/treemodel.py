@@ -257,14 +257,11 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
             return node
     
     def on_iter_next(self, rowref):
-        #print "iter_next", rowref
-        
         parent = rowref.get_parent()
 
         if parent is None:
             n = self._root_set[rowref]
             if n >= len(self._roots) - 1:
-                #print "root", n
                 return None
             else:
                 return self._roots[n+1]
@@ -274,15 +271,12 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
         assert 0 <= order < len(children)
         
         if order == len(children) - 1:
-            #print "last child", rowref.get_title(), order
             return None
         else:
             return children[order+1]
 
     
     def on_iter_children(self, parent):
-        #print "iter_children", parent
-        
         if parent is None:
             if len(self._roots) > 0:
                 return self._roots[0]
@@ -294,13 +288,9 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
             return None
     
     def on_iter_has_child(self, rowref):
-        #print "iter_has_child", rowref
-        
         return len(rowref.get_children()) > 0
     
     def on_iter_n_children(self, rowref):
-        #print "iter_n_children", rowref
-
         if rowref is None:
             return len(self._roots)
 
@@ -314,8 +304,6 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
             else:
                 return self._roots[n]
         else:
-            #print "nth child", parent.get_title(), n
-            
             children = parent.get_children()
             if n >= len(children):
                 print "out of bounds"
@@ -433,6 +421,10 @@ class TakeNoteBaseTreeView (gtk.TreeView):
                                                    self.on_row_has_child_toggled)
 
 
+
+    #=========================================
+    # model change callbacks
+
     def on_node_changed_start(self, model, node):
         # remember which nodes are selected
         self.__sel_nodes2[:] = self.__sel_nodes
@@ -545,6 +537,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
                 self.emit("error", e.msg, e)
 
         # reselect node
+        self.set_cursor((0,))
         self.set_cursor(path)
         
     

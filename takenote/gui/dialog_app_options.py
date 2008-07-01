@@ -158,6 +158,7 @@ class ApplicationOptionsDialog (object):
                 self.entries[key].get_text()
         
         self.app.pref.write()
+        self.app.pref.changed.notify()
         
         self.dialog.destroy()
         self.dialog = None

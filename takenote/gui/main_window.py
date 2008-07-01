@@ -229,6 +229,8 @@ class TakeNoteWindow (gtk.Window):
         self.notebook = None
         self.sel_nodes = []
         self.current_page = None
+        self.maximized = False
+        self.iconified = False
 
         # init main window
         self.set_title(takenote.PROGRAM_NAME)
@@ -237,6 +239,8 @@ class TakeNoteWindow (gtk.Window):
         # main window signals
         self.connect("delete-event", lambda w,e: self.on_quit())
         self.connect("window-state-event", self.on_window_state)
+        self.connect("size-allocate", self.on_window_size)
+        self.app.pref.changed.add(self.on_app_options_changed)
         
         # treeview
         self.treeview = TakeNoteTreeView()
@@ -343,16 +347,34 @@ class TakeNoteWindow (gtk.Window):
         #self.show_all()
         self.treeview.grab_focus()
 
-        
 
-    def on_window_state(self, window, event):            
+    #=========================================================
+    # main window gui callbacks
+
+    def on_window_state(self, window, event):
+        """Callback for window state"""
+
+        # keep track of maximized and minimized state
         self.maximized = event.new_window_state & \
                          gtk.gdk.WINDOW_STATE_MAXIMIZED
-        
+        self.iconified = event.new_window_state & \
+                         gtk.gdk.WINDOW_STATE_ICONIFIED
+
+
+    def on_window_size(self, window, event):
+        """Callback for resize events"""
+
+        # record window size if it is not maximized or minimized
+        if not self.maximized and not self.iconified:
+            self.app.pref.window_size = self.get_size()
+
+
+    def on_app_options_changed(self):
+        self.selector.set_date_formats(self.app.pref.timestamp_formats)
         
     
     #=============================================================
-    # Treeview and listview callbacks
+    # Treeview, listview, editor callbacks
     
     
     def on_tree_select(self, treeview, nodes):
@@ -413,7 +435,7 @@ class TakeNoteWindow (gtk.Window):
     
 
     def set_app_preferences(self):
-        self.app.pref.window_size = self.get_size()
+        #self.app.pref.window_size = self.get_size()
         self.app.pref.vsash_pos = self.paned2.get_position()
         self.app.pref.hsash_pos = self.hpaned.get_position()
         self.app.pref.window_maximized = self.maximized
@@ -431,6 +453,9 @@ class TakeNoteWindow (gtk.Window):
             action=gtk.FILE_CHOOSER_ACTION_SAVE, #CREATE_FOLDER,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "New", gtk.RESPONSE_OK))
+        dialog.set_current_folder(self.app.pref.new_notebook_path)
+
+
         
         response = dialog.run()
         
@@ -442,6 +467,9 @@ class TakeNoteWindow (gtk.Window):
         elif response == gtk.RESPONSE_CANCEL:
             pass
 
+
+        self.app.pref.new_notebook_path = dialog.get_current_folder()
+
         dialog.destroy()
     
     
@@ -452,7 +480,8 @@ class TakeNoteWindow (gtk.Window):
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "Open", gtk.RESPONSE_OK))
-        #self.filew.connect("response", self.on_open_notebook_response)
+        dialog.set_current_folder(self.app.pref.new_notebook_path)        
+
         
         file_filter = gtk.FileFilter()
         file_filter.add_pattern("*.nbk")
@@ -466,6 +495,8 @@ class TakeNoteWindow (gtk.Window):
         
         response = dialog.run()
 
+        self.app.pref.new_notebook_path = dialog.get_current_folder()
+
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
             dialog.destroy()
@@ -473,6 +504,8 @@ class TakeNoteWindow (gtk.Window):
             
         elif response == gtk.RESPONSE_CANCEL:
             dialog.destroy()
+
+
 
 
     def on_save(self, silent=False):
@@ -991,10 +1024,14 @@ class TakeNoteWindow (gtk.Window):
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "Insert", gtk.RESPONSE_OK))
+        dialog.set_current_folder(self.app.pref.insert_image_path)
+        
 
         # run dialog
         response = dialog.run()
 
+
+        self.app.pref.insert_image_path = dialog.get_current_folder()
         
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
@@ -1104,8 +1141,11 @@ class TakeNoteWindow (gtk.Window):
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "Save", gtk.RESPONSE_OK))
         dialog.set_default_response(gtk.RESPONSE_OK)
-        response = dialog.run()
+        dialog.set_current_folder(self.app.save_image_path)
         
+        response = dialog.run()
+
+        self.app.pref.save_image_path = dialog.get_current_folder()
 
         if response == gtk.RESPONSE_OK:
             if dialog.get_filename() == "":

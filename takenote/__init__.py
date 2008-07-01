@@ -28,6 +28,8 @@ from takenote.notebook import \
     NoteBookPage, \
     NoteBook
 
+from takenote.listening import Listeners
+
 
 #=============================================================================
 # globals / constants
@@ -52,6 +54,7 @@ PLATFORM = None
 
 USER_PREF_DIR = "takenote"
 USER_PREF_FILE = "takenote.xml"
+USER_ERROR_LOG = "error-log.txt"
 
 
 DEFAULT_WINDOW_SIZE = (800, 600)
@@ -108,11 +111,30 @@ def get_user_pref_dir(home=None):
         return os.path.join(appdata, USER_PREF_DIR)
     else:
         raise Exception("unknown platform '%s'" % p)
-        
+
+
+def get_user_documents(home=None):
+    """Returns the directory of the user's documents"""
+    p = get_platform()
+    if p == "unix":
+        if home is None:
+            home = os.getenv("HOME")
+        return home
+    elif p == "windows":
+        home = os.getenv("USERPROFILE")
+        return os.path.join(home, "My Documents")
+    else:
+        raise Exception("unknown platform '%s'" % p)
+    
 
 def get_user_pref_file(home=None):
     """Returns the filename of the application preference file"""
     return os.path.join(get_user_pref_dir(home), USER_PREF_FILE)
+
+
+def get_user_error_log(home=None):
+    """Returns a file for the error log"""
+    return os.path.join(get_user_pref_dir(home), USER_ERROR_LOG)
 
 
 def init_user_pref(home=None):
@@ -172,12 +194,21 @@ class TakeNotePreferences (object):
         self.default_notebook = ""
         self.timestamp_formats = dict(DEFAULT_TIMESTAMP_FORMATS)
 
+        # dialog chooser paths
+        self.new_notebook_path = get_user_documents()
+        self.insert_image_path = get_user_documents()
+        self.save_image_path = get_user_documents()
+        
         # temp variables for parsing
         self._last_app_key = ""
         self._last_app_title = ""
         self._last_app_program = ""
         self._last_timestamp_name = ""
         self._last_timestamp_format = ""
+
+        # listener
+        self.changed = Listeners()
+
         
 
     def read(self):
@@ -212,6 +243,9 @@ class TakeNotePreferences (object):
         lookup = dict((x.key, i) for i, x in enumerate(DEFAULT_EXTERNAL_APPS))
         top = len(DEFAULT_EXTERNAL_APPS)
         self.external_apps.sort(key=lambda x: (lookup.get(x.key, top), x.key))
+
+
+        self.changed.notify()
         
         
     def get_external_app(self, key):
@@ -253,6 +287,15 @@ g_takenote_pref_parser = xmlo.XmlObject(
         xmlo.Tag("hsash_pos",
             getobj=("hsash_pos", int),
             set=lambda s: "%d" % s.hsash_pos),
+        xmlo.Tag("new_notebook_path",
+            getobj=("new_notebook_path", str),
+            set=lambda s: s.new_notebook_path),
+        xmlo.Tag("insert_image_path",
+            getobj=("insert_image_path", str),
+            set=lambda s: s.insert_image_path),
+        xmlo.Tag("save_image_path",
+            getobj=("save_image_path", str),
+            set=lambda s: s.save_image_path),
         xmlo.Tag("external_apps", tags=[
             xmlo.TagMany("app",
                 iterfunc=lambda s: range(len(s.external_apps)),
