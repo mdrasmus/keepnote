@@ -73,19 +73,39 @@ import takenote.gui.main_window
 
 #=============================================================================
 
-def main():
-    gtk.main()
 
+def main(args):
 
-if __name__ == "__main__":
-    app = takenote.gui.TakeNote(basedir)
+    show_errors = False
+
+    # parse options
+    i = 1
+    for i in range(1, len(args)):
+        if args[i] == "--show-errors":
+            show_errors = True
+        elif not args[i].startswith("-"):
+            args = args[i:]
+            break
+    else:
+        args = []
     
-    if len(sys.argv) > 1:
-        app.open_notebook(sys.argv[1].rstrip("/"))
+    # start error log
+    if takenote.get_platform() == "windows" and not show_errors:
+        errorlog = open(takenote.get_user_error_log(), "w")
+        sys.stderr = errorlog
         
+    # read preferences
+    app = takenote.gui.TakeNote(basedir)
+
+
+    if len(args) > 0:
+        # open specified notebook
+        app.open_notebook(args[0].rstrip("/"))        
     elif app.pref.default_notebook != "":
         # open default notebook
         app.open_notebook(app.pref.default_notebook)
-    
-    main()
 
+    gtk.main()
+
+
+main(sys.argv)
