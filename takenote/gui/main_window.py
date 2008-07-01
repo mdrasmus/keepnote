@@ -223,28 +223,29 @@ gobject.signal_new("child-activated", TakeNoteEditor, gobject.SIGNAL_RUN_LAST,
 class TakeNoteWindow (gtk.Window):
     """Main windows for TakeNote"""
 
-    def __init__(self, app=""):
+    def __init__(self, app):
         gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
         self.app = app
-        
-        self.set_title(takenote.PROGRAM_NAME)
-        self.set_default_size(*takenote.DEFAULT_WINDOW_SIZE)
-        self.connect("delete-event", lambda w,e: self.on_quit())
-        
         self.notebook = None
         self.sel_nodes = []
         self.current_page = None
 
+        # init main window
+        self.set_title(takenote.PROGRAM_NAME)
+        self.set_default_size(*takenote.DEFAULT_WINDOW_SIZE)
+
+        # main window signals
+        self.connect("delete-event", lambda w,e: self.on_quit())
+        self.connect("window-state-event", self.on_window_state)
+        
         # treeview
         self.treeview = TakeNoteTreeView()
         self.treeview.connect("select-nodes", self.on_tree_select)
-        #self.treeview.connect("node-modified", self.on_treeview_modified)
         self.treeview.connect("error", lambda w,t,e: self.error(t, e))
         
         # selector
         self.selector = TakeNoteSelector()
         self.selector.connect("select-nodes", self.on_list_select)
-        #self.selector.connect("node-modified", self.on_selector_modified)
         self.selector.connect("error", lambda w,t,e: self.error(t, e))
         self.selector.on_status = self.set_status
         
@@ -335,13 +336,19 @@ class TakeNoteWindow (gtk.Window):
         
         # layout editor
         self.paned2.add2(self.editor)
-        
+
+        # load preferences
+        self.get_app_preferences()
         
         #self.show_all()
         self.treeview.grab_focus()
 
         
 
+    def on_window_state(self, window, event):            
+        self.maximized = event.new_window_state & \
+                         gtk.gdk.WINDOW_STATE_MAXIMIZED
+        
         
     
     #=============================================================
@@ -396,18 +403,23 @@ class TakeNoteWindow (gtk.Window):
     #==============================================
     # Notebook preferences     
     
-    def get_preferences(self):
-        if self.notebook is not None:
-            self.resize(*self.notebook.pref.window_size)
-            self.paned2.set_position(self.notebook.pref.vsash_pos)
-            self.hpaned.set_position(self.notebook.pref.hsash_pos)
+    def get_app_preferences(self):
+        self.resize(*self.app.pref.window_size)
+        self.paned2.set_position(self.app.pref.vsash_pos)
+        self.hpaned.set_position(self.app.pref.hsash_pos)
+
+        if self.app.pref.window_maximized:
+            self.maximize()
     
 
-    def set_preferences(self):
-        if self.notebook is not None:
-            self.notebook.pref.window_size = self.get_size()
-            self.notebook.pref.vsash_pos = self.paned2.get_position()
-            self.notebook.pref.hsash_pos = self.hpaned.get_position()
+    def set_app_preferences(self):
+        self.app.pref.window_size = self.get_size()
+        self.app.pref.vsash_pos = self.paned2.get_position()
+        self.app.pref.hsash_pos = self.hpaned.get_position()
+        self.app.pref.window_maximized = self.maximized
+
+
+        self.app.pref.write()
            
     #=============================================
     # Notebook open/save/close UI         
@@ -469,7 +481,6 @@ class TakeNoteWindow (gtk.Window):
 
             try:
                 self.editor.save()
-                self.set_preferences()
                 self.notebook.save()
             except Exception, e:
                 if not silent:
@@ -485,6 +496,7 @@ class TakeNoteWindow (gtk.Window):
     def on_quit(self):
         """Close the window and quit"""        
         self.close_notebook()
+        self.set_app_preferences()
         gtk.main_quit()
         return False
     
@@ -546,7 +558,6 @@ class TakeNoteWindow (gtk.Window):
             return None
 
         self.set_notebook(notebook)
-        self.get_preferences()
         
         self.treeview.grab_focus()
         
@@ -568,7 +579,6 @@ class TakeNoteWindow (gtk.Window):
             if save:
                 try:
                     self.editor.save()
-                    self.set_preferences()
                     self.notebook.save()
                 except Exception, e:
                     # TODO: should ask question, like try again?
@@ -739,7 +749,7 @@ class TakeNoteWindow (gtk.Window):
             self.paned2 = gtk.VPaned()
         else:
             self.paned2 = gtk.HPaned()
-        self.paned2.set_position(self.notebook.pref.vsash_pos)
+        self.paned2.set_position(self.app.pref.vsash_pos)
         self.paned2.show()
         
         self.hpaned.add2(self.paned2)

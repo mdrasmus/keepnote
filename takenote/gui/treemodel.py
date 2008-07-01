@@ -164,6 +164,9 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
 
 
     def on_node_changed(self, node, recurse):
+
+        self.emit("node-changed-start", node)
+        
         if node == self._master_node:
             # reset roots
             self.set_root_nodes(self._master_node.get_children())
@@ -176,6 +179,9 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
             rowref = self.create_tree_iter(node)
         
             if False: #not recurse:
+                # seems like I shouldn't use this
+                # it won't update the list view properly
+                # when a single item changes it name
                 self.row_changed(path, rowref)
             else:
                 for i, child in enumerate(node.get_children()):
@@ -187,6 +193,7 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
                 self.row_has_child_toggled(path, rowref)
                 self.row_has_child_toggled(path, rowref)
 
+        self.emit("node-changed-end", node)
 
     
     def on_get_flags(self):
@@ -322,7 +329,13 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
         else:
             parent = child.get_parent()
             return parent
-    
+
+gobject.type_register(TakeNoteTreeModel)
+gobject.signal_new("node-changed-start", TakeNoteTreeModel, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (object,))
+gobject.signal_new("node-changed-end", TakeNoteTreeModel, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (object,))
+
 
 
 class TakeNoteBaseTreeView (gtk.TreeView):
@@ -336,6 +349,11 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         self._dest_row = None
         self._master_node = None
         self.editing = False
+        self.__sel_nodes = []
+        self.__sel_nodes2 = []
+
+        # selection
+        self.get_selection().connect("changed", self.__on_select_changed)
 
         # row expand/collapse
         self.expanded_id = self.connect("row-expanded",
@@ -357,12 +375,12 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         self.drag_source_set(
             gtk.gdk.BUTTON1_MASK,
             [DROP_TREE_MOVE],
-             gtk.gdk.ACTION_MOVE)
+            gtk.gdk.ACTION_MOVE)
         self.enable_model_drag_dest(
-           [DROP_TREE_MOVE], gtk.gdk.ACTION_MOVE)
+            [DROP_TREE_MOVE], gtk.gdk.ACTION_MOVE)
         self.drag_dest_set(gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_MOTION,
             [DROP_TREE_MOVE],
-             gtk.gdk.ACTION_MOVE)
+            gtk.gdk.ACTION_MOVE)
     
     def set_master_node(self, node):
         self._master_node = node
@@ -375,29 +393,85 @@ class TakeNoteBaseTreeView (gtk.TreeView):
 
 
     def set_model(self, model):
+        """Set the model for the view"""
+
+
+        # if model already attached, disconnect all of its signals
         if self.model is not None:
+            if hasattr(self.model, "get_model"):
+                self.model.get_model().disconnect(self.changed_start_id)
+                self.model.get_model().disconnect(self.changed_end_id)
+            else:
+                self.model.disconnect(self.changed_start_id)
+                self.model.disconnect(self.changed_end_id)
             self.model.disconnect(self.insert_id)
+            self.model.disconnect(self.delete_id)
             self.model.disconnect(self.has_child_id)
 
+        # set new model
         self.model = model
         gtk.TreeView.set_model(self, self.model)
 
+        # set new model
         if model is not None:
-            # init model        
+            # init signals for model
+            if hasattr(self.model, "get_model"):
+                self.changed_start_id = self.model.get_model().\
+                    connect("node-changed-start", self.on_node_changed_start)
+                self.changed_end_id = self.model.get_model().\
+                    connect("node-changed-end", self.on_node_changed_end)
+            else:
+                self.changed_start_id = self.model.connect("node-changed-start",
+                                                           self.on_node_changed_start)
+                self.changed_end_id = self.model.connect("node-changed-end",
+                                                         self.on_node_changed_end)                
             self.insert_id = self.model.connect("row-inserted",
                                                 self.on_row_inserted)
+            self.delete_id = self.model.connect("row-deleted",
+                                                self.on_row_deleted)
             self.has_child_id = self.model.connect("row-has-child-toggled",
-                                                   self.on_row_inserted)
+                                                   self.on_row_has_child_toggled)
 
+
+    def on_node_changed_start(self, model, node):
+        # remember which nodes are selected
+        self.__sel_nodes2[:] = self.__sel_nodes
+
+
+    def on_node_changed_end(self, model, node):
+        # if nodes still exist, try to reselect them
+        if len(self.__sel_nodes2) > 0:
+            try:
+                path2 = get_path_from_node(self.model, self.__sel_nodes2[0])
+                self.set_cursor(path2)
+            except:
+                pass
+
+
+    def __on_select_changed(self, treeselect):
+        """Keep track of which nodes are selected"""
+        model, paths = treeselect.get_selected_rows()
+
+        self.__sel_nodes = [self.model.get_value(self.model.get_iter(path),
+                                                 COL_NODE)
+                            for path in paths]
+    
 
     def is_node_expanded(self, node):
+        # query expansion from nodes
         return node.is_expanded()
 
     def set_node_expanded(self, node, expand):
+        # save expansion in node
         node.set_expand(expand)
         
 
     def on_row_expanded(self, treeview, it, path):
+        """Callback for row expand
+
+           Performs smart expansion (remembers children expansion)"""
+
+        # save expansion in node
         self.set_node_expanded(self.model.get_value(it, COL_NODE), True)
 
         # recursively expand nodes that should be expanded
@@ -413,27 +487,48 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         walk(it)
     
     def on_row_collapsed(self, treeview, it, path):
+        # save expansion in node
         self.set_node_expanded(self.model.get_value(it, COL_NODE), False)
 
 
-    def on_row_inserted(self, treemodel, path, it):
+    def on_row_inserted(self, model, path, it):
+
+        # maintain proper expansion
         node = self.model.get_value(it, COL_NODE)
         if self.is_node_expanded(node):
             self.expand_row(path, False)
 
 
+    def on_row_deleted(self, model, path):
+        pass
+
+    def on_row_has_child_toggled(self, model, path, it):
+
+        # maintain proper expansion
+        node = self.model.get_value(it, COL_NODE)
+        if self.is_node_expanded(node):
+            self.expand_row(path, False)        
+
     #============================================
     # editing titles
     
     def on_editing_started(self, cellrenderer, editable, path):
+        """Callback for start of title editing"""
+        # remember editing state
         self.editing = True
     
     def on_editing_canceled(self, cellrenderer):
+        """Callback for canceled of title editing"""
+        # remember editing state
         self.editing = False
 
     def on_edit_title(self, cellrenderertext, path, new_text):
+        """Callback for completion of title editing"""
+
+        # remember editing state
         self.editing = False
-        
+
+        # get node being edited
         node = self.model.get_value(self.model.get_iter(path), COL_NODE)
         if node is None:
             return

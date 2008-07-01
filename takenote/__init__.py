@@ -22,10 +22,6 @@ from takenote.notebook import \
     get_unique_filename_list, \
     get_str_timestamp, \
     DEFAULT_TIMESTAMP_FORMATS, \
-    DEFAULT_WINDOW_SIZE, \
-    DEFAULT_WINDOW_POS, \
-    DEFAULT_VSASH_POS, \
-    DEFAULT_HSASH_POS, \
     NoteBookError, \
     NoteBookNode, \
     NoteBookDir, \
@@ -56,6 +52,12 @@ PLATFORM = None
 
 USER_PREF_DIR = "takenote"
 USER_PREF_FILE = "takenote.xml"
+
+
+DEFAULT_WINDOW_SIZE = (800, 600)
+DEFAULT_WINDOW_POS = (-1, -1)
+DEFAULT_VSASH_POS = 200
+DEFAULT_HSASH_POS = 200
 
 
 
@@ -159,7 +161,14 @@ class TakeNotePreferences (object):
         self.external_apps = []
         self._external_apps = []
         self._external_apps_lookup = {}
+
+        # window options
+        self.window_size = DEFAULT_WINDOW_SIZE
+        self.window_maximized = True
+        self.vsash_pos = DEFAULT_VSASH_POS
+        self.hsash_pos = DEFAULT_HSASH_POS        
         self.view_mode = "vertical"
+        
         self.default_notebook = ""
         self.timestamp_formats = dict(DEFAULT_TIMESTAMP_FORMATS)
 
@@ -232,6 +241,18 @@ g_takenote_pref_parser = xmlo.XmlObject(
         xmlo.Tag("view_mode",
             getobj=("view_mode", str),
             set=lambda s: s.view_mode),
+        xmlo.Tag("window_size", 
+            getobj=("window_size", lambda x: tuple(map(int,x.split(",")))),
+            set=lambda s: "%d,%d" % s.window_size),
+        xmlo.Tag("window_maximized",
+            getobj=("window_maximized", lambda x: bool(int(x))),
+            set=lambda s: "%d" % int(s.window_maximized)),
+        xmlo.Tag("vsash_pos",
+            getobj=("vsash_pos", int),
+            set=lambda s: "%d" % s.vsash_pos),
+        xmlo.Tag("hsash_pos",
+            getobj=("hsash_pos", int),
+            set=lambda s: "%d" % s.hsash_pos),
         xmlo.Tag("external_apps", tags=[
             xmlo.TagMany("app",
                 iterfunc=lambda s: range(len(s.external_apps)),

@@ -28,24 +28,28 @@ class ApplicationOptionsDialog (object):
         self.entries = {}
     
     def on_app_options(self):
-        self.app_config_xml = gtk.glade.XML(get_resource("rc", "takenote.glade"))
-        self.app_config_dialog = self.app_config_xml.get_widget("app_config_dialog")
-        self.app_config_dialog.set_transient_for(self.main_window)
+        self.xml = gtk.glade.XML(get_resource("rc", "takenote.glade"))
+        self.dialog = self.xml.get_widget("app_config_dialog")
+        self.dialog.set_transient_for(self.main_window)
 
 
         # populate dialog        
-        self.app_config_xml.get_widget("default_notebook_entry").\
+        self.xml.get_widget("default_notebook_entry").\
             set_text(self.app.pref.default_notebook)
+
+        # populate default font
+        #self.xml.get_widget("default_font_button").\
+        #    set_font_name(self.app.pref.default_font)
 
         # populate dates
         for name in ["same_day", "same_month", "same_year", "diff_year"]:
-            self.app_config_xml.get_widget("date_%s_entry" % name).\
+            self.xml.get_widget("date_%s_entry" % name).\
                 set_text(self.app.pref.timestamp_formats[name])
 
 
         # populate external apps
         self.entries = {}
-        apps_widget = self.app_config_xml.get_widget("external_apps_frame")
+        apps_widget = self.xml.get_widget("external_apps_frame")
         table = gtk.Table(len(self.app.pref.external_apps), 3)
         apps_widget.add_with_viewport(table)
         apps_widget.get_child().set_property("shadow-type", gtk.SHADOW_NONE)
@@ -93,11 +97,11 @@ class ApplicationOptionsDialog (object):
 
         
 
-        self.app_config_xml.signal_autoconnect({
+        self.xml.signal_autoconnect({
             "on_ok_button_clicked": 
                 lambda w: self.on_app_options_ok(),
             "on_cancel_button_clicked": 
-                lambda w: self.app_config_dialog.destroy(),
+                lambda w: self.dialog.destroy(),
                 
             "on_default_notebook_button_clicked": 
                 lambda w: self.on_app_options_browse(
@@ -106,15 +110,15 @@ class ApplicationOptionsDialog (object):
                     self.app.pref.default_notebook),
             })
 
-        self.app_config_dialog.show()
+        self.dialog.show()
     
     
     def on_app_options_browse(self, name, title, filename):
-        dialog = gtk.FileChooserDialog(title, self.app_config_dialog, 
+        dialog = gtk.FileChooserDialog(title, self.dialog, 
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "Open", gtk.RESPONSE_OK))
-        dialog.set_transient_for(self.app_config_dialog)
+        dialog.set_transient_for(self.dialog)
         dialog.set_modal(True)
                 
         # set the filename if it is fully specified
@@ -128,7 +132,7 @@ class ApplicationOptionsDialog (object):
             dialog.destroy()
 
             if name == "default_notebook":
-                self.app_config_xml.get_widget("default_notebook_entry").\
+                self.xml.get_widget("default_notebook_entry").\
                     set_text(filename)
             else:
                 self.entries[name].set_text(filename)
@@ -141,12 +145,12 @@ class ApplicationOptionsDialog (object):
         # TODO: add arguments
     
         self.app.pref.default_notebook = \
-            self.app_config_xml.get_widget("default_notebook_entry").get_text()
+            self.xml.get_widget("default_notebook_entry").get_text()
 
         # save date formatting
         for name in ["same_day", "same_month", "same_year", "diff_year"]:
             self.app.pref.timestamp_formats[name] = \
-                self.app_config_xml.get_widget("date_%s_entry" % name).get_text()
+                self.xml.get_widget("date_%s_entry" % name).get_text()
         
 
         for key, entry in self.entries.iteritems():
@@ -155,7 +159,7 @@ class ApplicationOptionsDialog (object):
         
         self.app.pref.write()
         
-        self.app_config_dialog.destroy()
-        self.app_config_dialog = None
+        self.dialog.destroy()
+        self.dialog = None
     
     

@@ -34,11 +34,6 @@ DEFAULT_DIR_NAME = "New Folder"
 DEFAULT_FONT = "Sans 10"
 
 
-DEFAULT_WINDOW_SIZE = (800, 600)
-DEFAULT_WINDOW_POS = (-1, -1)
-DEFAULT_VSASH_POS = 200
-DEFAULT_HSASH_POS = 200
-
 
 # determine UNIX Epoc (which should be 0, unless the current platform has a 
 # different definition of epoc)
@@ -873,11 +868,6 @@ class NoteBookTrash (NoteBookDir):
 class NoteBookPreferences (object):
     """Preference data structure for a NoteBook"""
     def __init__(self):
-
-        # TODO: maybe move window size etc to app.pref
-        self.window_size = DEFAULT_WINDOW_SIZE
-        self.vsash_pos = DEFAULT_VSASH_POS
-        self.hsash_pos = DEFAULT_HSASH_POS
         
         self.version = NOTEBOOK_FORMAT_VERSION
         self.default_font = DEFAULT_FONT
@@ -890,20 +880,11 @@ g_notebook_pref_parser = xmlo.XmlObject(
         xmlo.Tag("version",
             getobj=("version", int),
             set=lambda s: str(s.version)),
-        xmlo.Tag("window_size", 
-            getobj=("window_size", lambda x: tuple(map(int,x.split(",")))),
-            set=lambda s: "%d,%d" % s.window_size),
-        xmlo.Tag("vsash_pos",
-            getobj=("vsash_pos", int),
-            set=lambda s: "%d" % s.vsash_pos),
-        xmlo.Tag("hsash_pos",
-            getobj=("hsash_pos", int),
-            set=lambda s: "%d" % s.hsash_pos),
         xmlo.Tag("default_font",
             getobj=("default_font", str),
             set=lambda s: s.default_font),
         ]))
-            
+    
 
 class NoteBook (NoteBookDir):
     """Class represents a NoteBook"""
