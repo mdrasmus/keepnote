@@ -480,7 +480,7 @@ class HtmlBuffer (HTMLParser):
         for kind, it, param in normalize_tags(iter_buffer_contents(self.buffer)):
             if kind == "text":
                 text = param
-
+                
                 # TODO: could try to speed this up
                 text = text.replace("&", "&amp;")
                 text = text.replace(">", "&gt;")

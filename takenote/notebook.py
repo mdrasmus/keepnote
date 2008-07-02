@@ -85,17 +85,18 @@ INFO_SORT_MODIFIED_TIME = range(5)
 # filename creation functions
 
 REGEX_SLASHES = re.compile(r"[/\\]")
-REGEX_BAD_CHARS = re.compile(r"[\?'&]")
+REGEX_BAD_CHARS = re.compile(r"[\?'&<>|`]")
 
 def get_valid_filename(filename):
     """Converts a filename into a valid one
     
     Strips bad characters from filename
     """
-    filename = filename.strip()
+    
     filename = re.sub(REGEX_SLASHES, "-", filename)
     filename = re.sub(REGEX_BAD_CHARS, "", filename)
     filename = filename.replace("\t", " ")
+    filename = filename.strip()
     #filename = filename.replace("?", "")
     #filename = filename.replace("/", "-")
     #filename = filename.replace("\\", "-")
@@ -106,7 +107,7 @@ def get_valid_filename(filename):
         filename = filename[2:]
     
     # don't allow pure whitespace filenames
-    if filename.strip() == "":
+    if filename == "":
         filename = "folder"
     
     # use only lower case, some filesystems have trouble with mixed case
@@ -245,7 +246,7 @@ class NoteBookError (StandardError):
 class NoteBookNode (object):
     """A general base class for all nodes in a NoteBook"""
 
-    def __init__(self, path, title=None, parent=None, notebook=None):
+    def __init__(self, path, title="", parent=None, notebook=None):
         self._notebook = notebook
         self._title = title
         self._parent = parent
@@ -699,7 +700,7 @@ g_node_meta_data_tags = [
         set=lambda s: str(NOTEBOOK_FORMAT_VERSION)),
     xmlo.Tag("title", 
         getobj=("_title", None),
-        set=lambda s: s._title),
+        set=lambda s: str(s._title)),
     xmlo.Tag("order",
         getobj=("_order", int),
         set=lambda s: str(s._order)),
@@ -721,7 +722,7 @@ g_node_meta_data_tags = [
 class NoteBookPage (NoteBookNode):
     """Class that represents a Page in the NoteBook"""
     
-    def __init__(self, path, title=None, parent=None, notebook=None):
+    def __init__(self, path, title="", parent=None, notebook=None):
         NoteBookNode.__init__(self, path, title, parent, notebook)
     
     
@@ -765,6 +766,9 @@ class NoteBookPage (NoteBookNode):
             g_page_meta_data_parser.read(self, self.get_meta_file())
         except IOError, e:
             raise NoteBookError("Cannot read meta data", e)
+        except xmlo.XmlError, e:
+            raise NoteBookError("Page meta data is corrupt for note '%s'" %
+                                self.get_path(),  e)
         
         if self._created_time is None:
             self._created_time = get_timestamp()
@@ -781,6 +785,8 @@ class NoteBookPage (NoteBookNode):
             g_page_meta_data_parser.write(self, self.get_meta_file())
         except IOError, e:
             raise NoteBookError("Cannot write meta data", e)
+        except xmlo.XmlError, e:
+            raise NoteBookError("File format error", e)
 
 
 # file format of Pages in NoteBook
@@ -794,7 +800,7 @@ g_page_meta_data_parser = xmlo.XmlObject(
 class NoteBookDir (NoteBookNode):
     """Class that represents Folders in NoteBook"""
     
-    def __init__(self, path, title=None, parent=None, notebook=None):
+    def __init__(self, path, title="", parent=None, notebook=None):
         NoteBookNode.__init__(self, path, title, parent, notebook)
         
         
@@ -829,6 +835,8 @@ class NoteBookDir (NoteBookNode):
             g_dir_meta_data_parser.write(self, self.get_meta_file())
         except IOError, e:
             raise NoteBookError("Cannot write meta data.", e)
+        except xmlo.XmlError, e:
+            raise NoteBookError("File format error", e)
 
 
 # file format of Folders in NoteBook
@@ -1026,6 +1034,9 @@ class NoteBook (NoteBookDir):
             g_notebook_pref_parser.write(self.pref, self.get_pref_file())
         except (IOError, OSError), e:
             raise NoteBookError("Cannot save notebook preferences", e)
+        except xmlo.XmlError, e:
+            raise NoteBookError("File format error", e)
+
     
     def read_preferences(self):
         """Reads the NoteBook's preferneces from the file-system"""
@@ -1033,5 +1044,6 @@ class NoteBook (NoteBookDir):
             g_notebook_pref_parser.read(self.pref, self.get_pref_file())
         except IOError, e:
             raise NoteBookError("Cannot read preferences", e)
-
+        except xmlo.XmlError, e:
+            raise NoteBookError("NoteBook preference data is corrupt", e)
                 

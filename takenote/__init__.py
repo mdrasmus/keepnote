@@ -124,7 +124,8 @@ def get_user_documents(home=None):
         home = os.getenv("USERPROFILE")
         return os.path.join(home, "My Documents")
     else:
-        raise Exception("unknown platform '%s'" % p)
+        return ""
+        #raise Exception("unknown platform '%s'" % p)
     
 
 def get_user_pref_file(home=None):

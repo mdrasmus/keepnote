@@ -26,6 +26,7 @@ from takenote.gui.richtext import RichTextView, RichTextImage, RichTextError
 from takenote.gui.treeview import TakeNoteTreeView
 from takenote.gui.noteselector import TakeNoteSelector
 from takenote.gui import \
+    quote_filename, \
     screenshot_win, \
     dialog_app_options, \
     dialog_find, \
@@ -35,13 +36,6 @@ from takenote.gui import \
 
 AUTOSAVE_TIME = 10 * 1000 # 1 min (in msec)
 
-
-def quote_filename(filename):
-    if " " in filename:
-        filename.replace("\\", "\\\\")
-        filename.replace('"', '\"')
-        filename = '"%s"' % filename
-    return filename
 
 
 class TakeNoteEditor (gtk.VBox): #(gtk.Notebook):

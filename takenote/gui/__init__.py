@@ -33,8 +33,8 @@ _g_node_icons = {}
 
 def quote_filename(filename):
     if " " in filename:
-        filename.replace("\\", "\\\\")
-        filename.replace('"', '\"')
+        filename = filename.replace("\\", "\\\\")
+        filename = filename.replace('"', '\"')
         filename = '"%s"' % filename
     return filename
 

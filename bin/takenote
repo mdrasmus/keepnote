@@ -77,12 +77,15 @@ import takenote.gui.main_window
 def main(args):
 
     show_errors = False
+    no_default = False
 
     # parse options
     i = 1
     for i in range(1, len(args)):
         if args[i] == "--show-errors":
             show_errors = True
+        if args[i] == "--no-default":
+            no_default = True
         elif not args[i].startswith("-"):
             args = args[i:]
             break
@@ -101,9 +104,11 @@ def main(args):
     if len(args) > 0:
         # open specified notebook
         app.open_notebook(args[0].rstrip("/"))        
-    elif app.pref.default_notebook != "":
+    elif not no_default and app.pref.default_notebook != "":
         # open default notebook
         app.open_notebook(app.pref.default_notebook)
+    else:
+        app.show_main_window()
 
     gtk.main()
 
