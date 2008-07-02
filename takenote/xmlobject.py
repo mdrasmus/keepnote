@@ -41,26 +41,25 @@ class Tag (object):
         self.tag_list = tags[:]
 
 
-        self.get = get
-        self.getobj = getobj
-        self.set = set
-        self.objfunc= obj
-        self.obj = None
+        self._read_data = get
+        self._read_data_obj = getobj
+        self._write_data = set
+        self._object = None
         self._data = []
                 
         for tag in tags:
             self.tags[tag.name] = tag
         
-        if self.getobj is not None:
-            attr, get = self.getobj
+        if self._read_data_obj is not None:
+            attr, get = self._read_data_obj
             if get is None:
-                self.get = lambda s,x: s.__setattr__(attr, x)
+                self._read_data = lambda s,x: s.__setattr__(attr, x)
             else:
-                self.get = lambda s,x: s.__setattr__(attr, get(x))
+                self._read_data = lambda s,x: s.__setattr__(attr, get(x))
         
 
-    def set_obj(self, obj):
-        self.obj = obj
+    def set_object(self, obj):
+        self._object = obj
 
 
     def write(self, obj, out):
@@ -72,11 +71,11 @@ class Tag (object):
             out.write("\n")
             for child_tag in self.tag_list:
                 child_tag.write(obj, out)
-        elif self.set:
-            text = self.set(obj)
+        elif self._write_data:
+            text = self._write_data(obj)
             if not isinstance(text, basestring):
                 raise XmlError("bad text (%s,%s): %s" %
-                               (self.name, str(self.obj),
+                               (self.name, str(self._object),
                                 str(type(text))))
             out.write(escape(text))
         
@@ -86,23 +85,23 @@ class Tag (object):
     def new_tag(self, name):
         tag = self.tags.get(name, None)
         if tag:
-            tag.set_obj(self.obj)
+            tag.set_object(self._object)
         return tag
 
     def start_tag(self):
         self._data = []
 
     def queue_data(self, data):
-        if self.get:
+        if self._read_data:
             self._data.append(data)
 
-    def end_tag(self, obj):
-        if self.get:
+    def end_tag(self):
+        if self._read_data:
             data = "".join(self._data)
             self._data = []
             
             try:
-                self.get(obj, data)
+                self._read_data(self._object, data)
             except Exception, e:
                 raise XmlError("Error parsing tag '%s': %s" % (tag.name,
                                                                str(e)))
@@ -127,8 +126,8 @@ class TagMany (Tag):
                      tags=tags)
         
         self.iterfunc = iterfunc
-        self.getitem = get
-        self.setitem = set
+        self._read_item = get
+        self._write_item = set
         self.beforefunc = before
         self.afterfunc = after
         self.index = 0
@@ -136,42 +135,42 @@ class TagMany (Tag):
 
     def new_tag(self, name):
         tag = self.tags.get(name, None)
-        tag.set_obj((self.obj, self.index))
+        tag.set_object((self._object, self.index))
         return tag
 
     def start_tag(self):
         self._data = []
         if self.beforefunc:
-            self.beforefunc((self.obj, self.index))
+            self.beforefunc((self._object, self.index))
 
     def queue_data(self, data):
-        if self.getitem:
+        if self._read_item:
             self._data.append(data)
 
-    def end_tag(self, obj):
-        if self.getitem:
+    def end_tag(self):
+        if self._read_item:
             data = "".join(self._data)
             self._data = []
             
             try:
-                if self.getitem is not None:
-                    self.getitem((obj, self.index), data)
+                if self._read_item is not None:
+                    self._read_item((self._object, self.index), data)
             except Exception, e:
                 raise XmlError("Error parsing tag '%s': %s" % (tag.name,
                                                                str(e)))
         
         if self.afterfunc:
-            self.afterfunc((self.obj, self.index))
+            self.afterfunc((self._object, self.index))
         self.index += 1
     
     def write(self, obj, out):
         # write opening
         if len(self.tags)==0:
-            assert self.setitem is not None
+            assert self._write_item is not None
                 
             for i in self.iterfunc(obj):
                 out.write("<%s>%s</%s>\n" % (self.name,
-                                             escape(self.setitem(obj, i)),
+                                             escape(self._write_item(obj, i)),
                                              self.name))
         else:
             for i in self.iterfunc(obj):
@@ -185,7 +184,7 @@ class TagMany (Tag):
 
 class XmlObject (object):
     def __init__(self, *tags):
-        self.obj = None
+        self._object = None
         self.root_tag = Tag("", tags=tags)
         self.current_tags = [self.root_tag]
         
@@ -202,24 +201,15 @@ class XmlObject (object):
         if len(self.current_tags) > 0:
             if name == self.current_tags[-1].name:
                 tag = self.current_tags.pop()
-                #tag.end_tag()
-                tag.end_tag(tag.obj)
+                tag.end_tag()
                 
         
     def __char_data(self, data):
         """read character data and give it to current tag"""
 
-        #print data
-        
         if len(self.current_tags) > 0:
             tag = self.current_tags[-1]
             tag.queue_data(data)
-            #if tag.get is not None:
-                #try:
-                #    tag.get(tag.obj, data)
-                #except Exception, e:
-                #    raise XmlError("Error parsing tag '%s': %s" % (tag.name,
-                #                                                   str(e)))
             
             
     
@@ -228,8 +218,8 @@ class XmlObject (object):
             infile = open(filename, "r")
         else:
             infile = filename
-        self.obj = obj
-        self.root_tag.set_obj(self.obj)
+        self._object = obj
+        self.root_tag.set_object(self._object)
         
         parser = xml.parsers.expat.ParserCreate()
         parser.StartElementHandler = self.__start_element
