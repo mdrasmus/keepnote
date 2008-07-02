@@ -699,7 +699,7 @@ g_node_meta_data_tags = [
         getobj=("_version", int),
         set=lambda s: str(NOTEBOOK_FORMAT_VERSION)),
     xmlo.Tag("title", 
-        getobj=("_title", None),
+        getobj=("_title", str),
         set=lambda s: str(s._title)),
     xmlo.Tag("order",
         getobj=("_order", int),

@@ -34,22 +34,22 @@ class Tag (object):
                  get=None,
                  set=None,
                  getobj=None,
-                 tags=[],
-                 obj=lambda obj: obj):
+                 tags=[]):
         self.name = name
-        self.tags = {}
-        self.tag_list = tags[:]
-
-
+        
+        self._tag_list = list(tags)
         self._read_data = get
         self._read_data_obj = getobj
         self._write_data = set
         self._object = None
         self._data = []
-                
+
+        # init tag lookup
+        self._tags = {}
         for tag in tags:
-            self.tags[tag.name] = tag
-        
+            self._tags[tag.name] = tag
+
+        # init read_data function
         if self._read_data_obj is not None:
             attr, get = self._read_data_obj
             if get is None:
@@ -67,9 +67,9 @@ class Tag (object):
         if self.name != "":
             out.write("<%s>" % self.name)
         
-        if len(self.tags) > 0:
+        if len(self._tags) > 0:
             out.write("\n")
-            for child_tag in self.tag_list:
+            for child_tag in self._tag_list:
                 child_tag.write(obj, out)
         elif self._write_data:
             text = self._write_data(obj)
@@ -83,7 +83,7 @@ class Tag (object):
             out.write("</%s>\n" % self.name)
 
     def new_tag(self, name):
-        tag = self.tags.get(name, None)
+        tag = self._tags.get(name, None)
         if tag:
             tag.set_object(self._object)
         return tag
@@ -91,11 +91,12 @@ class Tag (object):
     def start_tag(self):
         self._data = []
 
-    def queue_data(self, data):
+    def queue_data(self, data):        
         if self._read_data:
             self._data.append(data)
 
     def end_tag(self):
+        
         if self._read_data:
             data = "".join(self._data)
             self._data = []
@@ -108,8 +109,8 @@ class Tag (object):
 
     
     def add(self, tag):
-        self.tag_list.append(tag)
-        self.tags[tag.name] = tag
+        self._tag_list.append(tag)
+        self._tags[tag.name] = tag
 
         
     
@@ -125,23 +126,24 @@ class TagMany (Tag):
                      set=set,
                      tags=tags)
         
-        self.iterfunc = iterfunc
+        self._iterfunc = iterfunc
         self._read_item = get
         self._write_item = set
-        self.beforefunc = before
-        self.afterfunc = after
-        self.index = 0
+        self._beforefunc = before
+        self._afterfunc = after
+        self._index = 0
 
 
     def new_tag(self, name):
-        tag = self.tags.get(name, None)
-        tag.set_object((self._object, self.index))
+        tag = self._tags.get(name, None)
+        if tag:
+            tag.set_object((self._object, self._index))
         return tag
 
     def start_tag(self):
         self._data = []
-        if self.beforefunc:
-            self.beforefunc((self._object, self.index))
+        if self._beforefunc:
+            self._beforefunc((self._object, self._index))
 
     def queue_data(self, data):
         if self._read_item:
@@ -154,28 +156,28 @@ class TagMany (Tag):
             
             try:
                 if self._read_item is not None:
-                    self._read_item((self._object, self.index), data)
+                    self._read_item((self._object, self._index), data)
             except Exception, e:
                 raise XmlError("Error parsing tag '%s': %s" % (tag.name,
                                                                str(e)))
         
-        if self.afterfunc:
-            self.afterfunc((self._object, self.index))
-        self.index += 1
+        if self._afterfunc:
+            self._afterfunc((self._object, self._index))
+        self._index += 1
     
     def write(self, obj, out):
         # write opening
-        if len(self.tags)==0:
+        if len(self._tags)==0:
             assert self._write_item is not None
                 
-            for i in self.iterfunc(obj):
+            for i in self._iterfunc(obj):
                 out.write("<%s>%s</%s>\n" % (self.name,
                                              escape(self._write_item(obj, i)),
                                              self.name))
         else:
-            for i in self.iterfunc(obj):
+            for i in self._iterfunc(obj):
                 out.write("<%s>\n" % self.name)
-                for child_tag in self.tag_list:
+                for child_tag in self._tag_list:
                     child_tag.write((obj, i), out)
                 out.write("</%s>\n" % self.name)
 
@@ -185,31 +187,40 @@ class TagMany (Tag):
 class XmlObject (object):
     def __init__(self, *tags):
         self._object = None
-        self.root_tag = Tag("", tags=tags)
-        self.current_tags = [self.root_tag]
+        self._root_tag = Tag("", tags=tags)
+        self._current_tags = [self._root_tag]
         
     
     def __start_element(self, name, attrs):
-        if len(self.current_tags) > 0:
-            last_tag = self.current_tags[-1]
-            new_tag = last_tag.new_tag(name)
-            if new_tag:
-                self.current_tags.append(new_tag)
-                new_tag.start_tag()
+
+        if len(self._current_tags) > 0:
+            last_tag = self._current_tags[-1]
+            if last_tag:
+                new_tag = last_tag.new_tag(name)
+                self._current_tags.append(new_tag)
+                if new_tag:                
+                    new_tag.start_tag()
+            
         
     def __end_element(self, name):
-        if len(self.current_tags) > 0:
-            if name == self.current_tags[-1].name:
-                tag = self.current_tags.pop()
-                tag.end_tag()
+                
+        if len(self._current_tags) > 0:
+            last_tag = self._current_tags.pop()
+            if last_tag:
+                if last_tag.name == last_tag.name:
+                    last_tag.end_tag()
+                else:
+                    raise XmlError("Malformed XML")            
+
                 
         
     def __char_data(self, data):
         """read character data and give it to current tag"""
 
-        if len(self.current_tags) > 0:
-            tag = self.current_tags[-1]
-            tag.queue_data(data)
+        if len(self._current_tags) > 0:
+            tag = self._current_tags[-1]
+            if tag:
+                tag.queue_data(data)
             
             
     
@@ -219,7 +230,8 @@ class XmlObject (object):
         else:
             infile = filename
         self._object = obj
-        self.root_tag.set_object(self._object)
+        self._root_tag.set_object(self._object)
+        self._current_tags = [self._root_tag]
         
         parser = xml.parsers.expat.ParserCreate()
         parser.StartElementHandler = self.__start_element
@@ -231,6 +243,10 @@ class XmlObject (object):
         except xml.parsers.expat.ExpatError, e:
             raise XmlError("Error reading file '%s': %s" % (filename, str(e)))
 
+        if len(self._current_tags) > 1:
+            print [x.name for x in self._current_tags]
+            raise XmlError("Incomplete file '%s'" % filename)
+        
         infile.close()
 
             
@@ -244,7 +260,7 @@ class XmlObject (object):
             need_close = False
         
         out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
-        self.root_tag.write(obj, out)
+        self._root_tag.write(obj, out)
         out.write("\n")
         if need_close:
             out.close()
@@ -253,6 +269,11 @@ class XmlObject (object):
 
 
 if __name__ == "__main__":
+    parser = XmlObject()
+    parser.read(None, "test/data/notebook/test for drag and drop/drop pages test/dir1/dddddddd/page.xml")
+
+
+if 0:
     import StringIO
 
     parser = XmlObject(
