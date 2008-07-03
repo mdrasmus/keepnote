@@ -155,8 +155,27 @@ def init_user_pref(home=None):
 
 
 
+class TeeFileStream (file):
+    """Create a file stream that forwards writes to multiple streams"""
+    
+    def __init__(self, streams, autoflush=False):
+        self._streams = list(streams)
+        self._autoflush = autoflush
+
+
+    def write(self, data):
+        for stream in self._streams:
+            stream.write(data)
+            if self._autoflush:
+                stream.flush()
+
+    def flush(self):
+        for stream in self._streams:
+            stream.flush()            
+
+
 #=============================================================================
-# NoteBook data structures
+# Preference data structures
 
 class ExternalApp (object):
     def __init__(self, key, title, prog, args=[]):
@@ -213,6 +232,8 @@ class TakeNotePreferences (object):
         
 
     def read(self):
+        """Read preferences from file"""
+        
         if not os.path.exists(get_user_pref_file()):
             # write default
             try:
@@ -250,6 +271,7 @@ class TakeNotePreferences (object):
         
         
     def get_external_app(self, key):
+        """Return an external application by its key name"""
         app = self._external_apps_lookup.get(key, None)
         if app == "":
             app = None
@@ -257,6 +279,8 @@ class TakeNotePreferences (object):
 
     
     def write(self):
+        """Write preferences to file"""
+        
         try:
             if not os.path.exists(get_user_pref_dir()):            
                 os.mkdir(get_user_pref_dir())

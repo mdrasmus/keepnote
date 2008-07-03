@@ -102,7 +102,21 @@ def get_node_icon(node, expand=False):
 
         
         
-        
+class TakeNoteError (StandardError):
+    def __init__(self, msg, error=None):
+        StandardError.__init__(self, msg)
+        self.msg = msg
+        self.error = error
+    
+    def __repr__(self):
+        if self.error:
+            return str(self.error) + "\n" + self.msg
+        else:
+            return self.msg
+
+    def __str__(self):
+        return self.msg
+
 
 
 #=============================================================================
@@ -139,27 +153,37 @@ class TakeNote (object):
         self.window.open_notebook(filename)
 
 
-    def run_helper(self, app_key, filename, wait=True):
-        """NOTE: NOT USED YET"""
-        
+    def run_external_app(self, app_key, filename, wait=False):
+        """Runs a registered external application on a file"""
+
         app = self.pref.get_external_app(app_key)
         
         if app is None:
-            raise Exception("Must specify program in Application Options")
-        
-        args = [app.prog] + app.args
-        if "%s" not in args:
-            args.append(filename)
-        else:
-            for i in xrange(len(args)):
-                if args[i] == "%s":
-                    args[i] = filename
+            raise TakeNoteError("Must specify program to use in Application Options")         
 
+        # build command arguments
+        cmd = [app.prog] + app.args
+        if "%s" not in cmd:
+            cmd.append(filename)
+        else:
+            for i in xrange(len(cmd)):
+                if cmd[i] == "%s":
+                    cmd[i] = filename
+
+        # execute command
         try:
-            proc = subprocess.Popen(args)
+            proc = subprocess.Popen(cmd)
         except OSError, e:
-            raise Exception("Error running program ")
-        
+            raise TakeNoteError(
+                ("Error occurred while opening file with %s.\n\n" 
+                 "program: %s\n\n"
+                 "file: %s\n\n"
+                 "error: %s")
+                % (app.title, app.prog, filename, str(e)), e)
+
+        # wait for process to return
+        # TODO: perform waiting in gtk loop
+        # NOTE: I do not wait for any program yet
         if wait:
             return proc.wait()
 

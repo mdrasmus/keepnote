@@ -351,7 +351,10 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
     
     def set_notebook(self, notebook):
         if self.model is not None:
+            self.set_sensitive(True)
             self.model.get_model().set_root_nodes([])
+        else:
+            self.set_sensitive(False)
 
 
     

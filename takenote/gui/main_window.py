@@ -31,7 +31,8 @@ from takenote.gui import \
     dialog_app_options, \
     dialog_find, \
     dialog_drag_drop_test, \
-    dialog_image_resize
+    dialog_image_resize, \
+    TakeNoteError
 
 
 AUTOSAVE_TIME = 10 * 1000 # 1 min (in msec)
@@ -63,6 +64,8 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook):
         if self._notebook:
             for view in self._textviews:
                 view.set_default_font(self._notebook.pref.default_font)
+        else:
+            self.clear_view()
     
     def on_font_callback(self, textview, mods, justify, family, size):
         self.emit("font-change", mods, justify, family, size)
@@ -632,26 +635,36 @@ class TakeNoteWindow (gtk.Window):
     
 
     def set_notebook(self, notebook):
+        """Set the NoteBook for the window"""
+        
         self.notebook = notebook
+        self.editor.set_notebook(notebook)
         self.selector.set_notebook(notebook)
         self.treeview.set_notebook(notebook)
-        self.editor.set_notebook(notebook)
+
 
     
     #===========================================================
     # page and folder actions
-    
-    def on_new_dir(self, widget="focus"):
-        """Add new folder near selected nodes"""
 
-        if self.notebook is None:
-            return
+    def get_selected_nodes(self, widget="focus"):
+        """
+        Returns (nodes, widget) where 'nodes' are a list of selected nodes
+        in widget 'widget'
 
+        Wiget can be
+           selector -- nodes selected in listview
+           treeview -- nodes selected in treeview
+           focus    -- nodes selected in widget with focus
+        """
+        
         if widget == "focus":
             if self.selector.is_focus():
                 widget = "selector"
-            else:
+            elif self.treeview.is_focus():
                 widget = "treeview"
+            else:
+                return ([], "")
 
         if widget == "treeview":
             nodes = self.treeview.get_selected_nodes()
@@ -659,6 +672,17 @@ class TakeNoteWindow (gtk.Window):
             nodes = self.selector.get_selected_nodes()
         else:
             raise Exception("unknown widget '%s'" % widget)
+
+        return (nodes, widget)
+        
+    
+    def on_new_dir(self, widget="focus"):
+        """Add new folder near selected nodes"""
+
+        if self.notebook is None:
+            return
+
+        nodes, widget = self.get_selected_nodes(widget)
         
         if len(nodes) == 1:
             parent = nodes[0]
@@ -676,6 +700,8 @@ class TakeNoteWindow (gtk.Window):
             #self.selector.view_nodes([parent])
             self.selector.expand_node(parent)
             self.selector.edit_node(node)
+        elif widget == "":
+            pass
         else:
             raise Exception("unknown widget '%s'" % widget)            
     
@@ -687,18 +713,7 @@ class TakeNoteWindow (gtk.Window):
         if self.notebook is None:
             return
 
-        if widget == "focus":
-            if self.selector.is_focus():
-                widget = "selector"
-            else:
-                widget = "treeview"
-
-        if widget == "treeview":
-            nodes = self.treeview.get_selected_nodes()
-        elif widget == "selector":
-            nodes = self.selector.get_selected_nodes()
-        else:
-            raise Exception("unknown widget '%s'" % widget)
+        nodes, widget = self.get_selected_nodes(widget)
         
         if len(nodes) == 1:
             parent = nodes[0]
@@ -715,6 +730,8 @@ class TakeNoteWindow (gtk.Window):
         elif widget == "selector":
             self.selector.expand_node(parent)
             self.selector.edit_node(node)
+        elif widget == "":
+            pass
         else:
             raise Exception("unknown widget '%s'" % widget)       
 
@@ -1191,63 +1208,74 @@ class TakeNoteWindow (gtk.Window):
     #=====================================================
     # External app viewers
     
-    def on_view_folder_file_explorer(self, node=None):
+    def on_view_node_file_explorer(self, node=None, widget="focus"):
         """View folder in file explorer"""
-        explorer = self.app.pref.get_external_app("file_explorer")
-
+        
         if node is None:
-            if len(self.sel_nodes) > 1:
+            nodes, widget = self.get_selected_nodes(widget)
+            if len(nodes) == 0:
+                self.error("No notes are selected.")
                 return
-            node = self.sel_nodes[0]
-    
-        if explorer is not None:
-            try:
-                proc = subprocess.Popen([explorer.prog, node.get_path()])
-            except OSError, e:
-                self.error("Could not open folder in file explorer", e)
+            node = nodes[0]
+        
+        try:
+            filename = os.path.realpath(node.get_path())
+            self.app.run_external_app("file_explorer", filename)
+        except TakeNoteError, e:
+            self.error(e.msg, e)
 
 
-    def on_view_page_file_explorer(self, node=None):
-        """View current page in file explorer"""
-        explorer = self.app.pref.get_external_app("file_explorer")
-
-        if node is None:
-            node = self.current_page
     
-        if node is not None and explorer is not None:
-            try:
-                subprocess.Popen([explorer.prog, node.get_path()])
-            except OSError, e:
-                self.error("Could not open page in file explorer", e)
-            
-    
-    def on_view_page_web_browser(self, node=None):
+    def on_view_node_web_browser(self, node=None, widget="focus"):
         """View current page in web browser"""
-        browser = self.app.pref.get_external_app("web_browser")
 
         if node is None:
-            node = self.current_page
+            nodes, widget = self.get_selected_nodes(widget)
+            if len(nodes) == 0:
+                self.error("No notes are selected.")                
+                return            
+            node = nodes[0]
+
+            if not node.is_page():
+                self.error("Only pages can be viewed with a web browser.")
+                return
+
+        try:
+            filename = os.path.realpath(node.get_data_file())
+            self.app.run_external_app("web_browser", filename)
+        except TakeNoteError, e:
+            self.error(e.msg, e)
     
-        if node is not None and browser is not None:
-            try:
-                proc = subprocess.Popen([browser.prog, node.get_data_file()])
-            except OSError, e:
-                self.error("Could not open page in web browser", e)
     
-    
-    def on_view_page_text_editor(self, node=None):
+    def on_view_node_text_editor(self, node=None, widget="focus"):
         """View current page in text editor"""
-        editor = self.app.pref.get_external_app("text_editor")
 
         if node is None:
-            node = self.current_page    
-    
-        if node is not None and editor is not None:
-            try:
-                proc = subprocess.Popen([editor.prog, node.get_data_file()])
-            except OSError, e:
-                self.error("Could not open page in text editor", e)
+            nodes, widget = self.get_selected_nodes(widget)
+            if len(nodes) == 0:
+                self.error("No notes are selected.")
+                return
+            node = nodes[0]
 
+            if not node.is_page():
+                self.error("Only pages can be viewed with a text editor.")
+                return
+           
+        try:
+            filename = os.path.realpath(node.get_data_file())
+            self.app.run_external_app("text_editor", filename)
+        except TakeNoteError, e:
+            self.error(e.msg, e)
+
+
+    def view_error_log(self):        
+        """View error in text editor"""
+        
+        filename = os.path.realpath(takenote.get_user_error_log())
+        filename2 = filename + ".bak"
+        shutil.copy(filename, filename2)        
+        self.app.run_external_app("text_editor", filename2)
+                                       
     
     def on_spell_check_toggle(self, num, widget):
         """Toggle spell checker"""
@@ -1305,7 +1333,7 @@ class TakeNoteWindow (gtk.Window):
         dialog.show()
 
         if error is not None:
-            print error
+            sys.stderr.write(str(error)+"\n")
     
     
     #================================================
@@ -1470,20 +1498,16 @@ class TakeNoteWindow (gtk.Window):
                 get_resource_pixbuf("font.png")),
             
             ("/_View", None, None, 0, "<Branch>"),
-            ("/View/View Folder in File Explorer",
-                None, lambda w,e: self.on_view_folder_file_explorer(), 0, 
-                "<ImageItem>",
-                get_resource_pixbuf("folder-open.png")),
-            ("/View/View Page in File Explorer",
-                None, lambda w,e: self.on_view_page_file_explorer(), 0, 
+            ("/View/View Note in File Explorer",
+                None, lambda w,e: self.on_view_node_file_explorer(), 0, 
                 "<ImageItem>",
                 get_resource_pixbuf("note.png")),
-            ("/View/View Page in Text Editor",
-                None, lambda w,e: self.on_view_page_text_editor(), 0, 
+            ("/View/View Note in Text Editor",
+                None, lambda w,e: self.on_view_node_text_editor(), 0, 
                 "<ImageItem>",
                 get_resource_pixbuf("note.png")),
-            ("/View/View Page in Web Browser",
-                None, lambda w,e: self.on_view_page_web_browser(), 0, 
+            ("/View/View Note in Web Browser",
+                None, lambda w,e: self.on_view_node_web_browser(), 0, 
                 "<ImageItem>",
                 get_resource_pixbuf("note.png")),
                 
@@ -1515,7 +1539,9 @@ class TakeNoteWindow (gtk.Window):
                 "<StockItem>", gtk.STOCK_PREFERENCES),
             
             ("/_Help",       None, None, 0, "<LastBranch>" ),
-            ("/Help/Drap and Drop Test",
+            ("/Help/View Error Log...",
+             None, lambda w,e: self.view_error_log(), 0, None),
+            ("/Help/Drap and Drop Test...",
                 None, lambda w,e: self.drag_test.on_drag_and_drop_test(), 0, None),
             ("/Help/sep1", None, None, 0, "<Separator>"),
             ("/Help/About", None, lambda w,e: self.on_about(), 0, None ),
@@ -1748,12 +1774,31 @@ class TakeNoteWindow (gtk.Window):
         item.show()
 
         item = gtk.SeparatorMenuItem()
-        item.show()
         self.treeview.menu.append(item)
+        item.show()
+
 
         # treeview/file explorer
         item = gtk.MenuItem("View in File Explorer")
-        item.connect("activate", lambda w: self.on_view_folder_file_explorer())
+        item.connect("activate",
+                     lambda w: self.on_view_node_file_explorer(None,
+                                                               "treeview"))
+        self.treeview.menu.append(item)
+        item.show()        
+
+        # treeview/web browser
+        item = gtk.MenuItem("View in Web Browser")
+        item.connect("activate",
+                     lambda w: self.on_view_node_web_browser(None,
+                                                             "treeview"))
+        self.treeview.menu.append(item)
+        item.show()        
+
+        # treeview/text editor
+        item = gtk.MenuItem("View in Text Editor")
+        item.connect("activate",
+                     lambda w: self.on_view_node_text_editor(None,
+                                                             "treeview"))
         self.treeview.menu.append(item)
         item.show()        
 
@@ -1784,9 +1829,27 @@ class TakeNoteWindow (gtk.Window):
         
         # selector/file explorer
         item = gtk.MenuItem("View in File Explorer")
-        item.connect("activate", lambda w: self.on_view_page_file_explorer())
+        item.connect("activate",
+                     lambda w: self.on_view_node_file_explorer(None,
+                                                               "selector"))
         self.selector.menu.append(item)
         item.show()
+
+        # treeview/web browser
+        item = gtk.MenuItem("View in Web Browser")
+        item.connect("activate",
+                     lambda w: self.on_view_node_web_browser(None,
+                                                             "selector"))
+        self.selector.menu.append(item)
+        item.show()        
+
+        # treeview/text editor
+        item = gtk.MenuItem("View in Text Editor")
+        item.connect("activate",
+                     lambda w: self.on_view_node_text_editor(None,
+                                                             "selector"))
+        self.selector.menu.append(item)
+        item.show()        
 
 
 

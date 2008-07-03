@@ -212,8 +212,11 @@ class TakeNoteTreeView (treemodel.TakeNoteBaseTreeView):
         
         if self.notebook is None:
             self.model.set_root_nodes([])
+            self.set_sensitive(False)
         
         else:
+            self.set_sensitive(True)
+            
             root = self.notebook.get_root_node()
             model = self.model
             self.set_model(None)
