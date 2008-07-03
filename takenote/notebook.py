@@ -986,31 +986,47 @@ class NoteBook (NoteBookDir):
     def get_children(self):
         """Returns all children of this node"""
         if self._children is None:
-            self._get_children()
-            
-            # ensure trash directory exists
-            self._trash = None
-            for child in self._children:
-                if self.is_trash_dir(child):
-                    self._trash = child
-                    break
-            
-            if self._trash is None:
-                try:
-                    self._trash = NoteBookTrash(TRASH_NAME, self)
-                    self._trash.create()
-                    self._add_child(self._trash)
-                except NoteBookError, e:
-                    raise NoteBookError("Cannot create Trash folder", e)
-
-        
+            self._get_children()        
+            self._init_trash()
         
         return self._children
+
+
+    def _init_trash(self):
+        # ensure trash directory exists
+        self._trash = None
+        for child in self._children:
+            if self.is_trash_dir(child):
+                self._trash = child
+                break
+
+        # if no trash folder, create it
+        if self._trash is None:
+            try:
+                self._trash = NoteBookTrash(TRASH_NAME, self)
+                self._trash.create()
+                self._add_child(self._trash)
+            except NoteBookError, e:
+                raise NoteBookError("Cannot create Trash folder", e)
+
+
     
     
     def is_trash_dir(self, child):
         """Returns True if child node is the Trash Folder"""
         return child.get_path() == self._trash_path
+
+
+    def empty_trash(self):
+        """Deletes all nodes under Trash Folder"""
+
+        if self._trash is None:
+            self._init_trash()
+
+        for child in reversed(list(self._trash.get_children())):
+            child.delete()
+        
+        
     
     #===============================================
     # preferences

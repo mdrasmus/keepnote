@@ -396,7 +396,7 @@ class TakeNoteWindow (gtk.Window):
     
     def on_list_select(self, selector, pages):
 
-        # TODO: will need to generalize of multiple pages
+        # TODO: will need to generalize to multiple pages
         
         try:
             if len(pages) > 0:
@@ -420,9 +420,10 @@ class TakeNoteWindow (gtk.Window):
     
     
     #==============================================
-    # Notebook preferences     
+    # Application preferences     
     
     def get_app_preferences(self):
+        """Load preferences"""
         self.resize(*self.app.pref.window_size)
         self.paned2.set_position(self.app.pref.vsash_pos)
         self.hpaned.set_position(self.app.pref.hsash_pos)
@@ -432,7 +433,8 @@ class TakeNoteWindow (gtk.Window):
     
 
     def set_app_preferences(self):
-        #self.app.pref.window_size = self.get_size()
+        """Save preferences"""
+        
         self.app.pref.vsash_pos = self.paned2.get_position()
         self.app.pref.hsash_pos = self.hpaned.get_position()
         self.app.pref.window_maximized = self.maximized
@@ -441,7 +443,7 @@ class TakeNoteWindow (gtk.Window):
         self.app.pref.write()
            
     #=============================================
-    # Notebook open/save/close UI         
+    # Notebook open/save/close UI
 
     def on_new_notebook(self):
         """Launches New NoteBook dialog"""
@@ -451,14 +453,11 @@ class TakeNoteWindow (gtk.Window):
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "New", gtk.RESPONSE_OK))
         dialog.set_current_folder(self.app.pref.new_notebook_path)
-
-
         
         response = dialog.run()
         
         if response == gtk.RESPONSE_OK:
-            filename = dialog.get_filename()            
-            #os.rmdir(filename)
+            filename = dialog.get_filename()
             self.new_notebook(filename)
             
         elif response == gtk.RESPONSE_CANCEL:
@@ -734,25 +733,18 @@ class TakeNoteWindow (gtk.Window):
             pass
         else:
             raise Exception("unknown widget '%s'" % widget)       
+    
 
+    def on_empty_trash(self):
+        """Empty Trash folder in NoteBook"""
+        
+        if self.notebook is None:
+            return
 
-    
-    def on_delete_dir(self):
-        """Delete node selected in TreeView"""
-        
-        # TODO: do delete yourself and update views
-        # I need treeview.on_notebook_changed
-    
-        self.treeview.on_delete_node()
-    
-    
-    def on_delete_page(self):
-        """Delete node selected in ListView"""
-        
-        # TODO: do delete yourself and update view
-        self.selector.on_delete_page()
-    
-    
+        try:
+            self.notebook.empty_trash()
+        except NoteBookError, e:
+            self.error("Could not empty trash.", e)
     
     
     #=====================================================
@@ -1270,10 +1262,14 @@ class TakeNoteWindow (gtk.Window):
 
     def view_error_log(self):        
         """View error in text editor"""
-        
+
+        # windows locks open files
+        # therefore we should copy error log before viewing it
         filename = os.path.realpath(takenote.get_user_error_log())
         filename2 = filename + ".bak"
         shutil.copy(filename, filename2)        
+
+        # use text editor to view error log
         self.app.run_external_app("text_editor", filename2)
                                        
     
@@ -1423,6 +1419,12 @@ class TakeNoteWindow (gtk.Window):
                 None, lambda w,e: self.on_insert_image(), 0, None),
             ("/Edit/Insert _Screenshot",
                 "<control>Insert", lambda w,e: self.on_screenshot(), 0, None),
+
+            ("/Edit/sep5", 
+                None, None, 0, "<Separator>"),
+            ("/Edit/Empty _Trash",
+             None, lambda w,e: self.on_empty_trash(), 0,
+             "<StockItem>", gtk.STOCK_DELETE),
             
             
             ("/_Search", None, None, 0, "<Branch>"),
