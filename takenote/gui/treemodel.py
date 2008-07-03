@@ -117,6 +117,7 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
         self._master_node = None
         self._date_formats = None
         self.set_root_nodes(roots)
+        self._nested = True
 
 
     if gtk.gtk_version < (2, 10):
@@ -137,6 +138,11 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
 
     def set_date_formats(self, formats):
         self._date_formats = formats
+
+    def set_nested(self, nested):
+        self._nested = nested
+        self.set_root_nodes(self._roots)
+
     
     def set_root_nodes(self, roots=[]):
 
@@ -259,7 +265,8 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
     def on_iter_next(self, rowref):
         parent = rowref.get_parent()
 
-        if parent is None:
+        #if parent is None:
+        if parent is None or rowref in self._root_set:
             n = self._root_set[rowref]
             if n >= len(self._roots) - 1:
                 return None
@@ -282,17 +289,19 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
                 return self._roots[0]
             else:
                 return None        
-        elif len(parent.get_children()) > 0:
+        elif self._nested and len(parent.get_children()) > 0:
             return parent.get_children()[0]
         else:
             return None
     
     def on_iter_has_child(self, rowref):
-        return len(rowref.get_children()) > 0
+        return self._nested and len(rowref.get_children()) > 0
     
     def on_iter_n_children(self, rowref):
         if rowref is None:
             return len(self._roots)
+        if not self._nested:
+            return 0
 
         return len(rowref.get_children())
     
@@ -303,6 +312,8 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
                 return None
             else:
                 return self._roots[n]
+        elif not self._nested:
+            return None
         else:
             children = parent.get_children()
             if n >= len(children):

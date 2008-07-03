@@ -21,6 +21,8 @@ import gobject
 import takenote
 from takenote.gui import get_resource, get_resource_image, get_resource_pixbuf
 from takenote.notebook import NoteBookError, NoteBookDir, NoteBookPage
+from takenote import notebook as notebooklib
+import takenote.search
 from takenote.gui import richtext
 from takenote.gui.richtext import RichTextView, RichTextImage, RichTextError
 from takenote.gui.treeview import TakeNoteTreeView
@@ -745,7 +747,20 @@ class TakeNoteWindow (gtk.Window):
             self.notebook.empty_trash()
         except NoteBookError, e:
             self.error("Could not empty trash.", e)
-    
+
+
+
+    def on_search_nodes(self):
+        if not self.notebook:
+            return
+
+        words = self.search_box.get_text().strip().split()
+        nodes = takenote.search.search_manual(self.notebook, words)
+        self.selector.view_nodes(nodes, nested=False)
+
+
+    def focus_on_search_box(self):
+        self.search_box.grab_focus()
     
     #=====================================================
     # Notebook callbacks
@@ -1428,6 +1443,9 @@ class TakeNoteWindow (gtk.Window):
             
             
             ("/_Search", None, None, 0, "<Branch>"),
+            ("/Search/_Search All Notes",
+             "<control>K", lambda w,e: self.focus_on_search_box(), 0,
+             "<StockItem>", gtk.STOCK_FIND),
             ("/Search/_Find In Page",     
                 "<control>F", lambda w,e: self.find_dialog.on_find(False), 0, 
                 "<StockItem>", gtk.STOCK_FIND), 
@@ -1584,8 +1602,7 @@ class TakeNoteWindow (gtk.Window):
         toolbar.insert(button, -1)        
 
         # separator
-        toolbar.insert(gtk.SeparatorToolItem(), -1)
-        
+        toolbar.insert(gtk.SeparatorToolItem(), -1)        
         
         # new folder
         button = gtk.ToolButton()
@@ -1720,6 +1737,32 @@ class TakeNoteWindow (gtk.Window):
         tips.set_tip(self.fill_button, "Justify Align")
         self.fill_id = self.fill_button.connect("toggled", lambda w: self.on_fill_justify())
         toolbar.insert(self.fill_button, -1)
+
+
+        # separator
+        spacer = gtk.SeparatorToolItem()
+        spacer.set_draw(False)
+        spacer.set_expand(True)
+        toolbar.insert(spacer, -1)
+
+
+        # search box
+        item = gtk.ToolItem()
+        self.search_box = gtk.Entry()
+        #self.search_box.set_max_chars(30)
+        self.search_box.connect("activate",
+                                lambda w: self.on_search_nodes())
+        item.add(self.search_box)
+        toolbar.insert(item, -1)
+
+        # search button
+        self.search_button = gtk.ToolButton()
+        self.search_button.set_stock_id(gtk.STOCK_FIND)
+        tips.set_tip(self.search_button, "Search Notes")
+        self.search_button.connect("clicked",
+                                   lambda w: self.on_search_nodes())
+        toolbar.insert(self.search_button, -1)
+        
                 
         return toolbar
 

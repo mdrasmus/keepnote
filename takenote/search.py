@@ -5,10 +5,11 @@ import uuid
 
 sys.path.append(".")
 
+from takenote import notebook as notebooklib
 from takenote.notebook import NoteBook
 
-import sqlite3
-from sqlite3 import dbapi2 
+#import sqlite3
+#from sqlite3 import dbapi2 
 
 
 #print sqlite3.sqlite_version
@@ -131,13 +132,49 @@ class TakeNoteDb (object):
                    node.get_modified_time()))
 
 
+def match_words(node, words):
+    """Returns True if any of the words in list 'words' appears in the
+       node title or data file"""
+
+    title = node.get_title().lower()
+    for word in words:
+        if word in title:
+            return True
+
+    if node.is_page():
+        for line in node.read_data_as_plain_text():
+            line = line.lower()
+            for word in words:
+                if word in line:
+                    return True
+    return False
+
+
+def search_manual(node, words):
+    """Recursively search nodes under node for occurrence of words"""
+    
+    nodes = []
+
+    def walk(node):
+        if match_words(node, words):
+            nodes.append(node)
+        for child in node.get_children():
+            walk(child)
+    walk(node)
+
+    return nodes
+        
+
     
         
 if __name__ == "__main__":
 
-    notebook = NoteBook("test/data/notebook")
+    notebook = NoteBook("/home/rasmus/notes/matt")
     notebook.load()
 
+    print [x.get_title() for x in search_manual(notebook, ["phylo"])]
+
+if 0:
     db = TakeNoteDb()
     db.connect("test.db")
     db.init_tables()

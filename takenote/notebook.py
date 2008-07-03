@@ -225,6 +225,33 @@ def get_trash_dir(nodepath):
     return os.path.join(nodepath, TRASH_DIR)
 
 
+TAG_PATTERN = re.compile("<[^>]*>")
+def strip_tags(line):
+    return re.sub(TAG_PATTERN, "", line)
+
+def read_data_as_plain_text(infile):
+    """Read a Note data file as plain text"""
+
+    for line in infile:
+        # skip until body tag
+        if "<body>" in line:
+            pos = line.find("<body>")
+            if pos != -1:
+                yield strip_tags(line[pos+6:])
+                break
+
+    # yield until </body>
+    for line in infile:
+        pos = line.find("</body>")
+        if pos != -1:
+            yield strip_tags(line[:pos])
+            break
+
+        # strip tags
+        yield strip_tags(line)
+
+
+
 class NoteBookError (StandardError):
     """Exception that occurs when manipulating NoteBook's"""
     
@@ -738,7 +765,18 @@ class NoteBookPage (NoteBookNode):
     def get_data_file(self):
         """Returns filename of data/text/html/etc"""
         return get_page_data_file(self.get_path())
-    
+
+
+    def read_data_as_plain_text(self):
+        """Iterates over the lines of the data file as plain text"""
+        
+        filename = self.get_data_file()
+        infile = open(filename)
+
+        for line in read_data_as_plain_text(infile):
+            yield line
+            
+        
     
     def get_meta_file(self):
         """Returns filename of meta file"""

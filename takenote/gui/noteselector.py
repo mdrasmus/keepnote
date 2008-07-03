@@ -261,7 +261,7 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
     #====================================================
     # actions
     
-    def view_nodes(self, nodes):
+    def view_nodes(self, nodes, nested=True):
         # TODO: learn how to deactivate expensive sorting
         #self.model.set_default_sort_func(None)
         #self.model.set_sort_column_id(-1, gtk.SORT_ASCENDING)
@@ -277,6 +277,8 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         model = self.model
         self.set_model(None)        
         self.sel_nodes = nodes
+
+        model.get_model().set_nested(nested)
 
         if len(nodes) == 1:
             model.get_model().set_master_node(nodes[0])
