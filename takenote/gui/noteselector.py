@@ -57,6 +57,11 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         self.drag_nodes = []
         self.on_status = None
         self.sel_nodes = None
+        self._roots = []
+
+        # indicates whether listview is viewing the notebook tree (True) or a
+        # search/virtual result (False)
+        self._view_tree = False 
         
         self.display_columns = []
         
@@ -160,7 +165,12 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
 
     def set_date_formats(self, formats):
         self.model.get_model().set_date_formats(formats)
-    
+
+    def get_root_nodes(self):
+        return list(self._roots)
+
+    def is_view_tree(self):
+        return self._view_tree
     
     #=============================================
     # gui callbacks    
@@ -293,20 +303,22 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         if len(nodes) == 1:
             model.get_model().set_master_node(nodes[0])
             self.set_master_node(nodes[0])
+            self._view_tree = True
         else:
             model.get_model().set_master_node(None)
             self.set_master_node(None)
+            self._view_tree = False
         
         # populate model
-        roots = []
+        self._roots = []
         for node in nodes:
             if isinstance(node, NoteBookDir):
                 for child in node.get_children():
-                    roots.append(child)
+                    self._roots.append(child)
             elif isinstance(node, NoteBookPage):
-                roots.append(node)
+                self._roots.append(node)
 
-        model.get_model().set_root_nodes(roots)
+        model.get_model().set_root_nodes(self._roots)
         
         # load sorting if single node is selected
         if len(nodes) == 1:
@@ -318,18 +330,18 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         #util.toc()
 
         # expand rows
-        for node in roots:
+        for node in self._roots:
             if node.is_expanded2():
                 self.expand_to_path(treemodel.get_path_from_node(self.model, node))
 
         # disable if no roots
-        if len(roots) == 0:
+        if len(self._roots) == 0:
             self.set_sensitive(False)
         else:
             self.set_sensitive(True)
 
         # update status
-        npages = len(roots)
+        npages = len(self._roots)
         if npages != 1:
             self.set_status("%d pages" % npages, "stats")
         else:

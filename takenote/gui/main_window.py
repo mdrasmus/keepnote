@@ -230,6 +230,7 @@ class TakeNoteWindow (gtk.Window):
         self.current_page = None
         self.maximized = False
         self.iconified = False
+        self.queue_list_select = []
 
         # init main window
         self.set_title(takenote.PROGRAM_NAME)
@@ -378,9 +379,15 @@ class TakeNoteWindow (gtk.Window):
     
     
     def on_tree_select(self, treeview, nodes):
+        """Callback for treeview selection change"""
+
         self.sel_nodes = nodes
         self.selector.view_nodes(nodes)
-        
+
+        if len(self.queue_list_select) > 0:
+            self.selector.select_nodes(self.queue_list_select)
+            self.queue_list_select = []
+                
         # view page
         pages = [node for node in nodes 
                  if isinstance(node, NoteBookPage)]
@@ -389,6 +396,7 @@ class TakeNoteWindow (gtk.Window):
             self.current_page = pages[0]
             try:
                 self.editor.view_pages(pages)
+
             except RichTextError, e:
                 self.error("Could not load pages", e)
             
@@ -398,6 +406,7 @@ class TakeNoteWindow (gtk.Window):
 
     
     def on_list_select(self, selector, pages):
+        """Callback for listview selection change"""
 
         # TODO: will need to generalize to multiple pages
         
@@ -411,8 +420,46 @@ class TakeNoteWindow (gtk.Window):
             self.error("Could not load page '%s'" % pages[0].get_title(), e)
 
     def on_list_view_node(self, selector, node):
+        """Focus listview on a node"""
+        if node is None:
+            nodes = self.selector.get_selected_nodes()
+            if len(nodes) == 0:
+                return
+            node = nodes[0]
         
         self.treeview.select_nodes([node])
+
+
+    def on_list_view_parent_node(self, node=None):
+        """Focus listview on a node's parent"""
+
+        # get node
+        if node is None:
+            if len(self.sel_nodes) == 0:
+                return
+            if len(self.sel_nodes) > 1 or \
+               not self.selector.is_view_tree():
+                nodes = self.selector.get_selected_nodes()
+                if len(nodes) == 0:
+                    return
+                node = nodes[0]
+            else:
+                node = self.sel_nodes[0]
+
+        # get parent
+        parent = node.get_parent()
+        if parent is None:
+            return
+
+        # queue list select
+        nodes = self.selector.get_selected_nodes()
+        if len(nodes) > 0:
+            self.queue_list_select = nodes
+        else:
+            self.queue_list_select = [node]
+
+        # select parent
+        self.treeview.select_nodes([parent])
 
         
     def on_page_editor_modified(self, editor, page, modified):
@@ -1539,11 +1586,20 @@ class TakeNoteWindow (gtk.Window):
                 
             
             ("/_Go", None, None, 0, "<Branch>"),
-            ("/Go/Go To _Tree View",
-                "<control><shift>T", lambda w,e: self.on_goto_treeview(), 0, None),
-            ("/Go/Go To _List View",
+            ("/_Go/Go to _Note",
+                None, lambda w,e: self.on_list_view_node(None, None), 0,
+                "<StockItem>", gtk.STOCK_GO_DOWN),
+            ("/_Go/Go to _Parent Note",
+                None, lambda w,e: self.on_list_view_parent_node(), 0,
+                "<StockItem>", gtk.STOCK_GO_UP),            
+
+            ("/Go/sep1", None, None, 0, "<Separator>"),
+
+            ("/Go/Go to _Tree View",
+                "<control>T", lambda w,e: self.on_goto_treeview(), 0, None),
+            ("/Go/Go to _List View",
                 "<control>Y", lambda w,e: self.on_goto_listview(), 0, None),
-            ("/Go/Go To _Editor",
+            ("/Go/Go to _Editor",
                 "<control>D", lambda w,e: self.on_goto_editor(), 0, None),
             
             ("/_Options", None, None, 0, "<Branch>"),
@@ -1609,6 +1665,25 @@ class TakeNoteWindow (gtk.Window):
 
         # separator
         toolbar.insert(gtk.SeparatorToolItem(), -1)        
+
+        # goto note
+        button = gtk.ToolButton()
+        button.set_stock_id(gtk.STOCK_GO_DOWN)
+        tips.set_tip(button, "Go to Note")
+        button.connect("clicked", lambda w: self.on_list_view_node(None, None))
+        toolbar.insert(button, -1)        
+        
+        # goto parent node
+        button = gtk.ToolButton()
+        button.set_stock_id(gtk.STOCK_GO_UP)
+        tips.set_tip(button, "Go to Parent Note")
+        button.connect("clicked", lambda w: self.on_list_view_parent_node())
+        toolbar.insert(button, -1)        
+
+
+        # separator
+        toolbar.insert(gtk.SeparatorToolItem(), -1)        
+        
         
         # new folder
         button = gtk.ToolButton()
@@ -1773,6 +1848,7 @@ class TakeNoteWindow (gtk.Window):
         return toolbar
 
 
+
     def make_context_menus(self):
         """Initialize context menus"""
 
@@ -1863,11 +1939,32 @@ class TakeNoteWindow (gtk.Window):
                      lambda w: self.on_view_node_text_editor(None,
                                                              "treeview"))
         self.treeview.menu.append(item)
-        item.show()        
+        item.show()
 
         
         #=================================
-        # note selector context menu
+        # listview (note selector) context menu
+
+        # selector/view note
+        item = gtk.ImageMenuItem(gtk.STOCK_GO_DOWN)
+        item.child.set_label("Go to _Note")
+        item.connect("activate",
+                     lambda w: self.on_list_view_node(None, None))
+        self.selector.menu.append(item)
+        item.show()
+
+        # selector/view note
+        item = gtk.ImageMenuItem(gtk.STOCK_GO_UP)
+        item.child.set_label("Go to _Parent Note")
+        item.connect("activate",
+                     lambda w: self.on_list_view_parent_node())
+        self.selector.menu.append(item)
+        item.show()
+
+        item = gtk.SeparatorMenuItem()
+        self.selector.menu.append(item)
+        item.show()
+
         # selector/new folder
         item = gtk.ImageMenuItem()
         item.set_image(get_resource_image("folder-new.png"))
@@ -1903,7 +2000,7 @@ class TakeNoteWindow (gtk.Window):
         self.selector.menu.append(item)
         
         # selector/file explorer
-        item = gtk.MenuItem("View in File Explorer")
+        item = gtk.MenuItem("View in File _Explorer")
         item.connect("activate",
                      lambda w: self.on_view_node_file_explorer(None,
                                                                "selector"))
@@ -1911,7 +2008,7 @@ class TakeNoteWindow (gtk.Window):
         item.show()
 
         # treeview/web browser
-        item = gtk.MenuItem("View in Web Browser")
+        item = gtk.MenuItem("View in _Web Browser")
         item.connect("activate",
                      lambda w: self.on_view_node_web_browser(None,
                                                              "selector"))
@@ -1919,7 +2016,7 @@ class TakeNoteWindow (gtk.Window):
         item.show()        
 
         # treeview/text editor
-        item = gtk.MenuItem("View in Text Editor")
+        item = gtk.MenuItem("View in _Text Editor")
         item.connect("activate",
                      lambda w: self.on_view_node_text_editor(None,
                                                              "selector"))
