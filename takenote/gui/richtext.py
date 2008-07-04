@@ -29,7 +29,7 @@ from takenote.undo import UndoStack
 
 
 # constants
-MIME_TAKENOTE = "application/x-takespnote"
+MIME_TAKENOTE = "application/x-takenote"
 DEFAULT_FONT = "Sans 10"
 
 # these tags will not be enumerated by iter_buffer_contents

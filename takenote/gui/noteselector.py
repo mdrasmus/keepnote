@@ -178,10 +178,8 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
             
     def on_directory_column_clicked(self, column):
         """sort pages by directory order"""
-        #self.model.set_default_sort_func
         self.model.set_sort_column_id(COL_MANUAL, gtk.SORT_ASCENDING)
         self.set_reorder(treemodel.REORDER_ALL)
-        #reset_default_sort_func()
         
     
     def on_key_released(self, widget, event):
@@ -189,6 +187,7 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
            not self.editing:
             self.on_delete_page()
             self.stop_emission("key-release-event")
+
 
     def on_button_press(self, widget, event):
         if event.button == 3:            
@@ -203,6 +202,17 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
                                 event.button, event.time)
                 self.menu.show()
                 return True
+
+        if event.button == 1 and event.type == gtk.gdk._2BUTTON_PRESS:
+            model, paths = self.get_selection().get_selected_rows()
+
+            if len(paths) > 0:
+                nodes = [self.model.get_value(self.model.get_iter(x), COL_NODE)
+                         for x in paths]
+
+            # NOTE: can only view one node
+            self.emit("view-node", nodes[0])
+
 
     
     def on_select_changed(self, treeselect): 
@@ -415,6 +425,8 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
 
 gobject.type_register(TakeNoteSelector)
 gobject.signal_new("select-nodes", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (object,))
+gobject.signal_new("view-node", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object,))
 gobject.signal_new("error", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (str, object,))

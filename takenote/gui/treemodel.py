@@ -447,6 +447,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
             try:
                 path2 = get_path_from_node(self.model, self.__sel_nodes2[0])
                 self.set_cursor(path2)
+                self.scroll_to_cell(path2)
             except:
                 pass
 
@@ -512,6 +513,28 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         if self.is_node_expanded(node):
             self.expand_row(path, False)        
 
+
+    #===========================================
+    # actions
+
+    def select_nodes(self, nodes):
+
+        # NOTE: for now only select one node
+        if len(nodes) > 0:
+            node = nodes[0]
+            try:
+                path = get_path_from_node(self.model, node)
+                self.expand_to_path(path)
+                self.set_cursor(path)
+                self.scroll_to_cell(path)
+            except:
+                pass
+        else:
+
+            # NOTE: this may be invalid
+            self.set_cursor(None)
+
+
     #============================================
     # editing titles
     
@@ -550,6 +573,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         # reselect node
         self.set_cursor((0,))
         self.set_cursor(path)
+        self.scroll_to_cell(path)
         
     
 

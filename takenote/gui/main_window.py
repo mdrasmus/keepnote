@@ -249,6 +249,7 @@ class TakeNoteWindow (gtk.Window):
         # selector
         self.selector = TakeNoteSelector()
         self.selector.connect("select-nodes", self.on_list_select)
+        self.selector.connect("view-node", self.on_list_view_node)
         self.selector.connect("error", lambda w,t,e: self.error(t, e))
         self.selector.on_status = self.set_status
         
@@ -408,6 +409,10 @@ class TakeNoteWindow (gtk.Window):
             self.editor.view_pages(pages)
         except RichTextError, e:
             self.error("Could not load page '%s'" % pages[0].get_title(), e)
+
+    def on_list_view_node(self, selector, node):
+        
+        self.treeview.select_nodes([node])
 
         
     def on_page_editor_modified(self, editor, page, modified):
@@ -754,7 +759,8 @@ class TakeNoteWindow (gtk.Window):
         if not self.notebook:
             return
 
-        words = self.search_box.get_text().strip().split()
+        words = [x.lower() for x in
+                 self.search_box.get_text().strip().split()]
         nodes = takenote.search.search_manual(self.notebook, words)
         self.selector.view_nodes(nodes, nested=False)
 
@@ -1801,13 +1807,25 @@ class TakeNoteWindow (gtk.Window):
         #===============================
         # treeview context menu
         # treeview/new folder
-        item = gtk.MenuItem("New _Folder")
+        item = gtk.ImageMenuItem()        
+        item.set_image(get_resource_image("folder-new.png"))
+        label = gtk.Label("New _Folder")
+        label.set_use_underline(True)
+        label.set_alignment(0.0, 0.5)
+        label.show()
+        item.add(label)
         item.connect("activate", lambda w: self.on_new_dir("treeview"))
         self.treeview.menu.append(item)
         item.show()
         
         # treeview/new page
-        item = gtk.MenuItem("New _Page")
+        item = gtk.ImageMenuItem()
+        item.set_image(get_resource_image("note-new.png"))        
+        label = gtk.Label("New _Page")
+        label.set_use_underline(True)
+        label.set_alignment(0.0, 0.5)
+        label.show()
+        item.add(label)        
         item.connect("activate", lambda w: self.on_new_page("treeview"))
         self.treeview.menu.append(item)
         item.show()
@@ -1851,13 +1869,25 @@ class TakeNoteWindow (gtk.Window):
         #=================================
         # note selector context menu
         # selector/new folder
-        item = gtk.MenuItem("New _Folder")
+        item = gtk.ImageMenuItem()
+        item.set_image(get_resource_image("folder-new.png"))
+        label = gtk.Label("New _Folder")
+        label.set_use_underline(True)
+        label.set_alignment(0.0, 0.5)
+        label.show()
+        item.add(label)
         item.connect("activate", lambda w: self.on_new_dir("selector"))
         self.selector.menu.append(item)
         item.show()
         
-        # selector/new page
-        item = gtk.MenuItem("New _Page")
+        # treeview/new page
+        item = gtk.ImageMenuItem()
+        item.set_image(get_resource_image("note-new.png"))        
+        label = gtk.Label("New _Page")
+        label.set_use_underline(True)
+        label.set_alignment(0.0, 0.5)
+        label.show()
+        item.add(label)        
         item.connect("activate", lambda w: self.on_new_page("selector"))
         self.selector.menu.append(item)
         item.show()
