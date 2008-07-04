@@ -153,6 +153,7 @@ class ApplicationOptionsDialog (object):
                 self.xml.get_widget("date_%s_entry" % name).get_text()
         
 
+        # save external app options
         for key, entry in self.entries.iteritems():
             self.app.pref._external_apps_lookup[key].prog = \
                 self.entries[key].get_text()

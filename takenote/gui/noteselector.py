@@ -193,10 +193,30 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         
     
     def on_key_released(self, widget, event):
-        if event.keyval == gdk.keyval_from_name("Delete") and \
-           not self.editing:
+        """Callback for key release events"""
+
+        # no special processing while editing nodes
+        if self.editing:
+            return
+
+        if event.keyval == gdk.keyval_from_name("Delete"):
+            # capture node deletes
+            self.stop_emission("key-release-event")            
             self.on_delete_page()
+            
+        elif event.keyval == gdk.keyval_from_name("BackSpace") and \
+             event.state | gdk.CONTROL_MASK:
+            # capture goto parent node
             self.stop_emission("key-release-event")
+            self.emit("goto-parent-node")
+
+
+        elif event.keyval == gdk.keyval_from_name("Return") and \
+             event.state | gdk.CONTROL_MASK:
+            # capture goto node
+            self.stop_emission("key-release-event")
+            self.emit("goto-node", None)
+            
 
 
     def on_button_press(self, widget, event):
@@ -215,17 +235,20 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
 
         if event.button == 1 and event.type == gtk.gdk._2BUTTON_PRESS:
             model, paths = self.get_selection().get_selected_rows()
-
+            # double click --> goto node
             if len(paths) > 0:
                 nodes = [self.model.get_value(self.model.get_iter(x), COL_NODE)
                          for x in paths]
 
             # NOTE: can only view one node
-            self.emit("view-node", nodes[0])
+            self.emit("goto-node", nodes[0])
 
 
     
-    def on_select_changed(self, treeselect): 
+    def on_select_changed(self, treeselect):
+        """Callback for selection change"""
+
+        # notify listeners of selection change in terms of nodes
         model, paths = treeselect.get_selected_rows()
         
         if len(paths) > 0:
@@ -238,6 +261,9 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
     
     
     def on_delete_page(self):
+        """Callback for delete page event"""
+
+        # TODO: maybe push this into main window?
         dialog = gtk.MessageDialog(self.get_toplevel(), 
             flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
             type=gtk.MESSAGE_QUESTION, 
@@ -255,6 +281,7 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
 
 
     def get_selected_nodes(self):
+        """Returns a list of currently selected nodes"""
         model, it = self.get_selection().get_selected()        
         if it is None:
             return []
@@ -262,6 +289,7 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         
     
     def delete_page(self):
+        """Deletes selected page"""
         model, it = self.get_selection().get_selected()
         
         if it is None:
@@ -313,8 +341,13 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         self._roots = []
         for node in nodes:
             if isinstance(node, NoteBookDir):
-                for child in node.get_children():
-                    self._roots.append(child)
+                if nested:
+                    # list directory contents
+                    for child in node.get_children():
+                        self._roots.append(child)
+                else:
+                    # list directory itself
+                    self._roots.append(node)
             elif isinstance(node, NoteBookPage):
                 self._roots.append(node)
 
@@ -438,7 +471,9 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
 gobject.type_register(TakeNoteSelector)
 gobject.signal_new("select-nodes", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object,))
-gobject.signal_new("view-node", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
+gobject.signal_new("goto-node", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object,))
+gobject.signal_new("goto-parent-node", TakeNoteSelector,
+    gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())
 gobject.signal_new("error", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (str, object,))

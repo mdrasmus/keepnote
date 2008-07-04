@@ -231,6 +231,7 @@ class TakeNoteWindow (gtk.Window):
         self.maximized = False
         self.iconified = False
         self.queue_list_select = []
+        self.ignore_view_mode = False
 
         # init main window
         self.set_title(takenote.PROGRAM_NAME)
@@ -250,7 +251,9 @@ class TakeNoteWindow (gtk.Window):
         # selector
         self.selector = TakeNoteSelector()
         self.selector.connect("select-nodes", self.on_list_select)
-        self.selector.connect("view-node", self.on_list_view_node)
+        self.selector.connect("goto-node", self.on_list_view_node)
+        self.selector.connect("goto-parent-node",
+                              lambda w: self.on_list_view_parent_node())
         self.selector.connect("error", lambda w,t,e: self.error(t, e))
         self.selector.on_status = self.set_status
         
@@ -316,12 +319,7 @@ class TakeNoteWindow (gtk.Window):
         
 
         # layout major widgets
-        if self.app.pref.view_mode == "vertical":
-            # create a vertical paned widget
-            self.paned2 = gtk.VPaned()
-        else:
-            self.paned2 = gtk.HPaned()
-        
+        self.paned2 = gtk.VPaned()
         self.hpaned.add2(self.paned2)
         self.paned2.set_position(takenote.DEFAULT_VSASH_POS)
         
@@ -344,6 +342,7 @@ class TakeNoteWindow (gtk.Window):
 
         # load preferences
         self.get_app_preferences()
+        self.set_view_mode(self.app.pref.view_mode)
         
         #self.show_all()
         self.treeview.grab_focus()
@@ -843,6 +842,11 @@ class TakeNoteWindow (gtk.Window):
             vertical
             horizontal
         """
+
+        if self.ignore_view_mode:
+            return
+
+        self.ignore_view_mode = True
         
         self.paned2.remove(self.selector_sw)
         self.paned2.remove(self.editor)
@@ -851,8 +855,12 @@ class TakeNoteWindow (gtk.Window):
         if mode == "vertical":
             # create a vertical paned widget
             self.paned2 = gtk.VPaned()
+            self.view_mode_h_toggle.set_active(False)
+            self.view_mode_v_toggle.set_active(True)
         else:
             self.paned2 = gtk.HPaned()
+            self.view_mode_h_toggle.set_active(True)
+            self.view_mode_v_toggle.set_active(False)            
         self.paned2.set_position(self.app.pref.vsash_pos)
         self.paned2.show()
         
@@ -864,6 +872,8 @@ class TakeNoteWindow (gtk.Window):
         
         self.app.pref.view_mode = mode
         self.app.pref.write()
+
+        self.ignore_view_mode = False
     
     #=============================================================
     # Update UI (menubar) from font under cursor
@@ -1347,7 +1357,7 @@ class TakeNoteWindow (gtk.Window):
         textview = self.editor.get_textview()
         if textview is not None:
             textview.enable_spell_check(widget.get_active())
-        
+            self.spell_check_toggle.set_active(textview.is_spell_check_enabled())
 
    
     
@@ -1610,10 +1620,10 @@ class TakeNoteWindow (gtk.Window):
             ("/Options/sep1", None, None, 0, "<Separator>"),
             ("/Options/_Horizontal Layout",
                 None, lambda w,e: self.set_view_mode("horizontal"), 0, 
-                None),
+                "<ToggleItem>"),
             ("/Options/_Vertical Layout",
                 None, lambda w,e: self.set_view_mode("vertical"), 0, 
-                None),
+                "<ToggleItem>"),
                 
             ("/Options/sep1", None, None, 0, "<Separator>"),
             ("/Options/_TakeNote Options",
@@ -1635,6 +1645,19 @@ class TakeNoteWindow (gtk.Window):
         self.item_factory = gtk.ItemFactory(gtk.MenuBar, "<main>", accel_group)
         self.item_factory.create_items(self.menu_items)
         self.add_accel_group(accel_group)
+
+        # view mode
+        self.view_mode_h_toggle = self.item_factory.get_widget("/Options/Horizontal Layout")
+        self.view_mode_v_toggle = self.item_factory.get_widget("/Options/Vertical Layout")
+
+        # get spell check toggle
+        self.spell_check_toggle = self.item_factory.get_widget("/Options/Spell check")
+        self.spell_check_toggle.set_active(self.editor.get_textview()\
+                                           .is_spell_check_enabled())
+        self.spell_check_toggle.set_sensitive(self.editor.get_textview()\
+                                              .can_spell_check())
+        
+        
         return self.item_factory.get_widget("<main>")
 
 

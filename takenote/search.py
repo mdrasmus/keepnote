@@ -155,13 +155,13 @@ def search_manual(node, words):
     
     nodes = []
 
-    def walk(node):
-        if match_words(node, words):
-            nodes.append(node)
-        for child in node.get_children():
+    def walk(node2):
+        if match_words(node2, words):
+            nodes.append(node2)
+        for child in node2.get_children():
             walk(child)
     walk(node)
-
+    
     return nodes
         
 

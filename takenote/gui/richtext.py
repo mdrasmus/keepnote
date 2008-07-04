@@ -472,7 +472,6 @@ class HtmlBuffer (HTMLParser):
     def write(self, richtext):
         self.buffer = richtext.textbuffer
         
-        #self.out.write("<html><body>")
         self.out.write("""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <body>""")
@@ -2240,6 +2239,9 @@ class RichTextView (gtk.TextView):
             if self._spell_checker is not None:
                 self._spell_checker.detach()
                 self._spell_checker = None
+
+    def is_spell_check_enabled(self):
+        return self._spell_checker != None
         
     #===========================================================
     # Callbacks from UI to change font 
