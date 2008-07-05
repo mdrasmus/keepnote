@@ -3,15 +3,11 @@
 import sys
 import uuid
 
-sys.path.append(".")
-
 from takenote import notebook as notebooklib
 from takenote.notebook import NoteBook
 
 #import sqlite3
 #from sqlite3 import dbapi2 
-
-
 #print sqlite3.sqlite_version
 
 
@@ -168,13 +164,6 @@ def search_manual(node, words):
     
         
 if __name__ == "__main__":
-
-    notebook = NoteBook("/home/rasmus/notes/matt")
-    notebook.load()
-
-    print [x.get_title() for x in search_manual(notebook, ["phylo"])]
-
-if 0:
     db = TakeNoteDb()
     db.connect("test.db")
     db.init_tables()

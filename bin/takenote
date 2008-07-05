@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, os
+import sys, os, time
 from os.path import basename, dirname, realpath, join, isdir
 
 # pygtk imports
@@ -76,7 +76,10 @@ import takenote.gui.main_window
 
 def main(args):
 
-    show_errors = False
+    if takenote.get_platform() == "windows":        
+        show_errors = False
+    else:
+        show_errors = True
     no_default = False
 
     # parse options
@@ -84,7 +87,9 @@ def main(args):
     for i in range(1, len(args)):
         if args[i] == "--show-errors":
             show_errors = True
-        if args[i] == "--no-default":
+        elif args[i] == "--no-show-errors":
+            show_errors = False
+        elif args[i] == "--no-default":
             no_default = True
         elif not args[i].startswith("-"):
             args = args[i:]
@@ -93,9 +98,17 @@ def main(args):
         args = []
     
     # start error log
-    if takenote.get_platform() == "windows" and not show_errors:
-        errorlog = open(takenote.get_user_error_log(), "w")
+    errorlog = open(takenote.get_user_error_log(), "a")
+    if show_errors:
+        pass
+        #sys.stderr = takenote.TeeFileStream([sys.stderr, errorlog],
+        #                                    autoflush=True)
+    else:
         sys.stderr = errorlog
+        
+
+    sys.stderr.write("==============================================\n"
+                     "TakeNote: %s\n" % time.asctime())
         
     # read preferences
     app = takenote.gui.TakeNote(basedir)
@@ -111,6 +124,14 @@ def main(args):
         app.show_main_window()
 
     gtk.main()
+    
 
 
-main(sys.argv)
+try:
+    main(sys.argv)
+except Exception, e:
+
+    print e
+    # flush final errors
+    sys.stderr.flush()
+    

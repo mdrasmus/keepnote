@@ -205,14 +205,14 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
             self.on_delete_page()
             
         elif event.keyval == gdk.keyval_from_name("BackSpace") and \
-             event.state | gdk.CONTROL_MASK:
+             event.state & gdk.CONTROL_MASK:
             # capture goto parent node
             self.stop_emission("key-release-event")
             self.emit("goto-parent-node")
 
 
         elif event.keyval == gdk.keyval_from_name("Return") and \
-             event.state | gdk.CONTROL_MASK:
+             event.state & gdk.CONTROL_MASK:
             # capture goto node
             self.stop_emission("key-release-event")
             self.emit("goto-node", None)

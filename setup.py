@@ -1,21 +1,31 @@
 #!/usr/bin/env python
 # 
-# setup for SUMMON package
+# setup for TakeNote
 #
-# use the following to install summon:
+# use the following command to install TakeNote:
 #   python setup.py install
 #
+#=============================================================================
 
+
+# python and distutils imports
 import os, sys, shutil
 from distutils.core import setup, Extension
 
+# py2exe module (if building on windows)
 try:
     import py2exe
 except ImportError:
     pass
 
+#=============================================================================
+# constants
 
 TAKENOTE_VERSION = '0.4'
+
+
+#=============================================================================
+# resource files/data
 
 # get images
 image_dir = "takenote/images"
@@ -23,6 +33,7 @@ image_files = [os.path.join(image_dir, x)
                for x in os.listdir("takenote/images")]
 
 
+# get data files
 if "py2exe" in sys.argv:
     data_files = [
         ('images', image_files),
@@ -36,6 +47,9 @@ else:
                                 "rc/takenote.glade"]}
 
 
+#=============================================================================
+# setup
+
 setup(
     name='takenote',
     version=TAKENOTE_VERSION,
@@ -46,14 +60,15 @@ setup(
         
         - rich text editing
         - hierarchical organization for notes
+        - full text search
         - inline images
         - integrated screenshot
         - spell checking (via gtkspell)
     """,
     author='Matt Rasmussen',
     author_email='rasmus@mit.edu',
-    url='http://people.csail.mit.edu/rasmus/takenote/',
-    download_url='http://compbio.mit.edu/pub/takenote/takenote-%s.tar.gz' % TAKENOTE_VERSION,
+    url='http://rasm.ods.org/takenote/',
+    download_url='http://rasm.ods.org/pub/takenote/takenote-%s.tar.gz' % TAKENOTE_VERSION,
     
     classifiers=[
           'Development Status :: 5 - Production/Stable',
@@ -78,7 +93,7 @@ setup(
     
     windows=[{
         'script': 'bin/takenote',
-        'icon_resources': [(1, 'takenote/images/note.ico')],
+        'icon_resources': [(1, 'takenote/images/takenote.ico')],
         }],
     options = {
         'py2exe' : {
