@@ -100,6 +100,7 @@ class TakeNoteTreeView (treemodel.TakeNoteBaseTreeView):
         self.menu = gtk.Menu()
         self.menu.attach_to_widget(self, lambda w,m:None)
 
+        self.set_sensitive(False)
 
 
         

@@ -6,14 +6,16 @@
 
 """
 
-# takenote imports
-import takenote.xmlobject as xmlo
-from takenote.listening import Listeners
-
 # python imports
 import os, sys, shutil, time, re
 import xml.dom.minidom as xmldom
 import xml.dom
+import tarfile
+
+# takenote imports
+import takenote.xmlobject as xmlo
+from takenote.listening import Listeners
+
 
 
 # constants
@@ -85,7 +87,7 @@ INFO_SORT_MODIFIED_TIME = range(5)
 # filename creation functions
 
 REGEX_SLASHES = re.compile(r"[/\\]")
-REGEX_BAD_CHARS = re.compile(r"[\?'&<>|`]")
+REGEX_BAD_CHARS = re.compile(r"[\?'&<>|`:;]")
 
 def get_valid_filename(filename):
     """Converts a filename into a valid one
@@ -224,6 +226,55 @@ def get_trash_dir(nodepath):
     """Returns the trash directory of the notebook"""
     return os.path.join(nodepath, TRASH_DIR)
 
+
+def restore_archived_notebook(filename, path, rename=True):
+    """
+    Restores a archived notebook
+
+    filename -- filename of archive
+    path     -- name of new notebook
+    rename   -- if True, path contains notebook name, otherwise path is
+                basedir of new notebook
+    """
+
+    if path == "":
+        raise NoteBookError("Must specify a path for restoring notebook")
+
+    # remove trailing "/"
+    path = re.sub("/+$", "", path)
+
+    tar = tarfile.open(filename, "r:gz")
+
+    # create new dirctory, if needed
+    if rename:
+        if not os.path.exists(path):
+            tmppath = get_valid_unique_filename(os.path.dirname(path),
+                                                os.path.basename(path+"-tmp"))
+        else:
+            raise NoteBookError("Notebook path already exists")
+
+        try:
+            # extract notebook
+            tar.extractall(tmppath)
+        
+            files = os.listdir(tmppath)
+            # assert len(files) = 1
+            extracted_path = os.path.join(tmppath, files[0])
+
+            # move extracted files to proper place
+            shutil.move(extracted_path, path)
+            os.rmdir(tmppath)
+        except Exception, e:
+            raise NoteBookError("File writing error while extracting notebook", e)
+        
+    else:
+        try:
+            tar.extractall(path)
+        except Exception, e:
+            raise NoteBookError("File writing error while extracting notebook", e)
+
+    
+    
 
 TAG_PATTERN = re.compile("<[^>]*>")
 def strip_tags(line):
@@ -1019,7 +1070,29 @@ class NoteBook (NoteBookDir):
             node.save()
         
         self._dirty.clear()
-    
+
+
+    def archive(self, filename):
+        """Archive notebook as *.tar.gz"""
+
+        if os.path.exists(filename):
+            raise NoteBookError("File '%s' already exists" % filename)
+        
+        # make sure all modifications are saved first
+        try:
+            self.save()
+        except Exception, e:
+            raise NoteBookError("Could not save notebook before archiving", e)
+
+        # perform archiving
+        try:
+            archive = tarfile.open(filename, "w:gz")
+            path = self.get_path()
+            archive.add(path, os.path.basename(path))
+            archive.close()
+        except Exception, e:
+            raise NoteBookError("Error while archiving notebook", e)
+        
     
     def get_children(self):
         """Returns all children of this node"""

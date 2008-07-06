@@ -162,6 +162,8 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         self.menu = gtk.Menu()
         self.menu.attach_to_widget(self, lambda w,m:None)
 
+        self.set_sensitive(False)
+
 
     def set_date_formats(self, formats):
         self.model.get_model().set_date_formats(formats)
@@ -240,8 +242,8 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
                 nodes = [self.model.get_value(self.model.get_iter(x), COL_NODE)
                          for x in paths]
 
-            # NOTE: can only view one node
-            self.emit("goto-node", nodes[0])
+                # NOTE: can only view one node
+                self.emit("goto-node", nodes[0])
 
 
     

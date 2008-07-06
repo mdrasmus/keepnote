@@ -61,7 +61,7 @@ DEFAULT_WINDOW_SIZE = (800, 600)
 DEFAULT_WINDOW_POS = (-1, -1)
 DEFAULT_VSASH_POS = 200
 DEFAULT_HSASH_POS = 200
-
+DEFAULT_AUTOSAVE_TIME = 10 * 1000 # 10 sec (in msec)
 
 
 #=============================================================================
@@ -210,12 +210,16 @@ class TakeNotePreferences (object):
         self.vsash_pos = DEFAULT_VSASH_POS
         self.hsash_pos = DEFAULT_HSASH_POS        
         self.view_mode = "vertical"
+
+        self.autosave = True
+        self.autosave_time = DEFAULT_AUTOSAVE_TIME
         
         self.default_notebook = ""
         self.timestamp_formats = dict(DEFAULT_TIMESTAMP_FORMATS)
 
         # dialog chooser paths
         self.new_notebook_path = get_user_documents()
+        self.archive_notebook_path = get_user_documents()
         self.insert_image_path = get_user_documents()
         self.save_image_path = get_user_documents()
         
@@ -297,6 +301,8 @@ g_takenote_pref_parser = xmlo.XmlObject(
         xmlo.Tag("default_notebook",
             getobj=("default_notebook", str),
             set=lambda s: s.default_notebook),
+
+        # window sizing
         xmlo.Tag("view_mode",
             getobj=("view_mode", str),
             set=lambda s: s.view_mode),
@@ -312,8 +318,20 @@ g_takenote_pref_parser = xmlo.XmlObject(
         xmlo.Tag("hsash_pos",
             getobj=("hsash_pos", int),
             set=lambda s: "%d" % s.hsash_pos),
+
+        xmlo.Tag("autosave",
+            getobj=("autosave", lambda x: bool(int(x))),
+            set=lambda s: str(int(s.autosave))),
+        xmlo.Tag("autosave_time",
+            getobj=("autosave_time", int),
+            set=lambda s: "%d" % s.autosave_time),
+
+        # default paths
         xmlo.Tag("new_notebook_path",
             getobj=("new_notebook_path", str),
+            set=lambda s: s.new_notebook_path),
+        xmlo.Tag("archive_notebook_path",
+            getobj=("archive_notebook_path", str),
             set=lambda s: s.new_notebook_path),
         xmlo.Tag("insert_image_path",
             getobj=("insert_image_path", str),
@@ -321,6 +339,7 @@ g_takenote_pref_parser = xmlo.XmlObject(
         xmlo.Tag("save_image_path",
             getobj=("save_image_path", str),
             set=lambda s: s.save_image_path),
+        
         xmlo.Tag("external_apps", tags=[
             xmlo.TagMany("app",
                 iterfunc=lambda s: range(len(s.external_apps)),

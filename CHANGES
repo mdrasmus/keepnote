@@ -2,10 +2,11 @@ TakeNote Change Log
 -----------------
 
 
-NEXT RELEASE
+takenote-0.4
 ------------
  - rich text editing
  - hierarchical organization for notes
+ - full-text search
  - inline images
  - integrated screenshot
  - spell checking (via gtkspell)

@@ -8,7 +8,7 @@
 
 
 # python imports
-import sys, os, tempfile, re, subprocess, shlex, shutil
+import sys, os, tempfile, re, subprocess, shlex, shutil, time
 
 # pygtk imports
 import pygtk
@@ -37,7 +37,6 @@ from takenote.gui import \
     TakeNoteError
 
 
-AUTOSAVE_TIME = 10 * 1000 # 1 min (in msec)
 
 
 
@@ -508,18 +507,18 @@ class TakeNoteWindow (gtk.Window):
         dialog.set_current_folder(self.app.pref.new_notebook_path)
         
         response = dialog.run()
+
+        self.app.pref.new_notebook_path = dialog.get_current_folder()
+        filename = dialog.get_filename()
+        dialog.destroy()
         
-        if response == gtk.RESPONSE_OK:
-            filename = dialog.get_filename()
+        if response == gtk.RESPONSE_OK:            
             self.new_notebook(filename)
             
         elif response == gtk.RESPONSE_CANCEL:
             pass
 
-
-        self.app.pref.new_notebook_path = dialog.get_current_folder()
-
-        dialog.destroy()
+        
     
     
     def on_open_notebook(self):
@@ -534,25 +533,25 @@ class TakeNoteWindow (gtk.Window):
         
         file_filter = gtk.FileFilter()
         file_filter.add_pattern("*.nbk")
-        file_filter.set_name("Notebook")
+        file_filter.set_name("Notebook (*.nbk)")
         dialog.add_filter(file_filter)
         
         file_filter = gtk.FileFilter()
         file_filter.add_pattern("*")
-        file_filter.set_name("All files")
+        file_filter.set_name("All files (*.*)")
         dialog.add_filter(file_filter)
         
         response = dialog.run()
 
-        self.app.pref.new_notebook_path = dialog.get_current_folder()
+        self.app.pref.new_notebook_path = os.path.dirname(dialog.get_current_folder())
+        filename = dialog.get_filename()
+        dialog.destroy()
 
         if response == gtk.RESPONSE_OK:
-            filename = dialog.get_filename()
-            dialog.destroy()
             self.open_notebook(filename)
             
         elif response == gtk.RESPONSE_CANCEL:
-            dialog.destroy()
+            pass
 
 
 
@@ -573,6 +572,164 @@ class TakeNoteWindow (gtk.Window):
             self.set_notebook_modified(False)
 
         self.set_status("Notebook saved")
+
+
+
+    def on_archive_notebook(self):
+        """Callback for archiving a notebook"""
+
+        if self.notebook is None:
+            return
+
+        dialog = gtk.FileChooserDialog("Backup Notebook", self, 
+            action=gtk.FILE_CHOOSER_ACTION_SAVE,
+            buttons=("Cancel", gtk.RESPONSE_CANCEL,
+                     "Backup", gtk.RESPONSE_OK))
+
+
+        filename = notebooklib.get_unique_filename(
+            self.app.pref.archive_notebook_path,
+            time.strftime(os.path.basename(self.notebook.get_path()) +
+                          "-%Y-%m-%d"),
+            ".tar.gz",
+            ".")
+        dialog.set_current_name(os.path.basename(filename))
+        dialog.set_current_folder(self.app.pref.archive_notebook_path)
+
+        file_filter = gtk.FileFilter()
+        file_filter.add_pattern("*.tar.gz")
+        file_filter.set_name("Archives (*.tar.gz)")
+        dialog.add_filter(file_filter)
+        
+        file_filter = gtk.FileFilter()
+        file_filter.add_pattern("*")
+        file_filter.set_name("All files (*.*)")
+        dialog.add_filter(file_filter)
+        
+        response = dialog.run()
+
+        self.app.pref.archive_notebook_path = dialog.get_current_folder()
+        
+        
+        if response == gtk.RESPONSE_OK:
+            filename = dialog.get_filename()
+            dialog.destroy()
+
+            if "." not in filename:
+                filename += ".tar.gz"
+            
+            self.set_status("Archiving...")
+            self.archive_notebook(filename)
+            
+        elif response == gtk.RESPONSE_CANCEL:
+            dialog.destroy()
+
+
+    def on_restore_notebook(self):
+        """Callback for restoring a notebook from an archive"""
+
+        dialog = gtk.FileChooserDialog("Chose Archive To Restore", self, 
+            action=gtk.FILE_CHOOSER_ACTION_OPEN,
+            buttons=("Cancel", gtk.RESPONSE_CANCEL,
+                     "Restore", gtk.RESPONSE_OK))
+        dialog.set_current_folder(self.app.pref.archive_notebook_path)        
+
+        
+        file_filter = gtk.FileFilter()
+        file_filter.add_pattern("*.tar.gz")
+        file_filter.set_name("Archive (*.tar.gz)")
+        dialog.add_filter(file_filter)
+        
+        file_filter = gtk.FileFilter()
+        file_filter.add_pattern("*")
+        file_filter.set_name("All files (*.*)")
+        dialog.add_filter(file_filter)
+        
+        response = dialog.run()
+
+        self.app.pref.archive_notebook_path = dialog.get_current_folder()
+        
+        if response == gtk.RESPONSE_OK:
+            archive_filename = dialog.get_filename()
+            dialog.destroy()
+            
+        elif response == gtk.RESPONSE_CANCEL:
+            dialog.destroy()
+            return
+
+
+        # choose new notebook name
+        dialog = gtk.FileChooserDialog("Choose New Notebook Name", self, 
+            action=gtk.FILE_CHOOSER_ACTION_SAVE,
+            buttons=("Cancel", gtk.RESPONSE_CANCEL,
+                     "New", gtk.RESPONSE_OK))
+        dialog.set_current_folder(self.app.pref.archive_notebook_path)
+
+        file_filter = gtk.FileFilter()
+        file_filter.add_pattern("*.nbk")
+        file_filter.set_name("Notebook (*.nbk)")
+        dialog.add_filter(file_filter)
+        
+        file_filter = gtk.FileFilter()
+        file_filter.add_pattern("*.tar.gz")
+        file_filter.set_name("Archives (*.tar.gz)")
+        dialog.add_filter(file_filter)
+        
+        file_filter = gtk.FileFilter()
+        file_filter.add_pattern("*")
+        file_filter.set_name("All files (*.*)")
+        dialog.add_filter(file_filter)
+        
+        response = dialog.run()
+
+        self.app.pref.archive_notebook_path = os.path.dirname(dialog.get_current_folder())
+
+
+        if response == gtk.RESPONSE_OK:
+            notebook_filename = dialog.get_filename()
+            dialog.destroy()
+
+            self.set_status("Restoring...")
+            self.restore_notebook(archive_filename, notebook_filename)
+            
+        elif response == gtk.RESPONSE_CANCEL:
+            dialog.destroy()
+
+
+
+    def archive_notebook(self, filename):
+        """Archive a notebook"""
+
+        if self.notebook is None:
+            return
+
+        try:
+            self.notebook.archive(filename)
+        except NoteBookError, e:
+            self.set_status("")
+            self.error("Error while archiving notebook:\n%s" % e.msg, e)
+            return
+
+        self.set_status("Notebook archived")
+
+
+    def restore_notebook(self, archive_filename, notebook_filename):
+
+        # make sure current notebook is closed
+        self.close_notebook()
+
+        try:
+            notebooklib.restore_archived_notebook(archive_filename,
+                                                  notebook_filename)
+            self.set_status("Notebook restored")
+        except NoteBookError, e:
+            self.set_status("")
+            self.error("Error restoring notebook:\n%s" % e.msg, e)
+            return
+
+        # open new notebook
+        self.open_notebook(notebook_filename)
+            
 
     
     def on_quit(self):
@@ -672,16 +829,22 @@ class TakeNoteWindow (gtk.Window):
             self.set_status("Notebook closed")
 
 
+
     def begin_auto_save(self):
-        gobject.timeout_add(AUTOSAVE_TIME, self.auto_save)
+        """Begin autosave callbacks"""
+
+        if self.app.pref.autosave:
+            gobject.timeout_add(self.app.pref.autosave_time, self.auto_save)
         
 
     def auto_save(self):
         """Callback for autosaving"""
+
+        # NOTE: return True to activate next timeout callback
         
         if self.notebook is not None:
             self.on_save(True)
-            return True
+            return self.app.pref.autosave
         else:
             return False
     
@@ -1454,8 +1617,18 @@ class TakeNoteWindow (gtk.Window):
             ("/File/_Close Notebook", 
                 None, lambda w, e: self.close_notebook(), 0, 
                 "<StockItem>", gtk.STOCK_CLOSE),
-                
+
             ("/File/sep3", 
+                None, None, 0, "<Separator>" ),
+
+            ("/File/_Backup Notebook",
+             None, lambda w, e: self.on_archive_notebook(), 0,
+                None),
+            ("/File/R_estore Notebook",
+             None, lambda w, e: self.on_restore_notebook(), 0,
+                None),
+            
+            ("/File/sep4", 
                 None, None, 0, "<Separator>" ),
             ("/File/Quit", 
                 "<control>Q", lambda w,e: self.on_quit(), 0, None),

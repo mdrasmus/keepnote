@@ -37,6 +37,18 @@ class ApplicationOptionsDialog (object):
         self.xml.get_widget("default_notebook_entry").\
             set_text(self.app.pref.default_notebook)
 
+        # populate autosave
+        self.xml.get_widget("autosave_check").set_active(
+            self.app.pref.autosave)
+        self.xml.get_widget("autosave_entry").set_text(
+            str(int(self.app.pref.autosave_time / 1000)))
+
+        self.xml.get_widget("autosave_entry").set_sensitive(
+            self.app.pref.autosave)
+        self.xml.get_widget("autosave_label").set_sensitive(
+            self.app.pref.autosave)
+        
+
         # populate default font
         #self.xml.get_widget("default_font_button").\
         #    set_font_name(self.app.pref.default_font)
@@ -108,10 +120,19 @@ class ApplicationOptionsDialog (object):
                     "default_notebook", 
                     "Choose Default Notebook",
                     self.app.pref.default_notebook),
+            "on_autosave_check_toggled":
+                lambda w: self.on_autosave_toggle(w)            
             })
 
         self.dialog.show()
-    
+
+
+    def on_autosave_toggle(self, widget):
+        self.xml.get_widget("autosave_entry").set_sensitive(
+            widget.get_active())
+        self.xml.get_widget("autosave_label").set_sensitive(
+            widget.get_active())
+        
     
     def on_app_options_browse(self, name, title, filename):
         dialog = gtk.FileChooserDialog(title, self.dialog, 
@@ -146,6 +167,16 @@ class ApplicationOptionsDialog (object):
     
         self.app.pref.default_notebook = \
             self.xml.get_widget("default_notebook_entry").get_text()
+
+        # save autosave
+        self.app.pref.autosave = \
+            self.xml.get_widget("autosave_check").get_active()
+        try:
+            self.app.pref.autosave_time = \
+                int(self.xml.get_widget("autosave_entry").get_text()) * 1000
+        except:
+            pass
+
 
         # save date formatting
         for name in ["same_day", "same_month", "same_year", "diff_year"]:

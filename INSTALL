@@ -1,12 +1,18 @@
+TakeNote INSTALL
+===============
+
 
 Windows Install
 
   There is a Binary Installer for Windows available on the TakeNote website.
+  It is the recommended way to install TakeNote for Windows.
 
 
 Linux Install
 
   Required libraries  
+    For example, if you use Debian or something compatible...
+
     $ apt-get install python python-gtk2 python-glade2 libgtk2.0-dev
 
 
@@ -15,24 +21,56 @@ Linux Install
     Spell checking
     $ apt-get install python-gnome2-extras
 
+  Once third-party libraries are installed, you can run takenote directly 
+  from its source directory 
+
+    $ path-to-takenote-src/bin/takenote
+
+  or you can install with python distutils
+
+    $ python setup.py install
 
 
+MacOS X Install
+
+  All third-party libraries for the Linux version of TakeNote are 
+  cross-platform and should also work for MacOS X.  
+
+     - python (http://www.python.org)
+     - gtk (http://www.gtk.org)
+     - pygtk (http://www.pygtk.org)
+
+  All of these libraries are also available through fink for MaxOS X.  Once
+  installed, TakeNote can be run directly from its source directory
+
+    $ path-to-takenote-src/bin/takenote
+
+  
+  Alternative: Another option for running TakeNote is to use the Windows 
+  version in WINE or another Virtual Machine (VMware, etc).
+
+
+=============================================================================
 Windows Build
 
-  See the Window Install instructions for basic installation.  These 
-  instructions are for developers who want to *build* the windows installer.
+  Most people will just want to install TakeNote.  For basic installation, 
+  see the Windows Install instructions above.  These  instructions are for 
+  developers who want to *build* the windows installer.
   
   First install these third party packages.  Versions that are know to work are
   given below, but higher version are likely to also work.
   
     python-2.5.1.msi
     gtk-dev-2.12.9-win32-2.exe
-    pygtk-2.12.1-2.win32-py2.5.exe
+    pygtk-2.12.1-1.win32-py2.5.exe
     pyobject-2.14.1-1.win32-py2.5.exe
     pycario-1.4.12-1.win32-py2.5.exe
     py2exe-0.6.6.win32-py2.5.exe
-    isetup-5.2.3.exe
+    isetup-5.2.3.exe  (Inno Setup)
   
+  NOTE: pygtk-2.12.1-2.win32-py2.5.exe (notice the -2) seems to have a bug
+  with get_source_widget()
+
   Once third-party packages are installed, execute in the takenote source dir:
   
   $ python setup.exe py2exe
