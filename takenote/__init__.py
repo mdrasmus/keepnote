@@ -61,6 +61,7 @@ DEFAULT_WINDOW_SIZE = (800, 600)
 DEFAULT_WINDOW_POS = (-1, -1)
 DEFAULT_VSASH_POS = 200
 DEFAULT_HSASH_POS = 200
+DEFAULT_VIEW_MODE = "vertical"
 DEFAULT_AUTOSAVE_TIME = 10 * 1000 # 10 sec (in msec)
 
 
@@ -102,7 +103,7 @@ def get_platform():
 def get_user_pref_dir(home=None):
     """Returns the directory of the application preference file"""
     p = get_platform()
-    if p == "unix":
+    if p == "unix" or p == "darwin":
         if home is None:
             home = os.getenv("HOME")
         return os.path.join(home, "." + USER_PREF_DIR)
@@ -116,7 +117,7 @@ def get_user_pref_dir(home=None):
 def get_user_documents(home=None):
     """Returns the directory of the user's documents"""
     p = get_platform()
-    if p == "unix":
+    if p == "unix" or p == "darwin":
         if home is None:
             home = os.getenv("HOME")
         return home
@@ -209,8 +210,9 @@ class TakeNotePreferences (object):
         self.window_maximized = True
         self.vsash_pos = DEFAULT_VSASH_POS
         self.hsash_pos = DEFAULT_HSASH_POS        
-        self.view_mode = "vertical"
+        self.view_mode = DEFAULT_VIEW_MODE
 
+        # autosave
         self.autosave = True
         self.autosave_time = DEFAULT_AUTOSAVE_TIME
         
