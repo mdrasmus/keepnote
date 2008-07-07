@@ -196,6 +196,19 @@ DEFAULT_EXTERNAL_APPS = [
 ]
 
 
+DEFAULT_EXTERNAL_APPS_WINDOWS = [
+    ExternalApp("web_browser", "Web Browser",
+                "C:\Program Files\Internet Explorer\iexplore.exe"),
+    ExternalApp("file_explorer", "File Explorer", "explorer.exe"),
+    ExternalApp("text_editor", "Text Editor",
+                "C:\Program Files\Windows NT\Accessories\wordpad.exe"),
+    ExternalApp("image_editor", "Image Editor", "mspaint.exe"),
+    ExternalApp("image_viewer", "Image Viewer",
+                "C:\Program Files\Internet Explorer\iexplore.exe"),
+    ExternalApp("screen_shot", "Screen Shot", "")
+]
+
+
 
 class TakeNotePreferences (object):
     """Preference data structure for the TakeNote application"""
@@ -235,7 +248,6 @@ class TakeNotePreferences (object):
         # listener
         self.changed = Listeners()
 
-        
 
     def read(self):
         """Read preferences from file"""
@@ -243,6 +255,7 @@ class TakeNotePreferences (object):
         if not os.path.exists(get_user_pref_file()):
             # write default
             try:
+                self.set_defaults()
                 self.write()
             except NoteBookError, e:
                 raise NoteBookError("Cannot initialize preferences", e)
@@ -262,7 +275,11 @@ class TakeNotePreferences (object):
             self._external_apps_lookup[app.key] = app
 
         # add default programs
-        for defapp in DEFAULT_EXTERNAL_APPS:
+        if get_platform() == "windows":
+            lst = DEFAULT_EXTERNAL_APPS_WINDOWS
+        else:
+            lst = DEFAULT_EXTERNAL_APPS
+        for defapp in lst:
             if defapp.key not in self._external_apps_lookup:
                 self.external_apps.append(defapp)
                 self._external_apps_lookup[defapp.key] = defapp
