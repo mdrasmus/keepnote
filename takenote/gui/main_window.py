@@ -1840,6 +1840,7 @@ class TakeNoteWindow (gtk.Window):
         toolbar = gtk.Toolbar()
         toolbar.set_orientation(gtk.ORIENTATION_HORIZONTAL)
         toolbar.set_style(gtk.TOOLBAR_ICONS)
+        toolbar.set_property("icon-size", gtk.ICON_SIZE_SMALL_TOOLBAR)
         toolbar.set_border_width(0)
         
         tips = gtk.Tooltips()
