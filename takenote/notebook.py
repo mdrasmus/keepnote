@@ -1050,7 +1050,7 @@ class NoteBook (NoteBookDir):
                 filename = os.path.dirname(filename)
                 self._set_basename(filename)
             else:
-                raise Exception("cannot load notebook '%s'" % filename)
+                raise NoteBookError("cannot load notebook '%s'" % filename)
             
             self._trash_path = get_trash_dir(self.get_path())
         self.read_meta_data()

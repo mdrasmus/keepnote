@@ -100,9 +100,9 @@ setup(
             'packages':'encodings',
             'includes': 'cairo,pango,pangocairo,atk,gobject',
         },
-        'sdist': {
-            'formats': 'zip',
-        }
+        #'sdist': {
+        #    'formats': 'zip',
+        #}
     }
     )
 

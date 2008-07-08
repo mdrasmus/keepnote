@@ -1,6 +1,5 @@
 include CHANGES
 include COPYING
-include COPYING.LESSER
 include LICENSE
 include INSTALL
 include README
@@ -9,3 +8,4 @@ include takenote/images/*.ico
 include takenote/rc/takenote.glade
 include post_py2exe.py
 include pywin.py
+include installer.iss

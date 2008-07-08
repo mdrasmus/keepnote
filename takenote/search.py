@@ -1,7 +1,7 @@
 
 
 import sys
-import uuid
+#import uuid
 
 from takenote import notebook as notebooklib
 from takenote.notebook import NoteBook
