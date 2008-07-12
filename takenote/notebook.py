@@ -509,9 +509,10 @@ class NoteBookNode (object):
         self.save(True)
 
         # notify listeners
-        old_parent.notify_change(True)
         if parent != old_parent:
-            parent.notify_change(True)
+            self.notify_changes([old_parent, parent], True)
+        else:
+            old_parent.notify_change(True)
 
         
     
@@ -732,7 +733,12 @@ class NoteBookNode (object):
     def notify_change(self, recurse):
         """Notify listeners that node has changed"""
         if self._notebook:
-            self._notebook.node_changed.notify(self, recurse)
+            self._notebook.node_changed.notify([self], recurse)
+
+    def notify_changes(self, nodes, recurse):
+        """Notify listeners that node has changed"""
+        if self._notebook:
+            self._notebook.node_changed.notify(nodes, recurse)
     
     def suppress_change(self, listener=None):
         """Suppress notification of listeners for node changes"""

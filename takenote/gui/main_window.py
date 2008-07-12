@@ -980,7 +980,7 @@ class TakeNoteWindow (gtk.Window):
     #=====================================================
     # Notebook callbacks
     
-    def on_notebook_node_changed(self, node, recurse):
+    def on_notebook_node_changed(self, nodes, recurse):
         self.set_notebook_modified(True)
         
     
