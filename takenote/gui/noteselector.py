@@ -320,6 +320,10 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         if self.sel_nodes is not None and len(self.sel_nodes) == 1:
             self.save_sorting(self.sel_nodes[0])
             
+        # TODO: think about how drag in drop in listview can cause a change
+        # in treeview that results in a new view_nodes call and thus causes
+        # jumpiness in listview and lack of selection
+        # Maybe I block selection changes in treeview at certain times...
         
         #from rasmus import util
         #util.tic("view")

@@ -255,7 +255,12 @@ def restore_archived_notebook(filename, path, rename=True):
 
         try:
             # extract notebook
-            tar.extractall(tmppath)
+            if hasattr(tar, "extractall"):
+                tar.extractall(tmppath)
+            else:
+                # fallback code for python2.4
+                for member in tar.getmembers():
+                    tar.extract(member, tmppath)
         
             files = os.listdir(tmppath)
             # assert len(files) = 1

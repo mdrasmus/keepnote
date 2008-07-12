@@ -172,9 +172,8 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
     def on_node_changed(self, nodes, recurse):
         
         self.emit("node-changed-start", nodes)
-
+        
         for node in nodes:
-
             if node == self._master_node:
                 # reset roots
                 self.set_root_nodes(self._master_node.get_children())
@@ -183,7 +182,7 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
                     path = self.on_get_path(node)
                 except:
                     # node is not part of model, ignore it
-                    return
+                    continue
                 rowref = self.create_tree_iter(node)
 
                 self.row_deleted(path)
@@ -386,7 +385,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
     def set_model(self, model):
         """Set the model for the view"""
 
-
+        
         # if model already attached, disconnect all of its signals
         if self.model is not None:
             if hasattr(self.model, "get_model"):
@@ -404,7 +403,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         gtk.TreeView.set_model(self, self.model)
 
         # set new model
-        if model is not None:
+        if self.model is not None:
             # init signals for model
             if hasattr(self.model, "get_model"):
                 self.changed_start_id = self.model.get_model().\
@@ -456,16 +455,15 @@ class TakeNoteBaseTreeView (gtk.TreeView):
 
                 if self.is_node_expanded(node):
                     self.expand_row(path, False)
-
+                
         
-        # if nodes still exist, try to reselect them        
+        # if nodes still exist, and expanded, try to reselect them
         if len(self.__sel_nodes2) > 0:
-            print self.__sel_nodes2[0].get_title()
             try:
                 path2 = get_path_from_node(self.model, self.__sel_nodes2[0])
-                print path2
-                self.set_cursor(path2)
-                self.scroll_to_cell(path2)
+                if len(path2) == 0 or self.row_expanded(path2[:-1]):
+                    self.set_cursor(path2)
+                    self.scroll_to_cell(path2)
             except:
                 pass
 
@@ -723,15 +721,23 @@ class TakeNoteBaseTreeView (gtk.TreeView):
                     return
 
                 if len(old_parent_path) > 0 and old_parent.is_expanded():
+                    old_parent_path = get_path_from_node(self.model, old_parent)
                     self.expand_to_path(old_parent_path)
                 
                 if len(new_parent_path) > 0 and new_parent.is_expanded():
+                    new_parent_path = get_path_from_node(self.model, new_parent)
                     self.expand_to_path(new_parent_path)
                 
                 # make sure to show new children
                 if (drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or
                     drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER):
-                    treeview.expand_row(target_path, False)
+                    try:
+                        new_parent_path = get_path_from_node(self.model,
+                                                             new_parent)
+                        if new_parent_path is not None:
+                            treeview.expand_row(new_parent_path, False)
+                    except:
+                        pass
                 
                 drag_context.finish(True, True, eventtime)
                 
