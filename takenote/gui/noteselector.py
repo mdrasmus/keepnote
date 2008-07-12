@@ -394,8 +394,14 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         
     
     def edit_node(self, page):
-        path = treemodel.get_path_from_node(self.model, page)
-        assert path is not None
+        try:
+            path = treemodel.get_path_from_node(self.model, page)
+            assert path is not None
+        except:
+            # view page first if not in view
+            self.emit("goto-node", page)
+            path = treemodel.get_path_from_node(self.model, page)
+            assert path is not None
         self.set_cursor_on_cell(path, self.title_column, self.title_text, True)
         path, col = self.get_cursor()
         self.scroll_to_cell(path)

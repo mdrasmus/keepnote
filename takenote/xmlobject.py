@@ -2,7 +2,7 @@
 
     XmlObject
 
-    The modules allows concise definitions of XML file formats for python
+    This module allows concise definitions of XML file formats for python
     objects.
 
 """
@@ -269,11 +269,6 @@ class XmlObject (object):
 
 
 if __name__ == "__main__":
-    parser = XmlObject()
-    parser.read(None, "test/data/notebook/test for drag and drop/drop pages test/dir1/dddddddd/page.xml")
-
-
-if 0:
     import StringIO
 
     parser = XmlObject(

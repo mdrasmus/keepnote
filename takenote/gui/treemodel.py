@@ -184,20 +184,10 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
                 return
             rowref = self.create_tree_iter(node)
         
-            if False: #not recurse:
-                # seems like I shouldn't use this
-                # it won't update the list view properly
-                # when a single item changes it name
-                self.row_changed(path, rowref)
-            else:
-                for i, child in enumerate(node.get_children()):
-                    path2 = path + (i,)
-                    self.row_deleted(path2)                    
-            
-                self.row_deleted(path)
-                self.row_inserted(path, rowref)
-                self.row_has_child_toggled(path, rowref)
-                self.row_has_child_toggled(path, rowref)
+            self.row_deleted(path)
+            self.row_inserted(path, rowref)
+            self.row_has_child_toggled(path, rowref)
+            self.row_has_child_toggled(path, rowref)
 
         self.emit("node-changed-end", node)
 
@@ -442,6 +432,29 @@ class TakeNoteBaseTreeView (gtk.TreeView):
 
 
     def on_node_changed_end(self, model, node):
+
+        # maintain proper expansion
+        try:
+            path = get_path_from_node(self.model, node)
+            if path is None:
+                raise
+        except:
+            # NOTE: ignoring this exception is OK
+            # it just means node is out of view
+            pass
+        else:
+            parent = node.get_parent()
+            
+            # NOTE: parent may lose expand state if it has one child
+            # therefore, we should expand parent if it exists and is visible
+            # (i.e. len(path)>1) in treeview
+            if parent and self.is_node_expanded(parent) and len(path) > 1:
+                self.expand_row(path[:-1], False)
+
+            if self.is_node_expanded(node):
+                self.expand_row(path, False)
+
+        
         # if nodes still exist, try to reselect them
         if len(self.__sel_nodes2) > 0:
             try:
@@ -496,22 +509,13 @@ class TakeNoteBaseTreeView (gtk.TreeView):
 
 
     def on_row_inserted(self, model, path, it):
-
-        # maintain proper expansion
-        node = self.model.get_value(it, COL_NODE)
-        if self.is_node_expanded(node):
-            self.expand_row(path, False)
-
+        pass
 
     def on_row_deleted(self, model, path):
         pass
 
     def on_row_has_child_toggled(self, model, path, it):
-
-        # maintain proper expansion
-        node = self.model.get_value(it, COL_NODE)
-        if self.is_node_expanded(node):
-            self.expand_row(path, False)        
+        pass
 
 
     #===========================================
@@ -570,10 +574,13 @@ class TakeNoteBaseTreeView (gtk.TreeView):
             except NoteBookError, e:
                 self.emit("error", e.msg, e)
 
-        # reselect node
-        self.set_cursor((0,))
-        self.set_cursor(path)
-        self.scroll_to_cell(path)
+        # reselect node (XXX: I believe on_node_changed_end() whill handle this)
+        # NOTE: I select the root inorder for set_cursor(path) to really take
+        # effect (gtk seems to ignore a select call if it "thinks" the path
+        # is selected)
+        #self.set_cursor((0,))
+        #self.set_cursor(path)
+        #self.scroll_to_cell(path)
         
     
 
