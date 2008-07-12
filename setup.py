@@ -64,11 +64,12 @@ setup(
         - inline images
         - integrated screenshot
         - spell checking (via gtkspell)
+        - backup and restore
     """,
     author='Matt Rasmussen',
     author_email='rasmus@mit.edu',
     url='http://rasm.ods.org/takenote/',
-    download_url='http://rasm.ods.org/pub/takenote/takenote-%s.tar.gz' % TAKENOTE_VERSION,
+    download_url='http://rasm.ods.org/takenote/download/takenote-%s.tar.gz' % TAKENOTE_VERSION,
     
     classifiers=[
           'Development Status :: 5 - Production/Stable',
@@ -79,12 +80,13 @@ setup(
           'Intended Audience :: Education',
           'Intended Audience :: End Users/Desktop',
           'Intended Audience :: Science/Research',
-          'License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)',
+          'License :: OSI Approved :: General Public License (GPL)',
           'Operating System :: MacOS :: MacOS X',
           'Operating System :: Microsoft :: Windows',
           'Operating System :: POSIX',
           'Programming Language :: Python',
           ],
+    license="GPL",
     
     packages=['takenote', 'takenote.gui'],
     scripts=['bin/takenote'],
