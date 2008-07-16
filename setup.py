@@ -43,7 +43,8 @@ if "py2exe" in sys.argv:
     package_data = {}
 else:
     data_files = []
-    package_data = {'takenote': image_files + [
+    package_data = {'takenote': [x.replace("takenote/", "")
+                                 for x in image_files] + [
                                 "rc/takenote.glade"]}
 
 
