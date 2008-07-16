@@ -255,7 +255,7 @@ class TakeNotePreferences (object):
         if not os.path.exists(get_user_pref_file()):
             # write default
             try:
-                self.set_defaults()
+                #self.set_defaults()
                 self.write()
             except NoteBookError, e:
                 raise NoteBookError("Cannot initialize preferences", e)

@@ -98,6 +98,8 @@ def main(args):
         args = []
     
     # start error log
+    if not os.path.exists(takenote.get_user_pref_dir()):            
+        os.mkdir(takenote.get_user_pref_dir())
     errorlog = open(takenote.get_user_error_log(), "a")
     if show_errors:
         pass
