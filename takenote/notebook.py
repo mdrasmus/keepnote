@@ -39,7 +39,9 @@ DEFAULT_FONT = "Sans 10"
 
 # determine UNIX Epoc (which should be 0, unless the current platform has a 
 # different definition of epoc)
-EPOC = time.mktime((1970, 1, 1, 0, 0, 0, 3, 1, 0)) - time.timezone
+# Use the epoc date + 1 month (SEC_OFFSET) in order to prevent underflow in date due to user's timezone
+SEC_OFFSET = 3600 * 24 * 31
+EPOC = time.mktime((1970, 2, 1, 0, 0, 0, 3, 1, 0)) - time.timezone - SEC_OFFSET
 
 
 """
@@ -170,7 +172,7 @@ def get_timestamp():
 
 def get_localtime():
     """Returns the local time"""
-    return time.localtime(time.time() + EPOC)
+    return time.localtime()
 
 def get_str_timestamp(timestamp, current=None,
                       formats=DEFAULT_TIMESTAMP_FORMATS):
