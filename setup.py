@@ -10,7 +10,10 @@
 
 # python and distutils imports
 import os, sys, shutil
-from distutils.core import setup, Extension
+#from ez_setup import use_setuptools
+#use_setuptools()
+#from setuptools import setup, find_packages
+from distutils.core import setup
 
 # py2exe module (if building on windows)
 try:
@@ -43,7 +46,8 @@ if "py2exe" in sys.argv:
     package_data = {}
 else:
     data_files = []
-    package_data = {'takenote': image_files + [
+    package_data = {'takenote': [x.replace("takenote/", "")
+                                 for x in image_files] + [
                                 "rc/takenote.glade"]}
 
 
@@ -99,7 +103,7 @@ setup(
         }],
     options = {
         'py2exe' : {
-            'packages':'encodings',
+            'packages': 'encodings',
             'includes': 'cairo,pango,pangocairo,atk,gobject',
         },
         #'sdist': {
