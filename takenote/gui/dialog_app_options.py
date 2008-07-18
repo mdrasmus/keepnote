@@ -120,6 +120,8 @@ class ApplicationOptionsDialog (object):
                     "default_notebook", 
                     "Choose Default Notebook",
                     self.app.pref.default_notebook),
+            "on_set_default_notebook_button_clicked":
+                lambda w: self.on_set_default_notebook(),
             "on_autosave_check_toggled":
                 lambda w: self.on_autosave_toggle(w)            
             })
@@ -161,6 +163,14 @@ class ApplicationOptionsDialog (object):
         elif response == gtk.RESPONSE_CANCEL:
             dialog.destroy()
 
+
+    def on_set_default_notebook(self):
+
+        if self.main_window.notebook:
+            self.xml.get_widget("default_notebook_entry").set_text(
+                self.main_window.notebook.get_path())
+            
+        
     
     def on_app_options_ok(self):
         # TODO: add arguments
