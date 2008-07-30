@@ -27,6 +27,13 @@ from gtk import gdk
 import takenote
 from takenote.undo import UndoStack
 
+from takenote.gui.textbuffer_tools import \
+     iter_buffer_contents as iter_buffer_contents2, \
+     buffer_contents_iter_to_offset, \
+     normalize_tags, \
+     insert_buffer_contents, \
+     buffer_contents_apply_tags
+
 
 # constants
 MIME_TAKENOTE = "application/x-takenote"
@@ -41,197 +48,29 @@ ANCHOR_CHAR = u'\ufffc'
 MAX_UNDOS = 100
 
 
-#=============================================================================
-# functions for iterating and inserting into textbuffers
+
+def parse_utf(text):
+
+    # TODO: lookup the standard way to do this
+    
+    if text[:2] in ('\xff\xfe', '\xfe\xfff'):            
+        return text.decode("utf16").encode("utf8")
+    else:
+        return unicode(text, "utf8")
+        
+TAG_PATTERN = re.compile("<[^>]*>")
+def strip_tags(line):
+    return re.sub(TAG_PATTERN, "", line)
+
+
+
+def add_child_to_buffer(textbuffer, it, anchor):
+    textbuffer.add_child(it, anchor)
 
 def iter_buffer_contents(textbuffer, start=None, end=None,
                          ignore_tags=IGNORE_TAGS):
-    """Iterate over the items of a textbuffer
+    iter_buffer_contents2(textbuffer, start, end, ignore_tags)
 
-    textbuffer -- buffer to iterate over
-    start      -- starting position (TextIter)
-    end        -- ending position (TextIter)
-    """
-
-    # initialize iterators
-    if start is None:
-        it = textbuffer.get_start_iter()
-    else:
-        it = start.copy()
-    last = it.copy()
-
-    if end is None:
-        end = textbuffer.get_end_iter()
-
-
-    # yield opening tags at begining of region
-    for tag in it.get_tags():
-        if tag.get_property("name") in ignore_tags:
-            continue
-        yield ("begin", it, tag)
-    
-    while True:
-        it2 = it.copy()    
-        it.forward_to_tag_toggle(None)
-
-        # yield child anchors between tags        
-        while True:
-            if it.get_offset() < end.get_offset():
-                stop = it
-            else:
-                stop = end
-            ret = it2.forward_search(ANCHOR_CHAR, (), stop)
-            
-            if ret is None:
-                yield ("text", it2, it2.get_text(stop))
-                break
-            
-            a, b = ret
-            anchor = a.get_child_anchor()
-            
-            # yield text in between tags
-            yield ("text", it2, it2.get_text(a))
-            if anchor is not None:
-                yield ("anchor", a, (anchor, anchor.get_widgets()))
-            else:
-                yield ("pixbuf", a, a.get_pixbuf())
-            it2 = b
-        
-        # stop iterating if we have pasted end of region
-        if it.get_offset() > end.get_offset():
-            break
-        
-        # yield closing tags
-        for tag in it.get_toggled_tags(False):
-            if tag.get_property("name") in ignore_tags:
-                continue
-            yield ("end", it, tag)
-
-        # yield opening tags
-        for tag in it.get_toggled_tags(True):
-            if tag.get_property("name") in ignore_tags:
-                continue
-            yield ("begin", it, tag)
-        
-        last = it.copy()
-        
-        if it.equal(end):
-            break
-    
-    # yield tags that have not been closed yet
-    toggled = set(end.get_toggled_tags(False))
-    for tag in end.get_tags():
-        if tag not in toggled:
-            if tag.get_property("name") in ignore_tags:
-                continue
-            yield ("end", end, tag)
-
-
-def buffer_contents_iter_to_offset(contents):
-    """Converts to iters of a content list to offsets"""
-    
-    for kind, it, param in contents:
-        yield (kind, it.get_offset(), param)
-    
-
-def normalize_tags(items):
-    """Normalize open and close tags to ensure proper nesting
-       This is especially useful for saving to HTML
-    """
-
-    open_stack = []
-
-    for item in items:
-        kind, it, param = item
-        if kind == "begin":
-            open_stack.append(param)
-            yield item
-
-        elif kind == "end":
-
-            # close any open out of order tags
-            reopen_stack = []
-            while param != open_stack[-1]:
-                reopen_stack.append(open_stack.pop())
-                tag2 = reopen_stack[-1]
-                yield ("end", it, tag2)
-
-            # close current tag
-            open_stack.pop()
-            yield item
-
-            # reopen tags
-            for tag2 in reversed(reopen_stack):
-                open_stack.append(tag2)
-                yield ("begin", it, tag2)
-
-        else:
-            yield item
-
-
-def insert_buffer_contents(textbuffer, pos, contents):
-    """Insert a content list into a RichTextBuffer"""
-    
-    textbuffer.place_cursor(pos)
-    tags = {}
-    
-    # make sure all tags are removed on first text/anchor insert
-    first_insert = True
-    
-    for item in contents:
-        kind, offset, param = item
-        
-        if kind == "text":
-            # insert text
-            textbuffer.insert_at_cursor(param)
-            
-            if first_insert:
-                it = textbuffer.get_iter_at_mark(textbuffer.get_insert())
-                it2 = it.copy()
-                it2.backward_chars(len(param))
-                textbuffer.remove_all_tags(it2, it)
-                first_insert = False
-            
-        elif kind == "anchor":
-            # insert widget            
-            it = textbuffer.get_iter_at_mark(textbuffer.get_insert())
-            anchor = param[0].copy()
-            textbuffer.add_child(it, anchor)
-            
-            if first_insert:
-                it = textbuffer.get_iter_at_mark(textbuffer.get_insert())
-                it2 = it.copy()
-                it2.backward_chars(len(param))
-                textbuffer.remove_all_tags(it2, it)
-                first_insert = False
-            
-        elif kind == "begin":
-            tags[param] = textbuffer.get_iter_at_mark(textbuffer.get_insert()).get_offset()
-            
-        elif kind == "end":
-            start = textbuffer.get_iter_at_offset(tags[param])
-            end = textbuffer.get_iter_at_mark(textbuffer.get_insert())
-            textbuffer.apply_tag(param, start, end)
-
-
-def buffer_contents_apply_tags(textbuffer, contents):
-    """Apply tags to a textbuffer"""
-    
-    tags = {}
-    
-    # make sure all tags are removed on first text/anchor insert
-    first_insert = True
-    
-    for item in contents:
-        kind, offset, param = item
-        
-        if kind == "begin":
-            tags[param] = textbuffer.get_iter_at_offset(offset)
-            
-        elif kind == "end":
-            start = tags[param]
-            end = textbuffer.get_iter_at_offset(offset)
-            textbuffer.apply_tag(param, start, end)
 
 
 
@@ -564,6 +403,21 @@ class HtmlBuffer (HTMLParser):
             self.out.write("</span>")
 
 
+#=============================================================================
+
+
+class RichTextError (StandardError):
+    def __init__(self, msg, error):
+        StandardError.__init__(self, msg)
+        self.msg = msg
+        self.error = error
+    
+    def __str__(self):
+        if self.error:
+            return str(self.error) + "\n" + self.msg
+        else:
+            return self.msg
+
 
 #=============================================================================
 # RichText actions
@@ -641,7 +495,8 @@ class DeleteAction (Action):
         start = self.textbuffer.get_iter_at_offset(self.start_offset)
         
         self.textbuffer.begin_user_action()
-        insert_buffer_contents(self.textbuffer, start, self.contents)
+        insert_buffer_contents(self.textbuffer, start, self.contents,
+                               add_child=add_child_to_buffer)
         cursor = self.textbuffer.get_iter_at_offset(self.cursor_offset)
         self.textbuffer.place_cursor(cursor)
         self.textbuffer.end_user_action()
@@ -1023,19 +878,6 @@ class RichTextImage (RichTextAnchor):
 #=============================================================================
 # RichText classes
 
-class RichTextError (StandardError):
-    def __init__(self, msg, error):
-        StandardError.__init__(self, msg)
-        self.msg = msg
-        self.error = error
-    
-    def __str__(self):
-        if self.error:
-            return str(self.error) + "\n" + self.msg
-        else:
-            return self.msg
-
-
 class RichTextBuffer (gtk.TextBuffer):
     def __init__(self, textview=None):
         gtk.TextBuffer.__init__(self)
@@ -1170,15 +1012,17 @@ class RichTextBuffer (gtk.TextBuffer):
     def paste_clipboard(self, clipboard, override_location, default_editable):
         """Callback for paste event"""
         
-        targets = clipboard.wait_for_targets()
-
+        targets = set(clipboard.wait_for_targets())
+        
         if targets is None:
             # do nothing
             return
             
         
         if MIME_TAKENOTE in targets:
-            clipboard.request_contents(MIME_TAKENOTE, self.do_paste)
+            clipboard.request_contents(MIME_TAKENOTE, self.do_paste_object)
+        elif "text/html" in targets:
+            clipboard.request_contents("text/html", self.do_paste_html)
         elif "image/png" in targets:
             clipboard.request_contents("image/png", self.do_paste_image)        
         elif "image/bmp" in targets:
@@ -1192,27 +1036,44 @@ class RichTextBuffer (gtk.TextBuffer):
         
     
     def do_paste_text(self, clipboard, text, data):
+        """Paste text into buffer"""
         self.begin_user_action()
         self.delete_selection(False, True)
         self.insert_at_cursor(text)
         self.end_user_action()
+
+    def do_paste_html(self, clipboard, selection_data, data):
+        """Paste HTML into buffer"""
+        
+        html = parse_utf(selection_data.data)        
+        self.begin_user_action()
+        self.delete_selection(False, True)
+        self.insert_html(html)
+        self.end_user_action()
+        
+        
     
     def do_paste_image(self, clipboard, selection_data, data):
+        """Paste image into buffer"""
         
         pixbuf = selection_data.get_pixbuf()
         image = RichTextImage()
         image.set_from_pixbuf(pixbuf)
         
         self.insert_image(image)
+
     
-    def do_paste(self, clipboard, selection_data, data):
+    def do_paste_object(self, clipboard, selection_data, data):
+        """Paste a program-specific object into buffer"""
+        
         if self.clipboard_contents is None:
             # do nothing
             return
         
         self.begin_user_action()
         it = self.get_iter_at_mark(self.get_insert())
-        insert_buffer_contents(self, it, self.clipboard_contents)
+        insert_buffer_contents(self, it, self.clipboard_contents,
+                               add_child=add_child_to_buffer)
         self.end_user_action()
     
     
@@ -1287,6 +1148,7 @@ class RichTextBuffer (gtk.TextBuffer):
 
 
     def insert_hr(self):
+        """Insert Horizontal Rule"""
         self.begin_user_action()
 
         it = self.get_iter_at_mark(self.get_insert())
@@ -1295,6 +1157,17 @@ class RichTextBuffer (gtk.TextBuffer):
         
         self.end_user_action()
 
+
+    def insert_html(self, html):
+        """Insert HTML content into Buffer"""
+        
+        # TODO: truly parse the html for:
+        # <br>  ==> newlines
+        # <a>   ==> links
+        # <img> ==> download and include images
+        text = strip_tags(html.replace("\n", ""))
+        self.insert_at_cursor(text)
+        
 
     #===================================
     # Image management
@@ -1443,28 +1316,40 @@ class RichTextBuffer (gtk.TextBuffer):
 
 
     def on_child_selected(self, child):
+        """Callback for when child object is selected
+
+           Make sure buffer knows the selection
+        """
+        
         it = self.get_iter_at_child_anchor(child)        
         end = it.copy()        
-        end.forward_char() #cursor_position()
+        end.forward_char()
         self.select_range(it, end)
-        #self.place_cursor(it)
 
 
     def on_child_activated(self, child):
+        """Callback for when child is activated (e.g. double-clicked)"""
+
+        # forward callback to textview, if it exists
         if self.textview:
             self.textview.on_child_activated(child)
     
 
     def on_child_popup_menu(self, child, button, activate_time):
+        """Callback for when child's menu is visible"""
+
+        # forward callback to textview, if it exists
         if self.textview:
             self.textview.on_child_popup_menu(child, button, activate_time)
             
     
     def highlight_children(self):
-        #return
+        """Highlight any children that are within selection range"""
+        
         sel = self.get_selection_bounds()
         
         if len(sel) > 0:
+            # selection exists, get range (a, b)
             a = sel[0].get_offset()
             b = sel[1].get_offset()
             for child in self.anchors:
@@ -1475,11 +1360,14 @@ class RichTextBuffer (gtk.TextBuffer):
                 else:
                     child.unhighlight()
 
-            # make sure textview does not lose focus
+            # TODO: maybe record focused object before highlighting and
+            # restore focus to that object, regardless who it is.
+            
+            # make sure textview does not lose focus to children
             if self.textview:
                 self.textview.grab_focus()
         else:
-            # unselect all children
+            # no selection, unselect all children
             for child in self.anchors:
                 child.unhighlight()
     
@@ -1711,6 +1599,7 @@ class RichTextMenu (gtk.Menu):
 
 # TODO: perhaps all callbacks from buffer to view should be signals?
 # this would allow multiple views to share a buffer?
+# and would remove textview pointer
 
 
 class RichTextView (gtk.TextView):
