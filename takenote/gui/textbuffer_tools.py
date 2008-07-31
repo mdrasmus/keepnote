@@ -1,11 +1,13 @@
+"""
+
+ Functions for iterating and inserting into textbuffers
+
+"""
 
 
+# TextBuffer uses this char for anchors and pixbufs
+ANCHOR_CHAR = u'\ufffc'
 
-
-
-
-#=============================================================================
-# functions for iterating and inserting into textbuffers
 
 def iter_buffer_contents(textbuffer, start=None, end=None,
                          ignore_tags={}):
