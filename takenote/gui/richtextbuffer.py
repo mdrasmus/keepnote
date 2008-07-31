@@ -546,7 +546,7 @@ class RichTextBuffer (gtk.TextBuffer):
         self.clipboard_contents = None
         self.textview = textview
         self.undo_stack = UndoStack(MAX_UNDOS)
-
+        
         # action state
         self.insert_mark = None
         self.next_action = None
@@ -560,27 +560,18 @@ class RichTextBuffer (gtk.TextBuffer):
         self.anchors_deferred = set() 
         
         # setup signals
-        self.signals = []
-        self.signals.append(self.connect("begin_user_action", 
-                                         self.on_begin_user_action))
-        self.signals.append(self.connect("end_user_action", 
-                                         self.on_end_user_action))
-        self.signals.append(self.connect("mark-set", 
-                                         self.on_mark_set))
-        self.signals.append(self.connect("insert-text", 
-                                         self.on_insert_text))
-        self.signals.append(self.connect("delete-range", 
-                                         self.on_delete_range))
-        self.signals.append(self.connect("insert-pixbuf", 
-                                         self.on_insert_pixbuf))
-        self.signals.append(self.connect("insert-child-anchor", 
-                                         self.on_insert_child_anchor))
-        self.signals.append(self.connect("apply-tag", 
-                                         self.on_apply_tag))
-        self.signals.append(self.connect("remove-tag", 
-                                         self.on_remove_tag))
-        self.signals.append(self.connect("changed", 
-                                         self.on_changed))
+        self.signals = [
+            self.connect("begin_user_action", self.on_begin_user_action),
+            self.connect("end_user_action", self.on_end_user_action),
+            self.connect("mark-set", self.on_mark_set),
+            self.connect("insert-text", self.on_insert_text),
+            self.connect("delete-range", self.on_delete_range),
+            self.connect("insert-pixbuf", self.on_insert_pixbuf),
+            self.connect("insert-child-anchor", self.on_insert_child_anchor),
+            self.connect("apply-tag", self.on_apply_tag),
+            self.connect("remove-tag", self.on_remove_tag),
+            self.connect("changed", self.on_changed)
+            ]
              
         
         
@@ -600,14 +591,13 @@ class RichTextBuffer (gtk.TextBuffer):
             gtk.JUSTIFY_LEFT: "left", 
             gtk.JUSTIFY_RIGHT: "right", 
             gtk.JUSTIFY_CENTER: "center", 
-            gtk.JUSTIFY_FILL: "fill" # TODO: implement fully
+            gtk.JUSTIFY_FILL: "fill"
         }
         
-        self.justify_tags = set([self.left_tag, self.center_tag, self.right_tag,
-                                 self.fill_tag])
+        self.justify_tags = set([self.left_tag, self.center_tag,
+                                 self.right_tag, self.fill_tag])
         self.family_tags = set()
         self.size_tags = set()
-
 
         self.default_attr = gtk.TextAttributes()
            
@@ -644,6 +634,10 @@ class RichTextBuffer (gtk.TextBuffer):
     
     #======================================================
     # copy and paste
+
+    # TODO: move cut/copy/paste to textview
+    # that way I have access to RichTextHtml for html paste
+    # and possibly html copy
 
     def copy_clipboard(self, clipboard):
         """Callback for copy event"""

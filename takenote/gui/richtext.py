@@ -216,6 +216,7 @@ class RichTextView (gtk.TextView):
              ("image/xpm", 0, 0)])
              
         if img_target not in (None, "NONE"):
+            # process image drop
             pixbuf = selection_data.get_pixbuf()
             
             if pixbuf != None:
@@ -230,7 +231,7 @@ class RichTextView (gtk.TextView):
                 
         elif self.drag_dest_find_target(drag_context, 
                    [("application/pdf", 0, 0)]) not in (None, "NONE"):
-            
+            # process pdf drop
             
             data = selection_data.data
             
@@ -264,6 +265,7 @@ class RichTextView (gtk.TextView):
         
         elif self.drag_dest_find_target(drag_context, 
                    [("text/plain", 0, 0)]) not in (None, "NONE"):
+            # process text drop
 
             self._textbuffer.begin_user_action()
             self._textbuffer.insert_at_cursor(selection_data.get_text())
