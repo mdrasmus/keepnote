@@ -10,17 +10,18 @@
 # python imports
 import sys, os, tempfile, re
 
-try:
-    import gtkspell
-except ImportError:
-    gtkspell = None
-
-
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
 import gtk, gobject, pango
 from gtk import gdk
+
+# try to import spell check
+try:
+    import gtkspell
+except ImportError:
+    gtkspell = None
+
 
 # takenote imports
 import takenote
@@ -34,11 +35,13 @@ from takenote.gui.textbuffer_tools import \
 
 from takenote.gui.richtextbuffer import \
      IGNORE_TAGS, \
+     add_child_to_buffer, \
      RichTextBuffer, \
      RichTextImage, \
      RichTextError
 
 from takenote.gui.richtext_html import HtmlBuffer, HtmlError
+
 
 # constants
 DEFAULT_FONT = "Sans 10"
@@ -312,20 +315,26 @@ class RichTextView (gtk.TextView):
     def on_copy(self):
         """Callback for copy action"""
         clipboard = self.get_clipboard(selection="CLIPBOARD")
-        self._textbuffer.copy_clipboard(clipboard)
         self.stop_emission('copy-clipboard')
+        
+        self._textbuffer.copy_clipboard(clipboard)
+
     
     def on_cut(self):
         """Callback for cut action"""    
         clipboard = self.get_clipboard(selection="CLIPBOARD")
-        self._textbuffer.cut_clipboard(clipboard, self.get_editable())
         self.stop_emission('cut-clipboard')
+        
+        self._textbuffer.cut_clipboard(clipboard, self.get_editable())
+
     
     def on_paste(self):
         """Callback for paste action"""    
         clipboard = self.get_clipboard(selection="CLIPBOARD")
-        self._textbuffer.paste_clipboard(clipboard, None, self.get_editable())
         self.stop_emission('paste-clipboard')
+        
+        self._textbuffer.paste_clipboard(clipboard, None, self.get_editable())
+        
 
     
     #==================================================================
@@ -366,8 +375,18 @@ class RichTextView (gtk.TextView):
         try:
             #from rasmus import util
             #util.tic("read")
-        
-            self._html_buffer.read(textbuffer, open(filename, "r"))
+
+            # NOTE: buffer_contents is a generator
+            buffer_contents = self._html_buffer.read(open(filename, "r"))
+            insert_buffer_contents(textbuffer,
+                                   textbuffer.get_start_iter(),
+                                   buffer_contents,
+                                   add_child_to_buffer,
+                                   lookup_tag=lambda name:
+                                       textbuffer.lookup_tag(name))
+
+            # put cursor at begining
+            textbuffer.place_cursor(textbuffer.get_start_iter())
             
             #util.toc()
             

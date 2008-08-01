@@ -39,7 +39,8 @@ IGNORE_TAGS = set(["gtkspell-misspelled", "hr"])
 
 MAX_UNDOS = 100
 
-
+#=============================================================================
+# helper functions
 
 def parse_utf(text):
 
@@ -69,6 +70,11 @@ def iter_buffer_contents(textbuffer, start=None, end=None,
 
 
 class RichTextError (StandardError):
+    """Class for errors with RichText"""
+
+    # NOTE: this is only used for saving and loading in textview
+    # should this stay here?
+    
     def __init__(self, msg, error):
         StandardError.__init__(self, msg)
         self.msg = msg
@@ -85,6 +91,8 @@ class RichTextError (StandardError):
 # RichText actions
 
 class Action (object):
+    """A base class for undoable actions in RichTextBuffer"""
+    
     def __init__(self):
         pass
     
@@ -96,6 +104,8 @@ class Action (object):
 
 
 class ModifyAction (Action):
+    """Represents the act of changing the RichTextBuffer's modified state"""
+    
     def __init__(self, textbuffer):
         self.textbuffer = textbuffer
         self.was_modified = False
@@ -111,6 +121,8 @@ class ModifyAction (Action):
 
 # XXX: do I need to record current tags to properly redo insert?
 class InsertAction (Action):
+    """Represents the act of inserting text"""
+    
     def __init__(self, textbuffer, pos, text, length):
         Action.__init__(self)
         self.textbuffer = textbuffer
@@ -122,6 +134,12 @@ class InsertAction (Action):
     def do(self):
         start = self.textbuffer.get_iter_at_offset(self.pos)
         self.textbuffer.place_cursor(start)
+
+        # NOTE: this is probably a bug.  I need to insert and then modify the
+        # tags of the insertion.
+        # Or, I also change the current font (using current_tags) and then
+        # do a normal text insert, mimicking the original text insert more
+        # faithfully
         self.textbuffer.insert_with_tags(start, self.text, *self.current_tags)
     
     def undo(self):
@@ -133,6 +151,8 @@ class InsertAction (Action):
 
 
 class DeleteAction (Action):
+    """Represents the act of deleting a region in a RichTextBuffer"""
+    
     def __init__(self, textbuffer, start_offset, end_offset, text,
                  cursor_offset):
         Action.__init__(self)
@@ -173,6 +193,8 @@ class DeleteAction (Action):
 
 
 class InsertChildAction (Action):
+    """Represents the act of inserting a child object into a RichTextBuffer"""
+    
     def __init__(self, textbuffer, pos, child):
         Action.__init__(self)
         self.textbuffer = textbuffer
@@ -197,6 +219,8 @@ class InsertChildAction (Action):
 
 
 class TagAction (Action):
+    """Represents the act of applying a tag to a region in a RichTextBuffer"""
+    
     def __init__(self, textbuffer, tag, start_offset, end_offset, applied):
         Action.__init__(self)
         self.textbuffer = textbuffer
@@ -572,9 +596,13 @@ class RichTextBuffer (gtk.TextBuffer):
             self.connect("remove-tag", self.on_remove_tag),
             self.connect("changed", self.on_changed)
             ]
-             
+                
+        self.init_fonts()
         
-        
+
+    def init_fonts(self):
+        """Initialize font tags"""
+
         # font tags        
         self.bold_tag = self.create_tag("Bold", weight=pango.WEIGHT_BOLD)
         self.italic_tag = self.create_tag("Italic", style=pango.STYLE_ITALIC)
@@ -600,7 +628,7 @@ class RichTextBuffer (gtk.TextBuffer):
         self.size_tags = set()
 
         self.default_attr = gtk.TextAttributes()
-           
+
     
     def set_textview(self, textview):
         self.textview = textview
@@ -1127,6 +1155,25 @@ class RichTextBuffer (gtk.TextBuffer):
     #===========================================================
     # Font management
 
+    def lookup_tag(self, name):
+        """Lookup any tag, create it if needed"""
+
+        # test to see if name is in table
+        tag = self.tag_table.lookup(name)
+
+        if tag:
+            return tag
+
+        # test to see if name is a font size
+        elif name.startswith("size"):
+            return self.lookup_size_tag(int(name.split(" ")[1]))
+
+        else:
+            # must be family tag
+            return self.lookup_family_tag(name)
+        
+        
+        
 
     def lookup_mod_tag(self, mod):
         """Lookup Bold, Italic, and Underline"""
@@ -1135,7 +1182,8 @@ class RichTextBuffer (gtk.TextBuffer):
     
     def lookup_family_tag(self, family):
         tag = self.tag_table.lookup(family)
-        if tag == None:
+        if tag is None:
+            # TODO: do I need to do error handling here?
             tag = self.create_tag(family, family=family)
             self.add_family_tag(tag)
         return tag
@@ -1143,7 +1191,7 @@ class RichTextBuffer (gtk.TextBuffer):
     def lookup_size_tag(self, size):
         sizename = "size %d" % size
         tag = self.tag_table.lookup(sizename)
-        if tag == None:
+        if tag is None:
             tag = self.create_tag(sizename, size_points=size)
             self.add_size_tag(tag)
         return tag

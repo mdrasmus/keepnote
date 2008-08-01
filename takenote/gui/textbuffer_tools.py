@@ -108,6 +108,7 @@ def normalize_tags(items):
 
     for item in items:
         kind, it, param = item
+        
         if kind == "begin":
             open_stack.append(param)
             yield item
@@ -134,9 +135,17 @@ def normalize_tags(items):
             yield item
 
 
- 
 
-def insert_buffer_contents(textbuffer, pos, contents, add_child):
+# NOTE: I have a add_child() function to abstract the insertion of child
+# objects.  I will also need a lookup_tag() function for the case where I am
+# adding a tag that is currently not registered.  This will happen when I add
+# a new kind "tagstr", which will be interpreted by tag_lookup
+# This is needed because my textbuffer has special code for creating certain
+# new tags and I don't want to make that assumption with this function.
+# 'textbuffer' should have a class of simply TextBuffer (not RichTextBuffer)
+
+def insert_buffer_contents(textbuffer, pos, contents, add_child,
+                           lookup_tag=lambda tagstr: None):
     """Insert a content list into a RichTextBuffer"""
     
     textbuffer.place_cursor(pos)
@@ -145,8 +154,8 @@ def insert_buffer_contents(textbuffer, pos, contents, add_child):
     # make sure all tags are removed on first text/anchor insert
     first_insert = True
     
-    for item in contents:
-        kind, offset, param = item
+    for kind, offset, param in contents:
+        # NOTE: offset is ignored
         
         if kind == "text":
             # insert text
@@ -168,26 +177,41 @@ def insert_buffer_contents(textbuffer, pos, contents, add_child):
             if first_insert:
                 it = textbuffer.get_iter_at_mark(textbuffer.get_insert())
                 it2 = it.copy()
-                it2.backward_chars(len(param))
+                it2.backward_chars(1) #len(param))
                 textbuffer.remove_all_tags(it2, it)
                 first_insert = False
             
         elif kind == "begin":
-            tags[param] = textbuffer.get_iter_at_mark(textbuffer.get_insert()).get_offset()
+            # remember the starting position of a tag
+            tags[param] = textbuffer.get_iter_at_mark(
+                textbuffer.get_insert()).get_offset()
             
         elif kind == "end":
+            # apply tag
             start = textbuffer.get_iter_at_offset(tags[param])
             end = textbuffer.get_iter_at_mark(textbuffer.get_insert())
             textbuffer.apply_tag(param, start, end)
+            
+        elif kind == "beginstr":
+            # remember the starting position of a tag referred to by a string
+
+            tags[param] = textbuffer.get_iter_at_mark(
+                textbuffer.get_insert()).get_offset()
+
+        elif kind == "endstr":
+            # apply tag referred to by a string
+            tag = lookup_tag(param)
+
+            if tag:
+                start = textbuffer.get_iter_at_offset(tags[param])
+                end = textbuffer.get_iter_at_mark(textbuffer.get_insert())
+                textbuffer.apply_tag(tag, start, end)
 
 
 def buffer_contents_apply_tags(textbuffer, contents):
     """Apply tags to a textbuffer"""
     
     tags = {}
-    
-    # make sure all tags are removed on first text/anchor insert
-    first_insert = True
     
     for item in contents:
         kind, offset, param = item
