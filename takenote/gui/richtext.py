@@ -9,6 +9,7 @@
 
 # python imports
 import sys, os, tempfile, re
+import urllib2
 
 # pygtk imports
 import pygtk
@@ -35,6 +36,7 @@ from takenote.gui.textbuffer_tools import \
 
 from takenote.gui.richtextbuffer import \
      IGNORE_TAGS, \
+     parse_utf, \
      add_child_to_buffer, \
      RichTextBuffer, \
      RichTextImage, \
@@ -202,7 +204,10 @@ class RichTextView (gtk.TextView):
         
         elif "application/pdf" in drag_context.targets:
             textview.drag_dest_set_target_list([("application/pdf", 0, 0)])
-        
+
+        elif "text/html" in drag_context.targets:
+            textview.drag_dest_set_target_list([("text/html", 0, 0)])
+            
         else:
             textview.drag_dest_set_target_list([("text/plain", 0, 0)])
             
@@ -233,7 +238,7 @@ class RichTextView (gtk.TextView):
                 
                 
         elif self.drag_dest_find_target(drag_context, 
-                   [("application/pdf", 0, 0)]) not in (None, "NONE"):
+            [("application/pdf", 0, 0)]) not in (None, "NONE"):
             # process pdf drop
             
             data = selection_data.data
@@ -265,9 +270,17 @@ class RichTextView (gtk.TextView):
             
             drag_context.finish(True, True, eventtime)
             self.stop_emission("drag-data-received")
+
+        elif self.drag_dest_find_target(drag_context, 
+            [("text/html", 0, 0)]) not in (None, "NONE"):
+            # process html drop
+
+            html = parse_utf(selection_data.data)
+            self._textbuffer.insert_html(html)
+            
         
         elif self.drag_dest_find_target(drag_context, 
-                   [("text/plain", 0, 0)]) not in (None, "NONE"):
+            [("text/plain", 0, 0)]) not in (None, "NONE"):
             # process text drop
 
             self._textbuffer.begin_user_action()
@@ -347,9 +360,14 @@ class RichTextView (gtk.TextView):
         self._save_images(path)
         
         try:
+            buffer_contents = iter_buffer_contents(self._textbuffer,
+                                                   None,
+                                                   None,
+                                                   IGNORE_TAGS)
+            
             out = open(filename, "wb")
             self._html_buffer.set_output(out)
-            self._html_buffer.write(self._textbuffer)
+            self._html_buffer.write(buffer_contents)
             out.close()
         except IOError, e:
             raise RichTextError("Could not save '%s'." % filename, e)
@@ -433,7 +451,12 @@ class RichTextView (gtk.TextView):
                 child, widgets = param
                     
                 if isinstance(child, RichTextImage):
-                    filename = os.path.join(path, child.get_filename())
+                    filename = child.get_filename()
+
+                    if not filename.startswith("http:") and \
+                       not filename.startswith("/"):
+                        filename = os.path.join(path, filename)
+                        
                     child.set_from_file(filename)
                     child.get_widget().show()
 

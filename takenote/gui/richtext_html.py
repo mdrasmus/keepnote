@@ -48,12 +48,23 @@ class HtmlBuffer (HTMLParser):
             "Italic": "i",
             "Underline": "u"
             }
+        self._buffer_tag2html = {
+            "Left": "left",
+            "Center": "center",
+            "Right": "right",
+            "Justify": "justify"}
+        self._html2buffer_tag = {
+            "left": "Left",
+            "center": "Center",
+            "right": "Right",
+            "justify": "Justify"}
         self._newline = False
-        
+
         self._tag_stack = []
-        self._buffer = None
+        self._butter_contents = []
         self._text_queue = []
         self._within_body = False
+        self._partial = False
         
         self._entity_char_map = [("&", "amp"),
                                 (">", "gt"),
@@ -71,13 +82,17 @@ class HtmlBuffer (HTMLParser):
     def set_output(self, out):
         """Set the output stream for HTML"""
         self._out = out
+
+
+    #===========================================
+    # Reading HTML
     
-    
-    def read(self, infile):
+    def read(self, infile, partial=False):
         """Read from stream infile to populate textbuffer"""
         self._text_queue = []
         self._within_body = False
         self._buffer_contents = []
+        self._partial = partial
         
         for line in infile:
             self.feed(line)
@@ -89,36 +104,105 @@ class HtmlBuffer (HTMLParser):
         
         self.close()
         self.flush_text()
-
-        # yeild remaining items so far
+        
+        # yeild remaining items
         for item in self._buffer_contents:
             yield item
         self._buffer_contents[:] = []
         
-
-
+        
     def flush_text(self):
         if len(self._text_queue) > 0:
             self._buffer_contents.append(("text", None,
                                           "".join(self._text_queue)))
             self._text_queue[:] = []
 
+            
     def queue_text(self, text):
         self._text_queue.append(text)
 
-    def append_buffer_item(self, kind, htmltag, tagstr, param):
-        self.flush_text()
-        self._tag_stack.append((htmltag, tagstr))
+    def append_buffer_item(self, kind, param):
+        self.flush_text()        
         self._buffer_contents.append((kind, None, param))
 
+    def parse_style(self, stylestr):
+        """Parse a style attribute"""
+
+        # TODO: this parsing may be too simplistic
+        for statement in stylestr.split(";"):
+            statement = statement.strip()
+            
+            tagstr = None
+        
+            if statement.startswith("font-size"):
+                # font size
+                size = int("".join(filter(lambda x: x.isdigit(),
+                                   statement.split(":")[1])))
+                tagstr = "size " + str(size)
+                        
+            elif statement.startswith("font-family"):
+                # font family
+                tagstr = statement.split(":")[1].strip()
+
+            elif statement.startswith("text-align"):
+                align = statement.split(":")[1].strip()
+
+                # TODO: simplify
+                tagstr = self._html2buffer_tag.get(align, None)
+                if tagstr is None:
+                    raise HtmlError("unknown justification '%s'" % align)
+
+            else:
+                # ignore other styles
+                pass
+        
+            if tagstr is not None:
+                self.append_buffer_item("beginstr", tagstr)
+                self._tag_stack[-1][1].append(tagstr)
+
+
+    def parse_image(self, attrs):
+        """Parse image tag and return image child anchor"""
+        
+        img = RichTextImage()
+        width, height = None, None
+            
+        for key, value in attrs:
+            if key == "src":
+
+                # TODO: filename could be URL
+                # where should I handle image downloading
+                # I could load into memory and assign local name in
+                # textbuffer class.
+                
+                img.set_filename(value)
+                    
+            elif key == "width":
+                try:
+                    width = int(value)
+                except ValueError, e:
+                    raise HtmlError("expected integer for image width '%s'" % value)
+            elif key == "height":
+                try:
+                    height = int(value)
+                except ValueError, e:
+                    raise HtmlError("expected integer for image height '%s'" % value)
+            else:
+                # ignore other attributes
+                pass
+            
+
+        img.set_size(width, height)
+        return img
+        
     
     def handle_starttag(self, htmltag, attrs):
         """Callback for parsing a starting HTML tag"""
-
-        # NOTE: right now I have a 1:1 correspondence b/w html tags and
-        # richtext tags.  I should remove this.
         
         self._newline = False
+
+        # start a new tag on htmltag stack
+        self._tag_stack.append((htmltag, []))
 
         if htmltag == "html":
             # ignore html tag
@@ -132,95 +216,47 @@ class HtmlBuffer (HTMLParser):
             # simple font modifications (b/i/u)
             
             tagstr = self._mod_tag2buffer_tag[htmltag]
-            self.append_buffer_item("beginstr", htmltag, tagstr, tagstr)
+            self.append_buffer_item("beginstr", tagstr)
+            self._tag_stack[-1][1].append(tagstr)
 
         elif htmltag == "span":
             # apply style
             
             for key, value in attrs:
                 if key == "style":
-                    if value.startswith("font-size"):
-                        size = int(value.split(":")[1].replace("pt", ""))
-                        tagstr = "size " + str(size)
-                        
-                    elif value.startswith("font-family"):
-                        tagstr = value.split(":")[1].strip()
-                    else:
-                        raise HtmlError("unknown style '%s'" % value)
+                    self.parse_style(value)
                 else:
-                    raise HtmlError("unknown attr key '%s'" % key)
-
-            self.append_buffer_item("beginstr", htmltag, tagstr, tagstr)
-
+                    # ignore other attributes
+                    pass
         
         elif htmltag == "div":
             # text justification
             
             for key, value in attrs:
                 if key == "style":
-                    if value.startswith("text-align"):
-                        align = value.split(":")[1].strip()
-
-                        # TODO: simplify
-                        if align == "left":
-                            tagstr = "Left"
-                        elif align == "center":
-                            tagstr = "Center"
-                        elif align == "right":
-                            tagstr = "Right"
-                        elif align == "justify":
-                            tagstr = "Justify"
-                        else:
-                            raise HtmlError("unknown justification '%s'"
-                                            % align)
-                    else:
-                        raise HtmlError("unknown style '%s'" % value)
+                    self.parse_style(value)
                 else:
-                    raise HtmlError("unknown attr key '%s'" % key)
-
-            self.append_buffer_item("beginstr", htmltag, tagstr, tagstr)
-
+                    # ignore other attributes
+                    pass
             
         elif htmltag == "br":
             # insert newline
             self.queue_text("\n")
             self._newline = True
-            self._tag_stack.append((htmltag, None))
-
+            
         elif htmltag == "hr":
             # horizontal break
             hr = RichTextHorizontalRule()
-            self.append_buffer_item("anchor", htmltag, None, (hr, None))
-
-        
+            self.append_buffer_item("anchor", (hr, None))
+    
         elif htmltag == "img":
             # insert image
-            img = RichTextImage()
-            width, height = None, None
-            
-            for key, value in attrs:
-                if key == "src":
-                    img.set_filename(value)
-                elif key == "width":
-                    try:
-                        width = int(value)
-                    except ValueError, e:
-                        raise HtmlError("expected integer for image width '%s'" % value)
-                elif key == "height":
-                    try:
-                        height = int(value)
-                    except ValueError, e:
-                        raise HtmlError("expected integer for image height '%s'" % value)
-                else:
-                    HtmlError("unknown attr key '%s'" % key)
+            img = self.parse_image(attrs)
+            self.append_buffer_item("anchor", (img, None))
 
-            img.set_size(width, height)
-            self.append_buffer_item("anchor", htmltag, None, (img, None))
-
-            
         else:
-            self._tag_stack.append((htmltag, None))
-            raise HtmlError("WARNING: unhandled tag '%s'" % htmltag)
+            # ingore other html tags
+            pass
         
         
 
@@ -229,25 +265,29 @@ class HtmlBuffer (HTMLParser):
         """Callback for parsing a ending HTML tag"""
         
         self._newline = False
-        if htmltag in ("html", "body") or not self._within_body:
-            return
+        if not self._partial:
+            if htmltag in ("html", "body") or not self._within_body:
+                return
 
-        htmltag2, tagstr = self._tag_stack.pop()
+        if len(self._tag_stack) == 0:
+            return
+        
+        htmltag2, tags = self._tag_stack.pop()
         
         # ensure closing tags match opened tags
-        if htmltag2 != htmltag:
-            raise HtmlError("closing tag does not match opening tag")        
-        
-        if tagstr is not None:
-            self.flush_text()
-            self._buffer_contents.append(("endstr", None, tagstr))
-        
+        while len(self._tag_stack) > 0 and htmltag2 != htmltag:
+            html2, tags = self._tag_stack.pop()
+            #raise HtmlError("closing tag does not match opening tag")
+
+        for tagstr in tags:
+            self.append_buffer_item("endstr", tagstr)
+
     
     
     def handle_data(self, data):
         """Callback for character data"""
 
-        if not self._within_body:
+        if not self._partial and not self._within_body:
             return
         
         if self._newline:
@@ -259,28 +299,29 @@ class HtmlBuffer (HTMLParser):
 
     
     def handle_entityref(self, name):
-        if not self._within_body:
+        if not self._partial and not self._within_body:
             return
         self.queue_text(self._entity2char.get(name, ""))
     
     
     def handle_charref(self, name):
-        if not self._within_body:
+        if not self._partial and not self._within_body:
             return
         self.queue_text(self._charref2char.get(name, ""))
-        
+
+
+
+    #================================================
+    # Writing HTML
     
-    def write(self, textbuffer):
-        self._buffer = textbuffer
-        
-        self._out.write("""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+    def write(self, buffer_content, partial=False):
+
+        if not partial:
+            self._out.write("""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <body>""")
         
-        for kind, it, param in normalize_tags(iter_buffer_contents(self._buffer,
-                                                                   None,
-                                                                   None,
-                                                                   IGNORE_TAGS)):
+        for kind, it, param in normalize_tags(buffer_content):
             if kind == "text":
                 text = param
                 
@@ -329,41 +370,46 @@ class HtmlBuffer (HTMLParser):
                 pass
             else:
                 raise Exception("unknown kind '%s'" % str(kind))
-        
-        self._out.write("</body></html>")
+
+        if not partial:
+            self._out.write("</body></html>")
         
     
     def write_tag_begin(self, tag):
-        if tag in self._buffer.mod_tags:
-            self._out.write("<%s>" % self._buffer_tag2mod_tag[tag.get_property("name")])
+        tagname = tag.get_property("name")
+
+        
+        if tagname in IGNORE_TAGS:
+            pass
+        
+        elif tagname in self._buffer_tag2mod_tag:
+            self._out.write("<%s>" % self._buffer_tag2mod_tag[tagname])
+                    
+        elif tagname.startswith("size "):
+            self._out.write("<span style='font-size: %dpt'>" % 
+                            tag.get_property("size-points"))
+
+        elif tagname in self._buffer_tag2html:
+            text = self._buffer_tag2html[tagname]
+            self._out.write("<div style='text-align: %s'>" % text)
+                
+        elif tag.get_property("family") is not None:
+            self._out.write("<span style='font-family: %s'>" % 
+                            tag.get_property("family"))
+                
         else:
-            if tag in self._buffer.size_tags:
-                self._out.write("<span style='font-size: %dpt'>" % 
-                          tag.get_property("size-points"))
-            elif tag in self._buffer.family_tags:
-                self._out.write("<span style='font-family: %s'>" % 
-                          tag.get_property("family"))
-            elif tag in self._buffer.justify_tags:
-                if tag == self._buffer.left_tag:
-                    text = "left"
-                elif tag == self._buffer.center_tag:
-                    text = "center"
-                elif tag == self._buffer.right_tag:
-                    text = "right"
-                else:
-                    text = "justify"
-                self._out.write("<div style='text-align: %s'>" % text)
-            elif tag.get_property("name") in IGNORE_TAGS:
-                pass
-            else:
-                raise HtmlError("unknown tag '%s'" % tag.get_property("name"))
+            raise HtmlError("unknown tag '%s'" % tag.get_property("name"))
                 
         
     def write_tag_end(self, tag):
-        if tag in self._buffer.mod_tags:
-            self._out.write("</%s>" % self._buffer_tag2mod_tag[tag.get_property("name")])
-        elif tag in self._buffer.justify_tags:
+        tagname = tag.get_property("name")
+        
+        if tagname in self._buffer_tag2mod_tag:
+            self._out.write("</%s>" % self._buffer_tag2mod_tag[tagname])
+                            
+        elif tag in self._buffer_tag2html:
             self._out.write("</div>")
+            
         else:
             self._out.write("</span>")
 

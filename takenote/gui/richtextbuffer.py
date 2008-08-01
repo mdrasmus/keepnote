@@ -3,6 +3,8 @@
 
 # python imports
 import sys, os, tempfile, re
+import urllib2
+import StringIO
 from HTMLParser import HTMLParser
 
 try:
@@ -46,10 +48,13 @@ def parse_utf(text):
 
     # TODO: lookup the standard way to do this
     
-    if text[:2] in ('\xff\xfe', '\xfe\xfff'):            
-        return text.decode("utf16").encode("utf8")
+    if text[:2] in ('\xff\xfe', '\xfe\xff') or (
+        len(text) > 1 and text[1] == '\x00') or (
+        len(text) > 3 and text[3] == '\x00'):
+        return text.decode("utf16")
     else:
         return unicode(text, "utf8")
+
         
 TAG_PATTERN = re.compile("<[^>]*>")
 def strip_tags(line):
@@ -392,6 +397,7 @@ class RichTextImage (RichTextAnchor):
     def __init__(self):
         RichTextAnchor.__init__(self)
         self._filename = None
+        self._download = False
         self._widget = BaseImage()
         self._widget.connect("destroy", self._on_image_destroy)
         self._widget.connect("button-press-event", self._on_clicked)
@@ -418,17 +424,21 @@ class RichTextImage (RichTextAnchor):
         return self._save_needed
     
     def set_from_file(self, filename):
+        """Set the image from a file"""
+        
         if self._filename is None:
             self._filename = os.path.basename(filename)
         
         try:
             self._pixbuf_original = gdk.pixbuf_new_from_file(filename)
             
-        except gobject.GError, e:            
+        except gobject.GError, e:
+            # use missing image instead
             self._widget.set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
             self._pixbuf_original = None
             self._pixbuf = None
         else:
+            # successful image load, set its size
             self._pixbuf = self._pixbuf_original
             
             if self.is_size_set():
@@ -437,6 +447,8 @@ class RichTextImage (RichTextAnchor):
 
 
     def set_from_pixbuf(self, pixbuf, filename=None):
+        """Set the image from a pixbuf"""
+        
         if filename is not None:
             self._filename = filename
         self._pixbuf = pixbuf
@@ -513,6 +525,7 @@ class RichTextImage (RichTextAnchor):
 
     
     def write(self, filename):
+        """Write image to file"""
         f, ext = os.path.splitext(filename)
         ext = ext.replace(".", "")
         if ext == "jpg":
@@ -570,6 +583,7 @@ class RichTextBuffer (gtk.TextBuffer):
         self.clipboard_contents = None
         self.textview = textview
         self.undo_stack = UndoStack(MAX_UNDOS)
+        self._html_parser = None
         
         # action state
         self.insert_mark = None
@@ -848,12 +862,37 @@ class RichTextBuffer (gtk.TextBuffer):
     def insert_html(self, html):
         """Insert HTML content into Buffer"""
         
-        # TODO: truly parse the html for:
-        # <br>  ==> newlines
-        # <a>   ==> links
-        # <img> ==> download and include images
-        text = strip_tags(html.replace("\n", ""))
-        self.insert_at_cursor(text)
+        if self.textview is None:
+            return
+
+        contents = list(self.textview._html_buffer.read([html],
+                                                        partial=True))
+        
+        
+        for kind, pos, param in contents:
+            
+            # download and images included in html
+            if kind == "anchor" and isinstance(param[0], RichTextImage):
+                img = param[0]
+                if img.get_filename().startswith("http:"):
+                    infile = urllib2.urlopen(img.get_filename())
+                    f, imgfile = tempfile.mkstemp("", "takenote")
+                    os.close(f)
+                    outfile = open(imgfile, "w")
+                    outfile.write(infile.read())
+                    outfile.close()
+
+                    img.set_filename("image.png")
+                    img.set_from_file(imgfile)
+                    
+        # add to buffer
+        self.begin_user_action()
+        insert_buffer_contents(self, self.get_iter_at_mark(self.get_insert()),
+                               contents,
+                               add_child=add_child_to_buffer,
+                               lookup_tag=lambda name: self.lookup_tag(name))
+        self.end_user_action()
+
         
 
     #===================================
