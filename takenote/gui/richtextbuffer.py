@@ -34,6 +34,17 @@ from takenote.gui.textbuffer_tools import \
 
 # constants
 MIME_TAKENOTE = "application/x-takenote"
+MIME_IMAGES = ["image/png",
+               "image/bmp",
+               "image/jpeg",
+               "image/xpm"]
+MIME_TEXT = ["text/plain",
+             "text/plain;charset=utf-8",
+             "text/plain;charset=UTF-8",
+             "UTF8_STRING",
+             "STRING",
+             "COMPOUND_TEXT",
+             "TEXT"]
 
 
 # these tags will not be enumerated by iter_buffer_contents
@@ -543,11 +554,34 @@ class RichTextImage (RichTextAnchor):
         if self._pixbuf:
             img.get_widget().set_from_pixbuf(self._pixbuf)
         else:
-            img.get_widget().set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
+            img.get_widget().set_from_stock(gtk.STOCK_MISSING_IMAGE,
+                                            gtk.ICON_SIZE_MENU)
         img._pixbuf = self._pixbuf
         img._pixbuf_original = self._pixbuf_original
         img.get_widget().show()
         return img
+
+    def set_from_url(self, url, filename):
+        """Set image by url"""
+        
+        # make local temp file
+        f, imgfile = tempfile.mkstemp("", "takenote")
+        os.close(f)
+        
+        # open url and download image
+        infile = urllib2.urlopen(url)
+        outfile = open(imgfile, "w")
+        outfile.write(infile.read())
+        outfile.close()
+        
+        # set filename and image
+        self.set_from_file(imgfile)
+        self.set_filename(filename)
+
+        # remove tempfile
+        os.remove(imgfile)
+
+        
 
     #==========================
     # GUI callbacks
@@ -677,31 +711,41 @@ class RichTextBuffer (gtk.TextBuffer):
     #======================================================
     # copy and paste
 
-    # TODO: move cut/copy/paste to textview
-    # that way I have access to RichTextHtml for html paste
-    # and possibly html copy
-
     def copy_clipboard(self, clipboard):
         """Callback for copy event"""
                 
-        targets = [(MIME_TAKENOTE, gtk.TARGET_SAME_APP, -3),
-                   ("text/plain", 0, -3),
-                   ("text/plain;charset=utf-8", 0, -3),
-                   ("text/plain;charset=UTF-8", 0, -3),
-                   ("UTF8_STRING", 0, -3),
-                   ("STRING", 0, -3),
-                   ("COMPOUND_TEXT", 0, -3),
-                   ("TEXT", 0, -3)]
         
         sel = self.get_selection_bounds()
 
-        if sel:
-            start, end = sel
-            contents = list(iter_buffer_contents(self, start, end))
+        # do nothing if nothing is selected
+        if sel is None:
+            return
+        
+        start, end = sel
+        contents = list(iter_buffer_contents(self, start, end))
+
+        
+        if len(contents) == 1 and \
+           contents[0][0] == "anchor" and \
+           isinstance(contents[0][2][0], RichTextImage):
+            # copy image
+            targets = [(x, 0, -3) for x in MIME_IMAGES]
+            
+            clipboard.set_with_data(targets, self.get_selection_data, 
+                                    self.clear_selection_data,
+                                    (contents[0][2][0], ""))
+
+        else:
+            # copy text
+            targets = [(MIME_TAKENOTE, gtk.TARGET_SAME_APP, -3),
+                       ("text/html", 0, -3)] + \
+                      [(x, 0, -3) for x in MIME_TEXT]
+            
             text = start.get_text(end)
             clipboard.set_with_data(targets, self.get_selection_data, 
                                     self.clear_selection_data,
                                     (contents, text))
+
 
     def cut_clipboard(self, clipboard, default_editable):
         """Callback for cut event"""
@@ -724,16 +768,17 @@ class RichTextBuffer (gtk.TextBuffer):
             clipboard.request_contents(MIME_TAKENOTE, self.do_paste_object)
         elif "text/html" in targets:
             clipboard.request_contents("text/html", self.do_paste_html)
-        elif "image/png" in targets:
-            clipboard.request_contents("image/png", self.do_paste_image)        
-        elif "image/bmp" in targets:
-            clipboard.request_contents("image/bmp", self.do_paste_image)        
-        elif "image/jpeg" in targets:
-            clipboard.request_contents("image/jpeg", self.do_paste_image)
-        elif "image/xpm" in targets:
-            clipboard.request_contents("image/xpm", self.do_paste_image)
         else:
-            clipboard.request_text(self.do_paste_text)
+
+            # test image formats
+            for mime_image in MIME_IMAGES:
+                if mime_image in targets:
+                    clipboard.request_contents(mime_image,
+                                               self.do_paste_image)
+                    break
+            else:
+                # request text
+                clipboard.request_text(self.do_paste_text)
         
     
     def do_paste_text(self, clipboard, text, data):
@@ -780,19 +825,35 @@ class RichTextBuffer (gtk.TextBuffer):
     
     def get_selection_data(self, clipboard, selection_data, info, data):
         """Callback for when Clipboard needs selection data"""
+
+        contents, text = data
         
-        self.clipboard_contents = data[0]
+        self.clipboard_contents = contents
         
         
         if MIME_TAKENOTE in selection_data.target:
             # set rich text
             selection_data.set(MIME_TAKENOTE, 8, "<takenote>")
+            
+        elif "text/html" in selection_data.target:
+            # set html
+            stream = StringIO.StringIO(data)
+            self.textview._html_buffer.set_output(stream)
+            self.textview._html_buffer.write(contents, partial=True)
+            selection_data.set("text/html", 8, stream.getvalue())
+
+        elif len([x for x in MIME_IMAGES
+                  if x in selection_data.target]) > 0:
+            # set image
+            selection_data.set_pixbuf(contents.get_original_pixbuf())
+            
         else:
-            # set plain text        
-            selection_data.set_text(data[1])
+            # set plain text
+            selection_data.set_text(text)
 
     
     def clear_selection_data(self, clipboard, data):
+        """Callback for when Clipboard contents are reset"""
         self.clipboard_contents = None
     
     
@@ -866,25 +927,18 @@ class RichTextBuffer (gtk.TextBuffer):
             return
 
         contents = list(self.textview._html_buffer.read([html],
-                                                        partial=True))
+                                                        partial=True,
+                                                        ignore_errors=True))
         
-        
+        # scan contents
         for kind, pos, param in contents:
             
             # download and images included in html
             if kind == "anchor" and isinstance(param[0], RichTextImage):
                 img = param[0]
                 if img.get_filename().startswith("http:"):
-                    infile = urllib2.urlopen(img.get_filename())
-                    f, imgfile = tempfile.mkstemp("", "takenote")
-                    os.close(f)
-                    outfile = open(imgfile, "w")
-                    outfile.write(infile.read())
-                    outfile.close()
-
-                    img.set_filename("image.png")
-                    img.set_from_file(imgfile)
-                    
+                    img.set_from_url(img.get_filename(), "image.png")
+        
         # add to buffer
         self.begin_user_action()
         insert_buffer_contents(self, self.get_iter_at_mark(self.get_insert()),

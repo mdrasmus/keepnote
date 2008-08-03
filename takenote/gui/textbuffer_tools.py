@@ -48,14 +48,18 @@ def iter_buffer_contents(textbuffer, start=None, end=None,
             ret = it2.forward_search(ANCHOR_CHAR, (), stop)
             
             if ret is None:
-                yield ("text", it2, it2.get_text(stop))
+                text = it2.get_text(stop)
+                if len(text) > 0:
+                    yield ("text", it2, text)
                 break
             
             a, b = ret
             anchor = a.get_child_anchor()
             
             # yield text in between tags
-            yield ("text", it2, it2.get_text(a))
+            text = it2.get_text(a)
+            if len(text) > 0:
+                yield ("text", it2, text)
             if anchor is not None:
                 yield ("anchor", a, (anchor, anchor.get_widgets()))
             else:
@@ -99,14 +103,14 @@ def buffer_contents_iter_to_offset(contents):
         yield (kind, it.get_offset(), param)
     
 
-def normalize_tags(items):
+def normalize_tags(contents):
     """Normalize open and close tags to ensure proper nesting
        This is especially useful for saving to HTML
     """
 
     open_stack = []
 
-    for item in items:
+    for item in contents:
         kind, it, param = item
         
         if kind == "begin":
@@ -133,6 +137,10 @@ def normalize_tags(items):
 
         else:
             yield item
+
+
+#def remove_empty_text(contents):
+#    """Remove spurious text items that are empty"""
 
 
 

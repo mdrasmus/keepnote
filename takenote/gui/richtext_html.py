@@ -31,6 +31,9 @@ class HtmlError (StandardError):
     pass
 
 
+# TODO: may need to include support for ignoring information between
+# <scirpt> and <style> tags
+
 class HtmlBuffer (HTMLParser):
     """Read and write HTML for a RichTextBuffer"""
     
@@ -87,35 +90,43 @@ class HtmlBuffer (HTMLParser):
     #===========================================
     # Reading HTML
     
-    def read(self, infile, partial=False):
+    def read(self, infile, partial=False, ignore_errors=False):
         """Read from stream infile to populate textbuffer"""
         self._text_queue = []
         self._within_body = False
         self._buffer_contents = []
         self._partial = partial
-        
-        for line in infile:
-            self.feed(line)
 
-            # yeild items read so far
+
+        try:
+            for line in infile:
+                self.feed(line)
+
+                # yeild items read so far
+                for item in self._buffer_contents:
+                    yield item
+                self._buffer_contents[:] = []
+        
+            self.close()
+            self.flush_text()
+        
+            # yeild remaining items
             for item in self._buffer_contents:
                 yield item
             self._buffer_contents[:] = []
-        
-        self.close()
-        self.flush_text()
-        
-        # yeild remaining items
-        for item in self._buffer_contents:
-            yield item
-        self._buffer_contents[:] = []
+            
+        except Exception, e:
+            # reraise error if not ignored
+            if not ignore_errors:
+                raise
         
         
     def flush_text(self):
         if len(self._text_queue) > 0:
-            self._buffer_contents.append(("text", None,
-                                          "".join(self._text_queue)))
-            self._text_queue[:] = []
+            text = "".join(self._text_queue)
+            if len(text) > 0:
+                self._buffer_contents.append(("text", None, text))
+                self._text_queue[:] = []
 
             
     def queue_text(self, text):
@@ -169,24 +180,22 @@ class HtmlBuffer (HTMLParser):
             
         for key, value in attrs:
             if key == "src":
-
-                # TODO: filename could be URL
-                # where should I handle image downloading
-                # I could load into memory and assign local name in
-                # textbuffer class.
-                
                 img.set_filename(value)
                     
             elif key == "width":
                 try:
                     width = int(value)
                 except ValueError, e:
-                    raise HtmlError("expected integer for image width '%s'" % value)
+                    # ignore width if we cannot parse it
+                    pass
+                
             elif key == "height":
                 try:
                     height = int(value)
                 except ValueError, e:
-                    raise HtmlError("expected integer for image height '%s'" % value)
+                    # ignore height if we cannot parse it
+                    pass
+                
             else:
                 # ignore other attributes
                 pass
@@ -238,6 +247,13 @@ class HtmlBuffer (HTMLParser):
                 else:
                     # ignore other attributes
                     pass
+
+        elif htmltag == "p":
+            # paragraph
+            # NOTE: this tag is currently not used by TakeNote, but if pasting
+            # text from another HTML source, TakeNote will interpret it as
+            # a newline char
+            self.queue_text("\n")
             
         elif htmltag == "br":
             # insert newline
@@ -281,6 +297,10 @@ class HtmlBuffer (HTMLParser):
 
         for tagstr in tags:
             self.append_buffer_item("endstr", tagstr)
+        
+        if htmltag == "p":
+            # paragraph tag
+            self.queue_text("\n")
 
     
     
@@ -315,7 +335,7 @@ class HtmlBuffer (HTMLParser):
     # Writing HTML
     
     def write(self, buffer_content, partial=False):
-
+        
         if not partial:
             self._out.write("""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
