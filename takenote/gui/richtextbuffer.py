@@ -570,7 +570,7 @@ class RichTextImage (RichTextAnchor):
         
         # open url and download image
         infile = urllib2.urlopen(url)
-        outfile = open(imgfile, "w")
+        outfile = open(imgfile, "wb")
         outfile.write(infile.read())
         outfile.close()
         
@@ -929,14 +929,15 @@ class RichTextBuffer (gtk.TextBuffer):
         contents = list(self.textview._html_buffer.read([html],
                                                         partial=True,
                                                         ignore_errors=True))
-        
+
         # scan contents
         for kind, pos, param in contents:
             
             # download and images included in html
             if kind == "anchor" and isinstance(param[0], RichTextImage):
                 img = param[0]
-                if img.get_filename().startswith("http:"):
+                if img.get_filename().startswith("http:") or \
+                   img.get_filename().startswith("file:"):
                     img.set_from_url(img.get_filename(), "image.png")
         
         # add to buffer
