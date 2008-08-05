@@ -1085,8 +1085,13 @@ class NoteBook (NoteBookDir):
         self._dirty.clear()
 
 
-    def archive(self, filename):
-        """Archive notebook as *.tar.gz"""
+    def archive(self, filename, progress=lambda p, f: None):
+        """Archive notebook as *.tar.gz
+
+           filename -- filename of archive to create
+           progress -- callback function that takes arguments
+                       (percent, filename)
+        """
 
         if os.path.exists(filename):
             raise NoteBookError("File '%s' already exists" % filename)
@@ -1101,7 +1106,33 @@ class NoteBook (NoteBookDir):
         try:
             archive = tarfile.open(filename, "w:gz")
             path = self.get_path()
-            archive.add(path, os.path.basename(path))
+
+            # first count # of files
+            nfiles = 0
+            for root, dirs, files in os.walk(path):
+                nfiles += len(files)
+
+            nfiles2 = [0]
+            def walk(path, arcname):
+                # add to archive
+                archive.add(path, arcname, False)
+
+                # report progresss
+                if os.path.isfile(path):
+                    nfiles2[0] += 1
+                    progress(nfiles2[0] / float(nfiles), path)
+
+                # recurse
+                if os.path.isdir(path):
+                    for f in os.listdir(path):
+                        if not os.path.islink(f):
+                            walk(os.path.join(path, f),
+                                 os.path.join(arcname, f))
+            walk(path, os.path.basename(path))
+                
+            #archive.add(path, os.path.basename(path))
+
+            
             archive.close()
         except Exception, e:
             raise NoteBookError("Error while archiving notebook", e)

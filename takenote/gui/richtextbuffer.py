@@ -1097,6 +1097,9 @@ class RichTextBuffer (gtk.TextBuffer):
             self.end_user_action()
 
 
+    #==============================================
+    # Child callbacks
+
     def on_child_selected(self, child):
         """Callback for when child object is selected
 
@@ -1261,9 +1264,9 @@ class RichTextBuffer (gtk.TextBuffer):
         elif name.startswith("size"):
             return self.lookup_size_tag(int(name.split(" ")[1]))
 
-        else:
+        elif name.startswith("family"):
             # must be family tag
-            return self.lookup_family_tag(name)
+            return self.lookup_family_tag(name.split(" ", 1)[1])
         
         
         
@@ -1274,10 +1277,10 @@ class RichTextBuffer (gtk.TextBuffer):
     
     
     def lookup_family_tag(self, family):
-        tag = self.tag_table.lookup(family)
+        tag = self.tag_table.lookup("family " + family)
         if tag is None:
             # TODO: do I need to do error handling here?
-            tag = self.create_tag(family, family=family)
+            tag = self.create_tag("family " + family, family=family)
             self.add_family_tag(tag)
         return tag
     
@@ -1354,11 +1357,12 @@ class RichTextBuffer (gtk.TextBuffer):
             justify = "fill"
         
         # get size in points (get_size() returns pango units)
-        size = font.get_size() // 1024
+        PIXELS_PER_PANGO_UNIT = 1024
+        size = font.get_size() // PIXELS_PER_PANGO_UNIT
         
         for tag in self.current_tags:
             if tag in self.family_tags:
-                family = tag.get_property("name")
+                family = tag.get_property("family")
             
             elif tag in self.size_tags:
                 size = int(tag.get_property("size-points"))

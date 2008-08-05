@@ -703,8 +703,13 @@ class TakeNoteWindow (gtk.Window):
         if self.notebook is None:
             return
 
+
+        def progress(percent, filename):
+            pass
+            #print percent, filename
+        
         try:
-            self.notebook.archive(filename)
+            self.notebook.archive(filename, progress)
         except NoteBookError, e:
             self.set_status("")
             self.error("Error while archiving notebook:\n%s" % e.msg, e)

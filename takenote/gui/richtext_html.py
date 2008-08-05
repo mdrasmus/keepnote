@@ -153,7 +153,7 @@ class HtmlBuffer (HTMLParser):
                         
             elif statement.startswith("font-family"):
                 # font family
-                tagstr = statement.split(":")[1].strip()
+                tagstr = "family " + statement.split(":")[1].strip()
 
             elif statement.startswith("text-align"):
                 align = statement.split(":")[1].strip()
