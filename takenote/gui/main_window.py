@@ -135,6 +135,9 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook):
     def get_current_tab(self):
         return 0
 
+    def is_focus(self):
+        pos = self.get_current_tab()
+        return self._textviews[pos].is_focus()
 
     def clear_view(self):
         pos = self.get_current_tab()
@@ -389,8 +392,9 @@ class TakeNoteWindow (gtk.Window):
         # view page
         pages = [node for node in nodes 
                  if isinstance(node, NoteBookPage)]
-
+        
         if len(pages) > 0:
+            self.selector.select_nodes(pages)
             self.current_page = pages[0]
             try:
                 self.editor.view_pages(pages)
@@ -883,6 +887,8 @@ class TakeNoteWindow (gtk.Window):
                 widget = "selector"
             elif self.treeview.is_focus():
                 widget = "treeview"
+            elif self.editor.is_focus():
+                widget = "selector"
             else:
                 return ([], "")
 
