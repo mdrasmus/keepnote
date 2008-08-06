@@ -1057,8 +1057,9 @@ class TakeNoteWindow (gtk.Window):
         # block toolbar handlers
         self.bold_button.handler_block(self.bold_id)
         self.italic_button.handler_block(self.italic_id)
-        self.underline_button.handler_block(self.underline_id)
+        self.underline_button.handler_block(self.underline_id)        
         self.fixed_width_button.handler_block(self.fixed_width_id)
+        self.no_wrap_button.handler_block(self.no_wrap_id)
         self.left_button.handler_block(self.left_id)
         self.center_button.handler_block(self.center_id)
         self.right_button.handler_block(self.right_id)
@@ -1069,6 +1070,7 @@ class TakeNoteWindow (gtk.Window):
         self.italic_button.set_active(mods["italic"])        
         self.underline_button.set_active(mods["underline"])
         self.fixed_width_button.set_active(family == "Monospace")
+        self.no_wrap_button.set_active(mods["nowrap"])
         
         # update text justification
         self.left_button.set_active(justify == "left")
@@ -1085,6 +1087,7 @@ class TakeNoteWindow (gtk.Window):
         self.italic_button.handler_block(self.italic_id)
         self.underline_button.handler_unblock(self.underline_id)
         self.fixed_width_button.handler_unblock(self.fixed_width_id)
+        self.no_wrap_button.handler_unblock(self.no_wrap_id)
         self.left_button.handler_unblock(self.left_id)
         self.center_button.handler_unblock(self.center_id)
         self.right_button.handler_unblock(self.right_id) 
@@ -1129,6 +1132,15 @@ class TakeNoteWindow (gtk.Window):
             self.fixed_width_button.handler_block(self.fixed_width_id)        
             self.fixed_width_button.set_active(family == "Monospace")
             self.fixed_width_button.handler_unblock(self.fixed_width_id)
+
+    def on_no_wrap(self):
+        self.editor.get_textview().on_no_wrap()
+        mods, justify, family, size = self.editor.get_textview().get_font()
+        
+        self.no_wrap_button.handler_block(self.no_wrap_id)
+        self.no_wrap_button.set_active(mods["nowrap"])
+        self.no_wrap_button.handler_unblock(self.no_wrap_id)
+        
 
     def on_left_justify(self):
         self.editor.get_textview().on_left_justify()
@@ -1744,8 +1756,12 @@ class TakeNoteWindow (gtk.Window):
                 "<control>M", lambda w,e: self.on_fixed_width(False), 0,
                 "<ImageItem>",
                 get_resource_pixbuf("fixed-width.png")),
+            ("/Format/No _Wrapping",
+                None, lambda w, e: self.on_no_wrap(), 0,
+                "<ImageItem>",
+                get_resource_pixbuf("no-wrap.png")),
             
-            ("/Format/sep2", 
+            ("/Format/sep4", 
                 None, None, 0, "<Separator>" ),
             ("/Format/Increase Font _Size", 
                 "<control>equal", lambda w, e: self.on_font_size_inc(), 0, 
@@ -1756,13 +1772,13 @@ class TakeNoteWindow (gtk.Window):
                 "<ImageItem>", 
                 get_resource_pixbuf("font-dec.png")),
             
-
-            ("/Format/sep3", 
+            ("/Format/sep5", 
                 None, None, 0, "<Separator>" ),
             ("/Format/Choose _Font", 
                 "<control><shift>F", lambda w, e: self.on_choose_font(), 0, 
                 "<ImageItem>", 
                 get_resource_pixbuf("font.png")),
+
             
             ("/_View", None, None, 0, "<Branch>"),
             ("/View/View Note in File Explorer",
@@ -1954,6 +1970,14 @@ class TakeNoteWindow (gtk.Window):
         tips.set_tip(self.fixed_width_button, "Monospace")
         self.fixed_width_id = self.fixed_width_button.connect("toggled", lambda w: self.on_fixed_width(True))
         toolbar.insert(self.fixed_width_button, -1)               
+
+        # no wrap tool
+        self.no_wrap_button = gtk.ToggleToolButton()
+        self.no_wrap_button.set_icon_widget(get_resource_image("no-wrap.png"))
+        tips.set_tip(self.no_wrap_button, "No Wrapping")
+        self.no_wrap_id = self.no_wrap_button.connect("toggled", lambda w: self.editor.get_textview().on_no_wrap())
+        toolbar.insert(self.no_wrap_button, -1)
+
 
         # font button
         self.font_sel = gtk.FontButton()

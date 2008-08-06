@@ -32,19 +32,6 @@ from takenote.gui.textbuffer_tools import \
 
 #from takenote.gui.textbuffer_html import HtmlBuffer, HtmlError
 
-# constants
-MIME_TAKENOTE = "application/x-takenote"
-MIME_IMAGES = ["image/png",
-               "image/bmp",
-               "image/jpeg",
-               "image/xpm"]
-MIME_TEXT = ["text/plain",
-             "text/plain;charset=utf-8",
-             "text/plain;charset=UTF-8",
-             "UTF8_STRING",
-             "STRING",
-             "COMPOUND_TEXT",
-             "TEXT"]
 
 
 # these tags will not be enumerated by iter_buffer_contents
@@ -131,8 +118,13 @@ class ModifyAction (Action):
         self.textbuffer.set_modified(True)
     
     def undo(self):
-        if not self.was_modified:
-            self.textbuffer.set_modified(False)
+
+        # NOTE: undoing this action actually modifies the buffer again
+        
+        self.textbuffer.set_modified(True)
+        
+        #if not self.was_modified:
+        #    self.textbuffer.set_modified(False)
         
 
 # XXX: do I need to record current tags to properly redo insert?
@@ -331,6 +323,7 @@ class BaseWidget (object):
 
 
 class RichTextSep (gtk.HSeparator, BaseWidget):
+    """Separator widget for a Horizontal Rule"""
     def __init__(self):
         gtk.HSeparator.__init__(self)
         BaseWidget.__init__(self)
@@ -373,9 +366,10 @@ class BaseImage (gtk.EventBox, BaseWidget):
     def __init__(self, *args, **kargs):
         gtk.EventBox.__init__(self)
         BaseWidget.__init__(self)
-        self.img = gtk.Image(*args, **kargs)
-        self.add(self.img)
+        self._img = gtk.Image(*args, **kargs)
+        self.add(self._img)
 
+        # TODO: will this be configurable?
         # set to white background
         self.modify_bg(gtk.STATE_NORMAL, gdk.Color(65535, 65535, 65535))
 
@@ -392,14 +386,14 @@ class BaseImage (gtk.EventBox, BaseWidget):
         self.drag_unhighlight()
     
     def set_from_pixbuf(self, pixbuf):
-        self.img.set_from_pixbuf(pixbuf)
+        self._img.set_from_pixbuf(pixbuf)
     
     def set_from_stock(self, stock, size):
-        self.img.set_from_stock(stock, size)
+        self._img.set_from_stock(stock, size)
     
     def show(self):
         gtk.EventBox.show(self)
-        self.img.show()
+        self._img.show()
 
 
 class RichTextImage (RichTextAnchor):
@@ -614,10 +608,8 @@ class RichTextImage (RichTextAnchor):
 class RichTextBuffer (gtk.TextBuffer):
     def __init__(self, textview=None):
         gtk.TextBuffer.__init__(self)
-        self.clipboard_contents = None
         self.textview = textview
         self.undo_stack = UndoStack(MAX_UNDOS)
-        self._html_parser = None
         
         # action state
         self.insert_mark = None
@@ -655,8 +647,7 @@ class RichTextBuffer (gtk.TextBuffer):
         self.bold_tag = self.create_tag("Bold", weight=pango.WEIGHT_BOLD)
         self.italic_tag = self.create_tag("Italic", style=pango.STYLE_ITALIC)
         self.underline_tag = self.create_tag("Underline", underline=pango.UNDERLINE_SINGLE)
-        self.mod_tags = set([self.bold_tag, self.italic_tag,
-                             self.underline_tag])
+        self.no_wrap_tag = self.create_tag("NoWrap", wrap_mode=gtk.WRAP_NONE)
         
         self.left_tag = self.create_tag("Left", justification=gtk.JUSTIFY_LEFT)
         self.center_tag = self.create_tag("Center", justification=gtk.JUSTIFY_CENTER)
@@ -708,153 +699,6 @@ class RichTextBuffer (gtk.TextBuffer):
         self.delete(start, end)
 
     
-    #======================================================
-    # copy and paste
-
-    def copy_clipboard(self, clipboard):
-        """Callback for copy event"""
-                
-        
-        sel = self.get_selection_bounds()
-
-        # do nothing if nothing is selected
-        if sel is None:
-            return
-        
-        start, end = sel
-        contents = list(iter_buffer_contents(self, start, end))
-
-        
-        if len(contents) == 1 and \
-           contents[0][0] == "anchor" and \
-           isinstance(contents[0][2][0], RichTextImage):
-            # copy image
-            targets = [(x, 0, -3) for x in MIME_IMAGES]
-            
-            clipboard.set_with_data(targets, self.get_selection_data, 
-                                    self.clear_selection_data,
-                                    (contents[0][2][0], ""))
-
-        else:
-            # copy text
-            targets = [(MIME_TAKENOTE, gtk.TARGET_SAME_APP, -3),
-                       ("text/html", 0, -3)] + \
-                      [(x, 0, -3) for x in MIME_TEXT]
-            
-            text = start.get_text(end)
-            clipboard.set_with_data(targets, self.get_selection_data, 
-                                    self.clear_selection_data,
-                                    (contents, text))
-
-
-    def cut_clipboard(self, clipboard, default_editable):
-        """Callback for cut event"""
-        
-        self.copy_clipboard(clipboard)
-        self.delete_selection(False, default_editable)
-
-    
-    def paste_clipboard(self, clipboard, override_location, default_editable):
-        """Callback for paste event"""
-        
-        targets = set(clipboard.wait_for_targets())
-        
-        if targets is None:
-            # do nothing
-            return
-            
-        
-        if MIME_TAKENOTE in targets:
-            clipboard.request_contents(MIME_TAKENOTE, self.do_paste_object)
-        elif "text/html" in targets:
-            clipboard.request_contents("text/html", self.do_paste_html)
-        else:
-
-            # test image formats
-            for mime_image in MIME_IMAGES:
-                if mime_image in targets:
-                    clipboard.request_contents(mime_image,
-                                               self.do_paste_image)
-                    break
-            else:
-                # request text
-                clipboard.request_text(self.do_paste_text)
-        
-    
-    def do_paste_text(self, clipboard, text, data):
-        """Paste text into buffer"""
-        self.begin_user_action()
-        self.delete_selection(False, True)
-        self.insert_at_cursor(text)
-        self.end_user_action()
-
-    def do_paste_html(self, clipboard, selection_data, data):
-        """Paste HTML into buffer"""
-        
-        html = parse_utf(selection_data.data)        
-        self.begin_user_action()
-        self.delete_selection(False, True)
-        self.insert_html(html)
-        self.end_user_action()
-        
-        
-    
-    def do_paste_image(self, clipboard, selection_data, data):
-        """Paste image into buffer"""
-        
-        pixbuf = selection_data.get_pixbuf()
-        image = RichTextImage()
-        image.set_from_pixbuf(pixbuf)
-        
-        self.insert_image(image)
-
-    
-    def do_paste_object(self, clipboard, selection_data, data):
-        """Paste a program-specific object into buffer"""
-        
-        if self.clipboard_contents is None:
-            # do nothing
-            return
-        
-        self.begin_user_action()
-        it = self.get_iter_at_mark(self.get_insert())
-        insert_buffer_contents(self, it, self.clipboard_contents,
-                               add_child=add_child_to_buffer)
-        self.end_user_action()
-    
-    
-    def get_selection_data(self, clipboard, selection_data, info, data):
-        """Callback for when Clipboard needs selection data"""
-
-        contents, text = data
-        
-        self.clipboard_contents = contents
-        
-        
-        if MIME_TAKENOTE in selection_data.target:
-            # set rich text
-            selection_data.set(MIME_TAKENOTE, 8, "<takenote>")
-            
-        elif "text/html" in selection_data.target:
-            # set html
-            stream = StringIO.StringIO(data)
-            self.textview._html_buffer.set_output(stream)
-            self.textview._html_buffer.write(contents, partial=True)
-            selection_data.set("text/html", 8, stream.getvalue())
-
-        elif len([x for x in MIME_IMAGES
-                  if x in selection_data.target]) > 0:
-            # set image
-            selection_data.set_pixbuf(contents.get_original_pixbuf())
-            
-        else:
-            # set plain text
-            selection_data.set_text(text)
-
-    
-    def clear_selection_data(self, clipboard, data):
-        """Callback for when Clipboard contents are reset"""
-        self.clipboard_contents = None
     
     
     #============================================================
@@ -864,7 +708,7 @@ class RichTextBuffer (gtk.TextBuffer):
 
         # preprocess child
         if isinstance(child, RichTextImage):
-            self.determine_image_name(child)
+            self._determine_image_name(child)
 
         # setup child
         self.anchors.add(child)
@@ -918,67 +762,34 @@ class RichTextBuffer (gtk.TextBuffer):
         self.add_child(it, hr)
         
         self.end_user_action()
-
-
-    def insert_html(self, html):
-        """Insert HTML content into Buffer"""
-        
-        if self.textview is None:
-            return
-
-        contents = list(self.textview._html_buffer.read([html],
-                                                        partial=True,
-                                                        ignore_errors=True))
-
-        # scan contents
-        for kind, pos, param in contents:
-            
-            # download and images included in html
-            if kind == "anchor" and isinstance(param[0], RichTextImage):
-                img = param[0]
-                if img.get_filename().startswith("http:") or \
-                   img.get_filename().startswith("file:"):
-                    img.set_from_url(img.get_filename(), "image.png")
-        
-        # add to buffer
-        self.begin_user_action()
-        insert_buffer_contents(self, self.get_iter_at_mark(self.get_insert()),
-                               contents,
-                               add_child=add_child_to_buffer,
-                               lookup_tag=lambda name: self.lookup_tag(name))
-        self.end_user_action()
-
         
 
     #===================================
     # Image management
 
-    def determine_image_name(self, image):
+    def get_image_filenames(self):
+        filenames = []
+        
+        for child in self.anchors:
+            if isinstance(child, RichTextImage):
+                filenames.append(child.get_filename())
+        
+        return filenames
+    
+
+    def _determine_image_name(self, image):
         """Determines image filename"""
         
-        if self.is_new_pixbuf(image.get_original_pixbuf()):
+        if self._is_new_pixbuf(image.get_original_pixbuf()):
             filename, ext = os.path.splitext(image.get_filename())
             filenames = self.get_image_filenames()
             filename2 = takenote.get_unique_filename_list(filenames,
                                                           filename, ext)
             image.set_filename(filename2)
             image.set_save_needed(True)
-        
     
-    def get_image_filenames(self):
-        filenames = []
-        
-        # TODO: could be faster (specialized search_forward)
-        #for kind, it, param in iter_buffer_contents(self):
-        #    if kind == "anchor":
 
-        for child in self.anchors:
-            if isinstance(child, RichTextImage):
-                filenames.append(child.get_filename())
-        
-        return filenames
-
-    def is_new_pixbuf(self, pixbuf):
+    def _is_new_pixbuf(self, pixbuf):
 
         # cannot tell if pixbuf is new because it is not loaded
         if pixbuf is None:
@@ -1006,9 +817,6 @@ class RichTextBuffer (gtk.TextBuffer):
             # update UI for current fonts
             mods, justify, family, size = self.get_font()
             self.emit("font-change", mods, justify, family, size)
-            
-            
-
     
     
     def on_insert_text(self, textbuffer, it, text, length):
@@ -1163,19 +971,22 @@ class RichTextBuffer (gtk.TextBuffer):
     # Tag manipulation    
 
     def toggle_tag_selected(self, tag):
+        """Toggle tag in selection or current tags"""
+        
         self.begin_user_action()
         it = self.get_selection_bounds()
         
         if len(it) == 0:
+            # no selection, toggle current tags
             if tag not in self.current_tags:
-                self.clear_current_font_tags(tag)
+                self.clear_current_tag_class(tag)
                 self.current_tags.append(tag)
             else:
                 self.current_tags.remove(tag)
         else:
             self.current_tags = []
             if not it[0].has_tag(tag):
-                self.clear_font_tags(tag, it[0], it[1])
+                self.clear_tag_class(tag, it[0], it[1])
                 self.apply_tag(tag, it[0], it[1])
             else:
                 self.remove_tag(tag, it[0], it[1])
@@ -1184,34 +995,41 @@ class RichTextBuffer (gtk.TextBuffer):
     
 
     def apply_tag_selected(self, tag):
+        """Apply tag to selection or current tags"""
+        
         self.begin_user_action()    
         it = self.get_selection_bounds()
         
         if len(it) == 0:
+            # no selection, apply to current tags
             if tag not in self.current_tags:
-                self.clear_current_font_tags(tag)
+                self.clear_current_tag_class(tag)
                 self.current_tags.append(tag)
         else:
-            self.current_tags = []
-            self.clear_font_tags(tag, it[0], it[1])
+            self.current_tags = [] # TODO: write the reason for this
+            self.clear_tag_class(tag, it[0], it[1])
             self.apply_tag(tag, it[0], it[1])
         self.end_user_action()
 
 
     def remove_tag_selected(self, tag):
+        """Remove tag from selection or current tags"""
+
         self.begin_user_action()
         it = self.get_selection_bounds()
         
         if len(it) == 0:
+            # no selection, remove tag from current tags
             if tag in self.current_tags:
                 self.current_tags.remove(tag)
         else:
-            self.current_tags = []
+            self.current_tags = [] # TODO: write the reason for this
             self.remove_tag(tag, it[0], it[1])
         self.end_user_action()
     
     
-    def clear_font_tags(self, tag, start, end):
+    def clear_tag_class(self, tag, start, end):
+        """Remove all tags of the same class as 'tag' in region (start, end)"""
         
         # remove other justify tags
         if tag in self.justify_tags:
@@ -1228,7 +1046,8 @@ class RichTextBuffer (gtk.TextBuffer):
             for tag2 in self.size_tags:
                 self.remove_tag(tag2, start, end)
 
-    def clear_current_font_tags(self, tag):
+    def clear_current_tag_class(self, tag):
+        """Remove all tags of the same class as 'tag' from current tags"""
         
         # remove other justify tags
         if tag in self.justify_tags:
@@ -1269,8 +1088,6 @@ class RichTextBuffer (gtk.TextBuffer):
             # must be family tag
             return self.lookup_family_tag(name.split(" ", 1)[1])
         
-        
-        
 
     def lookup_mod_tag(self, mod):
         """Lookup Bold, Italic, and Underline"""
@@ -1282,7 +1099,7 @@ class RichTextBuffer (gtk.TextBuffer):
         if tag is None:
             # TODO: do I need to do error handling here?
             tag = self.create_tag("family " + family, family=family)
-            self.add_family_tag(tag)
+            self.family_tags.add(tag)
         return tag
     
     def lookup_size_tag(self, size):
@@ -1290,17 +1107,12 @@ class RichTextBuffer (gtk.TextBuffer):
         tag = self.tag_table.lookup(sizename)
         if tag is None:
             tag = self.create_tag(sizename, size_points=size)
-            self.add_size_tag(tag)
+            self.size_tags.add(tag)
         return tag
-    
-    def add_family_tag(self, tag):
-        self.family_tags.add(tag)        
-    
-    def add_size_tag(self, tag):
-        self.size_tags.add(tag)
     
 
     def parse_font(self, fontstr):
+        """Parse a font string from the font chooser"""
         tokens = fontstr.split(" ")
         size = int(tokens.pop())
         mods = []
@@ -1330,8 +1142,13 @@ class RichTextBuffer (gtk.TextBuffer):
         it.get_attributes(attr)
         font = attr.font
         
-        # set family
+        # get font family
         family = font.get_family()
+
+        # get size in points (get_size() returns pango units)
+        PIXELS_PER_PANGO_UNIT = 1024
+        size = font.get_size() // PIXELS_PER_PANGO_UNIT
+
         
         # set modifications (current tags override)
         mods = {"bold":
@@ -1342,7 +1159,10 @@ class RichTextBuffer (gtk.TextBuffer):
                 font.get_style() == pango.STYLE_ITALIC,
                 "underline":
                 self.underline_tag in current_tags or
-                attr.underline == pango.UNDERLINE_SINGLE}
+                attr.underline == pango.UNDERLINE_SINGLE,
+                "nowrap":
+                self.no_wrap_tag in current_tags or
+                attr.wrap_mode == gtk.WRAP_NONE}
         
         # set justification
         justify = self.justify2name[attr.justification]
@@ -1357,10 +1177,8 @@ class RichTextBuffer (gtk.TextBuffer):
         elif self.fill_tag in current_tags:
             justify = "fill"
         
-        # get size in points (get_size() returns pango units)
-        PIXELS_PER_PANGO_UNIT = 1024
-        size = font.get_size() // PIXELS_PER_PANGO_UNIT
         
+        # current tags override for family and size
         for tag in self.current_tags:
             if tag in self.family_tags:
                 family = tag.get_property("family")

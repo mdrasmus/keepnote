@@ -49,6 +49,19 @@ from takenote.gui.richtext_html import HtmlBuffer, HtmlError
 DEFAULT_FONT = "Sans 10"
 TEXTVIEW_MARGIN = 5
 
+# mime types
+MIME_TAKENOTE = "application/x-takenote"
+MIME_IMAGES = ["image/png",
+               "image/bmp",
+               "image/jpeg",
+               "image/xpm"]
+MIME_TEXT = ["text/plain",
+             "text/plain;charset=utf-8",
+             "text/plain;charset=UTF-8",
+             "UTF8_STRING",
+             "STRING",
+             "COMPOUND_TEXT",
+             "TEXT"]
 
 
 
@@ -75,6 +88,7 @@ class RichTextView (gtk.TextView):
         gtk.TextView.__init__(self, None)
         self._textbuffer = None
         self._buffer_callbacks = []
+        self._clipboard_contents = None
         
         self.set_buffer(RichTextBuffer(self))
         self._blank_buffer = RichTextBuffer(self)
@@ -276,7 +290,7 @@ class RichTextView (gtk.TextView):
             # process html drop
 
             html = parse_utf(selection_data.data)
-            self._textbuffer.insert_html(html)
+            self.insert_html(html)
             
         
         elif self.drag_dest_find_target(drag_context, 
@@ -330,7 +344,7 @@ class RichTextView (gtk.TextView):
         clipboard = self.get_clipboard(selection="CLIPBOARD")
         self.stop_emission('copy-clipboard')
         
-        self._textbuffer.copy_clipboard(clipboard)
+        self.copy_clipboard(clipboard)
 
     
     def on_cut(self):
@@ -338,7 +352,7 @@ class RichTextView (gtk.TextView):
         clipboard = self.get_clipboard(selection="CLIPBOARD")
         self.stop_emission('cut-clipboard')
         
-        self._textbuffer.cut_clipboard(clipboard, self.get_editable())
+        self.cut_clipboard(clipboard, self.get_editable())
 
     
     def on_paste(self):
@@ -346,8 +360,155 @@ class RichTextView (gtk.TextView):
         clipboard = self.get_clipboard(selection="CLIPBOARD")
         self.stop_emission('paste-clipboard')
         
-        self._textbuffer.paste_clipboard(clipboard, None, self.get_editable())
+        self.paste_clipboard(clipboard, None, self.get_editable())
         
+
+    def copy_clipboard(self, clipboard):
+        """Callback for copy event"""
+                
+        
+        sel = self._textbuffer.get_selection_bounds()
+
+        # do nothing if nothing is selected
+        if sel is None:
+            return
+        
+        start, end = sel
+        contents = list(iter_buffer_contents(self._textbuffer, start, end))
+
+        
+        if len(contents) == 1 and \
+           contents[0][0] == "anchor" and \
+           isinstance(contents[0][2][0], RichTextImage):
+            # copy image
+            targets = [(x, 0, -3) for x in MIME_IMAGES]
+            
+            clipboard.set_with_data(targets, self.get_selection_data, 
+                                    self.clear_selection_data,
+                                    (contents[0][2][0], ""))
+
+        else:
+            # copy text
+            targets = [(MIME_TAKENOTE, gtk.TARGET_SAME_APP, -3),
+                       ("text/html", 0, -3)] + \
+                      [(x, 0, -3) for x in MIME_TEXT]
+            
+            text = start.get_text(end)
+            clipboard.set_with_data(targets, self.get_selection_data, 
+                                    self.clear_selection_data,
+                                    (contents, text))
+
+
+    def cut_clipboard(self, clipboard, default_editable):
+        """Callback for cut event"""
+        
+        self.copy_clipboard(clipboard)
+        self._textbuffer.delete_selection(False, default_editable)
+
+    
+    def paste_clipboard(self, clipboard, override_location, default_editable):
+        """Callback for paste event"""
+        
+        targets = set(clipboard.wait_for_targets())
+        
+        if targets is None:
+            # do nothing
+            return
+            
+        
+        if MIME_TAKENOTE in targets:
+            clipboard.request_contents(MIME_TAKENOTE, self.do_paste_object)
+        elif "text/html" in targets:
+            clipboard.request_contents("text/html", self.do_paste_html)
+        else:
+
+            # test image formats
+            for mime_image in MIME_IMAGES:
+                if mime_image in targets:
+                    clipboard.request_contents(mime_image,
+                                               self.do_paste_image)
+                    break
+            else:
+                # request text
+                clipboard.request_text(self.do_paste_text)
+        
+    
+    def do_paste_text(self, clipboard, text, data):
+        """Paste text into buffer"""
+        self._textbuffer.begin_user_action()
+        self._textbuffer.delete_selection(False, True)
+        self._textbuffer.insert_at_cursor(text)
+        self._textbuffer.end_user_action()
+
+    def do_paste_html(self, clipboard, selection_data, data):
+        """Paste HTML into buffer"""
+        
+        html = parse_utf(selection_data.data)        
+        self._textbuffer.begin_user_action()
+        self._textbuffer.delete_selection(False, True)
+        self.insert_html(html)
+        self._textbuffer.end_user_action()
+        
+        
+    
+    def do_paste_image(self, clipboard, selection_data, data):
+        """Paste image into buffer"""
+        
+        pixbuf = selection_data.get_pixbuf()
+        image = RichTextImage()
+        image.set_from_pixbuf(pixbuf)
+        
+        self._textbuffer.insert_image(image)
+
+    
+    def do_paste_object(self, clipboard, selection_data, data):
+        """Paste a program-specific object into buffer"""
+        
+        if self._clipboard_contents is None:
+            # do nothing
+            return
+        
+        self._textbuffer.begin_user_action()
+        it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
+        insert_buffer_contents(self._textbuffer, it,
+                               self._clipboard_contents,
+                               add_child=add_child_to_buffer)
+        self._textbuffer.end_user_action()
+    
+    
+    def get_selection_data(self, clipboard, selection_data, info, data):
+        """Callback for when Clipboard needs selection data"""
+
+        contents, text = data
+        
+        self._clipboard_contents = contents
+        
+        
+        if MIME_TAKENOTE in selection_data.target:
+            # set rich text
+            selection_data.set(MIME_TAKENOTE, 8, "<takenote>")
+            
+        elif "text/html" in selection_data.target:
+            # set html
+            stream = StringIO.StringIO(data)
+            self._html_buffer.set_output(stream)
+            self._html_buffer.write(contents, partial=True)
+            selection_data.set("text/html", 8, stream.getvalue())
+
+        elif len([x for x in MIME_IMAGES
+                  if x in selection_data.target]) > 0:
+            # set image
+            selection_data.set_pixbuf(contents.get_original_pixbuf())
+            
+        else:
+            # set plain text
+            selection_data.set_text(text)
+
+    
+    def clear_selection_data(self, clipboard, data):
+        """Callback for when Clipboard contents are reset"""
+        self._clipboard_contents = None
+
 
     
     #==================================================================
@@ -562,11 +723,40 @@ class RichTextView (gtk.TextView):
         img.set_from_pixbuf(pixbuf)
         self.insert_image(img, filename)
 
-
-
     def insert_hr(self):
         """Inserts a horizontal rule"""
         self._textbuffer.insert_hr()
+        
+        
+    def insert_html(self, html):
+        """Insert HTML content into Buffer"""
+        
+        contents = list(self._html_buffer.read([html],
+                                               partial=True,
+                                               ignore_errors=True))
+
+        # scan contents
+        for kind, pos, param in contents:
+            
+            # download and images included in html
+            if kind == "anchor" and isinstance(param[0], RichTextImage):
+                img = param[0]
+                if img.get_filename().startswith("http:") or \
+                   img.get_filename().startswith("file:"):
+                    img.set_from_url(img.get_filename(), "image.png")
+        
+        # add to buffer
+        self._textbuffer.begin_user_action()
+        insert_buffer_contents(self._textbuffer,
+                               self._textbuffer.get_iter_at_mark(
+                                   self._textbuffer.get_insert()),
+                               contents,
+                               add_child=add_child_to_buffer,
+                               lookup_tag=lambda name:
+                                   self._textbuffer.lookup_tag(name))
+        self._textbuffer.end_user_action()
+
+
 
 
     #==========================================================
@@ -707,7 +897,12 @@ class RichTextView (gtk.TextView):
     
     def on_underline(self):
         """Toggle underline of selection"""
-        self._textbuffer.toggle_tag_selected(self._textbuffer.underline_tag)       
+        self._textbuffer.toggle_tag_selected(self._textbuffer.underline_tag)
+        
+    def on_no_wrap(self):
+        """Toggle no text wrap of selection"""
+        self._textbuffer.toggle_tag_selected(self._textbuffer.no_wrap_tag)
+
     
     def on_font_set(self, widget):
         """Font change from choose font widget"""

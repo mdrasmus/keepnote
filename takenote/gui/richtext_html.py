@@ -45,11 +45,13 @@ class HtmlBuffer (HTMLParser):
         self._mod_tag2buffer_tag = {
             "b": "Bold",
             "i": "Italic",
-            "u": "Underline"}
+            "u": "Underline",
+            "nobr": "NoWrap"}
         self._buffer_tag2mod_tag = {
             "Bold": "b",
             "Italic": "i",
-            "Underline": "u"
+            "Underline": "u",
+            "NoWrap": "nobr"
             }
         self._buffer_tag2html = {
             "Left": "left",
@@ -279,8 +281,10 @@ class HtmlBuffer (HTMLParser):
 
     def handle_endtag(self, htmltag):
         """Callback for parsing a ending HTML tag"""
-        
-        self._newline = False
+
+        if htmltag != "br":
+            self._newline = False
+            
         if not self._partial:
             if htmltag in ("html", "body") or not self._within_body:
                 return
