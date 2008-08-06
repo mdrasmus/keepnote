@@ -887,26 +887,17 @@ class RichTextView (gtk.TextView):
     #===========================================================
     # Callbacks from UI to change font 
 
-    def on_bold(self):
-        """Toggle bold of selection"""
-        self._textbuffer.toggle_tag_selected(self._textbuffer.bold_tag)
+    def toggle_font_mod(self, mod):
+        """Toggle a font modification"""
         
-    def on_italic(self):
-        """Toggle italics of selection"""
-        self._textbuffer.toggle_tag_selected(self._textbuffer.italic_tag)
+        tag = self._textbuffer.lookup_mod_tag(mod)
+        self._textbuffer.toggle_tag_selected(tag)
     
-    def on_underline(self):
-        """Toggle underline of selection"""
-        self._textbuffer.toggle_tag_selected(self._textbuffer.underline_tag)
-        
-    def on_no_wrap(self):
-        """Toggle no text wrap of selection"""
-        self._textbuffer.toggle_tag_selected(self._textbuffer.no_wrap_tag)
 
-    
-    def on_font_set(self, widget):
+    # TODO: perhaps, don't use widget, but use fontstr
+    def set_font(self, font_name):
         """Font change from choose font widget"""
-        family, mods, size = self._textbuffer.parse_font(widget.get_font_name())
+        family, mods, size = self._textbuffer.parse_font(font_name)
         
         # apply family tag
         self._textbuffer.apply_tag_selected(self._textbuffer.lookup_family_tag(family))
@@ -917,51 +908,45 @@ class RichTextView (gtk.TextView):
         # apply mods
         for mod in mods:
             self._textbuffer.apply_tag_selected(self._textbuffer.tag_table.lookup(mod))
-        
+
+        # TODO: get this list from the textbuffer
         # disable mods not given
-        for mod in ["Bold", "Italic", "Underline"]:
+        for mod in self._textbuffer.mod_names:
             if mod not in mods:
                 self._textbuffer.remove_tag_selected(self._textbuffer.tag_table.lookup(mod))
     
-    def on_font_family_set(self, family):
+    def set_font_family(self, family):
         """Sets the family font of the selection"""
         self._textbuffer.apply_tag_selected(self._textbuffer.lookup_family_tag(family))
     
-    def on_font_family_toggle(self, family):
+    def toggle_font_family(self, family):
         """Toggles the family font of the selection"""
         self._textbuffer.toggle_tag_selected(self._textbuffer.lookup_family_tag(family))
     
-    def on_font_size_set(self, size):
+    def set_font_size(self, size):
         """Sets the font size of the selection"""
         self._textbuffer.apply_tag_selected(self._textbuffer.lookup_size_tag(size))
+
+    # TODO: add set_font_color(self)
     
-    def on_left_justify(self):
-        """Sets the justification of the selection to be left"""
-        self._textbuffer.apply_tag_selected(self._textbuffer.left_tag)
-        
-    def on_center_justify(self):
-        """Sets the justification of the selection to be center"""
-        self._textbuffer.apply_tag_selected(self._textbuffer.center_tag)
-    
-    def on_right_justify(self):
-        """Sets the justification of the selection to be right"""
-        self._textbuffer.apply_tag_selected(self._textbuffer.right_tag)
-    
-    def on_fill_justify(self):
-        """Sets the justification of the selection to be justify"""
-        self._textbuffer.apply_tag_selected(self._textbuffer.fill_tag)
+    def set_justify(self, justify):
+        tag = self._textbuffer.lookup_justify_tag(justify)
+        self._textbuffer.apply_tag_selected(tag)
 
     
     #==================================================================
     # UI Updating from chaning font under cursor
-    
-    def on_font_change(self, textbuffer, mods, justify, family, size):
+
+
+    # TODO: add color class here
+    def on_font_change(self, textbuffer, font):
         """Callback for when font under cursor changes"""
-        self.emit("font-change", mods, justify, family, size)
+        self.emit("font-change", font)
     
     def get_font(self):
         """Get the font under the cursor"""
         return self._textbuffer.get_font()
+
 
     def set_default_font(self, font):
         """Sets the default font of the textview"""
@@ -992,7 +977,7 @@ gobject.type_register(RichTextView)
 gobject.signal_new("modified", RichTextView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (bool,))
 gobject.signal_new("font-change", RichTextView, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object, str, str, int))
+    gobject.TYPE_NONE, (object,))
 gobject.signal_new("child-activated", RichTextView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object,))
 

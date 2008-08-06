@@ -42,27 +42,23 @@ class HtmlBuffer (HTMLParser):
     
         self._out = out
         self._mod_tags = "biu"
-        self._mod_tag2buffer_tag = {
-            "b": "Bold",
-            "i": "Italic",
-            "u": "Underline",
-            "nobr": "NoWrap"}
-        self._buffer_tag2mod_tag = {
-            "Bold": "b",
-            "Italic": "i",
-            "Underline": "u",
-            "NoWrap": "nobr"
-            }
-        self._buffer_tag2html = {
-            "Left": "left",
-            "Center": "center",
-            "Right": "right",
-            "Justify": "justify"}
         self._html2buffer_tag = {
-            "left": "Left",
-            "center": "Center",
-            "right": "Right",
-            "justify": "Justify"}
+            "b": "bold",
+            "i": "italic",
+            "u": "underline",
+            "nobr": "nowrap"}
+        self._buffer_tag2html = {
+            "bold": "b",
+            "italic": "i",
+            "underline": "u",
+            "nowrap": "nobr"
+            }
+        self._justify = set([
+            "left",
+            "center",
+            "right",
+            "fill",
+            "justify"])
         self._newline = False
 
         self._tag_stack = []
@@ -159,11 +155,14 @@ class HtmlBuffer (HTMLParser):
 
             elif statement.startswith("text-align"):
                 align = statement.split(":")[1].strip()
-
-                # TODO: simplify
-                tagstr = self._html2buffer_tag.get(align, None)
-                if tagstr is None:
+                
+                if align not in self._justify:
                     raise HtmlError("unknown justification '%s'" % align)
+
+                if align == "justify":
+                    tagstr = "fill"
+                else:
+                    tagstr = align
 
             else:
                 # ignore other styles
@@ -203,7 +202,7 @@ class HtmlBuffer (HTMLParser):
                 pass
             
 
-        img.set_size(width, height)
+        img.scale(width, height)
         return img
         
     
@@ -223,10 +222,10 @@ class HtmlBuffer (HTMLParser):
             # note that we are no within the body tag
             self._within_body = True
         
-        elif htmltag in self._mod_tag2buffer_tag:
+        elif htmltag in self._html2buffer_tag:
             # simple font modifications (b/i/u)
             
-            tagstr = self._mod_tag2buffer_tag[htmltag]
+            tagstr = self._html2buffer_tag[htmltag]
             self.append_buffer_item("beginstr", tagstr)
             self._tag_stack[-1][1].append(tagstr)
 
@@ -406,15 +405,18 @@ class HtmlBuffer (HTMLParser):
         if tagname in IGNORE_TAGS:
             pass
         
-        elif tagname in self._buffer_tag2mod_tag:
-            self._out.write("<%s>" % self._buffer_tag2mod_tag[tagname])
+        elif tagname in self._buffer_tag2html:
+            self._out.write("<%s>" % self._buffer_tag2html[tagname])
                     
         elif tagname.startswith("size "):
             self._out.write("<span style='font-size: %dpt'>" % 
                             tag.get_property("size-points"))
 
-        elif tagname in self._buffer_tag2html:
-            text = self._buffer_tag2html[tagname]
+        elif tagname in self._justify:
+            if tagname == "fill":
+                text = "justify"
+            else:
+                text = tagname
             self._out.write("<div style='text-align: %s'>" % text)
                 
         elif tag.get_property("family") is not None:
@@ -428,10 +430,10 @@ class HtmlBuffer (HTMLParser):
     def write_tag_end(self, tag):
         tagname = tag.get_property("name")
         
-        if tagname in self._buffer_tag2mod_tag:
-            self._out.write("</%s>" % self._buffer_tag2mod_tag[tagname])
+        if tagname in self._buffer_tag2html:
+            self._out.write("</%s>" % self._buffer_tag2html[tagname])
                             
-        elif tag in self._buffer_tag2html:
+        elif tagname in self._justify:
             self._out.write("</div>")
             
         else:

@@ -108,9 +108,8 @@ class ImageResizeDialog (object):
 
         elif response == gtk.RESPONSE_REJECT:
             # restore default image size
-            
-            self.image.set_size(None, None)
-            width, height = self.image.get_size(True)
+                        
+            width, height = self.image.get_original_size()
             self.xml.get_widget("width_entry").set_text(str(width))
             self.xml.get_widget("height_entry").set_text(str(height))
             

@@ -68,8 +68,8 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook):
         else:
             self.clear_view()
     
-    def on_font_callback(self, textview, mods, justify, family, size):
-        self.emit("font-change", mods, justify, family, size)
+    def on_font_callback(self, textview, font):
+        self.emit("font-change", font)
     
     def on_modified_callback(self, page_num, modified):
         self.emit("modified", self._pages[page_num], modified)
@@ -212,7 +212,7 @@ gobject.type_register(TakeNoteEditor)
 gobject.signal_new("modified", TakeNoteEditor, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object, bool))
 gobject.signal_new("font-change", TakeNoteEditor, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object, str, str, int))
+    gobject.TYPE_NONE, (object,))
 gobject.signal_new("error", TakeNoteEditor, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (str, object))
 gobject.signal_new("child-activated", TakeNoteEditor, gobject.SIGNAL_RUN_LAST, 
@@ -1052,12 +1052,13 @@ class TakeNoteWindow (gtk.Window):
     #=============================================================
     # Update UI (menubar) from font under cursor
     
-    def on_font_change(self, editor, mods, justify, family, size):
+    def on_font_change(self, editor, font):
         
+        # TODO: put these into a datastructure that we can iterate over
         # block toolbar handlers
         self.bold_button.handler_block(self.bold_id)
         self.italic_button.handler_block(self.italic_id)
-        self.underline_button.handler_block(self.underline_id)        
+        self.underline_button.handler_block(self.underline_id)
         self.fixed_width_button.handler_block(self.fixed_width_id)
         self.no_wrap_button.handler_block(self.no_wrap_id)
         self.left_button.handler_block(self.left_id)
@@ -1066,25 +1067,25 @@ class TakeNoteWindow (gtk.Window):
         self.fill_button.handler_block(self.fill_id)
         
         # update font mods
-        self.bold_button.set_active(mods["bold"])
-        self.italic_button.set_active(mods["italic"])        
-        self.underline_button.set_active(mods["underline"])
-        self.fixed_width_button.set_active(family == "Monospace")
-        self.no_wrap_button.set_active(mods["nowrap"])
+        self.bold_button.set_active(font.mods["bold"])
+        self.italic_button.set_active(font.mods["italic"])
+        self.underline_button.set_active(font.mods["underline"])
+        self.fixed_width_button.set_active(font.family == "Monospace")
+        self.no_wrap_button.set_active(font.mods["nowrap"])
         
         # update text justification
-        self.left_button.set_active(justify == "left")
-        self.center_button.set_active(justify == "center")
-        self.right_button.set_active(justify == "right")
-        self.fill_button.set_active(justify == "fill")
+        self.left_button.set_active(font.justify == "left")
+        self.center_button.set_active(font.justify == "center")
+        self.right_button.set_active(font.justify == "right")
+        self.fill_button.set_active(font.justify == "fill")
         
         # update font button
-        self.font_sel.set_font_name("%s %d" % (family, size))
+        self.font_sel.set_font_name("%s %d" % (font.family, font.size))
         #self.font_sel.set_font_size(size)
         
         # unblock toolbar handlers
         self.bold_button.handler_unblock(self.bold_id)
-        self.italic_button.handler_block(self.italic_id)
+        self.italic_button.handler_unblock(self.italic_id)
         self.underline_button.handler_unblock(self.underline_id)
         self.fixed_width_button.handler_unblock(self.fixed_width_id)
         self.no_wrap_button.handler_unblock(self.no_wrap_id)
@@ -1097,94 +1098,75 @@ class TakeNoteWindow (gtk.Window):
     #==================================================
     # changing font handlers
 
-    def on_bold(self):
-        self.editor.get_textview().on_bold()
-        mods, justify, family, size = self.editor.get_textview().get_font()
+    def on_mod(self, mod, mod_button, mod_id):
+        self.editor.get_textview().toggle_font_mod(mod)
+        font = self.editor.get_textview().get_font()
         
-        self.bold_button.handler_block(self.bold_id)
-        self.bold_button.set_active(mods["bold"])
-        self.bold_button.handler_unblock(self.bold_id)
-    
+        mod_button.handler_block(mod_id)
+        mod_button.set_active(font.mods[mod])
+        mod_button.handler_unblock(mod_id)
+
+    def on_bold(self):
+        self.on_mod("bold", self.bold_button, self.bold_id)
     
     def on_italic(self):
-        self.editor.get_textview().on_italic()
-        mods, justify, family, size = self.editor.get_textview().get_font()
-        
-        self.italic_button.handler_block(self.italic_id)
-        self.italic_button.set_active(mods["italic"])
-        self.italic_button.handler_block(self.italic_id)
-    
+        self.on_mod("italic", self.italic_button, self.italic_id)
     
     def on_underline(self):
-        self.editor.get_textview().on_underline()
-        mods, justify, family, size = self.editor.get_textview().get_font()
-        
-        self.underline_button.handler_block(self.underline_id)        
-        self.underline_button.set_active(mods["underline"])
-        self.underline_button.handler_unblock(self.underline_id)
+        self.on_mod("underline", self.underline_button, self.underline_id)
     
     def on_fixed_width(self, toolbar):
-        self.editor.get_textview().on_font_family_toggle("Monospace")    
+        self.editor.get_textview().toggle_font_family("Monospace")    
         
         if not toolbar:
-            mods, justify, family, size = self.editor.get_textview().get_font()
+            font = self.editor.get_textview().get_font()
         
             self.fixed_width_button.handler_block(self.fixed_width_id)        
-            self.fixed_width_button.set_active(family == "Monospace")
+            self.fixed_width_button.set_active(font.family == "Monospace")
             self.fixed_width_button.handler_unblock(self.fixed_width_id)
 
     def on_no_wrap(self):
-        self.editor.get_textview().on_no_wrap()
-        mods, justify, family, size = self.editor.get_textview().get_font()
-        
-        self.no_wrap_button.handler_block(self.no_wrap_id)
-        self.no_wrap_button.set_active(mods["nowrap"])
-        self.no_wrap_button.handler_unblock(self.no_wrap_id)
-        
+        self.on_mod("nowrap", self.no_wrap_button, self.no_wrap_id)        
+
+    def on_justify(self, justify):
+        self.editor.get_textview().set_justify(justify)
+        font = self.editor.get_textview().get_font()
+        self.on_font_change(self.editor, font)
 
     def on_left_justify(self):
-        self.editor.get_textview().on_left_justify()
-        mods, justify, family, size = self.editor.get_textview().get_font()
-        self.on_font_change(self.editor, mods, justify, family, size)
+        self.on_justify("left")
 
     def on_center_justify(self):
-        self.editor.get_textview().on_center_justify()
-        mods, justify, family, size = self.editor.get_textview().get_font()
-        self.on_font_change(self.editor, mods, justify, family, size)
+        self.on_justify("center")
 
     def on_right_justify(self):
-        self.editor.get_textview().on_right_justify()
-        mods, justify, family, size = self.editor.get_textview().get_font()
-        self.on_font_change(self.editor, mods, justify, family, size)
+        self.on_justify("right")
 
     def on_fill_justify(self):
-        self.editor.get_textview().on_fill_justify()
-        mods, justify, family, size = self.editor.get_textview().get_font()
-        self.on_font_change(self.editor, mods, justify, family, size)
-    
-    
+        self.on_justify("fill")    
 
     def on_choose_font(self):
         self.font_sel.clicked()
     
     
     def on_font_set(self):
-        self.editor.get_textview().on_font_set(self.font_sel)
+        """Callback from font selector"""
+        self.editor.get_textview().set_font(self.font_sel.get_font_name())
         self.editor.get_textview().grab_focus()
     
     def on_font_size_inc(self):
-        mods, justify, family, size = self.editor.get_textview().get_font()
-        size += 2        
-        self.editor.get_textview().on_font_size_set(size)
-        self.on_font_change(self.editor, mods, justify, family, size)
+        font = self.editor.get_textview().get_font()
+        font.size += 2        
+        self.editor.get_textview().set_font_size(font.size)
+        self.on_font_change(self.editor, font)
     
     
     def on_font_size_dec(self):
-        mods, justify, family, size = self.editor.get_textview().get_font()
-        if size > 4:
-            size -= 2
-        self.editor.get_textview().on_font_size_set(size)
-        self.on_font_change(self.editor, mods, justify, family, size)
+        font = self.editor.get_textview().get_font()
+        if font.size > 4:
+            font.size -= 2
+        self.editor.get_textview().set_font_size(font.size)
+        self.on_font_change(self.editor, font)
 
     #=================================================
     # Window manipulation
@@ -1447,6 +1429,8 @@ class TakeNoteWindow (gtk.Window):
     
     #=====================================================
     # Cut/copy/paste
+
+    # NOTE: for now all copy/cut/paste is sent to textview
     
     def on_cut(self):
         """Cut callback"""
@@ -1463,6 +1447,8 @@ class TakeNoteWindow (gtk.Window):
     
     #=====================================================
     # External app viewers
+
+    # TODO: combine all viewers into one function
     
     def on_view_node_file_explorer(self, node=None, widget="focus"):
         """View folder in file explorer"""
@@ -1946,7 +1932,7 @@ class TakeNoteWindow (gtk.Window):
         self.bold_button = gtk.ToggleToolButton()
         self.bold_button.set_icon_widget(get_resource_image("bold.png"))
         tips.set_tip(self.bold_button, "Bold")
-        self.bold_id = self.bold_button.connect("toggled", lambda w: self.editor.get_textview().on_bold())
+        self.bold_id = self.bold_button.connect("toggled", lambda w: self.editor.get_textview().toggle_font_mod("bold"))
         toolbar.insert(self.bold_button, -1)
 
 
@@ -1954,14 +1940,14 @@ class TakeNoteWindow (gtk.Window):
         self.italic_button = gtk.ToggleToolButton()
         self.italic_button.set_icon_widget(get_resource_image("italic.png"))
         tips.set_tip(self.italic_button, "Italic")
-        self.italic_id = self.italic_button.connect("toggled", lambda w: self.editor.get_textview().on_italic())
+        self.italic_id = self.italic_button.connect("toggled", lambda w: self.editor.get_textview().toggle_font_mod("italic"))
         toolbar.insert(self.italic_button, -1)
 
         # underline tool
         self.underline_button = gtk.ToggleToolButton()
         self.underline_button.set_icon_widget(get_resource_image("underline.png"))
         tips.set_tip(self.underline_button, "Underline")
-        self.underline_id = self.underline_button.connect("toggled", lambda w: self.editor.get_textview().on_underline())
+        self.underline_id = self.underline_button.connect("toggled", lambda w: self.editor.get_textview().toggle_font_mod("underline"))
         toolbar.insert(self.underline_button, -1)
         
         # fixed-width tool
@@ -1969,13 +1955,13 @@ class TakeNoteWindow (gtk.Window):
         self.fixed_width_button.set_icon_widget(get_resource_image("fixed-width.png"))
         tips.set_tip(self.fixed_width_button, "Monospace")
         self.fixed_width_id = self.fixed_width_button.connect("toggled", lambda w: self.on_fixed_width(True))
-        toolbar.insert(self.fixed_width_button, -1)               
+        toolbar.insert(self.fixed_width_button, -1)
 
         # no wrap tool
         self.no_wrap_button = gtk.ToggleToolButton()
         self.no_wrap_button.set_icon_widget(get_resource_image("no-wrap.png"))
         tips.set_tip(self.no_wrap_button, "No Wrapping")
-        self.no_wrap_id = self.no_wrap_button.connect("toggled", lambda w: self.editor.get_textview().on_no_wrap())
+        self.no_wrap_id = self.no_wrap_button.connect("toggled", lambda w: self.editor.get_textview().toggle_font_mod("nowrap"))
         toolbar.insert(self.no_wrap_button, -1)
 
 

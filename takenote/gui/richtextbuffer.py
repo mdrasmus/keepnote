@@ -4,8 +4,8 @@
 # python imports
 import sys, os, tempfile, re
 import urllib2
-import StringIO
-from HTMLParser import HTMLParser
+
+
 
 try:
     import gtkspell
@@ -30,12 +30,11 @@ from takenote.gui.textbuffer_tools import \
      insert_buffer_contents, \
      buffer_contents_apply_tags
 
-#from takenote.gui.textbuffer_html import HtmlBuffer, HtmlError
 
-
+# TODO: fix bug with spell check interferring with underline tags
 
 # these tags will not be enumerated by iter_buffer_contents
-IGNORE_TAGS = set(["gtkspell-misspelled", "hr"])
+IGNORE_TAGS = set(["gtkspell-misspelled"])
 
 MAX_UNDOS = 100
 
@@ -414,22 +413,27 @@ class RichTextImage (RichTextAnchor):
         
 
     def is_valid(self):
+        """Did the image successfully load an image"""
         return self._pixbuf is not None
     
     def set_filename(self, filename):
+        """Sets the filename used for saving image"""
         self._filename = filename
     
     def get_filename(self):
+        """Returns the filename used for saving image"""
         return self._filename
 
     def set_save_needed(self, save):
+        """Sets whether image needs to be saved to disk"""
         self._save_needed = save
 
     def save_needed(self):
+        """Returns True if image needs to be saved to disk"""
         return self._save_needed
     
     def set_from_file(self, filename):
-        """Set the image from a file"""
+        """Sets the image from a file"""
         
         if self._filename is None:
             self._filename = os.path.basename(filename)
@@ -465,14 +469,16 @@ class RichTextImage (RichTextAnchor):
 
 
     def get_original_pixbuf(self):
+        """Returns the pixbuf of the image at its original size (no scaling)"""
         return self._pixbuf_original
 
-        
-    def set_size(self, width, height):
-        self._size = [width, height]
-
-        
+                
     def get_size(self, actual_size=False):
+        """Returns the size of the image
+
+           actual_size -- if True, None values will be replaced by original size
+        """
+        
         if actual_size:
             if self._pixbuf_original is not None:
                 w, h = self._size
@@ -497,14 +503,19 @@ class RichTextImage (RichTextAnchor):
 
     def scale(self, width, height, set_widget=True):
         """Scale the image to a new width and height"""
+
+        if not self.is_valid:
+            return
         
         self._size = [width, height]
 
+        
         if not self.is_size_set():
             # use original image size
             if self._pixbuf != self._pixbuf_original:
                 self._pixbuf = self._pixbuf_original
-                self._widget.set_from_pixbuf(self._pixbuf)
+                if self._pixbuf is not None:
+                    self._widget.set_from_pixbuf(self._pixbuf)
         
         elif self._pixbuf_original is not None:
             # perform scaling
@@ -528,6 +539,7 @@ class RichTextImage (RichTextAnchor):
         if self._buffer is not None:
             self._buffer.set_modified(True)
 
+
     
     def write(self, filename):
         """Write image to file"""
@@ -541,9 +553,10 @@ class RichTextImage (RichTextAnchor):
         
         
     def copy(self):
+        """Returns a new copy of the image"""
         img = RichTextImage()
         img.set_filename(self._filename)
-        img.set_size(*self.get_size())
+        img._size = self.get_size()
         
         if self._pixbuf:
             img.get_widget().set_from_pixbuf(self._pixbuf)
@@ -584,16 +597,21 @@ class RichTextImage (RichTextAnchor):
         self._widget = None
     
     def _on_clicked(self, widget, event):
+        """Callback for when image is clicked"""
+        
         if event.button == 1:
+            # left click selects image
             self._widget.grab_focus()
             self.emit("selected")
 
             if event.type == gtk.gdk._2BUTTON_PRESS:
+                # double left click activates image
                 self.emit("activated")
             
             return True
+        
         elif event.button == 3:
-            # popup menu
+            # right click presents popup menu
             self.emit("selected")
             self.emit("popup-menu", event.button, event.time)
             return True
@@ -605,7 +623,17 @@ class RichTextImage (RichTextAnchor):
 #=============================================================================
 # RichText classes
 
+class RichTextFont (object):
+    def __init__(self, mods, justify, family, size):
+        self.mods = mods
+        self.justify = justify
+        self.family = family
+        self.size = size
+    
+
 class RichTextBuffer (gtk.TextBuffer):
+    """TextBuffer specialize for rich text editing"""
+    
     def __init__(self, textview=None):
         gtk.TextBuffer.__init__(self)
         self.textview = textview
@@ -637,22 +665,29 @@ class RichTextBuffer (gtk.TextBuffer):
             self.connect("changed", self.on_changed)
             ]
                 
-        self.init_fonts()
+        self._init_fonts()
         
 
-    def init_fonts(self):
+    def _init_fonts(self):
         """Initialize font tags"""
 
-        # font tags        
-        self.bold_tag = self.create_tag("Bold", weight=pango.WEIGHT_BOLD)
-        self.italic_tag = self.create_tag("Italic", style=pango.STYLE_ITALIC)
-        self.underline_tag = self.create_tag("Underline", underline=pango.UNDERLINE_SINGLE)
-        self.no_wrap_tag = self.create_tag("NoWrap", wrap_mode=gtk.WRAP_NONE)
+        # modification (mod) font tags
+        # All of these can be combined
+        self.bold_tag = self.create_tag("bold", weight=pango.WEIGHT_BOLD)
+        self.italic_tag = self.create_tag("italic", style=pango.STYLE_ITALIC)
+        self.underline_tag = self.create_tag("underline", underline=pango.UNDERLINE_SINGLE)
+        self.no_wrap_tag = self.create_tag("nowrap", wrap_mode=gtk.WRAP_NONE)
+        self.mod_names = ["bold", "italic", "underline", "nowrap"]
+
+        # Class tags cannot overlap any other tag of the same class
+        # example: a piece of text cannot have two colors, two families,
+        # two sizes, or two justifications.
         
-        self.left_tag = self.create_tag("Left", justification=gtk.JUSTIFY_LEFT)
-        self.center_tag = self.create_tag("Center", justification=gtk.JUSTIFY_CENTER)
-        self.right_tag = self.create_tag("Right", justification=gtk.JUSTIFY_RIGHT)
-        self.fill_tag = self.create_tag("Fill", justification=gtk.JUSTIFY_FILL)
+        # justify tags
+        self.left_tag = self.create_tag("left", justification=gtk.JUSTIFY_LEFT)
+        self.center_tag = self.create_tag("center", justification=gtk.JUSTIFY_CENTER)
+        self.right_tag = self.create_tag("right", justification=gtk.JUSTIFY_RIGHT)
+        self.fill_tag = self.create_tag("fill", justification=gtk.JUSTIFY_FILL)
         
         self.justify2name = {
             gtk.JUSTIFY_LEFT: "left", 
@@ -660,7 +695,9 @@ class RichTextBuffer (gtk.TextBuffer):
             gtk.JUSTIFY_CENTER: "center", 
             gtk.JUSTIFY_FILL: "fill"
         }
-        
+        self.justify_names = ["left", "center", "right", "justify"]
+
+        # class sets
         self.justify_tags = set([self.left_tag, self.center_tag,
                                  self.right_tag, self.fill_tag])
         self.family_tags = set()
@@ -679,11 +716,13 @@ class RichTextBuffer (gtk.TextBuffer):
         return self.current_tags
     
     def block_signals(self):
+        """Block all signal handlers"""
         for signal in self.signals:
             self.handler_block(signal)
     
     
     def unblock_signals(self):
+        """Unblock all signal handlers"""
         for signal in self.signals:
             self.handler_unblock(signal)
 
@@ -815,8 +854,8 @@ class RichTextBuffer (gtk.TextBuffer):
             self.highlight_children()
             
             # update UI for current fonts
-            mods, justify, family, size = self.get_font()
-            self.emit("font-change", mods, justify, family, size)
+            font = self.get_font()
+            self.emit("font-change", font)
     
     
     def on_insert_text(self, textbuffer, it, text, length):
@@ -829,8 +868,6 @@ class RichTextBuffer (gtk.TextBuffer):
     def on_delete_range(self, textbuffer, start, end):
         """Callback for delete range"""
 
-        # TODO: deregister children in selection?
-        
         # start next action
         self.next_action = DeleteAction(self, start.get_offset(), 
                                         end.get_offset(),
@@ -1074,27 +1111,29 @@ class RichTextBuffer (gtk.TextBuffer):
     def lookup_tag(self, name):
         """Lookup any tag, create it if needed"""
 
-        # test to see if name is in table
+        # test to see if name is directly in table
+        #  modifications and justifications are directly stored
         tag = self.tag_table.lookup(name)
 
         if tag:
             return tag
-
-        # test to see if name is a font size
+        
         elif name.startswith("size"):
+            # size tag
             return self.lookup_size_tag(int(name.split(" ")[1]))
 
         elif name.startswith("family"):
-            # must be family tag
+            # family tag
             return self.lookup_family_tag(name.split(" ", 1)[1])
         
 
     def lookup_mod_tag(self, mod):
-        """Lookup Bold, Italic, and Underline"""
+        """Returns modification tag using name"""
         return self.tag_table.lookup(mod)
     
     
     def lookup_family_tag(self, family):
+        """Returns family tag using name"""
         tag = self.tag_table.lookup("family " + family)
         if tag is None:
             # TODO: do I need to do error handling here?
@@ -1103,13 +1142,17 @@ class RichTextBuffer (gtk.TextBuffer):
         return tag
     
     def lookup_size_tag(self, size):
+        """Returns size tag using size"""
         sizename = "size %d" % size
         tag = self.tag_table.lookup(sizename)
         if tag is None:
             tag = self.create_tag(sizename, size_points=size)
             self.size_tags.add(tag)
         return tag
-    
+
+    def lookup_justify_tag(self, justify):
+        """Lookup justify tag"""
+        return self.tag_table.lookup(mod)
 
     def parse_font(self, fontstr):
         """Parse a font string from the font chooser"""
@@ -1119,7 +1162,7 @@ class RichTextBuffer (gtk.TextBuffer):
         
         # NOTE: underline is not part of the font string and is handled separately
         while tokens[-1] in ["Bold", "Italic"]:
-            mods.append(tokens.pop())
+            mods.append(tokens.pop().lower())
 
         return " ".join(tokens), mods, size
     
@@ -1186,7 +1229,7 @@ class RichTextBuffer (gtk.TextBuffer):
             elif tag in self.size_tags:
                 size = int(tag.get_property("size-points"))
         
-        return mods, justify, family, size
+        return RichTextFont(mods, justify, family, size)
 
 
     #=========================================
@@ -1211,7 +1254,7 @@ class RichTextBuffer (gtk.TextBuffer):
 
 gobject.type_register(RichTextBuffer)
 gobject.signal_new("font-change", RichTextBuffer, gobject.SIGNAL_RUN_LAST, 
-                   gobject.TYPE_NONE, (object, str, str, int))
+                   gobject.TYPE_NONE, (object,))
 gobject.signal_new("child-activated", RichTextBuffer, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, (object,))
 gobject.signal_new("child-menu", RichTextBuffer, gobject.SIGNAL_RUN_LAST,
