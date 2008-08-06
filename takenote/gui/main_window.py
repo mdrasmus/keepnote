@@ -219,6 +219,35 @@ gobject.signal_new("child-activated", TakeNoteEditor, gobject.SIGNAL_RUN_LAST,
     gobject.TYPE_NONE, (object, object))
 
 
+class FontSelector (gtk.ComboBox):
+
+    def __init__(self):
+        gtk.ComboBox.__init__(self)
+
+        self._list = gtk.ListStore(str)
+        self.set_model(self._list)
+        
+        self._families = sorted(f.get_name()
+                                 for f in self.get_pango_context().list_families())
+
+        for f in self._families:
+            self._list.append([f])
+
+        cell = gtk.CellRendererText()
+        self.pack_start(cell, True)
+        self.add_attribute(cell, 'text', 0)
+
+        
+    def set_family(self, family):
+        
+        index = self._families.index(family)
+        self.set_active(index)
+
+    def get_family(self):
+        return self._families[self.get_active()]
+
+    
+
 
 
 class TakeNoteWindow (gtk.Window):
@@ -234,7 +263,8 @@ class TakeNoteWindow (gtk.Window):
         self.iconified = False
         self.queue_list_select = []
         self.ignore_view_mode = False
-
+        
+        
         # init main window
         self.set_title(takenote.PROGRAM_NAME)
         self.set_default_size(*takenote.DEFAULT_WINDOW_SIZE)
@@ -1065,6 +1095,7 @@ class TakeNoteWindow (gtk.Window):
         self.center_button.handler_block(self.center_id)
         self.right_button.handler_block(self.right_id)
         self.fill_button.handler_block(self.fill_id)
+        self.font_family_combo.handler_block(self.font_family_id)
         
         # update font mods
         self.bold_button.set_active(font.mods["bold"])
@@ -1081,7 +1112,7 @@ class TakeNoteWindow (gtk.Window):
         
         # update font button
         self.font_sel.set_font_name("%s %d" % (font.family, font.size))
-        #self.font_sel.set_font_size(size)
+        self.font_family_combo.set_family(font.family)
         
         # unblock toolbar handlers
         self.bold_button.handler_unblock(self.bold_id)
@@ -1093,6 +1124,7 @@ class TakeNoteWindow (gtk.Window):
         self.center_button.handler_unblock(self.center_id)
         self.right_button.handler_unblock(self.right_id) 
         self.fill_button.handler_unblock(self.fill_id)
+        self.font_family_combo.handler_unblock(self.font_family_id)
 
 
     #==================================================
@@ -1152,6 +1184,15 @@ class TakeNoteWindow (gtk.Window):
     def on_font_set(self):
         """Callback from font selector"""
         self.editor.get_textview().set_font(self.font_sel.get_font_name())
+        self.editor.get_textview().grab_focus()
+
+    def on_family_set(self):
+        self.editor.get_textview().set_font_family(self.font_family_combo.get_family())
+        self.editor.get_textview().grab_focus()
+        
+
+    def on_font_size_change(self, size):
+        self.editor.get_textview().set_font_size(size)
         self.editor.get_textview().grab_focus()
     
     def on_font_size_inc(self):
@@ -1967,43 +2008,54 @@ class TakeNoteWindow (gtk.Window):
 
         # font button
         self.font_sel = gtk.FontButton()
-        self.font_sel.set_use_font(True)
+        #self.font_sel.set_use_font(True)
         #self.font_sel.set_show_size(False)
-        item = gtk.ToolItem()
-        item.add(self.font_sel)
-        tips.set_tip(item, "Set Font")
-        toolbar.insert(item, -1)
-        self.font_sel.connect("font-set", lambda w: self.on_font_set())
-        
-        # font size increase
-        button = gtk.ToolButton()
-        button.set_icon_widget(get_resource_image("font-inc.png"))
-        tips.set_tip(button, "Increase Font Size")
-        button.connect("clicked", lambda w: self.on_font_size_inc())
-        toolbar.insert(button, -1)        
+        #item = gtk.ToolItem()
+        #item.add(self.font_sel)
+        #tips.set_tip(item, "Set Font")
+        #toolbar.insert(item, -1)
+        #self.font_sel.connect("font-set", lambda w: self.on_font_set())
 
-        # font size decrease
-        button = gtk.ToolButton()
-        button.set_icon_widget(get_resource_image("font-dec.png"))
-        tips.set_tip(button, "Decrease Font Size")
-        button.connect("clicked", lambda w: self.on_font_size_dec())
-        toolbar.insert(button, -1)        
-        
-        """
+        # family combo
+        self.font_family_combo = FontSelector()
+        item = gtk.ToolItem()
+        item.add(self.font_family_combo)
+        tips.set_tip(item, "Set Font Family")
+        toolbar.insert(item, -1)
+        self.font_family_id = self.font_family_combo.connect("changed", lambda w: self.on_family_set())
+        self.font_family_combo.set_family("Sans")
+                
         # font size
-        DEFAULT_FONT_SIZE = 12
+        DEFAULT_FONT_SIZE = 10
         self.font_size_button = gtk.SpinButton(
-          gtk.Adjustment(value=12, lower=2, upper=100, 
+          gtk.Adjustment(value=DEFAULT_FONT_SIZE, lower=2, upper=500, 
                          step_incr=1, page_incr=2, page_size=2))
-        self.font_size_button.set_range(2, 100)
+        #self.font_size_button.set_range(2, 100)
         self.font_size_button.set_value(DEFAULT_FONT_SIZE)
+        self.font_size_button.set_editable(False)
         item = gtk.ToolItem()
         item.add(self.font_size_button)
         tips.set_tip(item, "Set Font Size")
         toolbar.insert(item, -1)
-        self.font_size_button.connect("value-changed", lambda w: 
-            self.on_font_size_change())
-        """
+        self.font_size_id = self.font_size_button.connect("value-changed",
+            lambda w: 
+            self.on_font_size_change(self.font_size_button.get_value()))
+
+
+        # font size increase
+        #button = gtk.ToolButton()
+        #button.set_icon_widget(get_resource_image("font-inc.png"))
+        #tips.set_tip(button, "Increase Font Size")
+        #button.connect("clicked", lambda w: self.on_font_size_inc())
+        #toolbar.insert(button, -1)        
+
+        # font size decrease
+        #button = gtk.ToolButton()
+        #button.set_icon_widget(get_resource_image("font-dec.png"))
+        #tips.set_tip(button, "Decrease Font Size")
+        #button.connect("clicked", lambda w: self.on_font_size_dec())
+        #toolbar.insert(button, -1)        
+                
         
         # separator
         toolbar.insert(gtk.SeparatorToolItem(), -1)

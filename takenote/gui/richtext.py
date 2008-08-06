@@ -48,6 +48,8 @@ from takenote.gui.richtext_html import HtmlBuffer, HtmlError
 # constants
 DEFAULT_FONT = "Sans 10"
 TEXTVIEW_MARGIN = 5
+CLIPBOARD_NAME = "CLIPBOARD"
+
 
 # mime types
 MIME_TAKENOTE = "application/x-takenote"
@@ -86,12 +88,13 @@ class RichTextView (gtk.TextView):
 
     def __init__(self):
         gtk.TextView.__init__(self, None)
+        
         self._textbuffer = None
         self._buffer_callbacks = []
         self._clipboard_contents = None
+        self._blank_buffer = RichTextBuffer(self)
         
         self.set_buffer(RichTextBuffer(self))
-        self._blank_buffer = RichTextBuffer(self)
         self.set_default_font(DEFAULT_FONT)
         
         
@@ -208,10 +211,9 @@ class RichTextView (gtk.TextView):
         
         # check for image targets
         img_target = self.drag_dest_find_target(drag_context, 
-            [("image/png", 0, 0) ,
-             ("image/bmp", 0, 0) ,
-             ("image/jpeg", 0, 0),
-             ("image/xpm", 0, 0)])
+                                                [(x, 0, 0)
+                                                 for x in MIME_IMAGES])
+
              
         if img_target is not None and img_target != "NONE":
             textview.drag_dest_set_target_list([(img_target, 0, 0)])
@@ -232,10 +234,9 @@ class RichTextView (gtk.TextView):
         """Callback for when drop event is received"""
         
         img_target = self.drag_dest_find_target(drag_context, 
-            [("image/png", 0, 0) ,
-             ("image/bmp", 0, 0) ,
-             ("image/jpeg", 0, 0),
-             ("image/xpm", 0, 0)])
+                                                [(x, 0, 0)
+                                                 for x in MIME_IMAGES])
+
              
         if img_target not in (None, "NONE"):
             # process image drop
@@ -256,31 +257,36 @@ class RichTextView (gtk.TextView):
             # process pdf drop
             
             data = selection_data.data
+
+            try:
+                f, imgfile = tempfile.mkstemp(".png", "takenote")
+                os.close(f)
+
+
+                out = os.popen("convert - %s" % imgfile, "wb")
+                out.write(data)
+                out.close()
             
-            f, imgfile = tempfile.mkstemp(".png", "takenote")
-            os.close(f)
+                name, ext = os.path.splitext(imgfile)
+                imgfile2 = name + "-0" + ext
             
-            out = os.popen("convert - %s" % imgfile, "wb")
-            out.write(data)
-            out.close()
-            
-            name, ext = os.path.splitext(imgfile)
-            imgfile2 = name + "-0" + ext
-            
-            if os.path.exists(imgfile2):
-                i = 0
-                while True:
-                    imgfile = name + "-" + str(i) + ext
-                    if not os.path.exists(imgfile):
-                        break
+                if os.path.exists(imgfile2):
+                    i = 0
+                    while True:
+                        imgfile = name + "-" + str(i) + ext
+                        if not os.path.exists(imgfile):
+                            break
+                        self.insert_image_from_file(imgfile)
+                        os.remove(imgfile)
+                        i += 1
+                    
+                elif os.path.exists(imgfile):
+                
                     self.insert_image_from_file(imgfile)
                     os.remove(imgfile)
-                    i += 1
-                    
-            elif os.path.exists(imgfile):
-                
-                self.insert_image_from_file(imgfile)
-                os.remove(imgfile)
+            except:
+                if os.path.exists(imgfile):
+                    os.remove(imgfile)
             
             drag_context.finish(True, True, eventtime)
             self.stop_emission("drag-data-received")
@@ -297,9 +303,9 @@ class RichTextView (gtk.TextView):
             [("text/plain", 0, 0)]) not in (None, "NONE"):
             # process text drop
 
-            self._textbuffer.begin_user_action()
+            #self._textbuffer.begin_user_action()
             self._textbuffer.insert_at_cursor(selection_data.get_text())
-            self._textbuffer.end_user_action()
+            #self._textbuffer.end_user_action()
             
 
         
@@ -333,33 +339,27 @@ class RichTextView (gtk.TextView):
            
 
     
-
-    
-    
     #==================================================================
     # Copy and Paste
 
     def on_copy(self):
         """Callback for copy action"""
-        clipboard = self.get_clipboard(selection="CLIPBOARD")
+        clipboard = self.get_clipboard(selection=CLIPBOARD_NAME)
         self.stop_emission('copy-clipboard')
-        
         self.copy_clipboard(clipboard)
 
     
     def on_cut(self):
         """Callback for cut action"""    
-        clipboard = self.get_clipboard(selection="CLIPBOARD")
+        clipboard = self.get_clipboard(selection=CLIPBOARD_NAME)
         self.stop_emission('cut-clipboard')
-        
         self.cut_clipboard(clipboard, self.get_editable())
 
     
     def on_paste(self):
         """Callback for paste action"""    
-        clipboard = self.get_clipboard(selection="CLIPBOARD")
+        clipboard = self.get_clipboard(selection=CLIPBOARD_NAME)
         self.stop_emission('paste-clipboard')
-        
         self.paste_clipboard(clipboard, None, self.get_editable())
         
 
@@ -376,6 +376,7 @@ class RichTextView (gtk.TextView):
         start, end = sel
         contents = list(iter_buffer_contents(self._textbuffer, start, end))
 
+        # TODO: find out what the 0, -3 are again and make them constants
         
         if len(contents) == 1 and \
            contents[0][0] == "anchor" and \
@@ -417,9 +418,13 @@ class RichTextView (gtk.TextView):
             
         
         if MIME_TAKENOTE in targets:
+            # request TAKENOTE contents object
             clipboard.request_contents(MIME_TAKENOTE, self.do_paste_object)
+            
         elif "text/html" in targets:
+            # request HTML
             clipboard.request_contents("text/html", self.do_paste_html)
+            
         else:
 
             # test image formats
@@ -614,6 +619,7 @@ class RichTextView (gtk.TextView):
                 if isinstance(child, RichTextImage):
                     filename = child.get_filename()
 
+                    # TODO: make a is_relative() function to test this
                     if not filename.startswith("http:") and \
                        not filename.startswith("/"):
                         filename = os.path.join(path, filename)
@@ -632,6 +638,8 @@ class RichTextView (gtk.TextView):
                 child, widgets = param
                     
                 if isinstance(child, RichTextImage):
+
+                    # TODO: same is_relative() check needs to be done here
                     filename = os.path.join(path, child.get_filename())
                     if child.save_needed():
                         child.write(filename)
@@ -761,6 +769,8 @@ class RichTextView (gtk.TextView):
 
     #==========================================================
     # Find/Replace
+
+    # TODO: add wrapping to search
     
     def forward_search(self, it, text, case_sensitive):
         """Finds next occurrence of 'text' searching forwards"""
