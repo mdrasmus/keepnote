@@ -1096,6 +1096,7 @@ class TakeNoteWindow (gtk.Window):
         self.right_button.handler_block(self.right_id)
         self.fill_button.handler_block(self.fill_id)
         self.font_family_combo.handler_block(self.font_family_id)
+        self.font_size_button.handler_block(self.font_size_id)
         
         # update font mods
         self.bold_button.set_active(font.mods["bold"])
@@ -1110,9 +1111,9 @@ class TakeNoteWindow (gtk.Window):
         self.right_button.set_active(font.justify == "right")
         self.fill_button.set_active(font.justify == "fill")
         
-        # update font button
-        self.font_sel.set_font_name("%s %d" % (font.family, font.size))
+        # update font button        
         self.font_family_combo.set_family(font.family)
+        self.font_size_button.set_value(font.size)
         
         # unblock toolbar handlers
         self.bold_button.handler_unblock(self.bold_id)
@@ -1125,6 +1126,7 @@ class TakeNoteWindow (gtk.Window):
         self.right_button.handler_unblock(self.right_id) 
         self.fill_button.handler_unblock(self.fill_id)
         self.font_family_combo.handler_unblock(self.font_family_id)
+        self.font_size_button.handler_unblock(self.font_size_id)
 
 
     #==================================================
@@ -1178,14 +1180,21 @@ class TakeNoteWindow (gtk.Window):
         self.on_justify("fill")    
 
     def on_choose_font(self):
-        self.font_sel.clicked()
-    
-    
-    def on_font_set(self):
-        """Callback from font selector"""
-        self.editor.get_textview().set_font(self.font_sel.get_font_name())
-        self.editor.get_textview().grab_focus()
+        """Callback for opening Choose Font Dialog"""
+        
+        font = self.editor.get_textview().get_font()
 
+        dialog = gtk.FontSelectionDialog("Choose Font")
+        dialog.set_font_name("%s %d" % (font.family, font.size))
+        response = dialog.run()
+
+        if response == gtk.RESPONSE_OK:
+            self.editor.get_textview().set_font(dialog.get_font_name())
+            self.editor.get_textview().grab_focus()
+
+        dialog.destroy()
+        
+    
     def on_family_set(self):
         self.editor.get_textview().set_font_family(self.font_family_combo.get_family())
         self.editor.get_textview().grab_focus()
@@ -2007,7 +2016,7 @@ class TakeNoteWindow (gtk.Window):
 
 
         # font button
-        self.font_sel = gtk.FontButton()
+        #self.font_sel = gtk.FontButton()
         #self.font_sel.set_use_font(True)
         #self.font_sel.set_show_size(False)
         #item = gtk.ToolItem()
@@ -2017,13 +2026,15 @@ class TakeNoteWindow (gtk.Window):
         #self.font_sel.connect("font-set", lambda w: self.on_font_set())
 
         # family combo
+        DEFAULT_FONT_FAMILY = "Sans"
         self.font_family_combo = FontSelector()
+        self.font_family_combo.set_size_request(150, -1)
         item = gtk.ToolItem()
         item.add(self.font_family_combo)
-        tips.set_tip(item, "Set Font Family")
+        tips.set_tip(item, "Font Family")
         toolbar.insert(item, -1)
         self.font_family_id = self.font_family_combo.connect("changed", lambda w: self.on_family_set())
-        self.font_family_combo.set_family("Sans")
+        self.font_family_combo.set_family(DEFAULT_FONT_FAMILY)
                 
         # font size
         DEFAULT_FONT_SIZE = 10
@@ -2035,7 +2046,7 @@ class TakeNoteWindow (gtk.Window):
         self.font_size_button.set_editable(False)
         item = gtk.ToolItem()
         item.add(self.font_size_button)
-        tips.set_tip(item, "Set Font Size")
+        tips.set_tip(item, "Font Size")
         toolbar.insert(item, -1)
         self.font_size_id = self.font_size_button.connect("value-changed",
             lambda w: 
