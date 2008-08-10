@@ -229,6 +229,7 @@ class FontSelector (gtk.ComboBox):
         
         self._families = sorted(f.get_name()
                                  for f in self.get_pango_context().list_families())
+        self._lookup = [x.lower() for x in self._families]
 
         for f in self._families:
             self._list.append([f])
@@ -236,12 +237,19 @@ class FontSelector (gtk.ComboBox):
         cell = gtk.CellRendererText()
         self.pack_start(cell, True)
         self.add_attribute(cell, 'text', 0)
+        
+        fam = self.get_pango_context().get_font_description().get_family()
+        print fam
+        self.set_family(fam)
 
         
     def set_family(self, family):
         
-        index = self._families.index(family)
-        self.set_active(index)
+        try:
+            index = self._lookup.index(family.lower())
+            self.set_active(index)
+        except:
+            pass
 
     def get_family(self):
         return self._families[self.get_active()]
@@ -2026,21 +2034,22 @@ class TakeNoteWindow (gtk.Window):
         #self.font_sel.connect("font-set", lambda w: self.on_font_set())
 
         # family combo
-        DEFAULT_FONT_FAMILY = "Sans"
+        #DEFAULT_FONT_FAMILY = "Sans"
         self.font_family_combo = FontSelector()
-        self.font_family_combo.set_size_request(150, -1)
+        self.font_family_combo.set_size_request(150, 25)
         item = gtk.ToolItem()
         item.add(self.font_family_combo)
         tips.set_tip(item, "Font Family")
         toolbar.insert(item, -1)
         self.font_family_id = self.font_family_combo.connect("changed", lambda w: self.on_family_set())
-        self.font_family_combo.set_family(DEFAULT_FONT_FAMILY)
+        #self.font_family_combo.set_family(DEFAULT_FONT_FAMILY)
                 
         # font size
         DEFAULT_FONT_SIZE = 10
         self.font_size_button = gtk.SpinButton(
           gtk.Adjustment(value=DEFAULT_FONT_SIZE, lower=2, upper=500, 
                          step_incr=1, page_incr=2, page_size=2))
+        self.font_size_button.set_size_request(-1, 25)
         #self.font_size_button.set_range(2, 100)
         self.font_size_button.set_value(DEFAULT_FONT_SIZE)
         self.font_size_button.set_editable(False)
