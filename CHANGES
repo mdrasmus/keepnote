@@ -1,9 +1,17 @@
 TakeNote Change Log
------------------
+-------------------
 
 
-takenote-0.4
-------------
+takenote-0.4.1 (2008/08/09)
+---------------------------
+ - bug fixes
+ - better copy/paste
+   - HTML support
+   - image support
+
+
+takenote-0.4 (2008/07/12)
+-------------------------
  - rich text editing
  - hierarchical organization for notes
  - full-text search
