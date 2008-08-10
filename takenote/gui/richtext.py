@@ -935,12 +935,18 @@ class RichTextView (gtk.TextView):
     
     def set_font_size(self, size):
         """Sets the font size of the selection"""
-        self._textbuffer.apply_tag_selected(self._textbuffer.lookup_size_tag(size))
-
-    # TODO: add set_font_color(self)
+        self._textbuffer.apply_tag_selected(self._textbuffer.lookup_size_tag(size))    
     
     def set_justify(self, justify):
         tag = self._textbuffer.lookup_justify_tag(justify)
+        self._textbuffer.apply_tag_selected(tag)
+
+    def set_font_fg_color(self, color):
+        tag = self._textbuffer.lookup_fg_color_tag(color)
+        self._textbuffer.apply_tag_selected(tag)
+        
+    def set_font_bg_color(self, color):
+        tag = self._textbuffer.lookup_bg_color_tag(color)
         self._textbuffer.apply_tag_selected(tag)
 
     

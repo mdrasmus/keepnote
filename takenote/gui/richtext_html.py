@@ -153,7 +153,9 @@ class HtmlBuffer (HTMLParser):
                 # font family
                 tagstr = "family " + statement.split(":")[1].strip()
 
+                
             elif statement.startswith("text-align"):
+                # text justification
                 align = statement.split(":")[1].strip()
                 
                 if align not in self._justify:
@@ -163,6 +165,30 @@ class HtmlBuffer (HTMLParser):
                     tagstr = "fill"
                 else:
                     tagstr = align
+
+            elif statement.startswith("color"):
+                # foreground color
+                fg_color = statement.split(":")[1].strip()
+                
+                if fg_color.startswith("#"):
+                    if len(fg_color) == 4:
+                        x, a, b, c = fg_color
+                        fg_color = x + a + a + b + b+ c + c
+                        
+                    if len(fg_color) == 7:
+                        tagstr = "fg_color " + fg_color
+
+            elif statement.startswith("background-color"):
+                # background color
+                bg_color = statement.split(":")[1].strip()
+                
+                if bg_color.startswith("#"):
+                    if len(bg_color) == 4:
+                        x, a, b, c = bg_color
+                        bg_color = x + a + a + b + b+ c + c
+                        
+                    if len(bg_color) == 7:
+                        tagstr = "bg_color " + bg_color
 
             else:
                 # ignore other styles
@@ -419,9 +445,20 @@ class HtmlBuffer (HTMLParser):
                 text = tagname
             self._out.write("<div style='text-align: %s'>" % text)
                 
-        elif tag.get_property("family") is not None:
+        elif tagname.startswith("family "):
             self._out.write("<span style='font-family: %s'>" % 
                             tag.get_property("family"))
+
+        elif tagname.startswith("fg_color "):
+            self._out.write("<span style='color: %s'>" % 
+                            tagcolor_to_html(
+                                tag.get_property("foreground-gdk").to_string()))
+
+        elif tagname.startswith("bg_color "):
+            self._out.write("<span style='background-color: %s'>" % 
+                            tagcolor_to_html(
+                                tag.get_property("background-gdk").to_string()))
+        
                 
         else:
             raise HtmlError("unknown tag '%s'" % tag.get_property("name"))
@@ -440,3 +477,9 @@ class HtmlBuffer (HTMLParser):
             self._out.write("</span>")
 
 
+def tagcolor_to_html(c):
+
+    assert len(c) == 13
+
+    return c[0] + c[1] + c[2] + c[5] + c[6] + c[9] + c[10]
+    

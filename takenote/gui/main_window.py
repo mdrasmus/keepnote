@@ -239,7 +239,6 @@ class FontSelector (gtk.ComboBox):
         self.add_attribute(cell, 'text', 0)
         
         fam = self.get_pango_context().get_font_description().get_family()
-        print fam
         self.set_family(fam)
 
         
@@ -2061,6 +2060,15 @@ class TakeNoteWindow (gtk.Window):
             lambda w: 
             self.on_font_size_change(self.font_size_button.get_value()))
 
+
+        # font fg color
+        #self.fg_color_button = gtk.ColorButton()
+        #self.fg_color_button.set_title("Choose Text Color")
+        #item = gtk.ToolItem()
+        #item.add(self.fg_color_button)
+        #tips.set_tip(item, "Set Text Color")
+        #toolbar.insert(item, -1)
+        #self.fg_color_button.connect("color-set", lambda w: self.on_color_set("fg"))
 
         # font size increase
         #button = gtk.ToolButton()

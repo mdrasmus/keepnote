@@ -624,11 +624,14 @@ class RichTextImage (RichTextAnchor):
 # RichText classes
 
 class RichTextFont (object):
-    def __init__(self, mods, justify, family, size):
+    def __init__(self, mods, justify, family, size, fg_color, bg_color):
         self.mods = mods
         self.justify = justify
         self.family = family
         self.size = size
+        self.fg_color = fg_color
+        self.bg_color = bg_color
+        
     
 
 class RichTextBuffer (gtk.TextBuffer):
@@ -702,6 +705,8 @@ class RichTextBuffer (gtk.TextBuffer):
                                  self.right_tag, self.fill_tag])
         self.family_tags = set()
         self.size_tags = set()
+        self.fg_color_tags = set()
+        self.bg_color_tags = set()
 
         self.default_attr = gtk.TextAttributes()
 
@@ -1083,6 +1088,18 @@ class RichTextBuffer (gtk.TextBuffer):
             for tag2 in self.size_tags:
                 self.remove_tag(tag2, start, end)
 
+        # remove other foreground color tags
+        elif tag in self.fg_color_tags:
+            for tag2 in self.fg_color_tags:
+                self.remove_tag(tag2, start, end)
+
+        # remove other background color tags
+        elif tag in self.bg_color_tags:
+            for tag2 in self.bg_color_tags:
+                self.remove_tag(tag2, start, end)
+
+
+
     def clear_current_tag_class(self, tag):
         """Remove all tags of the same class as 'tag' from current tags"""
         
@@ -1101,6 +1118,18 @@ class RichTextBuffer (gtk.TextBuffer):
         # remove other size tags                    
         elif tag in self.size_tags:
             for tag2 in self.size_tags:
+                if tag2 in self.current_tags:
+                    self.current_tags.remove(tag2)
+
+        # remove other foreground tags
+        elif tag in self.fg_color_tags:
+            for tag2 in self.fg_color_tags:
+                if tag2 in self.current_tags:
+                    self.current_tags.remove(tag2)
+
+        # remove other foreground tags
+        elif tag in self.bg_color_tags:
+            for tag2 in self.bg_color_tags:
                 if tag2 in self.current_tags:
                     self.current_tags.remove(tag2)
 
@@ -1125,7 +1154,15 @@ class RichTextBuffer (gtk.TextBuffer):
         elif name.startswith("family"):
             # family tag
             return self.lookup_family_tag(name.split(" ", 1)[1])
-        
+
+        elif name.startswith("fg_color"):
+            # foreground color tag
+            return self.lookup_fg_color_tag(name.split(" ", 1)[1])
+
+        elif name.startswith("bg_color"):
+            # background color tag
+            return self.lookup_bg_color_tag(name.split(" ", 1)[1])
+
 
     def lookup_mod_tag(self, mod):
         """Returns modification tag using name"""
@@ -1153,6 +1190,25 @@ class RichTextBuffer (gtk.TextBuffer):
     def lookup_justify_tag(self, justify):
         """Lookup justify tag"""
         return self.tag_table.lookup(justify)
+
+
+    def lookup_fg_color_tag(self, color):
+        colorname = "fg_color " + color
+        tag = self.tag_table.lookup(colorname)
+        if tag is None:
+            tag = self.create_tag(colorname, foreground=color)
+            self.fg_color_tags.add(tag)
+        return tag
+
+
+    def lookup_bg_color_tag(self, color):
+        colorname = "bg_color " + color
+        tag = self.tag_table.lookup(colorname)
+        if tag is None:
+            tag = self.create_tag(colorname, background=color)
+            self.bg_color_tags.add(tag)
+        return tag
+
 
     def parse_font(self, fontstr):
         """Parse a font string from the font chooser"""
@@ -1192,6 +1248,9 @@ class RichTextBuffer (gtk.TextBuffer):
         PIXELS_PER_PANGO_UNIT = 1024
         size = font.get_size() // PIXELS_PER_PANGO_UNIT
 
+        # get colors
+        fg_color = attr.fg_color.to_string()
+        bg_color = attr.bg_color.to_string()
         
         # set modifications (current tags override)
         mods = {"bold":
@@ -1228,8 +1287,14 @@ class RichTextBuffer (gtk.TextBuffer):
             
             elif tag in self.size_tags:
                 size = int(tag.get_property("size-points"))
+
+            elif tag in self.fg_color_tags:
+                fg_color = tag.get_property("foreground-gdk").to_string()
+
+            elif tag in self.bg_color_tags:
+                fg_color = tag.get_property("background-gdk").to_string()
         
-        return RichTextFont(mods, justify, family, size)
+        return RichTextFont(mods, justify, family, size, fg_color, bg_color)
 
 
     #=========================================
