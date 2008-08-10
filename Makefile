@@ -6,11 +6,21 @@
 
 PKG=takenote
 VERSION=0.4.1
+INSTALLER=Output/$(PKG)-$(VERSION).exe
 
-winbuild:
-	rm -rf dist
+SCP=scp
+
+winbuild: $(INSTALLER)
+
+$(INSTALLER):
 	python setup.py py2exe
 	iscc installer.iss
-	scp Output/$(PKG)-$(VERSION).exe raz@viktor.ods.org:/var/www/dev/rasm/takenote/download/
 
+winupload: $(INSTALLER)
+	cp $(INSTALLER) /z/mnt/big/www/dev/rasm/takenote/download/
+
+
+winclean:
+	rm -rf dist
+	rm -f $(INSTALLER)
 
