@@ -1,6 +1,12 @@
 TakeNote Change Log
 -----------------
 
+takenote-0.4.1
+--------------
+ - better copy/paste
+   - HTML support
+   - image support
+
 
 takenote-0.4
 ------------
