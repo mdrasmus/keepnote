@@ -1,0 +1,10 @@
+
+
+
+I have to change version in these files:
+
+Makefile
+setup.py
+installer.iss
+takenote/__init__.py
+
