@@ -1152,7 +1152,7 @@ class RichTextBuffer (gtk.TextBuffer):
 
     def lookup_justify_tag(self, justify):
         """Lookup justify tag"""
-        return self.tag_table.lookup(mod)
+        return self.tag_table.lookup(justify)
 
     def parse_font(self, fontstr):
         """Parse a font string from the font chooser"""
