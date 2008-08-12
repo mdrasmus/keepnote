@@ -631,14 +631,70 @@ class RichTextFont (object):
         self.size = size
         self.fg_color = fg_color
         self.bg_color = bg_color
-        
+
+
+class RichTextTag (gtk.TextTag):
+    """A TextTag in a RichTextBuffer"""
+    def __init__(self, name, **kargs):
+        gtk.TextTag.__init__(self, name)
+
+        for key, val in kargs.iteritems():
+            self.set_property(key.replace("_", "-"), val)
+
+
+class RichTextModTag (RichTextTag):
+    """A tag that represents ortholognal font modifications:
+       bold, italic, underline, nowrap
+    """
+
+    def __init__(self, name, **kargs):
+        RichTextTag.__init__(self, name, **kargs)
+
+class RichTextFamilyTag (RichTextTag):
+    def __init__(self, family):
+        RichTextTag.__init__(self, "family " + family, family=family)
+
+    def get_family(self):
+        return self.get_property("family")    
+
+class RichTextSizeTag (RichTextTag):
+    def __init__(self, size):
+        RichTextTag.__init__(self, "size %d" % size, size_points=size)
+
+    def get_size(self):
+        return int(self.get_property("size-points"))
+
+class RichTextTagTable (gtk.TextTagTable):
+    """A tag table for a RichTextBuffer"""
+    def __init__(self):
+        gtk.TextTagTable.__init__(self)
+    
+    # TODO: put here font init stuff and special tag sets and lookup
+    
+class RichTextFGColorTag (RichTextTag):
+    def __init__(self, color):
+        RichTextTag.__init__(self, "fg_color %s" % color,
+                             foreground=color)
+
+    def get_color(self):
+        return tag.get_property("foreground-gdk").to_string()
+
+
+class RichTextBGColorTag (RichTextTag):
+    def __init__(self, color):
+        RichTextTag.__init__(self, "bg_color %s" % color,
+                             background=color)
+
+    def get_color(self):
+        return tag.get_property("background-gdk").to_string()
+
     
 
 class RichTextBuffer (gtk.TextBuffer):
     """TextBuffer specialize for rich text editing"""
     
     def __init__(self, textview=None):
-        gtk.TextBuffer.__init__(self)
+        gtk.TextBuffer.__init__(self, RichTextTagTable())
         self.textview = textview
         self.undo_stack = UndoStack(MAX_UNDOS)
         
@@ -674,12 +730,23 @@ class RichTextBuffer (gtk.TextBuffer):
     def _init_fonts(self):
         """Initialize font tags"""
 
+        # TODO: maybe I can push this font management into the TagTable?
+        
         # modification (mod) font tags
         # All of these can be combined
-        self.bold_tag = self.create_tag("bold", weight=pango.WEIGHT_BOLD)
-        self.italic_tag = self.create_tag("italic", style=pango.STYLE_ITALIC)
-        self.underline_tag = self.create_tag("underline", underline=pango.UNDERLINE_SINGLE)
-        self.no_wrap_tag = self.create_tag("nowrap", wrap_mode=gtk.WRAP_NONE)
+        self.bold_tag = RichTextModTag("bold", weight=pango.WEIGHT_BOLD)
+        self.tag_table.add(self.bold_tag)
+            
+        self.italic_tag = RichTextModTag("italic", style=pango.STYLE_ITALIC)
+        self.tag_table.add(self.italic_tag)
+            
+        self.underline_tag = RichTextModTag("underline",
+                                            underline=pango.UNDERLINE_SINGLE)
+        self.tag_table.add(self.underline_tag)
+            
+        self.no_wrap_tag = RichTextModTag("nowrap", wrap_mode=gtk.WRAP_NONE)
+        self.tag_table.add(self.no_wrap_tag)
+            
         self.mod_names = ["bold", "italic", "underline", "nowrap"]
 
         # Class tags cannot overlap any other tag of the same class
@@ -1022,6 +1089,14 @@ class RichTextBuffer (gtk.TextBuffer):
     #==============================================================
     # Tag manipulation    
 
+    def create_tag(self, name=None, **kargs):
+        """Create a new TextTag and add it to the table"""
+        
+        tag = RichTextTag(name, **kargs)
+        self.tag_table.add(tag)
+        
+        return tag
+
     def toggle_tag_selected(self, tag):
         """Toggle tag in selection or current tags"""
         
@@ -1143,7 +1218,8 @@ class RichTextBuffer (gtk.TextBuffer):
         tag = self.tag_table.lookup("family " + family)
         if tag is None:
             # TODO: do I need to do error handling here?
-            tag = self.create_tag("family " + family, family=family)
+            tag = RichTextFamilyTag(family)
+            self.tag_table.add(tag)
             self.family_tags.add(tag)
         return tag
     
@@ -1152,7 +1228,8 @@ class RichTextBuffer (gtk.TextBuffer):
         sizename = "size %d" % size
         tag = self.tag_table.lookup(sizename)
         if tag is None:
-            tag = self.create_tag(sizename, size_points=size)
+            tag = RichTextSizeTag(size)
+            self.tag_table.add(tag)
             self.size_tags.add(tag)
         return tag
 
@@ -1165,7 +1242,8 @@ class RichTextBuffer (gtk.TextBuffer):
         colorname = "fg_color " + color
         tag = self.tag_table.lookup(colorname)
         if tag is None:
-            tag = self.create_tag(colorname, foreground=color)
+            tag = RichTextFGColorTag(color)
+            self.tag_table.add(tag)
             self.fg_color_tags.add(tag)
         return tag
 
@@ -1174,7 +1252,8 @@ class RichTextBuffer (gtk.TextBuffer):
         colorname = "bg_color " + color
         tag = self.tag_table.lookup(colorname)
         if tag is None:
-            tag = self.create_tag(colorname, background=color)
+            tag = RichTextBGColorTag(color)
+            self.tag_table.add(tag)
             self.bg_color_tags.add(tag)
         return tag
 
@@ -1286,17 +1365,17 @@ class RichTextBuffer (gtk.TextBuffer):
         
         # current tags override for family and size
         for tag in self.current_tags:
-            if tag in self.family_tags:
-                family = tag.get_property("family")
+            if isinstance(tag, RichTextFamilyTag):
+                family = tag.get_family()
             
-            elif tag in self.size_tags:
-                size = int(tag.get_property("size-points"))
+            elif isinstance(tag, RichTextSizeTag):
+                size = tag.get_size()
 
-            elif tag in self.fg_color_tags:
-                fg_color = tag.get_property("foreground-gdk").to_string()
+            elif isinstance(tag, RichTextFGColorTag):
+                fg_color = tag.get_color()
 
-            elif tag in self.bg_color_tags:
-                bg_color = tag.get_property("background-gdk").to_string()
+            elif isinstance(tag, RichTextBGColorTag):
+                bg_color = tag.get_color()
         
         return RichTextFont(mods, justify, family, size, fg_color, bg_color)
 
