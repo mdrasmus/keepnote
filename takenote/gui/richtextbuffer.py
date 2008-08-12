@@ -618,7 +618,20 @@ class RichTextImage (RichTextAnchor):
 
 
 
-        
+def color_to_string(color):
+    redstr = hex(color.red)[2:]
+    greenstr = hex(color.green)[2:]
+    bluestr = hex(color.blue)[2:]
+
+    while len(redstr) < 4:
+        redstr = "0" + redstr
+    while len(greenstr) < 4:
+        greenstr = "0" + greenstr
+    while len(bluestr) < 4:
+        bluestr = "0" + bluestr
+
+    return "#%s%s%s" % (redstr, greenstr, bluestr)
+    
 
 #=============================================================================
 # RichText classes
@@ -632,6 +645,173 @@ class RichTextFont (object):
         self.fg_color = fg_color
         self.bg_color = bg_color
 
+
+
+class RichTextTagTable (gtk.TextTagTable):
+    """A tag table for a RichTextBuffer"""
+    def __init__(self):
+        gtk.TextTagTable.__init__(self)
+
+        # modification (mod) font tags
+        # All of these can be combined
+        self.bold_tag = RichTextModTag("bold", weight=pango.WEIGHT_BOLD)
+        self.add(self.bold_tag)
+            
+        self.italic_tag = RichTextModTag("italic", style=pango.STYLE_ITALIC)
+        self.add(self.italic_tag)
+            
+        self.underline_tag = RichTextModTag("underline",
+                                            underline=pango.UNDERLINE_SINGLE)
+        self.add(self.underline_tag)
+            
+        self.no_wrap_tag = RichTextModTag("nowrap", wrap_mode=gtk.WRAP_NONE)
+        self.add(self.no_wrap_tag)
+        
+        self.mod_names = ["bold", "italic", "underline", "nowrap"]
+
+        # Class tags cannot overlap any other tag of the same class
+        # example: a piece of text cannot have two colors, two families,
+        # two sizes, or two justifications.
+        
+        # justify tags
+        self.left_tag = RichTextTag("left", justification=gtk.JUSTIFY_LEFT)
+        self.add(self.left_tag)
+        self.center_tag = RichTextTag("center", justification=gtk.JUSTIFY_CENTER)
+        self.add(self.center_tag)
+        self.right_tag = RichTextTag("right", justification=gtk.JUSTIFY_RIGHT)
+        self.add(self.right_tag)
+        self.fill_tag = RichTextTag("fill", justification=gtk.JUSTIFY_FILL)
+        self.add(self.fill_tag)
+        
+        self.justify2name = {
+            gtk.JUSTIFY_LEFT: "left", 
+            gtk.JUSTIFY_RIGHT: "right", 
+            gtk.JUSTIFY_CENTER: "center", 
+            gtk.JUSTIFY_FILL: "fill"
+        }
+        self.justify_names = ["left", "center", "right", "justify"]
+
+        # class sets
+        self.mod_tags = set()
+        self.justify_tags = set([self.left_tag, self.center_tag,
+                                 self.right_tag, self.fill_tag])
+        self.family_tags = set()
+        self.size_tags = set()
+        self.fg_color_tags = set()
+        self.bg_color_tags = set()
+        self.indent_tags = set()
+
+
+        self.exclusive_classes = [
+            self.justify_tags,
+            self.family_tags,
+            self.size_tags,
+            self.fg_color_tags,
+            self.bg_color_tags,
+            self.indent_tags]
+
+
+    def lookup(self, name):
+        """Lookup any tag, create it if needed"""
+
+        # test to see if name is directly in table
+        #  modifications and justifications are directly stored
+        tag = gtk.TextTagTable.lookup(self, name)
+
+        if tag:
+            return tag
+        
+        elif name.startswith("size"):
+            # size tag
+            return self.lookup_size_tag(int(name.split(" ")[1]))
+
+        elif name.startswith("family"):
+            # family tag
+            return self.lookup_family_tag(name.split(" ", 1)[1])
+
+        elif name.startswith("fg_color"):
+            # foreground color tag
+            return self.lookup_fg_color_tag(name.split(" ", 1)[1])
+
+        elif name.startswith("bg_color"):
+            # background color tag
+            return self.lookup_bg_color_tag(name.split(" ", 1)[1])
+
+        elif name.startswith("indent") or name.startswith("bullet"):
+            return self.lookup_indent_tag(name)
+
+
+    def lookup_mod_tag(self, mod):
+        """Returns modification tag using name"""
+        return gtk.TextTagTable.lookup(self, mod)
+    
+    
+    def lookup_family_tag(self, family):
+        """Returns family tag using name"""
+        tag = gtk.TextTagTable.lookup(self, "family " + family)        
+        if tag is None:
+            # TODO: do I need to do error handling here?
+            tag = RichTextFamilyTag(family)
+            self.add(tag)
+            self.family_tags.add(tag)
+        return tag
+    
+    def lookup_size_tag(self, size):
+        """Returns size tag using size"""
+        sizename = "size %d" % size
+        tag = gtk.TextTagTable.lookup(self, sizename)
+        if tag is None:
+            tag = RichTextSizeTag(size)
+            self.add(tag)
+            self.size_tags.add(tag)
+        return tag
+
+    def lookup_justify_tag(self, justify):
+        """Lookup justify tag"""
+        return gtk.TextTagTable.lookup(self, justify)
+
+
+    def lookup_fg_color_tag(self, color):
+        colorname = "fg_color " + color
+        tag = gtk.TextTagTable.lookup(self, colorname)
+        if tag is None:
+            tag = RichTextFGColorTag(color)
+            self.add(tag)
+            self.fg_color_tags.add(tag)
+        return tag
+
+
+    def lookup_bg_color_tag(self, color):
+        colorname = "bg_color " + color
+        tag = gtk.TextTagTable.lookup(self, colorname)
+        if tag is None:
+            tag = RichTextBGColorTag(color)
+            self.add(tag)
+            self.bg_color_tags.add(tag)
+        return tag
+
+
+    def lookup_indent_tag(self, indent):
+        
+        if isinstance(indent, str):
+            if " " in indent:
+                # lookup from string
+                return self.lookup_indent_tag(int(indent.split(" ", 1)[1]))
+            
+            else:
+                return RichTextIndentTag(1)
+            
+        else:
+            # lookup from integer
+            tagname = "indent %d" % indent
+            tag = gtk.TextTagTable.lookup(self, tagname)
+            if tag is None:
+                tag = RichTextIndentTag(indent)
+                self.add(tag)
+                self.indent_tags.add(tag)
+            return tag
+
+        
 
 class RichTextTag (gtk.TextTag):
     """A TextTag in a RichTextBuffer"""
@@ -663,13 +843,6 @@ class RichTextSizeTag (RichTextTag):
 
     def get_size(self):
         return int(self.get_property("size-points"))
-
-class RichTextTagTable (gtk.TextTagTable):
-    """A tag table for a RichTextBuffer"""
-    def __init__(self):
-        gtk.TextTagTable.__init__(self)
-    
-    # TODO: put here font init stuff and special tag sets and lookup
     
 class RichTextFGColorTag (RichTextTag):
     def __init__(self, color):
@@ -677,7 +850,7 @@ class RichTextFGColorTag (RichTextTag):
                              foreground=color)
 
     def get_color(self):
-        return tag.get_property("foreground-gdk").to_string()
+        return color_to_string(tag.get_property("foreground-gdk"))
 
 
 class RichTextBGColorTag (RichTextTag):
@@ -686,7 +859,18 @@ class RichTextBGColorTag (RichTextTag):
                              background=color)
 
     def get_color(self):
-        return tag.get_property("background-gdk").to_string()
+        return color_to_string(tag.get_property("background-gdk"))
+
+
+class RichTextIndentTag (RichTextTag):
+    def __init__(self, indent):
+        INDENT_SIZE = 25
+        RichTextTag.__init__("indent %d", indent,
+                             left_margin=INDENT_SIZE * indent)
+        self._indent = indent
+
+    def get_indent(self):
+        return self._indent
 
     
 
@@ -723,10 +907,10 @@ class RichTextBuffer (gtk.TextBuffer):
             self.connect("remove-tag", self.on_remove_tag),
             self.connect("changed", self.on_changed)
             ]
-                
-        self._init_fonts()
-        
 
+        self.default_attr = gtk.TextAttributes()
+        
+    '''
     def _init_fonts(self):
         """Initialize font tags"""
 
@@ -746,7 +930,7 @@ class RichTextBuffer (gtk.TextBuffer):
             
         self.no_wrap_tag = RichTextModTag("nowrap", wrap_mode=gtk.WRAP_NONE)
         self.tag_table.add(self.no_wrap_tag)
-            
+        
         self.mod_names = ["bold", "italic", "underline", "nowrap"]
 
         # Class tags cannot overlap any other tag of the same class
@@ -786,8 +970,8 @@ class RichTextBuffer (gtk.TextBuffer):
             self.indent_tags]
 
         self.default_attr = gtk.TextAttributes()
+'''
 
-    
     def set_textview(self, textview):
         self.textview = textview
     
@@ -928,8 +1112,9 @@ class RichTextBuffer (gtk.TextBuffer):
     
     def on_mark_set(self, textbuffer, it, mark):
         """Callback for mark movement"""
-        
+
         if mark.get_name() == "insert":
+
             # pick up the last tags
             self.current_tags = it.get_toggled_tags(False)
 
@@ -1181,84 +1366,39 @@ class RichTextBuffer (gtk.TextBuffer):
     def lookup_tag(self, name):
         """Lookup any tag, create it if needed"""
 
-        # test to see if name is directly in table
-        #  modifications and justifications are directly stored
-        tag = self.tag_table.lookup(name)
-
-        if tag:
-            return tag
-        
-        elif name.startswith("size"):
-            # size tag
-            return self.lookup_size_tag(int(name.split(" ")[1]))
-
-        elif name.startswith("family"):
-            # family tag
-            return self.lookup_family_tag(name.split(" ", 1)[1])
-
-        elif name.startswith("fg_color"):
-            # foreground color tag
-            return self.lookup_fg_color_tag(name.split(" ", 1)[1])
-
-        elif name.startswith("bg_color"):
-            # background color tag
-            return self.lookup_bg_color_tag(name.split(" ", 1)[1])
-
-        elif name.startswith("indent") or name.startswith("bullet"):
-            return self.lookup_indent_tag(name)
+        return self.tag_table.lookup(name)
 
 
     def lookup_mod_tag(self, mod):
         """Returns modification tag using name"""
-        return self.tag_table.lookup(mod)
+        return self.tag_table.lookup_mod_tag(mod)
     
     
     def lookup_family_tag(self, family):
         """Returns family tag using name"""
-        tag = self.tag_table.lookup("family " + family)
-        if tag is None:
-            # TODO: do I need to do error handling here?
-            tag = RichTextFamilyTag(family)
-            self.tag_table.add(tag)
-            self.family_tags.add(tag)
-        return tag
+        return self.tag_table.lookup_family_tag(familiy)
     
     def lookup_size_tag(self, size):
         """Returns size tag using size"""
-        sizename = "size %d" % size
-        tag = self.tag_table.lookup(sizename)
-        if tag is None:
-            tag = RichTextSizeTag(size)
-            self.tag_table.add(tag)
-            self.size_tags.add(tag)
-        return tag
+        return self.tag_table.lookup_size_tag(size)
 
     def lookup_justify_tag(self, justify):
         """Lookup justify tag"""
-        return self.tag_table.lookup(justify)
+        return self.tag_table.lookup_justify_tag(justify)
 
 
     def lookup_fg_color_tag(self, color):
-        colorname = "fg_color " + color
-        tag = self.tag_table.lookup(colorname)
-        if tag is None:
-            tag = RichTextFGColorTag(color)
-            self.tag_table.add(tag)
-            self.fg_color_tags.add(tag)
-        return tag
+        return self.tag_table.lookup_fg_color_tag(color)
 
 
     def lookup_bg_color_tag(self, color):
-        colorname = "bg_color " + color
-        tag = self.tag_table.lookup(colorname)
-        if tag is None:
-            tag = RichTextBGColorTag(color)
-            self.tag_table.add(tag)
-            self.bg_color_tags.add(tag)
-        return tag
+        return self.tag_table.lookup_bg_color_tag(color)
 
 
     def lookup_indent_tag(self, indent):
+        return self.tag_table.lookup_indent_tag(indent)
+
+    '''
         INDENT_SIZE = 25
         BULLET_SIZE = -10
 
@@ -1288,7 +1428,8 @@ class RichTextBuffer (gtk.TextBuffer):
                 tag = self.create_tag(tagname, left_margin=indent*INDENT_SIZE)
                 self.indent_tags.add(tag)
             return tag
-
+    '''
+    
 
     def parse_font(self, fontstr):
         """Parse a font string from the font chooser"""
@@ -1330,41 +1471,42 @@ class RichTextBuffer (gtk.TextBuffer):
         # get size in points (get_size() returns pango units)
         PIXELS_PER_PANGO_UNIT = 1024
         size = font.get_size() // PIXELS_PER_PANGO_UNIT
-
+        
+        
         # get colors
-        fg_color = attr.fg_color.to_string()
-        bg_color = attr.bg_color.to_string()
+        fg_color = color_to_string(attr.fg_color)
+        bg_color = color_to_string(attr.bg_color)
         
         # set modifications (current tags override)
         mods = {"bold":
-                self.bold_tag in current_tags or
+                self.tag_table.bold_tag in current_tags or
                 font.get_weight() == pango.WEIGHT_BOLD,
                 "italic": 
-                self.italic_tag in current_tags or
+                self.tag_table.italic_tag in current_tags or
                 font.get_style() == pango.STYLE_ITALIC,
                 "underline":
-                self.underline_tag in current_tags or
+                self.tag_table.underline_tag in current_tags or
                 attr.underline == pango.UNDERLINE_SINGLE,
                 "nowrap":
-                self.no_wrap_tag in current_tags or
+                self.tag_table.no_wrap_tag in current_tags or
                 attr.wrap_mode == gtk.WRAP_NONE}
         
         # set justification
-        justify = self.justify2name[attr.justification]
+        justify = self.tag_table.justify2name[attr.justification]
         
         # current tags override
-        if self.center_tag in current_tags:
+        if self.tag_table.center_tag in current_tags:
             justify = "center"
             
-        elif self.right_tag in current_tags:
+        elif self.tag_table.right_tag in current_tags:
             justify = "right"
         
-        elif self.fill_tag in current_tags:
+        elif self.tag_table.fill_tag in current_tags:
             justify = "fill"
         
         
         # current tags override for family and size
-        for tag in self.current_tags:
+        for tag in self.current_tags:            
             if isinstance(tag, RichTextFamilyTag):
                 family = tag.get_family()
             
@@ -1376,7 +1518,7 @@ class RichTextBuffer (gtk.TextBuffer):
 
             elif isinstance(tag, RichTextBGColorTag):
                 bg_color = tag.get_color()
-        
+
         return RichTextFont(mods, justify, family, size, fg_color, bg_color)
 
 
