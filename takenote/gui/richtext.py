@@ -9,7 +9,7 @@
 
 # python imports
 import sys, os, tempfile, re
-import urllib2
+import urllib2, StringIO
 
 # pygtk imports
 import pygtk
@@ -66,6 +66,19 @@ MIME_TEXT = ["text/plain",
              "TEXT"]
 
 
+def parse_font(fontstr):
+    """Parse a font string from the font chooser"""
+    tokens = fontstr.split(" ")
+    size = int(tokens.pop())
+    mods = []
+        
+    # NOTE: underline is not part of the font string and is handled separately
+    while tokens[-1] in ["Bold", "Italic"]:
+        mods.append(tokens.pop().lower())
+        
+    return " ".join(tokens), mods, size
+
+
 
 #=============================================================================
 
@@ -107,7 +120,7 @@ class RichTextView (gtk.TextView):
         self._block_modified = False
         
         self.set_wrap_mode(gtk.WRAP_WORD)
-        self.set_property("right-margin", TEXTVIEW_MARGIN)
+        self.set_property("rferight-margin", TEXTVIEW_MARGIN)
         self.set_property("left-margin", TEXTVIEW_MARGIN)
         
 
@@ -567,7 +580,7 @@ class RichTextView (gtk.TextView):
                                    buffer_contents,
                                    add_child_to_buffer,
                                    lookup_tag=lambda name:
-                                       textbuffer.lookup_tag(name))
+                                       textbuffer.tag_table.lookup(name))
 
             # put cursor at begining
             textbuffer.place_cursor(textbuffer.get_start_iter())
@@ -761,7 +774,7 @@ class RichTextView (gtk.TextView):
                                contents,
                                add_child=add_child_to_buffer,
                                lookup_tag=lambda name:
-                                   self._textbuffer.lookup_tag(name))
+                                   self._textbuffer.tag_table.lookup(name))
         self._textbuffer.end_user_action()
 
 
@@ -900,53 +913,59 @@ class RichTextView (gtk.TextView):
     def toggle_font_mod(self, mod):
         """Toggle a font modification"""
         
-        tag = self._textbuffer.lookup_mod_tag(mod)
+        tag = self._textbuffer.tag_table.lookup_mod_tag(mod)
         self._textbuffer.toggle_tag_selected(tag)
-    
+
 
     # TODO: perhaps, don't use widget, but use fontstr
     def set_font(self, font_name):
         """Font change from choose font widget"""
-        family, mods, size = self._textbuffer.parse_font(font_name)
+        family, mods, size = parse_font(font_name)
+
+        tag_table = self._textbuffer.tag_table
         
         # apply family tag
-        self._textbuffer.apply_tag_selected(self._textbuffer.lookup_family_tag(family))
+        self._textbuffer.apply_tag_selected(tag_table.lookup_family_tag(family))
         
         # apply size
-        self._textbuffer.apply_tag_selected(self._textbuffer.lookup_size_tag(size))
+        self._textbuffer.apply_tag_selected(tag_table.lookup_size_tag(size))
         
         # apply mods
         for mod in mods:
-            self._textbuffer.apply_tag_selected(self._textbuffer.tag_table.lookup(mod))
+            self._textbuffer.apply_tag_selected(tag_table.lookup_mod_tag(mod))
 
-        # TODO: get this list from the textbuffer
+
         # disable mods not given
-        for mod in self._textbuffer.mod_names:
+        for mod in self._textbuffer.tag_table.mod_names:
             if mod not in mods:
-                self._textbuffer.remove_tag_selected(self._textbuffer.tag_table.lookup(mod))
+                self._textbuffer.remove_tag_selected(
+                    tag_table.lookup_mod_tag(mod))
     
     def set_font_family(self, family):
         """Sets the family font of the selection"""
-        self._textbuffer.apply_tag_selected(self._textbuffer.lookup_family_tag(family))
+        self._textbuffer.apply_tag_selected(
+            self._textbuffer.tag_table.lookup_family_tag(family))
     
     def toggle_font_family(self, family):
         """Toggles the family font of the selection"""
-        self._textbuffer.toggle_tag_selected(self._textbuffer.lookup_family_tag(family))
+        self._textbuffer.toggle_tag_selected(
+            self._textbuffer.tag_table.lookup_family_tag(family))
     
     def set_font_size(self, size):
         """Sets the font size of the selection"""
-        self._textbuffer.apply_tag_selected(self._textbuffer.lookup_size_tag(size))    
+        self._textbuffer.apply_tag_selected(
+            self._textbuffer.tag_table.lookup_size_tag(size))    
     
     def set_justify(self, justify):
-        tag = self._textbuffer.lookup_justify_tag(justify)
+        tag = self._textbuffer.tag_table.lookup_justify_tag(justify)
         self._textbuffer.apply_tag_selected(tag)
 
     def set_font_fg_color(self, color):
-        tag = self._textbuffer.lookup_fg_color_tag(color)
+        tag = self._textbuffer.tag_table.lookup_fg_color_tag(color)
         self._textbuffer.apply_tag_selected(tag)
         
     def set_font_bg_color(self, color):
-        tag = self._textbuffer.lookup_bg_color_tag(color)
+        tag = self._textbuffer.tag_table.lookup_bg_color_tag(color)
         self._textbuffer.apply_tag_selected(tag)
 
     

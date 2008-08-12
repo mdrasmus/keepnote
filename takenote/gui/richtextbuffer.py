@@ -649,6 +649,7 @@ class RichTextFont (object):
 
 class RichTextTagTable (gtk.TextTagTable):
     """A tag table for a RichTextBuffer"""
+    
     def __init__(self):
         gtk.TextTagTable.__init__(self)
 
@@ -674,13 +675,17 @@ class RichTextTagTable (gtk.TextTagTable):
         # two sizes, or two justifications.
         
         # justify tags
-        self.left_tag = RichTextTag("left", justification=gtk.JUSTIFY_LEFT)
+        self.left_tag = RichTextJustifyTag("left",
+                                           justification=gtk.JUSTIFY_LEFT)
         self.add(self.left_tag)
-        self.center_tag = RichTextTag("center", justification=gtk.JUSTIFY_CENTER)
+        self.center_tag = RichTextJustifyTag("center",
+                                             justification=gtk.JUSTIFY_CENTER)
         self.add(self.center_tag)
-        self.right_tag = RichTextTag("right", justification=gtk.JUSTIFY_RIGHT)
+        self.right_tag = RichTextJustifyTag("right",
+                                            justification=gtk.JUSTIFY_RIGHT)
         self.add(self.right_tag)
-        self.fill_tag = RichTextTag("fill", justification=gtk.JUSTIFY_FILL)
+        self.fill_tag = RichTextJustifyTag("fill",
+                                           justification=gtk.JUSTIFY_FILL)
         self.add(self.fill_tag)
         
         self.justify2name = {
@@ -717,13 +722,13 @@ class RichTextTagTable (gtk.TextTagTable):
         # test to see if name is directly in table
         #  modifications and justifications are directly stored
         tag = gtk.TextTagTable.lookup(self, name)
-
+        
         if tag:
             return tag
         
         elif name.startswith("size"):
             # size tag
-            return self.lookup_size_tag(int(name.split(" ")[1]))
+            return self.lookup_size_tag(int(name.split(" ", 1)[1]))
 
         elif name.startswith("family"):
             # family tag
@@ -811,6 +816,39 @@ class RichTextTagTable (gtk.TextTagTable):
                 self.indent_tags.add(tag)
             return tag
 
+
+    '''
+        INDENT_SIZE = 25
+        BULLET_SIZE = -10
+
+        if indent == "bullet":            
+            return self.create_tag("bullet", indent=BULLET_SIZE)
+        
+        if isinstance(indent, str):
+            if " " in indent:
+                # lookup from string
+                return self.lookup_indent_tag(int(indent.split(" ", 1)[1]))
+            
+            else:
+                # lookup from current position
+                #it = self.get_iter_at_mark(self.get_insert())
+                #attr = gtk.TextAttributes()
+                #self.default_attr.copy_values(attr)
+                #it.get_attributes(attr)
+                #i = (attr.left_margin // INDENT_SIZE) + 1
+                #return self.lookup_indent_tag(i)
+                return self.create_tag("indent", left_margin=INDENT_SIZE)
+            
+        else:
+            # lookup from integer
+            tagname = "indent %d" % indent
+            tag = self.tag_table.lookup(tagname)
+            if tag is None:
+                tag = self.create_tag(tagname, left_margin=indent*INDENT_SIZE)
+                self.indent_tags.add(tag)
+            return tag
+    '''
+    
         
 
 class RichTextTag (gtk.TextTag):
@@ -829,6 +867,15 @@ class RichTextModTag (RichTextTag):
 
     def __init__(self, name, **kargs):
         RichTextTag.__init__(self, name, **kargs)
+
+class RichTextJustifyTag (RichTextTag):
+    """A tag that represents ortholognal font modifications:
+       bold, italic, underline, nowrap
+    """
+
+    def __init__(self, name, **kargs):
+        RichTextTag.__init__(self, name, **kargs)
+
 
 class RichTextFamilyTag (RichTextTag):
     def __init__(self, family):
@@ -888,11 +935,11 @@ class RichTextBuffer (gtk.TextBuffer):
         self.current_tags = []
 
         # set of all anchors in buffer
-        self.anchors = set()
+        self._anchors = set()
 
         # anchors that still need to be added,
         # they are defferred because textview was not available at insert-time
-        self.anchors_deferred = set() 
+        self._anchors_deferred = set() 
         
         # setup signals
         self.signals = [
@@ -910,67 +957,6 @@ class RichTextBuffer (gtk.TextBuffer):
 
         self.default_attr = gtk.TextAttributes()
         
-    '''
-    def _init_fonts(self):
-        """Initialize font tags"""
-
-        # TODO: maybe I can push this font management into the TagTable?
-        
-        # modification (mod) font tags
-        # All of these can be combined
-        self.bold_tag = RichTextModTag("bold", weight=pango.WEIGHT_BOLD)
-        self.tag_table.add(self.bold_tag)
-            
-        self.italic_tag = RichTextModTag("italic", style=pango.STYLE_ITALIC)
-        self.tag_table.add(self.italic_tag)
-            
-        self.underline_tag = RichTextModTag("underline",
-                                            underline=pango.UNDERLINE_SINGLE)
-        self.tag_table.add(self.underline_tag)
-            
-        self.no_wrap_tag = RichTextModTag("nowrap", wrap_mode=gtk.WRAP_NONE)
-        self.tag_table.add(self.no_wrap_tag)
-        
-        self.mod_names = ["bold", "italic", "underline", "nowrap"]
-
-        # Class tags cannot overlap any other tag of the same class
-        # example: a piece of text cannot have two colors, two families,
-        # two sizes, or two justifications.
-        
-        # justify tags
-        self.left_tag = self.create_tag("left", justification=gtk.JUSTIFY_LEFT)
-        self.center_tag = self.create_tag("center", justification=gtk.JUSTIFY_CENTER)
-        self.right_tag = self.create_tag("right", justification=gtk.JUSTIFY_RIGHT)
-        self.fill_tag = self.create_tag("fill", justification=gtk.JUSTIFY_FILL)
-        
-        self.justify2name = {
-            gtk.JUSTIFY_LEFT: "left", 
-            gtk.JUSTIFY_RIGHT: "right", 
-            gtk.JUSTIFY_CENTER: "center", 
-            gtk.JUSTIFY_FILL: "fill"
-        }
-        self.justify_names = ["left", "center", "right", "justify"]
-
-        # class sets
-        self.justify_tags = set([self.left_tag, self.center_tag,
-                                 self.right_tag, self.fill_tag])
-        self.family_tags = set()
-        self.size_tags = set()
-        self.fg_color_tags = set()
-        self.bg_color_tags = set()
-        self.indent_tags = set()
-
-
-        self._exclusive_classes = [
-            self.justify_tags,
-            self.family_tags,
-            self.size_tags,
-            self.fg_color_tags,
-            self.bg_color_tags,
-            self.indent_tags]
-
-        self.default_attr = gtk.TextAttributes()
-'''
 
     def set_textview(self, textview):
         self.textview = textview
@@ -996,8 +982,8 @@ class RichTextBuffer (gtk.TextBuffer):
     def clear(self):
         """Clear buffer contents"""
         
-        self.anchors.clear()
-        self.anchors_deferred.clear()
+        self._anchors.clear()
+        self._anchors_deferred.clear()
         start = self.get_start_iter()
         end = self.get_end_iter()
         self.remove_all_tags(start, end)
@@ -1016,7 +1002,7 @@ class RichTextBuffer (gtk.TextBuffer):
             self._determine_image_name(child)
 
         # setup child
-        self.anchors.add(child)
+        self._anchors.add(child)
         child.set_buffer(self)
         child.connect("activated", self.on_child_activated)
         child.connect("selected", self.on_child_selected)
@@ -1028,19 +1014,19 @@ class RichTextBuffer (gtk.TextBuffer):
             self.textview.add_child_at_anchor(child.get_widget(), child)
         else:
             # defer display of child
-            self.anchors_deferred.add(child)
+            self._anchors_deferred.add(child)
     
     
     def add_deferred_anchors(self):
         """Add anchors that were deferred"""
         assert self.textview is not None
         
-        for child in self.anchors_deferred:
+        for child in self._anchors_deferred:
             # only add anchor if it is still present (hasn't been deleted)
-            if child in self.anchors:
+            if child in self._anchors:
                 self.textview.add_child_at_anchor(child.get_widget(), child)
         
-        self.anchors_deferred.clear()
+        self._anchors_deferred.clear()
     
     
     def insert_image(self, image, filename="image.png"):
@@ -1075,7 +1061,7 @@ class RichTextBuffer (gtk.TextBuffer):
     def get_image_filenames(self):
         filenames = []
         
-        for child in self.anchors:
+        for child in self._anchors:
             if isinstance(child, RichTextImage):
                 filenames.append(child.get_filename())
         
@@ -1100,7 +1086,7 @@ class RichTextBuffer (gtk.TextBuffer):
         if pixbuf is None:
             return False
         
-        for child in self.anchors:
+        for child in self._anchors:
             if isinstance(child, RichTextImage):
                 if pixbuf == child.get_original_pixbuf():
                     return False
@@ -1198,7 +1184,7 @@ class RichTextBuffer (gtk.TextBuffer):
             
             for kind, offset, param in self.next_action.contents:
                 if kind == "anchor":
-                    self.anchors.remove(param[0])
+                    self._anchors.remove(param[0])
         
         
         if self.next_action:
@@ -1249,7 +1235,7 @@ class RichTextBuffer (gtk.TextBuffer):
             # selection exists, get range (a, b)
             a = sel[0].get_offset()
             b = sel[1].get_offset()
-            for child in self.anchors:
+            for child in self._anchors:
                 it = self.get_iter_at_child_anchor(child)
                 offset = it.get_offset()
                 if a <= offset < b:
@@ -1268,19 +1254,12 @@ class RichTextBuffer (gtk.TextBuffer):
                 focus.grab_focus()
         else:
             # no selection, unselect all children
-            for child in self.anchors:
+            for child in self._anchors:
                 child.unhighlight()
     
     #==============================================================
     # Tag manipulation    
 
-    def create_tag(self, name=None, **kargs):
-        """Create a new TextTag and add it to the table"""
-        
-        tag = RichTextTag(name, **kargs)
-        self.tag_table.add(tag)
-        
-        return tag
 
     def toggle_tag_selected(self, tag):
         """Toggle tag in selection or current tags"""
@@ -1342,8 +1321,10 @@ class RichTextBuffer (gtk.TextBuffer):
     
     def clear_tag_class(self, tag, start, end):
         """Remove all tags of the same class as 'tag' in region (start, end)"""
+
+        # TODO: is there a faster way to do this?
         
-        for cls in self._exclusive_classes:
+        for cls in self.tag_table.exclusive_classes:
             if tag in cls:
                 for tag2 in cls:
                     self.remove_tag(tag2, start, end)
@@ -1353,7 +1334,9 @@ class RichTextBuffer (gtk.TextBuffer):
     def clear_current_tag_class(self, tag):
         """Remove all tags of the same class as 'tag' from current tags"""
 
-        for cls in self._exclusive_classes:
+        # TODO: is there a faster way to do this?
+
+        for cls in self.tag_table.exclusive_classes:
             if tag in cls:
                 for tag2 in cls:
                     if tag2 in self.current_tags:
@@ -1362,86 +1345,6 @@ class RichTextBuffer (gtk.TextBuffer):
     
     #===========================================================
     # Font management
-
-    def lookup_tag(self, name):
-        """Lookup any tag, create it if needed"""
-
-        return self.tag_table.lookup(name)
-
-
-    def lookup_mod_tag(self, mod):
-        """Returns modification tag using name"""
-        return self.tag_table.lookup_mod_tag(mod)
-    
-    
-    def lookup_family_tag(self, family):
-        """Returns family tag using name"""
-        return self.tag_table.lookup_family_tag(familiy)
-    
-    def lookup_size_tag(self, size):
-        """Returns size tag using size"""
-        return self.tag_table.lookup_size_tag(size)
-
-    def lookup_justify_tag(self, justify):
-        """Lookup justify tag"""
-        return self.tag_table.lookup_justify_tag(justify)
-
-
-    def lookup_fg_color_tag(self, color):
-        return self.tag_table.lookup_fg_color_tag(color)
-
-
-    def lookup_bg_color_tag(self, color):
-        return self.tag_table.lookup_bg_color_tag(color)
-
-
-    def lookup_indent_tag(self, indent):
-        return self.tag_table.lookup_indent_tag(indent)
-
-    '''
-        INDENT_SIZE = 25
-        BULLET_SIZE = -10
-
-        if indent == "bullet":            
-            return self.create_tag("bullet", indent=BULLET_SIZE)
-        
-        if isinstance(indent, str):
-            if " " in indent:
-                # lookup from string
-                return self.lookup_indent_tag(int(indent.split(" ", 1)[1]))
-            
-            else:
-                # lookup from current position
-                #it = self.get_iter_at_mark(self.get_insert())
-                #attr = gtk.TextAttributes()
-                #self.default_attr.copy_values(attr)
-                #it.get_attributes(attr)
-                #i = (attr.left_margin // INDENT_SIZE) + 1
-                #return self.lookup_indent_tag(i)
-                return self.create_tag("indent", left_margin=INDENT_SIZE)
-            
-        else:
-            # lookup from integer
-            tagname = "indent %d" % indent
-            tag = self.tag_table.lookup(tagname)
-            if tag is None:
-                tag = self.create_tag(tagname, left_margin=indent*INDENT_SIZE)
-                self.indent_tags.add(tag)
-            return tag
-    '''
-    
-
-    def parse_font(self, fontstr):
-        """Parse a font string from the font chooser"""
-        tokens = fontstr.split(" ")
-        size = int(tokens.pop())
-        mods = []
-        
-        # NOTE: underline is not part of the font string and is handled separately
-        while tokens[-1] in ["Bold", "Italic"]:
-            mods.append(tokens.pop().lower())
-
-        return " ".join(tokens), mods, size
     
     def get_font(self):
 
@@ -1497,10 +1400,8 @@ class RichTextBuffer (gtk.TextBuffer):
         # current tags override
         if self.tag_table.center_tag in current_tags:
             justify = "center"
-            
         elif self.tag_table.right_tag in current_tags:
             justify = "right"
-        
         elif self.tag_table.fill_tag in current_tags:
             justify = "fill"
         
@@ -1508,14 +1409,11 @@ class RichTextBuffer (gtk.TextBuffer):
         # current tags override for family and size
         for tag in self.current_tags:            
             if isinstance(tag, RichTextFamilyTag):
-                family = tag.get_family()
-            
+                family = tag.get_family()            
             elif isinstance(tag, RichTextSizeTag):
                 size = tag.get_size()
-
             elif isinstance(tag, RichTextFGColorTag):
                 fg_color = tag.get_color()
-
             elif isinstance(tag, RichTextBGColorTag):
                 bg_color = tag.get_color()
 

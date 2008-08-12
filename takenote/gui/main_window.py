@@ -1447,7 +1447,7 @@ class TakeNoteWindow (gtk.Window):
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "Save", gtk.RESPONSE_OK))
         dialog.set_default_response(gtk.RESPONSE_OK)
-        dialog.set_current_folder(self.app.save_image_path)
+        dialog.set_current_folder(self.app.pref.save_image_path)
         
         response = dialog.run()
 

@@ -21,7 +21,14 @@ from takenote.gui.richtextbuffer import \
      RichTextBuffer, \
      RichTextImage, \
      RichTextHorizontalRule, \
-     RichTextError
+     RichTextError, \
+     RichTextModTag, \
+     RichTextFamilyTag, \
+     RichTextSizeTag, \
+     RichTextJustifyTag, \
+     RichTextFGColorTag, \
+     RichTextBGColorTag, \
+     RichTextIndentTag
 
 
 
@@ -46,9 +53,8 @@ def convert_indent_tags(contents):
             elif item[0] == "begin":
                 tag = item[2]
                 
-                if tag.get_property("name").startswith("indent"):
-                    # XXX
-                    next_indent = tag.get_property("left-margin") / 25
+                if isinstance(tag, RichTextIndentTag):
+                    next_indent = tag.get_indent()
 
                     while indent > next_indent:
                         yield ("end", None, indent_tag)
@@ -60,9 +66,8 @@ def convert_indent_tags(contents):
         if item[0] == "begin":
             tag = item[2]
             
-            if tag.get_property("name").startswith("indent"):
-                # begin indent: XXX
-                next_indent = tag.get_property("left-margin") / 25
+            if isinstance(tag, RichTextIndentTag):
+                next_indent = tag.get_indent()
 
                 assert next_indent >= indent
                 
@@ -77,22 +82,15 @@ def convert_indent_tags(contents):
         elif item[0] == "end":
             tag = item[2]
 
-            if tag.get_property("name").startswith("indent"):
-                # end indent: XXX
-                next_indent = tag.get_property("left-margin") / 25
+            if isinstance(tag, RichTextIndentTag):
+                next_indent = tag.get_indent()
                 indent_closing = True
                 indent_tag = tag
                 continue
             
         yield item
 
-'''        
-    def check_indent(self, tag):
 
-        print "check", self._indent, self._indent_closing
-        
-        
-'''
 
 
 class HtmlError (StandardError):
@@ -532,32 +530,32 @@ class HtmlBuffer (HTMLParser):
         elif tagname in self._buffer_tag2html:
             self._out.write("<%s>" % self._buffer_tag2html[tagname])
                     
-        elif tagname.startswith("size "):
+        elif isinstance(tag, RichTextSizeTag):
             self._out.write("<span style='font-size: %dpt'>" % 
-                            tag.get_property("size-points"))
+                            tag.get_size())
 
-        elif tagname in self._justify:
+        elif isinstance(tag, RichTextJustifyTag):
             if tagname == "fill":
                 text = "justify"
             else:
                 text = tagname
             self._out.write("<div style='text-align: %s'>" % text)
                 
-        elif tagname.startswith("family "):
+        elif isinstance(tag, RichTextFamilyTag):
             self._out.write("<span style='font-family: %s'>" % 
-                            tag.get_property("family"))
+                            tag.get_family())
 
-        elif tagname.startswith("fg_color "):
+        elif isinstance(tag, RichTextFGColorTag):
             self._out.write("<span style='color: %s'>" % 
                             tagcolor_to_html(
-                                tag.get_property("foreground-gdk").to_string()))
+                                tag.get_color()))
 
-        elif tagname.startswith("bg_color "):
+        elif isinstance(tag, RichTextBGColorTag):
             self._out.write("<span style='background-color: %s'>" % 
                             tagcolor_to_html(
-                                tag.get_property("background-gdk").to_string()))
+                                tag.get_color()))
 
-        elif tagname.startswith("indent"):
+        elif isinstance(tag, RichTextIndentTag):
             self._out.write("<ul>")
                 
         else:
@@ -573,7 +571,7 @@ class HtmlBuffer (HTMLParser):
         elif tagname in self._justify:
             self._out.write("</div>")
 
-        elif tagname.startswith("indent "):
+        elif isinstance(tag, RichTextIndentTag):
             self._out.write("</ul>")
 
         else:
