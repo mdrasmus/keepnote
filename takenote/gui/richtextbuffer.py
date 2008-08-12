@@ -707,6 +707,16 @@ class RichTextBuffer (gtk.TextBuffer):
         self.size_tags = set()
         self.fg_color_tags = set()
         self.bg_color_tags = set()
+        self.indent_tags = set()
+
+
+        self._exclusive_classes = [
+            self.justify_tags,
+            self.family_tags,
+            self.size_tags,
+            self.fg_color_tags,
+            self.bg_color_tags,
+            self.indent_tags]
 
         self.default_attr = gtk.TextAttributes()
 
@@ -1073,65 +1083,21 @@ class RichTextBuffer (gtk.TextBuffer):
     def clear_tag_class(self, tag, start, end):
         """Remove all tags of the same class as 'tag' in region (start, end)"""
         
-        # remove other justify tags
-        if tag in self.justify_tags:
-            for tag2 in self.justify_tags:
-                self.remove_tag(tag2, start, end)
-        
-        # remove other family tags        
-        elif tag in self.family_tags:
-            for tag2 in self.family_tags:
-                self.remove_tag(tag2, start, end)
-        
-        # remove other size tags                    
-        elif tag in self.size_tags:
-            for tag2 in self.size_tags:
-                self.remove_tag(tag2, start, end)
-
-        # remove other foreground color tags
-        elif tag in self.fg_color_tags:
-            for tag2 in self.fg_color_tags:
-                self.remove_tag(tag2, start, end)
-
-        # remove other background color tags
-        elif tag in self.bg_color_tags:
-            for tag2 in self.bg_color_tags:
-                self.remove_tag(tag2, start, end)
+        for cls in self._exclusive_classes:
+            if tag in cls:
+                for tag2 in cls:
+                    self.remove_tag(tag2, start, end)
 
 
 
     def clear_current_tag_class(self, tag):
         """Remove all tags of the same class as 'tag' from current tags"""
-        
-        # remove other justify tags
-        if tag in self.justify_tags:
-            for tag2 in self.justify_tags:
-                if tag2 in self.current_tags:
-                    self.current_tags.remove(tag2)
-        
-        # remove other family tags        
-        elif tag in self.family_tags:
-            for tag2 in self.family_tags:
-                if tag2 in self.current_tags:
-                    self.current_tags.remove(tag2)
-        
-        # remove other size tags                    
-        elif tag in self.size_tags:
-            for tag2 in self.size_tags:
-                if tag2 in self.current_tags:
-                    self.current_tags.remove(tag2)
 
-        # remove other foreground tags
-        elif tag in self.fg_color_tags:
-            for tag2 in self.fg_color_tags:
-                if tag2 in self.current_tags:
-                    self.current_tags.remove(tag2)
-
-        # remove other foreground tags
-        elif tag in self.bg_color_tags:
-            for tag2 in self.bg_color_tags:
-                if tag2 in self.current_tags:
-                    self.current_tags.remove(tag2)
+        for cls in self._exclusive_classes:
+            if tag in cls:
+                for tag2 in cls:
+                    if tag2 in self.current_tags:
+                        self.current_tags.remove(tag2)
 
     
     #===========================================================
@@ -1162,6 +1128,9 @@ class RichTextBuffer (gtk.TextBuffer):
         elif name.startswith("bg_color"):
             # background color tag
             return self.lookup_bg_color_tag(name.split(" ", 1)[1])
+
+        elif name.startswith("indent") or name.startswith("bullet"):
+            return self.lookup_indent_tag(name)
 
 
     def lookup_mod_tag(self, mod):
@@ -1210,6 +1179,38 @@ class RichTextBuffer (gtk.TextBuffer):
         return tag
 
 
+    def lookup_indent_tag(self, indent):
+        INDENT_SIZE = 25
+        BULLET_SIZE = -10
+
+        if indent == "bullet":            
+            return self.create_tag("bullet", indent=BULLET_SIZE)
+        
+        if isinstance(indent, str):
+            if " " in indent:
+                # lookup from string
+                return self.lookup_indent_tag(int(indent.split(" ", 1)[1]))
+            
+            else:
+                # lookup from current position
+                #it = self.get_iter_at_mark(self.get_insert())
+                #attr = gtk.TextAttributes()
+                #self.default_attr.copy_values(attr)
+                #it.get_attributes(attr)
+                #i = (attr.left_margin // INDENT_SIZE) + 1
+                #return self.lookup_indent_tag(i)
+                return self.create_tag("indent", left_margin=INDENT_SIZE)
+            
+        else:
+            # lookup from integer
+            tagname = "indent %d" % indent
+            tag = self.tag_table.lookup(tagname)
+            if tag is None:
+                tag = self.create_tag(tagname, left_margin=indent*INDENT_SIZE)
+                self.indent_tags.add(tag)
+            return tag
+
+
     def parse_font(self, fontstr):
         """Parse a font string from the font chooser"""
         tokens = fontstr.split(" ")
@@ -1223,6 +1224,9 @@ class RichTextBuffer (gtk.TextBuffer):
         return " ".join(tokens), mods, size
     
     def get_font(self):
+
+        # TODO: add indent
+        
         # get iter for retrieving font
         it2 = self.get_selection_bounds()
         
@@ -1292,7 +1296,7 @@ class RichTextBuffer (gtk.TextBuffer):
                 fg_color = tag.get_property("foreground-gdk").to_string()
 
             elif tag in self.bg_color_tags:
-                fg_color = tag.get_property("background-gdk").to_string()
+                bg_color = tag.get_property("background-gdk").to_string()
         
         return RichTextFont(mods, justify, family, size, fg_color, bg_color)
 

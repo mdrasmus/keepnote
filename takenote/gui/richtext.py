@@ -370,7 +370,7 @@ class RichTextView (gtk.TextView):
         sel = self._textbuffer.get_selection_bounds()
 
         # do nothing if nothing is selected
-        if sel is None:
+        if not sel:
             return
         
         start, end = sel

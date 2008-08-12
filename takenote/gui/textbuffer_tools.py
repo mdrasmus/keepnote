@@ -158,6 +158,7 @@ def insert_buffer_contents(textbuffer, pos, contents, add_child,
     
     textbuffer.place_cursor(pos)
     tags = {}
+    tagstrs = {}
     
     # make sure all tags are removed on first text/anchor insert
     first_insert = True
@@ -203,15 +204,20 @@ def insert_buffer_contents(textbuffer, pos, contents, add_child,
         elif kind == "beginstr":
             # remember the starting position of a tag referred to by a string
 
-            tags[param] = textbuffer.get_iter_at_mark(
-                textbuffer.get_insert()).get_offset()
+            lst = tagstrs.get(param, None)
+            if lst is None:
+                lst = []
+                tagstrs[param] = lst
+            lst.append(textbuffer.get_iter_at_mark(
+                textbuffer.get_insert()).get_offset())
 
         elif kind == "endstr":
             # apply tag referred to by a string
             tag = lookup_tag(param)
 
             if tag:
-                start = textbuffer.get_iter_at_offset(tags[param])
+                offset = tagstrs[param].pop()
+                start = textbuffer.get_iter_at_offset(offset)
                 end = textbuffer.get_iter_at_mark(textbuffer.get_insert())
                 textbuffer.apply_tag(tag, start, end)
 

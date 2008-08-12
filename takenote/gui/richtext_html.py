@@ -25,6 +25,75 @@ from takenote.gui.richtextbuffer import \
 
 
 
+def convert_indent_tags(contents):
+    """Convert indent tags so that they nest like HTML tags"""
+    
+    indent = 0
+    indent_closing = False
+    indent_tag = None
+
+    for item in contents:
+
+        # check for closing indents
+        if indent_closing:
+            if item[0] == "anchor" or item[0] == "text":            
+                # close all indents
+                while indent > 0:
+                    yield ("end", None, indent_tag)
+                    indent -= 1
+                indent_closing = False
+
+            elif item[0] == "begin":
+                tag = item[2]
+                
+                if tag.get_property("name").startswith("indent"):
+                    # XXX
+                    next_indent = tag.get_property("left-margin") / 25
+
+                    while indent > next_indent:
+                        yield ("end", None, indent_tag)
+                        indent -= 1
+                
+                    indent_closing = False            
+
+        # yield items
+        if item[0] == "begin":
+            tag = item[2]
+            
+            if tag.get_property("name").startswith("indent"):
+                # begin indent: XXX
+                next_indent = tag.get_property("left-margin") / 25
+
+                assert next_indent >= indent
+                
+                while indent < next_indent:
+                    # open new indents until we match level
+                    indent += 1                    
+                    yield item
+
+                # done processing this tag
+                continue
+
+        elif item[0] == "end":
+            tag = item[2]
+
+            if tag.get_property("name").startswith("indent"):
+                # end indent: XXX
+                next_indent = tag.get_property("left-margin") / 25
+                indent_closing = True
+                indent_tag = tag
+                continue
+            
+        yield item
+
+'''        
+    def check_indent(self, tag):
+
+        print "check", self._indent, self._indent_closing
+        
+        
+'''
+
 
 class HtmlError (StandardError):
     """Error for HTML parsing"""
@@ -66,6 +135,7 @@ class HtmlBuffer (HTMLParser):
         self._text_queue = []
         self._within_body = False
         self._partial = False
+        self._indent = 0
         
         self._entity_char_map = [("&", "amp"),
                                 (">", "gt"),
@@ -94,7 +164,7 @@ class HtmlBuffer (HTMLParser):
         self._within_body = False
         self._buffer_contents = []
         self._partial = partial
-
+        self._indent = 0
 
         try:
             for line in infile:
@@ -281,6 +351,26 @@ class HtmlBuffer (HTMLParser):
             # text from another HTML source, TakeNote will interpret it as
             # a newline char
             self.queue_text("\n")
+
+        elif htmltag == "ul":
+            # indent
+
+            if self._indent > 0:
+                self.append_buffer_item("endstr", "indent %d" % self._indent)
+
+            self._indent += 1
+
+            tagstr = "indent %d" % self._indent
+            self.append_buffer_item("beginstr", tagstr)
+            #self._tag_stack[-1][1].append(tagstr)
+            
+            #tagstr = "bullet"
+            #self.append_buffer_item("beginstr", tagstr)
+            #self._tag_stack[-1][1].append(tagstr)
+
+            #self.queue_text(u"\u2022 ")
+            
+            
             
         elif htmltag == "br":
             # insert newline
@@ -326,6 +416,14 @@ class HtmlBuffer (HTMLParser):
 
         for tagstr in tags:
             self.append_buffer_item("endstr", tagstr)
+
+        if htmltag == "ul":
+            # indent
+            self.append_buffer_item("endstr", "indent %d" % self._indent)
+            self._indent -= 1
+
+            if self._indent > 0:
+                self.append_buffer_item("beginstr", "indent %d" % self._indent)
         
         if htmltag == "p":
             # paragraph tag
@@ -364,13 +462,13 @@ class HtmlBuffer (HTMLParser):
     # Writing HTML
     
     def write(self, buffer_content, partial=False):
-        
+
         if not partial:
             self._out.write("""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
 <body>""")
         
-        for kind, it, param in normalize_tags(buffer_content):
+        for kind, it, param in normalize_tags(convert_indent_tags(buffer_content)):
             if kind == "text":
                 text = param
                 
@@ -404,7 +502,7 @@ class HtmlBuffer (HTMLParser):
                     if size[1] is not None:
                         size_str += " height=\"%d\"" % size[1]
                         
-                    self._out.write("<img src=\"%s\" %s />" % 
+                    self._out.write("<img src=\"%s\"%s />" % 
                                    (child.get_filename(), size_str))
 
                 elif isinstance(child, RichTextHorizontalRule):
@@ -458,7 +556,9 @@ class HtmlBuffer (HTMLParser):
             self._out.write("<span style='background-color: %s'>" % 
                             tagcolor_to_html(
                                 tag.get_property("background-gdk").to_string()))
-        
+
+        elif tagname.startswith("indent"):
+            self._out.write("<ul>")
                 
         else:
             raise HtmlError("unknown tag '%s'" % tag.get_property("name"))
@@ -472,7 +572,10 @@ class HtmlBuffer (HTMLParser):
                             
         elif tagname in self._justify:
             self._out.write("</div>")
-            
+
+        elif tagname.startswith("indent "):
+            self._out.write("</ul>")
+
         else:
             self._out.write("</span>")
 
