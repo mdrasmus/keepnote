@@ -120,7 +120,7 @@ class RichTextView (gtk.TextView):
         self._block_modified = False
         
         self.set_wrap_mode(gtk.WRAP_WORD)
-        self.set_property("rferight-margin", TEXTVIEW_MARGIN)
+        self.set_property("right-margin", TEXTVIEW_MARGIN)
         self.set_property("left-margin", TEXTVIEW_MARGIN)
         
 

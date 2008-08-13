@@ -67,6 +67,20 @@ def iter_buffer_contents(textbuffer, start=None, end=None,
     return iter_buffer_contents2(textbuffer, start, end, ignore_tags)
 
 
+def color_to_string(color):
+    redstr = hex(color.red)[2:]
+    greenstr = hex(color.green)[2:]
+    bluestr = hex(color.blue)[2:]
+
+    while len(redstr) < 4:
+        redstr = "0" + redstr
+    while len(greenstr) < 4:
+        greenstr = "0" + greenstr
+    while len(bluestr) < 4:
+        bluestr = "0" + bluestr
+
+    return "#%s%s%s" % (redstr, greenstr, bluestr)
+
 
 
 
@@ -618,23 +632,10 @@ class RichTextImage (RichTextAnchor):
 
 
 
-def color_to_string(color):
-    redstr = hex(color.red)[2:]
-    greenstr = hex(color.green)[2:]
-    bluestr = hex(color.blue)[2:]
-
-    while len(redstr) < 4:
-        redstr = "0" + redstr
-    while len(greenstr) < 4:
-        greenstr = "0" + greenstr
-    while len(bluestr) < 4:
-        bluestr = "0" + bluestr
-
-    return "#%s%s%s" % (redstr, greenstr, bluestr)
     
 
 #=============================================================================
-# RichText classes
+# RichText Fonts and Tags
 
 class RichTextFont (object):
     def __init__(self, mods, justify, family, size, fg_color, bg_color):
@@ -878,6 +879,7 @@ class RichTextJustifyTag (RichTextTag):
 
 
 class RichTextFamilyTag (RichTextTag):
+    """A tag that represents a font family"""
     def __init__(self, family):
         RichTextTag.__init__(self, "family " + family, family=family)
 
@@ -885,6 +887,7 @@ class RichTextFamilyTag (RichTextTag):
         return self.get_property("family")    
 
 class RichTextSizeTag (RichTextTag):
+    """A tag that represents a font size"""
     def __init__(self, size):
         RichTextTag.__init__(self, "size %d" % size, size_points=size)
 
@@ -892,33 +895,38 @@ class RichTextSizeTag (RichTextTag):
         return int(self.get_property("size-points"))
     
 class RichTextFGColorTag (RichTextTag):
+    """A tag that represents a font foreground color"""
     def __init__(self, color):
         RichTextTag.__init__(self, "fg_color %s" % color,
                              foreground=color)
 
     def get_color(self):
-        return color_to_string(tag.get_property("foreground-gdk"))
+        return color_to_string(self.get_property("foreground-gdk"))
 
 
 class RichTextBGColorTag (RichTextTag):
+    """A tag that represents a font background color"""
     def __init__(self, color):
         RichTextTag.__init__(self, "bg_color %s" % color,
                              background=color)
 
     def get_color(self):
-        return color_to_string(tag.get_property("background-gdk"))
+        return color_to_string(self.get_property("background-gdk"))
 
 
 class RichTextIndentTag (RichTextTag):
     def __init__(self, indent):
         INDENT_SIZE = 25
-        RichTextTag.__init__("indent %d", indent,
+        RichTextTag.__init__(self, "indent %d" % indent,
                              left_margin=INDENT_SIZE * indent)
         self._indent = indent
 
     def get_indent(self):
         return self._indent
 
+
+#=============================================================================
+# RichTextBuffer
     
 
 class RichTextBuffer (gtk.TextBuffer):
@@ -1214,13 +1222,14 @@ class RichTextBuffer (gtk.TextBuffer):
     def on_child_activated(self, child):
         """Callback for when child is activated (e.g. double-clicked)"""
 
+        # forward callback to listeners (textview)
         self.emit("child-activated", child)
     
 
     def on_child_popup_menu(self, child, button, activate_time):
         """Callback for when child's menu is visible"""
 
-        # forward callback to textview, if it exists
+        # forward callback to listeners (textview)
         self.emit("child-menu", child, button, activate_time)
             
     

@@ -601,8 +601,11 @@ class TakeNoteWindow (gtk.Window):
         """Saves the current NoteBook"""
         if self.notebook is not None:
 
+            # TODO: should this be outside exception
+            self.editor.save()
+
             try:
-                self.editor.save()
+                
                 self.notebook.save()
             except Exception, e:
                 if not silent:
