@@ -1376,13 +1376,23 @@ class RichTextBuffer (gtk.TextBuffer):
         self.default_attr.copy_values(attr)
         it.get_attributes(attr)
         font = attr.font
-        
-        # get font family
-        family = font.get_family()
 
-        # get size in points (get_size() returns pango units)
-        PIXELS_PER_PANGO_UNIT = 1024
-        size = font.get_size() // PIXELS_PER_PANGO_UNIT
+        if font:
+            # get font family
+            family = font.get_family()
+
+            # get size in points (get_size() returns pango units)
+            PIXELS_PER_PANGO_UNIT = 1024
+            size = font.get_size() // PIXELS_PER_PANGO_UNIT
+
+            weight = font.get_weight()
+            style = font.get_style()
+        else:
+            # TODO: replace this hardcoding
+            family = "Sans"
+            size = 10
+            weight = pango.WEIGHT_NORMAL
+            style = pango.STYLE_NORMAL
         
         
         # get colors
@@ -1392,10 +1402,10 @@ class RichTextBuffer (gtk.TextBuffer):
         # set modifications (current tags override)
         mods = {"bold":
                 self.tag_table.bold_tag in current_tags or
-                font.get_weight() == pango.WEIGHT_BOLD,
+                weight == pango.WEIGHT_BOLD,
                 "italic": 
                 self.tag_table.italic_tag in current_tags or
-                font.get_style() == pango.STYLE_ITALIC,
+                style == pango.STYLE_ITALIC,
                 "underline":
                 self.tag_table.underline_tag in current_tags or
                 attr.underline == pango.UNDERLINE_SINGLE,

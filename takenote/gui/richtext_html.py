@@ -2,9 +2,13 @@
   HTML reader/writer for RichText
 """
 
+if __name__ == "__main__":
+    import sys
+    sys.path.append("../..")
+
 
 import re
-
+import unittest
 from HTMLParser import HTMLParser
 
 
@@ -579,8 +583,90 @@ class HtmlBuffer (HTMLParser):
 
 
 def tagcolor_to_html(c):
-
     assert len(c) == 13
-
     return c[0] + c[1] + c[2] + c[5] + c[6] + c[9] + c[10]
     
+
+
+
+#=============================================================================
+# unit testing
+
+if __name__ == "__main__":
+    import StringIO
+    from takenote.gui.richtextbuffer import RichTextBuffer, IGNORE_TAGS
+    from takenote.gui.textbuffer_tools import insert_buffer_contents
+
+
+class _TestReadWrite (unittest.TestCase):
+    
+    def setUp(self):
+        self.io = HtmlBuffer()
+        self.buffer = RichTextBuffer()
+
+    #def tearDown(self):
+    #    pass
+
+    def insert(self, buffer, contents):
+        insert_buffer_contents(
+            buffer,
+            buffer.get_iter_at_mark(
+                buffer.get_insert()),
+            contents,
+            add_child=lambda buffer, it, anchor: buffer.add_child(it, anchor),
+            lookup_tag=lambda tagstr: buffer.tag_table.lookup(tagstr))
+
+    def read(self, buffer, infile):
+        contents = list(self.io.read(infile, partial=True))        
+        self.insert(self.buffer, contents)
+
+    def write(self, buffer, outfile):
+        contents = iter_buffer_contents(self.buffer,
+                                        None,
+                                        None,
+                                        IGNORE_TAGS)
+        self.io.set_output(outfile)
+        self.io.write(contents, partial=True)
+
+
+    def test_simple1(self):
+        """Simple read/write, text should not change"""
+        infile = StringIO.StringIO("<b>hello</b>")
+        outfile = StringIO.StringIO()
+
+        # read/write
+        self.read(self.buffer, infile)
+        self.write(self.buffer, outfile)
+
+        self.assertEquals(outfile.getvalue(), infile.getvalue())
+
+
+    def test_simple2(self):
+        """Tags should be normalized when writing,
+           output should not be equal."""
+        infile = StringIO.StringIO("<b><i>hello</b></i>")
+        outfile = StringIO.StringIO()
+
+        # read/write
+        self.read(self.buffer, infile)
+        self.write(self.buffer, outfile)
+
+        self.assertNotEquals(outfile.getvalue(), infile.getvalue())
+
+
+    def test_image1(self):
+        """Simple read/write, text should not change"""
+        infile = StringIO.StringIO('<img src="filename.png" width="100" height="20" />')
+        outfile = StringIO.StringIO()
+
+        # read/write
+        self.read(self.buffer, infile)
+        self.write(self.buffer, outfile)
+
+        self.assertEquals(outfile.getvalue(), infile.getvalue())
+
+
+if __name__ == '__main__':
+    unittest.main()
+
+
