@@ -3,10 +3,36 @@
  Functions for iterating and inserting into textbuffers
 
 """
+import sys
+sys.path.append("../..")
 
+from takenote.linked_list import LinkedList
 
 # TextBuffer uses this char for anchors and pixbufs
 ANCHOR_CHAR = u'\ufffc'
+
+
+
+class PushIter (object):
+    """Wrap an iterator in another iterator that allows one to push new
+       items onto the front of the iteration stream"""
+    
+    def __init__(self, it):
+        self._it = iter(it)
+        self._queue = LinkedList()
+
+    def __iter__(self):
+        return self
+        
+    def next(self):
+        if len(self._queue) > 0:
+            return self._queue.pop_front()
+        else:
+            return self._it.next()
+
+    def push(self, item):
+        """Push a new item onto the front of the iteration stream"""
+        self._queue.append(item)
 
 
 def iter_buffer_contents(textbuffer, start=None, end=None,
@@ -101,42 +127,120 @@ def buffer_contents_iter_to_offset(contents):
     
     for kind, it, param in contents:
         yield (kind, it.get_offset(), param)
+
+
+def _normalize_close(open_stack, closing_tags):
+    """Close the tags in closing_tags and reopen any tags that did not need
+       to be closed
+
+       <z><b><x><c><y><d> </d></c></b> ...
+       open               closing tags
+       stack
+
+       <z><b><x><c><y><d> </d></y></c></x></b> <x><y>
+                          closing              reopen
+
+    """
+
+    closing_tags = set(closing_tags)
+
+    # close tags until all closing_tags are closed
+    reopen_stack = []
+    while len(closing_tags) > 0:
+        tag = open_stack.pop()
+        if tag in closing_tags:
+            # mark as closed
+            closing_tags.remove(tag)
+        else:
+            # remember to reopen
+            reopen_stack.append(tag)
+        yield ("end", None, tag)
+
+    # reopen tags
+    for tag in reversed(reopen_stack):
+        open_stack.append(tag)
+        yield ("begin", None, tag)
+
     
 
-def normalize_tags(contents):
+def normalize_tags(contents, is_stable_tag=lambda tag: False):
     """Normalize open and close tags to ensure proper nesting
        This is especially useful for saving to HTML
+
+       is_stable_tag -- a function that returns True iff a tag should not
+       be touched (``stable'').
+
+       NOTE: All iterators will be turned to None's.  Since were are changing
+       tag order, iterators no longer make sense
+
+       NOTE: assumes we do not have any 'beginstr' and 'endstr' items
     """
 
     open_stack = []
+    contents = PushIter(contents)
 
     for item in contents:
         kind, it, param = item
         
         if kind == "begin":
-            open_stack.append(param)
-            yield item
+            
+            if is_stable_tag(param):
+                # if stable tag, skim ahead to see its closing tag
+                stable_span = LinkedList()
+                within_closes = set()
+                for item2 in contents:
+                    stable_span.append(item2)
+                    if item2[0] == "end":
+                        # look at closing tags
+                        if item2[2] == param:
+                            # found matching stable close
+                            break
+
+                        else:
+                            # record tags that close within the stable_span
+                            within_closes.add(item2[2])
+
+                # push items back on contents stream
+                for item in stable_span:
+                    contents.push(item)
+
+                # define tag classes
+                # preopen = open_stack
+
+                # preopen_inside = preopen's with a close in stable_span
+                preopen_inside = []
+                for tag in open_stack:
+                    if tag in within_closes:
+                        preopen_inside.append(tag)
+                
+                # preopen_outside = set(preopen) - (preopen_inside)
+
+                # close preopen_inside
+                for item2 in _normalize_close(open_stack, preopen_inside):
+                    yield item2
+
+                # yield stable open
+                open_stack.append(param)
+                yield ("begin", None, param)
+
+                # reopen preopen_inside
+                for tag in preopen_inside:
+                    yield ("begin", None, tag)
+                
+            else:                
+                # yield item unchanged
+                open_stack.append(param)
+                yield ("begin", None, param)
 
         elif kind == "end":
 
-            # close any open out of order tags
-            reopen_stack = []
-            while param != open_stack[-1]:
-                reopen_stack.append(open_stack.pop())
-                tag2 = reopen_stack[-1]
-                yield ("end", it, tag2)
-
-            # close current tag
-            open_stack.pop()
-            yield item
-
-            # reopen tags
-            for tag2 in reversed(reopen_stack):
-                open_stack.append(tag2)
-                yield ("begin", it, tag2)
+            for item2 in _normalize_close(open_stack, [param]):
+                yield item2
 
         else:
-            yield item
+            yield (kind, None, param)
+
+
 
 
 #def remove_empty_text(contents):
@@ -237,4 +341,44 @@ def buffer_contents_apply_tags(textbuffer, contents):
             start = tags[param]
             end = textbuffer.get_iter_at_offset(offset)
             textbuffer.apply_tag(param, start, end)
+
+
+
+#=============================================================================
+# testing
+
+if __name__ == "__main__":
+
+    it = PushIter(xrange(10))
+
+    for i in it:
+
+        if i == 3:
+            it.push("a")
+            it.push("b")
+            it.push("c")
+        print i
+
+
+#=============================================================================
+# EXTRA CODE TO DELETE WHEN NO LONGER NEEDED
+
+'''
+            # close any open out of order tags
+            reopen_stack = []
+            while param != open_stack[-1]:
+                reopen_stack.append(open_stack.pop())
+                tag = reopen_stack[-1]
+                yield ("end", it, tag)
+
+            # close current tag
+            open_stack.pop()
+            yield item
+
+            # reopen tags
+            for tag in reversed(reopen_stack):
+                open_stack.append(tag)
+                yield ("begin", it, tag)
+            '''
+
 
