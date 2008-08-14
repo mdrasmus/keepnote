@@ -409,6 +409,9 @@ class BaseImage (gtk.EventBox, BaseWidget):
         self._img.show()
 
 
+# TODO: think about how a single anchor could manage multiple widgets in
+# multiple textviews
+
 class RichTextImage (RichTextAnchor):
     """An Image child widget in a RichTextView"""
 
@@ -638,6 +641,8 @@ class RichTextImage (RichTextAnchor):
 # RichText Fonts and Tags
 
 class RichTextFont (object):
+    """Class for representing a font in a simple way"""
+    
     def __init__(self, mods, justify, family, size, fg_color, bg_color):
         self.mods = mods
         self.justify = justify
@@ -1126,8 +1131,12 @@ class RichTextBuffer (gtk.TextBuffer):
         self.next_action = InsertAction(self, it.get_offset(), text, length)
         self.insert_mark = self.create_mark(None, it, True)
 
+        print "insert", repr(text)
+
+        
+
     def on_delete_range(self, textbuffer, start, end):
-        """Callback for delete range"""
+        """Callback for delete range"""        
 
         # start next action
         self.next_action = DeleteAction(self, start.get_offset(), 
@@ -1171,7 +1180,11 @@ class RichTextBuffer (gtk.TextBuffer):
     
     def on_changed(self, textbuffer):
         """Callback for buffer change"""
-    
+
+        paragraph_action = None
+
+        if not self.next_action:
+            return
         
         if isinstance(self.next_action, InsertAction):
             # apply current style to inserted text
@@ -1186,6 +1199,18 @@ class RichTextBuffer (gtk.TextBuffer):
 
                 self.delete_mark(self.insert_mark)
                 self.insert_mark = None
+
+            if "\n" in self.next_action.text:
+                paragraph_action = "split"
+
+                par_start = self.get_iter_at_mark(self.get_insert())
+                par_end = par_start.copy()
+                par_end.forward_chars(self.next_action.length)
+            
+                par_start.backward_line()
+                par_end.forward_line()
+                par_end.backward_char()
+            
                 
         elif isinstance(self.next_action, DeleteAction):
             # deregister any deleted anchors
@@ -1193,16 +1218,55 @@ class RichTextBuffer (gtk.TextBuffer):
             for kind, offset, param in self.next_action.contents:
                 if kind == "anchor":
                     self._anchors.remove(param[0])
-        
-        
-        if self.next_action:
-            self.begin_user_action()        
-            action = ModifyAction(self)
-            self.undo_stack.do(action.do, action.undo)
-            self.undo_stack.do(self.next_action.do, self.next_action.undo, False)
-            self.next_action = None            
-            self.end_user_action()
 
+            if "\n" in self.next_action.text:
+                paragraph_action = "merge"
+
+                par_start = self.get_iter_at_mark(self.get_insert())
+                par_end = par_start.copy()
+
+                if par_start.backward_line():
+                    par_start.forward_line()
+                par_end.forward_line()
+                par_end.backward_char()        
+        
+        
+        self.begin_user_action()        
+        action = ModifyAction(self)
+        self.undo_stack.do(action.do, action.undo)
+        self.undo_stack.do(self.next_action.do, self.next_action.undo, False)
+
+        # process paragraph changes
+        if paragraph_action == "split":
+            self.on_paragraph_split(par_start, par_end)
+        elif paragraph_action == "merge":
+            self.on_paragraph_merge(par_start, par_end)
+                
+        self.next_action = None            
+        self.end_user_action()
+
+    def on_paragraph_merge(self, start, end):
+        """Callback for when paragraphs have merged"""
+        
+        #print "merge '%s'" % start.get_slice(end)
+        self.update_indentation(start, end)
+
+
+    def on_paragraph_split(self, start, end):
+        """Callback for when paragraphs have split"""
+                    
+        #print "split '%s'" % start.get_slice(end)
+        self.update_indentation(start, end)
+
+
+
+    def update_indentation(self, start, end):
+        """Ensure the indentation tags between start and end are up to date"""
+
+        # TODO: fixup indentation tags
+        # general rule is that the indentation at the start of each paragraph
+        # should determines the indentation of the rest of the paragraph
+        
 
     #==============================================
     # Child callbacks
@@ -1326,7 +1390,7 @@ class RichTextBuffer (gtk.TextBuffer):
             self.current_tags = [] # TODO: write the reason for this
             self.remove_tag(tag, it[0], it[1])
         self.end_user_action()
-    
+
     
     def clear_tag_class(self, tag, start, end):
         """Remove all tags of the same class as 'tag' in region (start, end)"""

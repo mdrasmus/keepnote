@@ -2,16 +2,19 @@
   HTML reader/writer for RichText
 """
 
+
 if __name__ == "__main__":
     import sys
     sys.path.append("../..")
 
 
+=======
+# python imports
 import re
 import unittest
 from HTMLParser import HTMLParser
 
-
+# takenote imports
 from takenote.gui.textbuffer_tools import \
      iter_buffer_contents, \
      buffer_contents_iter_to_offset, \
@@ -34,6 +37,13 @@ from takenote.gui.richtextbuffer import \
      RichTextBGColorTag, \
      RichTextIndentTag
 
+
+
+# constants
+XHTML_HEADER = """<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<body>"""
+XHTML_FOOTER = "</body></html>"
 
 
 def convert_indent_tags(contents):
@@ -466,11 +476,12 @@ class HtmlBuffer (HTMLParser):
     def write(self, buffer_content, partial=False):
 
         if not partial:
-            self._out.write("""<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
-<body>""")
+            self._out.write(XHTML_HEADER)
         
-        for kind, it, param in normalize_tags(convert_indent_tags(buffer_content)):
+        for kind, it, param in normalize_tags(
+            convert_indent_tags(buffer_content),
+            is_stable_tag=lambda tag: isinstance(tag, RichTextIndentTag)):
+            
             if kind == "text":
                 text = param
                 
@@ -521,7 +532,7 @@ class HtmlBuffer (HTMLParser):
                 raise Exception("unknown kind '%s'" % str(kind))
 
         if not partial:
-            self._out.write("</body></html>")
+            self._out.write(XHTML_FOOTER)
         
     
     def write_tag_begin(self, tag):

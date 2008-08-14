@@ -51,6 +51,12 @@ class LinkedList (object):
             yield ptr._item
             ptr = ptr._prev
 
+    def get_head(self):
+        return self._head
+
+    def get_tail(self):
+        return self._tail
+
     def iternodes(self):
         """Iterate over the linked nodes in a list"""
 
