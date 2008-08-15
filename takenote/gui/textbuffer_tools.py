@@ -199,10 +199,10 @@ def normalize_tags(contents, is_stable_tag=lambda tag: False):
                         else:
                             # record tags that close within the stable_span
                             within_closes.add(item2[2])
-
+                
                 # push items back on contents stream
-                for item in stable_span:
-                    contents.push(item)
+                for item2 in reversed(stable_span):
+                    contents.push(item2)
 
                 # define tag classes
                 # preopen = open_stack
@@ -212,6 +212,8 @@ def normalize_tags(contents, is_stable_tag=lambda tag: False):
                 for tag in open_stack:
                     if tag in within_closes:
                         preopen_inside.append(tag)
+
+                print preopen_inside
                 
                 # preopen_outside = set(preopen) - (preopen_inside)
 
@@ -222,9 +224,10 @@ def normalize_tags(contents, is_stable_tag=lambda tag: False):
                 # yield stable open
                 open_stack.append(param)
                 yield ("begin", None, param)
-
+                
                 # reopen preopen_inside
                 for tag in preopen_inside:
+                    open_stack.append(tag)
                     yield ("begin", None, tag)
                 
             else:                
@@ -233,7 +236,7 @@ def normalize_tags(contents, is_stable_tag=lambda tag: False):
                 yield ("begin", None, param)
 
         elif kind == "end":
-
+            
             for item2 in _normalize_close(open_stack, [param]):
                 yield item2
 

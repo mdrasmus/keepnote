@@ -995,12 +995,13 @@ class RichTextBuffer (gtk.TextBuffer):
     def clear(self):
         """Clear buffer contents"""
         
-        self._anchors.clear()
-        self._anchors_deferred.clear()
         start = self.get_start_iter()
         end = self.get_end_iter()
         self.remove_all_tags(start, end)
         self.delete(start, end)
+
+        self._anchors.clear()
+        self._anchors_deferred.clear()
 
     
     
@@ -1130,11 +1131,8 @@ class RichTextBuffer (gtk.TextBuffer):
         # start new action
         self.next_action = InsertAction(self, it.get_offset(), text, length)
         self.insert_mark = self.create_mark(None, it, True)
-
-        print "insert", repr(text)
-
         
-
+        
     def on_delete_range(self, textbuffer, start, end):
         """Callback for delete range"""        
 
