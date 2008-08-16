@@ -39,12 +39,11 @@ XHTML_HEADER = """<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
 XHTML_FOOTER = "</body></html>"
 
 
-def convert_indent_tags(contents):
+def convert_indent_tags(contents, tag_table):
     """Convert indent tags so that they nest like HTML tags"""
 
     indent = 0
     indent_closing = False
-    indent_tag = None
 
     for item in contents:
 
@@ -53,7 +52,7 @@ def convert_indent_tags(contents):
             if item[0] == "anchor" or item[0] == "text":            
                 # close all indents
                 while indent > 0:
-                    yield ("end", None, indent_tag)
+                    yield ("end", None, tag_table.lookup_indent_tag(indent))
                     indent -= 1
                 indent_closing = False
 
@@ -64,7 +63,7 @@ def convert_indent_tags(contents):
                     next_indent = tag.get_indent()
 
                     while indent > next_indent:
-                        yield ("end", None, indent_tag)
+                        yield ("end", None, tag_table.lookup_indent_tag(indent))
                         indent -= 1
                 
                     indent_closing = False            
@@ -80,8 +79,8 @@ def convert_indent_tags(contents):
                 
                 while indent < next_indent:
                     # open new indents until we match level
-                    indent += 1                    
-                    yield item
+                    indent += 1
+                    yield ("begin", None, tag_table.lookup_indent_tag(indent))
 
                 # done processing this tag
                 continue
@@ -92,14 +91,13 @@ def convert_indent_tags(contents):
             if isinstance(tag, RichTextIndentTag):
                 next_indent = tag.get_indent()
                 indent_closing = True
-                indent_tag = tag
                 continue
             
         yield item
 
     # close all remaining indents
     while indent > 0:
-        yield ("end", None, indent_tag)
+        yield ("end", None, tag_table.lookup_indent_tag(indent))
         indent -= 1
     
         
@@ -431,8 +429,13 @@ class HtmlBuffer (HTMLParser):
 
         if htmltag == "ul":
             # indent
-            self.append_buffer_item("endstr", "indent %d" % self._indent)
-            self._indent -= 1
+            if self._indent > 0:
+                self.append_buffer_item("endstr", "indent %d" % self._indent)
+                self._indent -= 1
+            else:
+                # NOTE: this is an error in the HTML input.  More closes than
+                # opens
+                self._indent = 0
 
             if self._indent > 0:
                 self.append_buffer_item("beginstr", "indent %d" % self._indent)
@@ -473,13 +476,13 @@ class HtmlBuffer (HTMLParser):
     #================================================
     # Writing HTML
     
-    def write(self, buffer_content, partial=False):
+    def write(self, buffer_content, tag_table, partial=False):
 
         if not partial:
             self._out.write(XHTML_HEADER)
         
         for kind, it, param in normalize_tags(
-            convert_indent_tags(buffer_content),
+            convert_indent_tags(buffer_content, tag_table),
             is_stable_tag=lambda tag: isinstance(tag, RichTextIndentTag)):
             
             if kind == "text":
