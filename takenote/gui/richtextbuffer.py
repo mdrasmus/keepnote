@@ -810,7 +810,7 @@ class RichTextTagTable (gtk.TextTagTable):
                 return self.lookup_indent_tag(int(indent.split(" ", 1)[1]))
             
             else:
-                return RichTextIndentTag(1)
+                return self.lookup_indent_tag(1)
             
         else:
             # lookup from integer
@@ -921,9 +921,10 @@ class RichTextBGColorTag (RichTextTag):
 
 class RichTextIndentTag (RichTextTag):
     def __init__(self, indent):
+        MIN_INDENT = 5
         INDENT_SIZE = 25
         RichTextTag.__init__(self, "indent %d" % indent,
-                             left_margin=INDENT_SIZE * indent)
+                             left_margin=MIN_INDENT + INDENT_SIZE * indent)
         self._indent = indent
 
     def get_indent(self):
@@ -1003,7 +1004,127 @@ class RichTextBuffer (gtk.TextBuffer):
         self._anchors.clear()
         self._anchors_deferred.clear()
 
-    
+    #======================================================
+    # indentation methods/callbacks
+
+    def indent(self, start=None, end=None):
+        """Indent paragraph level"""
+
+        #print "indent"
+        self.change_indent(start, end, 1)
+
+
+    def unindent(self, start=None, end=None):
+        """Unindent paragraph level"""
+
+        #print "unindent"
+        self.change_indent(start, end, -1)
+
+
+    def change_indent(self, start, end, change):
+        """Change indentation level"""
+        
+        # determine region
+        if start is None or end is None:
+            sel = self.get_selection_bounds()
+
+            if not sel:
+                start, end = self.get_paragraph()
+            else:
+                start, _ = self.get_paragraph(sel[0])
+                _, end = self.get_paragraph(sel[1])
+
+        self.begin_user_action()
+
+        # loop through paragraphs
+        pos = start
+        while pos.compare(end) == -1:
+            par_end = pos.copy()
+            par_end.forward_line()
+            indent = self.get_indent(pos)
+            self.apply_tag_selected(self.tag_table.lookup_indent_tag(indent +
+                                                                     change),
+                                    pos, par_end)
+
+            if not pos.forward_line():
+                break
+
+        self.end_user_action()
+        
+
+
+    def get_indent(self, it=None):
+        """Returns the indentation level at iter 'it'"""
+        
+        if not it:
+            it = self.get_iter_at_mark(self.get_insert())
+
+        for tag in it.get_tags():
+            if isinstance(tag, RichTextIndentTag):
+                return tag.get_indent()
+
+        return 0
+
+
+
+    def _on_paragraph_merge(self, start, end):
+        """Callback for when paragraphs have merged"""
+        
+        #print "merge '%s'" % start.get_slice(end)
+        self.update_indentation(start, end)
+
+
+    def _on_paragraph_split(self, start, end):
+        """Callback for when paragraphs have split"""
+                    
+        #print "split '%s'" % start.get_slice(end)
+        self.update_indentation(start, end)
+
+
+
+    def update_indentation(self, start, end):
+        """Ensure the indentation tags between start and end are up to date"""
+
+        # NOTE: assume start and end are at proper paragraph boundaries
+
+        self.begin_user_action()
+
+        # fixup indentation tags
+        # The general rule is that the indentation at the start of
+        # each paragraph should determines the indentation of the rest
+        # of the paragraph
+
+        pos = start
+        while pos.compare(end) == -1:
+            par_end = pos.copy()
+            par_end.forward_line()
+            indent = self.get_indent(pos)
+            #print indent, pos.get_offset(), par_end.get_offset()
+            self.apply_tag_selected(self.tag_table.lookup_indent_tag(indent),
+                                    pos, par_end)
+
+            if not pos.forward_line():
+                break
+
+        self.end_user_action()
+        
+
+    def get_paragraph(self, it=None):
+        """Returns the start and end of a paragraph containing iter 'it'"""
+
+        if not it:
+            it = self.get_iter_at_mark(self.get_insert())
+        
+        par_start = it.copy()
+        par_end = par_start.copy()
+        
+        if par_start.backward_line():
+            par_start.forward_line()
+            
+        par_end.forward_line()
+
+        return par_start, par_end
+
     
     
     #============================================================
@@ -1203,9 +1324,9 @@ class RichTextBuffer (gtk.TextBuffer):
 
                 par_start = self.get_iter_at_mark(self.get_insert())
                 par_end = par_start.copy()
-                par_end.forward_chars(self.next_action.length)
-            
+                
                 par_start.backward_line()
+                par_end.forward_chars(self.next_action.length)
                 par_end.forward_line()
                 par_end.backward_char()
             
@@ -1219,14 +1340,7 @@ class RichTextBuffer (gtk.TextBuffer):
 
             if "\n" in self.next_action.text:
                 paragraph_action = "merge"
-
-                par_start = self.get_iter_at_mark(self.get_insert())
-                par_end = par_start.copy()
-
-                if par_start.backward_line():
-                    par_start.forward_line()
-                par_end.forward_line()
-                par_end.backward_char()        
+                par_start, par_end = self.get_paragraph()
         
         
         self.begin_user_action()        
@@ -1234,37 +1348,16 @@ class RichTextBuffer (gtk.TextBuffer):
         self.undo_stack.do(action.do, action.undo)
         self.undo_stack.do(self.next_action.do, self.next_action.undo, False)
 
+        # TODO: make sure these are only executed during iteractive input
         # process paragraph changes
-        if paragraph_action == "split":
-            self.on_paragraph_split(par_start, par_end)
-        elif paragraph_action == "merge":
-            self.on_paragraph_merge(par_start, par_end)
+        #if paragraph_action == "split":
+        #    self._on_paragraph_split(par_start, par_end)
+        #elif paragraph_action == "merge":
+        #    self._on_paragraph_merge(par_start, par_end)
                 
         self.next_action = None            
         self.end_user_action()
 
-    def on_paragraph_merge(self, start, end):
-        """Callback for when paragraphs have merged"""
-        
-        #print "merge '%s'" % start.get_slice(end)
-        self.update_indentation(start, end)
-
-
-    def on_paragraph_split(self, start, end):
-        """Callback for when paragraphs have split"""
-                    
-        #print "split '%s'" % start.get_slice(end)
-        self.update_indentation(start, end)
-
-
-
-    def update_indentation(self, start, end):
-        """Ensure the indentation tags between start and end are up to date"""
-
-        # TODO: fixup indentation tags
-        # general rule is that the indentation at the start of each paragraph
-        # should determines the indentation of the rest of the paragraph
-        
 
     #==============================================
     # Child callbacks
@@ -1332,11 +1425,17 @@ class RichTextBuffer (gtk.TextBuffer):
     # Tag manipulation    
 
 
-    def toggle_tag_selected(self, tag):
+    def toggle_tag_selected(self, tag, start=None, end=None):
         """Toggle tag in selection or current tags"""
+
+        # TODO: this needs to be inside an Action
         
         self.begin_user_action()
-        it = self.get_selection_bounds()
+
+        if start is None:
+            it = self.get_selection_bounds()
+        else:
+            it = [start, end]
         
         if len(it) == 0:
             # no selection, toggle current tags
@@ -1356,11 +1455,15 @@ class RichTextBuffer (gtk.TextBuffer):
         self.end_user_action()
     
 
-    def apply_tag_selected(self, tag):
+    def apply_tag_selected(self, tag, start=None, end=None):
         """Apply tag to selection or current tags"""
         
-        self.begin_user_action()    
-        it = self.get_selection_bounds()
+        self.begin_user_action()
+
+        if start is None:
+            it = self.get_selection_bounds()
+        else:
+            it = [start, end]
         
         if len(it) == 0:
             # no selection, apply to current tags

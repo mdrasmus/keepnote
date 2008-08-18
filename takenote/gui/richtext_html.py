@@ -39,67 +39,72 @@ XHTML_HEADER = """<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
 XHTML_FOOTER = "</body></html>"
 
 
-def convert_indent_tags(contents):
+def convert_indent_tags(contents, tag_table):
     """Convert indent tags so that they nest like HTML tags"""
 
     indent = 0
     indent_closing = False
-    indent_tag = None
 
+    # loop throught contents stream
     for item in contents:
-
-        # check for closing indents
+        
+        # if we are in the middle of a indent closing event, then the next
+        # item determines what we should do
         if indent_closing:
             if item[0] == "anchor" or item[0] == "text":            
-                # close all indents
+                # if we see "content" (anchors or text) (instead of
+                # immediately opening a new indent) then we must close all
+                # indents (i.e. indent=0)
                 while indent > 0:
-                    yield ("end", None, indent_tag)
+                    yield ("end", None, tag_table.lookup_indent_tag(indent))
                     indent -= 1
                 indent_closing = False
 
             elif item[0] == "begin":
+                # if we see a begining tag then check to see if its an
+                # indentation tag
                 tag = item[2]
                 
                 if isinstance(tag, RichTextIndentTag):
+                    # (A) if it is a new indentation  that is of lower indent
+                    # close all indents until we match
                     next_indent = tag.get_indent()
 
                     while indent > next_indent:
-                        yield ("end", None, indent_tag)
+                        yield ("end", None, tag_table.lookup_indent_tag(indent))
                         indent -= 1
                 
-                    indent_closing = False            
+                    indent_closing = False
+            else:
+                # do nothing
+                pass
 
         # yield items
-        if item[0] == "begin":
-            tag = item[2]
-            
-            if isinstance(tag, RichTextIndentTag):
+        if item[0] == "begin" and \
+           isinstance(item[2], RichTextIndentTag):
+                # if item is a begining indent, open indents until we match
+                tag = item[2]
                 next_indent = tag.get_indent()
 
+                # should be true since (A) should have executed
                 assert next_indent >= indent
                 
                 while indent < next_indent:
                     # open new indents until we match level
-                    indent += 1                    
-                    yield item
+                    indent += 1
+                    assert indent > 0
+                    yield ("begin", None, tag_table.lookup_indent_tag(indent))
 
-                # done processing this tag
-                continue
-
-        elif item[0] == "end":
-            tag = item[2]
-
-            if isinstance(tag, RichTextIndentTag):
-                next_indent = tag.get_indent()
+        elif item[0] == "end" and \
+             isinstance(item[2], RichTextIndentTag):
+                next_indent = item[2].get_indent()
                 indent_closing = True
-                indent_tag = tag
-                continue
-            
-        yield item
+        else:
+            yield item
 
     # close all remaining indents
     while indent > 0:
-        yield ("end", None, indent_tag)
+        yield ("end", None, tag_table.lookup_indent_tag(indent))
         indent -= 1
     
         
@@ -431,8 +436,13 @@ class HtmlBuffer (HTMLParser):
 
         if htmltag == "ul":
             # indent
-            self.append_buffer_item("endstr", "indent %d" % self._indent)
-            self._indent -= 1
+            if self._indent > 0:
+                self.append_buffer_item("endstr", "indent %d" % self._indent)
+                self._indent -= 1
+            else:
+                # NOTE: this is an error in the HTML input.  More closes than
+                # opens
+                self._indent = 0
 
             if self._indent > 0:
                 self.append_buffer_item("beginstr", "indent %d" % self._indent)
@@ -473,13 +483,13 @@ class HtmlBuffer (HTMLParser):
     #================================================
     # Writing HTML
     
-    def write(self, buffer_content, partial=False):
+    def write(self, buffer_content, tag_table, partial=False):
 
         if not partial:
             self._out.write(XHTML_HEADER)
         
         for kind, it, param in normalize_tags(
-            convert_indent_tags(buffer_content),
+            convert_indent_tags(buffer_content, tag_table),
             is_stable_tag=lambda tag: isinstance(tag, RichTextIndentTag)):
             
             if kind == "text":

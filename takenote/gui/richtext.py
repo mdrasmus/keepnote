@@ -40,7 +40,9 @@ from takenote.gui.richtextbuffer import \
      add_child_to_buffer, \
      RichTextBuffer, \
      RichTextImage, \
-     RichTextError
+     RichTextError, \
+     RichTextIndentTag
+
 
 from takenote.gui.richtext_html import HtmlBuffer, HtmlError
 
@@ -122,7 +124,10 @@ class RichTextView (gtk.TextView):
         self.set_wrap_mode(gtk.WRAP_WORD)
         self.set_property("right-margin", TEXTVIEW_MARGIN)
         self.set_property("left-margin", TEXTVIEW_MARGIN)
-        
+
+        self.connect("key-press-event", self.on_key_press_event)
+        #self.connect("insert-at-cursor", self.on_insert_at_cursor)
+        self.connect("backspace", self.on_backspace)
 
         # drag and drop
         self.connect("drag-data-received", self.on_drag_data_received)
@@ -210,6 +215,49 @@ class RichTextView (gtk.TextView):
                                         self.on_child_popup_menu)
                 ]
 
+    #======================================================
+    # callbacks
+
+
+    def on_key_press_event(self, textview, event):
+        """Callback from key press event"""
+        if event.keyval == gtk.keysyms.ISO_Left_Tab:
+            # shift+tab is pressed
+            
+            it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
+
+            # indent if cursor at start of paragraph or if there is a selection
+            if self._textbuffer.get_selection_bounds():
+                # tab at start of line should do indentation
+                self.unindent()
+                return True
+
+        if event.keyval == gtk.keysyms.Tab:
+            # tab is pressed
+            
+            it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
+
+            # indent if cursor at start of paragraph or if there is a selection
+            if it.starts_line() or \
+               self._textbuffer.get_selection_bounds():
+                # tab at start of line should do indentation
+                self.indent()
+                return True
+
+
+    def on_backspace(self, textview):
+        """Callback for backspace press"""
+        
+        it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
+
+        if it.starts_line():
+
+            # look for indent tags
+            if self._textbuffer.get_indent() > 0:
+                self.unindent()
+                self.stop_emission("backspace")
+
+        
 
     #def on_button_press(self, widget, event):
     #    pass #print "click"
@@ -510,7 +558,9 @@ class RichTextView (gtk.TextView):
             # set html
             stream = StringIO.StringIO(data)
             self._html_buffer.set_output(stream)
-            self._html_buffer.write(contents, partial=True)
+            self._html_buffer.write(contents,
+                                    self._tetxbuffer.tag_table,
+                                    partial=True)
             selection_data.set("text/html", 8, stream.getvalue())
 
         elif len([x for x in MIME_IMAGES
@@ -546,7 +596,8 @@ class RichTextView (gtk.TextView):
             
             out = open(filename, "wb")
             self._html_buffer.set_output(out)
-            self._html_buffer.write(buffer_contents)
+            self._html_buffer.write(buffer_contents,
+                                    self._textbuffer.tag_table)
             out.close()
         except IOError, e:
             raise RichTextError("Could not save '%s'." % filename, e)
@@ -730,7 +781,15 @@ class RichTextView (gtk.TextView):
     
     #===========================================================
     # Actions
-        
+
+    def indent(self):
+        self._textbuffer.indent()
+
+
+    def unindent(self):
+        self._textbuffer.unindent()
+
+    
     def insert_image(self, image, filename="image.png"):
         """Inserts an image into the textbuffer"""
                 
@@ -783,6 +842,7 @@ class RichTextView (gtk.TextView):
     #==========================================================
     # Find/Replace
 
+    # TODO: move to buffer
     # TODO: add wrapping to search
     
     def forward_search(self, it, text, case_sensitive):

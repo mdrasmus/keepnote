@@ -19,14 +19,14 @@ class PushIter (object):
     
     def __init__(self, it):
         self._it = iter(it)
-        self._queue = LinkedList()
+        self._queue = []
 
     def __iter__(self):
         return self
         
     def next(self):
         if len(self._queue) > 0:
-            return self._queue.pop_front()
+            return self._queue.pop()
         else:
             return self._it.next()
 
@@ -49,7 +49,7 @@ def iter_buffer_contents(textbuffer, start=None, end=None,
         it = textbuffer.get_start_iter()
     else:
         it = start.copy()
-    last = it.copy()
+    #last = it.copy()
 
     if end is None:
         end = textbuffer.get_end_iter()
@@ -62,38 +62,48 @@ def iter_buffer_contents(textbuffer, start=None, end=None,
         yield ("begin", it, tag)
     
     while True:
-        it2 = it.copy()    
-        it.forward_to_tag_toggle(None)
+        it2 = it.copy()
 
-        # yield child anchors between tags        
+        # advance it to next tag toggle
+        it.forward_to_tag_toggle(None)
+        if it.compare(end) == -1: #it.get_offset() < end.get_offset():
+            stop = it
+        else:
+            stop = end
+        
+        # yield child anchors between tags
+        # namely, advance it2 towards it
         while True:
-            if it.get_offset() < end.get_offset():
-                stop = it
-            else:
-                stop = end
+            # find next achor
             ret = it2.forward_search(ANCHOR_CHAR, (), stop)
+
+            if ret:                
+                # anchor found
+                a, b = ret
+                anchor = a.get_child_anchor()
             
-            if ret is None:
+                # yield text before anchor
+                text = it2.get_text(a)
+                if len(text) > 0:
+                    yield ("text", it2, text)
+
+                # yield anchor
+                if anchor is not None:
+                    yield ("anchor", a, (anchor, anchor.get_widgets()))
+                else:
+                    yield ("pixbuf", a, a.get_pixbuf())
+
+                # advance it2 past anchor
+                it2 = b
+            else:
+                # no anchor, yield all text up to stop and break loop
                 text = it2.get_text(stop)
                 if len(text) > 0:
                     yield ("text", it2, text)
                 break
-            
-            a, b = ret
-            anchor = a.get_child_anchor()
-            
-            # yield text in between tags
-            text = it2.get_text(a)
-            if len(text) > 0:
-                yield ("text", it2, text)
-            if anchor is not None:
-                yield ("anchor", a, (anchor, anchor.get_widgets()))
-            else:
-                yield ("pixbuf", a, a.get_pixbuf())
-            it2 = b
         
         # stop iterating if we have pasted end of region
-        if it.get_offset() > end.get_offset():
+        if it.compare(end) == 1: #it.get_offset() > end.get_offset():
             break
         
         # yield closing tags
@@ -108,7 +118,7 @@ def iter_buffer_contents(textbuffer, start=None, end=None,
                 continue
             yield ("begin", it, tag)
         
-        last = it.copy()
+        #last = it.copy()
         
         if it.equal(end):
             break
@@ -212,10 +222,6 @@ def normalize_tags(contents, is_stable_tag=lambda tag: False):
                 for tag in open_stack:
                     if tag in within_closes:
                         preopen_inside.append(tag)
-
-                print preopen_inside
-                
-                # preopen_outside = set(preopen) - (preopen_inside)
 
                 # close preopen_inside
                 for item2 in _normalize_close(open_stack, preopen_inside):
@@ -345,22 +351,6 @@ def buffer_contents_apply_tags(textbuffer, contents):
             end = textbuffer.get_iter_at_offset(offset)
             textbuffer.apply_tag(param, start, end)
 
-
-
-#=============================================================================
-# testing
-
-if __name__ == "__main__":
-
-    it = PushIter(xrange(10))
-
-    for i in it:
-
-        if i == 3:
-            it.push("a")
-            it.push("b")
-            it.push("c")
-        print i
 
 
 #=============================================================================
