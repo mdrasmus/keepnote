@@ -223,3 +223,50 @@ class TestCaseHtmlBuffer (unittest.TestCase):
         self.assertEquals(lst2, [0, 1, 2, 'a', 'b', 'c', 3, 4, 5, 6, 7, 8, 9])
         
 
+    #========================================
+    # buffer tests
+
+    def test_undo_family(self):
+        """Test whether family font change can be undone"""
+        
+        self.buffer.insert_at_cursor("hello")
+        
+        tag = self.buffer.tag_table.lookup_family_tag("Serif")
+        self.buffer.apply_tag_selected(tag, self.buffer.get_start_iter(),
+                                       self.buffer.get_end_iter())
+
+        tag = self.buffer.tag_table.lookup_family_tag("Monospace")
+        self.buffer.apply_tag_selected(tag, self.buffer.get_start_iter(),
+                                       self.buffer.get_end_iter())
+
+        self.buffer.undo()
+        
+        contents = list(iter_buffer_contents(self.buffer,
+                                             None, None, IGNORE_TAGS))
+        self.assertEquals([display_item(x) for x in contents],
+                          ['BEGIN:family Serif',
+                           'hello',
+                           'END:family Serif'])
+
+    def test_undo_size(self):
+        """Test whether font size change can be undone"""
+        self.buffer.insert_at_cursor("hello")
+        
+        tag = self.buffer.tag_table.lookup_size_tag(20)
+        self.buffer.apply_tag_selected(tag, self.buffer.get_start_iter(),
+                                       self.buffer.get_end_iter())
+
+        tag = self.buffer.tag_table.lookup_size_tag(30)
+        self.buffer.apply_tag_selected(tag, self.buffer.get_start_iter(),
+                                       self.buffer.get_end_iter())
+
+        self.buffer.undo()
+        
+        contents = list(iter_buffer_contents(self.buffer,
+                                             None, None, IGNORE_TAGS))
+        self.assertEquals([display_item(x) for x in contents],
+                          ['BEGIN:size 20',
+                           'hello',
+                           'END:size 20'])
+
+

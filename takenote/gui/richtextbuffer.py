@@ -118,7 +118,7 @@ class Action (object):
     def undo(self):
         pass
 
-
+# TODO: this could be taken out
 class ModifyAction (Action):
     """Represents the act of changing the RichTextBuffer's modified state"""
     
@@ -268,8 +268,7 @@ class TagAction (Action):
         end = self.textbuffer.get_iter_at_offset(self.end_offset)
         if self.applied:
             self.textbuffer.remove_tag(self.tag, start, end)
-        else:
-            self.textbuffer.apply_tag(self.tag, start, end)
+        # undo for remove tag is simply to restore old tags
         buffer_contents_apply_tags(self.textbuffer, self.contents)
         
     
@@ -1276,7 +1275,7 @@ class RichTextBuffer (gtk.TextBuffer):
     
     def on_apply_tag(self, textbuffer, tag, start, end):
         """Callback for tag apply"""
-        
+
         self.begin_user_action()
         action = ModifyAction(self)
         self.undo_stack.do(action.do, action.undo)
@@ -1287,7 +1286,7 @@ class RichTextBuffer (gtk.TextBuffer):
     
     def on_remove_tag(self, textbuffer, tag, start, end):
         """Callback for tag remove"""
-    
+
         self.begin_user_action()
         action = ModifyAction(self)
         self.undo_stack.do(action.do, action.undo)
@@ -1428,7 +1427,7 @@ class RichTextBuffer (gtk.TextBuffer):
     def toggle_tag_selected(self, tag, start=None, end=None):
         """Toggle tag in selection or current tags"""
 
-        # TODO: this needs to be inside an Action
+        # TODO: should manipulation of self.current_tags be an Action?
         
         self.begin_user_action()
 
