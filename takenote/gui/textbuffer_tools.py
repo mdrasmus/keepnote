@@ -268,6 +268,9 @@ def normalize_tags(contents, is_stable_tag=lambda tag: False):
 def insert_buffer_contents(textbuffer, pos, contents, add_child,
                            lookup_tag=lambda tagstr: None):
     """Insert a content list into a RichTextBuffer"""
+
+    # make sure all inserts are treated as one action
+    textbuffer.begin_user_action()
     
     textbuffer.place_cursor(pos)
     tags = {}
@@ -333,6 +336,9 @@ def insert_buffer_contents(textbuffer, pos, contents, add_child,
                 start = textbuffer.get_iter_at_offset(offset)
                 end = textbuffer.get_iter_at_mark(textbuffer.get_insert())
                 textbuffer.apply_tag(tag, start, end)
+
+    
+    textbuffer.end_user_action()
 
 
 def buffer_contents_apply_tags(textbuffer, contents):

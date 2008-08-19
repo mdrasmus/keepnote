@@ -931,6 +931,16 @@ class RichTextBuffer (gtk.TextBuffer):
         self._insert_mark = None
         self._next_action = None
         self._current_tags = []
+        self._user_action = False
+
+        self._indent_update = False
+        self._indent_update_start = self.create_mark("indent_update_start",
+                                                     self.get_start_iter(),
+                                                     True)
+        self._indent_update_end = self.create_mark("indent_update_end",
+                                                   self.get_end_iter(),
+                                                   False)
+        
 
         # set of all anchors in buffer
         self._anchors = set()
@@ -1076,16 +1086,14 @@ class RichTextBuffer (gtk.TextBuffer):
 
     def _on_paragraph_merge(self, start, end):
         """Callback for when paragraphs have merged"""
-        
         #print "merge '%s'" % start.get_slice(end)
-        self.update_indentation(start, end)
+        #self.update_indentation(start, end)
 
 
     def _on_paragraph_split(self, start, end):
         """Callback for when paragraphs have split"""
-                    
         #print "split '%s'" % start.get_slice(end)
-        self.update_indentation(start, end)
+        #self.update_indentation(start, end)
 
 
 
@@ -1094,26 +1102,58 @@ class RichTextBuffer (gtk.TextBuffer):
 
         # NOTE: assume start and end are at proper paragraph boundaries
 
-        self.begin_user_action()
+        # TODO: make sure these are only executed during iteractive input
+        # process paragraph changes
 
-        # fixup indentation tags
-        # The general rule is that the indentation at the start of
-        # each paragraph should determines the indentation of the rest
-        # of the paragraph
+        # I could use self._user_action to determine if this event is part
+        # of a larger action, which case I should setup a pending 
+        # paragraph indentation update.  Can I use marks some how to remember
+        # where updates need to be done?  Say a min and max...
 
-        pos = start
-        while pos.compare(end) == -1:
-            par_end = pos.copy()
-            par_end.forward_line()
-            indent = self.get_indent(pos)
-            #print indent, pos.get_offset(), par_end.get_offset()
-            self.apply_tag_selected(self.tag_table.lookup_indent(indent),
-                                    pos, par_end)
+        # TODO: add final call in _on_end_user_action
 
-            if not pos.forward_line():
-                break
+        if self._user_action:
+            # queue an indentation update
 
-        self.end_user_action()
+            if not self._indent_update:
+                # first update
+                self._indent_update = True
+                self.move_mark(self._indent_update_start, start)
+                self.move_mark(self._indent_update_end, end)
+            else:
+                # expand update
+
+                a = self.get_iter_at_mark(self._indent_update_start)
+                b = self.get_iter_at_mark(self._indent_update_end)
+
+                if start.compare(a) == -1:                
+                    self.move_mark(self._indent_update_start, start)
+
+                if end.compare(b) == 1:
+                    self.move_mark(self._indent_update_end, end)
+                
+        else:
+            # perfrom indentation update
+            self.begin_user_action()
+
+            # fixup indentation tags
+            # The general rule is that the indentation at the start of
+            # each paragraph should determines the indentation of the rest
+            # of the paragraph
+
+            pos = start
+            while pos.compare(end) == -1:
+                par_end = pos.copy()
+                par_end.forward_line()
+                indent = self.get_indent(pos)
+                #print indent, pos.get_offset(), par_end.get_offset()
+                self.apply_tag_selected(self.tag_table.lookup_indent(indent),
+                                        pos, par_end)
+
+                if not pos.forward_line():
+                    break
+
+            self.end_user_action()
         
 
     def get_paragraph(self, it=None):
@@ -1315,6 +1355,7 @@ class RichTextBuffer (gtk.TextBuffer):
                 it2 = it.copy()
                 it2.forward_chars(self._next_action.length)
 
+                # TODO: I could suppress undo for these tags
                 for tag in self._current_tags:
                     self.apply_tag(tag, it, it2)
 
@@ -1347,13 +1388,11 @@ class RichTextBuffer (gtk.TextBuffer):
         
         self.begin_user_action()
         self.undo_stack.do(self._next_action.do, self._next_action.undo, False)
-
-        # TODO: make sure these are only executed during iteractive input
-        # process paragraph changes
-        #if paragraph_action == "split":
-        #    self._on_paragraph_split(par_start, par_end)
-        #elif paragraph_action == "merge":
-        #    self._on_paragraph_merge(par_start, par_end)
+        
+        if paragraph_action == "split":
+            self._on_paragraph_split(par_start, par_end)
+        elif paragraph_action == "merge":
+            self._on_paragraph_merge(par_start, par_end)
                 
         self._next_action = None            
         self.end_user_action()
@@ -1620,10 +1659,14 @@ class RichTextBuffer (gtk.TextBuffer):
     
     def _on_begin_user_action(self, textbuffer):
         """Begin a composite undo/redo action"""
+
+        self._user_action = True
         self.undo_stack.begin_action()
 
     def _on_end_user_action(self, textbuffer):
         """End a composite undo/redo action"""
+
+        self._user_action = False
         self.undo_stack.end_action()
 
 
