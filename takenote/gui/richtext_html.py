@@ -56,7 +56,7 @@ def convert_indent_tags(contents, tag_table):
                 # immediately opening a new indent) then we must close all
                 # indents (i.e. indent=0)
                 while indent > 0:
-                    yield ("end", None, tag_table.lookup_indent_tag(indent))
+                    yield ("end", None, tag_table.lookup_indent(indent))
                     indent -= 1
                 indent_closing = False
 
@@ -71,7 +71,7 @@ def convert_indent_tags(contents, tag_table):
                     next_indent = tag.get_indent()
 
                     while indent > next_indent:
-                        yield ("end", None, tag_table.lookup_indent_tag(indent))
+                        yield ("end", None, tag_table.lookup_indent(indent))
                         indent -= 1
                 
                     indent_closing = False
@@ -93,7 +93,7 @@ def convert_indent_tags(contents, tag_table):
                     # open new indents until we match level
                     indent += 1
                     assert indent > 0
-                    yield ("begin", None, tag_table.lookup_indent_tag(indent))
+                    yield ("begin", None, tag_table.lookup_indent(indent))
 
         elif item[0] == "end" and \
              isinstance(item[2], RichTextIndentTag):
@@ -104,7 +104,7 @@ def convert_indent_tags(contents, tag_table):
 
     # close all remaining indents
     while indent > 0:
-        yield ("end", None, tag_table.lookup_indent_tag(indent))
+        yield ("end", None, tag_table.lookup_indent(indent))
         indent -= 1
     
         

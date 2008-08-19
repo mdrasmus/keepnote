@@ -28,11 +28,7 @@ except ImportError:
 import takenote
 
 from takenote.gui.textbuffer_tools import \
-     iter_buffer_contents, \
-     buffer_contents_iter_to_offset, \
-     normalize_tags, \
-     insert_buffer_contents, \
-     buffer_contents_apply_tags
+     iter_buffer_contents
 
 from takenote.gui.richtextbuffer import \
      IGNORE_TAGS, \
@@ -533,13 +529,8 @@ class RichTextView (gtk.TextView):
         if self._clipboard_contents is None:
             # do nothing
             return
-        
-        self._textbuffer.begin_user_action()
-        it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
-        insert_buffer_contents(self._textbuffer, it,
-                               self._clipboard_contents,
-                               add_child=add_child_to_buffer)
-        self._textbuffer.end_user_action()
+
+        self._textbuffer.insert_contents(self._clipboard_contents)
     
     
     def get_selection_data(self, clipboard, selection_data, info, data):
@@ -626,12 +617,8 @@ class RichTextView (gtk.TextView):
 
             # NOTE: buffer_contents is a generator
             buffer_contents = self._html_buffer.read(open(filename, "r"))
-            insert_buffer_contents(textbuffer,
-                                   textbuffer.get_start_iter(),
-                                   buffer_contents,
-                                   add_child_to_buffer,
-                                   lookup_tag=lambda name:
-                                       textbuffer.tag_table.lookup(name))
+            textbuffer.insert_contents(buffer_contents,
+                                       textbuffer.get_start_iter())
 
             # put cursor at begining
             textbuffer.place_cursor(textbuffer.get_start_iter())
@@ -826,15 +813,7 @@ class RichTextView (gtk.TextView):
                     img.set_from_url(img.get_filename(), "image.png")
         
         # add to buffer
-        self._textbuffer.begin_user_action()
-        insert_buffer_contents(self._textbuffer,
-                               self._textbuffer.get_iter_at_mark(
-                                   self._textbuffer.get_insert()),
-                               contents,
-                               add_child=add_child_to_buffer,
-                               lookup_tag=lambda name:
-                                   self._textbuffer.tag_table.lookup(name))
-        self._textbuffer.end_user_action()
+        self._textbuffer.insert_contents(contents)
 
 
 
@@ -973,7 +952,7 @@ class RichTextView (gtk.TextView):
     def toggle_font_mod(self, mod):
         """Toggle a font modification"""
         
-        tag = self._textbuffer.tag_table.lookup_mod_tag(mod)
+        tag = self._textbuffer.tag_table.lookup_mod(mod)
         self._textbuffer.toggle_tag_selected(tag)
 
 
@@ -985,47 +964,47 @@ class RichTextView (gtk.TextView):
         tag_table = self._textbuffer.tag_table
         
         # apply family tag
-        self._textbuffer.apply_tag_selected(tag_table.lookup_family_tag(family))
+        self._textbuffer.apply_tag_selected(tag_table.lookup_family(family))
         
         # apply size
-        self._textbuffer.apply_tag_selected(tag_table.lookup_size_tag(size))
+        self._textbuffer.apply_tag_selected(tag_table.lookup_size(size))
         
         # apply mods
         for mod in mods:
-            self._textbuffer.apply_tag_selected(tag_table.lookup_mod_tag(mod))
+            self._textbuffer.apply_tag_selected(tag_table.lookup_mod(mod))
 
 
         # disable mods not given
         for mod in self._textbuffer.tag_table.mod_names:
             if mod not in mods:
                 self._textbuffer.remove_tag_selected(
-                    tag_table.lookup_mod_tag(mod))
+                    tag_table.lookup_mod(mod))
     
     def set_font_family(self, family):
         """Sets the family font of the selection"""
         self._textbuffer.apply_tag_selected(
-            self._textbuffer.tag_table.lookup_family_tag(family))
+            self._textbuffer.tag_table.lookup_family(family))
     
     def toggle_font_family(self, family):
         """Toggles the family font of the selection"""
         self._textbuffer.toggle_tag_selected(
-            self._textbuffer.tag_table.lookup_family_tag(family))
+            self._textbuffer.tag_table.lookup_family(family))
     
     def set_font_size(self, size):
         """Sets the font size of the selection"""
         self._textbuffer.apply_tag_selected(
-            self._textbuffer.tag_table.lookup_size_tag(size))    
+            self._textbuffer.tag_table.lookup_size(size))    
     
     def set_justify(self, justify):
-        tag = self._textbuffer.tag_table.lookup_justify_tag(justify)
+        tag = self._textbuffer.tag_table.lookup_justify(justify)
         self._textbuffer.apply_tag_selected(tag)
 
     def set_font_fg_color(self, color):
-        tag = self._textbuffer.tag_table.lookup_fg_color_tag(color)
+        tag = self._textbuffer.tag_table.lookup_fg_color(color)
         self._textbuffer.apply_tag_selected(tag)
         
     def set_font_bg_color(self, color):
-        tag = self._textbuffer.tag_table.lookup_bg_color_tag(color)
+        tag = self._textbuffer.tag_table.lookup_bg_color(color)
         self._textbuffer.apply_tag_selected(tag)
 
     

@@ -28,14 +28,13 @@ def display_item(item):
         return item[0]
 
 
-class TestCaseHtmlBuffer (unittest.TestCase):
-    
+class TestCaseRichTextBufferBase (unittest.TestCase):
+
     def setUp(self):
-        self.io = HtmlBuffer()
         self.buffer = RichTextBuffer()
 
-    #def tearDown(self):
-    #    pass
+    def tearDown(self):
+        self.buffer.clear()
 
     def insert(self, buffer, contents):
         insert_buffer_contents(
@@ -45,6 +44,178 @@ class TestCaseHtmlBuffer (unittest.TestCase):
             contents,
             add_child=lambda buffer, it, anchor: buffer.add_child(it, anchor),
             lookup_tag=lambda tagstr: buffer.tag_table.lookup(tagstr))
+
+
+    def get_contents(self):
+        return list(iter_buffer_contents(self.buffer,
+                                         None, None, IGNORE_TAGS))
+
+
+class TestCaseRichTextBuffer (TestCaseRichTextBufferBase):      
+
+    def test_undo_insert(self):
+        """Text insert with current font can be undone"""
+        self.buffer.insert_at_cursor("hi there")
+        self.buffer.insert_at_cursor(" again")
+
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['hi there again'])
+
+        # undo insert
+        self.buffer.undo()
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['hi there'])
+
+        # undo insert
+        self.buffer.undo()
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          [])
+
+        # redo insert
+        self.buffer.redo()
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['hi there'])
+
+        
+        # do bold insert
+        bold = self.buffer.tag_table.bold_tag
+        self.buffer.toggle_tag_selected(bold)
+        self.buffer.insert_at_cursor(" hello")
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['hi there',
+                           'BEGIN:bold',
+                           ' hello',
+                           'END:bold'])
+
+        # undo bold insert
+        self.buffer.undo()
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['hi there'])
+
+        # undo everything
+        self.buffer.undo()
+        self.buffer.undo()        
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          [])
+
+        # redo first insert
+        self.buffer.redo()
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['hi there'])
+
+        # redo bold insert
+        self.buffer.redo()
+        self.buffer.redo()        
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['hi there',
+                           'BEGIN:bold',
+                           ' hello',
+                           'END:bold'])
+
+
+    def test_undo_insert2(self):
+        """Text insert with current font can be undone"""
+
+        # do bold insert
+        bold = self.buffer.tag_table.bold_tag
+        self.buffer.toggle_tag_selected(bold)
+        self.buffer.insert_at_cursor("hi there")
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['BEGIN:bold',
+                           'hi there',
+                           'END:bold'])
+
+        # do unbold insert
+        self.buffer.toggle_tag_selected(bold)
+        self.buffer.insert_at_cursor(" hello")        
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['BEGIN:bold',
+                           'hi there',
+                           'END:bold',
+                           ' hello'])
+
+        # undo bold insert
+        self.buffer.undo()
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['BEGIN:bold',
+                           'hi there',
+                           'END:bold'])
+        
+
+        # redo unbold insert
+        # TEST: bug was that ' hello' would also be bold
+        self.buffer.redo()
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['BEGIN:bold',
+                           'hi there',
+                           'END:bold',
+                           ' hello'])
+
+        
+
+    def test_undo_family(self):
+        """Font family change can be undone"""
+        
+        self.buffer.insert_at_cursor("hello")
+        
+        tag = self.buffer.tag_table.lookup_family("Serif")
+        self.buffer.apply_tag_selected(tag, self.buffer.get_start_iter(),
+                                       self.buffer.get_end_iter())
+
+        tag = self.buffer.tag_table.lookup_family("Monospace")
+        self.buffer.apply_tag_selected(tag, self.buffer.get_start_iter(),
+                                       self.buffer.get_end_iter())
+
+        self.buffer.undo()
+        
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['BEGIN:family Serif',
+                           'hello',
+                           'END:family Serif'])
+
+        self.buffer.redo()
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['BEGIN:family Monospace',
+                           'hello',
+                           'END:family Monospace'])
+
+
+
+    def test_undo_size(self):
+        """Font size change can be undone"""
+        self.buffer.insert_at_cursor("hello")
+        
+        tag = self.buffer.tag_table.lookup_size(20)
+        self.buffer.apply_tag_selected(tag, self.buffer.get_start_iter(),
+                                       self.buffer.get_end_iter())
+
+        tag = self.buffer.tag_table.lookup_size(30)
+        self.buffer.apply_tag_selected(tag, self.buffer.get_start_iter(),
+                                       self.buffer.get_end_iter())
+
+        self.buffer.undo()        
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['BEGIN:size 20',
+                           'hello',
+                           'END:size 20'])
+
+        self.buffer.redo()
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['BEGIN:size 30',
+                           'hello',
+                           'END:size 30'])
+
+richtextbuffer_suite = unittest.defaultTestLoader.loadTestsFromTestCase(
+    TestCaseRichTextBuffer)
+
+    
+
+class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
+    
+    def setUp(self):
+        TestCaseRichTextBufferBase.setUp(self)
+        self.io = HtmlBuffer()
+
 
     def read(self, buffer, infile):
         contents = list(self.io.read(infile, partial=True))        
@@ -222,51 +393,5 @@ class TestCaseHtmlBuffer (unittest.TestCase):
 
         self.assertEquals(lst2, [0, 1, 2, 'a', 'b', 'c', 3, 4, 5, 6, 7, 8, 9])
         
-
-    #========================================
-    # buffer tests
-
-    def test_undo_family(self):
-        """Test whether family font change can be undone"""
-        
-        self.buffer.insert_at_cursor("hello")
-        
-        tag = self.buffer.tag_table.lookup_family_tag("Serif")
-        self.buffer.apply_tag_selected(tag, self.buffer.get_start_iter(),
-                                       self.buffer.get_end_iter())
-
-        tag = self.buffer.tag_table.lookup_family_tag("Monospace")
-        self.buffer.apply_tag_selected(tag, self.buffer.get_start_iter(),
-                                       self.buffer.get_end_iter())
-
-        self.buffer.undo()
-        
-        contents = list(iter_buffer_contents(self.buffer,
-                                             None, None, IGNORE_TAGS))
-        self.assertEquals([display_item(x) for x in contents],
-                          ['BEGIN:family Serif',
-                           'hello',
-                           'END:family Serif'])
-
-    def test_undo_size(self):
-        """Test whether font size change can be undone"""
-        self.buffer.insert_at_cursor("hello")
-        
-        tag = self.buffer.tag_table.lookup_size_tag(20)
-        self.buffer.apply_tag_selected(tag, self.buffer.get_start_iter(),
-                                       self.buffer.get_end_iter())
-
-        tag = self.buffer.tag_table.lookup_size_tag(30)
-        self.buffer.apply_tag_selected(tag, self.buffer.get_start_iter(),
-                                       self.buffer.get_end_iter())
-
-        self.buffer.undo()
-        
-        contents = list(iter_buffer_contents(self.buffer,
-                                             None, None, IGNORE_TAGS))
-        self.assertEquals([display_item(x) for x in contents],
-                          ['BEGIN:size 20',
-                           'hello',
-                           'END:size 20'])
-
-
+htmlbuffer_suite = unittest.defaultTestLoader.loadTestsFromTestCase(
+    TestCaseHtmlBuffer)

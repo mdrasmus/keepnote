@@ -7,11 +7,12 @@ import unittest
 sys.path.append("../..")
 sys.path.append(".")
 
-import test_richtext_html
+import test_richtext_html as html
 
 # run HtmlBuffer tests
 #unittest.main()
-suite = unittest.defaultTestLoader.loadTestsFromTestCase(test_richtext_html.TestCaseHtmlBuffer)
-unittest.TextTestRunner(verbosity=2).run(suite)
+unittest.TextTestRunner(verbosity=2).run(html.richtextbuffer_suite)
+unittest.TextTestRunner(verbosity=2).run(html.htmlbuffer_suite)
+
 
 

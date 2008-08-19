@@ -36,7 +36,13 @@ from takenote.gui.textbuffer_tools import \
 # these tags will not be enumerated by iter_buffer_contents
 IGNORE_TAGS = set(["gtkspell-misspelled"])
 
+# default maximum undo levels
 MAX_UNDOS = 100
+
+# default indentation sizes
+MIN_INDENT = 5
+INDENT_SIZE = 25
+
 
 #=============================================================================
 # helper functions
@@ -51,11 +57,6 @@ def parse_utf(text):
         return text.decode("utf16")
     else:
         return unicode(text, "utf8")
-
-        
-TAG_PATTERN = re.compile("<[^>]*>")
-def strip_tags(line):
-    return re.sub(TAG_PATTERN, "", line)
 
 
 
@@ -104,7 +105,7 @@ class RichTextError (StandardError):
 
 
 #=============================================================================
-# RichText actions
+# RichText undoable actions
 
 class Action (object):
     """A base class for undoable actions in RichTextBuffer"""
@@ -118,29 +119,7 @@ class Action (object):
     def undo(self):
         pass
 
-# TODO: this could be taken out
-class ModifyAction (Action):
-    """Represents the act of changing the RichTextBuffer's modified state"""
-    
-    def __init__(self, textbuffer):
-        self.textbuffer = textbuffer
-        self.was_modified = False
-    
-    def do(self):
-        self.was_modified = self.textbuffer.get_modified()
-        self.textbuffer.set_modified(True)
-    
-    def undo(self):
 
-        # NOTE: undoing this action actually modifies the buffer again
-        
-        self.textbuffer.set_modified(True)
-        
-        #if not self.was_modified:
-        #    self.textbuffer.set_modified(False)
-        
-
-# XXX: do I need to record current tags to properly redo insert?
 class InsertAction (Action):
     """Represents the act of inserting text"""
     
@@ -156,12 +135,9 @@ class InsertAction (Action):
         start = self.textbuffer.get_iter_at_offset(self.pos)
         self.textbuffer.place_cursor(start)
 
-        # NOTE: this is probably a bug.  I need to insert and then modify the
-        # tags of the insertion.
-        # Or, I also change the current font (using current_tags) and then
-        # do a normal text insert, mimicking the original text insert more
-        # faithfully
-        self.textbuffer.insert_with_tags(start, self.text, *self.current_tags)
+        # set current tags and insert text
+        self.textbuffer.set_current_tags(self.current_tags)
+        self.textbuffer.insert(start, self.text)
     
     def undo(self):
         start = self.textbuffer.get_iter_at_offset(self.pos)
@@ -225,6 +201,8 @@ class InsertChildAction (Action):
     
     def do(self):
         it = self.textbuffer.get_iter_at_offset(self.pos)
+
+        # NOTE: this is RichTextBuffer specific
         self.child = self.child.copy()
         self.textbuffer.add_child(it, self.child)
         
@@ -733,30 +711,30 @@ class RichTextTagTable (gtk.TextTagTable):
         
         elif name.startswith("size"):
             # size tag
-            return self.lookup_size_tag(int(name.split(" ", 1)[1]))
+            return self.lookup_size(int(name.split(" ", 1)[1]))
 
         elif name.startswith("family"):
             # family tag
-            return self.lookup_family_tag(name.split(" ", 1)[1])
+            return self.lookup_family(name.split(" ", 1)[1])
 
         elif name.startswith("fg_color"):
             # foreground color tag
-            return self.lookup_fg_color_tag(name.split(" ", 1)[1])
+            return self.lookup_fg_color(name.split(" ", 1)[1])
 
         elif name.startswith("bg_color"):
             # background color tag
-            return self.lookup_bg_color_tag(name.split(" ", 1)[1])
+            return self.lookup_bg_color(name.split(" ", 1)[1])
 
         elif name.startswith("indent") or name.startswith("bullet"):
-            return self.lookup_indent_tag(name)
+            return self.lookup_indent(name)
 
 
-    def lookup_mod_tag(self, mod):
+    def lookup_mod(self, mod):
         """Returns modification tag using name"""
         return gtk.TextTagTable.lookup(self, mod)
     
     
-    def lookup_family_tag(self, family):
+    def lookup_family(self, family):
         """Returns family tag using name"""
         tag = gtk.TextTagTable.lookup(self, "family " + family)        
         if tag is None:
@@ -766,7 +744,7 @@ class RichTextTagTable (gtk.TextTagTable):
             self.family_tags.add(tag)
         return tag
     
-    def lookup_size_tag(self, size):
+    def lookup_size(self, size):
         """Returns size tag using size"""
         sizename = "size %d" % size
         tag = gtk.TextTagTable.lookup(self, sizename)
@@ -776,12 +754,13 @@ class RichTextTagTable (gtk.TextTagTable):
             self.size_tags.add(tag)
         return tag
 
-    def lookup_justify_tag(self, justify):
-        """Lookup justify tag"""
+    def lookup_justify(self, justify):
+        """Returns justify tag"""
         return gtk.TextTagTable.lookup(self, justify)
 
 
-    def lookup_fg_color_tag(self, color):
+    def lookup_fg_color(self, color):
+        """Returns foreground color tag"""
         colorname = "fg_color " + color
         tag = gtk.TextTagTable.lookup(self, colorname)
         if tag is None:
@@ -791,7 +770,8 @@ class RichTextTagTable (gtk.TextTagTable):
         return tag
 
 
-    def lookup_bg_color_tag(self, color):
+    def lookup_bg_color(self, color):
+        """Returns background color tag"""
         colorname = "bg_color " + color
         tag = gtk.TextTagTable.lookup(self, colorname)
         if tag is None:
@@ -801,15 +781,15 @@ class RichTextTagTable (gtk.TextTagTable):
         return tag
 
 
-    def lookup_indent_tag(self, indent):
-        
+    def lookup_indent(self, indent):
+        """Return indentation tag"""
         if isinstance(indent, str):
             if " " in indent:
                 # lookup from string
-                return self.lookup_indent_tag(int(indent.split(" ", 1)[1]))
+                return self.lookup_indent(int(indent.split(" ", 1)[1]))
             
             else:
-                return self.lookup_indent_tag(1)
+                return self.lookup_indent(1)
             
         else:
             # lookup from integer
@@ -919,9 +899,8 @@ class RichTextBGColorTag (RichTextTag):
 
 
 class RichTextIndentTag (RichTextTag):
+    """A tag that represents an indentation level"""
     def __init__(self, indent):
-        MIN_INDENT = 5
-        INDENT_SIZE = 25
         RichTextTag.__init__(self, "indent %d" % indent,
                              left_margin=MIN_INDENT + INDENT_SIZE * indent)
         self._indent = indent
@@ -935,7 +914,13 @@ class RichTextIndentTag (RichTextTag):
     
 
 class RichTextBuffer (gtk.TextBuffer):
-    """TextBuffer specialize for rich text editing"""
+    """
+    TextBuffer specialize for rich text editing
+
+    - maintains undo/redo stacks
+    - manages "current font" behavior
+    - manages child widget actions
+    """
     
     def __init__(self, textview=None):
         gtk.TextBuffer.__init__(self, RichTextTagTable())
@@ -943,9 +928,9 @@ class RichTextBuffer (gtk.TextBuffer):
         self.undo_stack = UndoStack(MAX_UNDOS)
         
         # action state
-        self.insert_mark = None
-        self.next_action = None
-        self.current_tags = []
+        self._insert_mark = None
+        self._next_action = None
+        self._current_tags = []
 
         # set of all anchors in buffer
         self._anchors = set()
@@ -956,16 +941,16 @@ class RichTextBuffer (gtk.TextBuffer):
         
         # setup signals
         self.signals = [
-            self.connect("begin_user_action", self.on_begin_user_action),
-            self.connect("end_user_action", self.on_end_user_action),
-            self.connect("mark-set", self.on_mark_set),
-            self.connect("insert-text", self.on_insert_text),
-            self.connect("delete-range", self.on_delete_range),
-            self.connect("insert-pixbuf", self.on_insert_pixbuf),
-            self.connect("insert-child-anchor", self.on_insert_child_anchor),
-            self.connect("apply-tag", self.on_apply_tag),
-            self.connect("remove-tag", self.on_remove_tag),
-            self.connect("changed", self.on_changed)
+            self.connect("begin_user_action", self._on_begin_user_action),
+            self.connect("end_user_action", self._on_end_user_action),
+            self.connect("mark-set", self._on_mark_set),
+            self.connect("insert-text", self._on_insert_text),
+            self.connect("delete-range", self._on_delete_range),
+            self.connect("insert-pixbuf", self._on_insert_pixbuf),
+            self.connect("insert-child-anchor", self._on_insert_child_anchor),
+            self.connect("apply-tag", self._on_apply_tag),
+            self.connect("remove-tag", self._on_remove_tag),
+            self.connect("changed", self._on_changed)
             ]
 
         self.default_attr = gtk.TextAttributes()
@@ -978,7 +963,12 @@ class RichTextBuffer (gtk.TextBuffer):
         return self.textview
     
     def get_current_tags(self):
-        return self.current_tags
+        """Returns the currently active tags"""
+        return self._current_tags
+
+    def set_current_tags(self, tags):
+        """Sets the currently active tags"""
+        self._current_tags = list(tags)            
     
     def block_signals(self):
         """Block all signal handlers"""
@@ -997,11 +987,29 @@ class RichTextBuffer (gtk.TextBuffer):
         
         start = self.get_start_iter()
         end = self.get_end_iter()
+
+        self.begin_user_action()
         self.remove_all_tags(start, end)
         self.delete(start, end)
+        self.end_user_action()
 
         self._anchors.clear()
         self._anchors_deferred.clear()
+
+
+    def insert_contents(self, contents, it=None):
+        """Inserts a content stream into the TextBuffer at iter 'it'"""
+
+        if it is None:
+            it = self.get_iter_at_mark(self.get_insert())
+
+        self.begin_user_action()
+        insert_buffer_contents(self, it,
+                               contents,
+                               add_child_to_buffer,
+                               lookup_tag=lambda name:
+                                   self.tag_table.lookup(name))
+        self.end_user_action()
 
     #======================================================
     # indentation methods/callbacks
@@ -1041,7 +1049,7 @@ class RichTextBuffer (gtk.TextBuffer):
             par_end = pos.copy()
             par_end.forward_line()
             indent = self.get_indent(pos)
-            self.apply_tag_selected(self.tag_table.lookup_indent_tag(indent +
+            self.apply_tag_selected(self.tag_table.lookup_indent(indent +
                                                                      change),
                                     pos, par_end)
 
@@ -1099,7 +1107,7 @@ class RichTextBuffer (gtk.TextBuffer):
             par_end.forward_line()
             indent = self.get_indent(pos)
             #print indent, pos.get_offset(), par_end.get_offset()
-            self.apply_tag_selected(self.tag_table.lookup_indent_tag(indent),
+            self.apply_tag_selected(self.tag_table.lookup_indent(indent),
                                     pos, par_end)
 
             if not pos.forward_line():
@@ -1138,9 +1146,9 @@ class RichTextBuffer (gtk.TextBuffer):
         # setup child
         self._anchors.add(child)
         child.set_buffer(self)
-        child.connect("activated", self.on_child_activated)
-        child.connect("selected", self.on_child_selected)
-        child.connect("popup-menu", self.on_child_popup_menu)
+        child.connect("activated", self._on_child_activated)
+        child.connect("selected", self._on_child_selected)
+        child.connect("popup-menu", self._on_child_popup_menu)
         self.insert_child_anchor(it, child)
 
         # if textview is attaced, let it display child
@@ -1228,15 +1236,15 @@ class RichTextBuffer (gtk.TextBuffer):
         
     
     #===========================================================
-    # Callbacks
+    # Modification callbacks
     
-    def on_mark_set(self, textbuffer, it, mark):
+    def _on_mark_set(self, textbuffer, it, mark):
         """Callback for mark movement"""
 
         if mark.get_name() == "insert":
 
             # pick up the last tags
-            self.current_tags = it.get_toggled_tags(False)
+            self._current_tags = it.get_toggled_tags(False)
 
             self.highlight_children()
             
@@ -1245,107 +1253,100 @@ class RichTextBuffer (gtk.TextBuffer):
             self.emit("font-change", font)
     
     
-    def on_insert_text(self, textbuffer, it, text, length):
+    def _on_insert_text(self, textbuffer, it, text, length):
         """Callback for text insert"""
         
         # start new action
-        self.next_action = InsertAction(self, it.get_offset(), text, length)
-        self.insert_mark = self.create_mark(None, it, True)
+        self._next_action = InsertAction(self, it.get_offset(), text, length)
+        self._insert_mark = self.create_mark(None, it, True)
         
         
-    def on_delete_range(self, textbuffer, start, end):
+    def _on_delete_range(self, textbuffer, start, end):
         """Callback for delete range"""        
 
         # start next action
-        self.next_action = DeleteAction(self, start.get_offset(), 
+        self._next_action = DeleteAction(self, start.get_offset(), 
                                         end.get_offset(),
                                         start.get_slice(end),
                                         self.get_iter_at_mark(
                                             self.get_insert()).get_offset())
         
     
-    def on_insert_pixbuf(self, textbuffer, it, pixbuf):
+    def _on_insert_pixbuf(self, textbuffer, it, pixbuf):
         """Callback for inserting a pixbuf"""
         pass
     
     
-    def on_insert_child_anchor(self, textbuffer, it, anchor):
+    def _on_insert_child_anchor(self, textbuffer, it, anchor):
         """Callback for inserting a child anchor"""
-        self.next_action = InsertChildAction(self, it.get_offset(), anchor)
+
+        # TODO: is there a reason I use self._next_action?
+        self._next_action = InsertChildAction(self, it.get_offset(), anchor)
     
-    def on_apply_tag(self, textbuffer, tag, start, end):
+    def _on_apply_tag(self, textbuffer, tag, start, end):
         """Callback for tag apply"""
 
-        self.begin_user_action()
-        action = ModifyAction(self)
-        self.undo_stack.do(action.do, action.undo)
         action = TagAction(self, tag, start.get_offset(), 
                            end.get_offset(), True)
         self.undo_stack.do(action.do, action.undo, False)
-        self.end_user_action()
+
     
-    def on_remove_tag(self, textbuffer, tag, start, end):
+    def _on_remove_tag(self, textbuffer, tag, start, end):
         """Callback for tag remove"""
 
-        self.begin_user_action()
-        action = ModifyAction(self)
-        self.undo_stack.do(action.do, action.undo)
         action = TagAction(self, tag, start.get_offset(), 
                            end.get_offset(), False)
         self.undo_stack.do(action.do, action.undo, False)
-        self.end_user_action()
     
     
-    def on_changed(self, textbuffer):
+    def _on_changed(self, textbuffer):
         """Callback for buffer change"""
 
         paragraph_action = None
 
-        if not self.next_action:
+        if not self._next_action:
             return
         
-        if isinstance(self.next_action, InsertAction):
+        if isinstance(self._next_action, InsertAction):
             # apply current style to inserted text
             
-            if len(self.current_tags) > 0:
-                it = self.get_iter_at_mark(self.insert_mark)
+            if len(self._current_tags) > 0:
+                it = self.get_iter_at_mark(self._insert_mark)
                 it2 = it.copy()
-                it2.forward_chars(self.next_action.length)
+                it2.forward_chars(self._next_action.length)
 
-                for tag in self.current_tags:
+                for tag in self._current_tags:
                     self.apply_tag(tag, it, it2)
 
-                self.delete_mark(self.insert_mark)
-                self.insert_mark = None
+                self.delete_mark(self._insert_mark)
+                self._insert_mark = None
 
-            if "\n" in self.next_action.text:
+            if "\n" in self._next_action.text:
                 paragraph_action = "split"
 
                 par_start = self.get_iter_at_mark(self.get_insert())
                 par_end = par_start.copy()
                 
                 par_start.backward_line()
-                par_end.forward_chars(self.next_action.length)
+                par_end.forward_chars(self._next_action.length)
                 par_end.forward_line()
                 par_end.backward_char()
             
                 
-        elif isinstance(self.next_action, DeleteAction):
+        elif isinstance(self._next_action, DeleteAction):
             # deregister any deleted anchors
             
-            for kind, offset, param in self.next_action.contents:
+            for kind, offset, param in self._next_action.contents:
                 if kind == "anchor":
                     self._anchors.remove(param[0])
 
-            if "\n" in self.next_action.text:
+            if "\n" in self._next_action.text:
                 paragraph_action = "merge"
                 par_start, par_end = self.get_paragraph()
         
         
-        self.begin_user_action()        
-        action = ModifyAction(self)
-        self.undo_stack.do(action.do, action.undo)
-        self.undo_stack.do(self.next_action.do, self.next_action.undo, False)
+        self.begin_user_action()
+        self.undo_stack.do(self._next_action.do, self._next_action.undo, False)
 
         # TODO: make sure these are only executed during iteractive input
         # process paragraph changes
@@ -1354,14 +1355,14 @@ class RichTextBuffer (gtk.TextBuffer):
         #elif paragraph_action == "merge":
         #    self._on_paragraph_merge(par_start, par_end)
                 
-        self.next_action = None            
+        self._next_action = None            
         self.end_user_action()
 
 
     #==============================================
     # Child callbacks
 
-    def on_child_selected(self, child):
+    def _on_child_selected(self, child):
         """Callback for when child object is selected
 
            Make sure buffer knows the selection
@@ -1373,14 +1374,14 @@ class RichTextBuffer (gtk.TextBuffer):
         self.select_range(it, end)
 
 
-    def on_child_activated(self, child):
+    def _on_child_activated(self, child):
         """Callback for when child is activated (e.g. double-clicked)"""
 
         # forward callback to listeners (textview)
         self.emit("child-activated", child)
     
 
-    def on_child_popup_menu(self, child, button, activate_time):
+    def _on_child_popup_menu(self, child, button, activate_time):
         """Callback for when child's menu is visible"""
 
         # forward callback to listeners (textview)
@@ -1427,7 +1428,7 @@ class RichTextBuffer (gtk.TextBuffer):
     def toggle_tag_selected(self, tag, start=None, end=None):
         """Toggle tag in selection or current tags"""
 
-        # TODO: should manipulation of self.current_tags be an Action?
+        # TODO: should manipulation of self._current_tags be an Action?
         
         self.begin_user_action()
 
@@ -1438,13 +1439,13 @@ class RichTextBuffer (gtk.TextBuffer):
         
         if len(it) == 0:
             # no selection, toggle current tags
-            if tag not in self.current_tags:
+            if tag not in self._current_tags:
                 self.clear_current_tag_class(tag)
-                self.current_tags.append(tag)
+                self._current_tags.append(tag)
             else:
-                self.current_tags.remove(tag)
+                self._current_tags.remove(tag)
         else:
-            self.current_tags = []
+            self._current_tags = []
             if not it[0].has_tag(tag):
                 self.clear_tag_class(tag, it[0], it[1])
                 self.apply_tag(tag, it[0], it[1])
@@ -1466,11 +1467,11 @@ class RichTextBuffer (gtk.TextBuffer):
         
         if len(it) == 0:
             # no selection, apply to current tags
-            if tag not in self.current_tags:
+            if tag not in self._current_tags:
                 self.clear_current_tag_class(tag)
-                self.current_tags.append(tag)
+                self._current_tags.append(tag)
         else:
-            self.current_tags = [] # TODO: write the reason for this
+            self._current_tags = [] # TODO: write the reason for this
             self.clear_tag_class(tag, it[0], it[1])
             self.apply_tag(tag, it[0], it[1])
         self.end_user_action()
@@ -1484,10 +1485,10 @@ class RichTextBuffer (gtk.TextBuffer):
         
         if len(it) == 0:
             # no selection, remove tag from current tags
-            if tag in self.current_tags:
-                self.current_tags.remove(tag)
+            if tag in self._current_tags:
+                self._current_tags.remove(tag)
         else:
-            self.current_tags = [] # TODO: write the reason for this
+            self._current_tags = [] # TODO: write the reason for this
             self.remove_tag(tag, it[0], it[1])
         self.end_user_action()
 
@@ -1496,6 +1497,7 @@ class RichTextBuffer (gtk.TextBuffer):
         """Remove all tags of the same class as 'tag' in region (start, end)"""
 
         # TODO: is there a faster way to do this?
+        #   make faster mapping from tag to class
         
         for cls in self.tag_table.exclusive_classes:
             if tag in cls:
@@ -1508,12 +1510,14 @@ class RichTextBuffer (gtk.TextBuffer):
         """Remove all tags of the same class as 'tag' from current tags"""
 
         # TODO: is there a faster way to do this?
+        #   make faster mapping from tag to class
+        #   loop through tags in current tags instead of tag class
 
         for cls in self.tag_table.exclusive_classes:
             if tag in cls:
                 for tag2 in cls:
-                    if tag2 in self.current_tags:
-                        self.current_tags.remove(tag2)
+                    if tag2 in self._current_tags:
+                        self._current_tags.remove(tag2)
 
     
     #===========================================================
@@ -1533,7 +1537,7 @@ class RichTextBuffer (gtk.TextBuffer):
             it.forward_char()
         
         # create a set that is fast for quering the existance of tags
-        current_tags = set(self.current_tags)        
+        current_tags = set(self._current_tags)        
         
         # get the text attributes and font at the iter
         attr = gtk.TextAttributes()
@@ -1590,7 +1594,7 @@ class RichTextBuffer (gtk.TextBuffer):
         
         
         # current tags override for family and size
-        for tag in self.current_tags:            
+        for tag in self._current_tags:            
             if isinstance(tag, RichTextFamilyTag):
                 family = tag.get_family()            
             elif isinstance(tag, RichTextSizeTag):
@@ -1612,13 +1616,13 @@ class RichTextBuffer (gtk.TextBuffer):
         
     def redo(self):
         """Redo the last action in the RichTextView"""    
-        self.undo_stack.redo()    
+        self.undo_stack.redo()
     
-    def on_begin_user_action(self, textbuffer):
+    def _on_begin_user_action(self, textbuffer):
         """Begin a composite undo/redo action"""
         self.undo_stack.begin_action()
 
-    def on_end_user_action(self, textbuffer):
+    def _on_end_user_action(self, textbuffer):
         """End a composite undo/redo action"""
         self.undo_stack.end_action()
 
