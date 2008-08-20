@@ -3,10 +3,10 @@
  Functions for iterating and inserting into textbuffers
 
 """
-import sys
-sys.path.append("../..")
 
 from takenote.linked_list import LinkedList
+from takenote.linked_tree import LinkedTreeNode
+
 
 # TextBuffer uses this char for anchors and pixbufs
 ANCHOR_CHAR = u'\ufffc'
@@ -358,26 +358,121 @@ def buffer_contents_apply_tags(textbuffer, contents):
             textbuffer.apply_tag(param, start, end)
 
 
-
 #=============================================================================
-# EXTRA CODE TO DELETE WHEN NO LONGER NEEDED
-
-'''
-            # close any open out of order tags
-            reopen_stack = []
-            while param != open_stack[-1]:
-                reopen_stack.append(open_stack.pop())
-                tag = reopen_stack[-1]
-                yield ("end", it, tag)
-
-            # close current tag
-            open_stack.pop()
-            yield item
-
-            # reopen tags
-            for tag in reversed(reopen_stack):
-                open_stack.append(tag)
-                yield ("begin", it, tag)
-            '''
+# Document Object Model (DOM) for TextBuffers
 
 
+class Dom (LinkedTreeNode):
+    """Basic Document Object Model class"""
+
+    def __init__(self):
+        LinkedTreeNode.__init__(self)
+    
+    def display_indent(self, indent, *text):
+        print "  " * indent + " ".join(text)
+
+    def display(self, indent=0):
+        self.display_indent(indent, "Dom")
+        for child in self:
+            child.display(indent+1)
+
+    def visit_contents(self, visit):
+        pass
+
+    def build(self, contents):
+        contents = iter(contents)
+
+        for kind, pos, param in contents:
+            if kind == "text":
+                self.append_child(TextDom(param))
+            elif kind == "anchor":
+                self.append_child(AnchorDom(param[0]))
+            elif kind == "begin":
+                tag = param
+                child = TagDom(tag, contents)
+                self.append_child(child)
+
+            elif kind == "end":
+                tag = param
+
+                # this is my closing tag, quit
+                if tag == self.tag:
+                    return
+
+
+class TextDom (Dom):
+    """A text object in a DOM"""
+    def __init__(self, text):
+        Dom.__init__(self)
+        self.text = text
+
+    def display(self, indent=0):
+        self.display_indent(indent, "TextDom '%s'" % self.text)
+
+    def visit_contents(self, visit):
+        visit("text", None, self.text)
+    
+
+class AnchorDom (Dom):
+    """An anchor object in a DOM"""
+    def __init__(self, anchor):
+        Dom.__init__(self)        
+        self.anchor = anchor
+
+    def display(self, indent=0):
+        self.display_indent(indent, "AnchorDom")
+
+    def visit_contents(self, visit):
+        visit("anchor", None, (self.anchor, []))
+    
+
+class TagDom (Dom):
+    """A TextTag object in a DOM"""
+
+    def __init__(self, tag, contents=None):
+        Dom.__init__(self)
+        self.tag = tag
+
+        if contents:
+            self.build(contents)
+
+    def display(self, indent=0):
+        name = self.tag.get_property('name')
+        self.display_indent(indent, "TagDom", name)
+        for child in self:
+            child.display(indent+1)
+
+    def visit_contents(self, visit):
+
+        visit("begin", None, self.tag)
+        for child in self:
+             child.visit_contents(visit)
+        visit("end", None, self.tag)
+        
+        
+
+class TextBufferDom (Dom):
+    """Document Object Model for TextBuffers"""
+    
+    def __init__(self, contents=None):
+        Dom.__init__(self)
+        if contents is not None:
+            self.build(contents)
+
+    def visit_contents(self, visit):
+        for child in self:
+            child.visit_contents(visit)
+
+    def get_contents(self):
+        contents = []
+        self.visit_contents(lambda kind,pos,param:
+                            contents.append((kind, pos, param)))
+        return contents
+
+    def display(self, indent=0):
+        self.display_indent(indent, "TextBufferDom")
+        for child in self:
+            child.display(indent+1)
+    
+
+    

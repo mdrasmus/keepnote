@@ -12,7 +12,8 @@ from takenote.gui.richtextbuffer import RichTextBuffer, IGNORE_TAGS
 from takenote.gui.textbuffer_tools import \
      insert_buffer_contents, \
      iter_buffer_contents, \
-     PushIter
+     PushIter, \
+     TextBufferDom
 
 
 def display_item(item):
@@ -52,6 +53,43 @@ class TestCaseRichTextBufferBase (unittest.TestCase):
 
 
 class TestCaseRichTextBuffer (TestCaseRichTextBufferBase):      
+
+    def test_dom(self):        
+        self.buffer.insert_at_cursor("hi there")        
+        
+        # do bold insert
+        bold = self.buffer.tag_table.bold_tag
+        italic = self.buffer.tag_table.italic_tag
+        self.buffer.toggle_tag_selected(bold)
+        self.buffer.insert_at_cursor(" hello")
+        self.buffer.toggle_tag_selected(italic)
+        self.buffer.insert_at_cursor(" again")
+        self.buffer.toggle_tag_selected(italic)
+        self.buffer.insert_at_cursor(" this is me")
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['hi there',
+                           'BEGIN:bold',
+                           ' hello',
+                           'BEGIN:italic',
+                           ' again',
+                           'END:italic',
+                           ' this is me',
+                           'END:bold'])
+
+        dom = TextBufferDom(self.get_contents())
+        print
+        dom.display()
+        
+        self.assertEquals([display_item(x) for x in dom.get_contents()],
+                          ['hi there',
+                           'BEGIN:bold',
+                           ' hello',
+                           'BEGIN:italic',
+                           ' again',
+                           'END:italic',
+                           ' this is me',
+                           'END:bold'])
+        
 
     def test_undo_insert(self):
         """Text insert with current font can be undone"""
@@ -278,6 +316,33 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         """First space will be literal, thus output should not be equal"""
         self.read_write("&nbsp; &nbsp; &nbsp;",
                         " &nbsp; &nbsp; ")
+
+    def test_spacing2(self):
+        """First space will be literal, thus output should not be equal"""
+        self.read_write("line1\nline2",
+                        "line1 line2")
+
+    def test_read_hr(self):
+        self.read(self.buffer, StringIO.StringIO("line1<hr/>line2"))
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['line1\n',
+                           'anchor',
+                           '\nline2'])
+
+        self.buffer.clear()
+        self.read(self.buffer, StringIO.StringIO("line1<hr/><br/>\nline2"))
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['line1\n',
+                           'anchor',
+                           '\n\nline2'])
+
+        # what if <hr/> has newlines around it in HTML?
+        self.buffer.clear()
+        self.read(self.buffer, StringIO.StringIO("line1\n<hr/>\n<br/>\nline2"))
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['line1 \n',
+                           'anchor',
+                           '\n \nline2'])
 
     def test_font_family(self):
         self.read_write('<span style="font-family: Serif">hello</span>')

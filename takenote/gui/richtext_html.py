@@ -13,7 +13,11 @@ from takenote.gui.textbuffer_tools import \
      buffer_contents_iter_to_offset, \
      normalize_tags, \
      insert_buffer_contents, \
-     buffer_contents_apply_tags
+     buffer_contents_apply_tags, \
+     TextBufferDom, \
+     TextDom, \
+     AnchorDom, \
+     TagDom
 
 from takenote.gui.richtextbuffer import \
      IGNORE_TAGS, \
@@ -218,7 +222,7 @@ class HtmlBuffer (HTMLParser):
         self._text_queue.append(text)
 
     def append_buffer_item(self, kind, param):
-        self.flush_text()        
+        self.flush_text()
         self._buffer_contents.append((kind, None, param))
 
     def parse_style(self, stylestr):
@@ -397,7 +401,9 @@ class HtmlBuffer (HTMLParser):
         elif htmltag == "hr":
             # horizontal break
             hr = RichTextHorizontalRule()
+            self.queue_text("\n")
             self.append_buffer_item("anchor", (hr, None))
+            self.queue_text("\n")
     
         elif htmltag == "img":
             # insert image
@@ -482,68 +488,113 @@ class HtmlBuffer (HTMLParser):
 
     #================================================
     # Writing HTML
-    
+
     def write(self, buffer_content, tag_table, partial=False):
 
         if not partial:
             self._out.write(XHTML_HEADER)
-        
-        for kind, it, param in normalize_tags(
+
+        # normalize contents, prepare them for DOM
+        contents = normalize_tags(
             convert_indent_tags(buffer_content, tag_table),
-            is_stable_tag=lambda tag: isinstance(tag, RichTextIndentTag)):
-            
-            if kind == "text":
-                text = param
-                
-                # TODO: could try to speed this up
-                text = text.replace("&", "&amp;")
-                text = text.replace(">", "&gt;")
-                text = text.replace("<", "&lt;")
-                text = text.replace("\n", "<br/>\n")
-                text = text.replace("\t", "&#09;")
-                text = text.replace("  ", " &nbsp;")
-                self._out.write(text)
-            
-            elif kind == "begin":
-                tag = param
-                self.write_tag_begin(tag)
-                
-            elif kind == "end":
-                tag = param
-                self.write_tag_end(tag)
-            
-            elif kind == "anchor":
-                child = param[0]
+            is_stable_tag=lambda tag: isinstance(tag, RichTextIndentTag))
 
-                if isinstance(child, RichTextImage):
-                    # write image
-                    size_str = ""
-                    size = child.get_size()
-                        
-                    if size[0] is not None:
-                        size_str += " width=\"%d\"" % size[0]
-                    if size[1] is not None:
-                        size_str += " height=\"%d\"" % size[1]
-                        
-                    self._out.write("<img src=\"%s\"%s />" % 
-                                   (child.get_filename(), size_str))
-
-                elif isinstance(child, RichTextHorizontalRule):
-                    self._out.write("<hr/>")
-                    
-                else:
-                    # warning
-                    #TODO:
-                    print "unknown child element", child
-            
-            elif kind == "pixbuf":
-                pass
-            else:
-                raise Exception("unknown kind '%s'" % str(kind))
+        dom = TextBufferDom(contents)
+        self.prepare_dom(dom)
+        self.write_dom(dom)
 
         if not partial:
             self._out.write(XHTML_FOOTER)
+
+    def prepare_dom(self, dom):
         
+        # <hr/> tags should consume the surronding newlines
+        # (it will supply them)
+
+        last_leaf = [None]
+
+        # walk dom in preorder traversal
+        def walk(node):
+
+            # delete preceding newline of <hr/>
+            if isinstance(node, AnchorDom) and \
+               isinstance(node.anchor, RichTextHorizontalRule):
+
+                
+                if isinstance(last_leaf[0], TextDom):                    
+                    if last_leaf[0].text.endswith("\n"):
+                        last_leaf[0].text = last_leaf[0].text[:-1]
+
+            
+            if not node.has_children():                
+                # delete succeeding newline of <hr/>
+                if isinstance(last_leaf[0], AnchorDom) and \
+                   isinstance(last_leaf[0].anchor, RichTextHorizontalRule) and \
+                   isinstance(node, TextDom):
+                    if node.text.startswith("\n"):
+                        node.text = node.text[1:]
+
+                # record leaf
+                last_leaf[0] = node
+                
+            else:
+                # recurse
+                for child in node:
+                    walk(child)
+        walk(dom)
+        
+
+    def write_dom(self, dom):
+        """Write DOM"""
+        for child in dom:
+            if isinstance(child, TextDom):
+                self.write_text(child.text)
+
+            elif isinstance(child, TagDom):                
+                self.write_tag_begin(child.tag)
+                self.write_dom(child)
+                self.write_tag_end(child.tag)
+            
+            elif isinstance(child, AnchorDom):
+                self.write_anchor(child.anchor)
+
+            else:
+                raise Exception("unknown dom '%s'" % str(dom))
+
+
+    def write_text(self, text):
+        # TODO: could try to speed this up
+        text = text.replace("&", "&amp;")
+        text = text.replace(">", "&gt;")
+        text = text.replace("<", "&lt;")
+        text = text.replace("\t", "&#09;")
+        text = text.replace("  ", " &nbsp;")
+        text = text.replace("\n", "<br/>\n")
+        self._out.write(text)
+
+    def write_anchor(self, anchor):
+        if isinstance(anchor, RichTextImage):
+            # write image
+            size_str = ""
+            size = anchor.get_size()
+                        
+            if size[0] is not None:
+                size_str += " width=\"%d\"" % size[0]
+            if size[1] is not None:
+                size_str += " height=\"%d\"" % size[1]
+                        
+            self._out.write("<img src=\"%s\"%s />" % 
+                            (anchor.get_filename(), size_str))
+
+        elif isinstance(anchor, RichTextHorizontalRule):
+            # write horizontal rule
+            self._out.write("<hr/>")
+                    
+        else:
+            # warning
+            #TODO:
+            print "unknown anchor element", anchor
+
     
     def write_tag_begin(self, tag):
         tagname = tag.get_property("name")
