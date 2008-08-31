@@ -5,12 +5,16 @@ import sys
 import unittest
 
 # takenote imports
-from takenote.gui.richtext_html import HtmlBuffer
+from takenote.gui.richtext_html import HtmlBuffer, convert_indent_tags, \
+     find_paragraphs, P_TAG
 
 import StringIO
-from takenote.gui.richtextbuffer import RichTextBuffer, IGNORE_TAGS
+from takenote.gui.richtextbuffer import RichTextBuffer, IGNORE_TAGS, \
+     RichTextIndentTag
+
 from takenote.gui.textbuffer_tools import \
      insert_buffer_contents, \
+     normalize_tags, \
      iter_buffer_contents, \
      PushIter, \
      TextBufferDom
@@ -304,10 +308,14 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
                         "<b>hello</b>")
 
     def test_normalized_tags(self):
-        self.read_write("<b><i>hello</i></b><i>again</i>")
+        self.read_write("<i><b>hello</b>again</i>")
 
     def test_newlines(self):
         self.read_write("line1<br/>\n<br/>\nline2")
+
+    def test_newlines2(self):
+        self.read_write("line1<br/><br/>line2",
+                        "line1<br/>\n<br/>\nline2")
 
     def test_entity(self):
         self.read_write("&#09;&amp;&gt;&lt; &nbsp; &nbsp; &nbsp;")
@@ -351,41 +359,66 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         self.read_write('<span style="font-size: 12pt">hello</span>')
 
     def test_font_justification(self):
+        self.read(self.buffer, StringIO.StringIO('<div style="text-align: center">hello<br/>\nagain</div>'))
+
+        contents = normalize_tags(find_paragraphs(
+            convert_indent_tags(self.get_contents(), self.buffer.tag_table)),
+            is_stable_tag=lambda tag:
+                isinstance(tag, RichTextIndentTag) or tag == P_TAG)
+
+        contents = find_paragraphs(
+            convert_indent_tags(self.get_contents(), self.buffer.tag_table))
+        #print ">>>", [display_item(x) for x in contents]
+
+        self.buffer.clear()
         self.read_write('<div style="text-align: center">hello<br/>\nagain</div>')
+        
 
     def test_font_many(self):
-        self.read_write('<div style="text-align: center; font-size: 22pt; font-family: Serif">hello<br/>\nagain</div>',
-                        '<div style="text-align: center">'
-                        '<span style="font-size: 22pt">'
-                        '<span style="font-family: Serif">'
-                        'hello<br/>\nagain</span></span></div>')
+        self.read_write(
+            '<div style="text-align: center; font-size: 22pt; font-family: Serif">hello<br/>\nagain</div>',
+            '<div style="text-align: center">'
+            '<span style="font-size: 22pt">'
+            '<span style="font-family: Serif">'
+            'hello<br/>\nagain</span></span></div>')
 
     def test_hr(self):
         self.read_write('line1<hr/><br/>\nline2')
         self.buffer.clear()        
         self.read_write('line1<hr/>line2')
 
-    def test_ul1(self):
-        self.read_write('<ul>line1<br/>\nline2</ul>')
+    def test_ol1(self):
+        self.read_write('<ol><li style="list-style-type: none">'
+                        'line1</li>\n<li style="list-style-type: none">line2</li>\n</ol>\n')
         
-    def test_ul2(self):
-        self.read_write('line0<ul>line1<br/>\n'
-                        'line2<ul>line3<br/>\n'
-                        'line4<br/>\n</ul>line5</ul>line6')
+    def test_ol2(self):
+        self.read_write(
+            'line0<ol><li style="list-style-type: none">line1</li>\n'
+            '<li style="list-style-type: none">line2</li>\n<li style="list-style-type: none"><ol><li style="list-style-type: none">line3</li>\n'
+            '<li style="list-style-type: none">line4</li>\n</ol>\n</li>\n'
+            '<li style="list-style-type: none">line5</li>\n</ol>\nline6')
 
-    def test_ul3(self):
-        self.read_write('line1<ul>line1.5<ul>line2<br/>\n'
-                        'line3<br/>\n</ul></ul>line4')
+    def test_ol3(self):
+        self.read_write(
+            'line1<ol><li style="list-style-type: none">line1.5</li>\n'
+            '<li style="list-style-type: none"><ol>'
+            '<li style="list-style-type: none">line2</li>\n'
+            '<li style="list-style-type: none">line3</li>\n</ol>\n</li>\n</ol>\nline4')
 
-    def test_ul4(self):
-        self.read_write('<b><i>line0</i><ul><i>line1<br/>\n'
-                        'line2</i><ul>line3<br/>\n'
-                        'line4<br/>\n</ul>line5</ul>line6</b>')
+    def test_ol4(self):
+        self.read_write(
+            '<b><i>line0</i><ol><li style="list-style-type: none"><i>line1</i></li>\n'
+            '<li style="list-style-type: none"><i>line2</i></li>\n'
+            '<li style="list-style-type: none"><ol><li style="list-style-type: none">line3</li>\n'
+            '<li style="list-style-type: none">line4</li>\n</ol>\n</li>\n<li style="list-style-type: none">line5</li>\n'
+                        '</ol>\nline6</b>')
 
-    def test_ul5(self):
-        infile = StringIO.StringIO('line0<ul>line1<br/>\n'
-                                   'line2<ul>line3<br/>\n'
-                                   'line4<br/>\n</ul>line5</ul>line6')
+    def test_ol5(self):
+        infile = StringIO.StringIO(
+            'line0<ol><li style="list-style-type: none">line1<br/>\n'
+            'line2<ol><li style="list-style-type: none">line3<br/>\n'
+            'line4<br/>\n</li>\n</ol>\n</li>\n'
+            '<li style="list-style-type: none">line5</li>\n</ol>\nline6')
         self.read(self.buffer, infile)
 
         contents = list(iter_buffer_contents(self.buffer,
@@ -393,22 +426,24 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         
         # check the internal indentation structure
         self.assertEquals([display_item(x) for x in contents],
-                          ['line0',
-                           'BEGIN:indent 1',
-                           'line1\nline2',
-                           'END:indent 1',
-                           'BEGIN:indent 2',
-                           'line3\nline4\n',
-                           'END:indent 2',
-                           'BEGIN:indent 1',
-                           'line5',
-                           'END:indent 1',
+                          ['line0\n',
+                           'BEGIN:indent 1 none',
+                           'line1\nline2\n',
+                           'END:indent 1 none',
+                           'BEGIN:indent 2 none',
+                           'line3\nline4\n\n',
+                           'END:indent 2 none',
+                           'BEGIN:indent 1 none',
+                           'line5\n',
+                           'END:indent 1 none',
                            'line6'])
 
-    def test_ul6(self):
-        infile = StringIO.StringIO('line0<ul>line1<br/>\n'
-                                   'line2<ul>line3<br/>\n'
-                                   'line4<br/>\n</ul></ul>line5')
+    def test_ol6(self):
+        infile = StringIO.StringIO(
+            'line0<ol><li style="list-style-type: none">line1<br/>\n'
+            'line2<ol><li style="list-style-type: none">line3<br/>\n'
+            'line4<br/>\n</li>\n</ol>\n'
+            '</li>\n</ol>\nline5')
         self.read(self.buffer, infile)
 
         contents = list(iter_buffer_contents(self.buffer,
@@ -416,21 +451,99 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         
         # check the internal indentation structure
         self.assertEquals([display_item(x) for x in contents],
-                          ['line0',
-                           'BEGIN:indent 1',
-                           'line1\nline2',
-                           'END:indent 1',
-                           'BEGIN:indent 2',
-                           'line3\nline4\n',
-                           'END:indent 2',
+                          ['line0\n',
+                           'BEGIN:indent 1 none',
+                           'line1\nline2\n',
+                           'END:indent 1 none',
+                           'BEGIN:indent 2 none',
+                           'line3\nline4\n\n',
+                           'END:indent 2 none',
                            'line5'])
 
-    def test_ul7(self):
-        self.read_write('line0<ul><ul>line1<br/>\n'
-                        'line2<br/>\n</ul>line3</ul>line4')
+    def test_ol7(self):
+        self.read_write('line0<ol><li style="list-style-type: none">'
+                        '<ol><li style="list-style-type: none">line1</li>\n'
+                        '<li style="list-style-type: none">line2</li>\n</ol>\n</li>\n'
+                        '<li style="list-style-type: none">line3</li>\n'
+                        '</ol>\nline4')
 
 
+    def test_bullet(self):
 
+        self.buffer.insert_at_cursor("end1\nend2\n")
+        self.buffer.place_cursor(self.buffer.get_start_iter())
+        #self.buffer.indent()
+        self.buffer.toggle_bullet_list()
+        self.buffer.insert_at_cursor("line1\n")
+        
+        
+        contents = list(iter_buffer_contents(self.buffer,
+                                             None, None, IGNORE_TAGS))
+
+        dom = TextBufferDom(
+            normalize_tags(find_paragraphs(
+            convert_indent_tags(self.get_contents(), self.buffer.tag_table)),
+            is_stable_tag=lambda tag:
+               isinstance(tag, RichTextIndentTag) or
+               tag == P_TAG))
+        self.io.prepare_dom(dom)
+        print
+        dom.display()
+        
+        # check the internal indentation structure
+        self.assertEquals([display_item(x) for x in contents],
+                          ['BEGIN:bullet',
+                           'BEGIN:indent 1 bullet',
+                           u'\u2022 ',
+                           'END:bullet',
+                           'line1\n',
+                           'BEGIN:bullet',
+                           u'\u2022 ',
+                           'END:bullet',
+                           'end1\n',
+                           'END:indent 1 bullet',
+                           'end2\n'])
+
+        outfile = StringIO.StringIO()
+        self.write(self.buffer, outfile)
+
+        self.assertEquals(outfile.getvalue(),
+                          '<ol><li style="list-style-type: disc">line1</li>\n'
+                          '<li style="list-style-type: disc">end1</li>\n</ol>\nend2<br/>\n')
+
+
+    def test_bullet2(self):
+        self.read_write(
+            '<b><i>line0</i><ol><li style="list-style-type: disc"><i>line1</i></li>\n'
+            '<li style="list-style-type: disc"><i>line2</i></li>\n'
+            '<li style="list-style-type: none"><ol><li style="list-style-type: disc">line3</li>\n'
+            '<li style="list-style-type: disc">line4</li>\n</ol>\n</li>\n<li style="list-style-type: disc">line5</li>\n'
+                        '</ol>\nline6</b>')
+
+    def test_par(self):
+
+        self.read(self.buffer, StringIO.StringIO(
+            """word1 <b>word2<br/>\nword3</b> word4<br/>\n"""))
+
+        contents = list(normalize_tags(
+            find_paragraphs(self.get_contents()),
+            is_stable_tag=lambda tag: tag == P_TAG))
+        
+        self.assertEquals([display_item(x) for x in contents],
+                          ['BEGIN:p',
+                           'word1 ',
+                           'BEGIN:bold',
+                           'word2\n',
+                           'END:bold',
+                           'END:p',
+                           'BEGIN:bold',
+                           'END:bold',
+                           'BEGIN:p',
+                           'BEGIN:bold',
+                           'word3',
+                           'END:bold',                           
+                           ' word4\n',
+                           'END:p'])
         
     def test_image1(self):
         """Simple read/write, text should not change"""

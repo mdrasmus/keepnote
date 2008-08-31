@@ -275,6 +275,19 @@ class TakeNoteWindow (gtk.Window):
         # init main window
         self.set_title(takenote.PROGRAM_NAME)
         self.set_default_size(*takenote.DEFAULT_WINDOW_SIZE)
+        self.set_icon_list(get_resource_pixbuf("takenote-16x16.png"),
+                           get_resource_pixbuf("takenote-32x32.png"),
+                           get_resource_pixbuf("takenote-64x64.png"))
+
+        # TODO: make configurable
+        # system tray icon
+        if gtk.gtk_version > (2, 10):
+            self.tray_icon = gtk.StatusIcon()
+            self.tray_icon.set_from_pixbuf(get_resource_pixbuf("takenote-32x32.png"))
+            self.tray_icon.set_tooltip("TakeNote")
+            self.tray_icon.connect("activate", self.on_tray_icon_activate)
+        else:
+            self.tray_icon = None
 
         # main window signals
         self.connect("delete-event", lambda w,e: self.on_quit())
@@ -410,6 +423,11 @@ class TakeNoteWindow (gtk.Window):
 
     def on_app_options_changed(self):
         self.selector.set_date_formats(self.app.pref.timestamp_formats)
+
+
+    def on_tray_icon_activate(self, icon):
+        """Try icon has been clicked in system tray"""
+        self.restore_window()
         
     
     #=============================================================
@@ -1188,6 +1206,12 @@ class TakeNoteWindow (gtk.Window):
 
     def on_fill_justify(self):
         self.on_justify("fill")    
+
+    def on_bullet_list(self):
+        self.editor.get_textview().toggle_bullet()
+
+        # TODO: update button
+
 
     def on_choose_font(self):
         """Callback for opening Choose Font Dialog"""
@@ -2096,29 +2120,43 @@ class TakeNoteWindow (gtk.Window):
         self.left_button = gtk.ToggleToolButton()
         self.left_button.set_icon_widget(get_resource_image("alignleft.png"))
         tips.set_tip(self.left_button, "Left Align")
-        self.left_id = self.left_button.connect("toggled", lambda w: self.on_left_justify())
+        self.left_id = self.left_button.connect("toggled",
+                                            lambda w: self.on_left_justify())
         toolbar.insert(self.left_button, -1)
         
         # center tool
         self.center_button = gtk.ToggleToolButton()
         self.center_button.set_icon_widget(get_resource_image("aligncenter.png"))
         tips.set_tip(self.center_button, "Center Align")
-        self.center_id = self.center_button.connect("toggled", lambda w: self.on_center_justify())
+        self.center_id = self.center_button.connect("toggled",
+                                          lambda w: self.on_center_justify())
         toolbar.insert(self.center_button, -1)
         
         # right tool
         self.right_button = gtk.ToggleToolButton()
         self.right_button.set_icon_widget(get_resource_image("alignright.png"))
         tips.set_tip(self.right_button, "Right Align")
-        self.right_id = self.right_button.connect("toggled", lambda w: self.on_right_justify())
+        self.right_id = self.right_button.connect("toggled",
+                                           lambda w: self.on_right_justify())
         toolbar.insert(self.right_button, -1)
         
         # justify tool
         self.fill_button = gtk.ToggleToolButton()
         self.fill_button.set_icon_widget(get_resource_image("alignjustify.png"))
         tips.set_tip(self.fill_button, "Justify Align")
-        self.fill_id = self.fill_button.connect("toggled", lambda w: self.on_fill_justify())
+        self.fill_id = self.fill_button.connect("toggled",
+                                             lambda w: self.on_fill_justify())
         toolbar.insert(self.fill_button, -1)
+
+
+        # bullet list tool
+        self.bullet_button = gtk.ToggleToolButton()
+        self.bullet_button.set_icon_widget(get_resource_image("bullet.png"))
+        tips.set_tip(self.bullet_button, "Bullet List")
+        self.bullet_id = self.bullet_button.connect("toggled",
+                                            lambda w: self.on_bullet_list())
+        toolbar.insert(self.bullet_button, -1)
+        
 
 
         # separator

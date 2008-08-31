@@ -26,13 +26,16 @@ from takenote.gui.richtextbuffer import \
      RichTextImage, \
      RichTextHorizontalRule, \
      RichTextError, \
+     RichTextTag, \
      RichTextModTag, \
      RichTextFamilyTag, \
      RichTextSizeTag, \
      RichTextJustifyTag, \
      RichTextFGColorTag, \
      RichTextBGColorTag, \
-     RichTextIndentTag
+     RichTextIndentTag, \
+     RichTextBulletTag
+
 
 
 
@@ -41,6 +44,8 @@ XHTML_HEADER = """<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
 <html xmlns="http://www.w3.org/1999/xhtml">
 <body>"""
 XHTML_FOOTER = "</body></html>"
+
+BULLET_STR = u"\u2022 "
 
 
 def convert_indent_tags(contents, tag_table):
@@ -110,11 +115,112 @@ def convert_indent_tags(contents, tag_table):
     while indent > 0:
         yield ("end", None, tag_table.lookup_indent(indent))
         indent -= 1
+
+
+
+def find_paragraphs(contents):
+    """Wrap each paragraph with a pair of tags"""
+
+    within_par = False
+
+    others = []
+    par_type = "none"
+
+    pars = {"none": P_TAG,
+            "bullet": P_BULLET_TAG}
+    par_stack = []
+
+    for item in contents:
+
+        if item[0] == "text":
+
+            for item2 in others:                
+                yield item2
+            others = []
+            
+            if not within_par:
+                # starting paragraph
+                within_par = True
+                yield ("begin", None, pars[par_type])
+                par_stack.append(pars[par_type])
+
+            text = item[2]
+            i = 0
+            for j, c in enumerate(text):
+                if not within_par:
+                    within_par = True
+                    yield ("begin", None, pars[par_type])
+                    par_stack.append(pars[par_type])
+                
+                if c == "\n":
+                    yield ("text", None, text[i:j+1])
+                    yield ("end", None, par_stack.pop())
+                    within_par = False
+                    i = j+1
+
+            # yeild remaining text
+            if i < j+1:
+                if not within_par:
+                    within_par = True
+                    yield ("begin", None, pars[par_type])
+                    par_stack.append(pars[par_type])
+                yield ("text", None, text[i:j+1])
+
+        elif item[0] == "anchor":
+
+            for item2 in others:
+                yield item2
+            others = []
+            
+            if not within_par:
+                # starting paragraph
+                within_par = True
+                yield ("begin", None, pars[par_type])
+                par_stack.append(pars[par_type])
+
+            # yield anchor
+            yield item
+            
+        
+        else:
+            # pass other items through
+
+            if item[0] == "begin" and \
+               isinstance(item[2], RichTextIndentTag):
+                par_type = item[2].get_par_indent()
+            
+            others.append(item)
+
+    if within_par:
+        yield ("end", None, par_stack.pop())
     
+    for item in others:
+        yield item
+
+
         
 
+class HtmlTagDom (TagDom):
+    def __init__(self, tag):
+        TagDom.__init__(self, tag)
 
+class RichTextParTag (RichTextTag):
+    def __init__(self, kind):
+        RichTextTag.__init__(self, "p")
+        self.kind = kind
 
+LI_TAG = RichTextTag("li")
+P_TAG = RichTextParTag("none")
+P_BULLET_TAG = RichTextParTag("bullet")
+
+class LiHtmlTagDom (HtmlTagDom):
+    def __init__(self, kind):
+        HtmlTagDom.__init__(self, LI_TAG)
+        self.kind = kind
+
+#class ParHtmlTagDom (HtmlTagDom):
+#    def __init__(self):
+#        HtmlTagDom.__init__(self, P_TAG)
 
 class HtmlError (StandardError):
     """Error for HTML parsing"""
@@ -186,6 +292,9 @@ class HtmlBuffer (HTMLParser):
         self._buffer_contents = []
         self._partial = partial
         self._indent = 0
+        self._li_newline = False
+        self._seen_text = False
+        self._par_type = "none"
 
         try:
             for line in infile:
@@ -373,24 +482,52 @@ class HtmlBuffer (HTMLParser):
             # a newline char
             self.queue_text("\n")
 
-        elif htmltag == "ul":
+        elif htmltag == "ul" or htmltag == "ol":
             # indent
 
+            if self._seen_text:
+                self._seen_text = False
+                self.queue_text("\n")
+            self._li_newline = False
+
             if self._indent > 0:
-                self.append_buffer_item("endstr", "indent %d" % self._indent)
-
+                self.append_buffer_item("endstr", "indent %d %s" %
+                                        (self._indent, self._par_type))
             self._indent += 1
-
-            tagstr = "indent %d" % self._indent
+            tagstr = "indent %d %s" % (self._indent, self._par_type)
             self.append_buffer_item("beginstr", tagstr)
-            #self._tag_stack[-1][1].append(tagstr)
             
-            #tagstr = "bullet"
-            #self.append_buffer_item("beginstr", tagstr)
-            #self._tag_stack[-1][1].append(tagstr)
+        elif htmltag == "li":
+            # ignore list items for now
 
-            #self.queue_text(u"\u2022 ")
-            
+            self._li_newline = True
+            self._seen_text = False
+            par_type = "none"
+
+            for key, value in attrs:
+                if key == "style":
+                    for statement in value.split(";"):
+                        key2, value2 = statement.split(":")
+                        value2 = value2.strip()
+                        
+                        if key2.strip() == "list-style-type":
+                            if value2 == "disc":
+                                par_type = "bullet"
+
+            if self._indent > 0:
+                self.append_buffer_item("endstr", "indent %d %s" %
+                                        (self._indent, self._par_type))
+                self._par_type = par_type
+                tagstr = "indent %d %s" % (self._indent, self._par_type)
+                self.append_buffer_item("beginstr", tagstr)
+
+                if par_type == "bullet":
+                    self.append_buffer_item("beginstr", "bullet")
+                    self.queue_text(u"\u2022 ")
+                    self.append_buffer_item("endstr", "bullet")
+            else:
+                assert False
+
             
             
         elif htmltag == "br":
@@ -440,10 +577,14 @@ class HtmlBuffer (HTMLParser):
         for tagstr in tags:
             self.append_buffer_item("endstr", tagstr)
 
-        if htmltag == "ul":
+        if htmltag == "ul" or htmltag == "ol":
+            self._newline = True
+            self._li_newline = False
+            
             # indent
             if self._indent > 0:
-                self.append_buffer_item("endstr", "indent %d" % self._indent)
+                self.append_buffer_item("endstr", "indent %d %s" %
+                                        (self._indent, self._par_type))
                 self._indent -= 1
             else:
                 # NOTE: this is an error in the HTML input.  More closes than
@@ -451,9 +592,31 @@ class HtmlBuffer (HTMLParser):
                 self._indent = 0
 
             if self._indent > 0:
-                self.append_buffer_item("beginstr", "indent %d" % self._indent)
+                self.append_buffer_item("beginstr", "indent %d %s" %
+                                        (self._indent, self._par_type))
+
+        elif htmltag == "li":
+            if self._li_newline:
+                self._li_newline = False
+                self._seen_text = False
+                self.queue_text("\n")
+            self._newline = True
+
+            # indent
+            if self._indent > 0:
+                self.append_buffer_item("endstr", "indent %d %s" %
+                                        (self._indent, self._par_type))
+            else:
+                # NOTE: this is an error in the HTML input.  More closes than
+                # opens
+                self._indent = 0
+
+            if self._indent > 0:
+                self.append_buffer_item("beginstr", "indent %d %s" %
+                                        (self._indent, self._par_type))
+
         
-        if htmltag == "p":
+        elif htmltag == "p":
             # paragraph tag
             self.queue_text("\n")
 
@@ -464,13 +627,19 @@ class HtmlBuffer (HTMLParser):
 
         if not self._partial and not self._within_body:
             return
+
+        
         
         if self._newline:
             data = re.sub("\n[\n ]*", "", data)
             self._newline = False
         else:
             data = re.sub("[\n ]+", " ", data)
-        self.queue_text(data)
+
+        if len(data) > 0:
+            #self._li_newline = True
+            self._seen_text = True
+            self.queue_text(data)
 
     
     def handle_entityref(self, name):
@@ -496,9 +665,11 @@ class HtmlBuffer (HTMLParser):
 
         # normalize contents, prepare them for DOM
         contents = normalize_tags(
-            convert_indent_tags(buffer_content, tag_table),
-            is_stable_tag=lambda tag: isinstance(tag, RichTextIndentTag))
-
+            convert_indent_tags(find_paragraphs(buffer_content), tag_table),
+            is_stable_tag=lambda tag:
+                isinstance(tag, (RichTextIndentTag, RichTextParTag)))
+                
+        
         dom = TextBufferDom(contents)
         self.prepare_dom(dom)
         self.write_dom(dom)
@@ -511,38 +682,128 @@ class HtmlBuffer (HTMLParser):
         # <hr/> tags should consume the surronding newlines
         # (it will supply them)
 
+        # </li> consumes preceding newline
+
+        # bullet tags and their contents should be removed
+        
+        # TODO: could combine style tags that have only child (another style)
+        
         last_leaf = [None]
 
+        # change all <p> tags to li
+        def walk(node, within_indent, par_type):
+            if isinstance(node, TagDom):
+                if isinstance(node.tag, RichTextParTag):
+                    
+                    if within_indent:
+                        # change p to li
+                        item_dom = LiHtmlTagDom(node.tag.kind)
+
+                        while True:                        
+                            child = node.first_child()
+                            if not child:
+                                break
+                            child.remove()
+                            item_dom.append_child(child)
+
+                        parent = node.get_parent()
+                        parent.replace_child(node, item_dom)
+                        return
+
+                    else:
+                        # remove p
+                        parent = node.get_parent()
+                        
+                        while True:                        
+                            child = node.first_child()
+                            if not child:
+                                break
+                            child.remove()
+                            parent.insert_before(node, child)
+                        node.remove()
+                            
+                # insert li above ol
+                elif isinstance(node.tag, RichTextIndentTag):
+                    if within_indent:
+                        item_dom = LiHtmlTagDom("none")
+                        parent = node.get_parent()
+                        parent.replace_child(node, item_dom)
+                        item_dom.append_child(node)
+                    within_indent = True
+                    
+            for child in list(node):
+                walk(child, within_indent, par_type)
+        walk(dom, False, "none")
+
+        
         # walk dom in preorder traversal
         def walk(node):
+            
+            if isinstance(node, TagDom):
+                # remove bullet tags and their contents
+                if isinstance(node.tag, RichTextBulletTag):
+                    node.remove()
+                    return
+                    
 
             # delete preceding newline of <hr/>
             if isinstance(node, AnchorDom) and \
-               isinstance(node.anchor, RichTextHorizontalRule):
+               isinstance(node.anchor, RichTextHorizontalRule) and \
+               isinstance(last_leaf[0], TextDom) and \
+               last_leaf[0].text.endswith("\n"):
+                last_leaf[0].text = last_leaf[0].text[:-1]
 
+            # delete preceding newline of <ol> <ul>
+            if isinstance(node, TagDom) and \
+               isinstance(node.tag, RichTextIndentTag) and \
+               isinstance(last_leaf[0], TextDom) and \
+               last_leaf[0].text.endswith("\n"):
+                last_leaf[0].text = last_leaf[0].text[:-1]
                 
-                if isinstance(last_leaf[0], TextDom):                    
-                    if last_leaf[0].text.endswith("\n"):
-                        last_leaf[0].text = last_leaf[0].text[:-1]
+            # delete preceding newline of </li>
+            if isinstance(node, LiHtmlTagDom):
 
+                # get right most desendent
+                child = node.last_child()
+                while child and not child.is_leaf():
+                    if isinstance(child, TagDom) and \
+                       isinstance(child.tag, RichTextIndentTag):
+                        # let the next li consume newline
+                        child = None
+                    else:
+                        child = child.last_child()
+                
+                if isinstance(child, TextDom) and \
+                   child.text.endswith("\n"):
+                    child.text = child.text[:-1]
             
-            if not node.has_children():                
+            if node.is_leaf():
+                # process leaves
+                
                 # delete succeeding newline of <hr/>
                 if isinstance(last_leaf[0], AnchorDom) and \
                    isinstance(last_leaf[0].anchor, RichTextHorizontalRule) and \
-                   isinstance(node, TextDom):
-                    if node.text.startswith("\n"):
-                        node.text = node.text[1:]
+                   isinstance(node, TextDom) and \
+                   node.text.startswith("\n"):
+                    node.text = node.text[1:]
 
-                # record leaf
-                last_leaf[0] = node
+                # empty tags are skiped as leaves
+                if not isinstance(node, TagDom):
+                    # record leaf
+                    last_leaf[0] = node
                 
             else:
                 # recurse
-                for child in node:
+                for child in list(node):
                     walk(child)
+
+            # remove empty tags
+            if isinstance(node, TagDom) and node.is_leaf():
+                node.remove()
+                
         walk(dom)
-        
+
+                    
 
     def write_dom(self, dom):
         """Write DOM"""
@@ -551,9 +812,9 @@ class HtmlBuffer (HTMLParser):
                 self.write_text(child.text)
 
             elif isinstance(child, TagDom):                
-                self.write_tag_begin(child.tag)
+                self.write_tag_begin(child)
                 self.write_dom(child)
-                self.write_tag_end(child.tag)
+                self.write_tag_end(child)
             
             elif isinstance(child, AnchorDom):
                 self.write_anchor(child.anchor)
@@ -596,7 +857,8 @@ class HtmlBuffer (HTMLParser):
             print "unknown anchor element", anchor
 
     
-    def write_tag_begin(self, tag):
+    def write_tag_begin(self, dom):
+        tag = dom.tag
         tagname = tag.get_property("name")
 
         
@@ -632,13 +894,21 @@ class HtmlBuffer (HTMLParser):
                                 tag.get_color()))
 
         elif isinstance(tag, RichTextIndentTag):
-            self._out.write("<ul>")
-                
+            self._out.write("<ol>")
+
+        elif isinstance(dom, LiHtmlTagDom):
+            if dom.kind == "bullet":
+                self._out.write('<li style="list-style-type: disc">')
+            else:
+                # kind == "none"
+                self._out.write('<li style="list-style-type: none">')
+
         else:
             raise HtmlError("unknown tag '%s'" % tag.get_property("name"))
                 
         
-    def write_tag_end(self, tag):
+    def write_tag_end(self, dom):
+        tag = dom.tag
         tagname = tag.get_property("name")
         
         if tagname in self._buffer_tag2html:
@@ -648,8 +918,14 @@ class HtmlBuffer (HTMLParser):
             self._out.write("</div>")
 
         elif isinstance(tag, RichTextIndentTag):
-            self._out.write("</ul>")
+            self._out.write("</ol>\n")
+            
+        elif isinstance(dom, LiHtmlTagDom):
+            self._out.write("</li>\n")
 
+        elif isinstance(tag, RichTextBulletTag):
+            pass
+        
         else:
             self._out.write("</span>")
 

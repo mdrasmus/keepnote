@@ -6,13 +6,6 @@ import sys, os, tempfile, re
 import urllib2
 
 
-
-try:
-    import gtkspell
-except ImportError:
-    gtkspell = None
-
-
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
@@ -30,6 +23,19 @@ from takenote.gui.textbuffer_tools import \
      insert_buffer_contents, \
      buffer_contents_apply_tags
 
+# import tags
+from takenote.gui.richtext_tags import \
+     RichTextTagTable, \
+     RichTextTag, \
+     RichTextModTag, \
+     RichTextJustifyTag, \
+     RichTextFamilyTag, \
+     RichTextSizeTag, \
+     RichTextFGColorTag, \
+     RichTextBGColorTag, \
+     RichTextIndentTag, \
+     RichTextBulletTag
+
 
 # TODO: fix bug with spell check interferring with underline tags
 
@@ -39,9 +45,8 @@ IGNORE_TAGS = set(["gtkspell-misspelled"])
 # default maximum undo levels
 MAX_UNDOS = 100
 
-# default indentation sizes
-MIN_INDENT = 5
-INDENT_SIZE = 25
+# string for bullet points
+BULLET_STR = u"\u2022 "
 
 
 #=============================================================================
@@ -159,14 +164,14 @@ class DeleteAction (Action):
         self.text = text
         self.cursor_offset = cursor_offset
         self.contents = []        
-        self.record_range()
+        self._record_range()
     
 
     def do(self):
         start = self.textbuffer.get_iter_at_offset(self.start_offset)
         end = self.textbuffer.get_iter_at_offset(self.end_offset)
         self.textbuffer.place_cursor(start)
-        self.record_range()
+        self._record_range()
         self.textbuffer.delete(start, end)
 
 
@@ -181,7 +186,7 @@ class DeleteAction (Action):
         self.textbuffer.end_user_action()
 
     
-    def record_range(self):
+    def _record_range(self):
         start = self.textbuffer.get_iter_at_offset(self.start_offset)
         end = self.textbuffer.get_iter_at_offset(self.end_offset)
         self.contents = list(buffer_contents_iter_to_offset(
@@ -228,13 +233,13 @@ class TagAction (Action):
         self.end_offset = end_offset
         self.applied = applied
         self.contents = []
-        self.record_range()
+        self._record_range()
         
     
     def do(self):
         start = self.textbuffer.get_iter_at_offset(self.start_offset)
         end = self.textbuffer.get_iter_at_offset(self.end_offset)
-        self.record_range()
+        self._record_range()
         if self.applied:
             self.textbuffer.apply_tag(self.tag, start, end)
         else:
@@ -250,9 +255,12 @@ class TagAction (Action):
         buffer_contents_apply_tags(self.textbuffer, self.contents)
         
     
-    def record_range(self):
+    def _record_range(self):
         start = self.textbuffer.get_iter_at_offset(self.start_offset)
         end = self.textbuffer.get_iter_at_offset(self.end_offset)
+
+        # TODO: I can probably discard iter's.  Maybe make argument to
+        # iter_buffer_contents
         self.contents = filter(lambda (kind, it, param): 
             kind in ("begin", "end") and param == self.tag,
             buffer_contents_iter_to_offset(
@@ -629,289 +637,9 @@ class RichTextFont (object):
         self.bg_color = bg_color
 
 
-
-class RichTextTagTable (gtk.TextTagTable):
-    """A tag table for a RichTextBuffer"""
-    
-    def __init__(self):
-        gtk.TextTagTable.__init__(self)
-
-        # modification (mod) font tags
-        # All of these can be combined
-        self.bold_tag = RichTextModTag("bold", weight=pango.WEIGHT_BOLD)
-        self.add(self.bold_tag)
-            
-        self.italic_tag = RichTextModTag("italic", style=pango.STYLE_ITALIC)
-        self.add(self.italic_tag)
-            
-        self.underline_tag = RichTextModTag("underline",
-                                            underline=pango.UNDERLINE_SINGLE)
-        self.add(self.underline_tag)
-            
-        self.no_wrap_tag = RichTextModTag("nowrap", wrap_mode=gtk.WRAP_NONE)
-        self.add(self.no_wrap_tag)
-        
-        self.mod_names = ["bold", "italic", "underline", "nowrap"]
-
-        # Class tags cannot overlap any other tag of the same class
-        # example: a piece of text cannot have two colors, two families,
-        # two sizes, or two justifications.
-        
-        # justify tags
-        self.left_tag = RichTextJustifyTag("left",
-                                           justification=gtk.JUSTIFY_LEFT)
-        self.add(self.left_tag)
-        self.center_tag = RichTextJustifyTag("center",
-                                             justification=gtk.JUSTIFY_CENTER)
-        self.add(self.center_tag)
-        self.right_tag = RichTextJustifyTag("right",
-                                            justification=gtk.JUSTIFY_RIGHT)
-        self.add(self.right_tag)
-        self.fill_tag = RichTextJustifyTag("fill",
-                                           justification=gtk.JUSTIFY_FILL)
-        self.add(self.fill_tag)
-        
-        self.justify2name = {
-            gtk.JUSTIFY_LEFT: "left", 
-            gtk.JUSTIFY_RIGHT: "right", 
-            gtk.JUSTIFY_CENTER: "center", 
-            gtk.JUSTIFY_FILL: "fill"
-        }
-        self.justify_names = ["left", "center", "right", "justify"]
-
-        # class sets
-        self.mod_tags = set()
-        self.justify_tags = set([self.left_tag, self.center_tag,
-                                 self.right_tag, self.fill_tag])
-        self.family_tags = set()
-        self.size_tags = set()
-        self.fg_color_tags = set()
-        self.bg_color_tags = set()
-        self.indent_tags = set()
-
-
-        self.exclusive_classes = [
-            self.justify_tags,
-            self.family_tags,
-            self.size_tags,
-            self.fg_color_tags,
-            self.bg_color_tags,
-            self.indent_tags]
-
-
-    def lookup(self, name):
-        """Lookup any tag, create it if needed"""
-
-        # test to see if name is directly in table
-        #  modifications and justifications are directly stored
-        tag = gtk.TextTagTable.lookup(self, name)
-        
-        if tag:
-            return tag
-        
-        elif name.startswith("size"):
-            # size tag
-            return self.lookup_size(int(name.split(" ", 1)[1]))
-
-        elif name.startswith("family"):
-            # family tag
-            return self.lookup_family(name.split(" ", 1)[1])
-
-        elif name.startswith("fg_color"):
-            # foreground color tag
-            return self.lookup_fg_color(name.split(" ", 1)[1])
-
-        elif name.startswith("bg_color"):
-            # background color tag
-            return self.lookup_bg_color(name.split(" ", 1)[1])
-
-        elif name.startswith("indent") or name.startswith("bullet"):
-            return self.lookup_indent(name)
-
-
-    def lookup_mod(self, mod):
-        """Returns modification tag using name"""
-        return gtk.TextTagTable.lookup(self, mod)
-    
-    
-    def lookup_family(self, family):
-        """Returns family tag using name"""
-        tag = gtk.TextTagTable.lookup(self, "family " + family)        
-        if tag is None:
-            # TODO: do I need to do error handling here?
-            tag = RichTextFamilyTag(family)
-            self.add(tag)
-            self.family_tags.add(tag)
-        return tag
-    
-    def lookup_size(self, size):
-        """Returns size tag using size"""
-        sizename = "size %d" % size
-        tag = gtk.TextTagTable.lookup(self, sizename)
-        if tag is None:
-            tag = RichTextSizeTag(size)
-            self.add(tag)
-            self.size_tags.add(tag)
-        return tag
-
-    def lookup_justify(self, justify):
-        """Returns justify tag"""
-        return gtk.TextTagTable.lookup(self, justify)
-
-
-    def lookup_fg_color(self, color):
-        """Returns foreground color tag"""
-        colorname = "fg_color " + color
-        tag = gtk.TextTagTable.lookup(self, colorname)
-        if tag is None:
-            tag = RichTextFGColorTag(color)
-            self.add(tag)
-            self.fg_color_tags.add(tag)
-        return tag
-
-
-    def lookup_bg_color(self, color):
-        """Returns background color tag"""
-        colorname = "bg_color " + color
-        tag = gtk.TextTagTable.lookup(self, colorname)
-        if tag is None:
-            tag = RichTextBGColorTag(color)
-            self.add(tag)
-            self.bg_color_tags.add(tag)
-        return tag
-
-
-    def lookup_indent(self, indent):
-        """Return indentation tag"""
-        if isinstance(indent, str):
-            if " " in indent:
-                # lookup from string
-                return self.lookup_indent(int(indent.split(" ", 1)[1]))
-            
-            else:
-                return self.lookup_indent(1)
-            
-        else:
-            # lookup from integer
-            tagname = "indent %d" % indent
-            tag = gtk.TextTagTable.lookup(self, tagname)
-            if tag is None:
-                tag = RichTextIndentTag(indent)
-                self.add(tag)
-                self.indent_tags.add(tag)
-            return tag
-
-
-    '''
-        INDENT_SIZE = 25
-        BULLET_SIZE = -10
-
-        if indent == "bullet":            
-            return self.create_tag("bullet", indent=BULLET_SIZE)
-        
-        if isinstance(indent, str):
-            if " " in indent:
-                # lookup from string
-                return self.lookup_indent_tag(int(indent.split(" ", 1)[1]))
-            
-            else:
-                # lookup from current position
-                #it = self.get_iter_at_mark(self.get_insert())
-                #attr = gtk.TextAttributes()
-                #self.default_attr.copy_values(attr)
-                #it.get_attributes(attr)
-                #i = (attr.left_margin // INDENT_SIZE) + 1
-                #return self.lookup_indent_tag(i)
-                return self.create_tag("indent", left_margin=INDENT_SIZE)
-            
-        else:
-            # lookup from integer
-            tagname = "indent %d" % indent
-            tag = self.tag_table.lookup(tagname)
-            if tag is None:
-                tag = self.create_tag(tagname, left_margin=indent*INDENT_SIZE)
-                self.indent_tags.add(tag)
-            return tag
-    '''
-    
-        
-
-class RichTextTag (gtk.TextTag):
-    """A TextTag in a RichTextBuffer"""
-    def __init__(self, name, **kargs):
-        gtk.TextTag.__init__(self, name)
-
-        for key, val in kargs.iteritems():
-            self.set_property(key.replace("_", "-"), val)
-
-
-class RichTextModTag (RichTextTag):
-    """A tag that represents ortholognal font modifications:
-       bold, italic, underline, nowrap
-    """
-
-    def __init__(self, name, **kargs):
-        RichTextTag.__init__(self, name, **kargs)
-
-class RichTextJustifyTag (RichTextTag):
-    """A tag that represents ortholognal font modifications:
-       bold, italic, underline, nowrap
-    """
-
-    def __init__(self, name, **kargs):
-        RichTextTag.__init__(self, name, **kargs)
-
-
-class RichTextFamilyTag (RichTextTag):
-    """A tag that represents a font family"""
-    def __init__(self, family):
-        RichTextTag.__init__(self, "family " + family, family=family)
-
-    def get_family(self):
-        return self.get_property("family")    
-
-class RichTextSizeTag (RichTextTag):
-    """A tag that represents a font size"""
-    def __init__(self, size):
-        RichTextTag.__init__(self, "size %d" % size, size_points=size)
-
-    def get_size(self):
-        return int(self.get_property("size-points"))
-    
-class RichTextFGColorTag (RichTextTag):
-    """A tag that represents a font foreground color"""
-    def __init__(self, color):
-        RichTextTag.__init__(self, "fg_color %s" % color,
-                             foreground=color)
-
-    def get_color(self):
-        return color_to_string(self.get_property("foreground-gdk"))
-
-
-class RichTextBGColorTag (RichTextTag):
-    """A tag that represents a font background color"""
-    def __init__(self, color):
-        RichTextTag.__init__(self, "bg_color %s" % color,
-                             background=color)
-
-    def get_color(self):
-        return color_to_string(self.get_property("background-gdk"))
-
-
-class RichTextIndentTag (RichTextTag):
-    """A tag that represents an indentation level"""
-    def __init__(self, indent):
-        RichTextTag.__init__(self, "indent %d" % indent,
-                             left_margin=MIN_INDENT + INDENT_SIZE * indent)
-        self._indent = indent
-
-    def get_indent(self):
-        return self._indent
-
-
 #=============================================================================
 # RichTextBuffer
-    
+
 
 class RichTextBuffer (gtk.TextBuffer):
     """
@@ -920,6 +648,7 @@ class RichTextBuffer (gtk.TextBuffer):
     - maintains undo/redo stacks
     - manages "current font" behavior
     - manages child widget actions
+    - manages editing of indentation levels and bullet point lists
     """
     
     def __init__(self, textview=None):
@@ -933,6 +662,7 @@ class RichTextBuffer (gtk.TextBuffer):
         self._current_tags = []
         self._user_action = False
 
+        # indentation
         self._indent_update = False
         self._indent_update_start = self.create_mark("indent_update_start",
                                                      self.get_start_iter(),
@@ -940,7 +670,10 @@ class RichTextBuffer (gtk.TextBuffer):
         self._indent_update_end = self.create_mark("indent_update_end",
                                                    self.get_end_iter(),
                                                    False)
-        
+        self._bullet_mark = self.create_mark("bullet",
+                                             self.get_start_iter(),
+                                             True)
+
 
         # set of all anchors in buffer
         self._anchors = set()
@@ -1021,20 +754,38 @@ class RichTextBuffer (gtk.TextBuffer):
                                    self.tag_table.lookup(name))
         self.end_user_action()
 
+
+    def copy_contents(self, start, end):
+        """Return a content stream for copying from iter start and end"""
+
+        contents = iter(iter_buffer_contents(self, start, end, IGNORE_TAGS))
+
+        # remove regions that can't be copied
+        for item in contents:
+            if item[0] == "begin" and not item[2].can_be_copied():
+                end_tag = item[2]
+                
+                while not (item[0] == "end" and item[2] == end_tag):
+                    item = contents.next()
+
+                    if item[0] not in ("text", "anchor") and \
+                       item[2] != end_tag:
+                        yield item
+                    
+                continue
+
+            yield item
+
     #======================================================
     # indentation methods/callbacks
 
     def indent(self, start=None, end=None):
         """Indent paragraph level"""
-
-        #print "indent"
         self.change_indent(start, end, 1)
 
 
     def unindent(self, start=None, end=None):
         """Unindent paragraph level"""
-
-        #print "unindent"
         self.change_indent(start, end, -1)
 
 
@@ -1053,126 +804,304 @@ class RichTextBuffer (gtk.TextBuffer):
 
         self.begin_user_action()
 
+        end_mark = self.create_mark(None, end, True)
+        
         # loop through paragraphs
         pos = start
         while pos.compare(end) == -1:
             par_end = pos.copy()
             par_end.forward_line()
-            indent = self.get_indent(pos)
-            self.apply_tag_selected(self.tag_table.lookup_indent(indent +
-                                                                     change),
-                                    pos, par_end)
+            indent, par_indent = self.get_indent(pos)
+
+            if indent + change > 0:
+                self.apply_tag_selected(
+                    self.tag_table.lookup_indent(indent + change,
+                                                 par_indent),
+                    pos, par_end)
+            elif indent > 0:
+                # remove indent and possible bullets
+                self.remove_tag(self.tag_table.lookup_indent(indent,
+                                                             par_indent),
+                                pos, par_end)                
+                pos = self._remove_bullet(pos)
+                end = self.get_iter_at_mark(end_mark)
 
             if not pos.forward_line():
                 break
 
         self.end_user_action()
+
+        self.delete_mark(end_mark)
         
 
 
-    def get_indent(self, it=None):
-        """Returns the indentation level at iter 'it'"""
+    def toggle_bullet_list(self):
+        """Toggle the state of a bullet list"""
         
-        if not it:
-            it = self.get_iter_at_mark(self.get_insert())
+        self.begin_user_action()
 
-        for tag in it.get_tags():
-            if isinstance(tag, RichTextIndentTag):
-                return tag.get_indent()
+        # start indent if it is not present
+        indent, par_type = self.get_indent()
+        if indent == 0:
+            indent = 1
+            #self.indent()
+        
+        par_start, par_end = self.get_paragraph()
 
-        return 0
+        if par_type != "none":
+            par_type = "none"
+        else:
+            par_type = "bullet"
 
+        # apply indent to whole paragraph
+        indent_tag = self.tag_table.lookup_indent(indent, par_type)
+        self.apply_tag_selected(indent_tag, par_start, par_end)
+            
+        self._queue_update_indentation(par_start, par_end)
+        
+        self.end_user_action()
+
+
+    def _insert_bullet(self, par_start):
+        """Insert a bullet point at the begining of the paragraph"""
+
+        if self._par_has_bullet(par_start):
+            return par_start
+        
+        self.begin_user_action()
+
+        # insert text
+        self.move_mark(self._bullet_mark, par_start)
+        self.insert(par_start, BULLET_STR)
+
+        # apply tag to just the bullet point
+        par_start = self.get_iter_at_mark(self._bullet_mark)
+        bullet_end = par_start.copy()
+        bullet_end.forward_chars(len(BULLET_STR))
+        bullet_tag = self.tag_table.bullet_tag
+        self.apply_tag_selected(bullet_tag, par_start, bullet_end)
+
+        self.end_user_action()
+
+        return par_start
+
+    def _remove_bullet(self, par_start):
+        """Remove a bullet point from the paragraph"""
+
+        self.begin_user_action()
+        
+        bullet_end = par_start.copy()
+        bullet_end.forward_chars(len(BULLET_STR))
+        self.move_mark(self._bullet_mark, par_start)
+
+        if par_start.get_text(bullet_end) == BULLET_STR:            
+            bullet_tag = self.tag_table.bullet_tag
+            self.remove_tag(bullet_tag, par_start, bullet_end)
+
+            self.delete(par_start, bullet_end)
+
+        self.end_user_action()
+
+        return self.get_iter_at_mark(self._bullet_mark)
+ 
+
+    def _par_has_bullet(self, par_start):
+        """Returns True if paragraph starts with bullet point"""
+        bullet_end = par_start.copy()
+        bullet_end.forward_chars(len(BULLET_STR))
+
+        return par_start.get_text(bullet_end) == BULLET_STR
 
 
     def _on_paragraph_merge(self, start, end):
         """Callback for when paragraphs have merged"""
-        #print "merge '%s'" % start.get_slice(end)
-        #self.update_indentation(start, end)
+        self._queue_update_indentation(start, end)
 
 
     def _on_paragraph_split(self, start, end):
         """Callback for when paragraphs have split"""
-        #print "split '%s'" % start.get_slice(end)
-        #self.update_indentation(start, end)
+        self._queue_update_indentation(start, end)
 
 
+    def _queue_update_indentation(self, start, end):
+        """Queues an indentation update"""
+        
+        if not self._indent_update:
+            # first update
+            self._indent_update = True
+            self.move_mark(self._indent_update_start, start)
+            self.move_mark(self._indent_update_end, end)
+        else:
+            # expand update region
+            a = self.get_iter_at_mark(self._indent_update_start)
+            b = self.get_iter_at_mark(self._indent_update_end)
 
-    def update_indentation(self, start, end):
+            if start.compare(a) == -1:                
+                self.move_mark(self._indent_update_start, start)
+
+            if end.compare(b) == 1:
+                self.move_mark(self._indent_update_end, end)
+
+
+    def _update_indentation(self):
         """Ensure the indentation tags between start and end are up to date"""
 
-        # NOTE: assume start and end are at proper paragraph boundaries
+        if self._indent_update:
+            self._indent_update = False 
 
-        # TODO: make sure these are only executed during iteractive input
-        # process paragraph changes
-
-        # I could use self._user_action to determine if this event is part
-        # of a larger action, which case I should setup a pending 
-        # paragraph indentation update.  Can I use marks some how to remember
-        # where updates need to be done?  Say a min and max...
-
-        # TODO: add final call in _on_end_user_action
-
-        if self._user_action:
-            # queue an indentation update
-
-            if not self._indent_update:
-                # first update
-                self._indent_update = True
-                self.move_mark(self._indent_update_start, start)
-                self.move_mark(self._indent_update_end, end)
-            else:
-                # expand update
-
-                a = self.get_iter_at_mark(self._indent_update_start)
-                b = self.get_iter_at_mark(self._indent_update_end)
-
-                if start.compare(a) == -1:                
-                    self.move_mark(self._indent_update_start, start)
-
-                if end.compare(b) == 1:
-                    self.move_mark(self._indent_update_end, end)
-                
-        else:
             # perfrom indentation update
             self.begin_user_action()
+            #print "start"
 
             # fixup indentation tags
             # The general rule is that the indentation at the start of
             # each paragraph should determines the indentation of the rest
             # of the paragraph
 
-            pos = start
+            pos = self.get_iter_at_mark(self._indent_update_start)
+            end = self.get_iter_at_mark(self._indent_update_end)
+
+            end.forward_line()
+
+            # move pos to start of line
+            pos = self.move_to_start_of_line(pos)
+            assert pos.starts_line(), "pos does not start line before"
+            
             while pos.compare(end) == -1:
+                assert pos.starts_line(), "pos does not start line"
                 par_end = pos.copy()
                 par_end.forward_line()
-                indent = self.get_indent(pos)
-                #print indent, pos.get_offset(), par_end.get_offset()
-                self.apply_tag_selected(self.tag_table.lookup_indent(indent),
-                                        pos, par_end)
+                indent_tag = self.get_indent_tag(pos)
 
+                # remove bullets mid paragraph
+                it = pos.copy()
+                it.forward_char()
+                while True:
+                    match = it.forward_search(BULLET_STR, 0, par_end)
+                    if not match:
+                        it.backward_char()
+                        pos, par_end = self.get_paragraph(it)
+                        break
+                    print "match"
+                    self.move_mark(self._indent_update_start, match[0])
+                    self.delete(match[0], match[1])
+                    it = self.get_iter_at_mark(self._indent_update_start)
+                    par_end = it.copy()
+                    par_end.forward_line()
+
+                if indent_tag is None:
+                    # remove all indent tags
+                    self.clear_tag_class(self.tag_table.lookup_indent(1),
+                                         pos, par_end)
+                    # remove bullets
+                    par_type = "none"
+
+                else:
+                    self.apply_tag_selected(indent_tag, pos, par_end)
+
+                    # check for bullets
+                    par_type = indent_tag.get_par_indent()
+                    
+                if par_type == "bullet":
+                    pass
+                    # ensure proper bullet is in place
+                    pos = self._insert_bullet(pos)
+                    end = self.get_iter_at_mark(self._indent_update_end)
+                    
+                elif par_type == "none":
+                    pass
+                    # remove bullets
+                    pos = self._remove_bullet(pos)
+                    end = self.get_iter_at_mark(self._indent_update_end)
+                    
+                else:
+                    raise Exception("unknown par_type '%s'" % par_type)
+                    
+
+                # move forward a line
                 if not pos.forward_line():
                     break
 
+            #print "end"
             self.end_user_action()
+
+
+    #==========================================
+    # query and navigate paragraphs/indentation
+
+    def get_indent(self, it=None):
+        """Returns the indentation level at iter 'it'"""
+        
+        tag = self.get_indent_tag(it)
+        if tag:
+            return tag.get_indent(), tag.get_par_indent()
+        else:
+            return 0, "none"
+
+
+    def get_indent_tag(self, it=None):
+        """Returns the indentation level at iter 'it'"""
+        
+        if not it:
+            it = self.get_iter_at_mark(self.get_insert())
+
+        it2 = it.copy()
+        if not it2.ends_line():
+            it2.forward_char()
+        
+        for tag in it2.get_tags():
+            if isinstance(tag, RichTextIndentTag):
+                return tag
+        
+        return None        
         
 
     def get_paragraph(self, it=None):
         """Returns the start and end of a paragraph containing iter 'it'"""
 
         if not it:
-            it = self.get_iter_at_mark(self.get_insert())
+            par_start = self.get_iter_at_mark(self.get_insert())
+        else:
+            par_start = it.copy()
         
-        par_start = it.copy()
         par_end = par_start.copy()
-        
-        if par_start.backward_line():
+        if par_start.get_line() > 0:
+            par_start.backward_line()
             par_start.forward_line()
-            
+        else:
+            par_start = self.get_start_iter()
         par_end.forward_line()
 
+        # NOTE: par_start.starts_line() == True
+        #       par_end.starts_line() == True
+        
         return par_start, par_end
 
-    
+    def starts_par(self, it):
+        """Returns True if iter 'it' starts paragraph"""
+
+        if it.starts_line():
+            return True
+        else:
+            it2 = it.copy()
+            it2 = self.move_to_start_of_line(it2)
+            
+            return self._par_has_bullet(it2) and \
+                   it.get_offset() <= it2.get_offset() + len(BULLET_STR)
+
+
+    def move_to_start_of_line(self, it=None):
+        if not it:
+            it = self.get_iter_at_mark(self.get_insert())
+        if not it.starts_line():
+            if it.get_line() > 0:
+                it.backward_line()
+                it.forward_line()
+            else:
+                it = self.get_start_iter()
+        return it
+                
+
     
     #============================================================
     # child actions
@@ -1284,7 +1213,8 @@ class RichTextBuffer (gtk.TextBuffer):
         if mark.get_name() == "insert":
 
             # pick up the last tags
-            self._current_tags = it.get_toggled_tags(False)
+            self._current_tags = [x for x in it.get_toggled_tags(False)
+                                  if x.can_be_current()]
 
             self.highlight_children()
             
@@ -1295,6 +1225,12 @@ class RichTextBuffer (gtk.TextBuffer):
     
     def _on_insert_text(self, textbuffer, it, text, length):
         """Callback for text insert"""
+
+        # check to make sure insert is not in front of bullet
+        if it.starts_line() and self._par_has_bullet(it):
+            print "here"
+            self.stop_emission("insert_text")
+            return
         
         # start new action
         self._next_action = InsertAction(self, it.get_offset(), text, length)
@@ -1329,6 +1265,7 @@ class RichTextBuffer (gtk.TextBuffer):
         action = TagAction(self, tag, start.get_offset(), 
                            end.get_offset(), True)
         self.undo_stack.do(action.do, action.undo, False)
+        self.set_modified(True)
 
     
     def _on_remove_tag(self, textbuffer, tag, start, end):
@@ -1337,6 +1274,7 @@ class RichTextBuffer (gtk.TextBuffer):
         action = TagAction(self, tag, start.get_offset(), 
                            end.get_offset(), False)
         self.undo_stack.do(action.do, action.undo, False)
+        self.set_modified(True)        
     
     
     def _on_changed(self, textbuffer):
@@ -1355,9 +1293,9 @@ class RichTextBuffer (gtk.TextBuffer):
                 it2 = it.copy()
                 it2.forward_chars(self._next_action.length)
 
-                # TODO: I could suppress undo for these tags
+                # TODO: could I suppress undo for these tags
                 for tag in self._current_tags:
-                    self.apply_tag(tag, it, it2)
+                    gtk.TextBuffer.apply_tag(self, tag, it, it2)
 
                 self.delete_mark(self._insert_mark)
                 self._insert_mark = None
@@ -1393,7 +1331,7 @@ class RichTextBuffer (gtk.TextBuffer):
             self._on_paragraph_split(par_start, par_end)
         elif paragraph_action == "merge":
             self._on_paragraph_merge(par_start, par_end)
-                
+        
         self._next_action = None            
         self.end_user_action()
 
@@ -1463,12 +1401,13 @@ class RichTextBuffer (gtk.TextBuffer):
     #==============================================================
     # Tag manipulation    
 
+    def can_be_current_tag(self, tag):
+        return isinstance(tag, RichTextTag) and tag.can_be_current()
+        
 
     def toggle_tag_selected(self, tag, start=None, end=None):
         """Toggle tag in selection or current tags"""
 
-        # TODO: should manipulation of self._current_tags be an Action?
-        
         self.begin_user_action()
 
         if start is None:
@@ -1476,23 +1415,33 @@ class RichTextBuffer (gtk.TextBuffer):
         else:
             it = [start, end]
         
-        if len(it) == 0:
-            # no selection, toggle current tags
+        # no selection, toggle current tags
+        if self.can_be_current_tag(tag):
             if tag not in self._current_tags:
                 self.clear_current_tag_class(tag)
                 self._current_tags.append(tag)
             else:
                 self._current_tags.remove(tag)
-        else:
-            self._current_tags = []
+
+        # update region
+        if len(it) == 2:
             if not it[0].has_tag(tag):
                 self.clear_tag_class(tag, it[0], it[1])
-                self.apply_tag(tag, it[0], it[1])
+                gtk.TextBuffer.apply_tag(self, tag, it[0], it[1])
             else:
                 self.remove_tag(tag, it[0], it[1])
         
         self.end_user_action()
-    
+
+
+    def apply_tag(self, tag, start, end):
+        """Overriding apply_tag to enable current tags"""
+        
+        self.begin_user_action()
+        self.clear_tag_class(tag, start, end)
+        gtk.TextBuffer.apply_tag(self, tag, start, end)
+        self.end_user_action()
+        
 
     def apply_tag_selected(self, tag, start=None, end=None):
         """Apply tag to selection or current tags"""
@@ -1504,30 +1453,35 @@ class RichTextBuffer (gtk.TextBuffer):
         else:
             it = [start, end]
         
-        if len(it) == 0:
-            # no selection, apply to current tags
+        # update current tags
+        if self.can_be_current_tag(tag):
             if tag not in self._current_tags:
                 self.clear_current_tag_class(tag)
                 self._current_tags.append(tag)
-        else:
-            self._current_tags = [] # TODO: write the reason for this
+
+        # update region
+        if len(it) == 2:
             self.clear_tag_class(tag, it[0], it[1])
-            self.apply_tag(tag, it[0], it[1])
+            gtk.TextBuffer.apply_tag(self, tag, it[0], it[1])
         self.end_user_action()
 
 
-    def remove_tag_selected(self, tag):
+    def remove_tag_selected(self, tag, start=None, end=None):
         """Remove tag from selection or current tags"""
 
         self.begin_user_action()
-        it = self.get_selection_bounds()
-        
-        if len(it) == 0:
-            # no selection, remove tag from current tags
-            if tag in self._current_tags:
-                self._current_tags.remove(tag)
+
+        if start is None:
+            it = self.get_selection_bounds()
         else:
-            self._current_tags = [] # TODO: write the reason for this
+            it = [start, end]
+        
+        # no selection, remove tag from current tags
+        if tag in self._current_tags:
+            self._current_tags.remove(tag)
+
+        # update region
+        if len(it) == 2:
             self.remove_tag(tag, it[0], it[1])
         self.end_user_action()
 
@@ -1666,6 +1620,12 @@ class RichTextBuffer (gtk.TextBuffer):
     def _on_end_user_action(self, textbuffer):
         """End a composite undo/redo action"""
 
+        # perfrom queued indentation updates
+        try:
+            self._update_indentation()
+        except Exception, e:
+            print e
+        
         self._user_action = False
         self.undo_stack.end_action()
 

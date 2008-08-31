@@ -437,7 +437,11 @@ class TagDom (Dom):
             self.build(contents)
 
     def display(self, indent=0):
-        name = self.tag.get_property('name')
+        if isinstance(self.tag, str):
+            name = self.tag
+        else:
+            name = self.tag.get_property('name')
+        
         self.display_indent(indent, "TagDom", name)
         for child in self:
             child.display(indent+1)

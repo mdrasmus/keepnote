@@ -11,7 +11,8 @@ class LinkedTreeNode (object):
         self._prev = None
         self._child = None
 
-        # NOTE: if first child, self._prev = last sibling
+        # NOTE: if first self == self._parent._child, then
+        # self._prev == last sibling
 
     def get_parent(self):
         """Returns parent"""
@@ -39,9 +40,9 @@ class LinkedTreeNode (object):
         """Return first child or None"""
         return self._child
 
-    def has_children(self):
-        """Returns True if node has children"""
-        return self._child is not None
+    def is_leaf(self):
+        """Returns True if node has no children"""
+        return self._child is None
 
     def last_child(self):
         """Returns last child or None"""
@@ -102,12 +103,64 @@ class LinkedTreeNode (object):
         assert child._parent is self
         self.child.remove()
 
+
+    def replace_child(self, old_child, new_child):
+        """Replace the old_child with a new_child"""
+
+        assert old_child._parent == self
+
+        # set parent child link
+        if self._child == old_child:
+            self._child = new_child
+        else:
+            old_child._prev._next = new_child
+
+        # copy over old links
+        new_child._next = old_child._next
+        if old_child._prev == old_child:
+            new_child._prev = new_child
+        else:
+            new_child._prev = old_child._prev
+        new_child._parent = self
+
+        # notify siblings
+        if new_child._next is not None:
+            new_child._next._prev = new_child
+        else:
+            # notify first child
+            new_child._parent._child._prev = new_child
+        
+        
+
+        # clear old links
+        old_child._next = None
+        old_child._prev = None
+        old_child._parent = None
+
+
+    def insert_before(self, child, new_child):
+        """Insert new_child before child"""
+
+        new_child._prev = child._prev
+        if self._child != child:
+            child._prev._next = new_child
+        else:
+            self._child = new_child
+        child._prev = new_child
+        new_child._next = child
+        new_child._parent = self
+        
+    
+
     def remove(self):
         """Remove from parent"""
         
         if self._next:
             # setup next sibling
             self._next._prev = self._prev
+        else:
+            # notify first child
+            self._parent._child._prev = self._prev
         if self._parent._child is not self:
             # setup prev sibling, if they exist
             self._prev._next = self._next

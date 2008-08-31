@@ -18,6 +18,9 @@ import gtk.glade
 import takenote
 from takenote import get_resource
 
+# TODO: save snap and aspect defaults to app.pref
+# TODO: separate out error callback
+# TODO: add preference object
 
 
 class ImageResizeDialog (object):
@@ -31,10 +34,20 @@ class ImageResizeDialog (object):
         self.owidth, self.oheight = None, None
         self.init_width, self.init_height = None, None
         self.ignore_change = False
+        self.snap_size = 50
+        self.snap_enabled = True
+
+        # widgets
+        self.size_scale = None
+        self.width_entry = None
+        self.height_entry = None
+        self.aspect_check = None
+        self.snap_check = None
+        self.snap_entry = None
         
     
     def on_resize(self, image):
-
+        """Launch resize dialog"""
         if not image.is_valid():
             self.main_window.error("Cannot resize image that is not properly loaded")
             return
@@ -50,11 +63,23 @@ class ImageResizeDialog (object):
         width, height = image.get_size(True)
         self.init_width, self.init_height = width, height
         self.owidth, self.oheight = image.get_original_size()
-        
-        self.xml.get_widget("width_entry").set_text(str(width))
-        self.xml.get_widget("height_entry").set_text(str(height))
-        self.xml.get_widget("size_scale").set_value(width)
 
+        # get widgets
+        self.width_entry = self.xml.get_widget("width_entry")
+        self.height_entry = self.xml.get_widget("height_entry")
+        self.size_scale = self.xml.get_widget("size_scale")
+        self.aspect_check = self.xml.get_widget("aspect_check")
+        self.snap_check = self.xml.get_widget("img_snap_check")
+        self.snap_entry = self.xml.get_widget("img_snap_amount_entry")
+
+        # populate info
+        self.width_entry.set_text(str(width))
+        self.height_entry.set_text(str(height))
+        self.size_scale.set_value(width)
+        self.snap_check.set_active(self.snap_enabled)
+        self.snap_entry.set_text(str(self.snap_size))
+        
+        # callback
         self.xml.signal_autoconnect({
             "on_width_entry_changed":
                 lambda w: self.on_size_changed("width"),
@@ -63,22 +88,24 @@ class ImageResizeDialog (object):
             "on_aspect_check_toggled": 
                 lambda w: self.on_aspect_toggled(),
             "on_size_scale_value_changed":
-                self.on_scale_value_changed
+                self.on_scale_value_changed,
+            "on_img_snap_check_toggled":
+                self.on_snap_check_toggled,
+            "on_img_snap_amount_entry_changed":
+                self.on_snap_entry_changed,
             })
-
-        
 
 
     def get_size(self):
-        wstr = self.xml.get_widget("width_entry").get_text()
-        hstr = self.xml.get_widget("height_entry").get_text()
+        """Returns the current size setting of the dialog"""
+        wstr = self.width_entry.get_text()
+        hstr = self.height_entry.get_text()
 
         try:
             width, height = int(wstr), int(hstr)
 
             if width <= 0:
                 width = None
-
             if height <= 0:
                 height = None
             
@@ -88,6 +115,7 @@ class ImageResizeDialog (object):
         
 
     def on_response(self, response):
+        """Callback for a response button in dialog"""
         if response == gtk.RESPONSE_OK:
             width, height = self.get_size()
 
@@ -110,12 +138,12 @@ class ImageResizeDialog (object):
             # restore default image size
                         
             width, height = self.image.get_original_size()
-            self.xml.get_widget("width_entry").set_text(str(width))
-            self.xml.get_widget("height_entry").set_text(str(height))
+            self.width_entry.set_text(str(width))
+            self.height_entry.set_text(str(height))
             
 
     def on_size_changed(self, dim):
-
+        """Callback when a size changes"""
         
         if self.aspect and not self.ignore_change:
             self.ignore_change = True
@@ -123,13 +151,13 @@ class ImageResizeDialog (object):
             
             if dim == "width" and width is not None:
                 height = int(width / float(self.owidth) * self.oheight)
-                self.xml.get_widget("size_scale").set_value(width)
+                self.size_scale.set_value(width)
 
-                self.xml.get_widget("height_entry").set_text(str(height))
+                self.height_entry.set_text(str(height))
 
             elif dim == "height" and height is not None:
                 width = int(height / float(self.oheight) * self.owidth)
-                self.xml.get_widget("width_entry").set_text(str(width))
+                self.width_entry.set_text(str(width))
                 
             self.ignore_change = False
         else:
@@ -140,16 +168,39 @@ class ImageResizeDialog (object):
             
 
     def on_aspect_toggled(self):
-        self.aspect = self.xml.get_widget("aspect_check").get_active()
+        """Callback when aspect checkbox is toggled"""
+        self.aspect = self.aspect_check.get_active()
     
 
     def on_scale_value_changed(self, scale):
+        """Callback for when scale value changes"""
         width = int(scale.get_value())
+
+        if self.snap_enabled:
+            snap = self.snap_size
+            width = int((width + snap/2.0) // snap * snap)
+        
         factor = width / float(self.init_width)
         height = int(factor * self.init_height)
 
         if not self.ignore_change:
             self.ignore_change = True
-            self.xml.get_widget("width_entry").set_text(str(width))
-            self.xml.get_widget("height_entry").set_text(str(height))
+            self.width_entry.set_text(str(width))
+            self.height_entry.set_text(str(height))
             self.ignore_change = False
+
+
+    def on_snap_check_toggled(self, check):
+        """Callback when snap checkbox is toggled"""
+        self.snap_enabled = self.snap_check.get_active()
+        self.snap_entry.set_sensitive(self.snap_enabled)
+        
+
+
+    def on_snap_entry_changed(self, entry):
+        """Callback when snap text entry changes"""
+        try:
+            self.snap_size = int(self.snap_entry.get_text())
+        except ValueError:
+            pass
+        
