@@ -242,15 +242,19 @@ class RichTextView (gtk.TextView):
 
     def on_backspace(self, textview):
         """Callback for backspace press"""
-        
-        it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
 
-        if self._textbuffer.starts_par(it):
+        try:
+         it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
+
+         if self._textbuffer.starts_par(it):
             # look for indent tags
             indent, par_type = self._textbuffer.get_indent()
             if indent > 0:
                 self.unindent()
                 self.stop_emission("backspace")
+                
+        except Exception, e:
+             print e
         
 
     #def on_button_press(self, widget, event):
