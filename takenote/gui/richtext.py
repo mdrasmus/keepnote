@@ -32,7 +32,6 @@ from takenote.gui.textbuffer_tools import \
 
 from takenote.gui.richtextbuffer import \
      IGNORE_TAGS, \
-     parse_utf, \
      add_child_to_buffer, \
      RichTextBuffer, \
      RichTextImage, \
@@ -76,6 +75,18 @@ def parse_font(fontstr):
         mods.append(tokens.pop().lower())
         
     return " ".join(tokens), mods, size
+
+
+def parse_utf(text):
+
+    # TODO: lookup the standard way to do this
+    
+    if text[:2] in ('\xff\xfe', '\xfe\xff') or (
+        len(text) > 1 and text[1] == '\x00') or (
+        len(text) > 3 and text[3] == '\x00'):
+        return text.decode("utf16")
+    else:
+        return unicode(text, "utf8")
 
 
 
