@@ -627,7 +627,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     #===========================================================
     # Font management
     
-    def get_font(self):
+    def get_font(self, font=None):
 
         # TODO: add indent
         
@@ -649,7 +649,8 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         it.get_attributes(attr)
 
         # create font object and return
-        font = RichTextFont()
+        if font is None:
+            font = RichTextFont()
         font.set_font(attr, current_tags, self.tag_table)
         return font
 
