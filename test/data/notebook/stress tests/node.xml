@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <node>
+<version>1</version>
 <title>stress tests</title>
 <order>0</order>
 <created_time>1207979488</created_time>
@@ -7,5 +8,6 @@
 <info_sort>1</info_sort>
 <info_sort_dir>1</info_sort_dir>
 <expanded>1</expanded>
+<expanded2>0</expanded2>
 </node>
 

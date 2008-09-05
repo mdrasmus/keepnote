@@ -1,4 +1,6 @@
-<html><body>"""<br/>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<body>"""<br/>
  &nbsp; &nbsp;TakeNote<br/>
  &nbsp; &nbsp;Copyright Matt Rasmussen 2008<br/>
  &nbsp; &nbsp;<br/>
@@ -13,7 +15,7 @@
 # TODO: make better font selector<br/>
 # TODO: add colored text<br/>
 <br/>
-<br/>
+hi2<br/>
 <br/>
 # python imports<br/>
 import sys, os, tempfile, re<br/>
@@ -3616,7 +3618,7 @@ class TakeNoteWindow (gtk.Window):<br/>
  &nbsp; &nbsp; &nbsp; &nbsp;mods, justify = self.editor.textview.get_font()<br/>
  &nbsp; &nbsp; &nbsp; &nbsp;<br/>
  &nbsp; &nbsp; &nbsp; &nbsp;self.underline_button.handler_block(self.underline_id) &nbsp; &nbsp; &nbsp; &nbsp;<br/>
-<u><i><b> &nbsp; &nbsp; &nbsp; &nbsp;self.underline_button.set_active(mods["underline"])<br/>
+<b><i><u> &nbsp; &nbsp; &nbsp; &nbsp;self.underline_button.set_active(mods["underline"])<br/>
  &nbsp; &nbsp; &nbsp; &nbsp;self.underline_button.handler_unblock(self.underline_id)<br/>
  &nbsp; &nbsp;<br/>
 <br/>
@@ -3640,7 +3642,7 @@ class TakeNoteWindow (gtk.Window):<br/>
  &nbsp; &nbsp; &nbsp; &nbsp;if self.current_page == None:<br/>
  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;return<br/>
  &nbsp; &nbsp;<br/>
- &nbsp; &nbsp; &nbsp; &nbsp;f, imgfile = tempfile.mkstemp(".xpm", "takenote")</b></i></u><br/>
+ &nbsp; &nbsp; &nbsp; &nbsp;f, imgfile = tempfile.mkstemp(".xpm", "takenote")</u></i></b><br/>
  &nbsp; &nbsp; &nbsp; &nbsp;os.close(f)<br/>
  &nbsp; &nbsp;<br/>
  &nbsp; &nbsp; &nbsp; &nbsp;os.system("import %s" % imgfile)<br/>
@@ -8375,7 +8377,7 @@ class TakeNoteWindow (gtk.Window):<br/>
  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;self.sel_nodes = []<br/>
  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;self.selector.view_nodes([])<br/>
  &nbsp; &nbsp;<br/>
-<span style='font-family: Serif'><span style='font-size: 40pt'> &nbsp; &nbsp;def on_select_page(self, page):<br/>
+<span style="font-size: 40pt"><span style="font-family: Serif"> &nbsp; &nbsp;def on_select_page(self, page):<br/>
  &nbsp; &nbsp; &nbsp; &nbsp;self.current_page = page<br/>
  &nbsp; &nbsp; &nbsp; &nbsp;self.editor.view_page(page)<br/>
  &nbsp; &nbsp; &nbsp; &nbsp;<br/>
@@ -8477,7 +8479,7 @@ class TakeNoteWindow (gtk.Window):<br/>
  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;print e<br/>
  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;print "error reading screenshot '%s'" % imgfile<br/>
  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;<br/>
-<b><u><i> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;os.remove(imgfile) &nbsp; &nbsp; &nbsp; &nbsp;<br/>
+<i><u><b> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;os.remove(imgfile) &nbsp; &nbsp; &nbsp; &nbsp;<br/>
 <br/>
  &nbsp; &nbsp;def on_choose_font(self):<br/>
  &nbsp; &nbsp; &nbsp; &nbsp;self.font_sel.clicked()<br/>
@@ -8485,7 +8487,7 @@ class TakeNoteWindow (gtk.Window):<br/>
  &nbsp; &nbsp;<br/>
  &nbsp; &nbsp;def on_font_set(self):<br/>
  &nbsp; &nbsp; &nbsp; &nbsp;self.editor.textview.on_font_set(self.font_sel)<br/>
- &nbsp; &nbsp; &nbsp; &nbsp;self.editor.textview.grab_focus()</i></u></b><br/>
+ &nbsp; &nbsp; &nbsp; &nbsp;self.editor.textview.grab_focus()</b></u></i><br/>
  &nbsp; &nbsp;<br/>
  &nbsp; &nbsp;<br/>
  &nbsp; &nbsp;def on_goto_treeview(self):<br/>

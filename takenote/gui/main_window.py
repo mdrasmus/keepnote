@@ -538,6 +538,8 @@ class TakeNoteWindow (gtk.Window):
         self.resize(*self.app.pref.window_size)
         self.paned2.set_position(self.app.pref.vsash_pos)
         self.hpaned.set_position(self.app.pref.hsash_pos)
+        
+        self.enable_spell_check(self.app.pref.spell_check)
 
         if self.app.pref.window_maximized:
             self.maximize()
@@ -550,6 +552,8 @@ class TakeNoteWindow (gtk.Window):
         self.app.pref.hsash_pos = self.hpaned.get_position()
         self.app.pref.window_maximized = self.maximized
 
+        #if textview is not None:
+        #    self.app.pref.spell_check = textview.is_spell_check_enabled()
 
         self.app.pref.write()
            
@@ -1609,13 +1613,23 @@ class TakeNoteWindow (gtk.Window):
     
     def on_spell_check_toggle(self, num, widget):
         """Toggle spell checker"""
-        
+
         textview = self.editor.get_textview()
         if textview is not None:
-            textview.enable_spell_check(widget.get_active())
-            self.spell_check_toggle.set_active(textview.is_spell_check_enabled())
+            self.enable_spell_check(widget.get_active())
 
-   
+
+    def enable_spell_check(self, enabled):
+        """Spell check"""
+
+        textview = self.editor.get_textview()
+        if textview is not None:
+            textview.enable_spell_check(enabled)
+            
+            # see if spell check became enabled
+            enabled = textview.is_spell_check_enabled()
+            self.app.pref.spell_check = enabled
+            self.spell_check_toggle.set_active(enabled)
     
     #==================================================
     # Help/about dialog
@@ -1922,8 +1936,6 @@ class TakeNoteWindow (gtk.Window):
 
         # get spell check toggle
         self.spell_check_toggle = self.item_factory.get_widget("/Options/Spell check")
-        self.spell_check_toggle.set_active(self.editor.get_textview()\
-                                           .is_spell_check_enabled())
         self.spell_check_toggle.set_sensitive(self.editor.get_textview()\
                                               .can_spell_check())
         

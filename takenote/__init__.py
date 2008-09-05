@@ -231,6 +231,7 @@ class TakeNotePreferences (object):
         
         self.default_notebook = ""
         self.timestamp_formats = dict(DEFAULT_TIMESTAMP_FORMATS)
+        self.spell_check = True
 
         # dialog chooser paths
         self.new_notebook_path = get_user_documents()
@@ -288,8 +289,7 @@ class TakeNotePreferences (object):
         lookup = dict((x.key, i) for i, x in enumerate(DEFAULT_EXTERNAL_APPS))
         top = len(DEFAULT_EXTERNAL_APPS)
         self.external_apps.sort(key=lambda x: (lookup.get(x.key, top), x.key))
-
-
+        
         self.changed.notify()
         
         
@@ -337,6 +337,11 @@ g_takenote_pref_parser = xmlo.XmlObject(
         xmlo.Tag("hsash_pos",
             getobj=("hsash_pos", int),
             set=lambda s: "%d" % s.hsash_pos),
+
+        # misc options
+        xmlo.Tag("spell_check",
+            getobj=("spell_check", lambda x: bool(int(x))),
+            set=lambda s: "%d" % int(s.spell_check)),
 
         xmlo.Tag("autosave",
             getobj=("autosave", lambda x: bool(int(x))),
