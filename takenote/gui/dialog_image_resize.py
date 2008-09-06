@@ -18,24 +18,24 @@ import gtk.glade
 import takenote
 from takenote import get_resource
 
-# TODO: save snap and aspect defaults to app.pref
 # TODO: separate out error callback
-# TODO: add preference object
+
 
 
 class ImageResizeDialog (object):
     """Image Resize dialog """
     
-    def __init__(self, main_window):
+    def __init__(self, main_window, app_pref):
         self.main_window = main_window
+        self.app_pref = app_pref
         self.dialog = None
         self.image = None
         self.aspect = True
         self.owidth, self.oheight = None, None
         self.init_width, self.init_height = None, None
         self.ignore_change = False
-        self.snap_size = 50
-        self.snap_enabled = True
+        self.snap_size = self.app_pref.image_size_snap_amount
+        self.snap_enabled = self.app_pref.image_size_snap
 
         # widgets
         self.size_scale = None
@@ -119,6 +119,9 @@ class ImageResizeDialog (object):
         if response == gtk.RESPONSE_OK:
             width, height = self.get_size()
 
+            self.app_pref.image_size_snap = self.snap_enabled
+            self.app_pref.image_size_snap_amount = self.snap_size
+            
             if width is not None:
                 self.image.scale(width, height)
                 self.dialog.destroy()

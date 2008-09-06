@@ -232,6 +232,8 @@ class TakeNotePreferences (object):
         self.default_notebook = ""
         self.timestamp_formats = dict(DEFAULT_TIMESTAMP_FORMATS)
         self.spell_check = True
+        self.image_size_snap = True
+        self.image_size_snap_amount = 50
 
         # dialog chooser paths
         self.new_notebook_path = get_user_documents()
@@ -337,6 +339,14 @@ g_takenote_pref_parser = xmlo.XmlObject(
         xmlo.Tag("hsash_pos",
             getobj=("hsash_pos", int),
             set=lambda s: "%d" % s.hsash_pos),
+
+        # image resize
+        xmlo.Tag("image_size_snap",
+            getobj=("image_size_snap", lambda x: bool(int(x))),
+            set=lambda s: "%d" % int(s.image_size_snap)),
+        xmlo.Tag("image_size_snap_amount",
+            getobj=("image_size_snap_amount", int),
+            set=lambda s: "%d" % s.image_size_snap_amount),
 
         # misc options
         xmlo.Tag("spell_check",

@@ -326,7 +326,8 @@ class TakeNoteWindow (gtk.Window):
         self.app_options_dialog = dialog_app_options.ApplicationOptionsDialog(self)
         self.find_dialog = dialog_find.TakeNoteFindDialog(self)
         self.drag_test = dialog_drag_drop_test.DragDropTestDialog(self)
-        self.image_resize_dialog = dialog_image_resize.ImageResizeDialog(self)
+        self.image_resize_dialog = \
+            dialog_image_resize.ImageResizeDialog(self, self.app.pref)
 
         # context menus
         self.make_context_menus()
