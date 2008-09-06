@@ -239,7 +239,6 @@ class FontSelector (gtk.ComboBox):
         self.add_attribute(cell, 'text', 0)
         
         fam = self.get_pango_context().get_font_description().get_family()
-        print fam
         self.set_family(fam)
 
         
@@ -254,8 +253,11 @@ class FontSelector (gtk.ComboBox):
     def get_family(self):
         return self._families[self.get_active()]
 
-    
+class FontUI (object):
 
+    def __init__(self, widget, signal):
+        self.widget = widget
+        self.signal = signal
 
 
 class TakeNoteWindow (gtk.Window):
@@ -271,11 +273,25 @@ class TakeNoteWindow (gtk.Window):
         self.iconified = False
         self.queue_list_select = []
         self.ignore_view_mode = False
-        
+
+        self.font_ui_signals = []
         
         # init main window
         self.set_title(takenote.PROGRAM_NAME)
         self.set_default_size(*takenote.DEFAULT_WINDOW_SIZE)
+        self.set_icon_list(get_resource_pixbuf("takenote-16x16.png"),
+                           get_resource_pixbuf("takenote-32x32.png"),
+                           get_resource_pixbuf("takenote-64x64.png"))
+
+        # TODO: make configurable
+        # system tray icon
+        if gtk.gtk_version > (2, 10):
+            self.tray_icon = gtk.StatusIcon()
+            self.tray_icon.set_from_pixbuf(get_resource_pixbuf("takenote-32x32.png"))
+            self.tray_icon.set_tooltip("TakeNote")
+            self.tray_icon.connect("activate", self.on_tray_icon_activate)
+        else:
+            self.tray_icon = None
 
         # main window signals
         self.connect("delete-event", lambda w,e: self.on_quit())
@@ -314,7 +330,8 @@ class TakeNoteWindow (gtk.Window):
         self.app_options_dialog = dialog_app_options.ApplicationOptionsDialog(self)
         self.find_dialog = dialog_find.TakeNoteFindDialog(self)
         self.drag_test = dialog_drag_drop_test.DragDropTestDialog(self)
-        self.image_resize_dialog = dialog_image_resize.ImageResizeDialog(self)
+        self.image_resize_dialog = \
+            dialog_image_resize.ImageResizeDialog(self, self.app.pref)
 
         # context menus
         self.make_context_menus()
@@ -411,6 +428,11 @@ class TakeNoteWindow (gtk.Window):
 
     def on_app_options_changed(self):
         self.selector.set_date_formats(self.app.pref.timestamp_formats)
+
+
+    def on_tray_icon_activate(self, icon):
+        """Try icon has been clicked in system tray"""
+        self.restore_window()
         
     
     #=============================================================
@@ -521,6 +543,8 @@ class TakeNoteWindow (gtk.Window):
         self.resize(*self.app.pref.window_size)
         self.paned2.set_position(self.app.pref.vsash_pos)
         self.hpaned.set_position(self.app.pref.hsash_pos)
+        
+        self.enable_spell_check(self.app.pref.spell_check)
 
         if self.app.pref.window_maximized:
             self.maximize()
@@ -533,6 +557,8 @@ class TakeNoteWindow (gtk.Window):
         self.app.pref.hsash_pos = self.hpaned.get_position()
         self.app.pref.window_maximized = self.maximized
 
+        #if textview is not None:
+        #    self.app.pref.spell_check = textview.is_spell_check_enabled()
 
         self.app.pref.write()
            
@@ -602,8 +628,11 @@ class TakeNoteWindow (gtk.Window):
         """Saves the current NoteBook"""
         if self.notebook is not None:
 
+            # TODO: should this be outside exception
+            self.editor.save()
+
             try:
-                self.editor.save()
+                
                 self.notebook.save()
             except Exception, e:
                 if not silent:
@@ -1092,20 +1121,10 @@ class TakeNoteWindow (gtk.Window):
     
     def on_font_change(self, editor, font):
         
-        # TODO: put these into a datastructure that we can iterate over
         # block toolbar handlers
-        self.bold_button.handler_block(self.bold_id)
-        self.italic_button.handler_block(self.italic_id)
-        self.underline_button.handler_block(self.underline_id)
-        self.fixed_width_button.handler_block(self.fixed_width_id)
-        self.no_wrap_button.handler_block(self.no_wrap_id)
-        self.left_button.handler_block(self.left_id)
-        self.center_button.handler_block(self.center_id)
-        self.right_button.handler_block(self.right_id)
-        self.fill_button.handler_block(self.fill_id)
-        self.font_family_combo.handler_block(self.font_family_id)
-        self.font_size_button.handler_block(self.font_size_id)
-        
+        for ui in self.font_ui_signals:
+            ui.widget.handler_block(ui.signal)
+
         # update font mods
         self.bold_button.set_active(font.mods["bold"])
         self.italic_button.set_active(font.mods["italic"])
@@ -1118,23 +1137,17 @@ class TakeNoteWindow (gtk.Window):
         self.center_button.set_active(font.justify == "center")
         self.right_button.set_active(font.justify == "right")
         self.fill_button.set_active(font.justify == "fill")
+
+        # update bullet list
+        self.bullet_button.set_active(font.par_type == "bullet")
         
-        # update font button        
+        # update family/size buttons        
         self.font_family_combo.set_family(font.family)
         self.font_size_button.set_value(font.size)
         
         # unblock toolbar handlers
-        self.bold_button.handler_unblock(self.bold_id)
-        self.italic_button.handler_unblock(self.italic_id)
-        self.underline_button.handler_unblock(self.underline_id)
-        self.fixed_width_button.handler_unblock(self.fixed_width_id)
-        self.no_wrap_button.handler_unblock(self.no_wrap_id)
-        self.left_button.handler_unblock(self.left_id)
-        self.center_button.handler_unblock(self.center_id)
-        self.right_button.handler_unblock(self.right_id) 
-        self.fill_button.handler_unblock(self.fill_id)
-        self.font_family_combo.handler_unblock(self.font_family_id)
-        self.font_size_button.handler_unblock(self.font_size_id)
+        for ui in self.font_ui_signals:
+            ui.widget.handler_unblock(ui.signal)
 
 
     #==================================================
@@ -1186,6 +1199,21 @@ class TakeNoteWindow (gtk.Window):
 
     def on_fill_justify(self):
         self.on_justify("fill")    
+
+    def on_bullet_list(self):
+        """Toggle bullet list"""
+        self.editor.get_textview().toggle_bullet()
+        font = self.editor.get_textview().get_font()
+        self.on_font_change(self.editor, font)
+        
+    def on_indent(self):
+        """Indent current paragraph"""
+        self.editor.get_textview().indent()
+
+    def on_unindent(self):
+        """Unindent current paragraph"""
+        self.editor.get_textview().unindent()
+
 
     def on_choose_font(self):
         """Callback for opening Choose Font Dialog"""
@@ -1448,7 +1476,7 @@ class TakeNoteWindow (gtk.Window):
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "Save", gtk.RESPONSE_OK))
         dialog.set_default_response(gtk.RESPONSE_OK)
-        dialog.set_current_folder(self.app.save_image_path)
+        dialog.set_current_folder(self.app.pref.save_image_path)
         
         response = dialog.run()
 
@@ -1583,13 +1611,23 @@ class TakeNoteWindow (gtk.Window):
     
     def on_spell_check_toggle(self, num, widget):
         """Toggle spell checker"""
-        
+
         textview = self.editor.get_textview()
         if textview is not None:
-            textview.enable_spell_check(widget.get_active())
-            self.spell_check_toggle.set_active(textview.is_spell_check_enabled())
+            self.enable_spell_check(widget.get_active())
 
-   
+
+    def enable_spell_check(self, enabled):
+        """Spell check"""
+
+        textview = self.editor.get_textview()
+        if textview is not None:
+            textview.enable_spell_check(enabled)
+            
+            # see if spell check became enabled
+            enabled = textview.is_spell_check_enabled()
+            self.app.pref.spell_check = enabled
+            self.spell_check_toggle.set_active(enabled)
     
     #==================================================
     # Help/about dialog
@@ -1764,46 +1802,63 @@ class TakeNoteWindow (gtk.Window):
                 
             
             ("/_Format", 
-                None, None, 0, "<Branch>"),
-            ("/Format/_Left Align", 
-                "<control>L", lambda w,e: self.on_left_justify(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("alignleft.png")),
-            ("/Format/C_enter Align", 
-                "<control>E", lambda w,e: self.on_center_justify(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("aligncenter.png")),
-            ("/Format/_Right Align", 
-                "<control>R", lambda w,e: self.on_right_justify(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("alignright.png")),
-            ("/Format/_Justify Align", 
-                "<control>J", lambda w,e: self.on_fill_justify(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("alignjustify.png")),
-            
-            ("/Format/sep1", 
-                None, None, 0, "<Separator>" ),            
+             None, None, 0, "<Branch>"),
+
             ("/Format/_Bold", 
-                "<control>B", lambda w,e: self.on_bold(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("bold.png")),
+             "<control>B", lambda w,e: self.on_bold(), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("bold.png")),
             ("/Format/_Italic", 
-                "<control>I", lambda w,e: self.on_italic(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("italic.png")),
+             "<control>I", lambda w,e: self.on_italic(), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("italic.png")),
             ("/Format/_Underline", 
-                "<control>U", lambda w,e: self.on_underline(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("underline.png")),
+             "<control>U", lambda w,e: self.on_underline(), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("underline.png")),
             ("/Format/_Monospace",
-                "<control>M", lambda w,e: self.on_fixed_width(False), 0,
-                "<ImageItem>",
-                get_resource_pixbuf("fixed-width.png")),
+             "<control>M", lambda w,e: self.on_fixed_width(False), 0,
+             "<ImageItem>",
+             get_resource_pixbuf("fixed-width.png")),
             ("/Format/No _Wrapping",
-                None, lambda w, e: self.on_no_wrap(), 0,
-                "<ImageItem>",
-                get_resource_pixbuf("no-wrap.png")),
+             None, lambda w, e: self.on_no_wrap(), 0,
+             "<ImageItem>",
+             get_resource_pixbuf("no-wrap.png")),
+            
+            ("/Format/sep1",
+             None, None, 0, "<Separator>" ),            
+            
+            ("/Format/_Left Align", 
+             "<control>L", lambda w,e: self.on_left_justify(), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("alignleft.png")),
+            ("/Format/C_enter Align", 
+             "<control>E", lambda w,e: self.on_center_justify(), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("aligncenter.png")),
+            ("/Format/_Right Align", 
+             "<control>R", lambda w,e: self.on_right_justify(), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("alignright.png")),
+            ("/Format/_Justify Align", 
+             "<control>J", lambda w,e: self.on_fill_justify(), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("alignjustify.png")),
+            ("/Format/sep2",
+             None, None, 0, "<Separator>" ),
+
+            ("/Format/_Bullet List", 
+             "<control>asterisk", lambda w,e: self.on_bullet_list(), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("bullet.png")),
+            ("/Format/Indent M_ore", 
+             "<control>parenright", lambda w,e: self.on_indent(), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("indent-more.png")),     
+            ("/Format/Indent Le_ss", 
+             "<control>parenleft", lambda w,e: self.on_unindent(), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("indent-less.png")),
             
             ("/Format/sep4", 
                 None, None, 0, "<Separator>" ),
@@ -1896,8 +1951,6 @@ class TakeNoteWindow (gtk.Window):
 
         # get spell check toggle
         self.spell_check_toggle = self.item_factory.get_widget("/Options/Spell check")
-        self.spell_check_toggle.set_active(self.editor.get_textview()\
-                                           .is_spell_check_enabled())
         self.spell_check_toggle.set_sensitive(self.editor.get_textview()\
                                               .can_spell_check())
         
@@ -1992,6 +2045,7 @@ class TakeNoteWindow (gtk.Window):
         tips.set_tip(self.bold_button, "Bold")
         self.bold_id = self.bold_button.connect("toggled", lambda w: self.editor.get_textview().toggle_font_mod("bold"))
         toolbar.insert(self.bold_button, -1)
+        self.font_ui_signals.append(FontUI(self.bold_button, self.bold_id))
 
 
         # italic tool
@@ -2000,6 +2054,7 @@ class TakeNoteWindow (gtk.Window):
         tips.set_tip(self.italic_button, "Italic")
         self.italic_id = self.italic_button.connect("toggled", lambda w: self.editor.get_textview().toggle_font_mod("italic"))
         toolbar.insert(self.italic_button, -1)
+        self.font_ui_signals.append(FontUI(self.italic_button, self.italic_id))
 
         # underline tool
         self.underline_button = gtk.ToggleToolButton()
@@ -2007,6 +2062,8 @@ class TakeNoteWindow (gtk.Window):
         tips.set_tip(self.underline_button, "Underline")
         self.underline_id = self.underline_button.connect("toggled", lambda w: self.editor.get_textview().toggle_font_mod("underline"))
         toolbar.insert(self.underline_button, -1)
+        self.font_ui_signals.append(FontUI(self.underline_button,
+                                           self.underline_id))
         
         # fixed-width tool
         self.fixed_width_button = gtk.ToggleToolButton()
@@ -2014,6 +2071,8 @@ class TakeNoteWindow (gtk.Window):
         tips.set_tip(self.fixed_width_button, "Monospace")
         self.fixed_width_id = self.fixed_width_button.connect("toggled", lambda w: self.on_fixed_width(True))
         toolbar.insert(self.fixed_width_button, -1)
+        self.font_ui_signals.append(FontUI(self.fixed_width_button,
+                                           self.fixed_width_id))
 
         # no wrap tool
         self.no_wrap_button = gtk.ToggleToolButton()
@@ -2021,7 +2080,8 @@ class TakeNoteWindow (gtk.Window):
         tips.set_tip(self.no_wrap_button, "No Wrapping")
         self.no_wrap_id = self.no_wrap_button.connect("toggled", lambda w: self.editor.get_textview().toggle_font_mod("nowrap"))
         toolbar.insert(self.no_wrap_button, -1)
-
+        self.font_ui_signals.append(FontUI(self.no_wrap_button,
+                                           self.no_wrap_id))
 
         # font button
         #self.font_sel = gtk.FontButton()
@@ -2043,6 +2103,8 @@ class TakeNoteWindow (gtk.Window):
         toolbar.insert(item, -1)
         self.font_family_id = self.font_family_combo.connect("changed", lambda w: self.on_family_set())
         #self.font_family_combo.set_family(DEFAULT_FONT_FAMILY)
+        self.font_ui_signals.append(FontUI(self.font_family_combo,
+                                           self.font_family_id))
                 
         # font size
         DEFAULT_FONT_SIZE = 10
@@ -2060,7 +2122,18 @@ class TakeNoteWindow (gtk.Window):
         self.font_size_id = self.font_size_button.connect("value-changed",
             lambda w: 
             self.on_font_size_change(self.font_size_button.get_value()))
+        self.font_ui_signals.append(FontUI(self.font_size_button,
+                                           self.font_size_id))
 
+
+        # font fg color
+        #self.fg_color_button = gtk.ColorButton()
+        #self.fg_color_button.set_title("Choose Text Color")
+        #item = gtk.ToolItem()
+        #item.add(self.fg_color_button)
+        #tips.set_tip(item, "Set Text Color")
+        #toolbar.insert(item, -1)
+        #self.fg_color_button.connect("color-set", lambda w: self.on_color_set("fg"))
 
         # font size increase
         #button = gtk.ToolButton()
@@ -2085,29 +2158,52 @@ class TakeNoteWindow (gtk.Window):
         self.left_button = gtk.ToggleToolButton()
         self.left_button.set_icon_widget(get_resource_image("alignleft.png"))
         tips.set_tip(self.left_button, "Left Align")
-        self.left_id = self.left_button.connect("toggled", lambda w: self.on_left_justify())
+        self.left_id = self.left_button.connect("toggled",
+                                            lambda w: self.on_left_justify())
         toolbar.insert(self.left_button, -1)
+        self.font_ui_signals.append(FontUI(self.left_button,
+                                           self.left_id))
         
         # center tool
         self.center_button = gtk.ToggleToolButton()
         self.center_button.set_icon_widget(get_resource_image("aligncenter.png"))
         tips.set_tip(self.center_button, "Center Align")
-        self.center_id = self.center_button.connect("toggled", lambda w: self.on_center_justify())
+        self.center_id = self.center_button.connect("toggled",
+                                          lambda w: self.on_center_justify())
         toolbar.insert(self.center_button, -1)
+        self.font_ui_signals.append(FontUI(self.center_button,
+                                           self.center_id))
         
         # right tool
         self.right_button = gtk.ToggleToolButton()
         self.right_button.set_icon_widget(get_resource_image("alignright.png"))
         tips.set_tip(self.right_button, "Right Align")
-        self.right_id = self.right_button.connect("toggled", lambda w: self.on_right_justify())
+        self.right_id = self.right_button.connect("toggled",
+                                           lambda w: self.on_right_justify())
         toolbar.insert(self.right_button, -1)
+        self.font_ui_signals.append(FontUI(self.right_button,
+                                           self.right_id))
         
         # justify tool
         self.fill_button = gtk.ToggleToolButton()
         self.fill_button.set_icon_widget(get_resource_image("alignjustify.png"))
         tips.set_tip(self.fill_button, "Justify Align")
-        self.fill_id = self.fill_button.connect("toggled", lambda w: self.on_fill_justify())
+        self.fill_id = self.fill_button.connect("toggled",
+                                             lambda w: self.on_fill_justify())
         toolbar.insert(self.fill_button, -1)
+        self.font_ui_signals.append(FontUI(self.fill_button,
+                                           self.fill_id))
+
+
+        # bullet list tool
+        self.bullet_button = gtk.ToggleToolButton()
+        self.bullet_button.set_icon_widget(get_resource_image("bullet.png"))
+        tips.set_tip(self.bullet_button, "Bullet List")
+        self.bullet_id = self.bullet_button.connect("toggled",
+                                            lambda w: self.on_bullet_list())
+        toolbar.insert(self.bullet_button, -1)
+        self.font_ui_signals.append(FontUI(self.bullet_button,
+                                    self.bullet_id))
 
 
         # separator
