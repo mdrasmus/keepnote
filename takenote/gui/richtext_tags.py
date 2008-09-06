@@ -244,6 +244,9 @@ class RichTextTag (gtk.TextTag):
     def can_be_copied(self):
         return True
 
+    def is_par_related(self):
+        return False
+
 
 class RichTextModTag (RichTextTag):
     """A tag that represents ortholognal font modifications:
@@ -328,6 +331,9 @@ class RichTextIndentTag (RichTextTag):
     def get_par_indent(self):
         return self._par_type
 
+    def is_par_related(self):
+        return True
+
     
 
 class RichTextBulletTag (RichTextTag):
@@ -345,3 +351,6 @@ class RichTextBulletTag (RichTextTag):
 
     def can_be_copied(self):
         return False
+
+    def is_par_related(self):
+        return True

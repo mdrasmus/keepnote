@@ -50,6 +50,7 @@ class IndentManager (object):
     def __init__(self, textbuffer, apply_exclusive_tag):
         self._buf = textbuffer
         self._apply_exclusive_tag = apply_exclusive_tag
+        self._updating = False
 
         self._indent_update = False
         self._indent_update_start = self._buf.create_mark("indent_update_start",
@@ -199,6 +200,15 @@ class IndentManager (object):
         self._queue_update_indentation(start, end)
 
 
+    def on_paragraph_change(self, start, end):
+        """Callback for when the tags of a paragraph changes"""
+
+        if not self._updating:
+            start, _ = self.get_paragraph(start)
+            _, end = self.get_paragraph(end)
+            self._queue_update_indentation(start, end)
+    
+
     def _queue_update_indentation(self, start, end):
         """Queues an indentation update"""
         
@@ -223,6 +233,7 @@ class IndentManager (object):
         """Ensure the indentation tags between start and end are up to date"""
 
         if self._indent_update:
+            self._updating = True
             self._indent_update = False 
 
             # perfrom indentation update
@@ -299,6 +310,7 @@ class IndentManager (object):
                     break
 
             #print "end"
+            self._updating = False
             self._buf.end_user_action()
 
 

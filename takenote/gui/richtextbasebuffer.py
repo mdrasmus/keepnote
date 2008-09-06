@@ -238,7 +238,7 @@ class RichTextFont (object):
         self.bg_color = ""
 
 
-    def set_font(self, attr, current_tags, tag_table):
+    def set_font(self, attr, tags, current_tags, tag_table):
         font = attr.font
                 
         if font:
@@ -385,7 +385,17 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         """
         pass
     
+    def on_paragraph_split(self, start, end):
+        pass
 
+    def on_paragraph_merge(self, start, end):
+        pass
+
+    def on_paragraph_change(self, start, end):
+        pass
+
+    def is_insert_allowed(self, it):
+        return True
 
     #===========================================================
     # callbacks
@@ -395,9 +405,14 @@ class RichTextBaseBuffer (gtk.TextBuffer):
 
         if mark.get_name() == "insert":
 
-            # pick up the last tags
-            self._current_tags = [x for x in it.get_toggled_tags(False)
-                                  if x.can_be_current()]
+            if it.starts_line():
+                # pick up openning tags
+                self._current_tags = [x for x in it.get_toggled_tags(True)
+                                      if x.can_be_current()]
+            else:
+                # pick up closing tags
+                self._current_tags = [x for x in it.get_toggled_tags(False)
+                                      if x.can_be_current()]
 
             self.on_selection_changed()
             
@@ -409,9 +424,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     def _on_insert_text(self, textbuffer, it, text, length):
         """Callback for text insert"""
 
-        # check to make sure insert is not in front of bullet
-        if it.starts_line() and self._indent.par_has_bullet(it):
-            print "here"
+        if not self.is_insert_allowed(it):
             self.stop_emission("insert_text")
             return
         
@@ -445,6 +458,9 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     def _on_apply_tag(self, textbuffer, tag, start, end):
         """Callback for tag apply"""
 
+        if tag.is_par_related():
+            self.on_paragraph_change(start, end)
+
         action = TagAction(self, tag, start.get_offset(), 
                            end.get_offset(), True)
         self.undo_stack.do(action.do, action.undo, False)
@@ -453,6 +469,9 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     
     def _on_remove_tag(self, textbuffer, tag, start, end):
         """Callback for tag remove"""
+
+        if tag.is_par_related():
+            self.on_paragraph_change(start, end)
 
         action = TagAction(self, tag, start.get_offset(), 
                            end.get_offset(), False)
@@ -504,19 +523,28 @@ class RichTextBaseBuffer (gtk.TextBuffer):
 
             if "\n" in self._next_action.text:
                 paragraph_action = "merge"
-                par_start, par_end = self._indent.get_paragraph()
-        
+
+                par_start = self.get_iter_at_mark(self.get_insert())
+                par_end = par_start.copy()
+
+                if par_start.get_line() > 0:
+                    par_start.backward_line()
+                    par_start.forward_line()
+                else:
+                    par_start = self.get_start_iter()
+                par_end.forward_line()        
         
         self.begin_user_action()
         self.undo_stack.do(self._next_action.do, self._next_action.undo, False)
         
         if paragraph_action == "split":
-            self._indent.on_paragraph_split(par_start, par_end)
+            self.on_paragraph_split(par_start, par_end)
         elif paragraph_action == "merge":
-            self._indent.on_paragraph_merge(par_start, par_end)
+            self.on_paragraph_merge(par_start, par_end)
         
         self._next_action = None            
         self.end_user_action()
+
 
     #==============================================================
     # Tag manipulation    
@@ -647,11 +675,12 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         attr = gtk.TextAttributes()
         self.default_attr.copy_values(attr)
         it.get_attributes(attr)
+        tags = it.get_tags()
 
         # create font object and return
         if font is None:
             font = RichTextFont()
-        font.set_font(attr, current_tags, self.tag_table)
+        font.set_font(attr, tags, current_tags, self.tag_table)
         return font
 
 

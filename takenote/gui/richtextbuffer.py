@@ -428,7 +428,28 @@ class RichTextImage (RichTextAnchor):
 
 
 #=============================================================================
+# font
 
+class RichTextFontIndent (RichTextFont):
+    """Class for representing a font in a simple way"""
+    
+    def __init__(self):
+        self.indent = 0
+        self.par_type = "none"
+
+    def set_font(self, attr, tags, current_tags, tag_table):
+        # set basic font attr
+        RichTextFont.set_font(self, attr, tags, current_tags, tag_table)
+
+        # set indentation info
+        for tag in tags:
+            if isinstance(tag, RichTextIndentTag):
+                self.indent = tag.get_indent()
+                self.par_type = tag.get_par_indent()
+        
+        
+
+#=============================================================================
 
 class RichTextBuffer (RichTextBaseBuffer):
     """
@@ -525,6 +546,21 @@ class RichTextBuffer (RichTextBaseBuffer):
 
         # perfrom queued indentation updates
         self._indent.update_indentation()
+
+    def on_paragraph_split(self, start, end):
+        self._indent.on_paragraph_split(start, end)
+
+    def on_paragraph_merge(self, start, end):
+        self._indent.on_paragraph_merge(start, end)
+
+    def on_paragraph_change(self, start, end):
+        self._indent.on_paragraph_change(start, end)
+
+    def is_insert_allowed(self, it):
+        
+        # check to make sure insert is not in front of bullet
+        return not (it.starts_line() and self._indent.par_has_bullet(it))
+
 
     #=========================================
     # indentation interface
@@ -725,7 +761,7 @@ class RichTextBuffer (RichTextBaseBuffer):
         """Get font under cursor"""
 
         if font is None:
-            font = RichTextFont()
+            font = RichTextFontIndent()
         return RichTextBaseBuffer.get_font(self, font)
 
 
