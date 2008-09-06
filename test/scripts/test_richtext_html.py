@@ -544,6 +544,64 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
                            'END:bold',                           
                            ' word4\n',
                            'END:p'])
+
+    def test_bullet3(self):
+        """
+        Test to see if current_tags is set from text to the right when
+        cursor is at start of line
+        """
+
+        
+        self.buffer.insert_at_cursor("\nend")
+        self.buffer.place_cursor(self.buffer.get_start_iter())
+
+        self.buffer.insert_at_cursor("line1")
+        self.buffer.toggle_bullet_list()
+        self.buffer.insert_at_cursor("\nline2")
+        self.buffer.unindent()
+
+        # move to start of "line2"
+        it = self.buffer.get_iter_at_mark(self.buffer.get_insert())
+        it.backward_line()
+        it.forward_line()
+        self.buffer.place_cursor(it)
+
+        # insert text, it should not be indented
+        self.buffer.insert_at_cursor("new ")
+        
+        contents = list(iter_buffer_contents(self.buffer,
+                                             None, None, IGNORE_TAGS))
+        
+        # check the internal indentation structure
+        self.assertEquals([display_item(x) for x in contents],
+                          ['BEGIN:bullet',
+                           'BEGIN:indent 1 bullet',
+                           u'\u2022 ',
+                           'END:bullet',
+                           'line1\n',
+                           'END:indent 1 bullet',
+                           'new line2\nend'])
+                          
+    def test_bullet4(self):
+        """
+        Test undo toggle bullet
+        """
+        
+        self.buffer.insert_at_cursor("line1")
+
+        contents1 = list(iter_buffer_contents(self.buffer,
+                                              None, None, IGNORE_TAGS))
+        
+        self.buffer.toggle_bullet_list()
+        self.buffer.undo()
+
+        contents2 = list(iter_buffer_contents(self.buffer,
+                                              None, None, IGNORE_TAGS))
+        
+        # check the internal indentation structure
+        self.assertEquals([display_item(x) for x in contents1],
+                          [display_item(x) for x in contents2])
+                          
         
     def test_image1(self):
         """Simple read/write, text should not change"""
