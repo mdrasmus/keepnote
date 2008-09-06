@@ -473,7 +473,8 @@ class RichTextBuffer (RichTextBaseBuffer):
 
 
         # indentation manager
-        self._indent = IndentManager(self, self.apply_tag_selected)
+        self._indent = IndentManager(self, self.apply_tag_selected,
+                                     self.remove_tag_selected)
 
         # set of all anchors in buffer
         self._anchors = set()
@@ -545,7 +546,8 @@ class RichTextBuffer (RichTextBaseBuffer):
         """
 
         # perfrom queued indentation updates
-        self._indent.update_indentation()
+        if not self.undo_stack.is_in_progress():
+            self._indent.update_indentation()
 
     def on_paragraph_split(self, start, end):
         self._indent.on_paragraph_split(start, end)
@@ -572,11 +574,7 @@ class RichTextBuffer (RichTextBaseBuffer):
 
     def unindent(self, start=None, end=None):
         """Unindent paragraph level"""
-
-        try:
-            self._indent.change_indent(start, end, -1)
-        except Exception, e:
-            print e
+        self._indent.change_indent(start, end, -1)
 
     def starts_par(self, it):
         """Returns True if iter 'it' starts a paragraph"""

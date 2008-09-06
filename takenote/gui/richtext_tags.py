@@ -319,7 +319,7 @@ class RichTextIndentTag (RichTextTag):
         RichTextTag.__init__(self, "indent %d %s" % (indent, par_type),
                              left_margin=MIN_INDENT + INDENT_SIZE * (indent-1) +
                                          extra_margin,
-                             background="red",
+                             #background="red",
                              indent=-par_indent_size)
             
         self._indent = indent

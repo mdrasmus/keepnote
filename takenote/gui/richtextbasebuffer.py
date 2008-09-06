@@ -88,7 +88,8 @@ class InsertAction (Action):
         self.current_tags = list(textbuffer.get_current_tags())
         self.pos = pos
         self.text = text
-        self.length = length
+        self.length = length        
+        #assert len(self.text) == self.length
         
     def do(self):
         start = self.textbuffer.get_iter_at_offset(self.pos)
@@ -102,6 +103,9 @@ class InsertAction (Action):
         start = self.textbuffer.get_iter_at_offset(self.pos)
         end = self.textbuffer.get_iter_at_offset(self.pos + self.length)
         self.textbuffer.place_cursor(start)
+
+        #assert start.get_slice(end) == self.text, \
+        #       (start.get_slice(end), self.text)
         self.textbuffer.delete(start, end)
 
 
@@ -415,6 +419,8 @@ class RichTextBaseBuffer (gtk.TextBuffer):
                                       if x.can_be_current()]
 
             self.on_selection_changed()
+
+            #print [type(x) for x in self._current_tags]
             
             # update UI for current fonts
             font = self.get_font()
@@ -427,6 +433,10 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         if not self.is_insert_allowed(it):
             self.stop_emission("insert_text")
             return
+
+        text = unicode(text)
+        length = len(text)
+        #assert len(text) == length, "c '%s'" % text
         
         # start new action
         self._next_action = InsertAction(self, it.get_offset(), text, length)
@@ -486,6 +496,8 @@ class RichTextBaseBuffer (gtk.TextBuffer):
 
         if not self._next_action:
             return
+
+        #print [type(x) for x in self._current_tags]
         
         if isinstance(self._next_action, InsertAction):
             # apply current style to inserted text

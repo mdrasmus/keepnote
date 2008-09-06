@@ -46,6 +46,8 @@ class UndoStack (object):
 
         # maximum size undo stack
         self._maxsize = maxsize
+
+        self._in_progress = False
     
     
     def do(self, action, undo, execute=True):
@@ -82,7 +84,9 @@ class UndoStack (object):
         if len(self._undo_actions) > 0:
             action, undo = self._undo_actions.pop()
             self.suppress()
+            self._in_progress = True
             undo()
+            self._in_progress = False
             self.resume()
             self._redo_actions.append((action, undo))
     
@@ -92,8 +96,10 @@ class UndoStack (object):
     
         if len(self._redo_actions) > 0:
             action, undo = self._redo_actions.pop()
-            self.suppress()            
+            self.suppress()
+            self._in_progress = True
             action()
+            self._in_progress = False
             self.resume()
             self._undo_actions.append((action, undo))
 
@@ -147,4 +153,9 @@ class UndoStack (object):
         self._group_counter = 0
         self._pending_actions = []
         self._suppress_counter = 0
+
+
+    def is_in_progress(self):
+        """Returns True if undo or redo is in progress"""
+        return self._in_progress
 

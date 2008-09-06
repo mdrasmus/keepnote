@@ -47,9 +47,10 @@ class IndentManager (object):
        TextBuffer with RichTextTags
     """
 
-    def __init__(self, textbuffer, apply_exclusive_tag):
+    def __init__(self, textbuffer, apply_exclusive_tag, remove_exclusive_tag):
         self._buf = textbuffer
         self._apply_exclusive_tag = apply_exclusive_tag
+        self._remove_exclusive_tag = remove_exclusive_tag
         self._updating = False
 
         self._indent_update = False
@@ -57,11 +58,11 @@ class IndentManager (object):
                                                      self._buf.get_start_iter(),
                                                      True)
         self._indent_update_end = self._buf.create_mark("indent_update_end",
-                                                   self._buf.get_end_iter(),
-                                                   False)
+                                                    self._buf.get_end_iter(),
+                                                    False)
         self._bullet_mark = self._buf.create_mark("bullet",
-                                             self._buf.get_start_iter(),
-                                             True)
+                                                  self._buf.get_start_iter(),
+                                                  True)
 
         
 
@@ -97,8 +98,8 @@ class IndentManager (object):
                     pos, par_end)
             elif indent > 0:
                 # remove indent and possible bullets
-                self._buf.remove_tag(self._buf.tag_table.lookup_indent(indent,
-                                                             par_indent),
+                self._remove_exclusive_tag(
+                    self._buf.tag_table.lookup_indent(indent, par_indent),
                                 pos, par_end)                
                 pos = self._remove_bullet(pos)
                 end = self._buf.get_iter_at_mark(end_mark)
@@ -171,10 +172,9 @@ class IndentManager (object):
         bullet_end.forward_chars(len(BULLET_STR))
         self._buf.move_mark(self._bullet_mark, par_start)
 
-        if par_start.get_text(bullet_end) == BULLET_STR:            
+        if par_start.get_text(bullet_end) == BULLET_STR:
             bullet_tag = self._buf.tag_table.bullet_tag
-            self._buf.remove_tag(bullet_tag, par_start, bullet_end)
-
+            self._remove_exclusive_tag(bullet_tag, par_start, bullet_end)
             self._buf.delete(par_start, bullet_end)
 
         self._buf.end_user_action()
@@ -253,6 +253,7 @@ class IndentManager (object):
             # move pos to start of line
             pos = self.move_to_start_of_line(pos)
             assert pos.starts_line(), "pos does not start line before"
+            #assert end.starts_line(), "end does not start line after"
             
             while pos.compare(end) == -1:
                 assert pos.starts_line(), "pos does not start line"
@@ -278,6 +279,7 @@ class IndentManager (object):
 
                 if indent_tag is None:
                     # remove all indent tags
+                    # TODO: RichTextBaseBuffer function
                     self._buf.clear_tag_class(self._buf.tag_table.lookup_indent(1),
                                          pos, par_end)
                     # remove bullets
@@ -290,13 +292,11 @@ class IndentManager (object):
                     par_type = indent_tag.get_par_indent()
                     
                 if par_type == "bullet":
-                    pass
                     # ensure proper bullet is in place
                     pos = self._insert_bullet(pos)
                     end = self._buf.get_iter_at_mark(self._indent_update_end)
                     
                 elif par_type == "none":
-                    pass
                     # remove bullets
                     pos = self._remove_bullet(pos)
                     end = self._buf.get_iter_at_mark(self._indent_update_end)
@@ -338,7 +338,7 @@ class IndentManager (object):
             it2.forward_char()
         
         for tag in it2.get_tags():
-            if isinstance(tag, RichTextIndentTag):
+            if isinstance(tag, RichTextIndentTag):# and not it2.ends_tag(tag):
                 return tag
         
         return None        
