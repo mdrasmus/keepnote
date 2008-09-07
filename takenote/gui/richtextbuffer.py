@@ -473,8 +473,7 @@ class RichTextBuffer (RichTextBaseBuffer):
 
 
         # indentation manager
-        self._indent = IndentManager(self, self.apply_tag_selected,
-                                     self.remove_tag_selected)
+        self._indent = IndentManager(self)
 
         # set of all anchors in buffer
         self._anchors = set()
@@ -536,6 +535,7 @@ class RichTextBuffer (RichTextBaseBuffer):
             yield item
 
     def on_selection_changed(self):
+        """Callback for when selection changes"""
         self.highlight_children()
 
     def on_ending_user_action(self):
@@ -550,15 +550,19 @@ class RichTextBuffer (RichTextBaseBuffer):
             self._indent.update_indentation()
 
     def on_paragraph_split(self, start, end):
+        """Callback for when paragraphs split"""
         self._indent.on_paragraph_split(start, end)
 
     def on_paragraph_merge(self, start, end):
+        """Callback for when paragraphs merge"""
         self._indent.on_paragraph_merge(start, end)
 
     def on_paragraph_change(self, start, end):
+        """Callback for when paragraph type changes"""
         self._indent.on_paragraph_change(start, end)
 
     def is_insert_allowed(self, it):
+        """Returns True if insertion is allowed at iter 'it'"""
         
         # check to make sure insert is not in front of bullet
         return not (it.starts_line() and self._indent.par_has_bullet(it))

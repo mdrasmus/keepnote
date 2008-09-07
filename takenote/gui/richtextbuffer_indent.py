@@ -32,12 +32,19 @@ from takenote.gui.richtext_tags import \
 from takenote.gui.richtextbasebuffer import \
      RichTextBaseBuffer, \
      RichTextFont, \
-     add_child_to_buffer
+     add_child_to_buffer, \
+     move_to_start_of_line, \
+     move_to_end_of_line, \
+     get_paragraph, \
+     paragraph_iter, \
+     get_paragraphs_selected
 
 
 
 # string for bullet points
 BULLET_STR = u"\u2022 "
+
+
 
 
 #=============================================================================
@@ -47,10 +54,8 @@ class IndentManager (object):
        TextBuffer with RichTextTags
     """
 
-    def __init__(self, textbuffer, apply_exclusive_tag, remove_exclusive_tag):
+    def __init__(self, textbuffer):
         self._buf = textbuffer
-        self._apply_exclusive_tag = apply_exclusive_tag
-        self._remove_exclusive_tag = remove_exclusive_tag
         self._updating = False
 
         self._indent_update = False
@@ -64,7 +69,6 @@ class IndentManager (object):
                                                   self._buf.get_start_iter(),
                                                   True)
 
-        
 
 
     def change_indent(self, start, end, change):
@@ -72,44 +76,35 @@ class IndentManager (object):
         
         # determine region
         if start is None or end is None:
-            sel = self._buf.get_selection_bounds()
-
-            if not sel:
-                start, end = self.get_paragraph()
-            else:
-                start, _ = self.get_paragraph(sel[0])
-                _, end = self.get_paragraph(sel[1])
+            start, end = get_paragraphs_selected(self._buf)
 
         self._buf.begin_user_action()
-
-        end_mark = self._buf.create_mark(None, end, True)
         
         # loop through paragraphs
-        pos = start
-        while pos.compare(end) == -1:
+        for pos in paragraph_iter(self._buf, start, end):
             par_end = pos.copy()
             par_end.forward_line()
             indent, par_indent = self.get_indent(pos)
 
             if indent + change > 0:
-                self._apply_exclusive_tag(
+                self._buf.apply_tag_selected(
                     self._buf.tag_table.lookup_indent(indent + change,
                                                  par_indent),
                     pos, par_end)
+                
             elif indent > 0:
                 # remove indent and possible bullets
-                self._remove_exclusive_tag(
+                self._buf.remove_tag_selected(
                     self._buf.tag_table.lookup_indent(indent, par_indent),
                                 pos, par_end)                
-                pos = self._remove_bullet(pos)
-                end = self._buf.get_iter_at_mark(end_mark)
+                self._remove_bullet(pos)
 
-            if not pos.forward_line():
-                break
+            else:
+                # do nothing
+                pass
+
 
         self._buf.end_user_action()
-
-        self._buf.delete_mark(end_mark)
         
 
 
@@ -118,26 +113,53 @@ class IndentManager (object):
         
         self._buf.begin_user_action()
 
-        # start indent if it is not present
-        indent, par_type = self.get_indent()
-        if indent == 0:
-            indent = 1
-            #self.indent()
-        
-        par_start, par_end = self.get_paragraph()
+        # round selection to nearest paragraph
+        start, end = get_paragraphs_selected(self._buf)
 
-        if par_type != "none":
+        # trying to insert paragraph at end of buffer
+        if start.compare(end) == 0:
+            # insert a newline
+            self._buf.insert_at_cursor("\n")
+            end = self._buf.get_end_iter()
+            start = end.copy()
+            start.backward_line()
+            self._buf.place_cursor(start)
+        
+        # are all paragraphs bulleted?
+        all_bullets = True
+        for pos in paragraph_iter(self._buf, start, end):
+            if self.get_indent(pos)[1] != "bullet":
+                all_bullets = False
+                break
+
+        # toggle bullet presence
+        if all_bullets:
             par_type = "none"
         else:
             par_type = "bullet"
 
+        # set each paragraph's bullet status
+        for pos in paragraph_iter(self._buf, start, end):
+            par_end = pos.copy()
+            par_end.forward_line()
+            self._set_bullet_list_paragraph(pos, par_end, par_type)
+            
+        self._buf.end_user_action()
+
+
+    def _set_bullet_list_paragraph(self, par_start, par_end, par_type):
+        """Toggle the state of a bullet list for a paragraph"""
+        
+        # start indent if it is not present
+        indent, _ = self.get_indent(par_start)
+        if indent == 0:
+            indent = 1
+
         # apply indent to whole paragraph
         indent_tag = self._buf.tag_table.lookup_indent(indent, par_type)
-        self._apply_exclusive_tag(indent_tag, par_start, par_end)
-            
-        self._queue_update_indentation(par_start, par_end)
+        self._buf.apply_tag_selected(indent_tag, par_start, par_end)
         
-        self._buf.end_user_action()
+        self._queue_update_indentation(par_start, par_end)        
 
 
     def _insert_bullet(self, par_start):
@@ -157,7 +179,7 @@ class IndentManager (object):
         bullet_end = par_start.copy()
         bullet_end.forward_chars(len(BULLET_STR))
         bullet_tag = self._buf.tag_table.bullet_tag
-        self._apply_exclusive_tag(bullet_tag, par_start, bullet_end)
+        self._buf.apply_tag_selected(bullet_tag, par_start, bullet_end)
 
         self._buf.end_user_action()
 
@@ -174,7 +196,7 @@ class IndentManager (object):
 
         if par_start.get_text(bullet_end) == BULLET_STR:
             bullet_tag = self._buf.tag_table.bullet_tag
-            self._remove_exclusive_tag(bullet_tag, par_start, bullet_end)
+            self._buf.remove_tag_selected(bullet_tag, par_start, bullet_end)
             self._buf.delete(par_start, bullet_end)
 
         self._buf.end_user_action()
@@ -204,8 +226,8 @@ class IndentManager (object):
         """Callback for when the tags of a paragraph changes"""
 
         if not self._updating:
-            start, _ = self.get_paragraph(start)
-            _, end = self.get_paragraph(end)
+            start = move_to_start_of_line(start.copy())
+            end = move_to_end_of_line(end.copy())
             self._queue_update_indentation(start, end)
     
 
@@ -222,7 +244,7 @@ class IndentManager (object):
             a = self._buf.get_iter_at_mark(self._indent_update_start)
             b = self._buf.get_iter_at_mark(self._indent_update_end)
 
-            if start.compare(a) == -1:                
+            if start.compare(a) == -1:
                 self._buf.move_mark(self._indent_update_start, start)
 
             if end.compare(b) == 1:
@@ -232,31 +254,25 @@ class IndentManager (object):
     def update_indentation(self):
         """Ensure the indentation tags between start and end are up to date"""
 
+        # fixup indentation tags
+        # The general rule is that the indentation at the start of
+        # each paragraph should determines the indentation of the rest
+        # of the paragraph
+
         if self._indent_update:
             self._updating = True
             self._indent_update = False 
-
-            # perfrom indentation update
+            
             self._buf.begin_user_action()
-            #print "start"
-
-            # fixup indentation tags
-            # The general rule is that the indentation at the start of
-            # each paragraph should determines the indentation of the rest
-            # of the paragraph
-
+            
+            # get range of updating
             pos = self._buf.get_iter_at_mark(self._indent_update_start)
             end = self._buf.get_iter_at_mark(self._indent_update_end)
-
+            pos = move_to_start_of_line(pos)
             end.forward_line()
-
-            # move pos to start of line
-            pos = self.move_to_start_of_line(pos)
-            assert pos.starts_line(), "pos does not start line before"
-            #assert end.starts_line(), "end does not start line after"
             
-            while pos.compare(end) == -1:
-                assert pos.starts_line(), "pos does not start line"
+            # iterate through the paragraphs that need updating
+            for pos in paragraph_iter(self._buf, pos, end):                
                 par_end = pos.copy()
                 par_end.forward_line()
                 indent_tag = self.get_indent_tag(pos)
@@ -268,15 +284,15 @@ class IndentManager (object):
                     match = it.forward_search(BULLET_STR, 0, par_end)
                     if not match:
                         it.backward_char()
-                        pos, par_end = self.get_paragraph(it)
+                        pos, par_end = get_paragraph(it)
                         break
-                    print "match"
                     self._buf.move_mark(self._indent_update_start, match[0])
                     self._buf.delete(match[0], match[1])
                     it = self._buf.get_iter_at_mark(self._indent_update_start)
                     par_end = it.copy()
                     par_end.forward_line()
 
+                # check indentation
                 if indent_tag is None:
                     # remove all indent tags
                     # TODO: RichTextBaseBuffer function
@@ -286,11 +302,12 @@ class IndentManager (object):
                     par_type = "none"
 
                 else:
-                    self._apply_exclusive_tag(indent_tag, pos, par_end)
+                    self._buf.apply_tag_selected(indent_tag, pos, par_end)
 
                     # check for bullets
                     par_type = indent_tag.get_par_indent()
-                    
+
+                # check paragraph type
                 if par_type == "bullet":
                     # ensure proper bullet is in place
                     pos = self._insert_bullet(pos)
@@ -304,12 +321,6 @@ class IndentManager (object):
                 else:
                     raise Exception("unknown par_type '%s'" % par_type)
                     
-
-                # move forward a line
-                if not pos.forward_line():
-                    break
-
-            #print "end"
             self._updating = False
             self._buf.end_user_action()
 
@@ -338,53 +349,25 @@ class IndentManager (object):
             it2.forward_char()
         
         for tag in it2.get_tags():
-            if isinstance(tag, RichTextIndentTag):# and not it2.ends_tag(tag):
+            if isinstance(tag, RichTextIndentTag):
                 return tag
         
         return None        
-        
 
-    def get_paragraph(self, it=None):
-        """Returns the start and end of a paragraph containing iter 'it'"""
-
-        if not it:
-            par_start = self._buf.get_iter_at_mark(self._buf.get_insert())
-        else:
-            par_start = it.copy()
-        
-        par_end = par_start.copy()
-        if par_start.get_line() > 0:
-            par_start.backward_line()
-            par_start.forward_line()
-        else:
-            par_start = self._buf.get_start_iter()
-        par_end.forward_line()
-
-        # NOTE: par_start.starts_line() == True
-        #       par_end.starts_line() == True
-        
-        return par_start, par_end
-
+    
     def starts_par(self, it):
-        """Returns True if iter 'it' starts paragraph"""
+        """Returns True if iter 'it' starts paragraph (or is within bullet)"""
 
         if it.starts_line():
             return True
         else:
+            # handle case where it is within bullet
             it2 = it.copy()
-            it2 = self.move_to_start_of_line(it2)
+            it2 = move_to_start_of_line(it2)
             
             return self.par_has_bullet(it2) and \
                    it.get_offset() <= it2.get_offset() + len(BULLET_STR)
 
-
-    def move_to_start_of_line(self, it=None):
-        if not it:
-            it = self._buf.get_iter_at_mark(self._buf.get_insert())
-        if not it.starts_line():
-            if it.get_line() > 0:
-                it.backward_line()
-                it.forward_line()
-            else:
-                it = self._buf.get_start_iter()
-        return it
+    
+    def _get_cursor(self):
+        return self._buf.get_iter_at_mark(self._buf.get_insert())

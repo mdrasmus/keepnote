@@ -283,15 +283,6 @@ class TakeNoteWindow (gtk.Window):
                            get_resource_pixbuf("takenote-32x32.png"),
                            get_resource_pixbuf("takenote-64x64.png"))
 
-        # TODO: make configurable
-        # system tray icon
-        if gtk.gtk_version > (2, 10):
-            self.tray_icon = gtk.StatusIcon()
-            self.tray_icon.set_from_pixbuf(get_resource_pixbuf("takenote-32x32.png"))
-            self.tray_icon.set_tooltip("TakeNote")
-            self.tray_icon.connect("activate", self.on_tray_icon_activate)
-        else:
-            self.tray_icon = None
 
         # main window signals
         self.connect("delete-event", lambda w,e: self.on_quit())
@@ -400,6 +391,16 @@ class TakeNoteWindow (gtk.Window):
         # load preferences
         self.get_app_preferences()
         self.set_view_mode(self.app.pref.view_mode)
+
+        
+        # system tray icon
+        if self.app.pref.use_systray and gtk.gtk_version > (2, 10):
+            self.tray_icon = gtk.StatusIcon()
+            self.tray_icon.set_from_pixbuf(get_resource_pixbuf("takenote-32x32.png"))
+            self.tray_icon.set_tooltip("TakeNote")
+            self.tray_icon.connect("activate", self.on_tray_icon_activate)
+        else:
+            self.tray_icon = None
         
         #self.show_all()
         self.treeview.grab_focus()
@@ -1043,6 +1044,7 @@ class TakeNoteWindow (gtk.Window):
 
 
     def on_search_nodes(self):
+        """Search nodes"""
         if not self.notebook:
             return
 
@@ -1080,8 +1082,8 @@ class TakeNoteWindow (gtk.Window):
         """Sets the view mode of the window
         
         modes:
-            vertical
-            horizontal
+            "vertical"
+            "horizontal"
         """
 
         if self.ignore_view_mode:
@@ -1344,10 +1346,10 @@ class TakeNoteWindow (gtk.Window):
 
 
     def on_insert_hr(self):
-
+        """Insert horizontal rule into editor"""
         if self.current_page is None:
             return
-
+        
         self.editor.get_textview().insert_hr()
         
     def on_insert_image(self):
@@ -1534,29 +1536,10 @@ class TakeNoteWindow (gtk.Window):
     #=====================================================
     # External app viewers
 
-    # TODO: combine all viewers into one function
-    
-    def on_view_node_file_explorer(self, node=None, widget="focus"):
-        """View folder in file explorer"""
+    def on_view_node_external_app(self, app, node=None, widget="focus",
+                                  page_only=False):
+        """View a node with an external app"""
         
-        if node is None:
-            nodes, widget = self.get_selected_nodes(widget)
-            if len(nodes) == 0:
-                self.error("No notes are selected.")
-                return
-            node = nodes[0]
-        
-        try:
-            filename = os.path.realpath(node.get_path())
-            self.app.run_external_app("file_explorer", filename)
-        except TakeNoteError, e:
-            self.error(e.msg, e)
-
-
-    
-    def on_view_node_web_browser(self, node=None, widget="focus"):
-        """View current page in web browser"""
-
         if node is None:
             nodes, widget = self.get_selected_nodes(widget)
             if len(nodes) == 0:
@@ -1564,34 +1547,17 @@ class TakeNoteWindow (gtk.Window):
                 return            
             node = nodes[0]
 
-            if not node.is_page():
-                self.error("Only pages can be viewed with a web browser.")
+            if page_only and not node.is_page():
+                self.error("Only pages can be viewed with %s." %
+                           self.app.external_apps[app].title)
                 return
 
         try:
-            filename = os.path.realpath(node.get_data_file())
-            self.app.run_external_app("web_browser", filename)
-        except TakeNoteError, e:
-            self.error(e.msg, e)
-    
-    
-    def on_view_node_text_editor(self, node=None, widget="focus"):
-        """View current page in text editor"""
-
-        if node is None:
-            nodes, widget = self.get_selected_nodes(widget)
-            if len(nodes) == 0:
-                self.error("No notes are selected.")
-                return
-            node = nodes[0]
-
-            if not node.is_page():
-                self.error("Only pages can be viewed with a text editor.")
-                return
-           
-        try:
-            filename = os.path.realpath(node.get_data_file())
-            self.app.run_external_app("text_editor", filename)
+            if page_only:
+                filename = os.path.realpath(node.get_data_file())
+            else:
+                filename = os.path.realpath(node.get_path())
+            self.app.run_external_app(app, filename)
         except TakeNoteError, e:
             self.error(e.msg, e)
 
@@ -1881,18 +1847,21 @@ class TakeNoteWindow (gtk.Window):
             
             ("/_View", None, None, 0, "<Branch>"),
             ("/View/View Note in File Explorer",
-                None, lambda w,e: self.on_view_node_file_explorer(), 0, 
-                "<ImageItem>",
-                get_resource_pixbuf("note.png")),
+             None, lambda w,e:
+             self.on_view_node_external_app("file_explorer"), 0, 
+             "<ImageItem>",
+             get_resource_pixbuf("note.png")),
             ("/View/View Note in Text Editor",
-                None, lambda w,e: self.on_view_node_text_editor(), 0, 
-                "<ImageItem>",
-                get_resource_pixbuf("note.png")),
+             None, lambda w,e:
+             self.on_view_node_external_app("text_editor"), 0, 
+             "<ImageItem>",
+             get_resource_pixbuf("note.png")),
             ("/View/View Note in Web Browser",
-                None, lambda w,e: self.on_view_node_web_browser(), 0, 
-                "<ImageItem>",
-                get_resource_pixbuf("note.png")),
-                
+             None, lambda w,e:
+             self.on_view_node_external_app("web_browser"), 0, 
+             "<ImageItem>",
+             get_resource_pixbuf("note.png")),
+            
             
             ("/_Go", None, None, 0, "<Branch>"),
             ("/_Go/Go to _Note",
@@ -2306,15 +2275,17 @@ class TakeNoteWindow (gtk.Window):
         # treeview/file explorer
         item = gtk.MenuItem("View in File Explorer")
         item.connect("activate",
-                     lambda w: self.on_view_node_file_explorer(None,
-                                                               "treeview"))
+                     lambda w: self.on_view_node_external_app("file_explorer",
+                                                              None,
+                                                              "treeview"))
         self.treeview.menu.append(item)
         item.show()        
 
         # treeview/web browser
         item = gtk.MenuItem("View in Web Browser")
         item.connect("activate",
-                     lambda w: self.on_view_node_web_browser(None,
+                     lambda w: self.on_view_node_external_app("web_browser",
+                                                              None,
                                                              "treeview"))
         self.treeview.menu.append(item)
         item.show()        
@@ -2322,8 +2293,9 @@ class TakeNoteWindow (gtk.Window):
         # treeview/text editor
         item = gtk.MenuItem("View in Text Editor")
         item.connect("activate",
-                     lambda w: self.on_view_node_text_editor(None,
-                                                             "treeview"))
+                     lambda w: self.on_view_node_external_app("text_editor",
+                                                              None,
+                                                              "treeview"))
         self.treeview.menu.append(item)
         item.show()
 
@@ -2388,15 +2360,17 @@ class TakeNoteWindow (gtk.Window):
         # selector/file explorer
         item = gtk.MenuItem("View in File _Explorer")
         item.connect("activate",
-                     lambda w: self.on_view_node_file_explorer(None,
-                                                               "selector"))
+                     lambda w: self.on_view_node_external_app("file_explorer",
+                                                              None,
+                                                              "selector"))
         self.selector.menu.append(item)
         item.show()
 
         # treeview/web browser
         item = gtk.MenuItem("View in _Web Browser")
         item.connect("activate",
-                     lambda w: self.on_view_node_web_browser(None,
+                     lambda w: self.on_view_node_external_app("web_browser",
+                                                              None,
                                                              "selector"))
         self.selector.menu.append(item)
         item.show()        
@@ -2404,8 +2378,9 @@ class TakeNoteWindow (gtk.Window):
         # treeview/text editor
         item = gtk.MenuItem("View in _Text Editor")
         item.connect("activate",
-                     lambda w: self.on_view_node_text_editor(None,
-                                                             "selector"))
+                     lambda w: self.on_view_node_external_app("text_editor",
+                                                              None,
+                                                              "selector"))
         self.selector.menu.append(item)
         item.show()        
 

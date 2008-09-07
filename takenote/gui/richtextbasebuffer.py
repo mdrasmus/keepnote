@@ -60,7 +60,79 @@ def color_to_string(color):
 
     return "#%s%s%s" % (redstr, greenstr, bluestr)
 
+#=============================================================================
+# buffer paragraph navigation
 
+def move_to_start_of_line(it):
+    """Move a TextIter it to the start of a paragraph"""
+    
+    if not it.starts_line():
+        if it.get_line() > 0:
+            it.backward_line()
+            it.forward_line()
+        else:
+            it = it.get_buffer().get_start_iter()
+    return it
+
+def move_to_end_of_line(it):
+    """Move a TextIter it to the start of a paragraph"""
+    it.forward_line()
+    return it
+
+def get_paragraph(it):
+    """Get iters for the start and end of the paragraph containing 'it'"""
+    start = it.copy()
+    end = it.copy()
+
+    start = move_to_start_of_line(start)
+    end.forward_line()
+    return start, end
+
+class paragraph_iter (object):
+    """Iterate through the paragraphs of a TextBuffer"""
+
+    def __init__(self, buf, start, end):
+        self.buf = buf
+        self.pos = start
+        self.end = end
+    
+        # create marks that survive buffer edits
+        self.pos_mark = buf.create_mark(None, self.pos, True)
+        self.end_mark = buf.create_mark(None, self.end, True)
+
+    def __del__(self):
+        if self.pos_mark is not None:
+            self.buf.delete_mark(self.pos_mark)
+            self.buf.delete_mark(self.end_mark)
+
+    def __iter__(self):
+        while self.pos.compare(self.end) == -1:
+            self.buf.move_mark(self.pos_mark, self.pos)
+            yield self.pos
+
+            self.pos = self.buf.get_iter_at_mark(self.pos_mark)
+            self.end = self.buf.get_iter_at_mark(self.end_mark)
+            if not self.pos.forward_line():
+                break
+
+        # cleanup marks
+        self.buf.delete_mark(self.pos_mark)
+        self.buf.delete_mark(self.end_mark)
+
+        self.pos_mark = None
+        self.end_mark = None
+
+        
+def get_paragraphs_selected(buf):
+    """Get start and end of selection rounded to nears paragraph boundaries"""
+    sel = buf.get_selection_bounds()
+    
+    if not sel:
+        start, end = get_paragraph(buf.get_iter_at_mark(buf.get_insert()))
+    else:
+        start = move_to_start_of_line(sel[0])
+        end = move_to_end_of_line(sel[1])
+    return start, end
 
 
 #=============================================================================
@@ -517,13 +589,13 @@ class RichTextBaseBuffer (gtk.TextBuffer):
             if "\n" in self._next_action.text:
                 paragraph_action = "split"
 
+                # determine region that needs update
                 par_start = self.get_iter_at_mark(self.get_insert())
                 par_end = par_start.copy()
-                
                 par_start.backward_line()
                 par_end.forward_chars(self._next_action.length)
                 par_end.forward_line()
-                par_end.backward_char()
+
             
                 
         elif isinstance(self._next_action, DeleteAction):
@@ -535,16 +607,9 @@ class RichTextBaseBuffer (gtk.TextBuffer):
 
             if "\n" in self._next_action.text:
                 paragraph_action = "merge"
-
-                par_start = self.get_iter_at_mark(self.get_insert())
-                par_end = par_start.copy()
-
-                if par_start.get_line() > 0:
-                    par_start.backward_line()
-                    par_start.forward_line()
-                else:
-                    par_start = self.get_start_iter()
-                par_end.forward_line()        
+                par_start, par_end = get_paragraph(
+                    self.get_iter_at_mark(self.get_insert()))
+                
         
         self.begin_user_action()
         self.undo_stack.do(self._next_action.do, self._next_action.undo, False)

@@ -209,6 +209,15 @@ DEFAULT_EXTERNAL_APPS_WINDOWS = [
 ]
 
 
+DEFAULT_EXTERNAL_APPS_LINUX = [
+    ExternalApp("web_browser", "Web Browser", ""),
+    ExternalApp("file_explorer", "File Explorer", ""),
+    ExternalApp("text_editor", "Text Editor", ""),
+    ExternalApp("image_editor", "Image Editor", ""),
+    ExternalApp("image_viewer", "Image Viewer", "display"),
+    ExternalApp("screen_shot", "Screen Shot", "import")
+]
+
 
 class TakeNotePreferences (object):
     """Preference data structure for the TakeNote application"""
@@ -234,6 +243,7 @@ class TakeNotePreferences (object):
         self.spell_check = True
         self.image_size_snap = True
         self.image_size_snap_amount = 50
+        self.use_systray = True
 
         # dialog chooser paths
         self.new_notebook_path = get_user_documents()
@@ -280,6 +290,8 @@ class TakeNotePreferences (object):
         # add default programs
         if get_platform() == "windows":
             lst = DEFAULT_EXTERNAL_APPS_WINDOWS
+        elif get_platform() == "unix":
+            lst = DEFAULT_EXTERNAL_APPS_LINUX
         else:
             lst = DEFAULT_EXTERNAL_APPS
         for defapp in lst:
@@ -347,6 +359,10 @@ g_takenote_pref_parser = xmlo.XmlObject(
         xmlo.Tag("image_size_snap_amount",
             getobj=("image_size_snap_amount", int),
             set=lambda s: "%d" % s.image_size_snap_amount),
+
+        xmlo.Tag("use_systray",
+            getobj=("use_systray", lambda x: bool(int(x))),
+            set=lambda s: "%d" % int(s.use_systray)),
 
         # misc options
         xmlo.Tag("spell_check",
