@@ -17,7 +17,9 @@ from takenote.gui.textbuffer_tools import \
      TextBufferDom, \
      TextDom, \
      AnchorDom, \
-     TagDom
+     TagDom, \
+     TagNameDom
+
 
 from takenote.gui.richtextbuffer import \
      IGNORE_TAGS, \
@@ -258,6 +260,7 @@ class HtmlBuffer (HTMLParser):
         self._newline = False
 
         self._tag_stack = []
+        self._tag_stack2 = []
         self._butter_contents = []
         self._text_queue = []
         self._within_body = False
@@ -293,46 +296,167 @@ class HtmlBuffer (HTMLParser):
         self._partial = partial
         self._indent = 0
         self._li_newline = False
-        self._seen_text = False
+        #self._seen_text = False
         self._par_type = "none"
+        self._tag_stack = []
+
+        
+        self._dom = TextBufferDom()
+        self._dom_ptr = self._dom
+        self._tag_stack2 = [(None, self._dom)]
 
         try:
             for line in infile:
                 self.feed(line)
 
                 # yeild items read so far
-                for item in self._buffer_contents:
-                    yield item
-                self._buffer_contents[:] = []
+                #for item in self._buffer_contents:
+                #    yield item
+                #self._buffer_contents[:] = []
         
             self.close()
             self.flush_text()
         
             # yeild remaining items
-            for item in self._buffer_contents:
-                yield item
-            self._buffer_contents[:] = []
+            #for item in self._buffer_contents:
+            #    yield item
+            #self._buffer_contents[:] = []
             
         except Exception, e:
             # reraise error if not ignored
             if not ignore_errors:
                 raise
+
+        #self._dom.display()
+
+        self.process_read_dom(self._dom)
+        contents = list(self.remove_spurious_tags(
+            self.convert_indents(self._dom.get_contents())))
+        #print contents
+        return contents
+            
+
+        #lst = self._buffer_contents
+        #self._buffer_contents = []
+        #return lst
+
+
+    def remove_spurious_tags(self, contents):
+
+
+        # NOTE: assumes perfectly nested tags
+        stack = []
         
+        for item in contents:
+
+            if item[0] == "beginstr":
+                # save
+                stack.append(item[2])
+                
+            elif item[0] == "endstr":                
+                if len(stack) > 0:
+                    assert item[2] == stack[-1]
+                    # discard tag
+                    stack.pop()
+                else:
+                    yield item
+            else:
+                for tag in stack:
+                    yield ("beginstr", None, tag)
+                stack = []
+                yield item
+
+
+    def process_read_dom(self, dom):
+        """Process a DOM after reading"""
+
+        def walk(node):
+
+            if isinstance(node, TagNameDom) and node.tagname == "ol":
+                # new lists imply newline if it has a previous sibling
+                if node.prev_sibling():
+                    node.get_parent().insert_before(node, TextDom("\n"))
+            
+            if isinstance(node, TagNameDom) and node.tagname.startswith("li"):
+                # list items end with an implied newline
+
+                if not (isinstance(node.last_child(), TagNameDom) and \
+                        node.last_child().tagname == "ol"):
+                    node.append_child(TextDom("\n"))
+            
+            for child in list(node):
+                walk(child)
+        walk(dom)
+        
+
+    def convert_indents(self, contents):
+        """Convert nested indents to unnested"""
+
+        indent = 0
+        li_stack = []
+        
+        for item in contents:
+            kind, pos, param = item
+            if kind == "beginstr":
+                if param == "ol":
+                    indent += 1
+                elif param.startswith("li"):
+                    par_type = param[3:]
+
+                    if len(li_stack) > 0:
+                        yield ("endstr", None, li_stack[-1])
+                    
+                    tagstr = "indent %d %s" % (indent, par_type)
+                    yield ("beginstr", None, tagstr)
+                    li_stack.append(tagstr)
+
+                    if par_type == "bullet":
+                        yield ("beginstr", None, "bullet")
+                        yield ("text", None, u"\u2022 ")
+                        yield ("endstr", None, "bullet")
+                else:
+                    yield item
+
+            elif kind == "endstr":
+                if param == "ol":
+                    indent -= 1
+                elif param.startswith("li"):
+                    par_type = param[3:]
+                    li_stack.pop()
+                    yield ("endstr", None,
+                           "indent %d %s" % (indent, par_type))
+
+                    if len(li_stack) > 0:
+                        yield ("beginstr", None, li_stack[-1])
+                    
+                else:
+                    yield item
+
+            else:
+                yield item
+    
         
     def flush_text(self):
+        return
+        
         if len(self._text_queue) > 0:
             text = "".join(self._text_queue)
             if len(text) > 0:
+                self._dom_ptr.append_child(TextDom(text))
+                
                 self._buffer_contents.append(("text", None, text))
                 self._text_queue[:] = []
 
             
     def queue_text(self, text):
-        self._text_queue.append(text)
+        if len(text) > 0:
+            self._dom_ptr.append_child(TextDom(text))
+        
+        #self._text_queue.append(text)
 
-    def append_buffer_item(self, kind, param):
-        self.flush_text()
-        self._buffer_contents.append((kind, None, param))
+    #def append_buffer_item(self, kind, param):
+    #    self.flush_text()
+    #    self._buffer_contents.append((kind, None, param))
 
     def parse_style(self, stylestr):
         """Parse a style attribute"""
@@ -395,8 +519,12 @@ class HtmlBuffer (HTMLParser):
                 pass
         
             if tagstr is not None:
-                self.append_buffer_item("beginstr", tagstr)
-                self._tag_stack[-1][1].append(tagstr)
+                #self.append_buffer_item("beginstr", tagstr)
+                #self._tag_stack[-1][1].append(tagstr)
+
+                tag = TagNameDom(tagstr)
+                self._dom_ptr.append_child(tag)
+                self._dom_ptr = tag
 
 
     def parse_image(self, attrs):
@@ -439,21 +567,28 @@ class HtmlBuffer (HTMLParser):
 
         # start a new tag on htmltag stack
         self._tag_stack.append((htmltag, []))
+        self._tag_stack2.append((htmltag, self._dom_ptr))
+
 
         if htmltag == "html":
             # ignore html tag
             pass
         
         elif htmltag == "body":
-            # note that we are no within the body tag
+            # note that we are within the body tag
             self._within_body = True
+
         
         elif htmltag in self._html2buffer_tag:
             # simple font modifications (b/i/u)
             
             tagstr = self._html2buffer_tag[htmltag]
-            self.append_buffer_item("beginstr", tagstr)
-            self._tag_stack[-1][1].append(tagstr)
+            #self.append_buffer_item("beginstr", tagstr)
+            #self._tag_stack[-1][1].append(tagstr)
+
+            tag = TagNameDom(tagstr)
+            self._dom_ptr.append_child(tag)
+            self._dom_ptr = tag
 
         elif htmltag == "span":
             # apply style
@@ -485,23 +620,28 @@ class HtmlBuffer (HTMLParser):
         elif htmltag == "ul" or htmltag == "ol":
             # indent
 
-            if self._seen_text:
-                self._seen_text = False
-                self.queue_text("\n")
-            self._li_newline = False
+            #if self._seen_text:
+            #    self._seen_text = False
+            #    self.queue_text("\n")
+            #self._li_newline = False
 
-            if self._indent > 0:
-                self.append_buffer_item("endstr", "indent %d %s" %
-                                        (self._indent, self._par_type))
-            self._indent += 1
-            tagstr = "indent %d %s" % (self._indent, self._par_type)
-            self.append_buffer_item("beginstr", tagstr)
+            #if self._indent > 0:
+            #    self.append_buffer_item("endstr", "indent %d %s" %
+            #                            (self._indent, self._par_type))
+            #self._indent += 1
+            #tagstr = "indent %d %s" % (self._indent, self._par_type)
+            #self.append_buffer_item("beginstr", tagstr)
+
+            tag = TagNameDom("ol")
+            self._dom_ptr.append_child(tag)
+            self._dom_ptr = tag
+            
             
         elif htmltag == "li":
             # ignore list items for now
 
-            self._li_newline = True
-            self._seen_text = False
+            #self._li_newline = True
+            #self._seen_text = False
             par_type = "none"
 
             for key, value in attrs:
@@ -514,20 +654,23 @@ class HtmlBuffer (HTMLParser):
                             if value2 == "disc":
                                 par_type = "bullet"
 
-            if self._indent > 0:
-                self.append_buffer_item("endstr", "indent %d %s" %
-                                        (self._indent, self._par_type))
-                self._par_type = par_type
-                tagstr = "indent %d %s" % (self._indent, self._par_type)
-                self.append_buffer_item("beginstr", tagstr)
+            #if self._indent > 0:
+                #self.append_buffer_item("endstr", "indent %d %s" %
+                #                        (self._indent, self._par_type))
+                #self._par_type = par_type
+                #tagstr = "indent %d %s" % (self._indent, self._par_type)
+                #self.append_buffer_item("beginstr", tagstr)
 
-                if par_type == "bullet":
-                    self.append_buffer_item("beginstr", "bullet")
-                    self.queue_text(u"\u2022 ")
-                    self.append_buffer_item("endstr", "bullet")
-            else:
-                assert False
+            tag = TagNameDom("li %s" % par_type)
+            self._dom_ptr.append_child(tag)
+            self._dom_ptr = tag
 
+                #if par_type == "bullet":
+                #    self.append_buffer_item("beginstr", "bullet")
+                #    self.queue_text(u"\u2022 ")
+                #    self.append_buffer_item("endstr", "bullet")
+            #else:
+            #    assert False
             
             
         elif htmltag == "br":
@@ -539,13 +682,17 @@ class HtmlBuffer (HTMLParser):
             # horizontal break
             hr = RichTextHorizontalRule()
             self.queue_text("\n")
-            self.append_buffer_item("anchor", (hr, None))
+            #self.append_buffer_item("anchor", (hr, None))
+            self._dom_ptr.append_child(AnchorDom(hr))
             self.queue_text("\n")
+            #self._seen_text = True
     
         elif htmltag == "img":
             # insert image
             img = self.parse_image(attrs)
-            self.append_buffer_item("anchor", (img, None))
+            #self.append_buffer_item("anchor", (img, None))
+            self._dom_ptr.append_child(AnchorDom(img))
+            #self._seen_text = True
 
         else:
             # ingore other html tags
@@ -571,49 +718,55 @@ class HtmlBuffer (HTMLParser):
         
         # ensure closing tags match opened tags
         while len(self._tag_stack) > 0 and htmltag2 != htmltag:
-            html2, tags = self._tag_stack.pop()
-            #raise HtmlError("closing tag does not match opening tag")
+            htmltag2, tags = self._tag_stack.pop()
+            #raise HtmlError("closing tag does not match opening tag")       
 
-        for tagstr in tags:
-            self.append_buffer_item("endstr", tagstr)
+        htmltag2, self._dom_ptr = self._tag_stack2.pop()
+        while len(self._tag_stack2) > 0 and htmltag2 != htmltag:
+            htmltag2, self._dom_ptr = self._tag_stack2.pop()
+
+
+
+        #for tagstr in tags:
+        #    self.append_buffer_item("endstr", tagstr)
 
         if htmltag == "ul" or htmltag == "ol":
             self._newline = True
-            self._li_newline = False
-            
+            #self._li_newline = False
+            # 
             # indent
-            if self._indent > 0:
-                self.append_buffer_item("endstr", "indent %d %s" %
-                                        (self._indent, self._par_type))
-                self._indent -= 1
-            else:
-                # NOTE: this is an error in the HTML input.  More closes than
-                # opens
-                self._indent = 0
-
-            if self._indent > 0:
-                self.append_buffer_item("beginstr", "indent %d %s" %
-                                        (self._indent, self._par_type))
+            #if self._indent > 0:
+            #    self.append_buffer_item("endstr", "indent %d %s" %
+            #                            (self._indent, self._par_type))
+            #    self._indent -= 1
+            #else:
+            #    # NOTE: this is an error in the HTML input.  More closes than
+            #    # opens
+            #    self._indent = 0
+            #
+            #if self._indent > 0:
+            #    self.append_buffer_item("beginstr", "indent %d %s" %
+            #                            (self._indent, self._par_type))
 
         elif htmltag == "li":
-            if self._li_newline:
-                self._li_newline = False
-                self._seen_text = False
-                self.queue_text("\n")
+            #if self._li_newline:
+            #    self._li_newline = False
+            #    self._seen_text = False
+            #    self.queue_text("\n")
             self._newline = True
 
             # indent
-            if self._indent > 0:
-                self.append_buffer_item("endstr", "indent %d %s" %
-                                        (self._indent, self._par_type))
-            else:
-                # NOTE: this is an error in the HTML input.  More closes than
-                # opens
-                self._indent = 0
-
-            if self._indent > 0:
-                self.append_buffer_item("beginstr", "indent %d %s" %
-                                        (self._indent, self._par_type))
+            #if self._indent > 0:
+            #    self.append_buffer_item("endstr", "indent %d %s" %
+            #                            (self._indent, self._par_type))
+            #else:
+            #    # NOTE: this is an error in the HTML input.  More closes than
+            #    # opens
+            #    self._indent = 0
+            #
+            #if self._indent > 0:
+            #    self.append_buffer_item("beginstr", "indent %d %s" %
+            #                            (self._indent, self._par_type))
 
         
         elif htmltag == "p":
@@ -628,29 +781,30 @@ class HtmlBuffer (HTMLParser):
         if not self._partial and not self._within_body:
             return
 
-        
-        
         if self._newline:
-            data = re.sub("\n[\n ]*", "", data)
+            data = re.sub("^\n[\n ]*", "", data)
+            data = re.sub("[\n ]+", " ", data)
             self._newline = False
         else:
             data = re.sub("[\n ]+", " ", data)
-
+        
         if len(data) > 0:
             #self._li_newline = True
-            self._seen_text = True
+            #self._seen_text = True
             self.queue_text(data)
 
     
     def handle_entityref(self, name):
         if not self._partial and not self._within_body:
             return
+        #self._seen_text = True
         self.queue_text(self._entity2char.get(name, ""))
     
     
     def handle_charref(self, name):
         if not self._partial and not self._within_body:
             return
+        #self._seen_text = True
         self.queue_text(self._charref2char.get(name, ""))
 
 

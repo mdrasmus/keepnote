@@ -271,10 +271,15 @@ def insert_buffer_contents(textbuffer, pos, contents, add_child,
 
     # make sure all inserts are treated as one action
     textbuffer.begin_user_action()
+
+    insert_mark = textbuffer.get_insert()
+    #lookup_tag = textbuffer.get_tag_table().lookup
     
     textbuffer.place_cursor(pos)
     tags = {}
     tagstrs = {}
+
+    
     
     # make sure all tags are removed on first text/anchor insert
     first_insert = True
@@ -287,7 +292,7 @@ def insert_buffer_contents(textbuffer, pos, contents, add_child,
             textbuffer.insert_at_cursor(param)
             
             if first_insert:
-                it = textbuffer.get_iter_at_mark(textbuffer.get_insert())
+                it = textbuffer.get_iter_at_mark(insert_mark)
                 it2 = it.copy()
                 it2.backward_chars(len(param))
                 textbuffer.remove_all_tags(it2, it)
@@ -295,12 +300,12 @@ def insert_buffer_contents(textbuffer, pos, contents, add_child,
             
         elif kind == "anchor":
             # insert widget            
-            it = textbuffer.get_iter_at_mark(textbuffer.get_insert())
+            it = textbuffer.get_iter_at_mark(insert_mark)
             anchor = param[0].copy()
             add_child(textbuffer, it, anchor)
             
             if first_insert:
-                it = textbuffer.get_iter_at_mark(textbuffer.get_insert())
+                it = textbuffer.get_iter_at_mark(insert_mark)
                 it2 = it.copy()
                 it2.backward_chars(1) #len(param))
                 textbuffer.remove_all_tags(it2, it)
@@ -309,13 +314,15 @@ def insert_buffer_contents(textbuffer, pos, contents, add_child,
         elif kind == "begin":
             # remember the starting position of a tag
             tags[param] = textbuffer.get_iter_at_mark(
-                textbuffer.get_insert()).get_offset()
+                insert_mark).get_offset()
             
         elif kind == "end":
             # apply tag
             start = textbuffer.get_iter_at_offset(tags[param])
-            end = textbuffer.get_iter_at_mark(textbuffer.get_insert())
+            end = textbuffer.get_iter_at_mark(insert_mark)
             textbuffer.apply_tag(param, start, end)
+
+            del tags[param]
             
         elif kind == "beginstr":
             # remember the starting position of a tag referred to by a string
@@ -325,7 +332,7 @@ def insert_buffer_contents(textbuffer, pos, contents, add_child,
                 lst = []
                 tagstrs[param] = lst
             lst.append(textbuffer.get_iter_at_mark(
-                textbuffer.get_insert()).get_offset())
+                insert_mark).get_offset())
 
         elif kind == "endstr":
             # apply tag referred to by a string
@@ -334,7 +341,7 @@ def insert_buffer_contents(textbuffer, pos, contents, add_child,
             if tag:
                 offset = tagstrs[param].pop()
                 start = textbuffer.get_iter_at_offset(offset)
-                end = textbuffer.get_iter_at_mark(textbuffer.get_insert())
+                end = textbuffer.get_iter_at_mark(insert_mark)
                 textbuffer.apply_tag(tag, start, end)
 
     
@@ -437,12 +444,7 @@ class TagDom (Dom):
             self.build(contents)
 
     def display(self, indent=0):
-        if isinstance(self.tag, str):
-            name = self.tag
-        else:
-            name = self.tag.get_property('name')
-        
-        self.display_indent(indent, "TagDom", name)
+        self.display_indent(indent, "TagDom", self.tag.get_property('name'))
         for child in self:
             child.display(indent+1)
 
@@ -453,7 +455,29 @@ class TagDom (Dom):
              child.visit_contents(visit)
         visit("end", None, self.tag)
         
-        
+
+class TagNameDom (Dom):
+    """A name for a TextTag object in a DOM"""
+    
+    def __init__(self, tagname, contents=None):
+        Dom.__init__(self)
+        self.tagname = tagname
+
+        if contents:
+            self.build(contents)
+
+    def display(self, indent=0):
+        self.display_indent(indent, "TagNameDom", self.tagname)
+        for child in self:
+            child.display(indent+1)
+
+    def visit_contents(self, visit):
+
+        visit("beginstr", None, self.tagname)
+        for child in self:
+             child.visit_contents(visit)
+        visit("endstr", None, self.tagname)
+
 
 class TextBufferDom (Dom):
     """Document Object Model for TextBuffers"""

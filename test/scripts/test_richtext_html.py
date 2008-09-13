@@ -305,10 +305,11 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         """Tags should be normalized when writing,
            output should not be equal."""
         self.read_write("<b><i>hello</b></i>",
-                        "<b>hello</b>")
+                        "<b><i>hello</i></b>")
 
     def test_normalized_tags(self):
         self.read_write("<i><b>hello</b>again</i>")
+
 
     def test_newlines(self):
         self.read_write("line1<br/>\n<br/>\nline2")
@@ -378,8 +379,8 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         self.read_write(
             '<div style="text-align: center; font-size: 22pt; font-family: Serif">hello<br/>\nagain</div>',
             '<div style="text-align: center">'
+            '<span style="font-family: Serif">'            
             '<span style="font-size: 22pt">'
-            '<span style="font-family: Serif">'
             'hello<br/>\nagain</span></span></div>')
 
     def test_hr(self):
@@ -387,16 +388,20 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         self.buffer.clear()        
         self.read_write('line1<hr/>line2')
 
+
+
     def test_ol1(self):
         self.read_write('<ol><li style="list-style-type: none">'
                         'line1</li>\n<li style="list-style-type: none">line2</li>\n</ol>\n')
-        
+
+
     def test_ol2(self):
         self.read_write(
             'line0<ol><li style="list-style-type: none">line1</li>\n'
             '<li style="list-style-type: none">line2</li>\n<li style="list-style-type: none"><ol><li style="list-style-type: none">line3</li>\n'
             '<li style="list-style-type: none">line4</li>\n</ol>\n</li>\n'
             '<li style="list-style-type: none">line5</li>\n</ol>\nline6')
+
 
     def test_ol3(self):
         self.read_write(
@@ -602,6 +607,99 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         self.assertEquals([display_item(x) for x in contents1],
                           [display_item(x) for x in contents2])
                           
+    def test_bullet_blank_lines(self):
+        """
+        Make sure blank lines b/w bullets do not disappear
+        """
+
+        self.read(self.buffer, StringIO.StringIO(
+            '<ol><li style="list-style-type: disc">line1</li>\n'
+            '</ol>\n'
+            '<ol><li style="list-style-type: disc">line2</li>\n'
+            '</ol>\n'))
+
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['BEGIN:bullet',
+                           'BEGIN:indent 1 bullet',
+                           u'\u2022 ',
+                           'END:bullet',
+                           'line1\n',
+                           'END:indent 1 bullet',
+                           '\n',
+                           'BEGIN:bullet',
+                           'BEGIN:indent 1 bullet',
+                           u'\u2022 ',
+                           'END:bullet',
+                           'line2\n',
+                           'END:indent 1 bullet'])
+
+        self.buffer.clear()
+
+        self.read_write(
+            '<ol><li style="list-style-type: disc">line1</li>\n'
+            '</ol>\n'
+            '<br/>\n'
+            '<ol><li style="list-style-type: disc">line2</li>\n'
+            '</ol>\n')
+
+    def test_bullet_newlines_deep_indent(self):
+        """
+        Make sure blank lines b/w bullets do not disappear
+        """
+
+        self.read(self.buffer, StringIO.StringIO(
+            '<ol><li style="list-style-type: none"><ol><li style="list-style-type: disc">line1</li>\n</ol>\n</li>\n'
+            '<li style="list-style-type: disc"></li>\n'
+            '</ol>\n'))
+
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['BEGIN:bullet',
+                           'BEGIN:indent 2 bullet',
+                           u'\u2022 ',
+                           'END:bullet',
+                           'line1\n',
+                           'END:indent 2 bullet',
+                           'BEGIN:bullet',
+                           'BEGIN:indent 1 bullet',
+                           u'\u2022 ',
+                           'END:bullet',
+                           '\n',
+                           'END:indent 1 bullet'])
+
+
+    def test_bullet_new_lines(self):
+        """
+        Make sure newlines can be added at front of bullet
+        """
+
+        self.read(self.buffer, StringIO.StringIO(
+            '<ol><li style="list-style-type: disc">line1</li>\n'
+            '</ol>\n'
+            '<ol><li style="list-style-type: disc">line2</li>\n'
+            '</ol>\n'))
+
+        self.buffer.place_cursor(self.buffer.get_start_iter())
+        self.buffer.insert_at_cursor("\n")
+
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['BEGIN:bullet',
+                           'BEGIN:indent 1 bullet',
+                           u'\u2022 ',
+                           'END:bullet',
+                           '\n',
+                           'BEGIN:bullet',
+                           u'\u2022 ',
+                           'END:bullet',
+                           'line1\n',
+                           'END:indent 1 bullet',
+                           '\n',
+                           'BEGIN:bullet',
+                           'BEGIN:indent 1 bullet',                           
+                           u'\u2022 ',
+                           'END:bullet',
+                           'line2\n',
+                           'END:indent 1 bullet'])
+        
         
     def test_image1(self):
         """Simple read/write, text should not change"""
@@ -628,6 +726,8 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         lst2 = list(it)
 
         self.assertEquals(lst2, [0, 1, 2, 'a', 'b', 'c', 3, 4, 5, 6, 7, 8, 9])
+
+
         
 htmlbuffer_suite = unittest.defaultTestLoader.loadTestsFromTestCase(
     TestCaseHtmlBuffer)
