@@ -619,6 +619,7 @@ class RichTextView (gtk.TextView):
     
     def load(self, filename):
         """Load buffer with data from file"""
+
         
         textbuffer = self._textbuffer
         
@@ -629,14 +630,13 @@ class RichTextView (gtk.TextView):
         textbuffer.undo_stack.suppress()
         textbuffer.block_signals()
         self.set_buffer(None)
-        
-        
+
         # clear buffer        
         textbuffer.clear()
         
         err = None
         try:
-            #from rasmus import util
+            from rasmus import util
             #util.tic("read")
 
             # NOTE: buffer_contents is a generator
@@ -661,6 +661,9 @@ class RichTextView (gtk.TextView):
             self.set_buffer(textbuffer)
             
             ret = False
+        #except Exception, e:
+        #    print e
+            
         else:
             self.set_buffer(textbuffer)
             textbuffer.add_deferred_anchors()
