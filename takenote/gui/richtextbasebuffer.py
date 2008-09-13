@@ -1,7 +1,3 @@
-# python imports
-import sys, os, tempfile, re
-import urllib2
-
 
 # pygtk imports
 import pygtk
@@ -390,8 +386,11 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         gtk.TextBuffer.__init__(self, RichTextTagTable())
         self.undo_stack = UndoStack(MAX_UNDOS)
 
+        self._insert_mark = self.get_insert()
+
         # action state
-        self._insert_mark = None
+        self._insert_text_mark = self.create_mark(None, self.get_start_iter(),
+                                                  True)
         self._next_action = None
         self._current_tags = []
         self._user_action = False
@@ -470,7 +469,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     def on_paragraph_change(self, start, end):
         pass
 
-    def is_insert_allowed(self, it):
+    def is_insert_allowed(self, it, text):
         return True
 
     #===========================================================
@@ -479,20 +478,20 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     def _on_mark_set(self, textbuffer, it, mark):
         """Callback for mark movement"""
 
-        if mark.get_name() == "insert":
+        if mark is self._insert_mark:
 
             if it.starts_line():
                 # pick up openning tags
                 self._current_tags = [x for x in it.get_toggled_tags(True)
-                                      if x.can_be_current()]
+                                      if isinstance(x, RichTextTag) and
+                                         x.can_be_current()]
             else:
                 # pick up closing tags
                 self._current_tags = [x for x in it.get_toggled_tags(False)
-                                      if x.can_be_current()]
+                                      if isinstance(x, RichTextTag) and
+                                         x.can_be_current()]
 
             self.on_selection_changed()
-
-            #print [type(x) for x in self._current_tags]
             
             # update UI for current fonts
             font = self.get_font()
@@ -502,29 +501,32 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     def _on_insert_text(self, textbuffer, it, text, length):
         """Callback for text insert"""
 
-        if not self.is_insert_allowed(it):
+        # NOTE: GTK does not give us a proper UTF string, so fix it
+        text = unicode(text, "utf_8")
+        length = len(text)
+
+        # check to see if insert is allowed
+        if not self.is_insert_allowed(it, text):
             self.stop_emission("insert_text")
             return
-
-        text = unicode(text)
-        length = len(text)
-        #assert len(text) == length, "c '%s'" % text
         
-        # start new action
+        # start next action
+        assert self._next_action is None
         self._next_action = InsertAction(self, it.get_offset(), text, length)
-        self._insert_mark = self.create_mark(None, it, True)
+        self.move_mark(self._insert_text_mark, it)
         
         
     def _on_delete_range(self, textbuffer, start, end):
         """Callback for delete range"""        
 
         # start next action
+        assert self._next_action is None
         self._next_action = DeleteAction(self, start.get_offset(), 
                                         end.get_offset(),
                                         start.get_slice(end),
                                         self.get_iter_at_mark(
                                             self.get_insert()).get_offset())
-        
+
     
     def _on_insert_pixbuf(self, textbuffer, it, pixbuf):
         """Callback for inserting a pixbuf"""
@@ -533,12 +535,16 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     
     def _on_insert_child_anchor(self, textbuffer, it, anchor):
         """Callback for inserting a child anchor"""
-
-        # TODO: is there a reason I use self._next_action?
         self._next_action = InsertChildAction(self, it.get_offset(), anchor)
+
     
     def _on_apply_tag(self, textbuffer, tag, start, end):
         """Callback for tag apply"""
+
+        if not isinstance(tag, RichTextTag):
+            # do not process tags that are not rich text
+            # i.e. gtkspell tags (ignored by undo/redo)
+            return
 
         if tag.is_par_related():
             self.on_paragraph_change(start, end)
@@ -552,6 +558,11 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     def _on_remove_tag(self, textbuffer, tag, start, end):
         """Callback for tag remove"""
 
+        if not isinstance(tag, RichTextTag):
+            # do not process tags that are not rich text
+            # i.e. gtkspell tags (ignored by undo/redo)
+            return
+
         if tag.is_par_related():
             self.on_paragraph_change(start, end)
 
@@ -564,32 +575,27 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     def _on_changed(self, textbuffer):
         """Callback for buffer change"""
 
-        paragraph_action = None
-
+        # process actions that have changed the buffer
         if not self._next_action:
             return
 
-        #print [type(x) for x in self._current_tags]
+        paragraph_action = None
         
         if isinstance(self._next_action, InsertAction):
-            # apply current style to inserted text
             
+            # apply current style to inserted text            
             if len(self._current_tags) > 0:
-                it = self.get_iter_at_mark(self._insert_mark)
+                it = self.get_iter_at_mark(self._insert_text_mark)
                 it2 = it.copy()
                 it2.forward_chars(self._next_action.length)
 
-                # TODO: could I suppress undo for these tags
+                # TODO: could I suppress undo for these tags?
                 for tag in self._current_tags:
                     self.apply_tag(tag, it, it2)
 
-                self.delete_mark(self._insert_mark)
-                self._insert_mark = None
-
+            # detect paragraph spliting
             if "\n" in self._next_action.text:
                 paragraph_action = "split"
-
-                # determine region that needs update
                 par_start = self.get_iter_at_mark(self.get_insert())
                 par_end = par_start.copy()
                 par_start.backward_line()
@@ -599,12 +605,8 @@ class RichTextBaseBuffer (gtk.TextBuffer):
             
                 
         elif isinstance(self._next_action, DeleteAction):
-            # deregister any deleted anchors
             
-            for kind, offset, param in self._next_action.contents:
-                if kind == "anchor":
-                    self._anchors.remove(param[0])
-
+            # detect paragraph merging
             if "\n" in self._next_action.text:
                 paragraph_action = "merge"
                 par_start, par_end = get_paragraph(
@@ -707,34 +709,28 @@ class RichTextBaseBuffer (gtk.TextBuffer):
 
         # TODO: is there a faster way to do this?
         #   make faster mapping from tag to class
-        
-        for cls in self.tag_table.exclusive_classes:
-            if tag in cls:
-                for tag2 in cls:
-                    self.remove_tag(tag2, start, end)
+
+        cls = self.tag_table.get_class(tag)
+        if cls is not None:
+            for tag2 in cls:
+                self.remove_tag(tag2, start, end)
 
 
 
     def clear_current_tag_class(self, tag):
         """Remove all tags of the same class as 'tag' from current tags"""
-
-        # TODO: is there a faster way to do this?
-        #   make faster mapping from tag to class
-        #   loop through tags in current tags instead of tag class
-
-        for cls in self.tag_table.exclusive_classes:
-            if tag in cls:
-                for tag2 in cls:
-                    if tag2 in self._current_tags:
-                        self._current_tags.remove(tag2)
+        
+        cls = self.tag_table.get_class(tag)
+        if cls is not None:
+            self._current_tags = [x for x in self._current_tags
+                                  if x not in cls]
 
     
     #===========================================================
     # Font management
     
     def get_font(self, font=None):
-
-        # TODO: add indent
+        """Returns the active font under the cursor"""
         
         # get iter for retrieving font
         it2 = self.get_selection_bounds()
@@ -788,3 +784,6 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         self.undo_stack.end_action()
 
 
+gobject.type_register(RichTextBaseBuffer)
+gobject.signal_new("font-change", RichTextBaseBuffer, gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, (object,))

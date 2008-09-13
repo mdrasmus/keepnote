@@ -561,12 +561,23 @@ class RichTextBuffer (RichTextBaseBuffer):
         """Callback for when paragraph type changes"""
         self._indent.on_paragraph_change(start, end)
 
-    def is_insert_allowed(self, it):
+    def is_insert_allowed(self, it, text):
         """Returns True if insertion is allowed at iter 'it'"""
         
         # check to make sure insert is not in front of bullet
-        return not (it.starts_line() and self._indent.par_has_bullet(it))
+        return not (it.starts_line() and
+                    self._indent.par_has_bullet(it) and
+                    not text.endswith("\n"))
 
+
+    def _on_delete_range(self, textbuffer, start, end):
+        # call super class
+        RichTextBaseBuffer._on_delete_range(self, textbuffer, start, end)
+        
+        # deregister any deleted anchors
+        for kind, offset, param in self._next_action.contents:
+            if kind == "anchor":
+                self._anchors.remove(param[0])
 
     #=========================================
     # indentation interface
@@ -768,8 +779,6 @@ class RichTextBuffer (RichTextBaseBuffer):
 
 
 gobject.type_register(RichTextBuffer)
-gobject.signal_new("font-change", RichTextBuffer, gobject.SIGNAL_RUN_LAST, 
-                   gobject.TYPE_NONE, (object,))
 gobject.signal_new("child-activated", RichTextBuffer, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, (object,))
 gobject.signal_new("child-menu", RichTextBuffer, gobject.SIGNAL_RUN_LAST,

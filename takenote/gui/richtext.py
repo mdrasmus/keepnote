@@ -47,6 +47,7 @@ from takenote.gui.richtext_html import HtmlBuffer, HtmlError
 DEFAULT_FONT = "Sans 10"
 TEXTVIEW_MARGIN = 5
 CLIPBOARD_NAME = "CLIPBOARD"
+RICHTEXT_ID = -3    # application defined integer for the clipboard
 
 
 # mime types
@@ -454,13 +455,12 @@ class RichTextView (gtk.TextView):
         start, end = sel
         contents = list(self._textbuffer.copy_contents(start, end))
 
-        # TODO: find out what the 0, -3 are again and make them constants
         
         if len(contents) == 1 and \
            contents[0][0] == "anchor" and \
            isinstance(contents[0][2][0], RichTextImage):
             # copy image
-            targets = [(x, 0, -3) for x in MIME_IMAGES]
+            targets = [(x, 0, RICHTEXT_ID) for x in MIME_IMAGES]
             
             clipboard.set_with_data(targets, self._get_selection_data, 
                                     self._clear_selection_data,
@@ -468,9 +468,9 @@ class RichTextView (gtk.TextView):
 
         else:
             # copy text
-            targets = [(MIME_TAKENOTE, gtk.TARGET_SAME_APP, -3),
-                       ("text/html", 0, -3)] + \
-                      [(x, 0, -3) for x in MIME_TEXT]
+            targets = [(MIME_TAKENOTE, gtk.TARGET_SAME_APP, RICHTEXT_ID),
+                       ("text/html", 0, RICHTEXT_ID)] + \
+                      [(x, 0, RICHTEXT_ID) for x in MIME_TEXT]
             
             text = start.get_text(end)
             clipboard.set_with_data(targets, self._get_selection_data, 
@@ -623,10 +623,13 @@ class RichTextView (gtk.TextView):
         textbuffer = self._textbuffer
         
         # unhook expensive callbacks
+        spell = self.is_spell_check_enabled()
+        self.enable_spell_check(False)
         self._block_modified = True
         textbuffer.undo_stack.suppress()
         textbuffer.block_signals()
         self.set_buffer(None)
+        
         
         # clear buffer        
         textbuffer.clear()
@@ -637,14 +640,18 @@ class RichTextView (gtk.TextView):
             #util.tic("read")
 
             # NOTE: buffer_contents is a generator
-            buffer_contents = self._html_buffer.read(open(filename, "r"))
+            buffer_contents = list(self._html_buffer.read(open(filename, "r")))
+            #util.toc()
+            
+            #util.tic("read2")            
             textbuffer.insert_contents(buffer_contents,
                                        textbuffer.get_start_iter())
+            #util.toc()
 
             # put cursor at begining
             textbuffer.place_cursor(textbuffer.get_start_iter())
             
-            #util.toc()
+
             
         except (HtmlError, IOError), e:
             err = e
@@ -667,6 +674,7 @@ class RichTextView (gtk.TextView):
         textbuffer.unblock_signals()
         self._textbuffer.undo_stack.resume()
         self._textbuffer.undo_stack.reset()
+        self.enable_spell_check(spell)
         self.enable()
 
         self._block_modified = False        
@@ -957,7 +965,7 @@ class RichTextView (gtk.TextView):
     def enable_spell_check(self, enabled=True):
         """Enables/disables spell check"""
         if not self.can_spell_check():
-            return           
+            return
         
         if enabled:
             if self._spell_checker is None:

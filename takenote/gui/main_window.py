@@ -169,7 +169,7 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook):
                 #self.set_tab_label_text(self.get_children()[pos], 
                 #                        self._pages[pos].get_title())
             
-                try:                
+                try:
                     self._textviews[pos].load(self._pages[pos].get_data_file())
                 except RichTextError, e:
                     self.clear_view()                
@@ -457,11 +457,11 @@ class TakeNoteWindow (gtk.Window):
         if len(pages) > 0:
             self.selector.select_nodes(pages)
             self.current_page = pages[0]
-            try:
-                self.editor.view_pages(pages)
-
-            except RichTextError, e:
-                self.error("Could not load pages", e)
+            #try:
+            #    self.editor.view_pages(pages)
+            #
+            #except RichTextError, e:
+            #    self.error("Could not load pages", e)
             
         else:
             self.editor.view_pages([])
@@ -1853,12 +1853,12 @@ class TakeNoteWindow (gtk.Window):
              get_resource_pixbuf("note.png")),
             ("/View/View Note in Text Editor",
              None, lambda w,e:
-             self.on_view_node_external_app("text_editor"), 0, 
+             self.on_view_node_external_app("text_editor", page_only=True), 0, 
              "<ImageItem>",
              get_resource_pixbuf("note.png")),
             ("/View/View Note in Web Browser",
              None, lambda w,e:
-             self.on_view_node_external_app("web_browser"), 0, 
+             self.on_view_node_external_app("web_browser", page_only=True), 0, 
              "<ImageItem>",
              get_resource_pixbuf("note.png")),
             
@@ -2205,7 +2205,7 @@ class TakeNoteWindow (gtk.Window):
 
 
     def make_context_menus(self):
-        """Initialize context menus"""
+        """Initialize context menus"""        
 
         #==========================
         # image context menu
@@ -2214,23 +2214,24 @@ class TakeNoteWindow (gtk.Window):
         self.editor.get_textview().get_image_menu().append(item)
             
         # image/edit
-        item = gtk.MenuItem("View Image...")
+        item = gtk.MenuItem("_View Image...")
         item.connect("activate", self.on_view_image)
+        item.child.set_markup_with_mnemonic("<b>_View Image...</b>")
         item.show()
         self.editor.get_textview().get_image_menu().append(item)
         
-        item = gtk.MenuItem("Edit Image...")
+        item = gtk.MenuItem("_Edit Image...")
         item.connect("activate", self.on_edit_image)
         item.show()
         self.editor.get_textview().get_image_menu().append(item)
 
-        item = gtk.MenuItem("Resize Image...")
+        item = gtk.MenuItem("_Resize Image...")
         item.connect("activate", self.on_resize_image)
         item.show()
         self.editor.get_textview().get_image_menu().append(item)
 
         # image/save
-        item = gtk.ImageMenuItem("Save Image As...")
+        item = gtk.ImageMenuItem("_Save Image As...")
         item.connect("activate", self.on_save_image_as)
         item.show()
         self.editor.get_textview().get_image_menu().append(item)
@@ -2286,7 +2287,8 @@ class TakeNoteWindow (gtk.Window):
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("web_browser",
                                                               None,
-                                                             "treeview"))
+                                                             "treeview",
+                                                              page_only=True))
         self.treeview.menu.append(item)
         item.show()        
 
@@ -2295,7 +2297,8 @@ class TakeNoteWindow (gtk.Window):
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("text_editor",
                                                               None,
-                                                              "treeview"))
+                                                              "treeview",
+                                                              page_only=True))
         self.treeview.menu.append(item)
         item.show()
 
@@ -2305,7 +2308,8 @@ class TakeNoteWindow (gtk.Window):
 
         # selector/view note
         item = gtk.ImageMenuItem(gtk.STOCK_GO_DOWN)
-        item.child.set_label("Go to _Note")
+        #item.child.set_label("Go to _Note")
+        item.child.set_markup_with_mnemonic("<b>Go to _Note</b>")
         item.connect("activate",
                      lambda w: self.on_list_view_node(None, None))
         self.selector.menu.append(item)
@@ -2371,7 +2375,8 @@ class TakeNoteWindow (gtk.Window):
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("web_browser",
                                                               None,
-                                                             "selector"))
+                                                             "selector",
+                                                              page_only=True))
         self.selector.menu.append(item)
         item.show()        
 
@@ -2380,7 +2385,8 @@ class TakeNoteWindow (gtk.Window):
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("text_editor",
                                                               None,
-                                                              "selector"))
+                                                              "selector",
+                                                              page_only=True))
         self.selector.menu.append(item)
         item.show()        
 

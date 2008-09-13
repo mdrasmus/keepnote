@@ -90,6 +90,13 @@ class RichTextTagTable (gtk.TextTagTable):
             self.bg_color_tags,
             self.indent_tags]
 
+        self.tag2class = {}
+
+    def get_class(self, tag):
+        """Returns the exclusive class of tag,
+           or None if not an exclusive tag"""
+        return self.tag2class.get(tag, None)
+    
 
     def lookup(self, name):
         """Lookup any tag, create it if needed"""
@@ -140,6 +147,7 @@ class RichTextTagTable (gtk.TextTagTable):
             tag = RichTextFamilyTag(family)
             self.add(tag)
             self.family_tags.add(tag)
+            self.tag2class[tag] = self.family_tags
         return tag
     
     def lookup_size(self, size):
@@ -150,6 +158,7 @@ class RichTextTagTable (gtk.TextTagTable):
             tag = RichTextSizeTag(size)
             self.add(tag)
             self.size_tags.add(tag)
+            self.tag2class[tag] = self.size_tags
         return tag
 
     def lookup_justify(self, justify):
@@ -165,6 +174,7 @@ class RichTextTagTable (gtk.TextTagTable):
             tag = RichTextFGColorTag(color)
             self.add(tag)
             self.fg_color_tags.add(tag)
+            self.tag2class[tag] = self.fg_color_tags
         return tag
 
 
@@ -176,6 +186,7 @@ class RichTextTagTable (gtk.TextTagTable):
             tag = RichTextBGColorTag(color)
             self.add(tag)
             self.bg_color_tags.add(tag)
+            self.tag2class[tag] = self.bg_color_tags
         return tag
 
 
@@ -205,6 +216,7 @@ class RichTextTagTable (gtk.TextTagTable):
                 tag = RichTextIndentTag(indent, par_type)
                 self.add(tag)
                 self.indent_tags.add(tag)
+                self.tag2class[tag] = self.indent_tags
             return tag
 
 
@@ -214,8 +226,7 @@ class RichTextTagTable (gtk.TextTagTable):
         if isinstance(indent, str):
             if " " in indent:
                 # lookup from string
-                return self.lookup_bullet(int(indent.split(" ", 1)[1]))
-            
+                return self.lookup_bullet(int(indent.split(" ", 1)[1]))       
             else:
                 return self.lookup_bullet(1)
             
@@ -227,6 +238,7 @@ class RichTextTagTable (gtk.TextTagTable):
                 tag = RichTextBulletTag(indent)
                 self.add(tag)
                 self.bullet_tags.add(tag)
+                self.tag2class[tag] = self.bullet_tags
             return tag
         
 
