@@ -50,7 +50,7 @@ XHTML_FOOTER = "</body></html>"
 BULLET_STR = u"\u2022 "
 
 
-def convert_indent_tags(contents, tag_table):
+def nest_indent_tags(contents, tag_table):
     """Convert indent tags so that they nest like HTML tags"""
 
     indent = 0
@@ -119,6 +119,61 @@ def convert_indent_tags(contents, tag_table):
         indent -= 1
 
 
+def unnest_indent_tags(contents):
+    """Convert nested indents to unnested"""
+
+    indent = 0       # level of indent
+    li_stack = []    # stack of open indents
+
+    for item in contents:            
+        kind, pos, param = item
+
+        if kind == "beginstr":
+            if param == "ol":
+                # increase indent
+                indent += 1
+
+            elif param.startswith("li"):
+                # close open indents
+                if len(li_stack) > 0:
+                    yield ("endstr", None, li_stack[-1])
+
+                # start new indent
+                par_type = param[3:]
+                tagstr = "indent %d %s" % (indent, par_type)
+                yield ("beginstr", None, tagstr)
+                li_stack.append(tagstr)
+
+                # add bullet points if needed
+                if par_type == "bullet":
+                    yield ("beginstr", None, "bullet")
+                    yield ("text", None, BULLET_STR)
+                    yield ("endstr", None, "bullet")
+            else:
+                yield item
+
+        elif kind == "endstr":
+            if param == "ol":
+                # decrease indent
+                indent -= 1
+
+            elif param.startswith("li"):
+                # stop indent
+                par_type = param[3:]
+                li_stack.pop()
+                yield ("endstr", None,
+                       "indent %d %s" % (indent, par_type))
+
+                # resume previous indent
+                if len(li_stack) > 0:
+                    yield ("beginstr", None, li_stack[-1])
+
+            else:
+                yield item
+
+        else:
+                yield item
+                
 
 def find_paragraphs(contents):
     """Wrap each paragraph with a pair of tags"""
@@ -304,8 +359,7 @@ class HtmlBuffer (HTMLParser):
                 raise
         
         self.process_dom_read(self._dom)
-        return self.convert_indents(self._dom.get_contents())
-
+        return unnest_indent_tags(self._dom.get_contents())
 
 
     def process_dom_read(self, dom):
@@ -328,59 +382,6 @@ class HtmlBuffer (HTMLParser):
             for child in list(node):
                 walk(child)
         walk(dom)
-        
-
-    def convert_indents(self, contents):
-        """Convert nested indents to unnested"""
-
-        indent = 0       # level of indent
-        li_stack = []    # stack of open indents
-        
-        for item in contents:            
-            kind, pos, param = item
-            
-            if kind == "beginstr":
-                if param == "ol":
-                    # increase indent
-                    indent += 1
-                    
-                elif param.startswith("li"):
-                    par_type = param[3:]
-
-                    # close open indents
-                    if len(li_stack) > 0:
-                        yield ("endstr", None, li_stack[-1])
-                    
-                    tagstr = "indent %d %s" % (indent, par_type)
-                    yield ("beginstr", None, tagstr)
-                    li_stack.append(tagstr)
-
-                    if par_type == "bullet":
-                        yield ("beginstr", None, "bullet")
-                        yield ("text", None, BULLET_STR)
-                        yield ("endstr", None, "bullet")
-                else:
-                    yield item
-
-            elif kind == "endstr":
-                if param == "ol":
-                    # decrease indent
-                    indent -= 1
-                    
-                elif param.startswith("li"):
-                    par_type = param[3:]
-                    li_stack.pop()
-                    yield ("endstr", None,
-                           "indent %d %s" % (indent, par_type))
-
-                    if len(li_stack) > 0:
-                        yield ("beginstr", None, li_stack[-1])
-                    
-                else:
-                    yield item
-
-            else:
-                yield item
 
     
     def append_text(self, text):
@@ -663,7 +664,7 @@ class HtmlBuffer (HTMLParser):
 
         # normalize contents, prepare them for DOM
         contents = normalize_tags(
-            convert_indent_tags(find_paragraphs(buffer_content), tag_table),
+            nest_indent_tags(find_paragraphs(buffer_content), tag_table),
             is_stable_tag=lambda tag:
                 isinstance(tag, (RichTextIndentTag, RichTextParTag)))
         

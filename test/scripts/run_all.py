@@ -11,8 +11,12 @@ import test_richtext_html as html
 
 # run HtmlBuffer tests
 #unittest.main()
-unittest.TextTestRunner(verbosity=2).run(html.richtextbuffer_suite)
-unittest.TextTestRunner(verbosity=2).run(html.htmlbuffer_suite)
+
+all = (len(sys.argv) == 1)
+
+if all or "html" in sys.argv:
+    unittest.TextTestRunner(verbosity=2).run(html.richtextbuffer_suite)
+    unittest.TextTestRunner(verbosity=2).run(html.htmlbuffer_suite)
 
 
 

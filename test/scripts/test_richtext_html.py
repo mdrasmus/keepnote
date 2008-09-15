@@ -5,7 +5,7 @@ import sys
 import unittest
 
 # takenote imports
-from takenote.gui.richtext_html import HtmlBuffer, convert_indent_tags, \
+from takenote.gui.richtext_html import HtmlBuffer, nest_indent_tags, \
      find_paragraphs, P_TAG
 
 import StringIO
@@ -363,12 +363,12 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         self.read(self.buffer, StringIO.StringIO('<div style="text-align: center">hello<br/>\nagain</div>'))
 
         contents = normalize_tags(find_paragraphs(
-            convert_indent_tags(self.get_contents(), self.buffer.tag_table)),
+            nest_indent_tags(self.get_contents(), self.buffer.tag_table)),
             is_stable_tag=lambda tag:
                 isinstance(tag, RichTextIndentTag) or tag == P_TAG)
 
         contents = find_paragraphs(
-            convert_indent_tags(self.get_contents(), self.buffer.tag_table))
+            nest_indent_tags(self.get_contents(), self.buffer.tag_table))
         #print ">>>", [display_item(x) for x in contents]
 
         self.buffer.clear()
@@ -487,11 +487,11 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
 
         dom = TextBufferDom(
             normalize_tags(find_paragraphs(
-            convert_indent_tags(self.get_contents(), self.buffer.tag_table)),
+            nest_indent_tags(self.get_contents(), self.buffer.tag_table)),
             is_stable_tag=lambda tag:
                isinstance(tag, RichTextIndentTag) or
                tag == P_TAG))
-        self.io.prepare_dom(dom)
+        self.io.prepare_dom_write(dom)
         print
         dom.display()
         
