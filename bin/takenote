@@ -1,12 +1,22 @@
 #!/usr/bin/env python
+#
+# TakeNote - note-taking and organization
+# Matt Rasmussen 2008
+#
 
-import sys, os, time
+
+# python imports
+import sys, os, time, optparse, exceptions
 from os.path import basename, dirname, realpath, join, isdir
 
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
 import gtk
+
+
+#=============================================================================
+# TakeNote import
 
 """
 Three ways to run TakeNote
@@ -72,39 +82,46 @@ import takenote.gui.main_window
 
 
 #=============================================================================
+# options
+
+o = optparse.OptionParser(usage=
+                "%prog [options] [NOTEBOOK]")
+o.set_defaults(default_notebook=True)
+o.add_option("", "--show-errors", dest="show_errors",
+             action="store_true",
+             help="show errors on console")
+o.add_option("--no-show-errors", dest="show_errors",
+             action="store_false",
+             help="do not show errors on console")
+o.add_option("--no-default", dest="default_notebook",
+             action="store_false",
+             help="do not open default notebook")
 
 
-def main(args):
 
+
+
+def main(argv):
+    """Main execution"""
+
+    # set default arguments
+    options = o.get_default_values()    
     if takenote.get_platform() == "windows":        
-        show_errors = False
+        options.show_errors = False
     else:
-        show_errors = True
-    no_default = False
+        options.show_errors = True
 
-    # parse options
-    i = 1
-    for i in range(1, len(args)):
-        if args[i] == "--show-errors":
-            show_errors = True
-        elif args[i] == "--no-show-errors":
-            show_errors = False
-        elif args[i] == "--no-default":
-            no_default = True
-        elif not args[i].startswith("-"):
-            args = args[i:]
-            break
-    else:
-        args = []
-    
+    # parse args
+    (options, args) = o.parse_args(argv[1:], options)
+
+    #====================
     # start error log
     if not os.path.exists(takenote.get_user_pref_dir()):            
         os.mkdir(takenote.get_user_pref_dir())
     errorlog = open(takenote.get_user_error_log(), "a")
-    if show_errors:
-        pass
-        #sys.stderr = takenote.TeeFileStream([sys.stderr, errorlog],
-        #                                    autoflush=True)
+    if options.show_errors:
+        sys.stderr = takenote.TeeFileStream([sys.stderr, errorlog],
+                                            autoflush=True)
     else:
         sys.stderr = errorlog
         
@@ -114,12 +131,13 @@ def main(args):
         
     # read preferences
     app = takenote.gui.TakeNote(basedir)
+    
 
-
+    # start TakeNote
     if len(args) > 0:
         # open specified notebook
         app.open_notebook(args[0].rstrip("/"))        
-    elif not no_default and app.pref.default_notebook != "":
+    elif options.default_notebook and app.pref.default_notebook != "":
         # open default notebook
         app.open_notebook(app.pref.default_notebook)
     else:
@@ -131,9 +149,12 @@ def main(args):
 
 try:
     main(sys.argv)
+except exceptions.SystemExit, e:
+    pass
 except Exception, e:
 
     print e
+    
     # flush final errors
     sys.stderr.flush()
     

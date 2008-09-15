@@ -28,7 +28,8 @@ class ApplicationOptionsDialog (object):
         self.entries = {}
     
     def on_app_options(self):
-        self.xml = gtk.glade.XML(get_resource("rc", "takenote.glade"))
+        self.xml = gtk.glade.XML(get_resource("rc", "takenote.glade"),
+                                 "app_config_dialog")
         self.dialog = self.xml.get_widget("app_config_dialog")
         self.dialog.set_transient_for(self.main_window)
 
@@ -52,6 +53,10 @@ class ApplicationOptionsDialog (object):
         # populate default font
         #self.xml.get_widget("default_font_button").\
         #    set_font_name(self.app.pref.default_font)
+
+        # use systray icon
+        self.xml.get_widget("systray_check").set_active(self.app.pref.use_systray)
+
 
         # populate dates
         for name in ["same_day", "same_month", "same_year", "diff_year"]:
@@ -187,6 +192,8 @@ class ApplicationOptionsDialog (object):
         except:
             pass
 
+        # use systray icon
+        self.app.pref.use_systray = self.xml.get_widget("systray_check").get_active()
 
         # save date formatting
         for name in ["same_day", "same_month", "same_year", "diff_year"]:

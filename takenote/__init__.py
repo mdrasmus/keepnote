@@ -37,7 +37,7 @@ from takenote.listening import Listeners
 PROGRAM_NAME = "TakeNote"
 PROGRAM_VERSION_MAJOR = 0
 PROGRAM_VERSION_MINOR = 4
-PROGRAM_VERSION_RELEASE = 0
+PROGRAM_VERSION_RELEASE = 1
 
 if PROGRAM_VERSION_RELEASE != 0:
     PROGRAM_VERSION_TEXT = "%d.%d.%d" % (PROGRAM_VERSION_MAJOR,
@@ -209,6 +209,15 @@ DEFAULT_EXTERNAL_APPS_WINDOWS = [
 ]
 
 
+DEFAULT_EXTERNAL_APPS_LINUX = [
+    ExternalApp("web_browser", "Web Browser", ""),
+    ExternalApp("file_explorer", "File Explorer", ""),
+    ExternalApp("text_editor", "Text Editor", ""),
+    ExternalApp("image_editor", "Image Editor", ""),
+    ExternalApp("image_viewer", "Image Viewer", "display"),
+    ExternalApp("screen_shot", "Screen Shot", "import")
+]
+
 
 class TakeNotePreferences (object):
     """Preference data structure for the TakeNote application"""
@@ -231,6 +240,10 @@ class TakeNotePreferences (object):
         
         self.default_notebook = ""
         self.timestamp_formats = dict(DEFAULT_TIMESTAMP_FORMATS)
+        self.spell_check = True
+        self.image_size_snap = True
+        self.image_size_snap_amount = 50
+        self.use_systray = True
 
         # dialog chooser paths
         self.new_notebook_path = get_user_documents()
@@ -277,6 +290,8 @@ class TakeNotePreferences (object):
         # add default programs
         if get_platform() == "windows":
             lst = DEFAULT_EXTERNAL_APPS_WINDOWS
+        elif get_platform() == "unix":
+            lst = DEFAULT_EXTERNAL_APPS_LINUX
         else:
             lst = DEFAULT_EXTERNAL_APPS
         for defapp in lst:
@@ -288,8 +303,7 @@ class TakeNotePreferences (object):
         lookup = dict((x.key, i) for i, x in enumerate(DEFAULT_EXTERNAL_APPS))
         top = len(DEFAULT_EXTERNAL_APPS)
         self.external_apps.sort(key=lambda x: (lookup.get(x.key, top), x.key))
-
-
+        
         self.changed.notify()
         
         
@@ -337,6 +351,23 @@ g_takenote_pref_parser = xmlo.XmlObject(
         xmlo.Tag("hsash_pos",
             getobj=("hsash_pos", int),
             set=lambda s: "%d" % s.hsash_pos),
+
+        # image resize
+        xmlo.Tag("image_size_snap",
+            getobj=("image_size_snap", lambda x: bool(int(x))),
+            set=lambda s: "%d" % int(s.image_size_snap)),
+        xmlo.Tag("image_size_snap_amount",
+            getobj=("image_size_snap_amount", int),
+            set=lambda s: "%d" % s.image_size_snap_amount),
+
+        xmlo.Tag("use_systray",
+            getobj=("use_systray", lambda x: bool(int(x))),
+            set=lambda s: "%d" % int(s.use_systray)),
+
+        # misc options
+        xmlo.Tag("spell_check",
+            getobj=("spell_check", lambda x: bool(int(x))),
+            set=lambda s: "%d" % int(s.spell_check)),
 
         xmlo.Tag("autosave",
             getobj=("autosave", lambda x: bool(int(x))),

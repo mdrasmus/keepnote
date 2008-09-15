@@ -1,9 +1,34 @@
 TakeNote Change Log
------------------
+-------------------
+
+takenote-0.4.2
+--------------
+ - default notebook options
+   - default font (notebook specific)
+ - color font (foreground and background)
+ - system tray icon (pygtk > 2.10)
+ - bullet point lists
+   - also supports nested indented paragraphs with and without bullet points
 
 
-takenote-0.4
-------------
+takenote-0.4.1
+--------------
+ - bug fixes
+ - better copy/paste
+   - HTML support
+   - image support
+
+
+takenote-0.4.1 (2008/08/09)
+---------------------------
+ - bug fixes
+ - better copy/paste
+   - HTML support
+   - image support
+
+
+takenote-0.4 (2008/07/12)
+-------------------------
  - rich text editing
  - hierarchical organization for notes
  - full-text search
