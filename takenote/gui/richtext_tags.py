@@ -18,6 +18,21 @@ BULLET_PAR_INDENT = 12  # hard-coded for 'Sans 10'
 BULLET_FONT_SIZE = 10
 
 
+def color_to_string(color):
+    redstr = hex(color.red)[2:]
+    greenstr = hex(color.green)[2:]
+    bluestr = hex(color.blue)[2:]
+
+    while len(redstr) < 4:
+        redstr = "0" + redstr
+    while len(greenstr) < 4:
+        greenstr = "0" + greenstr
+    while len(bluestr) < 4:
+        bluestr = "0" + bluestr
+
+    return "#%s%s%s" % (redstr, greenstr, bluestr)
+
+
 class RichTextTagTable (gtk.TextTagTable):
     """A tag table for a RichTextBuffer"""
     

@@ -6,7 +6,7 @@
 
 
 # python imports
-import sys, os, time, optparse, exceptions
+import sys, os, time, optparse, exceptions, traceback
 from os.path import basename, dirname, realpath, join, isdir
 
 # pygtk imports
@@ -152,8 +152,8 @@ try:
 except exceptions.SystemExit, e:
     pass
 except Exception, e:
-
-    print e
+    traceback.print_exc()
+    #print e, sys.exc_info()[2]
     
     # flush final errors
     sys.stderr.flush()

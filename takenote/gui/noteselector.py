@@ -19,6 +19,7 @@ from takenote.gui.treemodel import \
     COL_ICON, \
     COL_ICON_EXPAND, \
     COL_TITLE, \
+    COL_TITLE_SORT, \
     COL_CREATED_TEXT, \
     COL_CREATED_INT, \
     COL_MODIFIED_TEXT, \
@@ -110,7 +111,7 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         self.title_text.connect("editing-started", self.on_editing_started)
         self.title_text.connect("editing-canceled", self.on_editing_canceled)        
         self.title_text.set_property("editable", True)
-        self.title_column.set_sort_column_id(COL_TITLE)
+        self.title_column.set_sort_column_id(COL_TITLE_SORT)
         # map cells to columns in model
         self.title_column.add_attribute(cell_icon, 'pixbuf', COL_ICON)
         self.title_column.add_attribute(cell_icon, 'pixbuf-expander-open', COL_ICON_EXPAND)

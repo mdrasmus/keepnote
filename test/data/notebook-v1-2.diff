@@ -1,0 +1,138 @@
+diff -r test/data/notebook-v1/stress tests/A huge page of formatted text/page.html test/data/notebook-v1-2/stress tests/A huge page of formatted text/page.html
+3621c3621
+< <b><i><u> &nbsp; &nbsp; &nbsp; &nbsp;self.underline_button.set_active(mods["underline"])<br/>
+---
+> <u><i><b> &nbsp; &nbsp; &nbsp; &nbsp;self.underline_button.set_active(mods["underline"])<br/>
+3645c3645
+<  &nbsp; &nbsp; &nbsp; &nbsp;f, imgfile = tempfile.mkstemp(".xpm", "takenote")</u></i></b><br/>
+---
+> </b></i></u><u><i><b> &nbsp; &nbsp; &nbsp; &nbsp;f, imgfile = tempfile.mkstemp(".xpm", "takenote")</b></i></u><br/>
+3714c3714
+<  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;"&lt;control&gt;Q", lambda w,e: self.on_close(), 0, None),</b><br/>
+---
+> </b><b> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;"&lt;control&gt;Q", lambda w,e: self.on_close(), 0, None),</b><br/>
+3728c3728
+<  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;None, None, 0, "&lt;Branch&gt;"),<br/>
+---
+> </b><b> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;None, None, 0, "&lt;Branch&gt;"),<br/>
+3746c3746
+<  &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;"&lt;control&gt;&lt;shift&gt;F", lambda w, e: self.on_choose_font(), 0, None),</b><br/>
+---
+> </b><b> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;"&lt;control&gt;&lt;shift&gt;F", lambda w, e: self.on_choose_font(), 0, None),</b><br/>
+8380c8380
+< <span style="font-size: 40pt"><span style="font-family: Serif"> &nbsp; &nbsp;def on_select_page(self, page):<br/>
+---
+> <span style="font-family: Serif"><span style="font-size: 40pt"> &nbsp; &nbsp;def on_select_page(self, page):<br/>
+8399c8399
+<  &nbsp; &nbsp; &nbsp; &nbsp;self.right_button.handler_block(self.right_id) </span></span><br/>
+---
+> </span></span><span style="font-family: Serif"><span style="font-size: 40pt"> &nbsp; &nbsp; &nbsp; &nbsp;self.right_button.handler_block(self.right_id) </span></span><br/>
+8450c8450
+<  &nbsp; &nbsp; &nbsp; &nbsp;mods, justify = self.editor.textview.get_font()</b><br/>
+---
+> </b><b> &nbsp; &nbsp; &nbsp; &nbsp;mods, justify = self.editor.textview.get_font()</b><br/>
+8469c8469
+<  &nbsp; &nbsp; &nbsp; &nbsp;os.close(f)</b><br/>
+---
+> </b><b> &nbsp; &nbsp; &nbsp; &nbsp;os.close(f)</b><br/>
+8482c8482
+< <i><u><b> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;os.remove(imgfile) &nbsp; &nbsp; &nbsp; &nbsp;<br/>
+---
+> <b><u><i> &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;os.remove(imgfile) &nbsp; &nbsp; &nbsp; &nbsp;<br/>
+8490c8490
+<  &nbsp; &nbsp; &nbsp; &nbsp;self.editor.textview.grab_focus()</b></u></i><br/>
+---
+> </i></u></b><b><u><i> &nbsp; &nbsp; &nbsp; &nbsp;self.editor.textview.grab_focus()</i></u></b><br/>
+8600c8600
+<  &nbsp; &nbsp; &nbsp; &nbsp;self.add_accel_group(accel_group)<br/>
+---
+> </b><b> &nbsp; &nbsp; &nbsp; &nbsp;self.add_accel_group(accel_group)<br/>
+8605c8605
+<  &nbsp; &nbsp; &nbsp; &nbsp;return item_factory.get_widget("&lt;main&gt;")</b><br/>
+---
+> </b><b> &nbsp; &nbsp; &nbsp; &nbsp;return item_factory.get_widget("&lt;main&gt;")</b><br/>
+8625c8625
+<  &nbsp; &nbsp; &nbsp; &nbsp;toolbar.insert(self.bold_button, -1)</i><br/>
+---
+> </i><i> &nbsp; &nbsp; &nbsp; &nbsp;toolbar.insert(self.bold_button, -1)</i><br/>
+8644c8644
+<  &nbsp; &nbsp; &nbsp; &nbsp;toolbar.insert(self.underline_button, -1)</b><br/>
+---
+> </b><b> &nbsp; &nbsp; &nbsp; &nbsp;toolbar.insert(self.underline_button, -1)</b><br/>
+8662c8662
+<  &nbsp; &nbsp; &nbsp; &nbsp;toolbar.insert(self.left_button, -1)</b><br/>
+---
+> </b><b> &nbsp; &nbsp; &nbsp; &nbsp;toolbar.insert(self.left_button, -1)</b><br/>
+8682c8682
+<  &nbsp; &nbsp; &nbsp; &nbsp;return toolbar</u><br/>
+---
+> </u><u> &nbsp; &nbsp; &nbsp; &nbsp;return toolbar</u><br/>
+8697c8697
+<  &nbsp; &nbsp; &nbsp; &nbsp;self.window.open_notebook(filename)</b><br/>
+---
+> </b><b> &nbsp; &nbsp; &nbsp; &nbsp;self.window.open_notebook(filename)</b><br/>
+diff -r test/data/notebook-v1/test for drag and drop/drop pages test/dir1/page a/page.html test/data/notebook-v1-2/test for drag and drop/drop pages test/dir1/page a/page.html
+4c4,5
+< <ul>aaa aa <span style="background-color: #ff0000">reda<span style="font-size: 22pt">aaa</span>aaa</span> aaaa xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxaxx xxxxx xxxxx sxxxxsx xxxxx xxxaxx xxxxx a xxxxx xxxxx xxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx <br/>
+---
+> <br/>
+> aaa aa <span style="background-color: #ff0000">reda<span style="font-size: 22pt">aaa</span>aaa</span> aaaa xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxaxx xxxxx xxxxx sxxxxsx xxxxx xxxaxx xxxxx a xxxxx xxxxx xxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx xxxxx <br/>
+6c7,11
+< x<ul><ul><ul>aaaaaaaaaaaaa<br/>
+---
+> x<br/>
+> aaaaaaaaaaaaa<br/>
+> aaaaa<br/>
+> baaa<br/>
+> <br/>
+8,9d12
+< baaa</ul></ul></ul><br/>
+< <ul><ul><ul>aaaaa<br/>
+16d18
+< </ul></ul></ul>xx xxxxx xxxxx xxx<br/>
+18c20,22
+< </ul><img src="cut.png" /><img src="cut.png" /><img src="cut.png" /><img src="cut.png" /><img src="cut.png" /><img src="cut.png" /><img src="cut.png" /><img src="cut.png" /><ul><br/>
+---
+> xx xxxxx xxxxx xxx<br/>
+> <img src="cut.png" /><img src="cut.png" /><img src="cut.png" /><img src="cut.png" /><img src="cut.png" /><img src="cut.png" /><img src="cut.png" /><img src="cut.png" /><br/>
+> <br/>
+23c27,29
+< xxxxxxxxxxxx<ul><br/>
+---
+> xxxxxxxxxxxx<br/>
+> <br/>
+> aaaa<br/>
+26d31
+< aaaa</ul><br/>
+28c33
+< </ul> <img src="screenshot.png" /><br/>
+---
+>  <img src="screenshot.png" /><br/>
+diff -r test/data/notebook-v1/test for drag and drop/drop pages test/dir1/page b/page.html test/data/notebook-v1-2/test for drag and drop/drop pages test/dir1/page b/page.html
+6c6
+< <b><u><i>hello there</i></u></b>zaaaaaaaaaaaa<br/>
+---
+> <i><u><b>hello there</b></u></i>zaaaaaaaaaaaa<br/>
+diff -r test/data/notebook-v1/test for drag and drop/drop pages test/dir2/hello3/page.html test/data/notebook-v1-2/test for drag and drop/drop pages test/dir2/hello3/page.html
+3c3
+< <body><span style="font-family: Monospace"><span style="font-size: 10pt">hello2 &nbsp; &nbsp; &nbsp; 22s2s2saaaaa&#09;&#09;aaaa&#09;&#09;&#09;&#09;<br/>
+---
+> <body><span style="font-size: 10pt"><span style="font-family: Monospace">hello2 &nbsp; &nbsp; &nbsp; 22s2s2saaaaa&#09;&#09;aaaa&#09;&#09;&#09;&#09;<br/>
+9c9
+< </span></span><span style="font-size: 10pt"><span style="font-family: Monospace">aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaaa</span> </span></body></html>
+\ No newline at end of file
+---
+> </span><span style="font-family: Monospace">aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaa aaaaa</span> </span></body></html>
+\ No newline at end of file
+diff -r test/data/notebook-v1/test for drag and drop/drop pages test/dir2/page c/page.html test/data/notebook-v1-2/test for drag and drop/drop pages test/dir2/page c/page.html
+3c3
+< <body><span style='font-size: 14pt'><span style='font-family: Sans'>CCCCC</span></span><span style='font-size: 12pt'><span style='font-family: Serif'>CCCC<b><u>CC</u></b></span><b><u></u></b></span><b><u><span style='font-size: 14pt'><span style='font-family: Sans'>C<i>C</i>C</span></span></u><span style='font-size: 14pt'><span style='font-family: Sans'></span></span></b><span style='font-size: 14pt'><span style='font-family: Sans'>CC</span></span><br/>
+---
+> <body><span style="font-family: Sans"><span style="font-size: 14pt">CCCCC</span></span><span style="font-family: Serif"><span style="font-size: 12pt">CCCC<u><b>CC</b></u></span></span><u><b><span style="font-family: Sans"><span style="font-size: 14pt">C<i>C</i>C</span></span></b></u><span style="font-family: Sans"><span style="font-size: 14pt">CC</span></span><br/>
+diff -r test/data/notebook-v1/test for drag and drop/New Page/page.html test/data/notebook-v1-2/test for drag and drop/New Page/page.html
+3c3
+< <body>
+\ No newline at end of file
+---
+> <body></body></html>
+\ No newline at end of file

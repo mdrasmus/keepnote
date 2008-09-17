@@ -27,13 +27,17 @@ REORDER_ALL = 2
 COL_ICON          = 0
 COL_ICON_EXPAND   = 1
 COL_TITLE         = 2
-COL_CREATED_TEXT  = 3
-COL_CREATED_INT   = 4
-COL_MODIFIED_TEXT = 5
-COL_MODIFIED_INT  = 6
-COL_MANUAL        = 7
-COL_NODE          = 8
+COL_TITLE_SORT    = 3
+COL_CREATED_TEXT  = 4
+COL_CREATED_INT   = 5
+COL_MODIFIED_TEXT = 6
+COL_MODIFIED_INT  = 7
+COL_MANUAL        = 8
+COL_NODE          = 9
 
+# treeview column types
+COL_TYPES = [gdk.Pixbuf, gdk.Pixbuf,
+             str, str, str, int, str, int, int, object]
 
 
 def compute_new_path(model, target, drop_position):
@@ -104,8 +108,7 @@ def get_path_from_node(model, node):
 
 class TakeNoteTreeModel (gtk.GenericTreeModel):
 
-    _col_types = [gdk.Pixbuf, gdk.Pixbuf, str, str,
-                  int, str, int, int, object]
+    _col_types = COL_TYPES
 
     def __init__(self, roots=[]):
         gtk.GenericTreeModel.__init__(self)
@@ -240,8 +243,10 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
             return get_node_icon(node, True)
         elif column == COL_TITLE:
             return node.get_title()
+        elif column == COL_TITLE_SORT:
+            return node.get_title().lower()
         elif column == COL_CREATED_TEXT:
-             return node.get_created_time_text(self._date_formats)
+            return node.get_created_time_text(self._date_formats)
         elif column == COL_CREATED_INT:
             return node.get_created_time()
         elif column == COL_MODIFIED_TEXT:

@@ -1078,9 +1078,13 @@ class NoteBook (NoteBookDir):
         self.write_preferences()
         
         self._set_dirty(False)
-        
-        for node in list(self._dirty):
-            node.save()
+
+        if force:
+            for node in self.get_children():
+                node.save(force=force)
+        else:
+            for node in list(self._dirty):
+                node.save()
         
         self._dirty.clear()
 

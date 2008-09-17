@@ -104,7 +104,7 @@ class Tag (object):
             try:
                 self._read_data(self._object, data)
             except Exception, e:
-                raise XmlError("Error parsing tag '%s': %s" % (tag.name,
+                raise XmlError("Error parsing tag '%s': %s" % (self.name,
                                                                str(e)))
 
     

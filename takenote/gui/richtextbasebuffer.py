@@ -27,7 +27,8 @@ from takenote.gui.richtext_tags import \
      RichTextFGColorTag, \
      RichTextBGColorTag, \
      RichTextIndentTag, \
-     RichTextBulletTag
+     RichTextBulletTag, \
+     color_to_string
 
 
 # TODO: fix bug with spell check interferring with underline tags
@@ -42,19 +43,6 @@ MAX_UNDOS = 100
 def add_child_to_buffer(textbuffer, it, anchor):
     textbuffer.add_child(it, anchor)
 
-def color_to_string(color):
-    redstr = hex(color.red)[2:]
-    greenstr = hex(color.green)[2:]
-    bluestr = hex(color.blue)[2:]
-
-    while len(redstr) < 4:
-        redstr = "0" + redstr
-    while len(greenstr) < 4:
-        greenstr = "0" + greenstr
-    while len(bluestr) < 4:
-        bluestr = "0" + bluestr
-
-    return "#%s%s%s" % (redstr, greenstr, bluestr)
 
 #=============================================================================
 # buffer paragraph navigation
