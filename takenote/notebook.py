@@ -101,10 +101,6 @@ def get_valid_filename(filename):
     filename = re.sub(REGEX_BAD_CHARS, "", filename)
     filename = filename.replace("\t", " ")
     filename = filename.strip()
-    #filename = filename.replace("?", "")
-    #filename = filename.replace("/", "-")
-    #filename = filename.replace("\\", "-")
-    #filename = filename.replace("'", "")
     
     # don't allow files to start with two underscores
     if filename.startswith("__"):
@@ -280,7 +276,56 @@ def restore_archived_notebook(filename, path, rename=True):
         except Exception, e:
             raise NoteBookError("File writing error while extracting notebook", e)
 
-    
+
+def archive(notebook, filename, progress=lambda p, f: None):
+    """Archive notebook as *.tar.gz
+
+       filename -- filename of archive to create
+       progress -- callback function that takes arguments
+                   (percent, filename)
+    """
+
+    if os.path.exists(filename):
+        raise NoteBookError("File '%s' already exists" % filename)
+
+    # make sure all modifications are saved first
+    try:
+        notebook.save()
+    except Exception, e:
+        raise NoteBookError("Could not save notebook before archiving", e)
+
+    # perform archiving
+    try:
+        archive = tarfile.open(filename, "w:gz")
+        path = notebook.get_path()
+
+        # first count # of files
+        nfiles = 0
+        for root, dirs, files in os.walk(path):
+            nfiles += len(files)
+
+        nfiles2 = [0]
+        def walk(path, arcname):
+            # add to archive
+            archive.add(path, arcname, False)
+
+            # report progresss
+            if os.path.isfile(path):
+                nfiles2[0] += 1
+                progress(nfiles2[0] / float(nfiles), path)
+
+            # recurse
+            if os.path.isdir(path):
+                for f in os.listdir(path):
+                    if not os.path.islink(f):
+                        walk(os.path.join(path, f),
+                             os.path.join(arcname, f))
+        walk(path, os.path.basename(path))
+
+        archive.close()
+    except Exception, e:
+        raise NoteBookError("Error while archiving notebook", e)
+        
     
 
 TAG_PATTERN = re.compile("<[^>]*>")
@@ -743,7 +788,7 @@ class NoteBookNode (object):
             self._notebook.node_changed.notify([self], recurse)
 
     def notify_changes(self, nodes, recurse):
-        """Notify listeners that node has changed"""
+        """Notify listeners that several nodes have changed"""
         if self._notebook:
             self._notebook.node_changed.notify(nodes, recurse)
     
@@ -1087,59 +1132,6 @@ class NoteBook (NoteBookDir):
                 node.save()
         
         self._dirty.clear()
-
-
-    def archive(self, filename, progress=lambda p, f: None):
-        """Archive notebook as *.tar.gz
-
-           filename -- filename of archive to create
-           progress -- callback function that takes arguments
-                       (percent, filename)
-        """
-
-        if os.path.exists(filename):
-            raise NoteBookError("File '%s' already exists" % filename)
-        
-        # make sure all modifications are saved first
-        try:
-            self.save()
-        except Exception, e:
-            raise NoteBookError("Could not save notebook before archiving", e)
-
-        # perform archiving
-        try:
-            archive = tarfile.open(filename, "w:gz")
-            path = self.get_path()
-
-            # first count # of files
-            nfiles = 0
-            for root, dirs, files in os.walk(path):
-                nfiles += len(files)
-
-            nfiles2 = [0]
-            def walk(path, arcname):
-                # add to archive
-                archive.add(path, arcname, False)
-
-                # report progresss
-                if os.path.isfile(path):
-                    nfiles2[0] += 1
-                    progress(nfiles2[0] / float(nfiles), path)
-
-                # recurse
-                if os.path.isdir(path):
-                    for f in os.listdir(path):
-                        if not os.path.islink(f):
-                            walk(os.path.join(path, f),
-                                 os.path.join(arcname, f))
-            walk(path, os.path.basename(path))
-                
-            #archive.add(path, os.path.basename(path))
-
-            
-            archive.close()
-        except Exception, e:
-            raise NoteBookError("Error while archiving notebook", e)
         
     
     def get_children(self):

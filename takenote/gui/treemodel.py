@@ -554,6 +554,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         """Callback for start of title editing"""
         # remember editing state
         self.editing = True
+        self.scroll_to_cell(path)
     
     def on_editing_canceled(self, cellrenderer):
         """Callback for canceled of title editing"""

@@ -529,6 +529,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     def _on_apply_tag(self, textbuffer, tag, start, end):
         """Callback for tag apply"""
 
+        #print tag, start.get_offset(), end.get_offset()
         if not isinstance(tag, RichTextTag):
             # do not process tags that are not rich text
             # i.e. gtkspell tags (ignored by undo/redo)
@@ -767,7 +768,8 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     def _on_end_user_action(self, textbuffer):
         """End a composite undo/redo action"""
 
-        self.on_ending_user_action()        
+        #if self.undo_stack.is_suppressed():
+        self.on_ending_user_action()
         self._user_action = False
         self.undo_stack.end_action()
 

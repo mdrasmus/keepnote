@@ -79,7 +79,7 @@ class UndoStack (object):
     
     def undo(self):
         """Undo last action on stack"""
-        assert self._group_counter == 0       
+        assert self._group_counter == 0
         
         if len(self._undo_actions) > 0:
             action, undo = self._undo_actions.pop()

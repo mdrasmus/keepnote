@@ -130,7 +130,7 @@ def main(argv):
                      "TakeNote: %s\n" % time.asctime())
         
     # read preferences
-    app = takenote.gui.TakeNote(basedir)
+    app = takenote.TakeNote(basedir)
     
 
     # start TakeNote

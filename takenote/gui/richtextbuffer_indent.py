@@ -167,7 +167,7 @@ class IndentManager (object):
 
         if self.par_has_bullet(par_start):
             return par_start
-        
+
         self._buf.begin_user_action()
 
         # insert text
