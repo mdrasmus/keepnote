@@ -61,56 +61,51 @@ class Extension (takenote.Extension):
     def on_archive_notebook(self, window):
         """Callback from gui for archiving a notebook"""
 
-        try:
+        if window.notebook is None:
+            return
 
-            if window.notebook is None:
-                return
-
-            dialog = gtk.FileChooserDialog("Backup Notebook", window, 
-                action=gtk.FILE_CHOOSER_ACTION_SAVE,
-                buttons=("Cancel", gtk.RESPONSE_CANCEL,
-                         "Backup", gtk.RESPONSE_OK))
+        dialog = gtk.FileChooserDialog("Backup Notebook", window, 
+            action=gtk.FILE_CHOOSER_ACTION_SAVE,
+            buttons=("Cancel", gtk.RESPONSE_CANCEL,
+                     "Backup", gtk.RESPONSE_OK))
 
 
-            filename = notebooklib.get_unique_filename(
-                window.app.pref.archive_notebook_path,
-                time.strftime(os.path.basename(window.notebook.get_path()) +
-                              "-%Y-%m-%d"),
-                ".tar.gz",
-                ".")
-            dialog.set_current_name(os.path.basename(filename))
-            dialog.set_current_folder(window.app.pref.archive_notebook_path)
+        filename = notebooklib.get_unique_filename(
+            window.app.pref.archive_notebook_path,
+            time.strftime(os.path.basename(window.notebook.get_path()) +
+                          "-%Y-%m-%d"),
+            ".tar.gz",
+            ".")
+        dialog.set_current_name(os.path.basename(filename))
+        dialog.set_current_folder(window.app.pref.archive_notebook_path)
 
-            file_filter = gtk.FileFilter()
-            file_filter.add_pattern("*.tar.gz")
-            file_filter.set_name("Archives (*.tar.gz)")
-            dialog.add_filter(file_filter)
+        file_filter = gtk.FileFilter()
+        file_filter.add_pattern("*.tar.gz")
+        file_filter.set_name("Archives (*.tar.gz)")
+        dialog.add_filter(file_filter)
 
-            file_filter = gtk.FileFilter()
-            file_filter.add_pattern("*")
-            file_filter.set_name("All files (*.*)")
-            dialog.add_filter(file_filter)
+        file_filter = gtk.FileFilter()
+        file_filter.add_pattern("*")
+        file_filter.set_name("All files (*.*)")
+        dialog.add_filter(file_filter)
 
-            response = dialog.run()
+        response = dialog.run()
 
-            window.app.pref.archive_notebook_path = dialog.get_current_folder()
+        window.app.pref.archive_notebook_path = dialog.get_current_folder()
 
 
-            if response == gtk.RESPONSE_OK:
-                filename = dialog.get_filename()
-                dialog.destroy()
+        if response == gtk.RESPONSE_OK:
+            filename = dialog.get_filename()
+            dialog.destroy()
 
-                if "." not in filename:
-                    filename += ".tar.gz"
+            if "." not in filename:
+                filename += ".tar.gz"
 
-                window.set_status("Archiving...")
-                self.archive_notebook(window, filename)
+            window.set_status("Archiving...")
+            self.archive_notebook(window, filename)
 
-            elif response == gtk.RESPONSE_CANCEL:
-                dialog.destroy()
-
-        except Exception, e:
-            print e
+        elif response == gtk.RESPONSE_CANCEL:
+            dialog.destroy()
 
 
     def on_restore_notebook(self, window):
