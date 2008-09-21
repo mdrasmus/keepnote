@@ -98,7 +98,19 @@ o.add_option("--no-default", dest="default_notebook",
              help="do not open default notebook")
 
 
+def start_error_log(show_errors):
+    """Starts TakeNote error log"""
+    
+    errorlog = open(takenote.get_user_error_log(), "a")
+    if show_errors:
+        sys.stderr = takenote.TeeFileStream([sys.stderr, errorlog],
+                                            autoflush=True)
+    else:
+        sys.stderr = errorlog
+    
 
+    sys.stderr.write("==============================================\n"
+                     "TakeNote: %s\n" % time.asctime())    
 
 
 def main(argv):
@@ -113,21 +125,14 @@ def main(argv):
 
     # parse args
     (options, args) = o.parse_args(argv[1:], options)
-
-    #====================
-    # start error log
+    
+    
+    # init preference dir
     if not os.path.exists(takenote.get_user_pref_dir()):            
         os.mkdir(takenote.get_user_pref_dir())
-    errorlog = open(takenote.get_user_error_log(), "a")
-    if options.show_errors:
-        sys.stderr = takenote.TeeFileStream([sys.stderr, errorlog],
-                                            autoflush=True)
-    else:
-        sys.stderr = errorlog
-        
 
-    sys.stderr.write("==============================================\n"
-                     "TakeNote: %s\n" % time.asctime())
+    # start error log
+    start_error_log(options.show_errors)
         
     # read preferences
     app = takenote.TakeNote(basedir)
@@ -136,10 +141,12 @@ def main(argv):
     # start TakeNote
     if len(args) > 0:
         # open specified notebook
-        app.open_notebook(args[0].rstrip("/"))        
+        app.open_notebook(args[0].rstrip("/"))
+        
     elif options.default_notebook and app.pref.default_notebook != "":
         # open default notebook
         app.open_notebook(app.pref.default_notebook)
+        
     else:
         app.show_main_window()
 
@@ -149,11 +156,13 @@ def main(argv):
 
 try:
     main(sys.argv)
+    
 except exceptions.SystemExit, e:
+    # sys.exit() was called
     pass
+
 except Exception, e:
     traceback.print_exc()
-    #print e, sys.exc_info()[2]
     
     # flush final errors
     sys.stderr.flush()

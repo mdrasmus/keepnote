@@ -6,7 +6,7 @@
 """
 
 # python imports
-import os
+import os, sys
 
 # pygtk imports
 import pygtk
@@ -16,7 +16,8 @@ import gtk.glade
 # takenote imports
 import takenote
 from takenote import get_resource
-
+from takenote.gui.font_selector import FontSelector
+from takenote.gui import richtext
 
 
 class ApplicationOptionsDialog (object):
@@ -26,15 +27,50 @@ class ApplicationOptionsDialog (object):
         self.main_window = main_window
         self.app = main_window.app
         self.entries = {}
+        
     
     def on_app_options(self):
         self.xml = gtk.glade.XML(get_resource("rc", "takenote.glade"),
                                  "app_config_dialog")
         self.dialog = self.xml.get_widget("app_config_dialog")
         self.dialog.set_transient_for(self.main_window)
+        self.tabs = self.xml.get_widget("app_config_tabs")
 
 
-        # populate dialog        
+
+        # setup treeview
+        self.overview = self.xml.get_widget("app_config_treeview")
+        overview_store = gtk.TreeStore(str)
+        self.overview.set_model(overview_store)
+        self.overview.connect("cursor-changed", self.on_overview_select)
+        #self.set_headers_visible(False)
+
+        # create the treeview column
+        column = gtk.TreeViewColumn()
+        self.overview.append_column(column)
+        cell_text = gtk.CellRendererText()
+        column.pack_start(cell_text, True)
+        column.add_attribute(cell_text, 'text', 0)
+
+        # populate treestore
+        app = overview_store.append(None, ["TakeNote"])
+        overview_store.append(app, ["Look and Feel"])
+        overview_store.append(app, ["Helper Applications"])
+        overview_store.append(app, ["Data and Time"])        
+        note = overview_store.append(None, ["This Notebook"])
+
+        self.overview.expand_all()
+
+        self.tree2tab = {
+            (0,): 0,
+            (0, 0,): 4,            
+            (0, 1,): 1,
+            (0, 2,): 2,
+            (1,): 3
+            }
+
+
+        # populate default notebook
         self.xml.get_widget("default_notebook_entry").\
             set_text(self.app.pref.default_notebook)
 
@@ -56,6 +92,12 @@ class ApplicationOptionsDialog (object):
 
         # use systray icon
         self.xml.get_widget("systray_check").set_active(self.app.pref.use_systray)
+
+        # look and feel
+        self.treeview_lines_check = self.xml.get_widget("treeview_lines_check")
+        self.treeview_lines_check.set_active(self.app.pref.treeview_lines)
+        self.listview_rules_check = self.xml.get_widget("listview_rules_check")
+        self.listview_rules_check.set_active(self.app.pref.listview_rules)
 
 
         # populate dates
@@ -112,16 +154,32 @@ class ApplicationOptionsDialog (object):
 
         table.show()
 
-        
+
+        # add notebook font widget
+        notebook_font_spot = self.xml.get_widget("notebook_font_spot")
+        self.notebook_font_family = FontSelector()
+        notebook_font_spot.add(self.notebook_font_family)
+        self.notebook_font_family.show()        
+
+        # populate notebook font
+        self.notebook_font_size = self.xml.get_widget("notebook_font_size")
+        self.notebook_font_size.set_value(10)
+
+        if self.main_window.notebook is not None:
+            font = self.main_window.notebook.pref.default_font
+            family, mods, size = richtext.parse_font(font)
+            self.notebook_font_family.set_family(family)
+            self.notebook_font_size.set_value(size)
+
 
         self.xml.signal_autoconnect({
             "on_ok_button_clicked": 
-                lambda w: self.on_app_options_ok(),
+                lambda w: self.on_ok(),
             "on_cancel_button_clicked": 
                 lambda w: self.dialog.destroy(),
                 
             "on_default_notebook_button_clicked": 
-                lambda w: self.on_app_options_browse(
+                lambda w: self.on_browse(
                     "default_notebook", 
                     "Choose Default Notebook",
                     self.app.pref.default_notebook),
@@ -132,6 +190,12 @@ class ApplicationOptionsDialog (object):
             })
 
         self.dialog.show()
+        
+
+    def on_overview_select(self, overview):
+        row, col = overview.get_cursor()
+        if row is not None:
+            self.tabs.set_current_page(self.tree2tab[row])
 
 
     def on_autosave_toggle(self, widget):
@@ -141,7 +205,7 @@ class ApplicationOptionsDialog (object):
             widget.get_active())
         
     
-    def on_app_options_browse(self, name, title, filename):
+    def on_browse(self, name, title, filename):
         dialog = gtk.FileChooserDialog(title, self.dialog, 
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
@@ -177,7 +241,7 @@ class ApplicationOptionsDialog (object):
             
         
     
-    def on_app_options_ok(self):
+    def on_ok(self):
         # TODO: add arguments
     
         self.app.pref.default_notebook = \
@@ -195,6 +259,11 @@ class ApplicationOptionsDialog (object):
         # use systray icon
         self.app.pref.use_systray = self.xml.get_widget("systray_check").get_active()
 
+        # look and feel
+        self.app.pref.treeview_lines = self.treeview_lines_check.get_active()
+        self.app.pref.listview_rules = self.listview_rules_check.get_active()
+        
+        
         # save date formatting
         for name in ["same_day", "same_month", "same_year", "diff_year"]:
             self.app.pref.timestamp_formats[name] = \
@@ -205,9 +274,21 @@ class ApplicationOptionsDialog (object):
         for key, entry in self.entries.iteritems():
             self.app.pref._external_apps_lookup[key].prog = \
                 self.entries[key].get_text()
+
+        # save notebook font        
+        if self.main_window.notebook is not None:
+            pref = self.main_window.notebook.pref
+            pref.default_font = "%s %d" % (
+                self.notebook_font_family.get_family(),
+                self.notebook_font_size.get_value())
+
+            self.main_window.notebook.write_preferences()
+            self.main_window.notebook.notify_change(False)
+            
         
         self.app.pref.write()
         self.app.pref.changed.notify()
+
         
         self.dialog.destroy()
         self.dialog = None

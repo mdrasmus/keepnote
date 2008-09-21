@@ -544,7 +544,8 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         else:
 
             # NOTE: this may be invalid
-            self.set_cursor(None)
+            #self.set_cursor(None)
+            pass
 
 
     #============================================

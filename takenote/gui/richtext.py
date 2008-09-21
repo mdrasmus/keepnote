@@ -182,7 +182,10 @@ class RichTextView (gtk.TextView):
         item.show()
 
         item = gtk.ImageMenuItem(gtk.STOCK_DELETE)
-        item.connect("activate", lambda w: self._textbuffer.delete_selection(True, True))
+        def func(widget):
+            if self._textbuffer:
+                self._textbuffer.delete_selection(True, True)
+        item.connect("activate", func)
         self._image_menu.append(item)
         item.show()
 
@@ -227,6 +230,9 @@ class RichTextView (gtk.TextView):
 
     def on_key_press_event(self, textview, event):
         """Callback from key press event"""
+
+        if self._textbuffer is None:
+            return
         
         if event.keyval == gtk.keysyms.ISO_Left_Tab:
             # shift+tab is pressed
@@ -255,19 +261,18 @@ class RichTextView (gtk.TextView):
     def on_backspace(self, textview):
         """Callback for backspace press"""
 
-        try:
-         it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
+        if not self._textbuffer:
+            return
 
-         if self._textbuffer.starts_par(it):
+        it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
+
+        if self._textbuffer.starts_par(it):
             # look for indent tags
             indent, par_type = self._textbuffer.get_indent()
             if indent > 0:
                 self.unindent()
                 self.stop_emission("backspace")
-                
-        except Exception, e:
-             print e
-        
+                        
 
     #def on_button_press(self, widget, event):
     #    pass #print "click"
@@ -279,6 +284,9 @@ class RichTextView (gtk.TextView):
 
     def on_drag_motion(self, textview, drag_context, x, y, timestamp):
         """Callback for when dragging over textview"""
+
+        if not self._textbuffer:
+            return
         
         # check for image targets
         img_target = self.drag_dest_find_target(drag_context, 
@@ -303,6 +311,9 @@ class RichTextView (gtk.TextView):
     def on_drag_data_received(self, widget, drag_context, x, y,
                               selection_data, info, eventtime):
         """Callback for when drop event is received"""
+
+        if not self._textbuffer:
+            return
         
         img_target = self.drag_dest_find_target(drag_context, 
                                                 [(x, 0, 0)
@@ -352,6 +363,9 @@ class RichTextView (gtk.TextView):
 
     def drop_pdf(self, data):
         """Drop a PDF into the TextView"""
+
+        if not self._textbuffer:
+            return
 
         # NOTE: requires hardcoded convert
         # TODO: generalize
@@ -445,7 +459,10 @@ class RichTextView (gtk.TextView):
 
     def copy_clipboard(self, clipboard):
         """Callback for copy event"""
-                
+
+        if not self._textbuffer:
+            return
+    
         sel = self._textbuffer.get_selection_bounds()
 
         # do nothing if nothing is selected
@@ -480,6 +497,9 @@ class RichTextView (gtk.TextView):
 
     def cut_clipboard(self, clipboard, default_editable):
         """Callback for cut event"""
+
+        if not self._textbuffer:
+            return
         
         self.copy_clipboard(clipboard)
         self._textbuffer.delete_selection(False, default_editable)
@@ -487,6 +507,9 @@ class RichTextView (gtk.TextView):
     
     def paste_clipboard(self, clipboard, override_location, default_editable):
         """Callback for paste event"""
+
+        if not self._textbuffer:
+            return
         
         targets = set(clipboard.wait_for_targets())
         
@@ -596,6 +619,9 @@ class RichTextView (gtk.TextView):
     
     def save(self, filename):
         """Save buffer contents to file"""
+
+        if not self._textbuffer:
+            return
         
         path = os.path.dirname(filename)
         self._save_images(path)
@@ -619,7 +645,7 @@ class RichTextView (gtk.TextView):
     
     def load(self, filename):
         """Load buffer with data from file"""
-
+        
         
         textbuffer = self._textbuffer
         
@@ -636,7 +662,7 @@ class RichTextView (gtk.TextView):
         
         err = None
         try:
-            from rasmus import util
+            #from rasmus import util
             #util.tic("read")
 
             # NOTE: buffer_contents is a generator
@@ -733,7 +759,11 @@ class RichTextView (gtk.TextView):
     
     def is_modified(self):
         """Returns True if buffer is modified"""
-        return self._textbuffer.get_modified()
+
+        if self._textbuffer:            
+            return self._textbuffer.get_modified()
+        else:
+            return False
 
     
     def _on_modified_changed(self, textbuffer):
@@ -752,15 +782,19 @@ class RichTextView (gtk.TextView):
         """Disable TextView"""
         
         self._block_modified = True
-        self._textbuffer.undo_stack.suppress()
-
-        self._textbuffer.clear()
-        self.set_sensitive(False)
+        if self._textbuffer:
+            self._textbuffer.undo_stack.suppress()
+            self._textbuffer.clear()
         
-        self._textbuffer.undo_stack.resume()
-        self._textbuffer.undo_stack.reset()
+        self.set_sensitive(False)
+
         self._block_modified = False
-        self._textbuffer.set_modified(False)
+        
+        if self._textbuffer:
+            self._textbuffer.undo_stack.resume()
+            self._textbuffer.undo_stack.reset()
+            self._textbuffer.set_modified(False)            
+        
     
     """
     def serialize(self, register_buf, content_buf, start, end, data):
@@ -803,18 +837,20 @@ class RichTextView (gtk.TextView):
 
     def indent(self):
         """Indents selection one more level"""
-        self._textbuffer.indent()
+        if self._textbuffer:
+            self._textbuffer.indent()
 
 
     def unindent(self):
         """Unindents selection one more level"""        
-        self._textbuffer.unindent()
+        if self._textbuffer:
+            self._textbuffer.unindent()
 
     
     def insert_image(self, image, filename="image.png"):
         """Inserts an image into the textbuffer"""
-                
-        self._textbuffer.insert_image(image, filename)    
+        if self._textbuffer:
+            self._textbuffer.insert_image(image, filename)    
 
     def insert_image_from_file(self, imgfile, filename="image.png"):
         """Inserts an image from a file"""
@@ -826,11 +862,15 @@ class RichTextView (gtk.TextView):
 
     def insert_hr(self):
         """Inserts a horizontal rule"""
-        self._textbuffer.insert_hr()
+        if self._textbuffer:
+            self._textbuffer.insert_hr()
         
         
     def insert_html(self, html):
         """Insert HTML content into Buffer"""
+
+        if not self._textbuffer:
+            return
         
         contents = list(self._html_buffer.read([html],
                                                partial=True,
@@ -934,6 +974,9 @@ class RichTextView (gtk.TextView):
     def replace(self, text, replace_text, 
                 case_sensitive=False, forward=True, next=True):
         """Replaces next occurrence of 'text' with 'replace_text'"""
+
+        if not self._textbuffer:
+            return
         
         pos = self.find(text, case_sensitive, forward, next)
         
@@ -949,6 +992,10 @@ class RichTextView (gtk.TextView):
     def replace_all(self, text, replace_text, 
                     case_sensitive=False, forward=True):
         """Replaces all occurrences of 'text' with 'replace_text'"""
+
+        if not self._textbuffer:
+            return
+        
         found = False
         
         self._textbuffer.begin_user_action()
@@ -987,16 +1034,22 @@ class RichTextView (gtk.TextView):
 
     def toggle_font_mod(self, mod):
         """Toggle a font modification"""
-        self._textbuffer.toggle_tag_selected(
-            self._textbuffer.tag_table.lookup_mod(mod))
+        if self._textbuffer:
+            self._textbuffer.toggle_tag_selected(
+                self._textbuffer.tag_table.lookup_mod(mod))
 
     def set_font_mod(self, mod):
         """Sets a font modification"""
-        self._textbuffer.apply_tag_selected(
-            self._textbuffer.tag_table.lookup_mod(mod))
+        if self._textbuffer:
+            self._textbuffer.apply_tag_selected(
+                self._textbuffer.tag_table.lookup_mod(mod))
 
     def set_font(self, font_name):
         """Font change from choose font widget"""
+
+        if not self._textbuffer:
+            return
+        
         family, mods, size = parse_font(font_name)
 
         tag_table = self._textbuffer.tag_table
@@ -1017,40 +1070,45 @@ class RichTextView (gtk.TextView):
     
     def set_font_family(self, family):
         """Sets the family font of the selection"""
-        self._textbuffer.apply_tag_selected(
-            self._textbuffer.tag_table.lookup_family(family))
+        if self._textbuffer:
+            self._textbuffer.apply_tag_selected(
+                self._textbuffer.tag_table.lookup_family(family))
     
     def toggle_font_family(self, family):
         """Toggles the family font of the selection"""
-        self._textbuffer.toggle_tag_selected(
-            self._textbuffer.tag_table.lookup_family(family))
+        if self._textbuffer:
+            self._textbuffer.toggle_tag_selected(
+                self._textbuffer.tag_table.lookup_family(family))
     
     def set_font_size(self, size):
         """Sets the font size of the selection"""
-        self._textbuffer.apply_tag_selected(
-            self._textbuffer.tag_table.lookup_size(size))    
+        if self._textbuffer:
+            self._textbuffer.apply_tag_selected(
+                self._textbuffer.tag_table.lookup_size(size))    
     
     def set_justify(self, justify):
         """Sets the text justification"""
-        self._textbuffer.apply_tag_selected(
-            self._textbuffer.tag_table.lookup_justify(justify))
+        if self._textbuffer:
+            self._textbuffer.apply_tag_selected(
+                self._textbuffer.tag_table.lookup_justify(justify))
 
     def set_font_fg_color(self, color):
         """Sets the text foreground color"""
-        self._textbuffer.apply_tag_selected(
-            self._textbuffer.tag_table.lookup_fg_color(color))
+        if self._textbuffer:
+            self._textbuffer.apply_tag_selected(
+                self._textbuffer.tag_table.lookup_fg_color(color))
         
     def set_font_bg_color(self, color):
         """Sets the text background color"""
-        self._textbuffer.apply_tag_selected(
-            self._textbuffer.tag_table.lookup_bg_color(color))
+        if self._textbuffer:
+            self._textbuffer.apply_tag_selected(
+                self._textbuffer.tag_table.lookup_bg_color(color))
 
     def toggle_bullet(self):
         """Toggle state of a bullet list"""
-        try:
+        if self._textbuffer:
             self._textbuffer.toggle_bullet_list()
-        except Exception, e:
-            print e
+            
     
     #==================================================================
     # UI Updating from changing font under cursor
@@ -1064,7 +1122,10 @@ class RichTextView (gtk.TextView):
     
     def get_font(self):
         """Get the font under the cursor"""
-        return self._textbuffer.get_font()
+        if self._textbuffer:
+            return self._textbuffer.get_font()
+        else:
+            return self._blank_buffer.get_font()
 
 
     def set_default_font(self, font):
@@ -1083,11 +1144,13 @@ class RichTextView (gtk.TextView):
     
     def undo(self):
         """Undo the last action in the RichTextView"""
-        self._textbuffer.undo()
+        if self._textbuffer:
+            self._textbuffer.undo()
         
     def redo(self):
-        """Redo the last action in the RichTextView"""    
-        self._textbuffer.redo()    
+        """Redo the last action in the RichTextView"""
+        if self._textbuffer:
+            self._textbuffer.redo()
 
 
 

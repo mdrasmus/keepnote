@@ -8,7 +8,7 @@
 
 
 # python imports
-import sys, os, tempfile, re, subprocess, shlex, shutil, time
+import sys, os, tempfile, re, subprocess, shlex, shutil, time, traceback
 
 # pygtk imports
 import pygtk
@@ -35,7 +35,7 @@ from takenote.gui import \
     dialog_drag_drop_test, \
     dialog_image_resize, \
     TakeNoteError
-
+from takenote.gui.font_selector import FontSelector
 
 
 
@@ -60,13 +60,23 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook):
         self.show()
 
     def set_notebook(self, notebook):
+
+        if self._notebook:
+            self._notebook.node_changed.remove(self.on_notebook_changed)
+        
         self._notebook = notebook
 
         if self._notebook:
-            for view in self._textviews:
+            self._notebook.node_changed.add(self.on_notebook_changed)
+            for view in self._textviews:                
                 view.set_default_font(self._notebook.pref.default_font)
         else:
             self.clear_view()
+
+    def on_notebook_changed(self, node, recurse):
+        for view in self._textviews:
+            view.set_default_font(self._notebook.pref.default_font)
+        
     
     def on_font_callback(self, textview, font):
         self.emit("font-change", font)
@@ -222,39 +232,6 @@ gobject.signal_new("child-activated", TakeNoteEditor, gobject.SIGNAL_RUN_LAST,
     gobject.TYPE_NONE, (object, object))
 
 
-class FontSelector (gtk.ComboBox):
-
-    def __init__(self):
-        gtk.ComboBox.__init__(self)
-
-        self._list = gtk.ListStore(str)
-        self.set_model(self._list)
-        
-        self._families = sorted(f.get_name()
-                                 for f in self.get_pango_context().list_families())
-        self._lookup = [x.lower() for x in self._families]
-
-        for f in self._families:
-            self._list.append([f])
-
-        cell = gtk.CellRendererText()
-        self.pack_start(cell, True)
-        self.add_attribute(cell, 'text', 0)
-        
-        fam = self.get_pango_context().get_font_description().get_family()
-        self.set_family(fam)
-
-        
-    def set_family(self, family):
-        
-        try:
-            index = self._lookup.index(family.lower())
-            self.set_active(index)
-        except:
-            pass
-
-    def get_family(self):
-        return self._families[self.get_active()]
 
 class FontUI (object):
 
@@ -431,7 +408,7 @@ class TakeNoteWindow (gtk.Window):
 
 
     def on_app_options_changed(self):
-        self.selector.set_date_formats(self.app.pref.timestamp_formats)
+        self.get_app_preferences()
 
 
     def on_tray_icon_activate(self, icon):
@@ -453,22 +430,14 @@ class TakeNoteWindow (gtk.Window):
             self.selector.select_nodes(self.queue_list_select)
             self.queue_list_select = []
                 
-        # view page
+        # view pages
         pages = [node for node in nodes 
                  if isinstance(node, NoteBookPage)]
         
         if len(pages) > 0:
             self.selector.select_nodes(pages)
-            self.current_page = pages[0]
-            #try:
-            #    self.editor.view_pages(pages)
-            #
-            #except RichTextError, e:
-            #    self.error("Could not load pages", e)
-            
         else:
-            self.editor.view_pages([])
-            self.current_page = None
+            self.selector.select_nodes([])
 
     
     def on_list_select(self, selector, pages):
@@ -482,8 +451,10 @@ class TakeNoteWindow (gtk.Window):
             else:
                 self.current_page = None
             self.editor.view_pages(pages)
+            
         except RichTextError, e:
-            self.error("Could not load page '%s'" % pages[0].get_title(), e)
+            self.error("Could not load page '%s'" % pages[0].get_title(),
+                       e, sys.exc_trackback)
 
     def on_list_view_node(self, selector, node):
         """Focus listview on a node"""
@@ -549,6 +520,11 @@ class TakeNoteWindow (gtk.Window):
         self.hpaned.set_position(self.app.pref.hsash_pos)
         
         self.enable_spell_check(self.app.pref.spell_check)
+
+        self.selector.set_date_formats(self.app.pref.timestamp_formats)
+        self.treeview.set_property("enable-tree-lines",
+                                   self.app.pref.treeview_lines)
+        self.selector.set_rules_hint(self.app.pref.listview_rules)
 
         if self.app.pref.window_maximized:
             self.maximize()
@@ -623,27 +599,6 @@ class TakeNoteWindow (gtk.Window):
         elif response == gtk.RESPONSE_CANCEL:
             pass
 
-
-    def on_save(self, silent=False):
-        """Saves the current NoteBook"""
-        if self.notebook is not None:
-
-            # TODO: should this be outside exception
-            self.editor.save()
-
-            try:
-                
-                self.notebook.save()
-            except Exception, e:
-                if not silent:
-                    self.error("Could not save notebook", e)
-                    self.set_status("Error saving notebook")
-                    return
-            
-            self.set_notebook_modified(False)
-
-        self.set_status("Notebook saved")
-
     
     def on_quit(self):
         """Close the window and quit"""        
@@ -656,6 +611,30 @@ class TakeNoteWindow (gtk.Window):
     
     #===============================================
     # Notebook actions    
+
+    def save_notebook(self, silent=False):
+        """Saves the current notebook"""
+
+        if self.notebook is None:
+            return
+        
+        try:
+            # TODO: should this be outside exception
+            self.editor.save()
+            self.notebook.save()
+
+            self.set_status("Notebook saved")
+            
+        except Exception, e:
+            if not silent:
+                self.error("Could not save notebook", e, sys.exc_trackback)
+                self.set_status("Error saving notebook")
+                return
+
+            self.set_notebook_modified(False)
+
+        
+            
     
     def reload_notebook(self):
         """Reload the current NoteBook"""
@@ -683,7 +662,7 @@ class TakeNoteWindow (gtk.Window):
             notebook.create()
             self.set_status("Created '%s'" % notebook.get_title())
         except NoteBookError, e:
-            self.error("Could not create new notebook", e)
+            self.error("Could not create new notebook", e, sys.exc_trackback)
             self.set_status("")
             return None
         
@@ -705,8 +684,9 @@ class TakeNoteWindow (gtk.Window):
         
         try:
             notebook.load(filename)
-        except NoteBookError, e:
-            self.error("Could not load notebook '%s'" % filename, e)
+        except NoteBookError, e:            
+            self.error("Could not load notebook '%s'" % filename,
+                       e, sys.exc_traceback)
             return None
 
         self.set_notebook(notebook)
@@ -734,10 +714,10 @@ class TakeNoteWindow (gtk.Window):
                     self.notebook.save()
                 except Exception, e:
                     # TODO: should ask question, like try again?
-                    self.error("Could not save notebook", e)
+                    self.error("Could not save notebook",
+                               e, sys.exc_trackback)
 
             self.notebook.node_changed.remove(self.on_notebook_node_changed)
-            
             self.set_notebook(None)
             self.set_status("Notebook closed")
 
@@ -756,7 +736,7 @@ class TakeNoteWindow (gtk.Window):
         # NOTE: return True to activate next timeout callback
         
         if self.notebook is not None:
-            self.on_save(True)
+            self.save_notebook(True)
             return self.app.pref.autosave
         else:
             return False
@@ -1405,12 +1385,15 @@ class TakeNoteWindow (gtk.Window):
 
         # windows locks open files
         # therefore we should copy error log before viewing it
-        filename = os.path.realpath(takenote.get_user_error_log())
-        filename2 = filename + ".bak"
-        shutil.copy(filename, filename2)        
+        try:
+            filename = os.path.realpath(takenote.get_user_error_log())
+            filename2 = filename + ".bak"
+            shutil.copy(filename, filename2)        
 
-        # use text editor to view error log
-        self.app.run_external_app("text_editor", filename2)
+            # use text editor to view error log
+            self.app.run_external_app("text_editor", filename2)
+        except Exception, e:
+            self.error("Could not open error log", e, sys.exc_traceback)
                                        
     
     def on_spell_check_toggle(self, num, widget):
@@ -1465,7 +1448,7 @@ class TakeNoteWindow (gtk.Window):
     
             
     
-    def error(self, text, error=None):
+    def error(self, text, error=None, tracebk=None):
         """Display an error message"""
         #self.set_status(text)
         
@@ -1478,8 +1461,10 @@ class TakeNoteWindow (gtk.Window):
         dialog.set_title("Error")
         dialog.show()
 
+        # add message to error log
         if error is not None:
-            sys.stderr.write(str(error)+"\n")
+            sys.stderr.write("\n")
+            traceback.print_exception(type(error), error, tracebk)
     
     
     #================================================
@@ -1520,7 +1505,7 @@ class TakeNoteWindow (gtk.Window):
                 None, lambda w,e: self.reload_notebook(), 0, 
                 "<StockItem>", gtk.STOCK_REVERT_TO_SAVED),
             ("/File/_Save Notebook",     
-                "<control>S", lambda w,e: self.on_save(), 0, 
+                "<control>S", lambda w,e: self.save_notebook(), 0, 
                 "<ImageItem>", 
                 get_resource_pixbuf("save.png")),
             ("/File/_Close Notebook", 
@@ -1740,7 +1725,8 @@ class TakeNoteWindow (gtk.Window):
             ("/Help/View Error Log...",
              None, lambda w,e: self.view_error_log(), 0, None),
             ("/Help/Drap and Drop Test...",
-                None, lambda w,e: self.drag_test.on_drag_and_drop_test(), 0, None),
+                None, lambda w,e: self.drag_test.on_drag_and_drop_test(),
+                0, None),
             ("/Help/sep1", None, None, 0, "<Separator>"),
             ("/Help/About", None, lambda w,e: self.on_about(), 0, None ),
             )    
@@ -1753,13 +1739,16 @@ class TakeNoteWindow (gtk.Window):
         self.add_accel_group(accel_group)
 
         # view mode
-        self.view_mode_h_toggle = self.item_factory.get_widget("/Options/Horizontal Layout")
-        self.view_mode_v_toggle = self.item_factory.get_widget("/Options/Vertical Layout")
+        self.view_mode_h_toggle = \
+            self.item_factory.get_widget("/Options/Horizontal Layout")
+        self.view_mode_v_toggle = \
+            self.item_factory.get_widget("/Options/Vertical Layout")
 
         # get spell check toggle
-        self.spell_check_toggle = self.item_factory.get_widget("/Options/Spell check")
-        self.spell_check_toggle.set_sensitive(self.editor.get_textview()\
-                                              .can_spell_check())
+        self.spell_check_toggle = \
+            self.item_factory.get_widget("/Options/Spell check")
+        self.spell_check_toggle.set_sensitive(
+            self.editor.get_textview().can_spell_check())
 
 
         self.menubar_file_extensions = \
@@ -1791,7 +1780,7 @@ class TakeNoteWindow (gtk.Window):
         button = gtk.ToolButton()
         button.set_icon_widget(get_resource_image("save.png"))
         tips.set_tip(button, "Save Notebook")
-        button.connect("clicked", lambda w: self.on_save())
+        button.connect("clicked", lambda w: self.save_notebook())
         toolbar.insert(button, -1)        
 
         # separator
@@ -1853,7 +1842,8 @@ class TakeNoteWindow (gtk.Window):
         self.bold_button = gtk.ToggleToolButton()
         self.bold_button.set_icon_widget(get_resource_image("bold.png"))
         tips.set_tip(self.bold_button, "Bold")
-        self.bold_id = self.bold_button.connect("toggled", lambda w: self.editor.get_textview().toggle_font_mod("bold"))
+        self.bold_id = self.bold_button.connect("toggled",
+            lambda w: self.editor.get_textview().toggle_font_mod("bold"))
         toolbar.insert(self.bold_button, -1)
         self.font_ui_signals.append(FontUI(self.bold_button, self.bold_id))
 
@@ -1862,7 +1852,8 @@ class TakeNoteWindow (gtk.Window):
         self.italic_button = gtk.ToggleToolButton()
         self.italic_button.set_icon_widget(get_resource_image("italic.png"))
         tips.set_tip(self.italic_button, "Italic")
-        self.italic_id = self.italic_button.connect("toggled", lambda w: self.editor.get_textview().toggle_font_mod("italic"))
+        self.italic_id = self.italic_button.connect("toggled",
+            lambda w: self.editor.get_textview().toggle_font_mod("italic"))
         toolbar.insert(self.italic_button, -1)
         self.font_ui_signals.append(FontUI(self.italic_button, self.italic_id))
 
@@ -1870,16 +1861,19 @@ class TakeNoteWindow (gtk.Window):
         self.underline_button = gtk.ToggleToolButton()
         self.underline_button.set_icon_widget(get_resource_image("underline.png"))
         tips.set_tip(self.underline_button, "Underline")
-        self.underline_id = self.underline_button.connect("toggled", lambda w: self.editor.get_textview().toggle_font_mod("underline"))
+        self.underline_id = self.underline_button.connect("toggled",
+            lambda w: self.editor.get_textview().toggle_font_mod("underline"))
         toolbar.insert(self.underline_button, -1)
         self.font_ui_signals.append(FontUI(self.underline_button,
                                            self.underline_id))
         
         # fixed-width tool
         self.fixed_width_button = gtk.ToggleToolButton()
-        self.fixed_width_button.set_icon_widget(get_resource_image("fixed-width.png"))
+        self.fixed_width_button.set_icon_widget(
+            get_resource_image("fixed-width.png"))
         tips.set_tip(self.fixed_width_button, "Monospace")
-        self.fixed_width_id = self.fixed_width_button.connect("toggled", lambda w: self.on_fixed_width(True))
+        self.fixed_width_id = self.fixed_width_button.connect("toggled",
+            lambda w: self.on_fixed_width(True))
         toolbar.insert(self.fixed_width_button, -1)
         self.font_ui_signals.append(FontUI(self.fixed_width_button,
                                            self.fixed_width_id))
@@ -1888,31 +1882,21 @@ class TakeNoteWindow (gtk.Window):
         self.no_wrap_button = gtk.ToggleToolButton()
         self.no_wrap_button.set_icon_widget(get_resource_image("no-wrap.png"))
         tips.set_tip(self.no_wrap_button, "No Wrapping")
-        self.no_wrap_id = self.no_wrap_button.connect("toggled", lambda w: self.editor.get_textview().toggle_font_mod("nowrap"))
+        self.no_wrap_id = self.no_wrap_button.connect("toggled",
+            lambda w: self.editor.get_textview().toggle_font_mod("nowrap"))
         toolbar.insert(self.no_wrap_button, -1)
         self.font_ui_signals.append(FontUI(self.no_wrap_button,
                                            self.no_wrap_id))
 
-        # font button
-        #self.font_sel = gtk.FontButton()
-        #self.font_sel.set_use_font(True)
-        #self.font_sel.set_show_size(False)
-        #item = gtk.ToolItem()
-        #item.add(self.font_sel)
-        #tips.set_tip(item, "Set Font")
-        #toolbar.insert(item, -1)
-        #self.font_sel.connect("font-set", lambda w: self.on_font_set())
-
         # family combo
-        #DEFAULT_FONT_FAMILY = "Sans"
         self.font_family_combo = FontSelector()
         self.font_family_combo.set_size_request(150, 25)
         item = gtk.ToolItem()
         item.add(self.font_family_combo)
         tips.set_tip(item, "Font Family")
         toolbar.insert(item, -1)
-        self.font_family_id = self.font_family_combo.connect("changed", lambda w: self.on_family_set())
-        #self.font_family_combo.set_family(DEFAULT_FONT_FAMILY)
+        self.font_family_id = self.font_family_combo.connect("changed",
+            lambda w: self.on_family_set())
         self.font_ui_signals.append(FontUI(self.font_family_combo,
                                            self.font_family_id))
                 
@@ -1943,21 +1927,8 @@ class TakeNoteWindow (gtk.Window):
         #item.add(self.fg_color_button)
         #tips.set_tip(item, "Set Text Color")
         #toolbar.insert(item, -1)
-        #self.fg_color_button.connect("color-set", lambda w: self.on_color_set("fg"))
-
-        # font size increase
-        #button = gtk.ToolButton()
-        #button.set_icon_widget(get_resource_image("font-inc.png"))
-        #tips.set_tip(button, "Increase Font Size")
-        #button.connect("clicked", lambda w: self.on_font_size_inc())
-        #toolbar.insert(button, -1)        
-
-        # font size decrease
-        #button = gtk.ToolButton()
-        #button.set_icon_widget(get_resource_image("font-dec.png"))
-        #tips.set_tip(button, "Decrease Font Size")
-        #button.connect("clicked", lambda w: self.on_font_size_dec())
-        #toolbar.insert(button, -1)        
+        #self.fg_color_button.connect("color-set",
+        #    lambda w: self.on_color_set("fg"))
                 
         
         # separator

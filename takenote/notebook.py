@@ -225,109 +225,6 @@ def get_trash_dir(nodepath):
     return os.path.join(nodepath, TRASH_DIR)
 
 
-def restore_archived_notebook(filename, path, rename=True):
-    """
-    Restores a archived notebook
-
-    filename -- filename of archive
-    path     -- name of new notebook
-    rename   -- if True, path contains notebook name, otherwise path is
-                basedir of new notebook
-    """
-
-    if path == "":
-        raise NoteBookError("Must specify a path for restoring notebook")
-
-    # remove trailing "/"
-    path = re.sub("/+$", "", path)
-
-    tar = tarfile.open(filename, "r:gz")
-
-    # create new dirctory, if needed
-    if rename:
-        if not os.path.exists(path):
-            tmppath = get_valid_unique_filename(os.path.dirname(path),
-                                                os.path.basename(path+"-tmp"))
-        else:
-            raise NoteBookError("Notebook path already exists")
-
-        try:
-            # extract notebook
-            if hasattr(tar, "extractall"):
-                tar.extractall(tmppath)
-            else:
-                # fallback code for python2.4
-                for member in tar.getmembers():
-                    tar.extract(member, tmppath)
-        
-            files = os.listdir(tmppath)
-            # assert len(files) = 1
-            extracted_path = os.path.join(tmppath, files[0])
-
-            # move extracted files to proper place
-            shutil.move(extracted_path, path)
-            os.rmdir(tmppath)
-        except Exception, e:
-            raise NoteBookError("File writing error while extracting notebook", e)
-        
-    else:
-        try:
-            tar.extractall(path)
-        except Exception, e:
-            raise NoteBookError("File writing error while extracting notebook", e)
-
-
-def archive(notebook, filename, progress=lambda p, f: None):
-    """Archive notebook as *.tar.gz
-
-       filename -- filename of archive to create
-       progress -- callback function that takes arguments
-                   (percent, filename)
-    """
-
-    if os.path.exists(filename):
-        raise NoteBookError("File '%s' already exists" % filename)
-
-    # make sure all modifications are saved first
-    try:
-        notebook.save()
-    except Exception, e:
-        raise NoteBookError("Could not save notebook before archiving", e)
-
-    # perform archiving
-    try:
-        archive = tarfile.open(filename, "w:gz")
-        path = notebook.get_path()
-
-        # first count # of files
-        nfiles = 0
-        for root, dirs, files in os.walk(path):
-            nfiles += len(files)
-
-        nfiles2 = [0]
-        def walk(path, arcname):
-            # add to archive
-            archive.add(path, arcname, False)
-
-            # report progresss
-            if os.path.isfile(path):
-                nfiles2[0] += 1
-                progress(nfiles2[0] / float(nfiles), path)
-
-            # recurse
-            if os.path.isdir(path):
-                for f in os.listdir(path):
-                    if not os.path.islink(f):
-                        walk(os.path.join(path, f),
-                             os.path.join(arcname, f))
-        walk(path, os.path.basename(path))
-
-        archive.close()
-    except Exception, e:
-        raise NoteBookError("Error while archiving notebook", e)
-        
-    
-
 TAG_PATTERN = re.compile("<[^>]*>")
 def strip_tags(line):
     return re.sub(TAG_PATTERN, "", line)
@@ -659,7 +556,8 @@ class NoteBookNode (object):
         """Add a new page under node"""
         path = self.get_path()
         newpath = get_valid_unique_filename(path, title)
-        page = NoteBookPage(newpath, title=title, parent=self, notebook=self._notebook)
+        page = NoteBookPage(newpath, title=title, parent=self,
+                            notebook=self._notebook)
         page.create()
         self._add_child(page)
         page.save(True)
@@ -671,7 +569,8 @@ class NoteBookNode (object):
         """Add a new folder under node"""
         path = self.get_path()
         newpath = get_valid_unique_filename(path, title)
-        node = NoteBookDir(newpath, title=title, parent=self, notebook=self._notebook)
+        node = NoteBookDir(newpath, title=title, parent=self,
+                           notebook=self._notebook)
         node.create()
         self._add_child(node)
         node.save(True)
@@ -703,13 +602,15 @@ class NoteBookNode (object):
                     
                 elif os.path.exists(nodefile):
                     # create dir node
-                    node = NoteBookDir(path2, parent=self, notebook=self._notebook)
+                    node = NoteBookDir(path2, parent=self,
+                                       notebook=self._notebook)
                     node.read_meta_data()
                     self._children.append(node)
 
                 elif os.path.exists(pagefile):
                     # create page node
-                    page = NoteBookPage(path2, parent=self, notebook=self._notebook)
+                    page = NoteBookPage(path2, parent=self,
+                                        notebook=self._notebook)
                     page.read_meta_data()
                     self._children.append(page)
             except NoteBookError, e:
@@ -1108,7 +1009,7 @@ class NoteBook (NoteBookDir):
                 filename = os.path.dirname(filename)
                 self._set_basename(filename)
             else:
-                raise NoteBookError("cannot load notebook '%s'" % filename)
+                raise NoteBookError("Cannot find notebook '%s'" % filename)
             
             self._trash_path = get_trash_dir(self.get_path())
         self.read_meta_data()

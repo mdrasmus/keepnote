@@ -11,7 +11,7 @@
 import xmlobject as xmlo
 
 # python imports
-import os, sys, shutil, time, re, imp
+import os, sys, shutil, time, re, imp, subprocess
 import xml.dom.minidom as xmldom
 import xml.dom
 
@@ -189,7 +189,7 @@ def iter_extensions(extensions_dir):
 
 
 
-class TeeFileStream (file):
+class TeeFileStream (object):
     """Create a file stream that forwards writes to multiple streams"""
     
     def __init__(self, streams, autoflush=False):
@@ -284,12 +284,15 @@ class TakeNotePreferences (object):
         self._external_apps = []
         self._external_apps_lookup = {}
 
-        # window options
+        # window presentation options
         self.window_size = DEFAULT_WINDOW_SIZE
         self.window_maximized = True
         self.vsash_pos = DEFAULT_VSASH_POS
         self.hsash_pos = DEFAULT_HSASH_POS        
         self.view_mode = DEFAULT_VIEW_MODE
+        self.treeview_lines = True
+        self.listview_rules = True
+        
 
         # autosave
         self.autosave = True
@@ -409,7 +412,7 @@ g_takenote_pref_parser = xmlo.XmlObject(
             getobj=("default_notebook", str),
             set=lambda s: s.default_notebook),
 
-        # window sizing
+        # window presentation options
         xmlo.Tag("view_mode",
             getobj=("view_mode", str),
             set=lambda s: s.view_mode),
@@ -425,6 +428,13 @@ g_takenote_pref_parser = xmlo.XmlObject(
         xmlo.Tag("hsash_pos",
             getobj=("hsash_pos", int),
             set=lambda s: "%d" % s.hsash_pos),
+        xmlo.Tag("treeview_lines",
+            getobj=("treeview_lines", int),
+            set=lambda s: "%d" % s.treeview_lines),
+        xmlo.Tag("listview_rules",
+            getobj=("listview_rules", int),
+            set=lambda s: "%d" % s.listview_rules),
+        
 
         # image resize
         xmlo.Tag("image_size_snap",
