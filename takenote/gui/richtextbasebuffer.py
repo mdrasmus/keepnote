@@ -146,6 +146,7 @@ class InsertAction (Action):
         self.text = text
         self.length = length        
         #assert len(self.text) == self.length
+
         
     def do(self):
         start = self.textbuffer.get_iter_at_offset(self.pos)
@@ -179,7 +180,7 @@ class DeleteAction (Action):
         self.cursor_offset = cursor_offset
         self.contents = []        
         self._record_range()
-    
+
 
     def do(self):
         start = self.textbuffer.get_iter_at_offset(self.start_offset)
@@ -263,6 +264,7 @@ class TagAction (Action):
     def undo(self):
         start = self.textbuffer.get_iter_at_offset(self.start_offset)
         end = self.textbuffer.get_iter_at_offset(self.end_offset)
+        
         if self.applied:
             self.textbuffer.remove_tag(self.tag, start, end)
         # undo for remove tag is simply to restore old tags
@@ -381,7 +383,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
                                                   True)
         self._next_action = None
         self._current_tags = []
-        self._user_action = False
+        self._user_action_ending = False
 
         # setup signals
         self._signals = [
@@ -505,8 +507,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         
         
     def _on_delete_range(self, textbuffer, start, end):
-        """Callback for delete range"""        
-
+        """Callback for delete range"""
         # start next action
         assert self._next_action is None
         self._next_action = DeleteAction(self, start.get_offset(), 
@@ -529,7 +530,6 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     def _on_apply_tag(self, textbuffer, tag, start, end):
         """Callback for tag apply"""
 
-        #print tag, start.get_offset(), end.get_offset()
         if not isinstance(tag, RichTextTag):
             # do not process tags that are not rich text
             # i.e. gtkspell tags (ignored by undo/redo)
@@ -578,9 +578,13 @@ class RichTextBaseBuffer (gtk.TextBuffer):
                 it2 = it.copy()
                 it2.forward_chars(self._next_action.length)
 
-                # TODO: could I suppress undo for these tags?
+                # suppress undo stack for applying current tags
+                # they are handled by the InsertAction
+                # and do not need to be recorded separately as TagAction's
+                self.undo_stack.suppress()
                 for tag in self._current_tags:
                     self.apply_tag(tag, it, it2)
+                self.undo_stack.resume()
 
             # detect paragraph spliting
             if "\n" in self._next_action.text:
@@ -747,7 +751,6 @@ class RichTextBaseBuffer (gtk.TextBuffer):
 
 
 
-
     #=========================================
     # undo/redo methods
     
@@ -762,15 +765,16 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     def _on_begin_user_action(self, textbuffer):
         """Begin a composite undo/redo action"""
 
-        self._user_action = True
+        #self._user_action = True
         self.undo_stack.begin_action()
 
     def _on_end_user_action(self, textbuffer):
         """End a composite undo/redo action"""
-
-        #if self.undo_stack.is_suppressed():
-        self.on_ending_user_action()
-        self._user_action = False
+        
+        if not self._user_action_ending:
+            self._user_action_ending = True
+            self.on_ending_user_action()
+            self._user_action_ending = False
         self.undo_stack.end_action()
 
 

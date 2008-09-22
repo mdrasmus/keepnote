@@ -625,6 +625,8 @@ class TakeNoteWindow (gtk.Window):
 
             self.set_status("Notebook saved")
             
+            self.set_notebook_modified(False)
+            
         except Exception, e:
             if not silent:
                 self.error("Could not save notebook", e, sys.exc_trackback)

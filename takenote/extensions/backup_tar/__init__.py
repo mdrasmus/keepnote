@@ -71,13 +71,13 @@ class Extension (takenote.Extension):
 
 
         filename = notebooklib.get_unique_filename(
-            window.app.pref.archive_notebook_path,
+            self.app.pref.archive_notebook_path,
             time.strftime(os.path.basename(window.notebook.get_path()) +
                           "-%Y-%m-%d"),
             ".tar.gz",
             ".")
         dialog.set_current_name(os.path.basename(filename))
-        dialog.set_current_folder(window.app.pref.archive_notebook_path)
+        dialog.set_current_folder(self.app.pref.archive_notebook_path)
 
         file_filter = gtk.FileFilter()
         file_filter.add_pattern("*.tar.gz")
@@ -91,7 +91,7 @@ class Extension (takenote.Extension):
 
         response = dialog.run()
 
-        window.app.pref.archive_notebook_path = dialog.get_current_folder()
+        self.app.pref.archive_notebook_path = dialog.get_current_folder()
 
 
         if response == gtk.RESPONSE_OK:
@@ -115,7 +115,7 @@ class Extension (takenote.Extension):
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "Restore", gtk.RESPONSE_OK))
-        dialog.set_current_folder(window.app.pref.archive_notebook_path)        
+        dialog.set_current_folder(self.app.pref.archive_notebook_path)        
 
 
         file_filter = gtk.FileFilter()
@@ -130,7 +130,7 @@ class Extension (takenote.Extension):
 
         response = dialog.run()
 
-        window.app.pref.archive_notebook_path = dialog.get_current_folder()
+        self.app.pref.archive_notebook_path = dialog.get_current_folder()
 
         if response == gtk.RESPONSE_OK:
             archive_filename = dialog.get_filename()
@@ -146,7 +146,7 @@ class Extension (takenote.Extension):
             action=gtk.FILE_CHOOSER_ACTION_SAVE,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "New", gtk.RESPONSE_OK))
-        dialog.set_current_folder(window.app.pref.archive_notebook_path)
+        dialog.set_current_folder(self.app.pref.archive_notebook_path)
 
         file_filter = gtk.FileFilter()
         file_filter.add_pattern("*.nbk")
@@ -165,7 +165,8 @@ class Extension (takenote.Extension):
 
         response = dialog.run()
 
-        window.app.pref.archive_notebook_path = os.path.dirname(dialog.get_current_folder())
+        self.app.pref.archive_notebook_path = \
+            os.path.dirname(dialog.get_current_folder())
 
 
         if response == gtk.RESPONSE_OK:
@@ -208,6 +209,7 @@ class Extension (takenote.Extension):
 
 
     def restore_notebook(self, window, archive_filename, notebook_filename):
+        """Restore notebook"""
 
         # make sure current notebook is closed
         window.close_notebook()
