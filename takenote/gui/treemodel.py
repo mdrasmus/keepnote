@@ -326,10 +326,12 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
             return parent
 
 gobject.type_register(TakeNoteTreeModel)
-gobject.signal_new("node-changed-start", TakeNoteTreeModel, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object,))
-gobject.signal_new("node-changed-end", TakeNoteTreeModel, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object,))
+gobject.signal_new("node-changed-start", TakeNoteTreeModel,
+                   gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, (object,))
+gobject.signal_new("node-changed-end", TakeNoteTreeModel,
+                   gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, (object,))
 
 
 
@@ -416,16 +418,19 @@ class TakeNoteBaseTreeView (gtk.TreeView):
                 self.changed_end_id = self.model.get_model().\
                     connect("node-changed-end", self.on_node_changed_end)
             else:
-                self.changed_start_id = self.model.connect("node-changed-start",
-                                                           self.on_node_changed_start)
-                self.changed_end_id = self.model.connect("node-changed-end",
-                                                         self.on_node_changed_end)                
+                self.changed_start_id = self.model.connect(
+                    "node-changed-start",
+                    self.on_node_changed_start)
+                self.changed_end_id = self.model.connect(
+                    "node-changed-end",
+                    self.on_node_changed_end)                
             self.insert_id = self.model.connect("row-inserted",
                                                 self.on_row_inserted)
             self.delete_id = self.model.connect("row-deleted",
                                                 self.on_row_deleted)
-            self.has_child_id = self.model.connect("row-has-child-toggled",
-                                                   self.on_row_has_child_toggled)
+            self.has_child_id = self.model.connect(
+                "row-has-child-toggled",
+                self.on_row_has_child_toggled)
 
 
 
@@ -441,25 +446,33 @@ class TakeNoteBaseTreeView (gtk.TreeView):
 
         # maintain proper expansion
         for node in nodes:
-            try:
-                path = get_path_from_node(self.model, node)
-                if path is None:
-                    raise
-            except:
-                # NOTE: ignoring this exception is OK
-                # it just means node is out of view
-                pass
+
+            if node == self._master_node:
+                for child in node.get_children():
+                    path = get_path_from_node(self.model, child)
+                    if self.is_node_expanded(child):
+                        self.expand_row(path, False)
             else:
-                parent = node.get_parent()
+                try:
+                    path = get_path_from_node(self.model, node)
+                    if path is None:
+                        raise
+                except:
+                    # NOTE: ignoring this exception is OK
+                    # it just means node is out of view
+                    pass
+                else:
+                    parent = node.get_parent()
 
-                # NOTE: parent may lose expand state if it has one child
-                # therefore, we should expand parent if it exists and is visible
-                # (i.e. len(path)>1) in treeview
-                if parent and self.is_node_expanded(parent) and len(path) > 1:
-                    self.expand_row(path[:-1], False)
+                    # NOTE: parent may lose expand state if it has one child
+                    # therefore, we should expand parent if it exists and is
+                    # visible (i.e. len(path)>1) in treeview
+                    if parent and self.is_node_expanded(parent) and \
+                       len(path) > 1:
+                        self.expand_row(path[:-1], False)
 
-                if self.is_node_expanded(node):
-                    self.expand_row(path, False)
+                    if self.is_node_expanded(node):
+                        self.expand_row(path, False)
                 
         
         # if nodes still exist, and expanded, try to reselect them
