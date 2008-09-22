@@ -660,7 +660,7 @@ class TakeNoteWindow (gtk.Window):
             self.close_notebook()
         
         try:
-            notebook = takenote.NoteBook(filename)
+            notebook = notebooklib.NoteBook(filename)
             notebook.create()
             self.set_status("Created '%s'" % notebook.get_title())
         except NoteBookError, e:
