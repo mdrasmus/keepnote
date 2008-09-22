@@ -502,7 +502,9 @@ class RichTextView (gtk.TextView):
             return
         
         self.copy_clipboard(clipboard)
-        self._textbuffer.delete_selection(False, default_editable)
+
+        # TODO: core dumps have occurred here...
+        self._textbuffer.delete_selection(True, default_editable)
 
     
     def paste_clipboard(self, clipboard, override_location, default_editable):
