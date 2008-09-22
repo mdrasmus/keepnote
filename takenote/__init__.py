@@ -17,7 +17,8 @@ import xml.dom
 
 from takenote.notebook import \
     DEFAULT_TIMESTAMP_FORMATS, \
-    NoteBookError
+    NoteBookError, \
+    get_unique_filename_list
 
 from takenote.listening import Listeners
 
