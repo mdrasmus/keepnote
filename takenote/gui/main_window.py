@@ -20,7 +20,11 @@ import gobject
 # takenote imports
 import takenote
 from takenote.gui import get_resource, get_resource_image, get_resource_pixbuf
-from takenote.notebook import NoteBookError, NoteBookDir, NoteBookPage
+from takenote.notebook import \
+     NoteBookError, \
+     NoteBookVersionError, \
+     NoteBookDir, \
+     NoteBookPage
 from takenote import notebook as notebooklib
 import takenote.search
 from takenote.gui import richtext
@@ -454,7 +458,7 @@ class TakeNoteWindow (gtk.Window):
             
         except RichTextError, e:
             self.error("Could not load page '%s'" % pages[0].get_title(),
-                       e, sys.exc_trackback)
+                       e, sys.exc_traceback)
 
     def on_list_view_node(self, selector, node):
         """Focus listview on a node"""
@@ -629,7 +633,7 @@ class TakeNoteWindow (gtk.Window):
             
         except Exception, e:
             if not silent:
-                self.error("Could not save notebook", e, sys.exc_trackback)
+                self.error("Could not save notebook", e, sys.exc_traceback)
                 self.set_status("Error saving notebook")
                 return
 
@@ -664,7 +668,7 @@ class TakeNoteWindow (gtk.Window):
             notebook.create()
             self.set_status("Created '%s'" % notebook.get_title())
         except NoteBookError, e:
-            self.error("Could not create new notebook", e, sys.exc_trackback)
+            self.error("Could not create new notebook", e, sys.exc_traceback)
             self.set_status("")
             return None
         
@@ -686,6 +690,12 @@ class TakeNoteWindow (gtk.Window):
         
         try:
             notebook.load(filename)
+        except NoteBookVersionError, e:
+            self.error("This version of TakeNote cannot read this notebook.\n"
+                       "The notebook has version %d.  TakeNote can only read %d"
+                       % (e.notebook_version, e.readable_version),
+                       e, sys.exc_traceback)
+            return None
         except NoteBookError, e:            
             self.error("Could not load notebook '%s'" % filename,
                        e, sys.exc_traceback)
@@ -717,7 +727,7 @@ class TakeNoteWindow (gtk.Window):
                 except Exception, e:
                     # TODO: should ask question, like try again?
                     self.error("Could not save notebook",
-                               e, sys.exc_trackback)
+                               e, sys.exc_traceback)
 
             self.notebook.node_changed.remove(self.on_notebook_node_changed)
             self.set_notebook(None)
@@ -1447,19 +1457,17 @@ class TakeNoteWindow (gtk.Window):
             self.stats_bar.push(0, text)
         else:
             raise Exception("unknown bar '%s'" % bar)
-    
             
     
     def error(self, text, error=None, tracebk=None):
         """Display an error message"""
-        #self.set_status(text)
         
         dialog = gtk.MessageDialog(self.get_toplevel(), 
             flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
             type=gtk.MESSAGE_ERROR, 
             buttons=gtk.BUTTONS_OK, 
             message_format=text)
-        dialog.connect("response", lambda d,r: dialog.destroy())
+        dialog.connect("response", lambda d,r: d.destroy())
         dialog.set_title("Error")
         dialog.show()
 

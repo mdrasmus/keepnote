@@ -549,10 +549,12 @@ class TakeNoteBaseTreeView (gtk.TreeView):
             node = nodes[0]
             try:
                 path = get_path_from_node(self.model, node)
-                self.expand_to_path(path)
+                if len(path) > 1:
+                    self.expand_to_path(path[:-1])
                 self.set_cursor(path)
                 self.scroll_to_cell(path)
-            except:
+            except Exception, e:
+                print e
                 pass
         else:
 

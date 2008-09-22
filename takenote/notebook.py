@@ -268,6 +268,17 @@ class NoteBookError (StandardError):
             return self.msg
 
 
+class NoteBookVersionError (NoteBookError):
+    """Exception for version errors while reading notebooks"""
+
+    def __init__(self, notebook_version, readable_version,  error=None):
+        NoteBookError.__init__(self,
+            "Notebook version '%d' is higher than what is readable '%d'" %
+                               (notebook_version,
+                                readable_version),
+                               error)
+        self.notebook_version = notebook_version
+        self.readable_version = readable_version
 
 
 class NoteBookNode (object):
@@ -1111,7 +1122,12 @@ class NoteBook (NoteBookDir):
         try:
             g_notebook_pref_parser.read(self.pref, self.get_pref_file())
         except IOError, e:
-            raise NoteBookError("Cannot read preferences", e)
+            raise NoteBookError("Cannot read notebook preferences", e)
         except xmlo.XmlError, e:
-            raise NoteBookError("NoteBook preference data is corrupt", e)
-                
+            raise NoteBookError("Notebook preference data is corrupt", e)
+
+        
+        if self.pref.version > NOTEBOOK_FORMAT_VERSION:
+            raise NoteBookVersionError(self.pref.version,
+                                       NOTEBOOK_FORMAT_VERSION)
+
