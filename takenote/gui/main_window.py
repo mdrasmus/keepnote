@@ -1162,7 +1162,8 @@ class TakeNoteWindow (gtk.Window):
                 except Exception, e:
                     # TODO: make exception more specific
                     self.restore_window()
-                    self.error("Error importing screenshot '%s'" % imgfile, e)
+                    self.error("Error importing screenshot '%s'" % imgfile,
+                               e, sys.exc_traceback)
             
         # remove temp file
         try:
@@ -1734,7 +1735,7 @@ class TakeNoteWindow (gtk.Window):
             ("/_Help",       None, None, 0, "<LastBranch>" ),
             ("/Help/View Error Log...",
              None, lambda w,e: self.view_error_log(), 0, None),
-            ("/Help/Drap and Drop Test...",
+            ("/Help/Drag and Drop Test...",
                 None, lambda w,e: self.drag_test.on_drag_and_drop_test(),
                 0, None),
             ("/Help/sep1", None, None, 0, "<Separator>"),

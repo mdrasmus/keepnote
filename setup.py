@@ -24,7 +24,8 @@ except ImportError:
 #=============================================================================
 # constants
 
-TAKENOTE_VERSION = '0.4.1'
+import takenote
+TAKENOTE_VERSION = takenote.PROGRAM_VERSION_TEXT
 
 
 #=============================================================================

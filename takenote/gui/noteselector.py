@@ -441,7 +441,7 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         if info_sort == COL_MANUAL or info_sort == -1:
             node.set_info_sort(notebook.INFO_SORT_MANUAL, sort_dir)
 
-        elif info_sort == COL_TITLE:
+        elif info_sort == COL_TITLE_SORT:
             node.set_info_sort(notebook.INFO_SORT_TITLE, sort_dir)
             
         elif info_sort == COL_CREATED_INT:
@@ -467,7 +467,7 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
             model.set_sort_column_id(COL_MANUAL, sort_dir)
             self.set_reorder(treemodel.REORDER_ALL)
         elif info_sort == notebook.INFO_SORT_TITLE:
-            model.set_sort_column_id(COL_TITLE, sort_dir)
+            model.set_sort_column_id(COL_TITLE_SORT, sort_dir)
             self.set_reorder(treemodel.REORDER_FOLDER)
         elif info_sort == notebook.INFO_SORT_CREATED_TIME:
             model.set_sort_column_id(COL_CREATED_INT, sort_dir)
