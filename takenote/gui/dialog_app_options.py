@@ -98,6 +98,9 @@ class ApplicationOptionsDialog (object):
         self.treeview_lines_check.set_active(self.app.pref.treeview_lines)
         self.listview_rules_check = self.xml.get_widget("listview_rules_check")
         self.listview_rules_check.set_active(self.app.pref.listview_rules)
+        self.use_stock_icons_check = \
+            self.xml.get_widget("use_stock_icons_check")
+        self.use_stock_icons_check.set_active(self.app.pref.use_stock_icons)
 
 
         # populate dates
@@ -262,6 +265,7 @@ class ApplicationOptionsDialog (object):
         # look and feel
         self.app.pref.treeview_lines = self.treeview_lines_check.get_active()
         self.app.pref.listview_rules = self.listview_rules_check.get_active()
+        self.app.pref.use_stock_icons = self.use_stock_icons_check.get_active()
         
         
         # save date formatting

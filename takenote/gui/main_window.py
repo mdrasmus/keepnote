@@ -1781,14 +1781,20 @@ class TakeNoteWindow (gtk.Window):
 
         # open notebook
         button = gtk.ToolButton()
-        button.set_icon_widget(get_resource_image("open.png"))
+        if self.app.pref.use_stock_icons:
+            button.set_stock_id(gtk.STOCK_OPEN)
+        else:
+            button.set_icon_widget(get_resource_image("open.png"))
         tips.set_tip(button, "Open Notebook")
         button.connect("clicked", lambda w: self.on_open_notebook())
         toolbar.insert(button, -1)
 
         # save notebook
         button = gtk.ToolButton()
-        button.set_icon_widget(get_resource_image("save.png"))
+        if self.app.pref.use_stock_icons:
+            button.set_stock_id(gtk.STOCK_SAVE)
+        else:
+            button.set_icon_widget(get_resource_image("save.png"))
         tips.set_tip(button, "Save Notebook")
         button.connect("clicked", lambda w: self.save_notebook())
         toolbar.insert(button, -1)        
@@ -1817,7 +1823,10 @@ class TakeNoteWindow (gtk.Window):
         
         # new folder
         button = gtk.ToolButton()
-        button.set_icon_widget(get_resource_image("folder-new.png"))
+        if self.app.pref.use_stock_icons:
+            button.set_stock_id(gtk.STOCK_DIRECTORY)
+        else:
+            button.set_icon_widget(get_resource_image("folder-new.png"))
         tips.set_tip(button, "New Folder")
         button.connect("clicked", lambda w: self.on_new_dir())
         toolbar.insert(button, -1)
@@ -1831,7 +1840,10 @@ class TakeNoteWindow (gtk.Window):
 
         # new note
         button = gtk.ToolButton()
-        button.set_icon_widget(get_resource_image("note-new.png"))
+        if self.app.pref.use_stock_icons:
+            button.set_stock_id(gtk.STOCK_NEW)
+        else:
+            button.set_icon_widget(get_resource_image("note-new.png"))
         tips.set_tip(button, "New Note")
         button.connect("clicked", lambda w: self.on_new_page())
         toolbar.insert(button, -1)
@@ -1850,7 +1862,10 @@ class TakeNoteWindow (gtk.Window):
         
         # bold tool
         self.bold_button = gtk.ToggleToolButton()
-        self.bold_button.set_icon_widget(get_resource_image("bold.png"))
+        if self.app.pref.use_stock_icons:
+            self.bold_button.set_stock_id(gtk.STOCK_BOLD)
+        else:
+            self.bold_button.set_icon_widget(get_resource_image("bold.png"))
         tips.set_tip(self.bold_button, "Bold")
         self.bold_id = self.bold_button.connect("toggled",
             lambda w: self.editor.get_textview().toggle_font_mod("bold"))
@@ -1860,7 +1875,10 @@ class TakeNoteWindow (gtk.Window):
 
         # italic tool
         self.italic_button = gtk.ToggleToolButton()
-        self.italic_button.set_icon_widget(get_resource_image("italic.png"))
+        if self.app.pref.use_stock_icons:
+            self.italic_button.set_stock_id(gtk.STOCK_ITALIC)
+        else:
+            self.italic_button.set_icon_widget(get_resource_image("italic.png"))
         tips.set_tip(self.italic_button, "Italic")
         self.italic_id = self.italic_button.connect("toggled",
             lambda w: self.editor.get_textview().toggle_font_mod("italic"))
@@ -1869,8 +1887,12 @@ class TakeNoteWindow (gtk.Window):
 
         # underline tool
         self.underline_button = gtk.ToggleToolButton()
-        self.underline_button.set_icon_widget(get_resource_image("underline.png"))
-        tips.set_tip(self.underline_button, "Underline")
+        if self.app.pref.use_stock_icons:
+            self.underline_button.set_stock_id(gtk.STOCK_UNDERLINE)
+        else:
+            self.underline_button.set_icon_widget(
+                get_resource_image("underline.png"))
+        tips.set_tip(self.underline_button, "Underline")            
         self.underline_id = self.underline_button.connect("toggled",
             lambda w: self.editor.get_textview().toggle_font_mod("underline"))
         toolbar.insert(self.underline_button, -1)
@@ -1947,7 +1969,11 @@ class TakeNoteWindow (gtk.Window):
                 
         # left tool
         self.left_button = gtk.ToggleToolButton()
-        self.left_button.set_icon_widget(get_resource_image("alignleft.png"))
+        if self.app.pref.use_stock_icons:
+            self.left_button.set_stock_id(gtk.STOCK_JUSTIFY_LEFT)
+        else:
+            self.left_button.set_icon_widget(
+                get_resource_image("alignleft.png"))
         tips.set_tip(self.left_button, "Left Align")
         self.left_id = self.left_button.connect("toggled",
                                             lambda w: self.on_left_justify())
@@ -1957,7 +1983,11 @@ class TakeNoteWindow (gtk.Window):
         
         # center tool
         self.center_button = gtk.ToggleToolButton()
-        self.center_button.set_icon_widget(get_resource_image("aligncenter.png"))
+        if self.app.pref.use_stock_icons:
+            self.center_button.set_stock_id(gtk.STOCK_JUSTIFY_CENTER)
+        else:
+            self.center_button.set_icon_widget(
+                get_resource_image("aligncenter.png"))
         tips.set_tip(self.center_button, "Center Align")
         self.center_id = self.center_button.connect("toggled",
                                           lambda w: self.on_center_justify())
@@ -1967,7 +1997,11 @@ class TakeNoteWindow (gtk.Window):
         
         # right tool
         self.right_button = gtk.ToggleToolButton()
-        self.right_button.set_icon_widget(get_resource_image("alignright.png"))
+        if self.app.pref.use_stock_icons:
+            self.right_button.set_stock_id(gtk.STOCK_JUSTIFY_RIGHT)
+        else:
+            self.right_button.set_icon_widget(
+                get_resource_image("alignright.png"))
         tips.set_tip(self.right_button, "Right Align")
         self.right_id = self.right_button.connect("toggled",
                                            lambda w: self.on_right_justify())
@@ -1977,7 +2011,11 @@ class TakeNoteWindow (gtk.Window):
         
         # justify tool
         self.fill_button = gtk.ToggleToolButton()
-        self.fill_button.set_icon_widget(get_resource_image("alignjustify.png"))
+        if self.app.pref.use_stock_icons:
+            self.fill_button.set_stock_id(gtk.STOCK_JUSTIFY_FILL)
+        else:
+            self.fill_button.set_icon_widget(
+                get_resource_image("alignjustify.png"))
         tips.set_tip(self.fill_button, "Justify Align")
         self.fill_id = self.fill_button.connect("toggled",
                                              lambda w: self.on_fill_justify())
