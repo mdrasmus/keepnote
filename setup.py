@@ -41,8 +41,8 @@ image_files = [os.path.join(image_dir, x)
 if "py2exe" in sys.argv:
     data_files = [
         ('images', image_files),
-        
-        ('rc', ['takenote/rc/takenote.glade'])
+        ('rc', ['takenote/rc/takenote.glade']),
+        ('extensions', ['takenote/extensions/backup_tar'])
     ]
     package_data = {}
 else:
