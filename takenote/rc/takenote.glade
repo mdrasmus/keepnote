@@ -507,7 +507,7 @@
                                           <widget class="GtkCheckButton" id="systray_check">
                                             <property name="visible">True</property>
                                             <property name="can_focus">True</property>
-                                            <property name="label" translatable="yes">Use sysem tray icon (updates on restart)</property>
+                                            <property name="label" translatable="yes">Use sysem tray icon (requires restart)</property>
                                             <property name="xalign">0</property>
                                             <property name="response_id">0</property>
                                             <property name="draw_indicator">True</property>
@@ -1512,6 +1512,19 @@ the first Monday are considered to be in week 0</property>
                                           <packing>
                                             <property name="expand">False</property>
                                             <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <widget class="GtkCheckButton" id="use_stock_icons_check">
+                                            <property name="visible">True</property>
+                                            <property name="can_focus">True</property>
+                                            <property name="label" translatable="yes">use GTK stock icons in toolbar (requires restart)</property>
+                                            <property name="response_id">0</property>
+                                            <property name="draw_indicator">True</property>
+                                          </widget>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="position">2</property>
                                           </packing>
                                         </child>
                                       </widget>

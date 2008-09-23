@@ -295,6 +295,7 @@ class TakeNotePreferences (object):
         self.view_mode = DEFAULT_VIEW_MODE
         self.treeview_lines = True
         self.listview_rules = True
+        self.use_stock_icons = False
         
 
         # autosave
@@ -432,12 +433,14 @@ g_takenote_pref_parser = xmlo.XmlObject(
             getobj=("hsash_pos", int),
             set=lambda s: "%d" % s.hsash_pos),
         xmlo.Tag("treeview_lines",
-            getobj=("treeview_lines", int),
-            set=lambda s: "%d" % s.treeview_lines),
+            getobj=("treeview_lines", lambda x: bool(int(x))),
+            set=lambda s: "%d" % int(s.treeview_lines)),
         xmlo.Tag("listview_rules",
-            getobj=("listview_rules", int),
-            set=lambda s: "%d" % s.listview_rules),
-        
+            getobj=("listview_rules", lambda x: bool(int(x))),
+            set=lambda s: "%d" % int(s.listview_rules)),
+        xmlo.Tag("use_stock_icons",
+            getobj=("use_stock_icons", lambda x: bool(int(x))),
+            set=lambda s: "%d" % int(s.use_stock_icons)),
 
         # image resize
         xmlo.Tag("image_size_snap",
