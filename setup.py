@@ -36,14 +36,27 @@ image_dir = "takenote/images"
 image_files = [os.path.join(image_dir, x) 
                for x in os.listdir("takenote/images")]
 
+# get extensions
+efiles = {}
+def walk(path):
+    for f in os.listdir(path):
+        f = os.path.join(path, f)
+        if f.endswith(".pyc"):
+            continue
+        elif os.path.isdir(f):
+            walk(f)
+        else:
+            efiles.setdefault(os.path.dirname(f.replace("takenote/", "")), 
+                              []).append(f)
+walk("takenote/extensions")
+
 
 # get data files
 if "py2exe" in sys.argv:
     data_files = [
         ('images', image_files),
-        
-        ('rc', ['takenote/rc/takenote.glade'])
-    ]
+        ('rc', ['takenote/rc/takenote.glade']),
+    ] + efiles.items()
     package_data = {}
 else:
     data_files = []

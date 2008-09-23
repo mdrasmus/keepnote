@@ -116,7 +116,7 @@ def get_user_extensions_dir(pref_dir=None, home=None):
 
 def get_system_extensions_dir():
     """Returns system-wdie extensions directory"""
-    return os.path.join(get_basedir(), "extensions")
+    return os.path.join(BASEDIR, "extensions")
 
 
 def get_user_documents(home=None):
