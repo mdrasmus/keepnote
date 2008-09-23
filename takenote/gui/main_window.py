@@ -1437,13 +1437,17 @@ class TakeNoteWindow (gtk.Window):
         
         about = gtk.AboutDialog()
         about.set_name(takenote.PROGRAM_NAME)
-        about.set_version("v%s" % (takenote.PROGRAM_VERSION_TEXT) )
+        about.set_version(takenote.PROGRAM_VERSION_TEXT)
         about.set_copyright("Copyright Matt Rasmussen 2008")
+        about.set_logo(get_resource_pixbuf("takenote-icon.png"))
+        about.set_website(takenote.WEBSITE)
         about.set_transient_for(self)
         about.set_position(gtk.WIN_POS_CENTER_ON_PARENT)
         about.connect("response", lambda d,r: about.destroy())
         about.show()
-    
+
+        # gtk.about_dialog_set_url_hook(func, data)
+        # def func(dialog, link, user_data)
         
 
     #===========================================
