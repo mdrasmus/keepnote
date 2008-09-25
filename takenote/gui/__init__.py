@@ -28,6 +28,9 @@ from takenote.notebook import \
      NoteBookTrash
 
 
+ACCEL_FILE = "accel.txt"
+
+
 # globals
 _g_pixbufs = {}
 _g_node_icons = {}
@@ -102,3 +105,7 @@ def get_node_icon(node, expand=False):
         return pixbufs[int(expand)]
 
         
+def get_accel_file():
+    """Returns gtk accel file"""
+
+    return os.path.join(takenote.get_user_pref_dir(), ACCEL_FILE)

@@ -3,20 +3,20 @@ TakeNote Change Log
 
 takenote-0.4.2
 --------------
- - default notebook options
-   - default font (notebook specific)
- - color font (foreground and background)
- - system tray icon (pygtk > 2.10)
  - bullet point lists
    - also supports nested indented paragraphs with and without bullet points
-
-
-takenote-0.4.1
---------------
- - bug fixes
- - better copy/paste
-   - HTML support
-   - image support
+ - default notebook options
+   - default font (notebook specific)
+ - a few Look and Feel options
+   - use lines treeview
+   - use ruler hints in listview
+   - use gtk stock icons
+ - image scaling can now automatically round ("snap") to nearest size multiple
+ - system tray icon (requires pygtk > 2.10)
+ - first implementation of an extensions mechanism
+   - backup_tar implemented as extension now
+ - spell check saves across sessions
+ - gtk accelerator keys saving across sessions
 
 
 takenote-0.4.1 (2008/08/09)

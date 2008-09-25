@@ -19,7 +19,11 @@ import gobject
 
 # takenote imports
 import takenote
-from takenote.gui import get_resource, get_resource_image, get_resource_pixbuf
+from takenote.gui import \
+     get_resource, \
+     get_resource_image, \
+     get_resource_pixbuf, \
+     get_accel_file
 from takenote.notebook import \
      NoteBookError, \
      NoteBookVersionError, \
@@ -608,6 +612,7 @@ class TakeNoteWindow (gtk.Window):
         """Close the window and quit"""        
         self.close_notebook()
         self.set_app_preferences()
+        gtk.accel_map_save(get_accel_file())
         gtk.main_quit()
         return False
     
@@ -1747,6 +1752,12 @@ class TakeNoteWindow (gtk.Window):
             )    
     
         accel_group = gtk.AccelGroup()
+        accel_file = get_accel_file()
+        if os.path.exists(accel_file):
+            gtk.accel_map_load(accel_file)
+        else:
+            gtk.accel_map_save(accel_file)
+            
 
         # Create item factory
         self.item_factory = gtk.ItemFactory(gtk.MenuBar, "<main>", accel_group)
