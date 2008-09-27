@@ -1741,7 +1741,7 @@ class TakeNoteWindow (gtk.Window):
                 None, lambda w,e: self.app_options_dialog.on_app_options(), 0, 
                 "<StockItem>", gtk.STOCK_PREFERENCES),
             
-            ("/_Help",       None, None, 0, "<LastBranch>" ),
+            ("/_Help",       None, None, 0, "<Branch>" ),
             ("/Help/View Error Log...",
              None, lambda w,e: self.view_error_log(), 0, None),
             ("/Help/Drag and Drop Test...",
@@ -1796,27 +1796,51 @@ class TakeNoteWindow (gtk.Window):
         tips.enable()
 
         # open notebook
-        button = gtk.ToolButton()
-        if self.app.pref.use_stock_icons:
-            button.set_stock_id(gtk.STOCK_OPEN)
-        else:
-            button.set_icon_widget(get_resource_image("open.png"))
-        tips.set_tip(button, "Open Notebook")
-        button.connect("clicked", lambda w: self.on_open_notebook())
-        toolbar.insert(button, -1)
+        #button = gtk.ToolButton()
+        #if self.app.pref.use_stock_icons:
+        #    button.set_stock_id(gtk.STOCK_OPEN)
+        #else:
+        #    button.set_icon_widget(get_resource_image("open.png"))
+        #tips.set_tip(button, "Open Notebook")
+        #button.connect("clicked", lambda w: self.on_open_notebook())
+        #toolbar.insert(button, -1)
 
         # save notebook
+        #button = gtk.ToolButton()
+        #if self.app.pref.use_stock_icons:
+        #    button.set_stock_id(gtk.STOCK_SAVE)
+        #else:
+        #    button.set_icon_widget(get_resource_image("save.png"))
+        #tips.set_tip(button, "Save Notebook")
+        #button.connect("clicked", lambda w: self.save_notebook())
+        #toolbar.insert(button, -1)        
+
+        # separator
+        #toolbar.insert(gtk.SeparatorToolItem(), -1)        
+
+        # new folder
         button = gtk.ToolButton()
         if self.app.pref.use_stock_icons:
-            button.set_stock_id(gtk.STOCK_SAVE)
+            button.set_stock_id(gtk.STOCK_DIRECTORY)
         else:
-            button.set_icon_widget(get_resource_image("save.png"))
-        tips.set_tip(button, "Save Notebook")
-        button.connect("clicked", lambda w: self.save_notebook())
-        toolbar.insert(button, -1)        
+            button.set_icon_widget(get_resource_image("folder-new.png"))
+        tips.set_tip(button, "New Folder")
+        button.connect("clicked", lambda w: self.on_new_dir())
+        toolbar.insert(button, -1)
+
+        # new page
+        button = gtk.ToolButton()
+        if self.app.pref.use_stock_icons:
+            button.set_stock_id(gtk.STOCK_NEW)
+        else:
+            button.set_icon_widget(get_resource_image("note-new.png"))
+        tips.set_tip(button, "New Page")
+        button.connect("clicked", lambda w: self.on_new_page())
+        toolbar.insert(button, -1)
 
         # separator
         toolbar.insert(gtk.SeparatorToolItem(), -1)        
+
 
         # goto note
         button = gtk.ToolButton()
@@ -1835,46 +1859,7 @@ class TakeNoteWindow (gtk.Window):
 
         # separator
         toolbar.insert(gtk.SeparatorToolItem(), -1)        
-        
-        
-        # new folder
-        button = gtk.ToolButton()
-        if self.app.pref.use_stock_icons:
-            button.set_stock_id(gtk.STOCK_DIRECTORY)
-        else:
-            button.set_icon_widget(get_resource_image("folder-new.png"))
-        tips.set_tip(button, "New Folder")
-        button.connect("clicked", lambda w: self.on_new_dir())
-        toolbar.insert(button, -1)
-        
-        # folder delete
-        #button = gtk.ToolButton()
-        #button.set_icon_widget(get_resource_image("folder-delete.png"))
-        #tips.set_tip(button, "Delete Folder")
-        #button.connect("clicked", lambda w: self.on_delete_dir())
-        #toolbar.insert(button, -1)
 
-        # new note
-        button = gtk.ToolButton()
-        if self.app.pref.use_stock_icons:
-            button.set_stock_id(gtk.STOCK_NEW)
-        else:
-            button.set_icon_widget(get_resource_image("note-new.png"))
-        tips.set_tip(button, "New Note")
-        button.connect("clicked", lambda w: self.on_new_page())
-        toolbar.insert(button, -1)
-        
-        # note delete
-        #button = gtk.ToolButton()
-        #button.set_icon_widget(get_resource_image("note-delete.png"))
-        #tips.set_tip(button, "Delete Note")
-        #button.connect("clicked", lambda w: self.on_delete_page())
-        #toolbar.insert(button, -1)
-
-
-        # separator
-        toolbar.insert(gtk.SeparatorToolItem(), -1)
-        
         
         # bold tool
         self.bold_button = gtk.ToggleToolButton()
@@ -1952,7 +1937,7 @@ class TakeNoteWindow (gtk.Window):
         DEFAULT_FONT_SIZE = 10
         self.font_size_button = gtk.SpinButton(
           gtk.Adjustment(value=DEFAULT_FONT_SIZE, lower=2, upper=500, 
-                         step_incr=1, page_incr=2, page_size=2))
+                         step_incr=1, page_incr=2))
         self.font_size_button.set_size_request(-1, 25)
         #self.font_size_button.set_range(2, 100)
         self.font_size_button.set_value(DEFAULT_FONT_SIZE)

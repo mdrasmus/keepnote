@@ -233,19 +233,20 @@ class RichTextView (gtk.TextView):
 
         if self._textbuffer is None:
             return
+
         
-        if event.keyval == gtk.keysyms.ISO_Left_Tab:
+        if event.keyval == gtk.gdk.keyval_from_name("ISO_Left_Tab"):
             # shift+tab is pressed
             
             it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
-
+        
             # indent if cursor at start of paragraph or if there is a selection
             if self._textbuffer.get_selection_bounds():
-                # tab at start of line should do indentation
+                # tab at start of line should do unindentation
                 self.unindent()
                 return True
 
-        if event.keyval == gtk.keysyms.Tab:
+        if event.keyval == gtk.gdk.keyval_from_name("Tab"):
             # tab is pressed
             
             it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
