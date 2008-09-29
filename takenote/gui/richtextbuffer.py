@@ -252,9 +252,7 @@ class RichTextImage (RichTextAnchor):
             
         except gobject.GError, e:
             # use missing image instead
-            self._widget.set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
-            self._pixbuf_original = None
-            self._pixbuf = None
+            self.set_no_image()
         else:
             # successful image load, set its size
             self._pixbuf = self._pixbuf_original
@@ -262,6 +260,12 @@ class RichTextImage (RichTextAnchor):
             if self.is_size_set():
                 self.scale(self._size[0], self._size[1], False)
             self._widget.set_from_pixbuf(self._pixbuf)
+
+
+    def set_no_image(self):
+        self._widget.set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
+        self._pixbuf_original = None
+        self._pixbuf = None
 
 
     def set_from_pixbuf(self, pixbuf, filename=None):
@@ -379,23 +383,30 @@ class RichTextImage (RichTextAnchor):
 
     def set_from_url(self, url, filename):
         """Set image by url"""
-        
-        # make local temp file
-        f, imgfile = tempfile.mkstemp("", "takenote")
-        os.close(f)
-        
-        # open url and download image
-        infile = urllib2.urlopen(url)
-        outfile = open(imgfile, "wb")
-        outfile.write(infile.read())
-        outfile.close()
-        
-        # set filename and image
-        self.set_from_file(imgfile)
-        self.set_filename(filename)
 
-        # remove tempfile
-        os.remove(imgfile)
+        try:
+        
+            # make local temp file
+            f, imgfile = tempfile.mkstemp("", "takenote")
+            os.close(f)
+        
+            # open url and download image
+            infile = urllib2.urlopen(url)
+            outfile = open(imgfile, "wb")
+            outfile.write(infile.read())
+            outfile.close()
+        
+            # set filename and image
+            self.set_from_file(imgfile)
+            self.set_filename(filename)
+
+        except urllib2.HTTPError, e:
+            self.set_no_image()
+            
+        finally:
+            # remove tempfile
+            if os.path.exists(imgfile):
+                os.remove(imgfile)
 
         
 
@@ -504,7 +515,7 @@ class RichTextBuffer (RichTextBaseBuffer):
         if it is None:
             it = self.get_iter_at_mark(self.get_insert())
 
-        self.begin_user_action()
+        self.begin_user_action()        
         insert_buffer_contents(self, it,
                                contents,
                                add_child_to_buffer,
