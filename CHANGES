@@ -1,8 +1,14 @@
 TakeNote Change Log
 -------------------
 
-takenote-0.4.2
+
+takenote-0.4.3
 --------------
+ - Windows version now has customizable shortcuts (using GTK)
+
+
+takenote-0.4.2 (2008/9/27)
+--------------------------
  - bullet point lists
    - also supports nested indented paragraphs with and without bullet points
  - default notebook options
