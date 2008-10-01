@@ -5,6 +5,8 @@ TakeNote Change Log
 takenote-0.4.3
 --------------
  - Windows version now has customizable shortcuts (using GTK)
+ - made sure GTK and python version requirements did not creep higher
+ - fixed setup.py problems with extensions
 
 
 takenote-0.4.2 (2008/9/27)
