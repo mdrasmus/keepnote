@@ -44,6 +44,12 @@ include(find_path("GTK/share/locale/en_GB"), "dist/share/locale/en_GB")
 include(find_path("GTK/share/themes"), "dist/share/themes")
 include(find_path("GTK/share/xml"), "dist/share/xml")
 
+# make sure accels can be changed
+out = open("dist/etc/gtk-2.0/gtkrc", "a")
+out.write("gtk-can-change-accels = 1\n")
+out.close()
+
+
 #prune("dist/share/doc")
 #prune("dist/share/gtk-doc")
 #for name in os.listdir("dist/share/locale"):
