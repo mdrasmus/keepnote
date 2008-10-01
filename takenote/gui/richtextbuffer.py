@@ -384,8 +384,9 @@ class RichTextImage (RichTextAnchor):
     def set_from_url(self, url, filename):
         """Set image by url"""
 
+        imgfile = None
+
         try:
-        
             # make local temp file
             f, imgfile = tempfile.mkstemp("", "takenote")
             os.close(f)
@@ -396,17 +397,20 @@ class RichTextImage (RichTextAnchor):
             outfile.write(infile.read())
             outfile.close()
         
+        except Exception: #urllib2.HTTPError, e:
+            imgfile = None
+
+
+        if imgfile:
             # set filename and image
             self.set_from_file(imgfile)
             self.set_filename(filename)
-
-        except urllib2.HTTPError, e:
+        else:
             self.set_no_image()
             
-        finally:
-            # remove tempfile
-            if os.path.exists(imgfile):
-                os.remove(imgfile)
+        # remove tempfile
+        if imgfile and os.path.exists(imgfile):
+            os.remove(imgfile)
 
         
 

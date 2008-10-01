@@ -62,7 +62,12 @@ else:
     data_files = []
     package_data = {'takenote': [x.replace("takenote/", "")
                                  for x in image_files] + [
-                                "rc/takenote.glade"]}
+                                "rc/takenote.glade"]
+                                }
+    for v in efiles.values():
+        package_data['takenote'].extend([x.replace("takenote/", "") for x in v])
+
+
 
 
 #=============================================================================

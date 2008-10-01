@@ -530,8 +530,12 @@ class TakeNoteWindow (gtk.Window):
         self.enable_spell_check(self.app.pref.spell_check)
 
         self.selector.set_date_formats(self.app.pref.timestamp_formats)
-        self.treeview.set_property("enable-tree-lines",
-                                   self.app.pref.treeview_lines)
+        try:
+            # if this version of GTK doesn't have tree-lines, ignore it
+            self.treeview.set_property("enable-tree-lines",
+                                       self.app.pref.treeview_lines)
+        except:
+            pass
         self.selector.set_rules_hint(self.app.pref.listview_rules)
 
         if self.app.pref.window_maximized:
@@ -1791,7 +1795,14 @@ class TakeNoteWindow (gtk.Window):
         toolbar = gtk.Toolbar()
         toolbar.set_orientation(gtk.ORIENTATION_HORIZONTAL)
         toolbar.set_style(gtk.TOOLBAR_ICONS)
-        toolbar.set_property("icon-size", gtk.ICON_SIZE_SMALL_TOOLBAR)
+
+        try:
+            # NOTE: if this version of GTK doesn't have this size, then
+            # ignore it
+            toolbar.set_property("icon-size", gtk.ICON_SIZE_SMALL_TOOLBAR)
+        except:
+            pass
+        
         toolbar.set_border_width(0)
         
         tips = gtk.Tooltips()

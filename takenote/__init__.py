@@ -673,10 +673,10 @@ class TakeNote (object):
                 self._extensions[name] = (filename, ext)
                 
             except Exception, e:
-                raise TakeNotePreferenceError("cannot load extension '%s'" %
-                                              filename, e)
-            finally:
                 infile.close()
+                raise TakeNotePreferenceError("cannot load extension '%s'" %
+                                              filename, e)            
+            infile.close()
                 
         return ext
         
