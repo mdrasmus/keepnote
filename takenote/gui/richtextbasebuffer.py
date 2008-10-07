@@ -327,33 +327,26 @@ class RichTextFont (object):
         
         # set modifications (current tags override)
         self.mods = {"bold":
-                tag_table.bold_tag in current_tags or
-                weight == pango.WEIGHT_BOLD,
-                "italic": 
-                tag_table.italic_tag in current_tags or
-                style == pango.STYLE_ITALIC,
-                "underline":
-                tag_table.underline_tag in current_tags or
-                attr.underline == pango.UNDERLINE_SINGLE,
-                "nowrap":
-                tag_table.no_wrap_tag in current_tags or
-                attr.wrap_mode == gtk.WRAP_NONE}
+                     tag_table.bold_tag in current_tags or
+                     weight == pango.WEIGHT_BOLD,
+                     "italic": 
+                     tag_table.italic_tag in current_tags or
+                     style == pango.STYLE_ITALIC,
+                     "underline":
+                     tag_table.underline_tag in current_tags or
+                     attr.underline == pango.UNDERLINE_SINGLE,
+                     "nowrap":
+                     tag_table.no_wrap_tag in current_tags or
+                     attr.wrap_mode == gtk.WRAP_NONE}
         
         # set justification
-        self.justify = tag_table.justify2name[attr.justification]
-        
-        # current tags override
-        if tag_table.center_tag in current_tags:
-            self.justify = "center"
-        elif tag_table.right_tag in current_tags:
-            self.justify = "right"
-        elif tag_table.fill_tag in current_tags:
-            self.justify = "fill"
-        
+        self.justify = RichTextJustifyTag.justify2name[attr.justification]
         
         # current tags override for family and size
-        for tag in current_tags:            
-            if isinstance(tag, RichTextFamilyTag):
+        for tag in current_tags:
+            if isinstance(tag, RichTextJustifyTag):
+                self.justify = tag.get_justify()
+            elif isinstance(tag, RichTextFamilyTag):
                 self.family = tag.get_family()            
             elif isinstance(tag, RichTextSizeTag):
                 self.size = tag.get_size()
@@ -361,6 +354,7 @@ class RichTextFont (object):
                 self.fg_color = tag.get_color()
             elif isinstance(tag, RichTextBGColorTag):
                 self.bg_color = tag.get_color()
+                
 
 
 
@@ -703,7 +697,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         # TODO: is there a faster way to do this?
         #   make faster mapping from tag to class
 
-        cls = self.tag_table.get_class(tag)
+        cls = self.tag_table.get_class_of_tag(tag)
         if cls is not None:
             for tag2 in cls:
                 self.remove_tag(tag2, start, end)
@@ -713,7 +707,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     def clear_current_tag_class(self, tag):
         """Remove all tags of the same class as 'tag' from current tags"""
         
-        cls = self.tag_table.get_class(tag)
+        cls = self.tag_table.get_class_of_tag(tag)
         if cls is not None:
             self._current_tags = [x for x in self._current_tags
                                   if x not in cls]

@@ -38,6 +38,15 @@ from takenote.gui.richtextbuffer import \
      RichTextError, \
      RichTextIndentTag
 
+from takenote.gui.richtext_tags import \
+     RichTextModTag, \
+     RichTextJustifyTag, \
+     RichTextFamilyTag, \
+     RichTextSizeTag, \
+     RichTextFGColorTag, \
+     RichTextBGColorTag, \
+     RichTextIndentTag, \
+     RichTextBulletTag
 
 from takenote.gui.richtext_html import HtmlBuffer, HtmlError
 
@@ -1039,13 +1048,13 @@ class RichTextView (gtk.TextView):
         """Toggle a font modification"""
         if self._textbuffer:
             self._textbuffer.toggle_tag_selected(
-                self._textbuffer.tag_table.lookup_mod(mod))
+                self._textbuffer.tag_table.lookup(RichTextModTag.tag_name(mod)))
 
     def set_font_mod(self, mod):
         """Sets a font modification"""
         if self._textbuffer:
             self._textbuffer.apply_tag_selected(
-                self._textbuffer.tag_table.lookup_mod(mod))
+                self._textbuffer.tag_table.lookup(RichTextModTag.tag_name(mod)))
 
     def set_font(self, font_name):
         """Font change from choose font widget"""
@@ -1069,43 +1078,49 @@ class RichTextView (gtk.TextView):
         for mod in self._textbuffer.tag_table.mod_names:
             if mod not in mods:
                 self._textbuffer.remove_tag_selected(
-                    tag_table.lookup_mod(mod))
+                    tag_table.lookup(RichTextModTag.tag_name(mod)))
     
     def set_font_family(self, family):
         """Sets the family font of the selection"""
         if self._textbuffer:
             self._textbuffer.apply_tag_selected(
-                self._textbuffer.tag_table.lookup_family(family))
+                self._textbuffer.tag_table.lookup(
+                    RichTextFamilyTag.tag_name(family)))
     
     def toggle_font_family(self, family):
         """Toggles the family font of the selection"""
         if self._textbuffer:
             self._textbuffer.toggle_tag_selected(
-                self._textbuffer.tag_table.lookup_family(family))
+                self._textbuffer.tag_table.lookup(
+                   RichTextFamilyTag.tag_name(family)))
     
     def set_font_size(self, size):
         """Sets the font size of the selection"""
         if self._textbuffer:
             self._textbuffer.apply_tag_selected(
-                self._textbuffer.tag_table.lookup_size(size))    
+                self._textbuffer.tag_table.lookup(
+                    RichTextSizeFont.tag_name(size)))
     
     def set_justify(self, justify):
         """Sets the text justification"""
         if self._textbuffer:
             self._textbuffer.apply_tag_selected(
-                self._textbuffer.tag_table.lookup_justify(justify))
+                self._textbuffer.tag_table.lookup(
+                    RichTextJustifyTag.tag_name(justify)))
 
     def set_font_fg_color(self, color):
         """Sets the text foreground color"""
         if self._textbuffer:
             self._textbuffer.apply_tag_selected(
-                self._textbuffer.tag_table.lookup_fg_color(color))
+                self._textbuffer.tag_table.lookup(
+                    RichTextFGColor.tag_name(color)))
         
     def set_font_bg_color(self, color):
         """Sets the text background color"""
         if self._textbuffer:
             self._textbuffer.apply_tag_selected(
-                self._textbuffer.tag_table.lookup_bg_color(color))
+                self._textbuffer.tag_table.lookup(
+                    RichTextBGColor.tag_name(color)))
 
     def toggle_bullet(self):
         """Toggle state of a bullet list"""

@@ -88,15 +88,17 @@ class IndentManager (object):
 
             if indent + change > 0:
                 self._buf.apply_tag_selected(
-                    self._buf.tag_table.lookup_indent(indent + change,
-                                                      par_indent),
+                    self._buf.tag_table.lookup(
+                        RichTextIndentTag.tag_name(indent + change,
+                                                   par_indent)),
                     pos, par_end)
                 
             elif indent > 0:
                 # remove indent and possible bullets
                 self._buf.remove_tag_selected(
-                    self._buf.tag_table.lookup_indent(indent, par_indent),
-                                pos, par_end)                
+                    self._buf.tag_table.lookup(
+                        RichTextIndentTag.tag_name(indent, par_indent)),
+                                pos, par_end)
                 self._remove_bullet(pos)
 
             else:
@@ -156,7 +158,8 @@ class IndentManager (object):
             indent = 1
 
         # apply indent to whole paragraph
-        indent_tag = self._buf.tag_table.lookup_indent(indent, par_type)
+        indent_tag = self._buf.tag_table.lookup(
+            RichTextIndentTag.tag_name(indent, par_type))
         self._buf.apply_tag_selected(indent_tag, par_start, par_end)
         
         self._queue_update_indentation(par_start, par_end)        
@@ -297,7 +300,8 @@ class IndentManager (object):
                     # remove all indent tags
                     # TODO: RichTextBaseBuffer function
                     self._buf.clear_tag_class(
-                        self._buf.tag_table.lookup_indent(1),
+                        self._buf.tag_table.lookup(
+                            RichTextIndentTag.tag_name(1)),
                         pos, par_end)
                     # remove bullets
                     par_type = "none"
