@@ -327,16 +327,16 @@ class RichTextFont (object):
         
         # set modifications (current tags override)
         self.mods = {"bold":
-                     tag_table.bold_tag in current_tags or
+                     tag_table.lookup("bold") in current_tags or
                      weight == pango.WEIGHT_BOLD,
                      "italic": 
-                     tag_table.italic_tag in current_tags or
+                     tag_table.lookup("italic") in current_tags or
                      style == pango.STYLE_ITALIC,
                      "underline":
-                     tag_table.underline_tag in current_tags or
+                     tag_table.lookup("underline") in current_tags or
                      attr.underline == pango.UNDERLINE_SINGLE,
                      "nowrap":
-                     tag_table.no_wrap_tag in current_tags or
+                     tag_table.lookup("nowrap") in current_tags or
                      attr.wrap_mode == gtk.WRAP_NONE}
         
         # set justification
@@ -698,8 +698,8 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         #   make faster mapping from tag to class
 
         cls = self.tag_table.get_class_of_tag(tag)
-        if cls is not None:
-            for tag2 in cls:
+        if cls is not None and cls.exclusive:
+            for tag2 in cls.tags:
                 self.remove_tag(tag2, start, end)
 
 
@@ -708,9 +708,9 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         """Remove all tags of the same class as 'tag' from current tags"""
         
         cls = self.tag_table.get_class_of_tag(tag)
-        if cls is not None:
+        if cls is not None and cls.exclusive:
             self._current_tags = [x for x in self._current_tags
-                                  if x not in cls]
+                                  if x not in cls.tags]
 
     
     #===========================================================

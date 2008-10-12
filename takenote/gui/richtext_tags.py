@@ -33,6 +33,7 @@ def color_to_string(color):
     return "#%s%s%s" % (redstr, greenstr, bluestr)
 
 
+
 class RichTextTagTable (gtk.TextTagTable):
     """A tag table for a RichTextBuffer"""
 
@@ -49,29 +50,15 @@ class RichTextTagTable (gtk.TextTagTable):
         self._tag2class = {}
 
         self.setup()
+        
 
     def setup(self):
         """Setup builtin tags and tag classes"""
-        
-        # modification (mod) font tags
-        # All of these can be combined
-        self.bold_tag = RichTextModTag("bold", weight=pango.WEIGHT_BOLD)
-        self.add(self.bold_tag)
-            
-        self.italic_tag = RichTextModTag("italic", style=pango.STYLE_ITALIC)
-        self.add(self.italic_tag)
-        
-        self.underline_tag = RichTextModTag("underline",
-                                            underline=pango.UNDERLINE_SINGLE)
-        self.add(self.underline_tag)
-            
-        self.no_wrap_tag = RichTextModTag("nowrap", wrap_mode=gtk.WRAP_NONE)
-        self.add(self.no_wrap_tag)
-        
-        self.mod_names = ["bold", "italic", "underline", "nowrap"]
 
+        # TODO: maybe move to richtextbase?
 
         # class sets
+        self.new_tag_class("mod", RichTextModTag, exclusive=False)
         self.new_tag_class("justify", RichTextJustifyTag)
         self.new_tag_class("family", RichTextFamilyTag)
         self.new_tag_class("size", RichTextSizeTag)
@@ -79,6 +66,21 @@ class RichTextTagTable (gtk.TextTagTable):
         self.new_tag_class("bg_color", RichTextBGColorTag)
         self.new_tag_class("indent", RichTextIndentTag)
         self.new_tag_class("bullet", RichTextBulletTag)
+
+
+        
+        # modification (mod) font tags
+        # All of these can be combined         
+        self.tag_class_add("mod",
+            RichTextModTag("bold", weight=pango.WEIGHT_BOLD))
+        self.tag_class_add("mod",
+            RichTextModTag("italic", style=pango.STYLE_ITALIC))
+        self.tag_class_add("mod",
+            RichTextModTag("underline",
+                           underline=pango.UNDERLINE_SINGLE))
+        self.tag_class_add("mod",
+            RichTextModTag("nowrap", wrap_mode=gtk.WRAP_NONE))
+        
 
         # justify tags
         self.tag_class_add("justify",
@@ -95,30 +97,28 @@ class RichTextTagTable (gtk.TextTagTable):
                                               justification=gtk.JUSTIFY_FILL))
         
         
-        self.bullet_tag = RichTextBulletTag()
-        self.tag_class_add("bullet", self.bullet_tag)
+        self.bullet_tag = self.tag_class_add("bullet", RichTextBulletTag())
 
 
 
-    def new_tag_class(self, class_name, class_type):
+    def new_tag_class(self, class_name, class_type, exclusive=True):
         """Create a new RichTextTag class for RichTextTagTable"""
-        c = set()
-        self._tag_classes[class_name] = (c, class_type)
+        c = RichTextTagClass(class_name, class_type, exclusive)
+        self._tag_classes[class_name] = c
         return c
-
 
     def get_tag_class(self, class_name):
         """Return the set of tags for a class"""
-        return self._tag_classes[class_name][0]
+        return self._tag_classes[class_name]
 
     def get_tag_class_type(self, class_name):
         """Return the RichTextTag type for a class"""
-        return self._tag_classes[class_name][1]
+        return self._tag_classes[class_name].class_type
 
     def tag_class_add(self, class_name, tag):
         """Add a tag to a tag class"""
-        c = self._tag_classes[class_name][0]
-        c.add(tag)
+        c = self._tag_classes[class_name]
+        c.tags.add(tag)
         self.add(tag)
         self._tag2class[tag] = c
         return tag
@@ -140,14 +140,32 @@ class RichTextTagTable (gtk.TextTagTable):
             return tag
 
         # make tag from scratch
-        for class_name, (tags, tag_class) in self._tag_classes.iteritems():
-            if tag_class.is_name(name):                
-                tag = tag_class.make_from_name(name)
-                self.tag_class_add(class_name, tag)
+        for tag_class in self._tag_classes.itervalues():
+            if tag_class.class_type.is_name(name):
+                tag = tag_class.class_type.make_from_name(name)
+                self.tag_class_add(tag_class.name, tag)
                 return tag
         
         
         raise Exception("unknown tag '%s'" % name)
+
+
+
+class RichTextTagClass (object):
+    """A class of tags that specify the same attribute
+    """
+
+    def __init__(self, name, class_type, exclusive=True):
+        """
+        name:        name of the class of tags (i.e. "family", "fg_color")
+        class_type:  RichTextTag class for all tags in class
+        exclusive:   bool for whether tags in class should be mutually exclusive
+        """
+        
+        self.name = name
+        self.tags = set()
+        self.class_type = class_type
+        self.exclusive = exclusive
 
 
 

@@ -1,5 +1,8 @@
 """
 
+    TakeNote
+    Matt Rasmussen 2008
+
     UndoStack for maintaining undo and redo actions
 
 """
@@ -25,7 +28,7 @@ def cat_funcs(funcs):
         for func in funcs:
             func()
     return f
-            
+
 
 class UndoStack (object):
     """UndoStack for maintaining undo and redo actions"""

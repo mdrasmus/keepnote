@@ -1,3 +1,12 @@
+"""
+
+    TakeNote
+    Matt Rasmussen 2008
+
+    Search features for notebook
+
+"""
+
 
 
 import sys
@@ -132,24 +141,35 @@ def match_words(node, words):
     """Returns True if any of the words in list 'words' appears in the
        node title or data file"""
 
+    # check title
     title = node.get_title().lower()
+
+    matches = dict.fromkeys(words, False)
+
     for word in words:
         if word in title:
-            return True
+            matches[word] = True            
 
     if node.is_page():
         for line in node.read_data_as_plain_text():
             line = line.lower()
             for word in words:
                 if word in line:
-                    return True
-    return False
+                    matches[word] = True
+
+    # return True if all words are found (AND)
+    for val in matches.itervalues():
+        if not val:
+            return False
+    
+    return True
 
 
 def search_manual(node, words):
     """Recursively search nodes under node for occurrence of words"""
     
     nodes = []
+    words = [x.lower() for x in words]
 
     def walk(node2):
         if match_words(node2, words):

@@ -1,4 +1,11 @@
+"""
 
+    TakeNote
+    Matt Rasmussen 2008
+
+    Linked list data structure
+
+"""
 
 
 class LinkedNode (object):

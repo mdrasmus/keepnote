@@ -1,4 +1,11 @@
+"""
 
+    TakeNote
+    Matt Rasmussen 2008
+
+    Listener (Observer) pattern
+
+"""
 
 
 class Listeners (object):

@@ -44,200 +44,7 @@ from takenote.gui import \
     dialog_image_resize, \
     TakeNoteError
 from takenote.gui.font_selector import FontSelector
-
-
-
-
-class TakeNoteEditor (gtk.VBox): #(gtk.Notebook):
-
-    def __init__(self):
-        #gtk.Notebook.__init__(self)
-        gtk.VBox.__init__(self, False, 0)
-        #self.set_scrollable(True)
-        self._notebook = None
-        
-        # TODO: may need to update fonts on page change
-        # TODO: add page reorder
-        # TODO: add close button on labels
-        
-        # state
-        self._textviews = []
-        self._pages = []
-        
-        self.new_tab()
-        self.show()
-
-    def set_notebook(self, notebook):
-
-        if self._notebook:
-            self._notebook.node_changed.remove(self.on_notebook_changed)
-        
-        self._notebook = notebook
-
-        if self._notebook:
-            self._notebook.node_changed.add(self.on_notebook_changed)
-            for view in self._textviews:                
-                view.set_default_font(self._notebook.pref.default_font)
-        else:
-            self.clear_view()
-
-    def on_notebook_changed(self, node, recurse):
-        for view in self._textviews:
-            view.set_default_font(self._notebook.pref.default_font)
-        
-    
-    def on_font_callback(self, textview, font):
-        self.emit("font-change", font)
-    
-    def on_modified_callback(self, page_num, modified):
-        self.emit("modified", self._pages[page_num], modified)
-
-    def on_child_activated(self, textview, child):
-        self.emit("child-activated", textview, child)
-    
-    #def on_error_callback(self, widget, text, error):
-    #    self.emit("error", text, error)
-        
-    
-    def get_textview(self):
-        #pos = self.get_current_tab()
-        pos = 0
-        
-        if pos == -1:
-            return None
-        else:    
-            return self._textviews[pos]
-    
-    
-    def new_tab(self):
-        self._textviews.append(RichTextView())
-
-        if self._notebook:
-            self._textviews[-1].set_default_font(self._notebook.pref.default_font)
-        self._pages.append(None)
-        
-        sw = gtk.ScrolledWindow()
-        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        sw.set_shadow_type(gtk.SHADOW_IN)       
-        sw.add(self._textviews[-1])
-        #self.append_page(sw, gtk.Label("(Untitled)"))
-        self.pack_start(sw)
-        self._textviews[-1].connect("font-change", self.on_font_callback)
-        self._textviews[-1].connect("modified", lambda t, m:
-            self.on_modified_callback(len(self._pages)-1, m))
-        self._textviews[-1].connect("child-activated", self.on_child_activated)
-        #self._textviews[-1].connect("error", self.on_error_callback)
-        self._textviews[-1].disable()
-        self._textviews[-1].show()
-        sw.show()
-        self.show()
-        
-    '''
-    def close_tab(self, pos=None):
-        if self.get_n_pages() <= 1:
-            return
-    
-        if pos is None:
-            pos = self.get_current_tab()
-        
-        self.save_tab(pos)
-
-        del self._pages[pos]
-        del self._textviews[pos]
-        self.remove_page(pos)
-    '''
-    
-    def get_n_pages(self):
-        return 1
-    
-    def get_current_tab(self):
-        return 0
-
-    def is_focus(self):
-        pos = self.get_current_tab()
-        return self._textviews[pos].is_focus()
-
-    def clear_view(self):
-        pos = self.get_current_tab()
-        self._pages[pos] = None
-        self._textviews[pos].disable()
-    
-    def view_pages(self, pages):
-        # TODO: generalize to multiple pages
-        assert len(pages) <= 1
-
-        
-        if len(pages) == 0:
-            self.save()
-            if self.get_n_pages() > 0:
-                self.clear_view()
-                
-        else:
-            page = pages[0]
-            
-            if isinstance(page, NoteBookPage):
-            
-                self.save()
-                if self.get_n_pages() == 0:
-                    self.new_tab()
-            
-                pos = self.get_current_tab()
-                self._pages[pos] = page
-                self._textviews[pos].enable()
-                #self.set_tab_label_text(self.get_children()[pos], 
-                #                        self._pages[pos].get_title())
-            
-                try:
-                    self._textviews[pos].load(self._pages[pos].get_data_file())
-                except RichTextError, e:
-                    self.clear_view()                
-                    self.emit("error", e.msg, e)
-                except Exception, e:
-                    self.clear_view()
-                    self.emit("error", "Unknown error", e)
-            else:
-                self.clear_view()
-                
-    
-    def save(self):
-        for pos in xrange(self.get_n_pages()):
-            self.save_tab(pos)
-            
-    
-    def save_tab(self, pos):
-        if self._pages[pos] is not None and \
-            self._pages[pos].is_valid() and \
-            self._textviews[pos].is_modified():
-
-            try:
-                self._textviews[pos].save(self._pages[pos].get_data_file())
-            except RichTextError, e:
-                self.emit("error", e.msg, e)
-                return
-            
-            self._pages[pos].set_modified_time()
-            
-            try:
-                self._pages[pos].save()
-            except NoteBookError, e:
-                self.emit("error", e.msg, e)
-    
-    def save_needed(self):
-        for textview in self._textviews:
-            if textview.is_modified():
-                return True
-        return False
-
-# add new signals to TakeNoteEditor
-gobject.type_register(TakeNoteEditor)
-gobject.signal_new("modified", TakeNoteEditor, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object, bool))
-gobject.signal_new("font-change", TakeNoteEditor, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object,))
-gobject.signal_new("error", TakeNoteEditor, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (str, object))
-gobject.signal_new("child-activated", TakeNoteEditor, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object, object))
+from takenote.gui.editor import TakeNoteEditor
 
 
 
@@ -878,7 +685,7 @@ class TakeNoteWindow (gtk.Window):
         try:
             self.notebook.empty_trash()
         except NoteBookError, e:
-            self.error("Could not empty trash.", e)
+            self.error("Could not empty trash.", e, sys.exc_traceback)
 
 
 
@@ -1028,19 +835,7 @@ class TakeNoteWindow (gtk.Window):
         self.editor.get_textview().set_justify(justify)
         font = self.editor.get_textview().get_font()
         self.on_font_change(self.editor, font)
-
-    def on_left_justify(self):
-        self.on_justify("left")
-
-    def on_center_justify(self):
-        self.on_justify("center")
-
-    def on_right_justify(self):
-        self.on_justify("right")
-
-    def on_fill_justify(self):
-        self.on_justify("fill")    
-
+        
     def on_bullet_list(self):
         """Toggle bullet list"""
         self.editor.get_textview().toggle_bullet()
@@ -1157,7 +952,8 @@ class TakeNoteWindow (gtk.Window):
         except Exception, e:        
             # catch exceptions for screenshot program
             self.restore_window()
-            self.error("The screenshot program encountered an error", e)
+            self.error("The screenshot program encountered an error", e,
+                       sys.exc_traceback)
             
         else:
             if not os.path.exists(imgfile):
@@ -1180,7 +976,7 @@ class TakeNoteWindow (gtk.Window):
         except OSError, e:
             self.restore_window()
             self.error("%s was unable to remove temp file for screenshot" %
-                       takenote.PROGRAM_NAME, e)
+                       takenote.PROGRAM_NAME, e, sys.exc_traceback)
 
         self.restore_window()
 
@@ -1224,7 +1020,8 @@ class TakeNoteWindow (gtk.Window):
                 self.insert_image(filename, imgname)
             except Exception, e:
                 # TODO: make exception more specific
-                self.error("Could not insert image '%s'" % filename, e)
+                self.error("Could not insert image '%s'" % filename, e,
+                           sys.exc_traceback)
             
         elif response == gtk.RESPONSE_CANCEL:
             dialog.destroy()
@@ -1265,7 +1062,7 @@ class TakeNoteWindow (gtk.Window):
             try:
                 proc = subprocess.Popen([viewer.prog, image_path])
             except OSError, e:
-                self.error("Could not open Image Viewer", e)
+                self.error("Could not open Image Viewer", e, sys.exc_traceback)
         else:
             self.error("You specify an Image Viewer in Application Options""")
 
@@ -1286,7 +1083,7 @@ class TakeNoteWindow (gtk.Window):
             try:
                 proc = subprocess.Popen([editor.prog, image_path])
             except OSError, e:
-                self.error("Could not open Image Editor", e)
+                self.error("Could not open Image Editor", e, sys.exc_traceback)
         else:
             self.error("You specify an Image Editor in Application Options""")
 
@@ -1331,7 +1128,8 @@ class TakeNoteWindow (gtk.Window):
                 try:                
                     image.write(dialog.get_filename())
                 except Exception, e:
-                    self.error("Could not save image '%s'" % dialog.get_filename(), e)
+                    self.error("Could not save image '%s'" %
+                               dialog.get_filename(), e, sys.exc_traceback)
 
         dialog.destroy()
                             
@@ -1399,7 +1197,7 @@ class TakeNoteWindow (gtk.Window):
                 filename = os.path.realpath(node.get_path())
             self.app.run_external_app(app, filename)
         except TakeNoteError, e:
-            self.error(e.msg, e)
+            self.error(e.msg, e, sys.exc_traceback)
 
 
     def view_error_log(self):        
@@ -1644,19 +1442,19 @@ class TakeNoteWindow (gtk.Window):
              None, None, 0, "<Separator>" ),            
             
             ("/Format/_Left Align", 
-             "<control>L", lambda w,e: self.on_left_justify(), 0, 
+             "<control>L", lambda w,e: self.on_justify("left"), 0, 
              "<ImageItem>", 
              get_resource_pixbuf("alignleft.png")),
             ("/Format/C_enter Align", 
-             "<control>E", lambda w,e: self.on_center_justify(), 0, 
+             "<control>E", lambda w,e: self.on_justify("center"), 0, 
              "<ImageItem>", 
              get_resource_pixbuf("aligncenter.png")),
             ("/Format/_Right Align", 
-             "<control>R", lambda w,e: self.on_right_justify(), 0, 
+             "<control>R", lambda w,e: self.on_justify("right"), 0, 
              "<ImageItem>", 
              get_resource_pixbuf("alignright.png")),
             ("/Format/_Justify Align", 
-             "<control>J", lambda w,e: self.on_fill_justify(), 0, 
+             "<control>J", lambda w,e: self.on_justify("fill"), 0, 
              "<ImageItem>", 
              get_resource_pixbuf("alignjustify.png")),
             ("/Format/sep2",
@@ -1990,7 +1788,7 @@ class TakeNoteWindow (gtk.Window):
                 get_resource_image("alignleft.png"))
         tips.set_tip(self.left_button, "Left Align")
         self.left_id = self.left_button.connect("toggled",
-                                            lambda w: self.on_left_justify())
+                                            lambda w: self.on_justify("left"))
         toolbar.insert(self.left_button, -1)
         self.font_ui_signals.append(FontUI(self.left_button,
                                            self.left_id))
@@ -2004,7 +1802,7 @@ class TakeNoteWindow (gtk.Window):
                 get_resource_image("aligncenter.png"))
         tips.set_tip(self.center_button, "Center Align")
         self.center_id = self.center_button.connect("toggled",
-                                          lambda w: self.on_center_justify())
+                                          lambda w: self.on_justify("center"))
         toolbar.insert(self.center_button, -1)
         self.font_ui_signals.append(FontUI(self.center_button,
                                            self.center_id))
@@ -2018,7 +1816,7 @@ class TakeNoteWindow (gtk.Window):
                 get_resource_image("alignright.png"))
         tips.set_tip(self.right_button, "Right Align")
         self.right_id = self.right_button.connect("toggled",
-                                           lambda w: self.on_right_justify())
+                                           lambda w: self.on_justify("right"))
         toolbar.insert(self.right_button, -1)
         self.font_ui_signals.append(FontUI(self.right_button,
                                            self.right_id))
@@ -2032,7 +1830,7 @@ class TakeNoteWindow (gtk.Window):
                 get_resource_image("alignjustify.png"))
         tips.set_tip(self.fill_button, "Justify Align")
         self.fill_id = self.fill_button.connect("toggled",
-                                             lambda w: self.on_fill_justify())
+                                             lambda w: self.on_justify("fill"))
         toolbar.insert(self.fill_button, -1)
         self.font_ui_signals.append(FontUI(self.fill_button,
                                            self.fill_id))

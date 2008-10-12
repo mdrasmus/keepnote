@@ -1074,11 +1074,12 @@ class RichTextView (gtk.TextView):
         for mod in mods:
             self.set_font_mod(mod)
 
-        # disable modification not given
-        for mod in self._textbuffer.tag_table.mod_names:
-            if mod not in mods:
-                self._textbuffer.remove_tag_selected(
-                    tag_table.lookup(RichTextModTag.tag_name(mod)))
+        # disable modifications not given
+        mod_class = self._textbuffer.tag_table.get_tag_class("mod")
+        for tag in mod_class:
+            if tag.get_property("name") not in mods:
+                self._textbuffer.remove_tag_selected(tag)
+                    
     
     def set_font_family(self, family):
         """Sets the family font of the selection"""
@@ -1099,7 +1100,7 @@ class RichTextView (gtk.TextView):
         if self._textbuffer:
             self._textbuffer.apply_tag_selected(
                 self._textbuffer.tag_table.lookup(
-                    RichTextSizeFont.tag_name(size)))
+                    RichTextSizeTag.tag_name(size)))
     
     def set_justify(self, justify):
         """Sets the text justification"""
