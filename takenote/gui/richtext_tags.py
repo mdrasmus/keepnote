@@ -33,6 +33,21 @@ def color_to_string(color):
     return "#%s%s%s" % (redstr, greenstr, bluestr)
 
 
+def color_tuple_to_string(color):
+    redstr = hex(color[0])[2:]
+    greenstr = hex(color[1])[2:]
+    bluestr = hex(color[2])[2:]
+
+    while len(redstr) < 4:
+        redstr = "0" + redstr
+    while len(greenstr) < 4:
+        greenstr = "0" + greenstr
+    while len(bluestr) < 4:
+        bluestr = "0" + bluestr
+
+    return "#%s%s%s" % (redstr, greenstr, bluestr)
+
+
 
 class RichTextTagTable (gtk.TextTagTable):
     """A tag table for a RichTextBuffer"""

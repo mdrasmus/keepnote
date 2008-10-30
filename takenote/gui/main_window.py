@@ -16,6 +16,7 @@ pygtk.require('2.0')
 from gtk import gdk
 import gtk.glade
 import gobject
+import pango
 
 # takenote imports
 import takenote
@@ -33,6 +34,7 @@ from takenote import notebook as notebooklib
 import takenote.search
 from takenote.gui import richtext
 from takenote.gui.richtext import RichTextView, RichTextImage, RichTextError
+from takenote.gui.richtext_tags import color_tuple_to_string
 from takenote.gui.treeview import TakeNoteTreeView
 from takenote.gui.noteselector import TakeNoteSelector
 from takenote.gui import \
@@ -45,6 +47,7 @@ from takenote.gui import \
     TakeNoteError
 from takenote.gui.font_selector import FontSelector
 from takenote.gui.editor import TakeNoteEditor
+from takenote.gui.colortool import FgColorTool, BgColorTool
 
 
 
@@ -890,6 +893,32 @@ class TakeNoteWindow (gtk.Window):
         self.editor.get_textview().set_font_size(font.size)
         self.on_font_change(self.editor, font)
 
+
+    def on_color_set(self, kind, color=0):
+        """Set text/background color"""
+        
+        if color == 0:
+            if kind == "fg":
+                color = self.fg_color_button.color
+            elif kind == "bg":
+                color = self.bg_color_button.color
+            else:
+                color = None
+
+        if color is not None:
+            colorstr = color_tuple_to_string(color)
+        else:
+            colorstr = None
+
+        if kind == "fg":
+            self.editor.get_textview().set_font_fg_color(colorstr)
+        elif kind == "bg":
+            self.editor.get_textview().set_font_bg_color(colorstr)
+        else:
+            raise Exception("unknown color type '%s'" % str(kind))
+        
+        
+
     #=================================================
     # Window manipulation
 
@@ -1483,8 +1512,16 @@ class TakeNoteWindow (gtk.Window):
                 "<control>minus", lambda w, e: self.on_font_size_dec(), 0, 
                 "<ImageItem>", 
                 get_resource_pixbuf("font-dec.png")),
-            
+
             ("/Format/sep5", 
+                None, None, 0, "<Separator>" ),
+            ("/Format/_Apply Text Color", 
+                "", lambda w, e: self.on_color_set("fg"), 0),
+            ("/Format/A_pply Background Color", 
+                "", lambda w, e: self.on_color_set("bg"), 0),
+            
+            
+            ("/Format/sep6", 
                 None, None, 0, "<Separator>" ),
             ("/Format/Choose _Font", 
                 "<control><shift>F", lambda w, e: self.on_choose_font(), 0, 
@@ -1765,14 +1802,23 @@ class TakeNoteWindow (gtk.Window):
 
 
         # font fg color
-        #self.fg_color_button = gtk.ColorButton()
-        #self.fg_color_button.set_title("Choose Text Color")
-        #item = gtk.ToolItem()
-        #item.add(self.fg_color_button)
-        #tips.set_tip(item, "Set Text Color")
-        #toolbar.insert(item, -1)
-        #self.fg_color_button.connect("color-set",
-        #    lambda w: self.on_color_set("fg"))
+        # TODO: code in proper default color
+        self.fg_color_button = FgColorTool(14, 15, (0, 0, 0))
+        self.fg_color_button.connect("set-color",
+                                     lambda w, color: self.on_color_set("fg",
+                                                                     color))
+        tips.set_tip(self.fg_color_button, "Set Text Color")
+        toolbar.insert(self.fg_color_button, -1)
+        
+
+        # font bg color
+        self.bg_color_button = BgColorTool(14, 15, (65535, 65535, 65535))
+        self.bg_color_button.connect("set-color",
+                                     lambda w, color: self.on_color_set("bg",
+                                                                     color))
+        tips.set_tip(self.bg_color_button, "Set Background Color")
+        toolbar.insert(self.bg_color_button, -1)
+
                 
         
         # separator

@@ -184,8 +184,9 @@ def get_unique_filename_list(filenames, filename, ext="", sep=" ", number=2):
             return newname
         i += 1
 
+
 #=============================================================================
-# File naming scheme
+# time functions
 
 def get_timestamp():
     """Returns the current timestamp"""
@@ -223,6 +224,10 @@ def get_str_timestamp(timestamp, current=None,
             return time.strftime(formats["diff_year"], local)
     except:
         return "[formatting error]"
+
+
+#=============================================================================
+# File naming scheme
 
 
 def get_dir_meta_file(nodepath):
@@ -305,6 +310,37 @@ class NoteBookVersionError (NoteBookError):
         self.notebook_version = notebook_version
         self.readable_version = readable_version
 
+# TODO: finish
+
+class NoteBookAttr (object):
+
+    def __init__(self, name, datatype, key=None):
+        if key == None:
+            self.key = name
+        self.name = name
+        self.datatype = datatype
+
+class NoteBookTable (object):
+    def __init__(self, name):
+        self.name = name
+        self.cols = []
+
+        # TODO: add col widths
+        # NoteBooks have tables and attrs
+
+# TODO: add title as attribute?
+g_created_time_attr = NoteBookAttr("Created", int, "created_time")
+g_modified_time_attr = NoteBookAttr("Modified", int, "modified_time")
+g_expanded_attr = NoteBookAttr("Expaned", bool, "expanded")
+g_expanded2_attr = NoteBookAttr("Expanded2", bool, "expanded2")
+# TODO: parent might be an implict attr
+
+
+# 1. attrs should be data that is optional (although takenote has a few
+# required entries).
+# 2. attrs can appear in listview
+
+
 
 class NoteBookNode (object):
     """A general base class for all nodes in a NoteBook"""
@@ -314,16 +350,20 @@ class NoteBookNode (object):
         self._title = title
         self._parent = parent
         self._basename = None
-        self._created_time = None
-        self._modified_time = None
+        self._children = None        
         self._valid = True
-        self._order = sys.maxint
-        self._children = None
-        self._expanded = False
-        self._expanded2 = False
+        
         self._info_sort = [INFO_SORT_NONE, 1]
         self._version = NOTEBOOK_FORMAT_VERSION
         self._kind = None
+        self._attr = {"order": sys.maxint,
+                      "created_time": None,
+                      "modified_time": None,
+                      "expanded": False,
+                      "expanded2": False}
+
+        # TODO: add a mechanism to register implict attrs that in turn do lookup
+        # "type", "title", "parent", "nchildren"
         
         self._set_basename(path)
 
@@ -338,8 +378,8 @@ class NoteBookNode (object):
         except OSError, e:
             raise NoteBookError("Cannot create node", e)
             
-        self._created_time = get_timestamp()
-        self._modified_time = get_timestamp()
+        self._attr["created_time"] = get_timestamp()
+        self._attr["modified_time"] = get_timestamp()
         self.write_meta_data()
         self._set_dirty(False)
 
@@ -389,64 +429,30 @@ class NoteBookNode (object):
     def get_order(self):
         #assert self._parent is not None
         #assert self._parent.get_children().index(self) == self._order
-        return self._order
+        return self._attr["order"]
     
     def is_valid(self):
         """Returns True if node is valid (not deleted)"""
         return self._valid
     
-    def get_created_time(self):
-        """Gets the creation time of the node"""
-        return self._created_time
-
-    def get_created_time_text(self, formats=DEFAULT_TIMESTAMP_FORMATS):
-        """Gets the creation time string of the node"""
-        return get_str_timestamp(self._created_time, formats=formats)
-    
-    def get_modified_time(self):
-        """Gets the modification time of the node"""
-        return self._modified_time
-
-    def get_modified_time_text(self, formats=DEFAULT_TIMESTAMP_FORMATS):
-        """Gets the modified time string of the node"""
-        return get_str_timestamp(self._modified_time, formats=formats)
-    
-    
-    def set_created_time(self, timestamp=None):
-        """Sets the creation time of the node"""
-        if timestamp is None:
-            self._created_time = get_timestamp()
-            self._set_dirty(True)
-        
-    def set_modified_time(self, timestamp=None):
-        """Sets the modification time of node"""
-        if timestamp is None:
-            self._modified_time = get_timestamp()
-            self._set_dirty(True)
-    
     def is_page(self):
         """Returns True if node is a page"""
         return self._kind == "page"
     
-    
-    def set_expand(self, expanded):
-        """Set expand state in sidebar"""
-        self._expanded = expanded
-        self._set_dirty(True)
-    
-    def is_expanded(self):
-        """Returns True if node is expanded in sidebar"""
-        return self._expanded
+    def get_attr(self, name, default=None):
+        return self._attr.get(name, default)
 
-    def set_expand2(self, expanded):
-        """Set expand state in selector"""
-        self._expanded2 = expanded
+    def set_attr(self, name, value):
+        self._attr[name] = value
         self._set_dirty(True)
-    
-    def is_expanded2(self):
-        """Returns True if node is expanded in selector"""
-        return self._expanded2
 
+    def set_attr_timestamp(self, name, timestamp=None):
+        """Set a timestamp attribute"""
+        if timestamp is None:
+            timestamp = get_timestamp()
+        self._attr[name] = timestamp
+        self._set_dirty(True)
+            
 
     def set_info_sort(self, info, sort_dir):
         """Sets the sorting information of the node"""
@@ -493,7 +499,7 @@ class NoteBookNode (object):
             self._parent = parent
             self._parent._add_child(self, index)
         else:
-            if self._order < index:
+            if self._attr["order"] < index:
                 index -= 1
             self._parent._add_child(self, index)
         self._set_dirty(True)
@@ -592,7 +598,9 @@ class NoteBookNode (object):
             raise NoteBookError("Cannot rename '%s' to '%s'" % (path, path2), e)
         
         self.notify_change(False)
-    
+
+
+    # TODO: refactor this to a kind argument and make a factory function...
     
     def new_page(self, title=DEFAULT_PAGE_NAME):
         """Add a new page under node"""
@@ -662,14 +670,14 @@ class NoteBookNode (object):
                 
         
         # assign orders
-        self._children.sort(key=lambda x: x._order)
+        self._children.sort(key=lambda x: x._attr["order"])
         self._set_child_order()
     
     def _set_child_order(self):
         """Ensures that child know their order in the children list"""
         for i, child in enumerate(self._children):
-            if child._order != i:
-                child._order = i
+            if child._attr["order"] != i:
+                child._attr["order"] = i
                 child._set_dirty(True)
             
 
@@ -694,7 +702,7 @@ class NoteBookNode (object):
             self._set_child_order()
         else:
             # append child at end of list
-            child._order = len(self._children)
+            child._attr["order"] = len(self._children)
             self._children.append(child)
 
         child._set_dirty(True)
@@ -796,8 +804,8 @@ class NoteBookNode (object):
 
     def read_meta_data(self):
         """Read meta data from file-system"""
-        self._created_time = None
-        self._modified_time = None    
+        self._attr["created_time"] = None
+        self._attr["modified_time"] = None    
     
         try:
             self._meta_parser.read(self, self.get_meta_file())
@@ -808,11 +816,11 @@ class NoteBookNode (object):
                                 self.get_path(),  e)
 
         # set defaults
-        if self._created_time is None:
-            self._created_time = get_timestamp()
+        if self._attr["created_time"] is None:
+            self._attr["created_time"] = get_timestamp()
             self._set_dirty(True)
-        if self._modified_time is None:
-            self._modified_time = get_timestamp()
+        if self._attr["modified_time"] is None:
+            self._attr["modified_time"] = get_timestamp()
             self._set_dirty(True)
 
                     
@@ -835,14 +843,14 @@ g_node_meta_data_tags = [
         getobj=("_title", str),
         set=lambda s: str(s._title)),
     xmlo.Tag("order",
-        getobj=("_order", int),
-        set=lambda s: str(s._order)),
+        get=lambda s, x: s._attr.__setitem__("order", int(x)),
+        set=lambda s: str(s._attr["order"])),
     xmlo.Tag("created_time",
-        getobj=("_created_time", int),
-        set=lambda s: str(s._created_time)),
+        get=lambda s, x: s._attr.__setitem__("created_time", int(x)),
+        set=lambda s: str(s._attr["created_time"])),
     xmlo.Tag("modified_time",
-        getobj=("_modified_time", int),
-        set=lambda s: str(s._modified_time)),
+        get=lambda s, x: s._attr.__setitem__("modified_time", int(x)),
+        set=lambda s: str(s._attr["modified_time"])),
     xmlo.Tag("info_sort", 
         get=lambda s, x: s._info_sort.__setitem__(0, int(x)),
         set=lambda s: str(s._info_sort[0])),
@@ -850,11 +858,11 @@ g_node_meta_data_tags = [
         get=lambda s, x: s._info_sort.__setitem__(1, int(x)),
         set=lambda s: str(s._info_sort[1])),
     xmlo.Tag("expanded",
-        getobj=("_expanded", lambda x: bool(int(x))),
-        set=lambda s: str(int(s._expanded))),
+        get=lambda s, x: s._attr.__setitem__("expanded", bool(int(x))),
+        set=lambda s: str(int(s._attr["expanded"]))),
     xmlo.Tag("expanded2",
-        getobj=("_expanded2", lambda x: bool(int(x))),
-        set=lambda s: str(int(s._expanded2))) ]
+        get=lambda s, x: s._attr.__setitem__("expanded2", bool(int(x))),
+        set=lambda s: str(int(s._attr["expanded2"]))) ]
 
 
 
@@ -947,7 +955,7 @@ class NoteBook (NoteBookDir):
             self._title = None
         self._dirty = set()
         self._trash = None
-        self._order = 0
+        self._attr["order"] = 0
         
         if rootdir:
             self._trash_path = get_trash_dir(self.get_path())

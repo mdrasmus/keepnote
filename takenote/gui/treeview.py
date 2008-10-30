@@ -224,7 +224,7 @@ class TakeNoteTreeView (treemodel.TakeNoteBaseTreeView):
             model.set_root_nodes([root])
             self.set_model(model)
             
-            if root.is_expanded():
+            if root.get_attr("expanded", True):
                 self.expand_to_path((0,))
 
             

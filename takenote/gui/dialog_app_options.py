@@ -142,9 +142,9 @@ class ApplicationOptionsDialog (object):
             # browse button
             def button_clicked(key, title, prog):
                 return lambda w: \
-                    self.on_app_options_browse(key,
-                                               "Choose %s" % title,
-                                               prog)
+                    self.on_browse(key,
+                                   "Choose %s" % title,
+                                   prog)
             button = gtk.Button("Browse...")
             button.set_image(
                 gtk.image_new_from_stock(gtk.STOCK_OPEN,

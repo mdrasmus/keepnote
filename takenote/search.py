@@ -133,8 +133,8 @@ class TakeNoteDb (object):
         
         self._cur.execute('INSERT INTO Nodes VALUES (%d,"%s",%d,%d,%d);' %
                   (0, "", 0,
-                   node.get_created_time(),
-                   node.get_modified_time()))
+                   node.get_attr("created_time", 0),
+                   node.get_attr("modified_time", 0)))
 
 
 def match_words(node, words):

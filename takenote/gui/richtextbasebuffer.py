@@ -690,6 +690,25 @@ class RichTextBaseBuffer (gtk.TextBuffer):
             self.remove_tag(tag, it[0], it[1])
         self.end_user_action()
 
+
+    def remove_tag_class_selected(self, tag, start=None, end=None):
+        """Remove all tags of a class from selection or current tags"""
+
+        self.begin_user_action()
+
+        if start is None:
+            it = self.get_selection_bounds()
+        else:
+            it = [start, end]
+        
+        # no selection, remove tag from current tags
+        self.clear_current_tag_class(tag)
+
+        # update region
+        if len(it) == 2:
+            self.clear_tag_class(tag, it[0], it[1])
+        self.end_user_action()
+
     
     def clear_tag_class(self, tag, start, end):
         """Remove all tags of the same class as 'tag' in region (start, end)"""

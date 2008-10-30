@@ -603,11 +603,13 @@ class RichTextView (gtk.TextView):
             
         elif "text/html" in selection_data.target:
             # set html
-            stream = StringIO.StringIO(data)
+            stream = StringIO.StringIO()
             self._html_buffer.set_output(stream)
             self._html_buffer.write(contents,
-                                    self._tetxbuffer.tag_table,
-                                    partial=True)
+                                    self._textbuffer.tag_table,
+                                    partial=True,
+                                    xhtml=False)
+            print stream.getvalue()
             selection_data.set("text/html", 8, stream.getvalue())
 
         elif len([x for x in MIME_IMAGES
@@ -1112,16 +1114,28 @@ class RichTextView (gtk.TextView):
     def set_font_fg_color(self, color):
         """Sets the text foreground color"""
         if self._textbuffer:
-            self._textbuffer.apply_tag_selected(
-                self._textbuffer.tag_table.lookup(
-                    RichTextFGColor.tag_name(color)))
+            if color:
+                self._textbuffer.toggle_tag_selected(
+                    self._textbuffer.tag_table.lookup(
+                        RichTextFGColorTag.tag_name(color)))
+            else:
+                self._textbuffer.remove_tag_class_selected(
+                    self._textbuffer.tag_table.lookup(
+                        RichTextFGColorTag.tag_name("#000000")))
+
         
     def set_font_bg_color(self, color):
         """Sets the text background color"""
         if self._textbuffer:
-            self._textbuffer.apply_tag_selected(
-                self._textbuffer.tag_table.lookup(
-                    RichTextBGColor.tag_name(color)))
+
+            if color:
+                self._textbuffer.toggle_tag_selected(
+                    self._textbuffer.tag_table.lookup(
+                        RichTextBGColorTag.tag_name(color)))
+            else:
+                self._textbuffer.remove_tag_class_selected(
+                    self._textbuffer.tag_table.lookup(
+                        RichTextBGColorTag.tag_name("#000000")))
 
     def toggle_bullet(self):
         """Toggle state of a bullet list"""

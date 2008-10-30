@@ -9,7 +9,7 @@ from gtk import gdk
 
 # takenote imports
 from takenote.gui import get_node_icon
-from takenote.notebook import NoteBookError
+from takenote.notebook import NoteBookError, get_str_timestamp
 
 
 # treeview drag and drop config
@@ -246,13 +246,21 @@ class TakeNoteTreeModel (gtk.GenericTreeModel):
         elif column == COL_TITLE_SORT:
             return node.get_title().lower()
         elif column == COL_CREATED_TEXT:
-            return node.get_created_time_text(self._date_formats)
+            timestamp = node.get_attr("created_time", None)
+            if timestamp is None:
+                return ""
+            else:
+                return get_str_timestamp(timestamp, formats=self._date_formats)
         elif column == COL_CREATED_INT:
-            return node.get_created_time()
+            return node.get_attr("created_time", 0)
         elif column == COL_MODIFIED_TEXT:
-            return node.get_modified_time_text(self._date_formats)
+            timestamp = node.get_attr("modified_time", None)
+            if timestamp is None:
+                return ""
+            else:
+                return get_str_timestamp(timestamp, formats=self._date_formats)
         elif column == COL_MODIFIED_INT:
-            return node.get_modified_time()
+            return node.get_attr("modified_time", 0)
         elif column == COL_MANUAL:
             return node.get_order()
         elif column == COL_NODE:
@@ -497,11 +505,11 @@ class TakeNoteBaseTreeView (gtk.TreeView):
 
     def is_node_expanded(self, node):
         # query expansion from nodes
-        return node.is_expanded()
+        return node.get_attr("expanded", False)
 
     def set_node_expanded(self, node, expand):
         # save expansion in node
-        node.set_expand(expand)
+        node.set_attr("expanded", expand)
         
 
     def on_row_expanded(self, treeview, it, path):
@@ -742,11 +750,13 @@ class TakeNoteBaseTreeView (gtk.TreeView):
                     self.emit("error", e.msg, e)
                     return
 
-                if len(old_parent_path) > 0 and old_parent.is_expanded():
+                if len(old_parent_path) > 0 and \
+                   old_parent.get_attr("expanded", False):
                     old_parent_path = get_path_from_node(self.model, old_parent)
                     self.expand_to_path(old_parent_path)
                 
-                if len(new_parent_path) > 0 and new_parent.is_expanded():
+                if len(new_parent_path) > 0 and \
+                   new_parent.get_attr("expanded", False):
                     new_parent_path = get_path_from_node(self.model, new_parent)
                     self.expand_to_path(new_parent_path)
                 
@@ -775,7 +785,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
                 source_node.move(new_parent, new_path[-1])
                 drag_context.finish(True, True, eventtime)
 
-                if new_parent.is_expanded():
+                if new_parent.get_attr("expanded", False):
                     self.expand_to_path(new_parent_path)
                                 
         else:

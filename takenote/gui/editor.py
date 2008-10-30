@@ -198,7 +198,7 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook):
                 self.emit("error", e.msg, e)
                 return
             
-            self._pages[pos].set_modified_time()
+            self._pages[pos].set_attr_timestamp("modified")
             
             try:
                 self._pages[pos].save()

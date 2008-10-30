@@ -47,6 +47,9 @@ XHTML_HEADER = """<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
 <body>"""
 XHTML_FOOTER = "</body></html>"
 
+HTML_HEADER = "<html><body>"
+HTML_FOOTER = "</body></html>"
+
 BULLET_STR = u"\u2022 "
 
 
@@ -661,10 +664,13 @@ class HtmlBuffer (HTMLParser):
     #================================================
     # Writing HTML
 
-    def write(self, buffer_content, tag_table, partial=False):
+    def write(self, buffer_content, tag_table, partial=False, xhtml=True):
 
         if not partial:
-            self._out.write(XHTML_HEADER)
+            if xhtml:
+                self._out.write(XHTML_HEADER)
+            else:
+                self._out.write(HTML_HEADER)
 
         # normalize contents, prepare them for DOM
         contents = normalize_tags(
@@ -674,10 +680,13 @@ class HtmlBuffer (HTMLParser):
         
         dom = TextBufferDom(contents)
         self.prepare_dom_write(dom)
-        self.write_dom(dom)
+        self.write_dom(dom, xhtml=xhtml)
 
         if not partial:
-            self._out.write(XHTML_FOOTER)
+            if xhtml:
+                self._out.write(XHTML_FOOTER)
+            else:
+                self._out.write(HTML_FOOTER)
 
 
     def prepare_dom_write(self, dom):
@@ -809,25 +818,25 @@ class HtmlBuffer (HTMLParser):
 
                     
 
-    def write_dom(self, dom):
+    def write_dom(self, dom, xhtml=True):
         """Write DOM"""
         for child in dom:
             if isinstance(child, TextDom):
-                self.write_text(child.text)
+                self.write_text(child.text, xhtml=xhtml)
 
             elif isinstance(child, TagDom):                
-                self.write_tag_begin(child)
-                self.write_dom(child)
-                self.write_tag_end(child)
+                self.write_tag_begin(child, xhtml=xhtml)
+                self.write_dom(child, xhtml=xhtml)
+                self.write_tag_end(child, xhtml=xhtml)
             
             elif isinstance(child, AnchorDom):
-                self.write_anchor(child.anchor)
+                self.write_anchor(child.anchor, xhtml=xhtml)
 
             else:
                 raise Exception("unknown dom '%s'" % str(dom))
 
 
-    def write_text(self, text):
+    def write_text(self, text, xhtml=True):
         """Write text"""
         
         # TODO: could try to speed this up
@@ -836,10 +845,13 @@ class HtmlBuffer (HTMLParser):
         text = text.replace("<", "&lt;")
         text = text.replace("\t", "&#09;")
         text = text.replace("  ", " &nbsp;")
-        text = text.replace("\n", "<br/>\n")
+        if xhtml:
+            text = text.replace("\n", "<br/>\n")
+        else:
+            text = text.replace("\n", "<br>\n")
         self._out.write(text)
 
-    def write_anchor(self, anchor):
+    def write_anchor(self, anchor, xhtml=True):
         """Write an anchor object"""
         
         if isinstance(anchor, RichTextImage):
@@ -851,13 +863,20 @@ class HtmlBuffer (HTMLParser):
                 size_str += " width=\"%d\"" % size[0]
             if size[1] is not None:
                 size_str += " height=\"%d\"" % size[1]
-                        
-            self._out.write("<img src=\"%s\"%s />" % 
-                            (anchor.get_filename(), size_str))
+
+            if xhtml:
+                self._out.write("<img src=\"%s\"%s />" % 
+                                (anchor.get_filename(), size_str))
+            else:
+                self._out.write("<img src=\"%s\"%s >" % 
+                                (anchor.get_filename(), size_str))
 
         elif isinstance(anchor, RichTextHorizontalRule):
             # write horizontal rule
-            self._out.write("<hr/>")
+            if xhtml:
+                self._out.write("<hr/>")
+            else:
+                self._out.write("<hr>")
                     
         else:
             # warning
@@ -865,7 +884,7 @@ class HtmlBuffer (HTMLParser):
             print "unknown anchor element", anchor
 
     
-    def write_tag_begin(self, dom):
+    def write_tag_begin(self, dom, xhtml=True):
         """Write opening tag of DOM"""
         
         tag = dom.tag
@@ -906,6 +925,9 @@ class HtmlBuffer (HTMLParser):
         elif isinstance(tag, RichTextIndentTag):
             self._out.write("<ol>")
 
+        elif isinstance(tag, RichTextBulletTag):
+            pass
+
         elif isinstance(dom, LiHtmlTagDom):
             if dom.kind == "bullet":
                 self._out.write('<li style="list-style-type: disc">')
@@ -917,7 +939,7 @@ class HtmlBuffer (HTMLParser):
             raise HtmlError("unknown tag '%s'" % tag.get_property("name"))
                 
         
-    def write_tag_end(self, dom):
+    def write_tag_end(self, dom, xhtml=True):
         """Write closing tag of DOM"""
         
         tag = dom.tag

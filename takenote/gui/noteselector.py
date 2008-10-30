@@ -180,10 +180,10 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
 
 
     def is_node_expanded(self, node):
-        return node.is_expanded2()
+        return node.get_attr("expanded2", False)
 
     def set_node_expanded(self, node, expand):
-        node.set_expand2(expand)
+        node.set_attr("expanded2", expand)
         
 
     def on_column_clicked(self, column):
@@ -371,7 +371,7 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
 
         # expand rows
         for node in self._roots:
-            if node.is_expanded2():
+            if node.get_attr("expanded2", False):
                 self.expand_to_path(treemodel.get_path_from_node(self.model, node))
 
         # disable if no roots
