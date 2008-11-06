@@ -356,6 +356,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         self.editing = False
         self.__sel_nodes = []
         self.__sel_nodes2 = []
+        self.__suppress_sel = False
 
         # selection
         self.get_selection().connect("changed", self.__on_select_changed)
@@ -447,7 +448,10 @@ class TakeNoteBaseTreeView (gtk.TreeView):
 
     def on_node_changed_start(self, model, nodes):
         # remember which nodes are selected
-        self.__sel_nodes2[:] = self.__sel_nodes
+        self.__sel_nodes2 = list(self.__sel_nodes)
+
+        # suppress selection changes while nodes are changing
+        self.__suppress_sel = True
 
 
     def on_node_changed_end(self, model, nodes):
@@ -486,12 +490,18 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         # if nodes still exist, and expanded, try to reselect them
         if len(self.__sel_nodes2) > 0:
             try:
+                # TODO: only reselects one node
                 path2 = get_path_from_node(self.model, self.__sel_nodes2[0])
-                if len(path2) == 0 or self.row_expanded(path2[:-1]):
+                if len(path2) <= 1 or self.row_expanded(path2[:-1]):
                     self.set_cursor(path2)
                     self.scroll_to_cell(path2)
-            except:
-                pass
+                else:
+                    self.get_selection().emit("changed")
+            except:            
+                self.get_selection().emit("changed")
+
+        # resume emitting selection changes
+        self.__suppress_sel = False
 
 
     def __on_select_changed(self, treeselect):
@@ -501,6 +511,9 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         self.__sel_nodes = [self.model.get_value(self.model.get_iter(path),
                                                  COL_NODE)
                             for path in paths]
+
+        if self.__suppress_sel:
+            self.get_selection().stop_emission("changed")
     
 
     def is_node_expanded(self, node):
@@ -579,6 +592,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         # remember editing state
         self.editing = True
         self.scroll_to_cell(path)
+        gobject.idle_add(lambda: self.scroll_to_cell(path))
     
     def on_editing_canceled(self, cellrenderer):
         """Callback for canceled of title editing"""
@@ -612,8 +626,11 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         # effect (gtk seems to ignore a select call if it "thinks" the path
         # is selected)
         self.set_cursor((0,))
+        path = get_path_from_node(self.model, node)
         self.set_cursor(path)
         self.scroll_to_cell(path)
+        gobject.idle_add(lambda: self.scroll_to_cell(path))
+
         
     
 

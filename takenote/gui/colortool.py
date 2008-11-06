@@ -152,10 +152,10 @@ class ColorMenu (gtk.Menu):
         self.attach(new_color, 0, self.width, 1, 2)
 
         # grab color
-        new_color = gtk.MenuItem("_Grab Color")
-        new_color.show()
-        new_color.connect("activate", self.on_grab_color)
-        self.attach(new_color, 0, self.width, 2, 3)
+        #new_color = gtk.MenuItem("_Grab Color")
+        #new_color.show()
+        #new_color.connect("activate", self.on_grab_color)
+        #self.attach(new_color, 0, self.width, 2, 3)
 
         # separator
         item = gtk.SeparatorMenuItem()

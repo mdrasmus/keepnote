@@ -241,6 +241,10 @@ class TakeNoteWindow (gtk.Window):
     def on_tree_select(self, treeview, nodes):
         """Callback for treeview selection change"""
 
+        # do nothing if selection is unchanged
+        if self.sel_nodes == nodes:
+            return
+
         self.sel_nodes = nodes
         self.selector.view_nodes(nodes)
 

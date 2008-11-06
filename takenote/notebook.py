@@ -116,7 +116,7 @@ INFO_SORT_MODIFIED_TIME = range(5)
 REGEX_SLASHES = re.compile(r"[/\\]")
 REGEX_BAD_CHARS = re.compile(r"[\?'&<>|`:;]")
 
-def get_valid_filename(filename):
+def get_valid_filename(filename, default="folder"):
     """Converts a filename into a valid one
     
     Strips bad characters from filename
@@ -133,7 +133,7 @@ def get_valid_filename(filename):
     
     # don't allow pure whitespace filenames
     if filename == "":
-        filename = "folder"
+        filename = default
     
     # use only lower case, some filesystems have trouble with mixed case
     filename = filename.lower()
