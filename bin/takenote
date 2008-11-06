@@ -100,7 +100,9 @@ o.add_option("--no-default", dest="default_notebook",
 
 def start_error_log(show_errors):
     """Starts TakeNote error log"""
-    
+
+    takenote.init_error_log()
+
     errorlog = open(takenote.get_user_error_log(), "a")
     if show_errors:
         sys.stderr = takenote.TeeFileStream([sys.stderr, errorlog],
@@ -110,7 +112,8 @@ def start_error_log(show_errors):
     
 
     sys.stderr.write("==============================================\n"
-                     "TakeNote: %s\n" % time.asctime())    
+                     "TakeNote %s: %s\n" % (takenote.PROGRAM_VERSION_TEXT,
+                                            time.asctime()))
 
 
 def main(argv):

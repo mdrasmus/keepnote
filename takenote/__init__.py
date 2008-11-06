@@ -20,6 +20,8 @@ from takenote.notebook import \
     NoteBookError, \
     get_unique_filename_list
 
+from takenote import xdg
+
 from takenote.listening import Listeners
 
 
@@ -29,7 +31,7 @@ from takenote.listening import Listeners
 PROGRAM_NAME = "TakeNote"
 PROGRAM_VERSION_MAJOR = 0
 PROGRAM_VERSION_MINOR = 4
-PROGRAM_VERSION_RELEASE = 3
+PROGRAM_VERSION_RELEASE = 4
 
 if PROGRAM_VERSION_RELEASE != 0:
     PROGRAM_VERSION_TEXT = "%d.%d.%d" % (PROGRAM_VERSION_MAJOR,
@@ -50,6 +52,7 @@ USER_PREF_DIR = "takenote"
 USER_PREF_FILE = "takenote.xml"
 USER_ERROR_LOG = "error-log.txt"
 USER_EXTENSIONS_DIR = "extensions"
+XDG_USER_EXTENSIONS_DIR = "takenote/extensions"
 
 
 DEFAULT_WINDOW_SIZE = (800, 600)
@@ -92,28 +95,69 @@ def get_platform():
 
 
 
+
+
 #=============================================================================
 # filenaming scheme
+
+
+def use_xdg(home=None):
+    """
+    Returns True if configuration is stored in XDG
+
+    Only returns True if platform is unix and old config $HOME/.takenote 
+    does not exist.
+    """
+
+    if get_platform() == "unix":
+        if home is None:
+            home = os.getenv("HOME")
+            if home is None:
+                raise EnvError("HOME environment variable must be specified")
+        old_dir = os.path.join(home, "." + USER_PREF_DIR)
+
+        return not os.path.exists(old_dir)
+    
+    else:
+        return False
+    
 
 def get_user_pref_dir(home=None):
     """Returns the directory of the application preference file"""
     
     p = get_platform()
     if p == "unix" or p == "darwin":
+        
         if home is None:
             home = os.getenv("HOME")
-        return os.path.join(home, "." + USER_PREF_DIR)
+            if home is None:
+                raise EnvError("HOME environment variable must be specified")
+        old_dir = os.path.join(home, "." + USER_PREF_DIR)
+
+        if os.path.exists(old_dir):
+            return old_dir
+        else:
+            return xdg.get_config_file(USER_PREF_DIR, default=True)
+
     elif p == "windows":
         appdata = os.getenv("APPDATA")
+        if appdata is None:
+            raise EnvError("APPDATA environment variable must be specified")
         return os.path.join(appdata, USER_PREF_DIR)
+
     else:
         raise Exception("unknown platform '%s'" % p)
 
+
 def get_user_extensions_dir(pref_dir=None, home=None):
     """Returns user extensions directory"""
-    if pref_dir is None:
-        pref_dir = get_user_pref_dir(home)
-    return os.path.join(pref_dir, USER_EXTENSIONS_DIR)
+
+    if not use_xdg():
+        if pref_dir is None:
+            pref_dir = get_user_pref_dir(home)
+        return os.path.join(pref_dir, USER_EXTENSIONS_DIR)
+    else:
+        return xdg.get_data_file(XDG_USER_EXTENSIONS_DIR, default=True)
 
 
 def get_system_extensions_dir():
@@ -128,9 +172,13 @@ def get_user_documents(home=None):
         if home is None:
             home = os.getenv("HOME")
         return home
+    
     elif p == "windows":
         home = os.getenv("USERPROFILE")
+
+        # TODO can I find a way to find "My Documents"?
         return os.path.join(home, "My Documents")
+    
     else:
         return ""
         #raise Exception("unknown platform '%s'" % p)
@@ -145,29 +193,54 @@ def get_user_pref_file(pref_dir=None, home=None):
 
 def get_user_error_log(pref_dir=None, home=None):
     """Returns a file for the error log"""
-    if pref_dir is None:
-        pref_dir = get_user_pref_dir(home)
-    return os.path.join(pref_dir, USER_ERROR_LOG)
+
+    if use_xdg():
+         return xdg.get_data_file(os.path.join(USER_PREF_DIR, USER_ERROR_LOG),
+                                  default=True)
+    else:
+        if pref_dir is None:
+            pref_dir = get_user_pref_dir(home)
+        return os.path.join(pref_dir, USER_ERROR_LOG)
+       
 
 
 def init_user_pref_dir(pref_dir=None, home=None):
     """Initializes the application preference file"""
 
     if pref_dir is None:
-        pref_dir = get_user_pref_dir(home)        
-    pref_file = get_user_pref_file(pref_dir)
-    
+        pref_dir = get_user_pref_dir(home)
+
+    # make directory
     if not os.path.exists(pref_dir):
-        os.mkdir(pref_dir)
-    
+        os.makedirs(pref_dir, 0700)
+
+    # init empty pref file
+    pref_file = get_user_pref_file(pref_dir)
     if not os.path.exists(pref_file):
         out = open(pref_file, "w")
         out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         out.write("<takenote>\n")
         out.write("</takenote>\n")
 
+    # init error log
+    init_error_log(pref_dir)
+
+    # init user extensions
     init_user_extensions(pref_dir)
 
+
+def init_error_log(pref_dir=None, home=None):
+    """Initialize the error log"""
+
+    if pref_dir is None:
+        pref_dir = get_user_pref_dir(home)     
+
+    error_log = get_user_error_log(pref_dir)
+    if not os.path.exists(error_log):
+        error_dir = os.path.dirname(error_log)
+        if not os.path.exists(error_dir):
+            os.makedirs(error_dir)
+        open(error_log, "a").close()
 
 
 def init_user_extensions(pref_dir=None, home=None):
@@ -180,7 +253,7 @@ def init_user_extensions(pref_dir=None, home=None):
 
     if not os.path.exists(extensions_dir):
         # make dir
-        os.mkdir(extensions_dir)
+        os.makedirs(extensions_dir, 0700)
 
 
 def iter_extensions(extensions_dir):
@@ -223,7 +296,21 @@ class ExternalApp (object):
 
 
 class TakeNotePreferenceError (StandardError):
-    """Exception that occurs when manipulating NoteBook's"""
+    """Exception that occurs when manipulating preferences"""
+    
+    def __init__(self, msg, error=None):
+        StandardError.__init__(self)
+        self.msg = msg
+        self.error = error
+        
+    def __str__(self):
+        if self.error:
+            return str(self.error) + "\n" + self.msg
+        else:
+            return self.msg
+
+class EnvError (StandardError):
+    """Exception that occurs when environment variables are ill-defined"""
     
     def __init__(self, msg, error=None):
         StandardError.__init__(self)
