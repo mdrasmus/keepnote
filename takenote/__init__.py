@@ -24,6 +24,10 @@ from takenote import xdg
 
 from takenote.listening import Listeners
 
+#=============================================================================
+# modules needed by builtin extensions
+# these are imported here, so that py2exe can auto-discover them
+import tarfile
 
 #=============================================================================
 # globals / constants
