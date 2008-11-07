@@ -1,9 +1,20 @@
 TakeNote Change Log
 -------------------
 
+takenote-0.4.4 (2008/11/06)
+---------------------------
 
-takenote-0.4.3
---------------
+- added colored font
+- added xdg user configuration support 
+- bug fixes
+  - fixed auto-highlighting in listview when changes occur to master list nodes
+  - drag and drop in listview cause weird scrolling
+  - new note sometimes cause goofy scrolling and selection
+  - helper application browser buttons didn't work
+
+
+takenote-0.4.3 (2008/10/01)
+---------------------------
  - Windows version now has customizable shortcuts (using GTK)
  - made sure GTK and python version requirements did not creep higher
  - fixed setup.py problems with extensions
