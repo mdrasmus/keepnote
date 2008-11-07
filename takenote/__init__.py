@@ -201,7 +201,6 @@ def get_user_error_log(pref_dir=None, home=None):
         if pref_dir is None:
             pref_dir = get_user_pref_dir(home)
         return os.path.join(pref_dir, USER_ERROR_LOG)
-       
 
 
 def init_user_pref_dir(pref_dir=None, home=None):

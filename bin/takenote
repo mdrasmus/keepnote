@@ -131,8 +131,8 @@ def main(argv):
     
     
     # init preference dir
-    if not os.path.exists(takenote.get_user_pref_dir()):            
-        os.mkdir(takenote.get_user_pref_dir())
+    if not os.path.exists(takenote.get_user_pref_dir()):
+        takenote.init_user_pref_dir()
 
     # start error log
     start_error_log(options.show_errors)

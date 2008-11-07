@@ -641,12 +641,14 @@ class TakeNoteWindow (gtk.Window):
         if widget == "treeview":
             self.treeview.expand_node(parent)
             self.treeview.edit_node(node)
+            
         elif widget == "selector":
-            #self.selector.view_nodes([parent])
             self.selector.expand_node(parent)
             self.selector.edit_node(node)
+            
         elif widget == "":
             pass
+        
         else:
             raise Exception("unknown widget '%s'" % widget)            
     
@@ -668,9 +670,7 @@ class TakeNoteWindow (gtk.Window):
         if parent.is_page():
             parent = parent.get_parent()
         node = parent.new_page()
-
-        # TODO: is the model not fully ready to be edited?
-
+        
         if widget == "treeview":
             self.treeview.expand_node(parent)
             self.treeview.edit_node(node)

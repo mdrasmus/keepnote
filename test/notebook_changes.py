@@ -1,6 +1,6 @@
 import os, shutil, unittest
 
-from test_richtext_html import TestCaseHtmlBuffer
+from richtext_html import TestCaseHtmlBuffer
 
 # takenote imports
 from takenote import notebook
@@ -101,4 +101,7 @@ class TestCaseNotebookChanges (unittest.TestCase):
         
 notebook_changes_suite = unittest.defaultTestLoader.loadTestsFromTestCase(
     TestCaseNotebookChanges)
+
+if __name__ == "__main__":
+    unittest.TextTestRunner(verbosity=2).run(notebook_changes_suite)
 
