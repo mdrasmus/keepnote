@@ -52,6 +52,9 @@ MAX_UNDOS = 100
 # string for bullet points
 BULLET_STR = u"\u2022 "
 
+# NOTE: use a blank user agent for downloading images
+# many websites refuse the python user agent
+USER_AGENT = ""
 
 
 
@@ -392,7 +395,13 @@ class RichTextImage (RichTextAnchor):
             os.close(f)
         
             # open url and download image
-            infile = urllib2.urlopen(url)
+            opener = urllib2.build_opener()
+            request = urllib2.Request(url)
+            request.add_header('User-Agent', USER_AGENT)
+            infile = opener.open(request)
+            
+            # infile = urllib2.urlopen(url)
+            
             outfile = open(imgfile, "wb")
             outfile.write(infile.read())
             outfile.close()

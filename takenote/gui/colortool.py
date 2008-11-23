@@ -82,7 +82,9 @@ class ColorTextImage (gtk.Image):
         self._pixmap = gdk.Pixmap(None, self.width, self.height,
                                   self.depth)
         self.set_from_pixmap(self._pixmap, None)
-        self._colormap = self._pixmap.get_colormap()
+        self._colormap = gtk.gdk.colormap_get_system()
+        #gtk.gdk.screen_get_default().get_default_colormap()
+        #self._colormap = self._pixmap.get_colormap()
         self._gc = self._pixmap.new_gc()
 
         self._context = self.get_pango_context()

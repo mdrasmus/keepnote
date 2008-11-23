@@ -23,8 +23,6 @@ from takenote import TakeNote, TakeNoteError
 from takenote import get_resource
 from takenote.notebook import \
      NoteBookError, \
-     NoteBookDir, \
-     NoteBookPage, \
      NoteBookTrash
 
 
@@ -79,11 +77,11 @@ def get_node_icon_filenames(node):
         return (get_resource(takenote.IMAGE_DIR, "trash.png"),
                 get_resource(takenote.IMAGE_DIR, "trash.png"))
     
-    elif isinstance(node, NoteBookDir):
+    elif not node.is_page():
         return (get_resource(takenote.IMAGE_DIR, "folder.png"),
                 get_resource(takenote.IMAGE_DIR, "folder-open.png"))
     
-    elif isinstance(node, NoteBookPage):
+    elif node.is_page():
         filename = get_resource(takenote.IMAGE_DIR, "note.png")
         return (filename, filename)
 

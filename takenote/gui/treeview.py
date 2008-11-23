@@ -34,7 +34,7 @@ from takenote.gui import \
      get_resource_image, \
      get_resource_pixbuf, \
      get_node_icon
-from takenote.notebook import NoteBookDir, NoteBookPage, NoteBookTrash, \
+from takenote.notebook import NoteBookTrash, \
               NoteBookError
 
 

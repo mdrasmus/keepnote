@@ -27,16 +27,14 @@ from takenote.gui import \
      get_accel_file
 from takenote.notebook import \
      NoteBookError, \
-     NoteBookVersionError, \
-     NoteBookDir, \
-     NoteBookPage
+     NoteBookVersionError
 from takenote import notebook as notebooklib
 import takenote.search
 from takenote.gui import richtext
 from takenote.gui.richtext import RichTextView, RichTextImage, RichTextError
 from takenote.gui.richtext_tags import color_tuple_to_string
 from takenote.gui.treeview import TakeNoteTreeView
-from takenote.gui.noteselector import TakeNoteSelector
+from takenote.gui.listview import TakeNoteListView
 from takenote.gui import \
     quote_filename, \
     screenshot_win, \
@@ -93,14 +91,14 @@ class TakeNoteWindow (gtk.Window):
         self.treeview.connect("select-nodes", self.on_tree_select)
         self.treeview.connect("error", lambda w,t,e: self.error(t, e))
         
-        # selector
-        self.selector = TakeNoteSelector()
-        self.selector.connect("select-nodes", self.on_list_select)
-        self.selector.connect("goto-node", self.on_list_view_node)
-        self.selector.connect("goto-parent-node",
+        # listview
+        self.listview = TakeNoteListView()
+        self.listview.connect("select-nodes", self.on_list_select)
+        self.listview.connect("goto-node", self.on_list_view_node)
+        self.listview.connect("goto-parent-node",
                               lambda w: self.on_list_view_parent_node())
-        self.selector.connect("error", lambda w,t,e: self.error(t, e))
-        self.selector.on_status = self.set_status
+        self.listview.connect("error", lambda w,t,e: self.error(t, e))
+        self.listview.on_status = self.set_status
         
         
         # editor
@@ -176,12 +174,12 @@ class TakeNoteWindow (gtk.Window):
         sw.add(self.treeview)
         self.hpaned.add1(sw)
         
-        # selector with scrollbars
-        self.selector_sw = gtk.ScrolledWindow()
-        self.selector_sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        self.selector_sw.set_shadow_type(gtk.SHADOW_IN)
-        self.selector_sw.add(self.selector)
-        self.paned2.add1(self.selector_sw)
+        # listview with scrollbars
+        self.listview_sw = gtk.ScrolledWindow()
+        self.listview_sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.listview_sw.set_shadow_type(gtk.SHADOW_IN)
+        self.listview_sw.add(self.listview)
+        self.paned2.add1(self.listview_sw)
         
         # layout editor
         self.paned2.add2(self.editor)
@@ -246,23 +244,23 @@ class TakeNoteWindow (gtk.Window):
             return
 
         self.sel_nodes = nodes
-        self.selector.view_nodes(nodes)
+        self.listview.view_nodes(nodes)
 
         if len(self.queue_list_select) > 0:
-            self.selector.select_nodes(self.queue_list_select)
+            self.listview.select_nodes(self.queue_list_select)
             self.queue_list_select = []
                 
         # view pages
         pages = [node for node in nodes 
-                 if isinstance(node, NoteBookPage)]
+                 if node.is_page()]
         
         if len(pages) > 0:
-            self.selector.select_nodes(pages)
+            self.listview.select_nodes(pages)
         else:
-            self.selector.select_nodes([])
+            self.listview.select_nodes([])
 
     
-    def on_list_select(self, selector, pages):
+    def on_list_select(self, listview, pages):
         """Callback for listview selection change"""
 
         # TODO: will need to generalize to multiple pages
@@ -278,10 +276,10 @@ class TakeNoteWindow (gtk.Window):
             self.error("Could not load page '%s'" % pages[0].get_title(),
                        e, sys.exc_traceback)
 
-    def on_list_view_node(self, selector, node):
+    def on_list_view_node(self, listview, node):
         """Focus listview on a node"""
         if node is None:
-            nodes = self.selector.get_selected_nodes()
+            nodes = self.listview.get_selected_nodes()
             if len(nodes) == 0:
                 return
             node = nodes[0]
@@ -297,8 +295,8 @@ class TakeNoteWindow (gtk.Window):
             if len(self.sel_nodes) == 0:
                 return
             if len(self.sel_nodes) > 1 or \
-               not self.selector.is_view_tree():
-                nodes = self.selector.get_selected_nodes()
+               not self.listview.is_view_tree():
+                nodes = self.listview.get_selected_nodes()
                 if len(nodes) == 0:
                     return
                 node = nodes[0]
@@ -311,7 +309,7 @@ class TakeNoteWindow (gtk.Window):
             return
 
         # queue list select
-        nodes = self.selector.get_selected_nodes()
+        nodes = self.listview.get_selected_nodes()
         if len(nodes) > 0:
             self.queue_list_select = nodes
         else:
@@ -343,14 +341,14 @@ class TakeNoteWindow (gtk.Window):
         
         self.enable_spell_check(self.app.pref.spell_check)
 
-        self.selector.set_date_formats(self.app.pref.timestamp_formats)
+        self.listview.set_date_formats(self.app.pref.timestamp_formats)
         try:
             # if this version of GTK doesn't have tree-lines, ignore it
             self.treeview.set_property("enable-tree-lines",
                                        self.app.pref.treeview_lines)
         except:
             pass
-        self.selector.set_rules_hint(self.app.pref.listview_rules)
+        self.listview.set_rules_hint(self.app.pref.listview_rules)
 
         if self.app.pref.window_maximized:
             self.maximize()
@@ -582,7 +580,7 @@ class TakeNoteWindow (gtk.Window):
         
         self.notebook = notebook
         self.editor.set_notebook(notebook)
-        self.selector.set_notebook(notebook)
+        self.listview.set_notebook(notebook)
         self.treeview.set_notebook(notebook)
 
 
@@ -596,25 +594,25 @@ class TakeNoteWindow (gtk.Window):
         in widget 'widget'
 
         Wiget can be
-           selector -- nodes selected in listview
+           listview -- nodes selected in listview
            treeview -- nodes selected in treeview
            focus    -- nodes selected in widget with focus
         """
         
         if widget == "focus":
-            if self.selector.is_focus():
-                widget = "selector"
+            if self.listview.is_focus():
+                widget = "listview"
             elif self.treeview.is_focus():
                 widget = "treeview"
             elif self.editor.is_focus():
-                widget = "selector"
+                widget = "listview"
             else:
                 return ([], "")
 
         if widget == "treeview":
             nodes = self.treeview.get_selected_nodes()
-        elif widget == "selector":
-            nodes = self.selector.get_selected_nodes()
+        elif widget == "listview":
+            nodes = self.listview.get_selected_nodes()
         else:
             raise Exception("unknown widget '%s'" % widget)
 
@@ -642,9 +640,9 @@ class TakeNoteWindow (gtk.Window):
             self.treeview.expand_node(parent)
             self.treeview.edit_node(node)
             
-        elif widget == "selector":
-            self.selector.expand_node(parent)
-            self.selector.edit_node(node)
+        elif widget == "listview":
+            self.listview.expand_node(parent)
+            self.listview.edit_node(node)
             
         elif widget == "":
             pass
@@ -674,9 +672,9 @@ class TakeNoteWindow (gtk.Window):
         if widget == "treeview":
             self.treeview.expand_node(parent)
             self.treeview.edit_node(node)
-        elif widget == "selector":
-            self.selector.expand_node(parent)
-            self.selector.edit_node(node)
+        elif widget == "listview":
+            self.listview.expand_node(parent)
+            self.listview.edit_node(node)
         elif widget == "":
             pass
         else:
@@ -704,7 +702,7 @@ class TakeNoteWindow (gtk.Window):
         words = [x.lower() for x in
                  self.search_box.get_text().strip().split()]
         nodes = takenote.search.search_manual(self.notebook, words)
-        self.selector.view_nodes(nodes, nested=False)
+        self.listview.view_nodes(nodes, nested=False)
 
 
     def focus_on_search_box(self):
@@ -744,7 +742,7 @@ class TakeNoteWindow (gtk.Window):
 
         self.ignore_view_mode = True
         
-        self.paned2.remove(self.selector_sw)
+        self.paned2.remove(self.listview_sw)
         self.paned2.remove(self.editor)
         self.hpaned.remove(self.paned2)
         
@@ -763,7 +761,7 @@ class TakeNoteWindow (gtk.Window):
         self.hpaned.add2(self.paned2)
         self.hpaned.show()
         
-        self.paned2.add1(self.selector_sw)
+        self.paned2.add1(self.listview_sw)
         self.paned2.add2(self.editor)
         
         self.app.pref.view_mode = mode
@@ -1178,7 +1176,7 @@ class TakeNoteWindow (gtk.Window):
         
     def on_goto_listview(self):
         """Switch focus to ListView"""
-        self.selector.grab_focus()
+        self.listview.grab_focus()
         
     def on_goto_editor(self):
         """Switch focus to Editor"""
@@ -1447,7 +1445,7 @@ class TakeNoteWindow (gtk.Window):
                 "<StockItem>", gtk.STOCK_FIND), 
                 
             
-            ("/_Format", 
+            ("/Fo_rmat", 
              None, None, 0, "<Branch>"),
 
             ("/Format/_Bold", 
@@ -2026,30 +2024,30 @@ class TakeNoteWindow (gtk.Window):
 
         
         #=================================
-        # listview (note selector) context menu
+        # listview context menu
 
-        # selector/view note
+        # listview/view note
         item = gtk.ImageMenuItem(gtk.STOCK_GO_DOWN)
         #item.child.set_label("Go to _Note")
         item.child.set_markup_with_mnemonic("<b>Go to _Note</b>")
         item.connect("activate",
                      lambda w: self.on_list_view_node(None, None))
-        self.selector.menu.append(item)
+        self.listview.menu.append(item)
         item.show()
 
-        # selector/view note
+        # listview/view note
         item = gtk.ImageMenuItem(gtk.STOCK_GO_UP)
         item.child.set_label("Go to _Parent Note")
         item.connect("activate",
                      lambda w: self.on_list_view_parent_node())
-        self.selector.menu.append(item)
+        self.listview.menu.append(item)
         item.show()
 
         item = gtk.SeparatorMenuItem()
-        self.selector.menu.append(item)
+        self.listview.menu.append(item)
         item.show()
 
-        # selector/new folder
+        # listview/new folder
         item = gtk.ImageMenuItem()
         item.set_image(get_resource_image("folder-new.png"))
         label = gtk.Label("New _Folder")
@@ -2057,11 +2055,11 @@ class TakeNoteWindow (gtk.Window):
         label.set_alignment(0.0, 0.5)
         label.show()
         item.add(label)
-        item.connect("activate", lambda w: self.on_new_dir("selector"))
-        self.selector.menu.append(item)
+        item.connect("activate", lambda w: self.on_new_dir("listview"))
+        self.listview.menu.append(item)
         item.show()
         
-        # treeview/new page
+        # listview/new page
         item = gtk.ImageMenuItem()
         item.set_image(get_resource_image("note-new.png"))        
         label = gtk.Label("New _Page")
@@ -2069,47 +2067,47 @@ class TakeNoteWindow (gtk.Window):
         label.set_alignment(0.0, 0.5)
         label.show()
         item.add(label)        
-        item.connect("activate", lambda w: self.on_new_page("selector"))
-        self.selector.menu.append(item)
+        item.connect("activate", lambda w: self.on_new_page("listview"))
+        self.listview.menu.append(item)
         item.show()
 
-        # selector/delete node
+        # listview/delete node
         item = gtk.ImageMenuItem(gtk.STOCK_DELETE)
-        item.connect("activate", lambda w: self.selector.on_delete_page())
-        self.selector.menu.append(item)
+        item.connect("activate", lambda w: self.listview.on_delete_page())
+        self.listview.menu.append(item)
         item.show()
 
         item = gtk.SeparatorMenuItem()
         item.show()
-        self.selector.menu.append(item)
+        self.listview.menu.append(item)
         
-        # selector/file explorer
+        # listview/file explorer
         item = gtk.MenuItem("View in File _Explorer")
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("file_explorer",
                                                               None,
-                                                              "selector"))
-        self.selector.menu.append(item)
+                                                              "listview"))
+        self.listview.menu.append(item)
         item.show()
 
-        # treeview/web browser
+        # listview/web browser
         item = gtk.MenuItem("View in _Web Browser")
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("web_browser",
                                                               None,
-                                                             "selector",
+                                                             "listview",
                                                               page_only=True))
-        self.selector.menu.append(item)
+        self.listview.menu.append(item)
         item.show()        
 
-        # treeview/text editor
+        # listview/text editor
         item = gtk.MenuItem("View in _Text Editor")
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("text_editor",
                                                               None,
-                                                              "selector",
+                                                              "listview",
                                                               page_only=True))
-        self.selector.menu.append(item)
+        self.listview.menu.append(item)
         item.show()        
 
 

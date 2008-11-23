@@ -12,12 +12,18 @@ import os, sys, shutil, time, re
 # takenote imports
 import takenote.xmlobject as xmlo
 from takenote.listening import Listeners
-
+from takenote.timestamp import \
+     DEFAULT_TIMESTAMP_FORMATS, \
+     get_timestamp, \
+     get_localtime, \
+     get_str_timestamp
 
 
 # constants
 BLANK_NOTE = """<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><body></body></html>"""
+
+XML_HEADER = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
 
 NOTEBOOK_FORMAT_VERSION = 1
 ELEMENT_NODE = 1
@@ -33,73 +39,6 @@ DEFAULT_DIR_NAME = "New Folder"
 DEFAULT_FONT_FAMILY = "Sans"
 DEFAULT_FONT_SIZE = 10
 DEFAULT_FONT = "%s %d" % (DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE)
-
-
-
-# determine UNIX Epoc (which should be 0, unless the current platform has a 
-# different definition of epoc)
-# Use the epoc date + 1 month (SEC_OFFSET) in order to prevent underflow in date due to user's timezone
-SEC_OFFSET = 3600 * 24 * 31
-EPOC = time.mktime((1970, 2, 1, 0, 0, 0, 3, 1, 0)) - time.timezone - SEC_OFFSET
-
-
-"""
-
-0  	tm_year  	(for example, 1993)
-1 	tm_mon 	range [1,12]
-2 	tm_mday 	range [1,31]
-3 	tm_hour 	range [0,23]
-4 	tm_min 	range [0,59]
-5 	tm_sec 	range [0,61]; see (1) in strftime() description
-6 	tm_wday 	range [0,6], Monday is 0
-7 	tm_yday 	range [1,366]
-8 	tm_isdst 	0, 1 or -1; see below
-
-"""
-
-TM_YEAR, \
-TM_MON, \
-TM_MDAY, \
-TM_HOUR, \
-TM_MIN, \
-TM_SEC, \
-TM_WDAY, \
-TM_YDAY, \
-TM_ISDST = range(9)
-
-
-
-"""
-%a  	Locale's abbreviated weekday name.  	
-%A 	Locale's full weekday name. 	
-%b 	Locale's abbreviated month name. 	
-%B 	Locale's full month name. 	
-%c 	Locale's appropriate date and time representation. 	
-%d 	Day of the month as a decimal number [01,31]. 	
-%H 	Hour (24-hour clock) as a decimal number [00,23]. 	
-%I 	Hour (12-hour clock) as a decimal number [01,12]. 	
-%j 	Day of the year as a decimal number [001,366]. 	
-%m 	Month as a decimal number [01,12]. 	
-%M 	Minute as a decimal number [00,59]. 	
-%p 	Locale's equivalent of either AM or PM. 	(1)
-%S 	Second as a decimal number [00,61]. 	(2)
-%U 	Week number of the year (Sunday as the first day of the week) as a decimal number [00,53]. All days in a new year preceding the first Sunday are considered to be in week 0. 	(3)
-%w 	Weekday as a decimal number [0(Sunday),6]. 	
-%W 	Week number of the year (Monday as the first day of the week) as a decimal number [00,53]. All days in a new year preceding the first Monday are considered to be in week 0. 	(3)
-%x 	Locale's appropriate date representation. 	
-%X 	Locale's appropriate time representation. 	
-%y 	Year without century as a decimal number [00,99]. 	
-%Y 	Year with century as a decimal number. 	
-%Z 	Time zone name (no characters if no time zone exists). 	
-%% 	A literal "%" character.
-"""
-
-DEFAULT_TIMESTAMP_FORMATS = {
-    "same_day": "%I:%M %p",
-    "same_month": "%a, %d %I:%M %p",
-    "same_year": "%a, %b %d %I:%M %p",
-    "diff_year": "%a, %b %d, %Y"
-}
 
 
 # information sort constants
@@ -186,47 +125,6 @@ def get_unique_filename_list(filenames, filename, ext="", sep=" ", number=2):
 
 
 #=============================================================================
-# time functions
-
-def get_timestamp():
-    """Returns the current timestamp"""
-    return int(time.time() - EPOC)
-
-def get_localtime():
-    """Returns the local time"""
-    return time.localtime()
-
-def get_str_timestamp(timestamp, current=None,
-                      formats=DEFAULT_TIMESTAMP_FORMATS):
-    """
-    Get a string representation of a time stamp
-    
-    The string will be abbreviated according to the current time.
-    """
-
-    if formats is None:
-        formats = DEFAULT_TIMESTAMP_FORMATS
-
-    try:
-        if current is None:
-            current = get_localtime()
-        local = time.localtime(timestamp + EPOC)
-    
-        if local[TM_YEAR] == current[TM_YEAR]:
-            if local[TM_MON] == current[TM_MON]:
-                if local[TM_MDAY] == current[TM_MDAY]:
-                    return time.strftime(formats["same_day"], local)
-                else:
-                    return time.strftime(formats["same_month"], local)
-            else:
-                return time.strftime(formats["same_year"], local)        
-        else:
-            return time.strftime(formats["diff_year"], local)
-    except:
-        return "[formatting error]"
-
-
-#=============================================================================
 # File naming scheme
 
 
@@ -255,6 +153,9 @@ def get_trash_dir(nodepath):
     return os.path.join(nodepath, TRASH_DIR)
 
 
+#=============================================================================
+# HTML functions
+
 TAG_PATTERN = re.compile("<[^>]*>")
 def strip_tags(line):
     return re.sub(TAG_PATTERN, "", line)
@@ -281,6 +182,48 @@ def read_data_as_plain_text(infile):
         yield strip_tags(line)
 
 
+#=============================================================================
+# notebook functions
+
+def update_notebook(filename, desired_version):
+    """Updates a notebook to the desired version (downgrading not implemented)"""
+
+    # try to open notebook (may raise exceptions)
+    notebook = Notebook()
+    notebook.load(filename)
+
+    if notebook.version >= desired_version:
+        return
+
+
+    # NOTE: for now, this code only works for version 1 to 2
+
+    assert desired_version == 2
+
+    if notebook.version == 1:
+        from takenote.backcompat import notebook_v1 as old_notebooklib
+
+        # try to load old notebook (may raise exceptions)
+        old_notebook = old_notebooklib.Notebook()
+        old_notebook.load(filename)
+
+        def walk(node):
+            for child in node.get_children():
+                # write to "node.xml" meta file
+                child.write_meta_data2()
+
+                # remove old "page.xml" meta file
+                if isinstance(child, old_notebooklib.NoteBookPage):
+                    try:
+                        os.remove(child.get_meta_file())
+                    except:
+                        pass
+            
+
+
+
+#=============================================================================
+# classes
 
 class NoteBookError (StandardError):
     """Exception that occurs when manipulating NoteBook's"""
@@ -314,11 +257,33 @@ class NoteBookVersionError (NoteBookError):
 
 class NoteBookAttr (object):
 
-    def __init__(self, name, datatype, key=None):
+    def __init__(self, name, datatype, key=None, write=None, read=None):
         if key == None:
             self.key = name
+        else:
+            self.key = key
         self.name = name
         self.datatype = datatype
+
+        
+        # writer function
+        if write is None:
+            if datatype == bool:
+                self.write = lambda x: unicode(int(x))
+            else:
+                self.write = unicode
+        else:
+            self.write = write
+
+        # reader function
+        if read is None:
+            if datatype == bool:
+                self.read = lambda x: bool(int(x))
+            else:
+                self.read = datatype
+        else:
+            self.read = read
+        
 
 class NoteBookTable (object):
     def __init__(self, name):
@@ -328,11 +293,19 @@ class NoteBookTable (object):
         # TODO: add col widths
         # NoteBooks have tables and attrs
 
-# TODO: add title as attribute?
-g_created_time_attr = NoteBookAttr("Created", int, "created_time")
-g_modified_time_attr = NoteBookAttr("Modified", int, "modified_time")
-g_expanded_attr = NoteBookAttr("Expaned", bool, "expanded")
-g_expanded2_attr = NoteBookAttr("Expanded2", bool, "expanded2")
+g_default_attrs = [
+    NoteBookAttr("Title", unicode, "title"),
+    NoteBookAttr("Kind", unicode, "kind"),
+    NoteBookAttr("Order", int, "order"),
+    NoteBookAttr("Created", int, "created_time"),
+    NoteBookAttr("Modified", int, "modified_time"),
+    NoteBookAttr("Expaned", bool, "expanded"),
+    NoteBookAttr("Expanded2", bool, "expanded2"),
+    NoteBookAttr("Folder Sort", int, "info_sort"),
+    NoteBookAttr("Folder Sort Direction", int, "info_sort_dir")
+]
+
+
 # TODO: parent might be an implict attr
 
 
@@ -345,28 +318,30 @@ g_expanded2_attr = NoteBookAttr("Expanded2", bool, "expanded2")
 class NoteBookNode (object):
     """A general base class for all nodes in a NoteBook"""
 
-    def __init__(self, path, title="", parent=None, notebook=None):
+    def __init__(self, path, title="", parent=None, notebook=None, kind="dir"):
         self._notebook = notebook
-        self._title = title
         self._parent = parent
         self._basename = None
         self._children = None        
         self._valid = True
-        
-        self._info_sort = [INFO_SORT_NONE, 1]
         self._version = NOTEBOOK_FORMAT_VERSION
-        self._kind = None
-        self._attr = {"order": sys.maxint,
-                      "created_time": None,
-                      "modified_time": None,
-                      "expanded": False,
-                      "expanded2": False}
+        
+        self._attr = {
+            "title": title,
+            "kind": kind,
+            "order": sys.maxint,
+            "created_time": None,
+            "modified_time": None,
+            "expanded": False,
+            "expanded2": False,
+            "info_sort": INFO_SORT_NONE,
+            "info_sort_dir": 1}
 
         # TODO: add a mechanism to register implict attrs that in turn do lookup
         # "type", "title", "parent", "nchildren"
         
         self._set_basename(path)
-
+        
         
 
     def create(self):
@@ -383,7 +358,7 @@ class NoteBookNode (object):
         self.write_meta_data()
         self._set_dirty(False)
 
-        if self._kind == "page":
+        if self._attr["kind"] == "page":
             self.write_empty_data_file()
 
 
@@ -413,9 +388,9 @@ class NoteBookNode (object):
     
     def get_title(self):
         """Returns the display title of a node"""
-        if self._title == None:
+        if self._attr["title"] == None:
             self.read_meta_data()
-        return self._title
+        return self._attr["title"]
     
     
     def get_parent(self):
@@ -437,7 +412,7 @@ class NoteBookNode (object):
     
     def is_page(self):
         """Returns True if node is a page"""
-        return self._kind == "page"
+        return self._attr["kind"] == "page"
     
     def get_attr(self, name, default=None):
         return self._attr.get(name, default)
@@ -456,12 +431,13 @@ class NoteBookNode (object):
 
     def set_info_sort(self, info, sort_dir):
         """Sets the sorting information of the node"""
-        self._info_sort = (info, sort_dir)
+        self._attr["info_sort"] = info
+        self._attr["info_sort_dir"] = sort_dir
         self._set_dirty(True)
     
     def get_info_sort(self):
         """Gets the sorting information of the node"""
-        return self._info_sort
+        return (self._attr["info_sort"], self._attr["info_sort_dir"])
 
     def _set_dirty(self, dirty):
         """Sets the dirty bit to indicates whether node needs saving"""
@@ -483,7 +459,7 @@ class NoteBookNode (object):
         if old_parent != parent:
             path2 = os.path.join(parent.get_path(), self._basename)
             parent_path = os.path.dirname(path2)
-            path2 = get_valid_unique_filename(parent_path, self._title)
+            path2 = get_valid_unique_filename(parent_path, self._attr["title"])
             
             try:
                 os.rename(path, path2)
@@ -574,13 +550,13 @@ class NoteBookNode (object):
         """Renames the title of the node"""
         
         # do noting if title is the same
-        if title == self._title:
+        if title == self._attr["title"]:
             return
         
         if self._parent is None:
             # don't rename the directory of the notebook itself
             # just change the title
-            self._title = title
+            self._attr["title"] = title
             self._set_dirty(True)
             return
         
@@ -591,7 +567,7 @@ class NoteBookNode (object):
 
         try:
             os.rename(path, path2)
-            self._title = title
+            self._attr["title"] = title
             self._set_basename(path2)
             self.save(True)
         except (OSError, NoteBookError), e:
@@ -647,26 +623,28 @@ class NoteBookNode (object):
                 if filename == TRASH_DIR:
                     # create trash node
                     node = NoteBookTrash(TRASH_NAME, self._notebook)
-                    node.read_meta_data()
-                    self._children.append(node)
                     
                 elif os.path.exists(nodefile):
                     # create dir node
                     node = NoteBookDir(path2, parent=self,
                                        notebook=self._notebook)
-                    node.read_meta_data()
-                    self._children.append(node)
 
                 elif os.path.exists(pagefile):
                     # create page node
-                    page = NoteBookPage(path2, parent=self,
+                    node = NoteBookPage(path2, parent=self,
                                         notebook=self._notebook)
-                    page.read_meta_data()
-                    self._children.append(page)
-            except NoteBookError, e:
-                pass
+                else:
+                    # ignore file/directory
+                    continue
+
+                node.read_meta_data()
+                self._children.append(node)
+
                 
+            except NoteBookError, e:
+                continue                
                 # TODO: raise warning, not all children read
+            
                 
         
         # assign orders
@@ -754,7 +732,7 @@ class NoteBookNode (object):
             self._notebook.node_changed.resume(listener)
     
     def load(self):
-        """Loada node from filesystem"""
+        """Load a node from filesystem"""
         self.read_meta_data()
     
     
@@ -794,9 +772,9 @@ class NoteBookNode (object):
         
     def get_meta_file(self):
         """Returns the meta file for the node"""
-        if self._kind == "dir":
+        if self._attr["kind"] == "dir":
             return get_dir_meta_file(self.get_path())
-        elif self._kind == "page":
+        elif self._attr["kind"] == "page":
             return get_page_meta_file(self.get_path())
         else:
             raise Exception("Unimplemented")
@@ -832,6 +810,111 @@ class NoteBookNode (object):
             raise NoteBookError("Cannot write meta data", e)
         except xmlo.XmlError, e:
             raise NoteBookError("File format error", e)
+
+
+    def write_meta_data2(self):
+        try:
+            out = open(self.get_meta_file(), "w")
+            out.write(XML_HEADER)
+            out.write("<node>\n"
+                      "<version>2</version>\n")
+
+            for key, val in self._attr.iteritems():
+                attr = self._notebook.notebook_attrs.get(key, None)
+
+                if attr is not None:
+                    out.write('<attr key="%s">%s</attr>\n' %
+                              (key, attr.write(val)))
+
+            out.write("</node>\n")
+            out.close()
+        except Exception, e:
+            raise NoteBookError("Cannot write meta data", e)
+
+
+    def read_meta_data2(self):
+
+        # prep attrs
+        self._attr["created_time"] = None
+        self._attr["modified_time"] = None    
+
+    
+        try:
+
+            # TODO: move?
+            parser = xml.parsers.expat.ParserCreate()
+            parser.StartElementHandler = self.__meta_start_element
+            parser.EndElementHandler = self.__meta_end_element
+            parser.CharacterDataHandler = self.__meta_char_data
+
+            infile = open(self.get_meta_file(), "r")
+
+            self.__meta_body = False
+            parser.ParseFile(infile)
+            infile.close()
+            
+        except xml.parsers.expat.ExpatError, e:
+            raise NoteBookError("Cannot read meta data", e)
+        
+        except Exception, e:
+            raise NoteBookError("Cannot read meta data", e)
+
+        # set defaults
+        if self._attr["created_time"] is None:
+            self._attr["created_time"] = get_timestamp()
+            self._set_dirty(True)
+        if self._attr["modified_time"] is None:
+            self._attr["modified_time"] = get_timestamp()
+            self._set_dirty(True)
+
+
+    def __meta_start_element(self, name, attrs):
+
+        # NOTE: assumes no nested tags
+
+        if self.__meta_body:
+
+            if self.__meta_tag is not None:
+                raise Exception("corrupt meta file")
+                
+            self.__meta_tag = name
+            self.__meta_attr = attrs
+            self.__meta_data = ""
+
+        elif name == "node":
+            self.__meta_root = True
+        
+        
+    def __meta_end_element(self, name):
+
+        if name == "node":
+            self.__meta_root = False
+
+        if not self.__meta_root:
+            return
+        
+        if self.__meta_tag == "version":
+            self._version = int(data)
+
+        elif self.__meta_tag == "attr":
+            key = self.__meta_attr.get("key", None)
+            if key is not None:
+                attr = self._notebook.notebook_attrs.get(key, None)
+                if attr is not None:
+                    self._attr[key] = attr.read(data)
+
+        # clear state
+        self.__meta_tag = None
+        self.__meta_attr = None
+        self.__meta_data = None
+                
+        
+    def __meta_char_data(self, data):
+        """read character data and give it to current tag"""
+
+        if self.__meta_data is not None:
+            self.__meta_data += data
+            
     
 
 # basic file format for all NoteBookNode's
@@ -840,8 +923,8 @@ g_node_meta_data_tags = [
         getobj=("_version", int),
         set=lambda s: str(NOTEBOOK_FORMAT_VERSION)),
     xmlo.Tag("title", 
-        getobj=("_title", str),
-        set=lambda s: str(s._title)),
+        get=lambda s, x: s._attr.__setitem__("title", x),
+        set=lambda s: s._attr["title"]),
     xmlo.Tag("order",
         get=lambda s, x: s._attr.__setitem__("order", int(x)),
         set=lambda s: str(s._attr["order"])),
@@ -852,11 +935,11 @@ g_node_meta_data_tags = [
         get=lambda s, x: s._attr.__setitem__("modified_time", int(x)),
         set=lambda s: str(s._attr["modified_time"])),
     xmlo.Tag("info_sort", 
-        get=lambda s, x: s._info_sort.__setitem__(0, int(x)),
-        set=lambda s: str(s._info_sort[0])),
+        get=lambda s, x: s._attr.__setitem__("info_sort", int(x)),
+        set=lambda s: str(s._attr["info_sort"])),
     xmlo.Tag("info_sort_dir", 
-        get=lambda s, x: s._info_sort.__setitem__(1, int(x)),
-        set=lambda s: str(s._info_sort[1])),
+        get=lambda s, x: s._attr.__setitem__("info_sort_dir", int(x)),
+        set=lambda s: str(s._attr["info_sort_dir"])),
     xmlo.Tag("expanded",
         get=lambda s, x: s._attr.__setitem__("expanded", bool(int(x))),
         set=lambda s: str(int(s._attr["expanded"]))),
@@ -870,19 +953,16 @@ class NoteBookPage (NoteBookNode):
     """Class that represents a Page in the NoteBook"""
     
     def __init__(self, path, title="", parent=None, notebook=None):
-        NoteBookNode.__init__(self, path, title, parent, notebook)
+        NoteBookNode.__init__(self, path, title, parent, notebook, kind="page")
         self._meta_parser = g_page_meta_data_parser
-        self._kind = "page"
-
 
 
 class NoteBookDir (NoteBookNode):
     """Class that represents Folders in NoteBook"""
     
     def __init__(self, path, title="", parent=None, notebook=None):
-        NoteBookNode.__init__(self, path, title, parent, notebook)
+        NoteBookNode.__init__(self, path, title, parent, notebook, kind="dir")
         self._meta_parser = g_dir_meta_data_parser
-        self._kind = "dir"
 
 
 # TODO: merge dir/page concept
@@ -950,12 +1030,17 @@ class NoteBook (NoteBookDir):
         NoteBookDir.__init__(self, rootdir, notebook=self)
         self.pref = NoteBookPreferences()
         if rootdir is not None:
-            self._title = os.path.basename(rootdir)
+            self._attr["title"] = os.path.basename(rootdir)
         else:
-            self._title = None
+            self._attr["title"] = None
         self._dirty = set()
         self._trash = None
         self._attr["order"] = 0
+
+        # init notebook attributes
+        self.notebook_attrs = {}
+        for attr in g_default_attrs:
+            self.notebook_attrs[attr.key] = attr
         
         if rootdir:
             self._trash_path = get_trash_dir(self.get_path())
@@ -1020,9 +1105,10 @@ class NoteBook (NoteBookDir):
     
     def save(self, force=False):
         """Recursively save any loaded nodes"""
-        
-        self.write_meta_data()
-        self.write_preferences()
+
+        if force or self in self._dirty:
+            self.write_meta_data()
+            self.write_preferences()
         
         self._set_dirty(False)
 

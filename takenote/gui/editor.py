@@ -21,9 +21,7 @@ import gobject
 import takenote
 from takenote.notebook import \
      NoteBookError, \
-     NoteBookVersionError, \
-     NoteBookDir, \
-     NoteBookPage
+     NoteBookVersionError
 from takenote import notebook as notebooklib
 from takenote.gui import richtext
 from takenote.gui.richtext import RichTextView, RichTextError
@@ -158,7 +156,7 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook):
         else:
             page = pages[0]
             
-            if isinstance(page, NoteBookPage):
+            if page.is_page():
             
                 self.save()
                 if self.get_n_pages() == 0:

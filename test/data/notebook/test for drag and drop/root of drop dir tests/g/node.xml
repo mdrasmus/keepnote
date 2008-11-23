@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <node>
+<version>1</version>
 <title>g</title>
-<order>3</order>
+<order>4</order>
 <created_time>1207979584</created_time>
 <modified_time>1207979584</modified_time>
+<info_sort>0</info_sort>
+<info_sort_dir>1</info_sort_dir>
 <expanded>0</expanded>
+<expanded2>0</expanded2>
 </node>
 

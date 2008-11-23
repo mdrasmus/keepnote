@@ -10,6 +10,7 @@ VERSION=0.4.4
 
 INSTALLER=Output/$(PKG)-$(VERSION).exe
 SDIST=dist/$(PKG)-$(VERSION).tar.gz
+RPM=dist/$(PKG)-$(VERSION)-1.noarch.rpm
 
 # www paths
 LINUX_WWW=/var/www/dev/rasm/takenote
@@ -34,15 +35,22 @@ winclean:
 #=============================================================================
 # linux build
 
-sdist:
+sdist: $(SDIST)
+
+$(SDIST):
 	python setup.py sdist
+
+rpm: $(RPM)
+
+$(RPM):
+	python setup.py bdist --format=rpm
 
 pypi:
 	python setup.py register
 
 
-upload: $(SDIST)
-	cp $(SDIST) $(LINUX_WWW)/download
+upload: $(SDIST) $(RPM)
+	cp $(SDIST) $(RPM) $(LINUX_WWW)/download
 	tar zxv -C $(LINUX_WWW)/download \
 	    -f $(LINUX_WWW)/download/$(PKG)-$(VERSION).tar.gz
 

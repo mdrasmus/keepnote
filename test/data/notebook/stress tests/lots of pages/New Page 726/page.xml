@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <page>
-    <title>New Page</title>
-    <order>723</order>
-    <created_time>1207981367</created_time>
-    <modified_time>1207981367</modified_time>
+<version>1</version>
+<title>New Page</title>
+<order>723</order>
+<created_time>1207981367</created_time>
+<modified_time>1207981367</modified_time>
+<info_sort>0</info_sort>
+<info_sort_dir>1</info_sort_dir>
+<expanded>0</expanded>
+<expanded2>0</expanded2>
 </page>
+

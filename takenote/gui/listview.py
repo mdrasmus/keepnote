@@ -1,7 +1,7 @@
 """
 
     TakeNote
-    NoteSelector View
+    ListView
 
 """
 
@@ -35,7 +35,7 @@ from takenote.gui import \
      get_node_icon
 from takenote.gui import treemodel
 from takenote import notebook
-from takenote.notebook import NoteBookError, NoteBookDir, NoteBookPage
+from takenote.notebook import NoteBookError
 
 
 
@@ -51,7 +51,7 @@ CREATED_COLUMN = SelectorColumn("Created", str, 1)
 MODIFIED_COLUMN = SelectorColumn("Modified", str, 2)
 '''
 
-class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
+class TakeNoteListView (treemodel.TakeNoteBaseTreeView):
     
     def __init__(self):
         treemodel.TakeNoteBaseTreeView.__init__(self)
@@ -347,7 +347,7 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         # populate model
         self._roots = []
         for node in nodes:
-            if isinstance(node, NoteBookDir):
+            if not node.is_page():
                 if nested:
                     # list directory contents
                     for child in node.get_children():
@@ -355,7 +355,7 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
                 else:
                     # list directory itself
                     self._roots.append(node)
-            elif isinstance(node, NoteBookPage):
+            elif node.is_page():
                 self._roots.append(node)
 
         model.get_model().set_root_nodes(self._roots)
@@ -481,12 +481,12 @@ class TakeNoteSelector (treemodel.TakeNoteBaseTreeView):
         if self.on_status:
             self.on_status(text, bar=bar)
 
-gobject.type_register(TakeNoteSelector)
-gobject.signal_new("select-nodes", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
+gobject.type_register(TakeNoteListView)
+gobject.signal_new("select-nodes", TakeNoteListView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object,))
-gobject.signal_new("goto-node", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
+gobject.signal_new("goto-node", TakeNoteListView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object,))
-gobject.signal_new("goto-parent-node", TakeNoteSelector,
+gobject.signal_new("goto-parent-node", TakeNoteListView,
     gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())
-gobject.signal_new("error", TakeNoteSelector, gobject.SIGNAL_RUN_LAST, 
+gobject.signal_new("error", TakeNoteListView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (str, object,))
