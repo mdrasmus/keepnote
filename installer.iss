@@ -1,16 +1,16 @@
 [Setup]
 AppName=TakeNote
-AppVerName=TakeNote 0.4.4
-AppPublisher=me
+AppVerName=TakeNote 0.4.5
+AppPublisher=Matt Rasmussen
 AppPublisherURL=http://people.csail.mit.edu/rasmus/takenote
 DefaultDirName={pf}\TakeNote
 DefaultGroupName=TakeNote
 DisableProgramGroupPage=true
-OutputBaseFilename=takenote-0.4.4
+OutputBaseFilename=takenote-0.4.5
 Compression=lzma
 SolidCompression=true
 AllowUNCPath=false
-VersionInfoVersion=0.4.4
+VersionInfoVersion=0.4.5
 VersionInfoCompany=Matt Rasmussen
 VersionInfoDescription=TakeNote
 ; PrivilegeRequired=admin

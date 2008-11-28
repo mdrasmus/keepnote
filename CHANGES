@@ -1,6 +1,17 @@
 TakeNote Change Log
 -------------------
 
+takenote-0.4.5
+--------------
+
+- bug fixes
+  - fixed colormap bug for some platforms (archlinux)
+  - fixed mnemonic for "Format" in menu
+  - fixed "modified" timestamp bug
+  - changed User-Agent string for fetching images from the web (allows
+    copy and paste from more web sites).
+
+
 takenote-0.4.4 (2008/11/06)
 ---------------------------
 

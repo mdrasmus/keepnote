@@ -138,7 +138,7 @@ class TakeNoteDb (object):
 
 
 def match_words(node, words):
-    """Returns True if any of the words in list 'words' appears in the
+    """Returns True if all of the words in list 'words' appears in the
        node title or data file"""
 
     # check title

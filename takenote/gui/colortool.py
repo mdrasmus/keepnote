@@ -78,37 +78,75 @@ class ColorTextImage (gtk.Image):
         self.border = border
         self.marginx = int((width - 10) / 2.0)
         self.marginy = - int((height - 12) / 2.0)
-        self.depth = 24
-        self._pixmap = gdk.Pixmap(None, self.width, self.height,
-                                  self.depth)
+        self._pixmap = None
+        self._colormap = None
+        self.fg_color = None
+        self.bg_color = None
+        self._exposed = False
+
+        self.connect("parent-set", self.on_parent_set)
+        self.connect("expose-event", self.on_expose_event)
+        
+
+    def on_parent_set(self, widget, old_parent):
+        self._exposed = False
+            
+        
+    def on_expose_event(self, widget, event):
+        """Set up colors on exposure"""
+
+        if not self._exposed:
+            self._exposed = True
+            self.init_colors()
+
+
+    def init_colors(self):
+        self._pixmap = gdk.Pixmap(self.parent.window,
+                                  self.width, self.height, -1)
         self.set_from_pixmap(self._pixmap, None)
-        self._colormap = gtk.gdk.colormap_get_system()
+        self._colormap = self._pixmap.get_colormap()
+        #self._colormap = gtk.gdk.colormap_get_system()
         #gtk.gdk.screen_get_default().get_default_colormap()
-        #self._colormap = self._pixmap.get_colormap()
         self._gc = self._pixmap.new_gc()
 
         self._context = self.get_pango_context()
         self._fontdesc = pango.FontDescription("sans bold 10")
 
-        self.fg_color = self._colormap.alloc_color(
-            self.get_style().text[gtk.STATE_NORMAL])
-        self.bg_color = self._colormap.alloc_color(
-            self.get_style().bg[gtk.STATE_NORMAL])
+        if isinstance(self.fg_color, tuple):
+            self.fg_color = self._colormap.alloc_color(*self.fg_color)
+        elif self.fg_color is None:
+            self.fg_color = self._colormap.alloc_color(
+                self.get_style().text[gtk.STATE_NORMAL])
+
+        if isinstance(self.bg_color, tuple):
+            self.bg_color = self._colormap.alloc_color(*self.bg_color)
+        elif self.bg_color is None:
+            self.bg_color = self._colormap.alloc_color(
+                self.get_style().bg[gtk.STATE_NORMAL])
+        
         self._border_color = self._colormap.alloc_color(0, 0, 0)
         self.refresh()
 
 
     def set_fg_color(self, red, green, blue, refresh=True):
         """Set the color of the color chooser"""
-        self.fg_color = self._colormap.alloc_color(red, green, blue)
-        if refresh:
-            self.refresh()
+        if self._colormap:
+            self.fg_color = self._colormap.alloc_color(red, green, blue)
+            if refresh:
+                self.refresh()
+        else:
+            self.fg_color = (red, green, blue)
+
 
     def set_bg_color(self, red, green, blue, refresh=True):
         """Set the color of the color chooser"""
-        self.bg_color = self._colormap.alloc_color(red, green, blue)
-        if refresh:
-            self.refresh()
+        if self.bg_color:
+            self.bg_color = self._colormap.alloc_color(red, green, blue)
+            if refresh:
+                self.refresh()
+        else:
+            self.bg_color = (red, green, blue)        
+        
 
     def refresh(self):
         self._gc.foreground = self.bg_color
@@ -117,7 +155,7 @@ class ColorTextImage (gtk.Image):
         if self.border:
             self._gc.foreground = self._border_color
             self._pixmap.draw_rectangle(self._gc, False, 0, 0,
-                                    self.width-1, self.height-1)
+                                        self.width-1, self.height-1)
 
         if self.letter:
             self._gc.foreground = self.fg_color
