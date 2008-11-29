@@ -69,6 +69,13 @@ class IndentManager (object):
                                                   self._buf.get_start_iter(),
                                                   True)
 
+        self._delete_start = self._buf.create_mark(
+            None, self._buf.get_start_iter(), True)
+        self._delete_end = self._buf.create_mark(
+            None, self._buf.get_start_iter(), True)
+        self._delete_queued = False
+
+
 
 
     def change_indent(self, start, end, change):
@@ -110,7 +117,7 @@ class IndentManager (object):
         
 
 
-    def toggle_bullet_list(self):
+    def toggle_bullet_list(self, par_type=None):
         """Toggle the state of a bullet list"""
         
         self._buf.begin_user_action()
@@ -127,19 +134,20 @@ class IndentManager (object):
             start.backward_line()
             self._buf.place_cursor(start)
         
-        # are all paragraphs bulleted?
-        all_bullets = True
-        for pos in paragraph_iter(self._buf, start, end):
-            if self.get_indent(pos)[1] != "bullet":
-                all_bullets = False
-                break
-
         # toggle bullet presence
-        if all_bullets:
-            par_type = "none"
-        else:
-            par_type = "bullet"
-
+        if par_type is None:
+            # are all paragraphs bulleted?
+            all_bullets = True
+            for pos in paragraph_iter(self._buf, start, end):
+                if self.get_indent(pos)[1] != "bullet":
+                    all_bullets = False
+                    break
+            
+            if all_bullets:
+                par_type = "none"
+            else:
+                par_type = "bullet"
+        
         # set each paragraph's bullet status
         for pos in paragraph_iter(self._buf, start, end):
             par_end = pos.copy()
@@ -182,7 +190,7 @@ class IndentManager (object):
         bullet_end = par_start.copy()
         bullet_end.forward_chars(len(BULLET_STR))
         bullet_tag = self._buf.tag_table.bullet_tag
-        self._buf.apply_tag_selected(bullet_tag, par_start, bullet_end)
+        self._buf.apply_tag(bullet_tag, par_start, bullet_end)
 
         self._buf.end_user_action()
 
@@ -199,7 +207,7 @@ class IndentManager (object):
 
         if par_start.get_text(bullet_end) == BULLET_STR:
             bullet_tag = self._buf.tag_table.bullet_tag
-            self._buf.remove_tag_selected(bullet_tag, par_start, bullet_end)
+            self._buf.remove_tag(bullet_tag, par_start, bullet_end)
             self._buf.delete(par_start, bullet_end)
 
         self._buf.end_user_action()
@@ -254,6 +262,27 @@ class IndentManager (object):
                 self._buf.move_mark(self._indent_update_end, end)
 
 
+    def is_insert_allowed(self, it, text=""):
+        """Returns True if insertion is allowed at iter 'it'"""
+
+        # check to make sure insert is not in front of bullet
+        it2 = it.copy()
+        it2 = move_to_start_of_line(it2)
+        
+        if self.par_has_bullet(it2):
+            if it.starts_line() and text.endswith("\n"):
+                return True
+            else:
+                return not self.within_bullet(it)
+        else:
+            return True
+        
+    
+    #def prepare_delete_range(self, start, end):
+    #    """Prepare range for deletion"""
+
+
+
     def update_indentation(self):
         """Ensure the indentation tags between start and end are up to date"""
 
@@ -267,6 +296,18 @@ class IndentManager (object):
             self._indent_update = False 
             
             self._buf.begin_user_action()
+            self._buf.begin_noninteractive()
+
+            # process queued delete
+            #if self._delete_queued:
+
+            #    start = self._buf.get_iter_at_mark(self._delete_start)
+            #    end = self._buf.get_iter_at_mark(self._delete_end)
+
+            #    print "update delete", start.get_offset(), end.get_offset()
+            #    self._buf.remove_tag(self._buf.tag_table.bullet_tag, start, end)
+            #    self._buf.delete(start, end)
+            #    self._delete_queued = False
             
             # get range of updating
             pos = self._buf.get_iter_at_mark(self._indent_update_start)
@@ -325,8 +366,10 @@ class IndentManager (object):
                     
                 else:
                     raise Exception("unknown par_type '%s'" % par_type)
+            
                     
             self._updating = False
+            self._buf.end_noninteractive()
             self._buf.end_user_action()
 
 
@@ -373,6 +416,20 @@ class IndentManager (object):
             return self.par_has_bullet(it2) and \
                    it.get_offset() <= it2.get_offset() + len(BULLET_STR)
 
+    def within_bullet(self, it):
+        """Returns True if iter 'it' is within bullet phrase"""
+
+        print "within"
+
+        if it.starts_line():
+            return True
+        else:
+            # handle case where it is within bullet
+            it2 = it.copy()
+            it2 = move_to_start_of_line(it2)
+            
+            return self.par_has_bullet(it2) and \
+                   it.get_offset() < it2.get_offset() + len(BULLET_STR)
     
     def _get_cursor(self):
         return self._buf.get_iter_at_mark(self._buf.get_insert())

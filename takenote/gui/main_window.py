@@ -1787,7 +1787,7 @@ class TakeNoteWindow (gtk.Window):
         DEFAULT_FONT_SIZE = 10
         self.font_size_button = gtk.SpinButton(
           gtk.Adjustment(value=DEFAULT_FONT_SIZE, lower=2, upper=500, 
-                         step_incr=1, page_incr=2))
+                         step_incr=1))
         self.font_size_button.set_size_request(-1, 25)
         #self.font_size_button.set_range(2, 100)
         self.font_size_button.set_value(DEFAULT_FONT_SIZE)

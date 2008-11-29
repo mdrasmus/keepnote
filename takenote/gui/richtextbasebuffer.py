@@ -371,6 +371,8 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         self.undo_stack = UndoStack(MAX_UNDOS)
 
         self._insert_mark = self.get_insert()
+        self._old_insert_mark = self.create_mark(
+            None, self.get_iter_at_mark(self._insert_mark), True)
 
         # action state
         self._insert_text_mark = self.create_mark(None, self.get_start_iter(),
@@ -378,6 +380,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         self._next_action = None
         self._current_tags = []
         self._user_action_ending = False
+        self._noninteractive = 0
 
         # setup signals
         self._signals = [
@@ -426,6 +429,15 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         self.delete(start, end)
         self.end_user_action()
 
+    def begin_noninteractive(self):
+        self._noninteractive += 1
+
+    def end_noninteractive(self):
+        self._noninteractive -= 1
+
+    def is_interactive(self):
+        return self._noninteractive == 0
+
     #======================================
     # stubs to overwrite in subclass
 
@@ -453,7 +465,12 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     def on_paragraph_change(self, start, end):
         pass
 
-    def is_insert_allowed(self, it, text):
+    def is_insert_allowed(self, it, text=""):
+        """Check that insert is allowed at 'it'"""
+        return it.can_insert(True)
+
+
+    def is_cursor_allowed(self, it):
         return True
 
     #===========================================================
@@ -464,8 +481,16 @@ class RichTextBaseBuffer (gtk.TextBuffer):
 
         if mark is self._insert_mark:
 
+            if not self.get_iter_at_mark(mark).equal(
+                self.get_iter_at_mark(self._old_insert_mark)) and \
+               not self.is_cursor_allowed(it):
+                self.place_cursor(
+                    self.get_iter_at_mark(self._old_insert_mark))
+                return
+
+            
             if it.starts_line():
-                # pick up openning tags
+                # pick up opening tags
                 self._current_tags = [x for x in it.get_toggled_tags(True)
                                       if isinstance(x, RichTextTag) and
                                          x.can_be_current()]
@@ -476,6 +501,8 @@ class RichTextBaseBuffer (gtk.TextBuffer):
                                          x.can_be_current()]
 
             self.on_selection_changed()
+
+            self.move_mark(self._old_insert_mark, it)
             
             # update UI for current fonts
             font = self.get_font()
@@ -490,7 +517,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         length = len(text)
 
         # check to see if insert is allowed
-        if not self.is_insert_allowed(it, text):
+        if self.is_interactive() and not self.is_insert_allowed(it, text):
             self.stop_emission("insert_text")
             return
         
@@ -505,10 +532,10 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         # start next action
         assert self._next_action is None
         self._next_action = DeleteAction(self, start.get_offset(), 
-                                        end.get_offset(),
-                                        start.get_slice(end),
-                                        self.get_iter_at_mark(
-                                            self.get_insert()).get_offset())
+                                         end.get_offset(),
+                                         start.get_slice(end),
+                                         self.get_iter_at_mark(
+                                             self.get_insert()).get_offset())
 
     
     def _on_insert_pixbuf(self, textbuffer, it, pixbuf):
@@ -518,6 +545,11 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     
     def _on_insert_child_anchor(self, textbuffer, it, anchor):
         """Callback for inserting a child anchor"""
+
+        if not self.is_insert_allowed(it, ""):
+            self.stop_emission("insert_child_anchor")
+            return
+        
         self._next_action = InsertChildAction(self, it.get_offset(), anchor)
 
     
@@ -769,11 +801,15 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     
     def undo(self):
         """Undo the last action in the RichTextView"""
+        self.begin_noninteractive()
         self.undo_stack.undo()
+        self.end_noninteractive()
         
     def redo(self):
-        """Redo the last action in the RichTextView"""    
+        """Redo the last action in the RichTextView"""
+        self.begin_noninteractive()        
         self.undo_stack.redo()
+        self.end_noninteractive()
     
     def _on_begin_user_action(self, textbuffer):
         """Begin a composite undo/redo action"""

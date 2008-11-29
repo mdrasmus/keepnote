@@ -425,9 +425,9 @@ class RichTextIndentTag (RichTextTag):
 class RichTextBulletTag (RichTextTag):
     """A tag that represents a bullet point"""
     def __init__(self):
-        RichTextTag.__init__(self, "bullet",
+        RichTextTag.__init__(self, "bullet")
 #                             size_points=BULLET_FONT_SIZE,
-                             editable=False)
+                             #editable=False)
 
         # TODO: make sure bullet tag has highest priority so that its font
         # size overrides

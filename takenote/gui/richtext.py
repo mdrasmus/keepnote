@@ -243,13 +243,12 @@ class RichTextView (gtk.TextView):
         if self._textbuffer is None:
             return
 
-        
         if event.keyval == gtk.gdk.keyval_from_name("ISO_Left_Tab"):
             # shift+tab is pressed
-            
+
             it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
-        
-            # indent if cursor at start of paragraph or if there is a selection
+
+            # indent if there is a selection
             if self._textbuffer.get_selection_bounds():
                 # tab at start of line should do unindentation
                 self.unindent()
@@ -265,6 +264,20 @@ class RichTextView (gtk.TextView):
                self._textbuffer.get_selection_bounds():
                 # tab at start of line should do indentation
                 self.indent()
+                return True
+
+
+        if event.keyval == gtk.gdk.keyval_from_name("Delete"):
+            # delete key pressed
+
+            it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
+
+            if not self._textbuffer.get_selection_bounds() and \
+               self._textbuffer.starts_par(it) and \
+               not it.editable(True) and \
+               self._textbuffer.get_indent(it)[0] > 0:
+                # delete inside bullet phrase, removes bullet
+                self.toggle_bullet("none")
                 return True
 
 
@@ -523,12 +536,17 @@ class RichTextView (gtk.TextView):
         if not self._textbuffer:
             return
         
-        targets = set(clipboard.wait_for_targets())
-        
+        targets = clipboard.wait_for_targets()
         if targets is None:
-            # do nothing
+            # nothing on clipboard
             return
-            
+        targets = set(targets)
+
+        # check that insert is allowed
+        it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
+        if not self._textbuffer.is_insert_allowed(it):            
+            return
+
         
         if MIME_TAKENOTE in targets:
             # request TAKENOTE contents object
@@ -553,10 +571,13 @@ class RichTextView (gtk.TextView):
     
     def _do_paste_text(self, clipboard, text, data):
         """Paste text into buffer"""
+        
         self._textbuffer.begin_user_action()
         self._textbuffer.delete_selection(False, True)
         self._textbuffer.insert_at_cursor(text)
         self._textbuffer.end_user_action()
+
+        self.scroll_mark_onscreen(self._textbuffer.get_insert())
 
     def _do_paste_html(self, clipboard, selection_data, data):
         """Paste HTML into buffer"""
@@ -567,7 +588,7 @@ class RichTextView (gtk.TextView):
         self.insert_html(html)
         self._textbuffer.end_user_action()
         
-        
+        self.scroll_mark_onscreen(self._textbuffer.get_insert())
     
     def _do_paste_image(self, clipboard, selection_data, data):
         """Paste image into buffer"""
@@ -577,7 +598,8 @@ class RichTextView (gtk.TextView):
         image.set_from_pixbuf(pixbuf)
         
         self._textbuffer.insert_image(image)
-
+        self.scroll_mark_onscreen(self._textbuffer.get_insert())
+        
     
     def _do_paste_object(self, clipboard, selection_data, data):
         """Paste a program-specific object into buffer"""
@@ -587,6 +609,7 @@ class RichTextView (gtk.TextView):
             return
 
         self._textbuffer.insert_contents(self._clipboard_contents)
+        self.scroll_mark_onscreen(self._textbuffer.get_insert())        
     
     
     def _get_selection_data(self, clipboard, selection_data, info, data):
@@ -1137,10 +1160,10 @@ class RichTextView (gtk.TextView):
                     self._textbuffer.tag_table.lookup(
                         RichTextBGColorTag.tag_name("#000000")))
 
-    def toggle_bullet(self):
+    def toggle_bullet(self, par_type=None):
         """Toggle state of a bullet list"""
         if self._textbuffer:
-            self._textbuffer.toggle_bullet_list()
+            self._textbuffer.toggle_bullet_list(par_type)
             
     
     #==================================================================
@@ -1179,11 +1202,13 @@ class RichTextView (gtk.TextView):
         """Undo the last action in the RichTextView"""
         if self._textbuffer:
             self._textbuffer.undo()
+            self.scroll_mark_onscreen(self._textbuffer.get_insert())
         
     def redo(self):
         """Redo the last action in the RichTextView"""
         if self._textbuffer:
             self._textbuffer.redo()
+            self.scroll_mark_onscreen(self._textbuffer.get_insert())
 
 
 

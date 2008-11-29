@@ -35,7 +35,7 @@ class TestCaseInstall (unittest.TestCase):
     def test_distutil_sdist(self):
         """Test distutil install"""
 
-        pkg = "takenote-0.4.4"
+        pkg = "takenote-0.4.5"
         sdist = "dist/%s.tar.gz" % pkg
         install_dir = "test/tmp/distutil"
         home_dir = "test/tmp/home"
@@ -53,8 +53,8 @@ class TestCaseInstall (unittest.TestCase):
             0)
 
         self.assertEquals(
-            os.system("HOME=%s %s/bin/takenote --no-default" %
-                      (home_dir, install_dir)),
+            os.system("HOME=%s; PYTHONPATH=%s/lib/python2.5/site-packages; %s/bin/takenote --no-default" %
+                      (home_dir, install_dir, install_dir)),
             0)
 
         

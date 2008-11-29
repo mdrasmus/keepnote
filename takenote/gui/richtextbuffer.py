@@ -495,7 +495,6 @@ class RichTextBuffer (RichTextBaseBuffer):
         RichTextBaseBuffer.__init__(self)
         self.textview = textview
 
-
         # indentation manager
         self._indent = IndentManager(self)
 
@@ -585,16 +584,20 @@ class RichTextBuffer (RichTextBaseBuffer):
         """Callback for when paragraph type changes"""
         self._indent.on_paragraph_change(start, end)
 
-    def is_insert_allowed(self, it, text):
+    def is_insert_allowed(self, it, text=""):
         """Returns True if insertion is allowed at iter 'it'"""
-        
-        # check to make sure insert is not in front of bullet
-        return not (it.starts_line() and
-                    self._indent.par_has_bullet(it) and
-                    not text.endswith("\n"))
 
+        # ask the indentation manager whether the insert is allowed
+        return self._indent.is_insert_allowed(it, text) and \
+               it.can_insert(True)
+    
 
     def _on_delete_range(self, textbuffer, start, end):
+
+        # let indent manager prepare the delete
+        #if self.is_interactive():
+        #    self._indent.prepare_delete_range(start, end)
+                
         # call super class
         RichTextBaseBuffer._on_delete_range(self, textbuffer, start, end)
         
@@ -619,9 +622,9 @@ class RichTextBuffer (RichTextBaseBuffer):
         """Returns True if iter 'it' starts a paragraph"""
         return self._indent.starts_par(it)
 
-    def toggle_bullet_list(self):
+    def toggle_bullet_list(self, par_type=None):
         """Toggle the state of a bullet list"""
-        self._indent.toggle_bullet_list()
+        self._indent.toggle_bullet_list(par_type)
 
     def get_indent(self, it=None):
         return self._indent.get_indent(it)
