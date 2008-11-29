@@ -126,6 +126,7 @@ class RichTextView (gtk.TextView):
         self._buffer_callbacks = []
         self._clipboard_contents = None
         self._blank_buffer = RichTextBuffer(self)
+        self._popup_menu = None
         
         self.set_buffer(RichTextBuffer(self))
         self.set_default_font(DEFAULT_FONT)
@@ -158,7 +159,7 @@ class RichTextView (gtk.TextView):
         self.connect("paste-clipboard", lambda w: self._on_paste())
 
         #self.connect("button-press-event", self.on_button_press)
-        #self.connect("populate-popup", self.on_popup)
+        self.connect("populate-popup", self.on_popup)
         
         # initialize HTML buffer
         self._html_buffer = HtmlBuffer()
@@ -426,10 +427,20 @@ class RichTextView (gtk.TextView):
 
         self._textbuffer.end_user_action()
         
-    """
+    
     def on_popup(self, textview, menu):
-        return
-        self.first_menu = False
+
+        self._popup_menu = menu
+
+        # insert "paste as text" after paste
+        item = gtk.ImageMenuItem(stock_id=gtk.STOCK_PASTE,
+                                 accel_group=None)        
+        item.child.set_text("Paste As Text")
+        item.connect("activate", lambda item: self.paste_clipboard_as_text())
+        item.show()
+        menu.insert(item, 3)
+
+    '''
         menu.foreach(lambda item: menu.remove(item))
 
         # Create the menu item
@@ -450,9 +461,8 @@ class RichTextView (gtk.TextView):
         # display the accelerators.
         copy_item.add_accelerator("activate", accel_group, ord("C"),
                                   gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE)
-        copy_item.show()                                  
-    """
-            
+        copy_item.show()
+    '''
            
 
     
@@ -500,11 +510,13 @@ class RichTextView (gtk.TextView):
            contents[0][0] == "anchor" and \
            isinstance(contents[0][2][0], RichTextImage):
             # copy image
-            targets = [(x, 0, RICHTEXT_ID) for x in MIME_IMAGES]
+            targets = [(MIME_TAKENOTE, gtk.TARGET_SAME_APP, RICHTEXT_ID),
+                       ("text/html", 0, RICHTEXT_ID)] + \
+                      [(x, 0, RICHTEXT_ID) for x in MIME_IMAGES]
             
             clipboard.set_with_data(targets, self._get_selection_data, 
                                     self._clear_selection_data,
-                                    (contents[0][2][0], ""))
+                                    (contents, ""))
 
         else:
             # copy text
@@ -542,6 +554,7 @@ class RichTextView (gtk.TextView):
             return
         targets = set(targets)
 
+        
         # check that insert is allowed
         it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
         if not self._textbuffer.is_insert_allowed(it):            
@@ -567,6 +580,28 @@ class RichTextView (gtk.TextView):
             else:
                 # request text
                 clipboard.request_text(self._do_paste_text)
+
+    
+    def paste_clipboard_as_text(self):
+        """Callback for paste action"""    
+        clipboard = self.get_clipboard(selection=CLIPBOARD_NAME)
+        #self.paste_clipboard(clipboard, None, self.get_editable())
+
+        if not self._textbuffer:
+            return
+        
+        targets = clipboard.wait_for_targets()
+        if targets is None:
+            # nothing on clipboard
+            return
+        
+        # check that insert is allowed
+        it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
+        if not self._textbuffer.is_insert_allowed(it):            
+            return
+
+        # request text
+        clipboard.request_text(self._do_paste_text)
         
     
     def _do_paste_text(self, clipboard, text, data):
@@ -592,7 +627,7 @@ class RichTextView (gtk.TextView):
     
     def _do_paste_image(self, clipboard, selection_data, data):
         """Paste image into buffer"""
-        
+
         pixbuf = selection_data.get_pixbuf()
         image = RichTextImage()
         image.set_from_pixbuf(pixbuf)
@@ -618,7 +653,7 @@ class RichTextView (gtk.TextView):
         contents, text = data
         
         self._clipboard_contents = contents
-        
+
         
         if MIME_TAKENOTE in selection_data.target:
             # set rich text
@@ -632,13 +667,13 @@ class RichTextView (gtk.TextView):
                                     self._textbuffer.tag_table,
                                     partial=True,
                                     xhtml=False)
-            print stream.getvalue()
             selection_data.set("text/html", 8, stream.getvalue())
 
         elif len([x for x in MIME_IMAGES
                   if x in selection_data.target]) > 0:
             # set image
-            selection_data.set_pixbuf(contents.get_original_pixbuf())
+            image = contents[0][2][0]
+            selection_data.set_pixbuf(image.get_original_pixbuf())
             
         else:
             # set plain text

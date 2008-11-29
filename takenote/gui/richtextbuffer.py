@@ -95,7 +95,7 @@ class RichTextAnchor (gtk.TextChildAnchor):
     def set_buffer(self, buf):
         self._buffer = buf
     
-    def copy(slef):
+    def copy(self):
         anchor = RichTextAnchor()
         anchor.set_buffer(self._buffer)
         return anchor
@@ -163,7 +163,7 @@ class RichTextHorizontalRule (RichTextAnchor):
     def get_widget(self):
         return self._widget
     
-    def copy(slef):
+    def copy(self):
         return RichTextHorizontalRule()
        
 
@@ -359,31 +359,36 @@ class RichTextImage (RichTextAnchor):
     
     def write(self, filename):
         """Write image to file"""
+
+        # TODO: move this to external function
         f, ext = os.path.splitext(filename)
-        ext = ext.replace(".", "")
+        ext = ext.replace(".", "")        
         if ext == "jpg":
             ext = "jpeg"
-            
+
+        # TODO: make more checks on saving
         self._pixbuf_original.save(filename, ext)
         self._save_needed = False
         
         
     def copy(self):
         """Returns a new copy of the image"""
+        
         img = RichTextImage()
         img.set_filename(self._filename)
-        img._size = self.get_size()
+        img._size = list(self.get_size())
         
         if self._pixbuf:
             img.get_widget().set_from_pixbuf(self._pixbuf)
+            img._pixbuf = self._pixbuf
+            img._pixbuf_original = self._pixbuf_original            
         else:
-            img.get_widget().set_from_stock(gtk.STOCK_MISSING_IMAGE,
-                                            gtk.ICON_SIZE_MENU)
-        img._pixbuf = self._pixbuf
-        img._pixbuf_original = self._pixbuf_original
+            img.set_no_image()
+            
         img.get_widget().show()
         return img
-
+    
+    
     def set_from_url(self, url, filename):
         """Set image by url"""
 
@@ -543,6 +548,8 @@ class RichTextBuffer (RichTextBaseBuffer):
 
         # remove regions that can't be copied
         for item in contents:
+            # NOTE: item = (kind, it, param)
+            
             if item[0] == "begin" and not item[2].can_be_copied():
                 end_tag = item[2]
                 
