@@ -56,12 +56,12 @@ $(RPM):
 
 deb: $(DEB)
 $(DEB): $(SDIST)
-	distrib/deb/make-deb.sh $(VERSION)
-	mv distrib/deb/$(DEBFILE) $(DEB)
+	pkg/deb/make-deb.sh $(VERSION)
+	mv pkg/deb/$(DEBFILE) $(DEB)
 
 ebuild: $(EBUILD)
 $(EBUILD):
-	cp distrib/ebuild/$(PKG)-template.ebuild $(EBUILD)
+	cp pkg/ebuild/$(PKG)-template.ebuild $(EBUILD)
 
 #=============================================================================
 # linux upload
