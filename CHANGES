@@ -3,13 +3,17 @@ TakeNote Change Log
 
 takenote-0.4.5
 --------------
-
+- added "Paste As Text"
 - bug fixes
   - fixed colormap bug for some platforms (archlinux)
   - fixed mnemonic for "Format" in menu
   - fixed "modified" timestamp bug
   - changed User-Agent string for fetching images from the web (allows
     copy and paste from more web sites).
+  - bullet point list quirks
+    - cut and delete leave one bullet behind (also causes problems with undo)
+  - fixed copy and paste image size
+  - textview now properly scrolls for pastes and undos
 
 
 takenote-0.4.4 (2008/11/06)
@@ -65,3 +69,4 @@ takenote-0.4 (2008/07/12)
  - inline images
  - integrated screenshot
  - spell checking (via gtkspell)
+

@@ -5,12 +5,23 @@
 #
 
 PKG=takenote
-VERSION=0.4.5
+VERSION=0.4.4
 
-
+# release files
 INSTALLER=Output/$(PKG)-$(VERSION).exe
-SDIST=dist/$(PKG)-$(VERSION).tar.gz
-RPM=dist/$(PKG)-$(VERSION)-1.noarch.rpm
+
+SDISTFILE=$(PKG)-$(VERSION).tar.gz
+RPMFILE=$(PKG)-$(VERSION)-1.noarch.rpm
+EBUILDFILE=$(PKG)-$(VERSION).ebuild
+DEBFILE=$(PKG)_$(VERSION)-1_all.deb
+
+SDIST=dist/$(SDISTFILE)
+RPM=dist/$(RPMFILE)
+DEB=dist/$(DEBFILE)
+EBUILD=dist/$(EBUILDFILE)
+
+
+UPLOAD_FILES=$(SDIST) $(RPM) $(DEB) $(EBUILD)
 
 # www paths
 LINUX_WWW=/var/www/dev/rasm/takenote
@@ -36,21 +47,31 @@ winclean:
 # linux build
 
 sdist: $(SDIST)
-
 $(SDIST):
 	python setup.py sdist
 
 rpm: $(RPM)
-
 $(RPM):
 	python setup.py bdist --format=rpm
+
+deb: $(DEB)
+$(DEB): $(SDIST)
+	distrib/deb/make-deb.sh $(VERSION)
+	mv distrib/deb/$(DEBFILE) $(DEB)
+
+ebuild: $(EBUILD)
+$(EBUILD):
+	cp distrib/ebuild/$(PKG)-template.ebuild $(EBUILD)
+
+#=============================================================================
+# linux upload
 
 pypi:
 	python setup.py register
 
 
-upload: $(SDIST) $(RPM)
-	cp $(SDIST) $(RPM) $(LINUX_WWW)/download
+upload: $(UPLOAD_FILES)
+	cp $(UPLOAD_FILES) $(LINUX_WWW)/download
 	tar zxv -C $(LINUX_WWW)/download \
-	    -f $(LINUX_WWW)/download/$(PKG)-$(VERSION).tar.gz
+	    -f $(LINUX_WWW)/download/$(SDISTFILE)
 
