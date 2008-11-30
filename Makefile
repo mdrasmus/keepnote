@@ -5,7 +5,7 @@
 #
 
 PKG=takenote
-VERSION=0.4.4
+VERSION=0.4.5
 
 # release files
 INSTALLER=Output/$(PKG)-$(VERSION).exe
@@ -23,7 +23,7 @@ EBUILD=dist/$(EBUILDFILE)
 
 UPLOAD_FILES=$(SDIST) $(RPM) $(DEB) $(EBUILD)
 
-# www paths
+# personal www paths
 LINUX_WWW=/var/www/dev/rasm/takenote
 WIN_WWW=/z/mnt/big/www/dev/rasm/takenote
 
@@ -45,6 +45,8 @@ winclean:
 
 #=============================================================================
 # linux build
+
+all: $(UPLOAD_FILES)
 
 sdist: $(SDIST)
 $(SDIST):
