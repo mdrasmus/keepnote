@@ -577,7 +577,7 @@ class HtmlBuffer (HTMLParser):
             self._dom_ptr = tag
             
         elif htmltag == "li":            
-            par_type = "none"
+            par_type = "bullet"
 
             for key, value in attrs:
                 if key == "style":
@@ -588,6 +588,8 @@ class HtmlBuffer (HTMLParser):
                         if key2.strip() == "list-style-type":
                             if value2 == "disc":
                                 par_type = "bullet"
+                            elif value2 == "none":
+                                par_type = "none"
 
             tag = TagNameDom("li %s" % par_type)
             self._dom_ptr.append_child(tag)
@@ -731,6 +733,7 @@ class HtmlBuffer (HTMLParser):
                 # (3) insert li above ol
                 elif isinstance(node.tag, RichTextIndentTag):
                     if within_indent:
+                        # todo: change this to bullet
                         item_dom = LiHtmlTagDom("none")
                         parent = node.get_parent()
                         parent.replace_child(node, item_dom)
@@ -923,16 +926,17 @@ class HtmlBuffer (HTMLParser):
                                 tag.get_color()))
 
         elif isinstance(tag, RichTextIndentTag):
-            self._out.write("<ol>")
+            self._out.write("<ul>")
+            #self._out.write("<ol>")
 
         elif isinstance(tag, RichTextBulletTag):
             pass
 
         elif isinstance(dom, LiHtmlTagDom):
             if dom.kind == "bullet":
-                self._out.write('<li style="list-style-type: disc">')
+                #self._out.write('<li style="list-style-type: disc">')
+                self._out.write('<li>')
             else:
-                # kind == "none"
                 self._out.write('<li style="list-style-type: none">')
 
         else:
@@ -952,7 +956,8 @@ class HtmlBuffer (HTMLParser):
             self._out.write("</div>")
 
         elif isinstance(tag, RichTextIndentTag):
-            self._out.write("</ol>\n")
+            self._out.write("</ul>\n")
+            #self._out.write("</ol>\n")
             
         elif isinstance(dom, LiHtmlTagDom):
             self._out.write("</li>\n")
