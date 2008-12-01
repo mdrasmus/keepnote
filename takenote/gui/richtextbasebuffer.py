@@ -138,13 +138,14 @@ class Action (object):
 class InsertAction (Action):
     """Represents the act of inserting text"""
     
-    def __init__(self, textbuffer, pos, text, length):
+    def __init__(self, textbuffer, pos, text, length, cursor_insert=False):
         Action.__init__(self)
         self.textbuffer = textbuffer
         self.current_tags = list(textbuffer.get_current_tags())
         self.pos = pos
         self.text = text
-        self.length = length        
+        self.length = length
+        self.cursor_insert = cursor_insert
         #assert len(self.text) == self.length
 
         
@@ -487,7 +488,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
                 self.place_cursor(
                     self.get_iter_at_mark(self._old_insert_mark))
                 return
-
+            
             
             if it.starts_line():
                 # pick up opening tags
@@ -499,7 +500,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
                 self._current_tags = [x for x in it.get_toggled_tags(False)
                                       if isinstance(x, RichTextTag) and
                                          x.can_be_current()]
-
+            
             self.on_selection_changed()
 
             self.move_mark(self._old_insert_mark, it)
@@ -520,10 +521,15 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         if self.is_interactive() and not self.is_insert_allowed(it, text):
             self.stop_emission("insert_text")
             return
+
+        offset = it.get_offset()
+        cursor_insert = (offset == 
+                         self.get_iter_at_mark(self.get_insert()).get_offset())
         
         # start next action
         assert self._next_action is None
-        self._next_action = InsertAction(self, it.get_offset(), text, length)
+        self._next_action = InsertAction(self, offset, text, length,
+                                         cursor_insert)
         self.move_mark(self._insert_text_mark, it)
         
         
@@ -598,8 +604,10 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         
         if isinstance(self._next_action, InsertAction):
             
-            # apply current style to inserted text            
-            if len(self._current_tags) > 0:
+            # apply current style to inserted text if inserted text is
+            # at cursor
+            if self._next_action.cursor_insert and \
+               len(self._current_tags) > 0:
                 it = self.get_iter_at_mark(self._insert_text_mark)
                 it2 = it.copy()
                 it2.forward_chars(self._next_action.length)
@@ -608,7 +616,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
                 # they are handled by the InsertAction
                 # and do not need to be recorded separately as TagAction's
                 self.undo_stack.suppress()
-                for tag in self._current_tags:
+                for tag in self._next_action.current_tags:
                     self.apply_tag(tag, it, it2)
                 self.undo_stack.resume()
 

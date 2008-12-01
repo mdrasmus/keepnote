@@ -94,15 +94,15 @@ class IndentManager (object):
             indent, par_indent = self.get_indent(pos)
 
             if indent + change > 0:
-                self._buf.apply_tag_selected(
-                    self._buf.tag_table.lookup(
-                        RichTextIndentTag.tag_name(indent + change,
-                                                   par_indent)),
-                    pos, par_end)
+                tag = self._buf.tag_table.lookup(
+                    RichTextIndentTag.tag_name(indent + change,
+                                               par_indent))
+                self._buf.clear_tag_class(tag, pos, par_end)
+                self._buf.apply_tag(tag, pos, par_end)
                 
             elif indent > 0:
                 # remove indent and possible bullets
-                self._buf.remove_tag_selected(
+                self._buf.clear_tag_class(
                     self._buf.tag_table.lookup(
                         RichTextIndentTag.tag_name(indent, par_indent)),
                                 pos, par_end)
@@ -168,16 +168,20 @@ class IndentManager (object):
         # apply indent to whole paragraph
         indent_tag = self._buf.tag_table.lookup(
             RichTextIndentTag.tag_name(indent, par_type))
-        self._buf.apply_tag_selected(indent_tag, par_start, par_end)
+        self._buf.clear_tag_class(indent_tag, par_start, par_end)
+        self._buf.apply_tag(indent_tag, par_start, par_end)
         
         self._queue_update_indentation(par_start, par_end)        
 
 
-    def _insert_bullet(self, par_start):
+    def _insert_bullet(self, par_start, indent_tag):
         """Insert a bullet point at the begining of the paragraph"""
 
         if self.par_has_bullet(par_start):
             return par_start
+
+        end = par_start.copy()
+        end.forward_char()
 
         self._buf.begin_user_action()
 
@@ -191,6 +195,7 @@ class IndentManager (object):
         bullet_end.forward_chars(len(BULLET_STR))
         bullet_tag = self._buf.tag_table.bullet_tag
         self._buf.apply_tag(bullet_tag, par_start, bullet_end)
+        self._buf.apply_tag(indent_tag, par_start, bullet_end)
 
         self._buf.end_user_action()
 
@@ -348,21 +353,21 @@ class IndentManager (object):
                     par_type = "none"
 
                 else:
-                    self._buf.apply_tag_selected(indent_tag, pos, par_end)
+                    self._buf.clear_tag_class(indent_tag, pos, par_end)
+                    self._buf.apply_tag(indent_tag, pos, par_end)
 
                     # check for bullets
                     par_type = indent_tag.get_par_indent()
 
+                    
                 # check paragraph type
                 if par_type == "bullet":
                     # ensure proper bullet is in place
-                    pos = self._insert_bullet(pos)
-                    end = self._buf.get_iter_at_mark(self._indent_update_end)
+                    pos = self._insert_bullet(pos, indent_tag)
                     
                 elif par_type == "none":
                     # remove bullets
                     pos = self._remove_bullet(pos)
-                    end = self._buf.get_iter_at_mark(self._indent_update_end)
                     
                 else:
                     raise Exception("unknown par_type '%s'" % par_type)
@@ -418,9 +423,7 @@ class IndentManager (object):
 
     def within_bullet(self, it):
         """Returns True if iter 'it' is within bullet phrase"""
-
-        print "within"
-
+        
         if it.starts_line():
             return True
         else:

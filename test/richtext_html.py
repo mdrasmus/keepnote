@@ -513,6 +513,24 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         self.buffer.place_cursor(self.buffer.get_start_iter())
         self.buffer.insert_at_cursor("\n")
 
+        '''
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['\n',
+                           'BEGIN:bullet',
+                           'BEGIN:indent 1 bullet',
+                           u'\u2022 ',
+                           'END:bullet',
+                           'line1\n',
+                           'END:indent 1 bullet',
+                           '\n',
+                           'BEGIN:bullet',
+                           'BEGIN:indent 1 bullet',                           
+                           u'\u2022 ',
+                           'END:bullet',
+                           'line2\n',
+                           'END:indent 1 bullet'])
+        '''
+
         self.assertEquals([display_item(x) for x in self.get_contents()],
                           ['BEGIN:bullet',
                            'BEGIN:indent 1 bullet',
@@ -531,7 +549,7 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
                            'END:bullet',
                            'line2\n',
                            'END:indent 1 bullet'])
-        
+
         
     def test_image1(self):
         """Simple read/write, text should not change"""
