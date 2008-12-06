@@ -100,6 +100,14 @@ def parse_utf(text):
 
 
 
+def is_relative_file(filename):
+    """Returns True if filename is relative"""
+    
+    return (not re.match("[^:/]+://", filename) and 
+            not os.path.isabs(filename))
+        
+
+
 #=============================================================================
 
 
@@ -114,6 +122,130 @@ class RichTextMenu (gtk.Menu):
 
     def get_child(self):
         return self._child
+
+
+class RichTextIO (object):
+    """Read/Writes the contents of a RichTextBuffer to disk"""
+
+    def __init__(self):
+        self._html_buffer = HtmlBuffer()
+
+    
+    def save(self, textbuffer, filename):
+        """Save buffer contents to file"""
+        
+        path = os.path.dirname(filename)
+        self._save_images(textbuffer, path)
+        
+        try:
+            buffer_contents = iter_buffer_contents(textbuffer,
+                                                   None,
+                                                   None,
+                                                   IGNORE_TAGS)
+            
+            out = open(filename, "wb")
+            self._html_buffer.set_output(out)
+            self._html_buffer.write(buffer_contents,
+                                    textbuffer.tag_table)
+            out.close()
+        except IOError, e:
+            raise RichTextError("Could not save '%s'." % filename, e)
+        
+        textbuffer.set_modified(False)
+    
+    
+    def load(self, textview, textbuffer, filename):
+        """Load buffer with data from file"""
+        
+        # unhook expensive callbacks
+        textbuffer.block_signals()
+        spell = textview.is_spell_check_enabled()
+        textview.enable_spell_check(False)
+        textview.set_buffer(None)
+
+
+        # clear buffer        
+        textbuffer.clear()
+        
+        err = None
+        try:
+            #from rasmus import util
+            #util.tic("read")
+            buffer_contents = list(self._html_buffer.read(open(filename, "r")))
+            #util.toc()
+            
+            #util.tic("read2")            
+            textbuffer.insert_contents(buffer_contents,
+                                       textbuffer.get_start_iter())
+            #util.toc()
+
+            # put cursor at begining
+            textbuffer.place_cursor(textbuffer.get_start_iter())
+            
+        except (HtmlError, IOError, Exception), e:
+            err = e
+            
+            # TODO: turn into function
+            textbuffer.clear()
+            textview.set_buffer(textbuffer)
+            ret = False            
+        else:
+            # finish loading
+            path = os.path.dirname(filename)
+            self._load_images(textbuffer, path)
+            textview.set_buffer(textbuffer)
+            textview.show_all()
+            ret = True
+        
+        # rehook up callbacks
+        textbuffer.unblock_signals()
+        textview.enable_spell_check(spell)
+        textview.enable()
+        
+        textbuffer.set_modified(False)
+        textbuffer.check_loaded()
+        
+        # reraise error
+        if not ret:
+            raise RichTextError("Error loading '%s'." % filename, e)
+        
+
+    
+    def _load_images(self, textbuffer, path):
+        """Load images present in textbuffer"""
+
+        for kind, it, param in iter_buffer_contents(textbuffer,
+                                                    None, None,
+                                                    IGNORE_TAGS):
+            if kind == "anchor":
+                child, widgets = param
+                    
+                if isinstance(child, RichTextImage):
+                    filename = child.get_filename()
+                    if is_relative_file(filename):
+                        filename = os.path.join(path, filename)
+                    
+                    child.set_from_file(filename)
+
+    
+    def _save_images(self, textbuffer, path):
+        """Save images present in text buffer"""
+        
+        for kind, it, param in iter_buffer_contents(textbuffer,
+                                                    None, None,
+                                                    IGNORE_TAGS):
+            if kind == "anchor":
+                child, widgets = param
+                    
+                if isinstance(child, RichTextImage):
+                    filename = child.get_filename()
+                    if is_relative_file(filename):
+                        filename = os.path.join(path, filename)
+                        
+                    if child.save_needed():
+                        child.write(filename)
+                    
+
 
 
 class RichTextView (gtk.TextView):
@@ -136,10 +268,7 @@ class RichTextView (gtk.TextView):
         self._spell_checker = None
         self.enable_spell_check(True)
         
-        # signals
-        self._textbuffer.connect("modified-changed", self._on_modified_changed)
-        self._block_modified = False
-        
+        # signals        
         self.set_wrap_mode(gtk.WRAP_WORD)
         self.set_property("right-margin", TEXTVIEW_MARGIN)
         self.set_property("left-margin", TEXTVIEW_MARGIN)
@@ -161,9 +290,6 @@ class RichTextView (gtk.TextView):
         #self.connect("button-press-event", self.on_button_press)
         self.connect("populate-popup", self.on_popup)
         
-        # initialize HTML buffer
-        self._html_buffer = HtmlBuffer()
-
         # popup menus
         self.init_menus()
         
@@ -206,8 +332,6 @@ class RichTextView (gtk.TextView):
         
         # tell current buffer we are detached
         if self._textbuffer:
-            self._textbuffer.set_textview(None)
-
             for callback in self._buffer_callbacks:
                 self._textbuffer.disconnect(callback)
 
@@ -222,20 +346,29 @@ class RichTextView (gtk.TextView):
 
         # tell new buffer we are attached
         if self._textbuffer:
-            self._textbuffer.default_attr = self.get_default_attributes()
-            self._textbuffer.set_textview(self)
+            self._textbuffer.set_default_attr(self.get_default_attributes())
+            self._modified_id = self._textbuffer.connect(
+                "modified-changed", self._on_modified_changed)
 
             self._buffer_callbacks = [
                 self._textbuffer.connect("font-change",
                                         self._on_font_change),
+                self._textbuffer.connect("child-added",
+                                         self._on_child_added),
                 self._textbuffer.connect("child-activated",
                                         self._on_child_activated),
                 self._textbuffer.connect("child-menu",
-                                        self._on_child_popup_menu)
+                                        self._on_child_popup_menu),
+                self._textbuffer.connect("loaded",
+                                         self._on_buffer_loaded),
+                self._modified_id
                 ]
+            
+            # add all deferred anchors
+            self._textbuffer.add_deferred_anchors(self)
 
     #======================================================
-    # callbacks
+    # keyboard callbacks
 
 
     def on_key_press_event(self, textview, event):
@@ -427,43 +560,6 @@ class RichTextView (gtk.TextView):
 
         self._textbuffer.end_user_action()
         
-    
-    def on_popup(self, textview, menu):
-
-        self._popup_menu = menu
-
-        # insert "paste as text" after paste
-        item = gtk.ImageMenuItem(stock_id=gtk.STOCK_PASTE,
-                                 accel_group=None)        
-        item.child.set_text("Paste As Text")
-        item.connect("activate", lambda item: self.paste_clipboard_as_text())
-        item.show()
-        menu.insert(item, 3)
-
-    '''
-        menu.foreach(lambda item: menu.remove(item))
-
-        # Create the menu item
-        copy_item = gtk.MenuItem("Copy")
-        copy_item.connect("activate", self.on_copy)
-        menu.add(copy_item)
-        
-        accel_group = menu.get_accel_group()
-        print "accel", accel_group
-        if accel_group == None:
-            accel_group = gtk.AccelGroup()
-            menu.set_accel_group(accel_group)
-            print "get", menu.get_accel_group()
-
-
-        # Now add the accelerator to the menu item. Note that since we created
-        # the menu item with a label the AccelLabel is automatically setup to 
-        # display the accelerators.
-        copy_item.add_accelerator("activate", accel_group, ord("C"),
-                                  gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE)
-        copy_item.show()
-    '''
-           
 
     
     #==================================================================
@@ -683,147 +779,6 @@ class RichTextView (gtk.TextView):
     def _clear_selection_data(self, clipboard, data):
         """Callback for when Clipboard contents are reset"""
         self._clipboard_contents = None
-
-
-    
-    #==================================================================
-    # File I/O
-    
-    def save(self, filename):
-        """Save buffer contents to file"""
-
-        if not self._textbuffer:
-            return
-        
-        path = os.path.dirname(filename)
-        self._save_images(path)
-        
-        try:
-            buffer_contents = iter_buffer_contents(self._textbuffer,
-                                                   None,
-                                                   None,
-                                                   IGNORE_TAGS)
-            
-            out = open(filename, "wb")
-            self._html_buffer.set_output(out)
-            self._html_buffer.write(buffer_contents,
-                                    self._textbuffer.tag_table)
-            out.close()
-        except IOError, e:
-            raise RichTextError("Could not save '%s'." % filename, e)
-        
-        self._textbuffer.set_modified(False)
-    
-    
-    def load(self, filename):
-        """Load buffer with data from file"""
-        
-        
-        textbuffer = self._textbuffer
-        
-        # unhook expensive callbacks
-        spell = self.is_spell_check_enabled()
-        self.enable_spell_check(False)
-        self._block_modified = True
-        textbuffer.undo_stack.suppress()
-        textbuffer.block_signals()
-        self.set_buffer(None)
-
-        # clear buffer        
-        textbuffer.clear()
-        
-        err = None
-        try:
-            #from rasmus import util
-            #util.tic("read")
-
-            # NOTE: buffer_contents is a generator
-            buffer_contents = list(self._html_buffer.read(open(filename, "r")))
-            #util.toc()
-            
-            #util.tic("read2")            
-            textbuffer.insert_contents(buffer_contents,
-                                       textbuffer.get_start_iter())
-            #util.toc()
-
-            # put cursor at begining
-            textbuffer.place_cursor(textbuffer.get_start_iter())
-            
-
-            
-        except (HtmlError, IOError), e:
-            err = e
-            
-            # TODO: turn into function
-            textbuffer.clear()
-            self.set_buffer(textbuffer)
-            
-            ret = False
-        #except Exception, e:
-        #    print e
-            
-        else:
-            self.set_buffer(textbuffer)
-            textbuffer.add_deferred_anchors()
-        
-            path = os.path.dirname(filename)
-            self._load_images(path)
-            
-            ret = True
-        
-        # rehook up callbacks
-        textbuffer.unblock_signals()
-        self._textbuffer.undo_stack.resume()
-        self._textbuffer.undo_stack.reset()
-        self.enable_spell_check(spell)
-        self.enable()
-
-        self._block_modified = False        
-        self._textbuffer.set_modified(False)
-
-        
-        if not ret:
-            raise RichTextError("Error loading '%s'." % filename, e)
-        
-   
-        
-    
-    def _load_images(self, path):
-        """Load images present in textbuffer"""
-        
-        for kind, it, param in iter_buffer_contents(self._textbuffer,
-                                                    None, None,
-                                                    IGNORE_TAGS):
-            if kind == "anchor":
-                child, widgets = param
-                    
-                if isinstance(child, RichTextImage):
-                    filename = child.get_filename()
-
-                    # TODO: make a is_relative() function to test this
-                    if not filename.startswith("http:") and \
-                       not filename.startswith("/"):
-                        filename = os.path.join(path, filename)
-                        
-                    child.set_from_file(filename)
-                    child.get_widget().show()
-
-    
-    def _save_images(self, path):
-        """Save images present in text buffer"""
-        
-        for kind, it, param in iter_buffer_contents(self._textbuffer,
-                                                    None, None,
-                                                    IGNORE_TAGS):
-            if kind == "anchor":
-                child, widgets = param
-                    
-                if isinstance(child, RichTextImage):
-
-                    # TODO: same is_relative() check needs to be done here
-                    filename = os.path.join(path, child.get_filename())
-                    if child.save_needed():
-                        child.write(filename)
                     
 
     #=============================================
@@ -842,9 +797,13 @@ class RichTextView (gtk.TextView):
         """Callback for when buffer is modified"""
         
         # propogate modified signal to listeners of this textview
-        if not self._block_modified:
-            self.emit("modified", textbuffer.get_modified())
+        self.emit("modified", textbuffer.get_modified())
 
+
+    def _on_buffer_loaded(self, textbuffer):
+        """Callback for when buffer is loaded"""
+        self.emit("loaded")
+        
         
     def enable(self):
         self.set_sensitive(True)
@@ -852,20 +811,14 @@ class RichTextView (gtk.TextView):
     
     def disable(self):
         """Disable TextView"""
-        
-        self._block_modified = True
-        if self._textbuffer:
-            self._textbuffer.undo_stack.suppress()
-            self._textbuffer.clear()
-        
-        self.set_sensitive(False)
 
-        self._block_modified = False
-        
         if self._textbuffer:
-            self._textbuffer.undo_stack.resume()
-            self._textbuffer.undo_stack.reset()
-            self._textbuffer.set_modified(False)            
+            self._textbuffer.handler_block(self._modified_id)
+            self._textbuffer.clear()
+            self._textbuffer.set_modified(False)
+            self._textbuffer.handler_unblock(self._modified_id)
+
+        self.set_sensitive(False)
         
     
     """
@@ -881,6 +834,45 @@ class RichTextView (gtk.TextView):
 
     #=====================================================
     # Popup Menus
+
+    
+    def on_popup(self, textview, menu):
+        """Popup menu for RichTextView"""
+
+        self._popup_menu = menu
+
+        # insert "paste as plain text" after paste
+        item = gtk.ImageMenuItem(stock_id=gtk.STOCK_PASTE,
+                                 accel_group=None)        
+        item.child.set_text("Paste As Plain Text")
+        item.connect("activate", lambda item: self.paste_clipboard_as_text())
+        item.show()
+        menu.insert(item, 3)
+
+    '''
+        menu.foreach(lambda item: menu.remove(item))
+
+        # Create the menu item
+        copy_item = gtk.MenuItem("Copy")
+        copy_item.connect("activate", self.on_copy)
+        menu.add(copy_item)
+        
+        accel_group = menu.get_accel_group()
+        print "accel", accel_group
+        if accel_group == None:
+            accel_group = gtk.AccelGroup()
+            menu.set_accel_group(accel_group)
+            print "get", menu.get_accel_group()
+
+
+        # Now add the accelerator to the menu item. Note that since we created
+        # the menu item with a label the AccelLabel is automatically setup to 
+        # display the accelerators.
+        copy_item.add_accelerator("activate", accel_group, ord("C"),
+                                  gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE)
+        copy_item.show()
+    '''
+    
 
     def _on_child_popup_menu(self, textbuffer, child, button, activate_time):
         """Callback for when child menu should appear"""
@@ -899,6 +891,11 @@ class RichTextView (gtk.TextView):
     #==========================================
     # child events
 
+    def _on_child_added(self, textbuffer, child):
+        """Callback when child added to buffer"""
+        self._add_children()
+                               
+
     def _on_child_activated(self, textbuffer, child):
         """Callback for when child has been activated"""
         self.emit("child-activated", child)
@@ -906,6 +903,11 @@ class RichTextView (gtk.TextView):
     
     #===========================================================
     # Actions
+
+    def _add_children(self):
+        """Add all deferred children in textbuffer"""        
+        self._textbuffer.add_deferred_anchors(self)
+        
 
     def indent(self):
         """Indents selection one more level"""
@@ -1255,5 +1257,7 @@ gobject.signal_new("font-change", RichTextView, gobject.SIGNAL_RUN_LAST,
     gobject.TYPE_NONE, (object,))
 gobject.signal_new("child-activated", RichTextView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object,))
+gobject.signal_new("loaded", RichTextView, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, ())
 
 

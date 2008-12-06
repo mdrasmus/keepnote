@@ -6,9 +6,17 @@
 """
 
 
-
 # python imports
-import sys, os, tempfile, re, subprocess, shlex, shutil, time, traceback
+import os
+import re
+import shutil
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+import traceback
+
 
 # pygtk imports
 import pygtk
@@ -61,17 +69,29 @@ class TakeNoteWindow (gtk.Window):
 
     def __init__(self, app):
         gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
-        self.app = app
-        self.notebook = None
-        self.sel_nodes = []
-        self.current_page = None
-        self.maximized = False
-        self.iconified = False
-        self.queue_list_select = []
-        self.ignore_view_mode = False
-
-        self.font_ui_signals = []
         
+        self.app = app           # application object
+        self.notebook = None     # opened notebook
+
+        # node selections
+        self.sel_nodes = []      # current selected nodes in treeview
+        self.current_page = None # current page in editor
+
+        # window state
+        self.maximized = False   # True if window is maximized
+        self.iconified = False   # True if window is minimized
+
+        
+        self._queue_list_select = []   # nodes to select in listview after treeview change
+        self._ignore_view_mode = False # prevent recursive view mode changes
+        self._font_ui_signals = []     # list of font ui widgets
+        
+
+        self.init_layout()
+
+        
+
+    def init_layout(self):
         # init main window
         self.set_title(takenote.PROGRAM_NAME)
         self.set_default_size(*takenote.DEFAULT_WINDOW_SIZE)
@@ -246,9 +266,9 @@ class TakeNoteWindow (gtk.Window):
         self.sel_nodes = nodes
         self.listview.view_nodes(nodes)
 
-        if len(self.queue_list_select) > 0:
-            self.listview.select_nodes(self.queue_list_select)
-            self.queue_list_select = []
+        if len(self._queue_list_select) > 0:
+            self.listview.select_nodes(self._queue_list_select)
+            self._queue_list_select = []
                 
         # view pages
         pages = [node for node in nodes 
@@ -311,9 +331,9 @@ class TakeNoteWindow (gtk.Window):
         # queue list select
         nodes = self.listview.get_selected_nodes()
         if len(nodes) > 0:
-            self.queue_list_select = nodes
+            self._queue_list_select = nodes
         else:
-            self.queue_list_select = [node]
+            self._queue_list_select = [node]
 
         # select parent
         self.treeview.select_nodes([parent])
@@ -360,11 +380,9 @@ class TakeNoteWindow (gtk.Window):
         self.app.pref.vsash_pos = self.paned2.get_position()
         self.app.pref.hsash_pos = self.hpaned.get_position()
         self.app.pref.window_maximized = self.maximized
-
-        #if textview is not None:
-        #    self.app.pref.spell_check = textview.is_spell_check_enabled()
-
+        
         self.app.pref.write()
+        
            
     #=============================================
     # Notebook open/save/close UI
@@ -508,6 +526,8 @@ class TakeNoteWindow (gtk.Window):
         
         notebook = notebooklib.NoteBook()
         notebook.node_changed.add(self.on_notebook_node_changed)
+        error = None
+        tback = None
         
         try:
             notebook.load(filename)
@@ -521,6 +541,7 @@ class TakeNoteWindow (gtk.Window):
             self.error("Could not load notebook '%s'" % filename,
                        e, sys.exc_traceback)
             return None
+        
 
         self.set_notebook(notebook)
         
@@ -712,10 +733,13 @@ class TakeNoteWindow (gtk.Window):
     # Notebook callbacks
     
     def on_notebook_node_changed(self, nodes, recurse):
+        """Callback for when the notebook changes"""
         self.set_notebook_modified(True)
         
     
     def set_notebook_modified(self, modified):
+        """Set the modification state of the notebook"""
+        
         if self.notebook is None:
             self.set_title(takenote.PROGRAM_NAME)
         else:
@@ -736,27 +760,31 @@ class TakeNoteWindow (gtk.Window):
             "vertical"
             "horizontal"
         """
-
-        if self.ignore_view_mode:
+        
+        if self._ignore_view_mode:
             return
 
-        self.ignore_view_mode = True
+        self._ignore_view_mode = True
+
+        # update menu
+        self.view_mode_h_toggle.set_active(mode == "horizontal")
+        self.view_mode_v_toggle.set_active(mode == "vertical")
         
+        # detach widgets
         self.paned2.remove(self.listview_sw)
         self.paned2.remove(self.editor)
         self.hpaned.remove(self.paned2)
-        
+
+        # remake paned2
         if mode == "vertical":
             # create a vertical paned widget
             self.paned2 = gtk.VPaned()
-            self.view_mode_h_toggle.set_active(False)
-            self.view_mode_v_toggle.set_active(True)
         else:
+            # create a horizontal paned widget
             self.paned2 = gtk.HPaned()
-            self.view_mode_h_toggle.set_active(True)
-            self.view_mode_v_toggle.set_active(False)            
+                    
         self.paned2.set_position(self.app.pref.vsash_pos)
-        self.paned2.show()
+        self.paned2.show()        
         
         self.hpaned.add2(self.paned2)
         self.hpaned.show()
@@ -764,25 +792,26 @@ class TakeNoteWindow (gtk.Window):
         self.paned2.add1(self.listview_sw)
         self.paned2.add2(self.editor)
         
-        self.app.pref.view_mode = mode
+        self.app.pref.view_mode = mode        
         self.app.pref.write()
-
-        self.ignore_view_mode = False
+        
+        self._ignore_view_mode = False
     
     #=============================================================
     # Update UI (menubar) from font under cursor
     
     def on_font_change(self, editor, font):
+        """Update the toolbar reflect the font under the cursor"""
         
         # block toolbar handlers
-        for ui in self.font_ui_signals:
+        for ui in self._font_ui_signals:
             ui.widget.handler_block(ui.signal)
 
         # update font mods
         self.bold_button.set_active(font.mods["bold"])
         self.italic_button.set_active(font.mods["italic"])
         self.underline_button.set_active(font.mods["underline"])
-        self.fixed_width_button.set_active(font.family == "Monospace")
+        self.fixed_width_button.set_active(font.mods["tt"])
         self.no_wrap_button.set_active(font.mods["nowrap"])
         
         # update text justification
@@ -799,7 +828,7 @@ class TakeNoteWindow (gtk.Window):
         self.font_size_button.set_value(font.size)
         
         # unblock toolbar handlers
-        for ui in self.font_ui_signals:
+        for ui in self._font_ui_signals:
             ui.widget.handler_unblock(ui.signal)
 
 
@@ -807,6 +836,7 @@ class TakeNoteWindow (gtk.Window):
     # changing font handlers
 
     def on_mod(self, mod, mod_button, mod_id):
+        """Toggle a font modification"""
         self.editor.get_textview().toggle_font_mod(mod)
         font = self.editor.get_textview().get_font()
         
@@ -815,28 +845,27 @@ class TakeNoteWindow (gtk.Window):
         mod_button.handler_unblock(mod_id)
 
     def on_bold(self):
+        """Toggle bold font"""
         self.on_mod("bold", self.bold_button, self.bold_id)
     
     def on_italic(self):
+        """Toggle italic font"""
         self.on_mod("italic", self.italic_button, self.italic_id)
     
     def on_underline(self):
+        """Toggle underline font"""
         self.on_mod("underline", self.underline_button, self.underline_id)
     
     def on_fixed_width(self, toolbar):
-        self.editor.get_textview().toggle_font_family("Monospace")    
-        
-        if not toolbar:
-            font = self.editor.get_textview().get_font()
-        
-            self.fixed_width_button.handler_block(self.fixed_width_id)        
-            self.fixed_width_button.set_active(font.family == "Monospace")
-            self.fixed_width_button.handler_unblock(self.fixed_width_id)
+        """Toggle fixed width font"""
+        self.on_mod("tt", self.fixed_width_button, self.fixed_width_id)
 
     def on_no_wrap(self):
+        """Toggle line wrapping"""
         self.on_mod("nowrap", self.no_wrap_button, self.no_wrap_id)        
 
     def on_justify(self, justify):
+        """Set font justification"""
         self.editor.get_textview().set_justify(justify)
         font = self.editor.get_textview().get_font()
         self.on_font_change(self.editor, font)
@@ -856,32 +885,21 @@ class TakeNoteWindow (gtk.Window):
         self.editor.get_textview().unindent()
 
 
-    def on_choose_font(self):
-        """Callback for opening Choose Font Dialog"""
-        
-        font = self.editor.get_textview().get_font()
-
-        dialog = gtk.FontSelectionDialog("Choose Font")
-        dialog.set_font_name("%s %d" % (font.family, font.size))
-        response = dialog.run()
-
-        if response == gtk.RESPONSE_OK:
-            self.editor.get_textview().set_font(dialog.get_font_name())
-            self.editor.get_textview().grab_focus()
-
-        dialog.destroy()
-        
     
     def on_family_set(self):
-        self.editor.get_textview().set_font_family(self.font_family_combo.get_family())
+        """Set the font family"""
+        self.editor.get_textview().set_font_family(
+            self.font_family_combo.get_family())
         self.editor.get_textview().grab_focus()
         
 
     def on_font_size_change(self, size):
+        """Set the font size"""
         self.editor.get_textview().set_font_size(size)
         self.editor.get_textview().grab_focus()
     
     def on_font_size_inc(self):
+        """Increase font size"""
         font = self.editor.get_textview().get_font()
         font.size += 2        
         self.editor.get_textview().set_font_size(font.size)
@@ -889,6 +907,7 @@ class TakeNoteWindow (gtk.Window):
     
     
     def on_font_size_dec(self):
+        """Decrease font size"""
         font = self.editor.get_textview().get_font()
         if font.size > 4:
             font.size -= 2
@@ -919,7 +938,22 @@ class TakeNoteWindow (gtk.Window):
         else:
             raise Exception("unknown color type '%s'" % str(kind))
         
+
+    def on_choose_font(self):
+        """Callback for opening Choose Font Dialog"""
         
+        font = self.editor.get_textview().get_font()
+
+        dialog = gtk.FontSelectionDialog("Choose Font")
+        dialog.set_font_name("%s %d" % (font.family, font.size))
+        response = dialog.run()
+
+        if response == gtk.RESPONSE_OK:
+            self.editor.get_textview().set_font(dialog.get_font_name())
+            self.editor.get_textview().grab_focus()
+
+        dialog.destroy()
+                
 
     #=================================================
     # Window manipulation
@@ -1313,12 +1347,42 @@ class TakeNoteWindow (gtk.Window):
         dialog.connect("response", lambda d,r: d.destroy())
         dialog.set_title("Error")
         dialog.show()
-
+        
         # add message to error log
         if error is not None:
             sys.stderr.write("\n")
             traceback.print_exception(type(error), error, tracebk)
-    
+
+
+    def wait_dialog(self, title, text, func):
+        """Display a wait dialog"""
+
+        dialog = gtk.MessageDialog(self.get_toplevel(), 
+            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            type=gtk.MESSAGE_INFO, 
+            buttons=gtk.BUTTONS_CANCEL, 
+            message_format=text)
+        dialog.connect("response", lambda d,r: d.destroy())
+        dialog.set_title(title)
+
+        def func2():
+            func()
+            dialog.destroy()
+        
+        # run thread
+        proc = threading.Thread(target=func2)
+        proc.start()
+
+        # run dialog
+        try:
+            # dialog may destroy quickly
+            dialog.run()
+        except:
+            pass
+
+        proc.join()
+
+        
     
     #================================================
     # Menus
@@ -1721,7 +1785,7 @@ class TakeNoteWindow (gtk.Window):
         self.bold_id = self.bold_button.connect("toggled",
             lambda w: self.editor.get_textview().toggle_font_mod("bold"))
         toolbar.insert(self.bold_button, -1)
-        self.font_ui_signals.append(FontUI(self.bold_button, self.bold_id))
+        self._font_ui_signals.append(FontUI(self.bold_button, self.bold_id))
 
 
         # italic tool
@@ -1734,7 +1798,7 @@ class TakeNoteWindow (gtk.Window):
         self.italic_id = self.italic_button.connect("toggled",
             lambda w: self.editor.get_textview().toggle_font_mod("italic"))
         toolbar.insert(self.italic_button, -1)
-        self.font_ui_signals.append(FontUI(self.italic_button, self.italic_id))
+        self._font_ui_signals.append(FontUI(self.italic_button, self.italic_id))
 
         # underline tool
         self.underline_button = gtk.ToggleToolButton()
@@ -1747,7 +1811,7 @@ class TakeNoteWindow (gtk.Window):
         self.underline_id = self.underline_button.connect("toggled",
             lambda w: self.editor.get_textview().toggle_font_mod("underline"))
         toolbar.insert(self.underline_button, -1)
-        self.font_ui_signals.append(FontUI(self.underline_button,
+        self._font_ui_signals.append(FontUI(self.underline_button,
                                            self.underline_id))
         
         # fixed-width tool
@@ -1758,7 +1822,7 @@ class TakeNoteWindow (gtk.Window):
         self.fixed_width_id = self.fixed_width_button.connect("toggled",
             lambda w: self.on_fixed_width(True))
         toolbar.insert(self.fixed_width_button, -1)
-        self.font_ui_signals.append(FontUI(self.fixed_width_button,
+        self._font_ui_signals.append(FontUI(self.fixed_width_button,
                                            self.fixed_width_id))
 
         # no wrap tool
@@ -1768,7 +1832,7 @@ class TakeNoteWindow (gtk.Window):
         self.no_wrap_id = self.no_wrap_button.connect("toggled",
             lambda w: self.editor.get_textview().toggle_font_mod("nowrap"))
         toolbar.insert(self.no_wrap_button, -1)
-        self.font_ui_signals.append(FontUI(self.no_wrap_button,
+        self._font_ui_signals.append(FontUI(self.no_wrap_button,
                                            self.no_wrap_id))
 
         # family combo
@@ -1780,7 +1844,7 @@ class TakeNoteWindow (gtk.Window):
         toolbar.insert(item, -1)
         self.font_family_id = self.font_family_combo.connect("changed",
             lambda w: self.on_family_set())
-        self.font_ui_signals.append(FontUI(self.font_family_combo,
+        self._font_ui_signals.append(FontUI(self.font_family_combo,
                                            self.font_family_id))
                 
         # font size
@@ -1799,7 +1863,7 @@ class TakeNoteWindow (gtk.Window):
         self.font_size_id = self.font_size_button.connect("value-changed",
             lambda w: 
             self.on_font_size_change(self.font_size_button.get_value()))
-        self.font_ui_signals.append(FontUI(self.font_size_button,
+        self._font_ui_signals.append(FontUI(self.font_size_button,
                                            self.font_size_id))
 
 
@@ -1838,7 +1902,7 @@ class TakeNoteWindow (gtk.Window):
         self.left_id = self.left_button.connect("toggled",
                                             lambda w: self.on_justify("left"))
         toolbar.insert(self.left_button, -1)
-        self.font_ui_signals.append(FontUI(self.left_button,
+        self._font_ui_signals.append(FontUI(self.left_button,
                                            self.left_id))
         
         # center tool
@@ -1852,7 +1916,7 @@ class TakeNoteWindow (gtk.Window):
         self.center_id = self.center_button.connect("toggled",
                                           lambda w: self.on_justify("center"))
         toolbar.insert(self.center_button, -1)
-        self.font_ui_signals.append(FontUI(self.center_button,
+        self._font_ui_signals.append(FontUI(self.center_button,
                                            self.center_id))
         
         # right tool
@@ -1866,7 +1930,7 @@ class TakeNoteWindow (gtk.Window):
         self.right_id = self.right_button.connect("toggled",
                                            lambda w: self.on_justify("right"))
         toolbar.insert(self.right_button, -1)
-        self.font_ui_signals.append(FontUI(self.right_button,
+        self._font_ui_signals.append(FontUI(self.right_button,
                                            self.right_id))
         
         # justify tool
@@ -1880,7 +1944,7 @@ class TakeNoteWindow (gtk.Window):
         self.fill_id = self.fill_button.connect("toggled",
                                              lambda w: self.on_justify("fill"))
         toolbar.insert(self.fill_button, -1)
-        self.font_ui_signals.append(FontUI(self.fill_button,
+        self._font_ui_signals.append(FontUI(self.fill_button,
                                            self.fill_id))
 
 
@@ -1891,7 +1955,7 @@ class TakeNoteWindow (gtk.Window):
         self.bullet_id = self.bullet_button.connect("toggled",
                                             lambda w: self.on_bullet_list())
         toolbar.insert(self.bullet_button, -1)
-        self.font_ui_signals.append(FontUI(self.bullet_button,
+        self._font_ui_signals.append(FontUI(self.bullet_button,
                                     self.bullet_id))
 
 

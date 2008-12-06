@@ -24,152 +24,137 @@ from takenote.notebook import \
      NoteBookVersionError
 from takenote import notebook as notebooklib
 from takenote.gui import richtext
-from takenote.gui.richtext import RichTextView, RichTextError
+from takenote.gui.richtext import RichTextView, RichTextIO, RichTextError
 
 
+# TODO: may need to update fonts on page change
 
 
-class TakeNoteEditor (gtk.VBox): #(gtk.Notebook):
+class TakeNoteEditor (gtk.VBox):
 
     def __init__(self):
-        #gtk.Notebook.__init__(self)
         gtk.VBox.__init__(self, False, 0)
-        #self.set_scrollable(True)
         self._notebook = None
         
-        # TODO: may need to update fonts on page change
-        # TODO: add page reorder
-        # TODO: add close button on labels
-        
         # state
-        self._textviews = []
-        self._pages = []
+        self._textview = RichTextView()    # textview
+        self._page = None                  # current NoteBookPage
+        self._page_scrolls = {}            # remember scroll in each page
+        self._queued_scroll = None
+        self._textview_io = RichTextIO()
+
         
-        self.new_tab()
-        self.show()
+        self._sw = gtk.ScrolledWindow()
+        self._sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self._sw.set_shadow_type(gtk.SHADOW_IN)       
+        self._sw.add(self._textview)
+        self.pack_start(self._sw)
+        
+        self._textview.connect("font-change", self._on_font_callback)
+        self._textview.connect("modified", self._on_modified_callback)
+        self._textview.connect("child-activated", self._on_child_activated)
+        self._textview.connect("loaded", self._on_loaded)
+        self._textview.disable()
+        self._sw.get_vadjustment().connect("value-changed", self._on_scroll)
+        self._sw.get_vadjustment().connect("changed", self._on_scroll_setup)
+        #self._textviews[-1].connect("show", self._on_scroll_init)
+        self.show_all()
+
 
     def set_notebook(self, notebook):
+        """Set notebook for editor"""
 
+        # remove listener for old notebook
         if self._notebook:
-            self._notebook.node_changed.remove(self.on_notebook_changed)
-        
+            self._notebook.node_changed.remove(self._on_notebook_changed)
+
+        # set new notebook
         self._notebook = notebook
 
         if self._notebook:
-            self._notebook.node_changed.add(self.on_notebook_changed)
-            for view in self._textviews:                
-                view.set_default_font(self._notebook.pref.default_font)
+            # add listener and read default font
+            self._notebook.node_changed.add(self._on_notebook_changed)
+            self._textview.set_default_font(self._notebook.pref.default_font)
         else:
+            # no new notebook, clear the view
             self.clear_view()
 
-    def on_notebook_changed(self, node, recurse):
-        for view in self._textviews:
-            view.set_default_font(self._notebook.pref.default_font)
-        
+    def _on_notebook_changed(self, node, recurse):
+        self._textview.set_default_font(self._notebook.pref.default_font)
     
-    def on_font_callback(self, textview, font):
+    def _on_font_callback(self, textview, font):
         self.emit("font-change", font)
     
-    def on_modified_callback(self, page_num, modified):
-        self.emit("modified", self._pages[page_num], modified)
+    def _on_modified_callback(self, textview, modified):
+        self.emit("modified", self._page, modified)
 
-    def on_child_activated(self, textview, child):
+    def _on_child_activated(self, textview, child):
         self.emit("child-activated", textview, child)
-    
-    #def on_error_callback(self, widget, text, error):
-    #    self.emit("error", text, error)
-        
+
+    def _on_loaded(self, textview):
+        return
+        #if self._queued_scroll is not None:
+        #    print "set", self._queued_scroll
+        #    self._sw.get_vadjustment().set_value(self._queued_scroll)
+        #    #self._queued_scroll = None
+
+                            
     
     def get_textview(self):
-        #pos = self.get_current_tab()
-        pos = 0
-        
-        if pos == -1:
-            return None
-        else:    
-            return self._textviews[pos]
+        return self._textview
     
-    
-    def new_tab(self):
-        self._textviews.append(RichTextView())
 
-        if self._notebook:
-            self._textviews[-1].set_default_font(self._notebook.pref.default_font)
-        self._pages.append(None)
-        
-        sw = gtk.ScrolledWindow()
-        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        sw.set_shadow_type(gtk.SHADOW_IN)       
-        sw.add(self._textviews[-1])
-        #self.append_page(sw, gtk.Label("(Untitled)"))
-        self.pack_start(sw)
-        self._textviews[-1].connect("font-change", self.on_font_callback)
-        self._textviews[-1].connect("modified", lambda t, m:
-            self.on_modified_callback(len(self._pages)-1, m))
-        self._textviews[-1].connect("child-activated", self.on_child_activated)
-        #self._textviews[-1].connect("error", self.on_error_callback)
-        self._textviews[-1].disable()
-        self._textviews[-1].show()
-        sw.show()
-        self.show()
-        
-    '''
-    def close_tab(self, pos=None):
-        if self.get_n_pages() <= 1:
-            return
-    
-        if pos is None:
-            pos = self.get_current_tab()
-        
-        self.save_tab(pos)
+    def _on_scroll(self, adjust):
+        if self._page:
+            self._page_scrolls[self._page] = adjust.get_value()
 
-        del self._pages[pos]
-        del self._textviews[pos]
-        self.remove_page(pos)
-    '''
-    
-    def get_n_pages(self):
-        return 1
-    
-    def get_current_tab(self):
-        return 0
 
+    def _on_scroll_setup(self, adjust):
+        print "setup"
+
+
+    def _on_scroll_init(self, widget):
+        print "init"
+
+        
     def is_focus(self):
-        pos = self.get_current_tab()
-        return self._textviews[pos].is_focus()
+        return self._textview.is_focus()
+
 
     def clear_view(self):
-        pos = self.get_current_tab()
-        self._pages[pos] = None
-        self._textviews[pos].disable()
+        self._page = None
+        self._textview.disable()
     
     def view_pages(self, pages):
+        """View a page"""
+        
         # TODO: generalize to multiple pages
         assert len(pages) <= 1
 
         
         if len(pages) == 0:
             self.save()
-            if self.get_n_pages() > 0:
-                self.clear_view()
+            self.clear_view()
                 
         else:
             page = pages[0]
             
             if page.is_page():
-            
-                self.save()
-                if self.get_n_pages() == 0:
-                    self.new_tab()
-            
-                pos = self.get_current_tab()
-                self._pages[pos] = page
-                self._textviews[pos].enable()
-                #self.set_tab_label_text(self.get_children()[pos], 
-                #                        self._pages[pos].get_title())
+                self._page = page
+                self.save()            
+                self._textview.enable()
             
                 try:
-                    self._textviews[pos].load(self._pages[pos].get_data_file())
+                    self._queued_scroll = self._page_scrolls.get(
+                        self._page, None)
+                    print self._queued_scroll
+
+                    #print "loading"
+                    self._textview_io.load(self._textview,
+                                           self._textview.get_buffer(),
+                                           self._page.get_data_file())
+                    #print "done loading"
+                    
                 except RichTextError, e:
                     self.clear_view()                
                     self.emit("error", e.msg, e)
@@ -181,33 +166,30 @@ class TakeNoteEditor (gtk.VBox): #(gtk.Notebook):
                 
     
     def save(self):
-        for pos in xrange(self.get_n_pages()):
-            self.save_tab(pos)
-            
-    
-    def save_tab(self, pos):
-        if self._pages[pos] is not None and \
-            self._pages[pos].is_valid() and \
-            self._textviews[pos].is_modified():
+        """Save the loaded page"""
+        
+        if self._page is not None and \
+            self._page.is_valid() and \
+            self._textview.is_modified():
 
             try:
-                self._textviews[pos].save(self._pages[pos].get_data_file())
+                self._textview_io.save(self._textview.get_buffer(),
+                                       self._page.get_data_file())
             except RichTextError, e:
                 self.emit("error", e.msg, e)
                 return
             
-            self._pages[pos].set_attr_timestamp("modified")
+            self._page.set_attr_timestamp("modified")
             
             try:
-                self._pages[pos].save()
+                self._page.save()
             except NoteBookError, e:
                 self.emit("error", e.msg, e)
     
     def save_needed(self):
-        for textview in self._textviews:
-            if textview.is_modified():
-                return True
-        return False
+        """Returns True if textview is modified"""
+        return self._textview.is_modified()
+
 
 # add new signals to TakeNoteEditor
 gobject.type_register(TakeNoteEditor)

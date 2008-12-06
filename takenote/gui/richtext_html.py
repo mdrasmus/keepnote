@@ -302,11 +302,13 @@ class HtmlBuffer (HTMLParser):
             "b": "bold",
             "i": "italic",
             "u": "underline",
+            "tt": "tt",
             "nobr": "nowrap"}
         self._buffer_tag2html = {
             "bold": "b",
             "italic": "i",
             "underline": "u",
+            "tt": "tt",
             "nowrap": "nobr"
             }
         self._justify = set([

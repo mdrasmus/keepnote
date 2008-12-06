@@ -56,6 +56,34 @@ BULLET_STR = u"\u2022 "
 # many websites refuse the python user agent
 USER_AGENT = ""
 
+# default color of a richtext background
+DEFAULT_BGCOLOR = (65535, 65535, 65535)
+
+DEFAULT_HR_COLOR = (0, 0, 0)
+
+
+# TODO: Maybe move somewhere more general
+def download_file(url, filename):
+    """Download a url to a file 'filename'"""
+
+    try:
+        # open url and download image
+        opener = urllib2.build_opener()
+        request = urllib2.Request(url)
+        request.add_header('User-Agent', USER_AGENT)
+        infile = opener.open(request)
+
+        outfile = open(filename, "wb")
+        outfile.write(infile.read())
+        outfile.close()
+
+        return True
+
+    except Exception:
+        return False
+        
+
+
 
 
 class RichTextError (StandardError):
@@ -115,13 +143,25 @@ gobject.signal_new("activated", RichTextAnchor, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, ())
 gobject.signal_new("popup-menu", RichTextAnchor, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, (int, object))
+gobject.signal_new("init", RichTextAnchor, gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, ())
 
 
-class BaseWidget (object):
+
+class BaseWidget (gtk.EventBox):
     """Widgets in RichTextBuffer must support this interface"""
     
     def __init__(self):
-        pass
+        gtk.EventBox.__init__(self)
+
+        # TODO: will this be configurable?
+        # set to white background
+        self.modify_bg(gtk.STATE_NORMAL, gdk.Color(*DEFAULT_BGCOLOR))
+
+        # gtk.STATE_ACTIVE
+        # gtk.STATE_PRELIGHT
+        # gtk.STATE_SELECTED
+        # gtk.STATE_INSENSITIVE        
         
     def highlight(self):
         pass
@@ -129,26 +169,29 @@ class BaseWidget (object):
     def unhighlight(self):
         pass
 
+    def show(self):
+        gtk.EventBox.show_all(self)
 
-class RichTextSep (gtk.HSeparator, BaseWidget):
+
+gobject.type_register(BaseWidget)
+gobject.signal_new("init", BaseWidget, gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, ())
+
+
+class RichTextSep (BaseWidget):
     """Separator widget for a Horizontal Rule"""
-    def __init__(self):
-        gtk.HSeparator.__init__(self)
-        BaseWidget.__init__(self)
-        self.modify_bg(gtk.STATE_NORMAL, gdk.Color(0, 0, 0))
-        self.modify_fg(gtk.STATE_NORMAL, gdk.Color(0, 0, 0))
-        self.connect("size-request", self.on_resize)
-
-    def on_resize(self, sep, req):
-        req.height = 10
-        req.width = self.get_parent().get_allocation().width - 20
-        
     
-
-class RichTextHorizontalRule (RichTextAnchor):
     def __init__(self):
-        gtk.TextChildAnchor.__init__(self)
-        self._widget = RichTextSep()
+        BaseWidget.__init__(self)
+        self._sep = gtk.HSeparator()
+        self.add(self._sep)
+        self._size = None
+        
+        self._sep.modify_bg(gtk.STATE_NORMAL, gdk.Color(* DEFAULT_HR_COLOR))
+        self._sep.modify_fg(gtk.STATE_NORMAL, gdk.Color(* DEFAULT_HR_COLOR))
+        self._sep.connect("size-request", self._on_resize)
+        self._sep.connect("size-allocate", self._on_size_change)
+
         #width = 400
         #height = 1
         #color = 0 # black
@@ -158,6 +201,31 @@ class RichTextHorizontalRule (RichTextAnchor):
         #pixbuf.fill(color)
         #self._widget.set_from_pixbuf(pixbuf)
         #self._widget.img.set_padding(0, padding)
+
+    def _on_resize(self, sep, req):
+        """Callback for widget resize"""
+        HR_HORIZONTAL_MARGIN = 40
+        HR_VERTICAL_MARGIN = 10
+        self._size = (self.get_parent().get_allocation().width -
+                      HR_HORIZONTAL_MARGIN,
+                      HR_VERTICAL_MARGIN)
+        req.width = self._size[0]        
+        req.height = self._size[1]
+
+    def _on_size_change(self, sep, alloc):
+        """Callback for when size is set"""
+
+        # when size is set then were are initialized
+        if (alloc.width, alloc.height) == self._size:
+            self.emit("init")
+    
+    
+
+class RichTextHorizontalRule (RichTextAnchor):
+    def __init__(self):
+        gtk.TextChildAnchor.__init__(self)
+        self._widget = RichTextSep()
+        self._widget.connect("init", lambda w: self.emit("init"))
         self._widget.show()
     
     def get_widget(self):
@@ -167,24 +235,17 @@ class RichTextHorizontalRule (RichTextAnchor):
         return RichTextHorizontalRule()
        
 
-class BaseImage (gtk.EventBox, BaseWidget):
+class BaseImage (BaseWidget):
     """Subclasses gtk.Image to make an Image Widget that can be used within
        RichTextViewS"""
 
     def __init__(self, *args, **kargs):
-        gtk.EventBox.__init__(self)
         BaseWidget.__init__(self)
         self._img = gtk.Image(*args, **kargs)
+        self._img.connect("size-allocate", self._on_size_change)
+        self._expected_size = None
         self.add(self._img)
 
-        # TODO: will this be configurable?
-        # set to white background
-        self.modify_bg(gtk.STATE_NORMAL, gdk.Color(65535, 65535, 65535))
-
-        # gtk.STATE_ACTIVE
-        # gtk.STATE_PRELIGHT
-        # gtk.STATE_SELECTED
-        # gtk.STATE_INSENSITIVE
 
     
     def highlight(self):
@@ -195,13 +256,18 @@ class BaseImage (gtk.EventBox, BaseWidget):
     
     def set_from_pixbuf(self, pixbuf):
         self._img.set_from_pixbuf(pixbuf)
+
+        # record expected size
+        # when this size is achieved, we are loaded
+        self._expected_size = (pixbuf.get_width(), pixbuf.get_height())
     
     def set_from_stock(self, stock, size):
         self._img.set_from_stock(stock, size)
     
-    def show(self):
-        gtk.EventBox.show(self)
-        self._img.show()
+    
+    def _on_size_change(self, img, alloc):
+        if (alloc.width, alloc.height) == self._expected_size:
+            self.emit("init")
 
 
 # TODO: think about how a single anchor could manage multiple widgets in
@@ -215,13 +281,14 @@ class RichTextImage (RichTextAnchor):
         self._filename = None
         self._download = False
         self._widget = BaseImage()
-        self._widget.connect("destroy", self._on_image_destroy)
-        self._widget.connect("button-press-event", self._on_clicked)
         self._pixbuf = None
         self._pixbuf_original = None
         self._size = [None, None]
-        self._buffer = None
         self._save_needed = False
+
+        self._widget.connect("destroy", self._on_image_destroy)
+        self._widget.connect("button-press-event", self._on_clicked)
+        self._widget.connect("init", lambda w: self.emit("init"))
         
 
     def is_valid(self):
@@ -236,6 +303,10 @@ class RichTextImage (RichTextAnchor):
         """Returns the filename used for saving image"""
         return self._filename
 
+    def get_original_pixbuf(self):
+        """Returns the pixbuf of the image at its original size (no scaling)"""
+        return self._pixbuf_original
+
     def set_save_needed(self, save):
         """Sets whether image needs to be saved to disk"""
         self._save_needed = save
@@ -243,10 +314,49 @@ class RichTextImage (RichTextAnchor):
     def save_needed(self):
         """Returns True if image needs to be saved to disk"""
         return self._save_needed
+
+
+    
+    def write(self, filename):
+        """Write image to file"""
+
+        # TODO: move this to external function
+        f, ext = os.path.splitext(filename)
+        ext = ext.replace(".", "")        
+        if ext == "jpg":
+            ext = "jpeg"
+
+        # TODO: make more checks on saving
+        self._pixbuf_original.save(filename, ext)
+        self._save_needed = False
+        
+        
+    def copy(self):
+        """Returns a new copy of the image"""
+        
+        img = RichTextImage()
+        img.set_filename(self._filename)
+        img._size = list(self.get_size())
+        
+        if self._pixbuf:
+            img.get_widget().set_from_pixbuf(self._pixbuf)
+            img._pixbuf = self._pixbuf
+            img._pixbuf_original = self._pixbuf_original
+        else:
+            img.set_no_image()
+
+        return img
+
+
+    #=====================================================
+    # set image
+    
     
     def set_from_file(self, filename):
         """Sets the image from a file"""
-        
+
+        # TODO: remove this assumption (perhaps save full filename, and
+        # caller will basename() if necessary
         if self._filename is None:
             self._filename = os.path.basename(filename)
         
@@ -266,6 +376,7 @@ class RichTextImage (RichTextAnchor):
 
 
     def set_no_image(self):
+        """Set the 'no image' icon"""
         self._widget.set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
         self._pixbuf_original = None
         self._pixbuf = None
@@ -280,14 +391,37 @@ class RichTextImage (RichTextAnchor):
         self._pixbuf_original = pixbuf
 
         if self.is_size_set():
-            self.scale(self._size[0], self._size[1], False)
-        self._widget.set_from_pixbuf(self._pixbuf)
+            self.scale(self._size[0], self._size[1], True)
+        else:
+            self._widget.set_from_pixbuf(self._pixbuf)
 
 
-    def get_original_pixbuf(self):
-        """Returns the pixbuf of the image at its original size (no scaling)"""
-        return self._pixbuf_original
+    
+    def set_from_url(self, url, filename):
+        """Set image by url"""
 
+        imgfile = None        
+
+        try:
+            # make local temp file
+            f, imgfile = tempfile.mkstemp("", "takenote")
+            os.close(f)
+
+            if download_url(url, imgfile):
+                self.set_from_file(imgfile)
+                self.set_filename(filename)
+            else:
+                raise Exception("Could not download file")
+        except Exception:
+            self.set_no_image()
+        
+        # remove tempfile
+        if imgfile and os.path.exists(imgfile):
+            os.remove(imgfile)
+
+
+    #======================
+    # Image Scaling
                 
     def get_size(self, actual_size=False):
         """Returns the size of the image
@@ -330,7 +464,7 @@ class RichTextImage (RichTextAnchor):
             # use original image size
             if self._pixbuf != self._pixbuf_original:
                 self._pixbuf = self._pixbuf_original
-                if self._pixbuf is not None:
+                if self._pixbuf is not None and set_widget:
                     self._widget.set_from_pixbuf(self._pixbuf)
         
         elif self._pixbuf_original is not None:
@@ -341,10 +475,10 @@ class RichTextImage (RichTextAnchor):
             
             if width is None:
                 factor = height / float(height2)
-                width = factor * width2
+                width = int(factor * width2)
             if height is None:
                 factor = width / float(width2)
-                height = factor * height2
+                height = int(factor * height2)
             
             self._pixbuf = self._pixbuf_original.scale_simple(
                 width, height, gtk.gdk.INTERP_BILINEAR)
@@ -356,77 +490,6 @@ class RichTextImage (RichTextAnchor):
             self._buffer.set_modified(True)
 
 
-    
-    def write(self, filename):
-        """Write image to file"""
-
-        # TODO: move this to external function
-        f, ext = os.path.splitext(filename)
-        ext = ext.replace(".", "")        
-        if ext == "jpg":
-            ext = "jpeg"
-
-        # TODO: make more checks on saving
-        self._pixbuf_original.save(filename, ext)
-        self._save_needed = False
-        
-        
-    def copy(self):
-        """Returns a new copy of the image"""
-        
-        img = RichTextImage()
-        img.set_filename(self._filename)
-        img._size = list(self.get_size())
-        
-        if self._pixbuf:
-            img.get_widget().set_from_pixbuf(self._pixbuf)
-            img._pixbuf = self._pixbuf
-            img._pixbuf_original = self._pixbuf_original            
-        else:
-            img.set_no_image()
-            
-        img.get_widget().show()
-        return img
-    
-    
-    def set_from_url(self, url, filename):
-        """Set image by url"""
-
-        imgfile = None
-
-        try:
-            # make local temp file
-            f, imgfile = tempfile.mkstemp("", "takenote")
-            os.close(f)
-        
-            # open url and download image
-            opener = urllib2.build_opener()
-            request = urllib2.Request(url)
-            request.add_header('User-Agent', USER_AGENT)
-            infile = opener.open(request)
-            
-            # infile = urllib2.urlopen(url)
-            
-            outfile = open(imgfile, "wb")
-            outfile.write(infile.read())
-            outfile.close()
-        
-        except Exception: #urllib2.HTTPError, e:
-            imgfile = None
-
-
-        if imgfile:
-            # set filename and image
-            self.set_from_file(imgfile)
-            self.set_filename(filename)
-        else:
-            self.set_no_image()
-            
-        # remove tempfile
-        if imgfile and os.path.exists(imgfile):
-            os.remove(imgfile)
-
-        
 
     #==========================
     # GUI callbacks
@@ -498,26 +561,19 @@ class RichTextBuffer (RichTextBaseBuffer):
     
     def __init__(self, textview=None):
         RichTextBaseBuffer.__init__(self)
-        self.textview = textview
 
         # indentation manager
         self._indent = IndentManager(self)
 
         # set of all anchors in buffer
         self._anchors = set()
+        self._child_uninit = set()
 
         # anchors that still need to be added,
         # they are defferred because textview was not available at insert-time
         self._anchors_deferred = set() 
         
         
-
-    def set_textview(self, textview):
-        self.textview = textview
-    
-    def get_textview(self):
-        return self.textview
-
     def clear(self):
         """Clear buffer contents"""
         
@@ -625,6 +681,7 @@ class RichTextBuffer (RichTextBaseBuffer):
         """Unindent paragraph level"""
         self._indent.change_indent(start, end, -1)
 
+
     def starts_par(self, it):
         """Returns True if iter 'it' starts a paragraph"""
         return self._indent.starts_par(it)
@@ -648,31 +705,36 @@ class RichTextBuffer (RichTextBaseBuffer):
 
         # setup child
         self._anchors.add(child)
+        self._child_uninit.add(child)
         child.set_buffer(self)
         child.connect("activated", self._on_child_activated)
         child.connect("selected", self._on_child_selected)
         child.connect("popup-menu", self._on_child_popup_menu)
+        child.connect("init", self._on_child_init)
         self.insert_child_anchor(it, child)
 
-        # if textview is attaced, let it display child
-        if self.textview:
-            self.textview.add_child_at_anchor(child.get_widget(), child)
-        else:
-            # defer display of child
-            self._anchors_deferred.add(child)
+        # let textview, if attached know we added a child
+        self._anchors_deferred.add(child)
+        self.emit("child-added", child)
+            
     
-    
-    def add_deferred_anchors(self):
+    def add_deferred_anchors(self, textview):
         """Add anchors that were deferred"""
-        assert self.textview is not None
         
         for child in self._anchors_deferred:
             # only add anchor if it is still present (hasn't been deleted)
             if child in self._anchors:
-                self.textview.add_child_at_anchor(child.get_widget(), child)
+                self._add_child_at_anchor(child, textview)
         
         self._anchors_deferred.clear()
-    
+
+
+    def _add_child_at_anchor(self, child, textview):
+        #print "add", child.get_widget()
+        textview.add_child_at_anchor(child.get_widget(), child)
+        child.get_widget().show()
+        #print "added", child.get_widget()
+
     
     def insert_image(self, image, filename="image.png"):
         """Inserts an image into the textbuffer at current position"""
@@ -767,6 +829,22 @@ class RichTextBuffer (RichTextBaseBuffer):
 
         # forward callback to listeners (textview)
         self.emit("child-menu", child, button, activate_time)
+
+
+    def _on_child_init(self, child):
+        
+        if child in self._child_uninit:
+            self._child_uninit.remove(child)
+            if len(self._child_uninit) == 0:
+                self.emit("loaded")
+
+    def is_loaded(self):
+        return len(self._child_uninit) == 0
+
+
+    def check_loaded(self):
+        if len(self._child_uninit) == 0:
+            self.emit("loaded")
             
     
     def highlight_children(self):
@@ -813,10 +891,12 @@ class RichTextBuffer (RichTextBaseBuffer):
 
 
 gobject.type_register(RichTextBuffer)
+gobject.signal_new("child-added", RichTextBuffer, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, (object,))
 gobject.signal_new("child-activated", RichTextBuffer, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, (object,))
 gobject.signal_new("child-menu", RichTextBuffer, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, (object, object, object))
-#gobject.signal_new("modified", RichTextView, gobject.SIGNAL_RUN_LAST, 
-#    gobject.TYPE_NONE, (bool,))
+gobject.signal_new("loaded", RichTextBuffer, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, ())
 

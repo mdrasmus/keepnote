@@ -94,6 +94,8 @@ class RichTextTagTable (gtk.TextTagTable):
             RichTextModTag("underline",
                            underline=pango.UNDERLINE_SINGLE))
         self.tag_class_add("mod",
+            RichTextModTag("tt", family="Monospace"))
+        self.tag_class_add("mod",
             RichTextModTag("nowrap", wrap_mode=gtk.WRAP_NONE))
         
 

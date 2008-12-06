@@ -196,39 +196,39 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
 
 
     def test_ol1(self):
-        self.read_write('<ol><li style="list-style-type: none">'
-                        'line1</li>\n<li style="list-style-type: none">line2</li>\n</ol>\n')
+        self.read_write('<ul><li style="list-style-type: none">'
+                        'line1</li>\n<li style="list-style-type: none">line2</li>\n</ul>\n')
 
 
     def test_ol2(self):
         self.read_write(
-            'line0<ol><li style="list-style-type: none">line1</li>\n'
-            '<li style="list-style-type: none">line2</li>\n<li style="list-style-type: none"><ol><li style="list-style-type: none">line3</li>\n'
-            '<li style="list-style-type: none">line4</li>\n</ol>\n</li>\n'
-            '<li style="list-style-type: none">line5</li>\n</ol>\nline6')
+            'line0<ul><li style="list-style-type: none">line1</li>\n'
+            '<li style="list-style-type: none">line2</li>\n<li style="list-style-type: none"><ul><li style="list-style-type: none">line3</li>\n'
+            '<li style="list-style-type: none">line4</li>\n</ul>\n</li>\n'
+            '<li style="list-style-type: none">line5</li>\n</ul>\nline6')
 
 
     def test_ol3(self):
         self.read_write(
-            'line1<ol><li style="list-style-type: none">line1.5</li>\n'
-            '<li style="list-style-type: none"><ol>'
+            'line1<ul><li style="list-style-type: none">line1.5</li>\n'
+            '<li style="list-style-type: none"><ul>'
             '<li style="list-style-type: none">line2</li>\n'
-            '<li style="list-style-type: none">line3</li>\n</ol>\n</li>\n</ol>\nline4')
+            '<li style="list-style-type: none">line3</li>\n</ul>\n</li>\n</ul>\nline4')
 
     def test_ol4(self):
         self.read_write(
-            '<b><i>line0</i><ol><li style="list-style-type: none"><i>line1</i></li>\n'
+            '<b><i>line0</i><ul><li style="list-style-type: none"><i>line1</i></li>\n'
             '<li style="list-style-type: none"><i>line2</i></li>\n'
-            '<li style="list-style-type: none"><ol><li style="list-style-type: none">line3</li>\n'
-            '<li style="list-style-type: none">line4</li>\n</ol>\n</li>\n<li style="list-style-type: none">line5</li>\n'
-                        '</ol>\nline6</b>')
+            '<li style="list-style-type: none"><ul><li style="list-style-type: none">line3</li>\n'
+            '<li style="list-style-type: none">line4</li>\n</ul>\n</li>\n<li style="list-style-type: none">line5</li>\n'
+                        '</ul>\nline6</b>')
 
     def test_ol5(self):
         infile = StringIO.StringIO(
-            'line0<ol><li style="list-style-type: none">line1<br/>\n'
-            'line2<ol><li style="list-style-type: none">line3<br/>\n'
-            'line4<br/>\n</li>\n</ol>\n</li>\n'
-            '<li style="list-style-type: none">line5</li>\n</ol>\nline6')
+            'line0<ul><li style="list-style-type: none">line1<br/>\n'
+            'line2<ul><li style="list-style-type: none">line3<br/>\n'
+            'line4<br/>\n</li>\n</ul>\n</li>\n'
+            '<li style="list-style-type: none">line5</li>\n</ul>\nline6')
         self.read(self.buffer, infile)
 
         contents = list(iter_buffer_contents(self.buffer,
@@ -250,10 +250,10 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
 
     def test_ol6(self):
         infile = StringIO.StringIO(
-            'line0<ol><li style="list-style-type: none">line1<br/>\n'
-            'line2<ol><li style="list-style-type: none">line3<br/>\n'
-            'line4<br/>\n</li>\n</ol>\n'
-            '</li>\n</ol>\nline5')
+            'line0<ul><li style="list-style-type: none">line1<br/>\n'
+            'line2<ul><li style="list-style-type: none">line3<br/>\n'
+            'line4<br/>\n</li>\n</ul>\n'
+            '</li>\n</ul>\nline5')
         self.read(self.buffer, infile)
 
         contents = list(iter_buffer_contents(self.buffer,
@@ -271,11 +271,11 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
                            'line5'])
 
     def test_ol7(self):
-        self.read_write('line0<ol><li style="list-style-type: none">'
-                        '<ol><li style="list-style-type: none">line1</li>\n'
-                        '<li style="list-style-type: none">line2</li>\n</ol>\n</li>\n'
+        self.read_write('line0<ul><li style="list-style-type: none">'
+                        '<ul><li style="list-style-type: none">line1</li>\n'
+                        '<li style="list-style-type: none">line2</li>\n</ul>\n</li>\n'
                         '<li style="list-style-type: none">line3</li>\n'
-                        '</ol>\nline4')
+                        '</ul>\nline4')
 
 
     def test_bullet(self):
@@ -318,17 +318,18 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         self.write(self.buffer, outfile)
 
         self.assertEquals(outfile.getvalue(),
-                          '<ol><li style="list-style-type: disc">line1</li>\n'
-                          '<li style="list-style-type: disc">end1</li>\n</ol>\nend2<br/>\n')
+                          '<ul><li>line1</li>\n'
+                          '<li>end1</li>\n</ul>\nend2<br/>\n')
 
 
     def test_bullet2(self):
         self.read_write(
-            '<b><i>line0</i><ol><li style="list-style-type: disc"><i>line1</i></li>\n'
-            '<li style="list-style-type: disc"><i>line2</i></li>\n'
-            '<li style="list-style-type: none"><ol><li style="list-style-type: disc">line3</li>\n'
-            '<li style="list-style-type: disc">line4</li>\n</ol>\n</li>\n<li style="list-style-type: disc">line5</li>\n'
-                        '</ol>\nline6</b>')
+            '<b><i>line0</i><ul><li><i>line1</i></li>\n'
+            '<li><i>line2</i></li>\n'
+            '<li style="list-style-type: none"><ul><li>line3</li>\n'
+            '<li>line4</li>\n</ul>\n</li>\n'
+            '<li>line5</li>\n'
+            '</ul>\nline6</b>')
 
     def test_par(self):
 
@@ -445,10 +446,10 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         """
 
         self.read(self.buffer, StringIO.StringIO(
-            '<ol><li style="list-style-type: disc">line1</li>\n'
-            '</ol>\n'
-            '<ol><li style="list-style-type: disc">line2</li>\n'
-            '</ol>\n'))
+            '<ul><li>line1</li>\n'
+            '</ul>\n'
+            '<ul><li>line2</li>\n'
+            '</ul>\n'))
 
         self.assertEquals([display_item(x) for x in self.get_contents()],
                           ['BEGIN:bullet',
@@ -468,11 +469,11 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         self.buffer.clear()
 
         self.read_write(
-            '<ol><li style="list-style-type: disc">line1</li>\n'
-            '</ol>\n'
+            '<ul><li>line1</li>\n'
+            '</ul>\n'
             '<br/>\n'
-            '<ol><li style="list-style-type: disc">line2</li>\n'
-            '</ol>\n')
+            '<ul><li>line2</li>\n'
+            '</ul>\n')
 
     def test_bullet_newlines_deep_indent(self):
         """

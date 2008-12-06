@@ -85,6 +85,8 @@ class IndentManager (object):
         if start is None or end is None:
             start, end = get_paragraphs_selected(self._buf)
 
+        #start, end = self._ensure_par_newline(start, end)
+
         self._buf.begin_user_action()
         
         # loop through paragraphs
@@ -117,13 +119,7 @@ class IndentManager (object):
         
 
 
-    def toggle_bullet_list(self, par_type=None):
-        """Toggle the state of a bullet list"""
-        
-        self._buf.begin_user_action()
-
-        # round selection to nearest paragraph
-        start, end = get_paragraphs_selected(self._buf)
+    def _ensure_par_newline(self, start, end):
 
         # trying to insert paragraph at end of buffer
         if start.compare(end) == 0:
@@ -133,6 +129,19 @@ class IndentManager (object):
             start = end.copy()
             start.backward_line()
             self._buf.place_cursor(start)
+
+        return start, end
+    
+
+    def toggle_bullet_list(self, par_type=None):
+        """Toggle the state of a bullet list"""
+        
+        self._buf.begin_user_action()
+
+        # round selection to nearest paragraph
+        start, end = get_paragraphs_selected(self._buf)
+        start, end = self._ensure_par_newline(start, end)
+        
         
         # toggle bullet presence
         if par_type is None:
@@ -282,10 +291,6 @@ class IndentManager (object):
         else:
             return True
         
-    
-    #def prepare_delete_range(self, start, end):
-    #    """Prepare range for deletion"""
-
 
 
     def update_indentation(self):
@@ -303,16 +308,6 @@ class IndentManager (object):
             self._buf.begin_user_action()
             self._buf.begin_noninteractive()
 
-            # process queued delete
-            #if self._delete_queued:
-
-            #    start = self._buf.get_iter_at_mark(self._delete_start)
-            #    end = self._buf.get_iter_at_mark(self._delete_end)
-
-            #    print "update delete", start.get_offset(), end.get_offset()
-            #    self._buf.remove_tag(self._buf.tag_table.bullet_tag, start, end)
-            #    self._buf.delete(start, end)
-            #    self._delete_queued = False
             
             # get range of updating
             pos = self._buf.get_iter_at_mark(self._indent_update_start)
