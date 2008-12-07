@@ -50,10 +50,13 @@ from takenote.gui import \
     dialog_find, \
     dialog_drag_drop_test, \
     dialog_image_resize, \
+    dialog_wait, \
     TakeNoteError
 from takenote.gui.font_selector import FontSelector
 from takenote.gui.editor import TakeNoteEditor
 from takenote.gui.colortool import FgColorTool, BgColorTool
+
+from takenote import tasklib
 
 
 
@@ -1354,9 +1357,26 @@ class TakeNoteWindow (gtk.Window):
             traceback.print_exception(type(error), error, tracebk)
 
 
-    def wait_dialog(self, title, text, func):
+    def wait_dialog(self, title, text, task=None):
         """Display a wait dialog"""
 
+        if task is None:
+            # dummy testing task
+            
+            complete = [0.0]
+            def func(task):
+                while task.is_running():
+                    print complete
+                    complete[0] = 1.0 - (1.0 - complete[0]) * .9999
+                    task.set_percent(complete[0])
+                task.finish()
+            task = tasklib.Task(func)
+        
+        dialog = dialog_wait.WaitDialog(self)
+        dialog.show(title, text, task)
+        
+
+        '''
         dialog = gtk.MessageDialog(self.get_toplevel(), 
             flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
             type=gtk.MESSAGE_INFO, 
@@ -1381,7 +1401,7 @@ class TakeNoteWindow (gtk.Window):
             pass
 
         proc.join()
-
+        '''
         
     
     #================================================
@@ -1654,6 +1674,11 @@ class TakeNoteWindow (gtk.Window):
             ("/Help/Drag and Drop Test...",
                 None, lambda w,e: self.drag_test.on_drag_and_drop_test(),
                 0, None),
+            ("/Help/Wait dialog...",
+             None, lambda w,e: self.wait_dialog("title",
+                                                "message message message message message message message message message message message message message message message message message message message message message message\n message message message message ",
+                                                None),
+             0, None),
             ("/Help/sep1", None, None, 0, "<Separator>"),
             ("/Help/About", None, lambda w,e: self.on_about(), 0, None ),
             )    

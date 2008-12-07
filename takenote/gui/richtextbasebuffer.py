@@ -6,9 +6,9 @@ import gtk, gobject, pango
 from gtk import gdk
 
 # takenote imports
-import takenote
 from takenote.undo import UndoStack
 
+# import textbuffer tools
 from takenote.gui.textbuffer_tools import \
      iter_buffer_contents, \
      buffer_contents_iter_to_offset, \
@@ -46,6 +46,8 @@ def add_child_to_buffer(textbuffer, it, anchor):
 
 #=============================================================================
 # buffer paragraph navigation
+
+# TODO: this might go into textbuffer_tools
 
 def move_to_start_of_line(it):
     """Move a TextIter it to the start of a paragraph"""

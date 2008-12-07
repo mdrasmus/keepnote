@@ -56,7 +56,7 @@ class TakeNoteEditor (gtk.VBox):
         self._textview.connect("loaded", self._on_loaded)
         self._textview.disable()
         self._sw.get_vadjustment().connect("value-changed", self._on_scroll)
-        self._sw.get_vadjustment().connect("changed", self._on_scroll_setup)
+        #self._sw.get_vadjustment().connect("changed", self._on_scroll_setup)
         #self._textviews[-1].connect("show", self._on_scroll_init)
         self.show_all()
 
@@ -147,7 +147,7 @@ class TakeNoteEditor (gtk.VBox):
                 try:
                     self._queued_scroll = self._page_scrolls.get(
                         self._page, None)
-                    print self._queued_scroll
+                    #print self._queued_scroll
 
                     #print "loading"
                     self._textview_io.load(self._textview,
@@ -169,8 +169,8 @@ class TakeNoteEditor (gtk.VBox):
         """Save the loaded page"""
         
         if self._page is not None and \
-            self._page.is_valid() and \
-            self._textview.is_modified():
+           self._page.is_valid() and \
+           self._textview.is_modified():
 
             try:
                 self._textview_io.save(self._textview.get_buffer(),

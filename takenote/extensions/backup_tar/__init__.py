@@ -5,12 +5,13 @@
 # Tar file notebook backup
 #
 
-import os, re, shutil, time
-import tarfile
+import sys, os, re, shutil, time
+import tarfile, zipfile
 
 import takenote
 from takenote.notebook import NoteBookError, get_valid_unique_filename
 from takenote import notebook as notebooklib
+from takenote import tasklib
 
 # pygtk imports
 try:
@@ -174,7 +175,8 @@ class Extension (takenote.Extension):
             dialog.destroy()
 
             window.set_status("Restoring...")
-            self.restore_notebook(window, archive_filename, notebook_filename)
+            self.restore_notebook(window, archive_filename,
+                                  notebook_filename)
 
         elif response == gtk.RESPONSE_CANCEL:
             dialog.destroy()
@@ -188,24 +190,31 @@ class Extension (takenote.Extension):
             return
 
 
-        def progress(percent, filename):
-            pass
-            #print percent, filename
+        task = tasklib.Task(lambda task:
+            archive_notebook(window.notebook, filename, task))
 
+        window.wait_dialog("Creating archive '%s'..." %
+                           os.path.basename(filename),
+                           "Beginning archive...",
+                           task)
+
+        # check exceptions
         try:
-            archive_notebook(window.notebook, filename, progress)
+            ty, error, tracebk = task.exc_info()
+            if error:
+                raise error
+            window.set_status("Notebook archived")
 
         except NoteBookError, e:
             window.set_status("")
-            window.error("Error while archiving notebook:\n%s" % e.msg, e)
-            return
+            window.error("Error while archiving notebook:\n%s" % e.msg, e,
+                         tracebk)
 
         except Exception, e:
             window.set_status("")
-            window.error("unknown error", e)
-            return
+            window.error("unknown error", e, tracebk)
 
-        window.set_status("Notebook archived")
+        
 
 
     def restore_notebook(self, window, archive_filename, notebook_filename):
@@ -214,27 +223,42 @@ class Extension (takenote.Extension):
         # make sure current notebook is closed
         window.close_notebook()
 
+        task = tasklib.Task(lambda task:
+            restore_notebook(archive_filename, notebook_filename, True, task))
+        
+        window.wait_dialog("Restoring notebook from '%s'..." %
+                           os.path.basename(archive_filename),
+                           "Opening archive...",
+                           task)
+
+        # check exceptions
         try:
-            restore_notebook(archive_filename, notebook_filename)
+            ty, error, tracebk = task.exc_info()
+            if error:
+                raise error
             window.set_status("Notebook restored")
 
         except NoteBookError, e:
             window.set_status("")
-            window.error("Error restoring notebook:\n%s" % e.msg, e)
+            window.error("Error restoring notebook:\n%s" % e.msg, e, tracebk)
             return
 
         except Exception, e:
             window.set_status("")
-            window.error("unknown error", e)
+            window.error("unknown error", e, trackbk)
             return
 
         # open new notebook
         window.open_notebook(notebook_filename)
 
 
+def truncate_filename(filename, maxsize=100):
+    if len(filename) > maxsize:
+        filename = "..." + filename[-(maxsize-3):]
+    return filename
 
 
-def archive_notebook(notebook, filename, progress=lambda p, f: None):
+def archive_notebook(notebook, filename, task=None):
     """Archive notebook as *.tar.gz
 
        filename -- filename of archive to create
@@ -261,30 +285,53 @@ def archive_notebook(notebook, filename, progress=lambda p, f: None):
         for root, dirs, files in os.walk(path):
             nfiles += len(files)
 
+        task.set_message(("text", "Archiving %d files..." % nfiles))
+
         nfiles2 = [0]
         def walk(path, arcname):
             # add to archive
             archive.add(path, arcname, False)
-
+            
             # report progresss
             if os.path.isfile(path):
                 nfiles2[0] += 1
-                progress(nfiles2[0] / float(nfiles), path)
+                if task:
+                    task.set_message(("detail", truncate_filename(path)))
+                    task.set_percent(nfiles2[0] / float(nfiles))
+
 
             # recurse
             if os.path.isdir(path):
                 for f in os.listdir(path):
+
+                    # abort archive
+                    if task.aborted():
+                        archive.close()
+                        os.remove(filename)
+                        raise NoteBookError("Backup canceled")
+                    
                     if not os.path.islink(f):
                         walk(os.path.join(path, f),
                              os.path.join(arcname, f))
+                        
         walk(path, os.path.basename(path))
 
+        task.set_message(("text", "Closing archive..."))
+        task.set_message(("detail", ""))
+
         archive.close()
+
+        if task:
+            task.finish()
+            
+        
     except Exception, e:
-        raise NoteBookError("Error while archiving notebook", e)
+        raise e
 
 
-def restore_notebook(filename, path, rename=True):
+
+
+def restore_notebook(filename, path, rename, task=None):
     """
     Restores a archived notebook
 
@@ -312,27 +359,117 @@ def restore_notebook(filename, path, rename=True):
 
         try:
             # extract notebook
-            if hasattr(tar, "extractall"):
-                tar.extractall(tmppath)
-            else:
-                # fallback code for python2.4
-                for member in tar.getmembers():
-                    tar.extract(member, tmppath)
+            members = list(tar.getmembers())
+
+            if task:
+                task.set_message(("text", "Restoring %d files..." %
+                                  len(members)))
+
+            for i, member in enumerate(members):
+                if task:
+                    if task.aborted():
+                        raise NoteBookError("Restore canceled")
+                    task.set_message(("detail", truncate_filename(member.name)))
+                    task.set_percent(i / float(len(members)))
+                tar.extract(member, tmppath)
 
             files = os.listdir(tmppath)
             # assert len(files) = 1
             extracted_path = os.path.join(tmppath, files[0])
-
+            
             # move extracted files to proper place
-            shutil.move(extracted_path, path)
-            os.rmdir(tmppath)
+            if task:
+                task.set_message(("text", "Finishing restore..."))
+                shutil.move(extracted_path, path)
+                os.rmdir(tmppath)
+
+
+        except NoteBookError, e:
+            raise e
+        
         except Exception, e:
             raise NoteBookError("File writing error while extracting notebook", e)
 
     else:
         try:
+            if task:
+                task.set_message(("text", "Restoring archive..."))
             tar.extractall(path)
         except Exception, e:
             raise NoteBookError("File writing error while extracting notebook", e)
 
+    task.finish()
 
+
+#=============================================================================
+
+
+def archive_notebook_zip(notebook, filename, task=None):
+    """Archive notebook as *.tar.gz
+
+       filename -- filename of archive to create
+       progress -- callback function that takes arguments
+                   (percent, filename)
+    """
+
+    if os.path.exists(filename):
+        raise NoteBookError("File '%s' already exists" % filename)
+
+    # make sure all modifications are saved first
+    try:
+        notebook.save()
+    except Exception, e:
+        raise NoteBookError("Could not save notebook before archiving", e)
+
+    # perform archiving
+    try:
+        #archive = tarfile.open(filename, "w:gz")
+        archive = zipfile.ZipFile(filename, "w", zipfile.ZIP_DEFLATED, True)
+        path = notebook.get_path()
+
+        # first count # of files
+        nfiles = 0
+        for root, dirs, files in os.walk(path):
+            nfiles += len(files)
+
+        nfiles2 = [0]
+        abort = [False]
+        def walk(path, arcname):
+            # add to archive
+            #archive.add(path, arcname, False)
+            if os.path.isfile(path):
+                archive.write(path, arcname)
+
+            # report progresss
+            if os.path.isfile(path):
+                nfiles2[0] += 1
+                if task:
+                    task.set_message(path)
+                    task.set_percent(nfiles2[0] / float(nfiles))
+
+
+            # recurse
+            if os.path.isdir(path):
+                for f in os.listdir(path):
+
+                    # abort archive
+                    if not task.is_running():
+                        abort[0] = True
+                        return
+                    
+                    if not os.path.islink(f):
+                        walk(os.path.join(path, f),
+                             os.path.join(arcname, f))
+                        
+        walk(path, os.path.basename(path))
+
+        archive.close()
+
+        if abort[0]:
+            os.remove(filename)
+        elif task:
+            task.finish()
+            
+        
+    except Exception, e:
+        raise NoteBookError("Error while archiving notebook", e)

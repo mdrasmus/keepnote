@@ -24,12 +24,11 @@ except ImportError:
     gtkspell = None
 
 
-# takenote imports
-import takenote
-
+# textbuffer_tools imports
 from takenote.gui.textbuffer_tools import \
      iter_buffer_contents
 
+# richtextbuffer imports
 from takenote.gui.richtextbuffer import \
      IGNORE_TAGS, \
      add_child_to_buffer, \
@@ -38,6 +37,7 @@ from takenote.gui.richtextbuffer import \
      RichTextError, \
      RichTextIndentTag
 
+# tag imports
 from takenote.gui.richtext_tags import \
      RichTextModTag, \
      RichTextJustifyTag, \
@@ -48,6 +48,7 @@ from takenote.gui.richtext_tags import \
      RichTextIndentTag, \
      RichTextBulletTag
 
+# richtext io
 from takenote.gui.richtext_html import HtmlBuffer, HtmlError
 
 

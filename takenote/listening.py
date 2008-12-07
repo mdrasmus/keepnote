@@ -19,13 +19,13 @@ class Listeners (object):
     
     
     def add(self, listener):
-        """Add a listener to the list"""
+        """Add a listener function to the list"""
         self._listeners.append(listener)
         self._suppress[listener] = 0
     
     
     def remove(self, listener):
-        """Remove a listener from list"""
+        """Remove a listener function from list"""
         self._listeners.remove(listener)
         del self._suppress[listener]
     
