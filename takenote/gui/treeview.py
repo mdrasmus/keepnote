@@ -15,8 +15,6 @@ from gtk import gdk
 
 # takenote imports
 from takenote.gui.treemodel import \
-    DROP_TREE_MOVE, \
-    DROP_NO, \
     COL_ICON, \
     COL_ICON_EXPAND, \
     COL_TITLE, \
@@ -25,9 +23,9 @@ from takenote.gui.treemodel import \
     COL_MODIFIED_TEXT, \
     COL_MODIFIED_INT, \
     COL_MANUAL, \
-    COL_NODE, \
-    compute_new_path
+    COL_NODE
 from takenote.gui import treemodel
+from takenote.gui import basetreeview
 
 from takenote.gui import \
      get_resource, \
@@ -40,15 +38,15 @@ from takenote.notebook import NoteBookTrash, \
 
 
 
-class TakeNoteTreeView (treemodel.TakeNoteBaseTreeView):
+class TakeNoteTreeView (basetreeview.TakeNoteBaseTreeView):
     """
     TreeView widget for the TakeNote NoteBook
     """
     
     def __init__(self):
-        treemodel.TakeNoteBaseTreeView.__init__(self)
+        basetreeview.TakeNoteBaseTreeView.__init__(self)
 
-        self.notebook = None
+        self._notebook = None
 
         self.set_model(treemodel.TakeNoteTreeModel())
                 
@@ -209,17 +207,19 @@ class TakeNoteTreeView (treemodel.TakeNoteBaseTreeView):
     # actions
     
     def set_notebook(self, notebook):
-        self.notebook = notebook
+        basetreeview.TakeNoteBaseTreeView.set_notebook(self, notebook)
         
-        if self.notebook is None:
+        
+        if self._notebook is None:
             self.model.set_root_nodes([])
             self.set_sensitive(False)
         
         else:
             self.set_sensitive(True)
             
-            root = self.notebook.get_root_node()
+            root = self._notebook.get_root_node()
             model = self.model
+            
             self.set_model(None)
             model.set_root_nodes([root])
             self.set_model(model)

@@ -14,8 +14,6 @@ from gtk import gdk
 
 
 from takenote.gui.treemodel import \
-    DROP_TREE_MOVE, \
-    DROP_NO, \
     COL_ICON, \
     COL_ICON_EXPAND, \
     COL_TITLE, \
@@ -25,8 +23,8 @@ from takenote.gui.treemodel import \
     COL_MODIFIED_TEXT, \
     COL_MODIFIED_INT, \
     COL_MANUAL, \
-    COL_NODE, \
-    compute_new_path
+    COL_NODE
+from takenote.gui import basetreeview
 
 from takenote.gui import \
      get_resource, \
@@ -51,20 +49,15 @@ CREATED_COLUMN = SelectorColumn("Created", str, 1)
 MODIFIED_COLUMN = SelectorColumn("Modified", str, 2)
 '''
 
-class TakeNoteListView (treemodel.TakeNoteBaseTreeView):
+class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
     
     def __init__(self):
-        treemodel.TakeNoteBaseTreeView.__init__(self)
-        self.drag_nodes = []
-        self.on_status = None
-        self.sel_nodes = None
+        basetreeview.TakeNoteBaseTreeView.__init__(self)
+        self._sel_nodes = None
         self._roots = []
 
-        # indicates whether listview is viewing the notebook tree (True) or a
-        # search/virtual result (False)
-        self._view_tree = False 
-        
-        self.display_columns = []
+        # configurable callback for setting window status
+        self.on_status = None        
         
         # init model
         self.set_model(gtk.TreeModelSort(treemodel.TakeNoteTreeModel()))
@@ -158,7 +151,7 @@ class TakeNoteListView (treemodel.TakeNoteBaseTreeView):
         # set default sorting
         # remember sort per node
         self.model.set_sort_column_id(COL_MANUAL, gtk.SORT_ASCENDING)
-        self.set_reorder(treemodel.REORDER_ALL)
+        self.set_reorder(basetreeview.REORDER_ALL)
         
         self.menu = gtk.Menu()
         self.menu.attach_to_widget(self, lambda w,m:None)
@@ -166,15 +159,26 @@ class TakeNoteListView (treemodel.TakeNoteBaseTreeView):
         self.set_sensitive(False)
 
 
+    
+    def set_notebook(self, notebook):
+        basetreeview.TakeNoteBaseTreeView.set_notebook(self, notebook)
+        
+        if self.model is not None:
+            self.set_sensitive(True)
+            self.model.get_model().set_root_nodes([])
+        else:
+            self.set_sensitive(False)
+
+
     def set_date_formats(self, formats):
         self.model.get_model().set_date_formats(formats)
 
     def get_root_nodes(self):
-        return list(self._roots)
+        if self.model:
+            return self.model.get_root_nodes()
+        else:
+            return []
 
-    def is_view_tree(self):
-        return self._view_tree
-    
     #=============================================
     # gui callbacks    
 
@@ -187,12 +191,12 @@ class TakeNoteListView (treemodel.TakeNoteBaseTreeView):
         
 
     def on_column_clicked(self, column):
-        self.set_reorder(treemodel.REORDER_FOLDER)
+        self.set_reorder(basetreeview.REORDER_FOLDER)
             
     def on_directory_column_clicked(self, column):
         """sort pages by directory order"""
         self.model.set_sort_column_id(COL_MANUAL, gtk.SORT_ASCENDING)
-        self.set_reorder(treemodel.REORDER_ALL)
+        self.set_reorder(basetreeview.REORDER_ALL)
         
     
     def on_key_released(self, widget, event):
@@ -294,13 +298,10 @@ class TakeNoteListView (treemodel.TakeNoteBaseTreeView):
     def delete_page(self):
         """Deletes selected page"""
         model, it = self.get_selection().get_selected()
-        
         if it is None:
             return
         
-        path = self.model.get_path(it)
         page = self.model.get_value(it, COL_NODE)
-        parent = page.get_parent()
         
         try:
             page.trash()
@@ -318,31 +319,23 @@ class TakeNoteListView (treemodel.TakeNoteBaseTreeView):
         #self.model.set_sort_column_id(-1, gtk.SORT_ASCENDING)
         
         # save sorting if a single node was selected
-        if self.sel_nodes is not None and len(self.sel_nodes) == 1:
-            self.save_sorting(self.sel_nodes[0])
+        if self._sel_nodes is not None and len(self._sel_nodes) == 1:
+            self.save_sorting(self._sel_nodes[0])
             
-        # TODO: think about how drag in drop in listview can cause a change
-        # in treeview that results in a new view_nodes call and thus causes
-        # jumpiness in listview and lack of selection
-        # Maybe I block selection changes in treeview at certain times...
-        
+
         #from rasmus import util
         #util.tic("view")
 
         model = self.model
-        self.set_model(None)        
-        self.sel_nodes = nodes
+        #self.set_model(None)
+        self._sel_nodes = nodes
 
         model.get_model().set_nested(nested)
 
         if len(nodes) == 1:
-            model.get_model().set_master_node(nodes[0])
             self.set_master_node(nodes[0])
-            self._view_tree = True
         else:
-            model.get_model().set_master_node(None)
             self.set_master_node(None)
-            self._view_tree = False
         
         # populate model
         self._roots = []
@@ -365,7 +358,7 @@ class TakeNoteListView (treemodel.TakeNoteBaseTreeView):
             self.load_sorting(nodes[0], model)
         
         # reactivate model
-        self.set_model(model)
+        #self.set_model(model)
         
         #util.toc()
 
@@ -418,14 +411,6 @@ class TakeNoteListView (treemodel.TakeNoteBaseTreeView):
         if path is not None:
             self.set_cursor_on_cell(path)
 
-    
-    def set_notebook(self, notebook):
-        if self.model is not None:
-            self.set_sensitive(True)
-            self.model.get_model().set_root_nodes([])
-        else:
-            self.set_sensitive(False)
-
 
     
     def save_sorting(self, node):
@@ -465,16 +450,16 @@ class TakeNoteListView (treemodel.TakeNoteBaseTreeView):
         if info_sort == notebook.INFO_SORT_MANUAL or \
            info_sort == notebook.INFO_SORT_NONE:
             model.set_sort_column_id(COL_MANUAL, sort_dir)
-            self.set_reorder(treemodel.REORDER_ALL)
+            self.set_reorder(basetreeview.REORDER_ALL)
         elif info_sort == notebook.INFO_SORT_TITLE:
             model.set_sort_column_id(COL_TITLE_SORT, sort_dir)
-            self.set_reorder(treemodel.REORDER_FOLDER)
+            self.set_reorder(basetreeview.REORDER_FOLDER)
         elif info_sort == notebook.INFO_SORT_CREATED_TIME:
             model.set_sort_column_id(COL_CREATED_INT, sort_dir)
-            self.set_reorder(treemodel.REORDER_FOLDER)
+            self.set_reorder(basetreeview.REORDER_FOLDER)
         elif info_sort == notebook.INFO_SORT_MODIFIED_TIME:
             model.set_sort_column_id(COL_MODIFIED_INT, sort_dir)
-            self.set_reorder(treemodel.REORDER_FOLDER)
+            self.set_reorder(basetreeview.REORDER_FOLDER)
 
     
     def set_status(self, text, bar="status"):
