@@ -175,7 +175,7 @@ def search_manual(node, words):
     while len(stack) > 0:
         node2, i = stack[-1]
         
-        if match_words(node2, words):
+        if i == 0 and match_words(node2, words):
             yield node2
 
         if i >= len(node2.get_children()):

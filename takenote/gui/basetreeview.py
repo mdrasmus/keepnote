@@ -12,7 +12,8 @@ from takenote.notebook import NoteBookError
 from takenote.gui.treemodel import \
      COL_NODE, \
      COL_ICON, \
-     get_path_from_node
+     get_path_from_node, \
+     TreeModelPathError
      
 
 
@@ -100,6 +101,9 @@ class TakeNoteBaseTreeView (gtk.TreeView):
             else:
                 self.model.set_master_node(node)
 
+
+    def get_master_node(self):
+        return self._master_node
 
 
     def set_notebook(self, notebook):
@@ -192,7 +196,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
                     path = get_path_from_node(self.model, node)
                     if path is None:
                         raise
-                except:
+                except TreeModelPathError:
                     # NOTE: ignoring this exception is OK
                     # it just means node is out of view
                     pass
@@ -220,7 +224,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
                     self.scroll_to_cell(path2)
                 else:
                     self.get_selection().emit("changed")
-            except:            
+            except TreeModelPathError:            
                 self.get_selection().emit("changed")
 
         # resume emitting selection changes
@@ -297,8 +301,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
                     self.expand_to_path(path[:-1])
                 self.set_cursor(path)
                 self.scroll_to_cell(path)
-            except Exception, e:
-                print e
+            except TreeModelPathError:
                 pass
         else:
 
@@ -348,12 +351,15 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         # NOTE: I select the root inorder for set_cursor(path) to really take
         # effect (gtk seems to ignore a select call if it "thinks" the path
         # is selected)
-        self.set_cursor((0,))
-        path = get_path_from_node(self.model, node)
-        self.set_cursor(path)
-        self.scroll_to_cell(path)
-        gobject.idle_add(lambda: self.scroll_to_cell(path))
-
+        if self.model.iter_n_children(None) > 0:
+            self.set_cursor((0,))
+        try:
+            path = get_path_from_node(self.model, node)
+            self.set_cursor(path)
+            self.scroll_to_cell(path)
+            gobject.idle_add(lambda: self.scroll_to_cell(path))
+        except TreeModelPathError:
+            pass
         
     
 
@@ -578,7 +584,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
                                                          new_parent)
                     if new_parent_path is not None:
                         treeview.expand_row(new_parent_path, False)
-                except:
+                except TreeModelPathError:
                     # TODO: make sure why I have this exception
                     # my guess is that get_path_from_node will through if
                     # new parent is outide view.  Which will be True if it

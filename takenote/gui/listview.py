@@ -54,7 +54,6 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
     def __init__(self):
         basetreeview.TakeNoteBaseTreeView.__init__(self)
         self._sel_nodes = None
-        self._roots = []
 
         # configurable callback for setting window status
         self.on_status = None        
@@ -175,7 +174,7 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
 
     def get_root_nodes(self):
         if self.model:
-            return self.model.get_root_nodes()
+            return self.model.get_model().get_root_nodes()
         else:
             return []
 
@@ -308,7 +307,10 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
         except NoteBookError, e:
             self.emit("error", e.msg, e)
         
-    
+
+    def is_view_tree(self):
+
+        return self.get_master_node() is not None
     
     #====================================================
     # actions
@@ -338,20 +340,20 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
             self.set_master_node(None)
         
         # populate model
-        self._roots = []
+        roots = []
         for node in nodes:
             if not node.is_page():
                 if nested:
                     # list directory contents
                     for child in node.get_children():
-                        self._roots.append(child)
+                        roots.append(child)
                 else:
                     # list directory itself
-                    self._roots.append(node)
+                    roots.append(node)
             elif node.is_page():
-                self._roots.append(node)
+                roots.append(node)
 
-        model.get_model().set_root_nodes(self._roots)
+        model.get_model().set_root_nodes(roots)
         
         # load sorting if single node is selected
         if len(nodes) == 1:
@@ -363,24 +365,46 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
         #util.toc()
 
         # expand rows
-        for node in self._roots:
+        for node in roots:
             if node.get_attr("expanded2", False):
                 self.expand_to_path(treemodel.get_path_from_node(self.model, node))
 
         # disable if no roots
-        if len(self._roots) == 0:
+        if len(roots) == 0:
             self.set_sensitive(False)
         else:
             self.set_sensitive(True)
 
         # update status
-        npages = len(self._roots)
+        npages = len(self.get_root_nodes())
         if npages != 1:
             self.set_status("%d pages" % npages, "stats")
         else:
             self.set_status("1 page", "stats")
 
         self.emit("select-nodes", [])
+
+
+    def append_node(self, node):
+
+        # do allow appending of nodes unless we are masterless
+        if self.get_master_node() is not None:
+            return
+
+        self.model.get_model().append(node)
+        if node.get_attr("expanded2", False):
+            self.expand_to_path(treemodel.get_path_from_node(self.model, node))
+
+        self.set_sensitive(True)
+
+        # update status
+        npages = len(self.get_root_nodes())
+        if npages != 1:
+            self.set_status("%d pages" % npages, "stats")
+        else:
+            self.set_status("1 page", "stats")
+
+        
 
                 
     def expand_node(self, node):

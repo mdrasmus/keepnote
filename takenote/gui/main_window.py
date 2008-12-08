@@ -725,8 +725,27 @@ class TakeNoteWindow (gtk.Window):
 
         words = [x.lower() for x in
                  self.search_box.get_text().strip().split()]
-        nodes = list(takenote.search.search_manual(self.notebook, words))
-        self.listview.view_nodes(nodes, nested=False)
+        nodes = takenote.search.search_manual(self.notebook, words)
+
+        # clear listview
+        self.listview.view_nodes([], nested=False)
+
+        # TODO: add something that stops search
+        # especially if user starts changing listview
+        # need some kind of indicator of active searching
+        
+        def search():
+            # do search in another thread
+            for node in nodes:
+                gtk.gdk.threads_enter()
+                self.listview.append_node(node)
+                gtk.gdk.threads_leave()
+            gtk.gdk.threads_enter()
+            self.set_status("Search complete")
+            gtk.gdk.threads_leave()
+        proc = threading.Thread(target=search)
+        proc.start()
+
 
 
     def focus_on_search_box(self):
@@ -1228,15 +1247,34 @@ class TakeNoteWindow (gtk.Window):
     
     def on_cut(self):
         """Cut callback"""
-        self.editor.get_textview().emit("cut-clipboard")
+
+        widget = self.get_focus()
+        if gobject.signal_lookup("cut-clipboard", widget) != 0:
+            widget.emit("cut-clipboard")
+
+        #if self.editor.get_textview().is_focus():
+        #    self.editor.get_textview().emit("cut-clipboard")
     
     def on_copy(self):
         """Copy callback"""
-        self.editor.get_textview().emit("copy-clipboard")
+
+        widget = self.get_focus()
+        if gobject.signal_lookup("copy-clipboard", widget) != 0:
+            widget.emit("copy-clipboard")
+
+        #if self.editor.get_textview().is_focus():
+        #    self.editor.get_textview().emit("copy-clipboard")
     
     def on_paste(self):
         """Paste callback"""
-        self.editor.get_textview().emit("paste-clipboard")
+
+        widget = self.get_focus()
+        if gobject.signal_lookup("paste-clipboard", widget) != 0:
+            widget.emit("paste-clipboard")
+
+        #if self.editor.get_textview().is_focus():
+        #    self.editor.get_textview().emit("paste-clipboard")
+            
     
     
     #=====================================================
@@ -1674,11 +1712,11 @@ class TakeNoteWindow (gtk.Window):
             ("/Help/Drag and Drop Test...",
                 None, lambda w,e: self.drag_test.on_drag_and_drop_test(),
                 0, None),
-            ("/Help/Wait dialog...",
-             None, lambda w,e: self.wait_dialog("title",
-                                                "message message message message message message message message message message message message message message message message message message message message message message\n message message message message ",
-                                                None),
-             0, None),
+            #("/Help/Wait dialog...",
+            # None, lambda w,e: self.wait_dialog("title",
+            #                                    "message message message message message message message message message message message message message message message message message message message message message message\n message message message message ",
+            #                                    None),
+            # 0, None),
             ("/Help/sep1", None, None, 0, "<Separator>"),
             ("/Help/About", None, lambda w,e: self.on_about(), 0, None ),
             )    
