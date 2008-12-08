@@ -131,9 +131,10 @@ class TakeNoteEditor (gtk.VBox):
         # TODO: generalize to multiple pages
         assert len(pages) <= 1
 
+        self.save()
         
         if len(pages) == 0:
-            self.save()
+            
             self.clear_view()
                 
         else:
@@ -141,7 +142,6 @@ class TakeNoteEditor (gtk.VBox):
             
             if page.is_page():
                 self._page = page
-                self.save()            
                 self._textview.enable()
             
                 try:

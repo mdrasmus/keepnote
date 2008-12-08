@@ -725,7 +725,7 @@ class TakeNoteWindow (gtk.Window):
 
         words = [x.lower() for x in
                  self.search_box.get_text().strip().split()]
-        nodes = takenote.search.search_manual(self.notebook, words)
+        nodes = list(takenote.search.search_manual(self.notebook, words))
         self.listview.view_nodes(nodes, nested=False)
 
 
@@ -1363,12 +1363,12 @@ class TakeNoteWindow (gtk.Window):
         if task is None:
             # dummy testing task
             
-            complete = [0.0]
             def func(task):
+                complete = 0.0
                 while task.is_running():
                     print complete
-                    complete[0] = 1.0 - (1.0 - complete[0]) * .9999
-                    task.set_percent(complete[0])
+                    complete = 1.0 - (1.0 - complete) * .9999
+                    task.set_percent(complete)
                 task.finish()
             task = tasklib.Task(func)
         

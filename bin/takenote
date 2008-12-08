@@ -13,6 +13,7 @@ from os.path import basename, dirname, realpath, join, isdir
 import pygtk
 pygtk.require('2.0')
 import gtk
+import gtk.gdk
 
 
 #=============================================================================
@@ -153,6 +154,7 @@ def main(argv):
     else:
         app.show_main_window()
 
+    gtk.gdk.threads_init()
     gtk.main()
     
 

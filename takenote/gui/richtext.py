@@ -260,6 +260,7 @@ class RichTextView (gtk.TextView):
         self._clipboard_contents = None
         self._blank_buffer = RichTextBuffer(self)
         self._popup_menu = None
+        self._html_buffer = HtmlBuffer()
         
         self.set_buffer(RichTextBuffer(self))
         self.set_default_font(DEFAULT_FONT)
@@ -959,6 +960,7 @@ class RichTextView (gtk.TextView):
                 img = param[0]
                 if img.get_filename().startswith("http:") or \
                    img.get_filename().startswith("file:"):
+                    # TODO: protect this with exceptions
                     img.set_from_url(img.get_filename(), "image.png")
         
         # add to buffer

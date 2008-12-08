@@ -77,8 +77,8 @@ class WaitDialog (object):
             if len(details) > 0:
                 self.progressbar.set_text(details[-1][1])
 
-            time.sleep(.05)
-            gobject.timeout_add(100, self._on_idle)
+            #time.sleep(.05)
+            gobject.timeout_add(50, self._on_idle)
             return False
         else:
             # kill dialog and stop idling
@@ -94,6 +94,7 @@ class WaitDialog (object):
     def on_cancel_button_clicked(self, button):
         """Attempt to stop the task"""
 
-        self._task.stop()
         self.text.set_text("Canceling...")
+        self._task.stop()
+
         

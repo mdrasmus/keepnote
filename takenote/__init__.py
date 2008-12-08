@@ -562,7 +562,7 @@ g_takenote_pref_parser = xmlo.XmlObject(
             set=lambda s: s.new_notebook_path),
         xmlo.Tag("archive_notebook_path",
             getobj=("archive_notebook_path", str),
-            set=lambda s: s.new_notebook_path),
+            set=lambda s: s.archive_notebook_path),
         xmlo.Tag("insert_image_path",
             getobj=("insert_image_path", str),
             set=lambda s: s.insert_image_path),

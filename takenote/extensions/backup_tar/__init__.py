@@ -93,6 +93,7 @@ class Extension (takenote.Extension):
         response = dialog.run()
 
         self.app.pref.archive_notebook_path = dialog.get_current_folder()
+        self.app.pref.changed.notify()
 
 
         if response == gtk.RESPONSE_OK:
@@ -132,6 +133,7 @@ class Extension (takenote.Extension):
         response = dialog.run()
 
         self.app.pref.archive_notebook_path = dialog.get_current_folder()
+        self.app.pref.changed.notify()
 
         if response == gtk.RESPONSE_OK:
             archive_filename = dialog.get_filename()
@@ -147,7 +149,7 @@ class Extension (takenote.Extension):
             action=gtk.FILE_CHOOSER_ACTION_SAVE,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "New", gtk.RESPONSE_OK))
-        dialog.set_current_folder(self.app.pref.archive_notebook_path)
+        dialog.set_current_folder(self.app.pref.new_notebook_path)
 
         file_filter = gtk.FileFilter()
         file_filter.add_pattern("*.nbk")
@@ -166,9 +168,9 @@ class Extension (takenote.Extension):
 
         response = dialog.run()
 
-        self.app.pref.archive_notebook_path = \
+        self.app.pref.new_notebook_path = \
             os.path.dirname(dialog.get_current_folder())
-
+        self.app.pref.changed.notify()
 
         if response == gtk.RESPONSE_OK:
             notebook_filename = dialog.get_filename()

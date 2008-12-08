@@ -133,6 +133,16 @@ class UndoStack (object):
                 while len(self._undo_actions) > self._maxsize:
                     self._undo_actions.pop_front()
 
+
+    def abort_action(self):
+        """
+        Stop grouping actions and throw away actions collected so far
+        """
+        
+        self._group_counter = 0
+        self._pending_actions = []
+        
+
     def suppress(self):
         """Suppress pushing actions on stack
            Can be called recursively.  Must have corresponding resume() call"""
