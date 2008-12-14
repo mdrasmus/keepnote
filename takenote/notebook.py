@@ -17,6 +17,7 @@ from takenote.timestamp import \
      get_timestamp, \
      get_localtime, \
      get_str_timestamp
+from takenote.safefile import SafeFile
 
 
 # constants

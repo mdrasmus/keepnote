@@ -23,6 +23,8 @@ from takenote.notebook import \
 from takenote import xdg
 
 from takenote.listening import Listeners
+from takenote.safefile import SafeFile
+
 
 #=============================================================================
 # modules needed by builtin extensions
@@ -224,6 +226,7 @@ def init_user_pref_dir(pref_dir=None, home=None):
         out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
         out.write("<takenote>\n")
         out.write("</takenote>\n")
+        out.close()
 
     # init error log
     init_error_log(pref_dir)

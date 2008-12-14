@@ -18,6 +18,9 @@ import xml.dom
 import xml.parsers.expat
 from xml.sax.saxutils import escape
 
+# takenote imports
+from takenote.safefile import SafeFile
+
 
 # constants
 ELEMENT_NODE = xml.dom.Node.ELEMENT_NODE
@@ -252,7 +255,8 @@ class XmlObject (object):
             
     def write(self, obj, filename):
         if isinstance(filename, basestring):
-            out = codecs.open(filename, "w", "utf-8")
+            #out = codecs.open(filename, "w", "utf-8")
+            out = SafeFile(filename, "w", codec="utf-8")
             #out = file(filename, "w")
             need_close = True
         else:
