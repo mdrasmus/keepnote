@@ -720,9 +720,12 @@ class TakeNoteWindow (gtk.Window):
 
     def on_search_nodes(self):
         """Search nodes"""
+
+        # do nothing if notebook is not defined
         if not self.notebook:
             return
-
+        
+        # prepare search iterator
         words = [x.lower() for x in
                  self.search_box.get_text().strip().split()]
         nodes = takenote.search.search_manual(self.notebook, words)
@@ -733,6 +736,8 @@ class TakeNoteWindow (gtk.Window):
         # TODO: add something that stops search
         # especially if user starts changing listview
         # need some kind of indicator of active searching
+
+        self.set_status("Searching...")
         
         def search():
             # do search in another thread

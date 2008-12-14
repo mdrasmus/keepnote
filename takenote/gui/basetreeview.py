@@ -356,6 +356,10 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         try:
             path = get_path_from_node(self.model, node)
             self.set_cursor(path)
+            # TODO: line above once gave me
+            #  gtk_tree_model_sort_real_unref_node: assertion `VALID_ITER (iter, tree_model_sort)' failed
+            # when I renamed a node in the tree with nothing visible in the
+            # listview
             self.scroll_to_cell(path)
             gobject.idle_add(lambda: self.scroll_to_cell(path))
         except TreeModelPathError:

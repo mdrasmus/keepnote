@@ -1,5 +1,5 @@
-TakeNote INSTALL
-===============
+TakeNote INSTALL Instructions
+=============================
 
 
 Windows Install
@@ -10,15 +10,30 @@ Windows Install
 
 Linux Install
 
+  Debian 
+    If you run the Debian distribution, I have created a *.deb package for
+    takenote available from the TakeNote website.  This package will 
+    automatically install any dependencies.  Once you download a package
+    takenote_X.Y.Z-1_all.deb you can install it with the command
+
+    $ dpkg -i takenote_X.Y.Z-1_all.deb
+    
+    You most likely need root permissions for this command.
+
+  
+  Other Linux distributions:
+
   Required libraries  
     For example, if you use Debian or something compatible...
 
     $ apt-get install python python-gtk2 python-glade2 libgtk2.0-dev
 
+    You most likely need root permissions for this command.
 
   Optional libraries
 
-    Spell checking
+    To use spell checking you will need:
+
     $ apt-get install python-gnome2-extras
 
   Once third-party libraries are installed, you can extract the .tar.gz file
@@ -35,6 +50,10 @@ Linux Install
   or you can install with python distutils
 
     $ python setup.py install
+
+  To install TakeNote as user you can do 
+
+    $ python setup.py install --prefix=YOUR_INSTALL_LOCATION
 
   Lastly, TakeNote can be installed using Python's easy_install system
 
@@ -85,7 +104,8 @@ Windows Build
 
   Once third-party packages are installed, execute in the takenote source dir:
   
-  $ python setup.exe py2exe
+    $ python setup.exe py2exe
+
   - Use Inno to compile installer.iss
   
   Installer will be in Output/takenote-X.Y.Z.exe
