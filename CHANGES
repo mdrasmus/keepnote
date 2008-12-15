@@ -4,6 +4,11 @@ TakeNote Change Log
 takenote-0.4.5
 --------------
 - added "Paste As Text"
+- add progress bars, background tasks
+  - backup and restore
+  - search
+- safer file writing
+  - writes are performed to temp files and renames them if write is complete
 - bug fixes
   - fixed colormap bug for some platforms (archlinux)
   - fixed mnemonic for "Format" in menu
