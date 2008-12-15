@@ -17,7 +17,7 @@ from takenote.timestamp import \
      get_timestamp, \
      get_localtime, \
      get_str_timestamp
-from takenote.safefile import SafeFile
+from takenote import safefile
 
 
 # constants
@@ -764,7 +764,7 @@ class NoteBookNode (object):
         datafile = self.get_data_file()
         
         try:
-            out = open(datafile, "w")
+            out = safefile.open(datafile, "w")
             out.write(BLANK_NOTE)
             out.close()
         except IOError, e:
@@ -815,7 +815,7 @@ class NoteBookNode (object):
 
     def write_meta_data2(self):
         try:
-            out = open(self.get_meta_file(), "w")
+            out = safefile.open(self.get_meta_file(), "w")
             out.write(XML_HEADER)
             out.write("<node>\n"
                       "<version>2</version>\n")

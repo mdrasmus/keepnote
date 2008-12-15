@@ -23,7 +23,7 @@ from takenote.notebook import \
 from takenote import xdg
 
 from takenote.listening import Listeners
-from takenote.safefile import SafeFile
+from takenote import safefile
 
 
 #=============================================================================

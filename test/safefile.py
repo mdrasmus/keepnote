@@ -1,6 +1,7 @@
-import os, shutil, unittest
+import os, shutil, unittest, codecs
 
 from takenote.safefile import SafeFile
+from takenote import safefile
 
 
 def mk_clean_dir(dirname):
@@ -23,13 +24,14 @@ class TestCaseSafeFile (unittest.TestCase):
 
         filename = "test/tmp/safefile"
 
-        out = SafeFile(filename, "w")
+        out = safefile.open(filename, "w", codec="utf-8")
 
-        out.write("hello\n")
-        out.write("there")
+        out.write(u"\u2022 hello\n")
+        out.write(u"there")
         out.close()
 
-        self.assertEquals(SafeFile(filename).read(), "hello\nthere")        
+        self.assertEquals(safefile.open(filename, codec="utf-8").read(),
+                          u"\u2022 hello\nthere")
         self.assertEquals(os.path.exists(out.get_tempfile()), False)
 
 
@@ -42,7 +44,7 @@ class TestCaseSafeFile (unittest.TestCase):
         self.test1()
 
         try:
-            out = SafeFile(filename, "w")
+            out = safefile.open(filename, "w")
 
             out.write("hello2\n")
             raise Exception("oops")
@@ -51,8 +53,49 @@ class TestCaseSafeFile (unittest.TestCase):
         except:
             pass
 
-        self.assertEquals(SafeFile(filename).read(), "hello\nthere")        
+        self.assertEquals(safefile.open(filename, codec="utf-8").read(),
+                          u"\u2022 hello\nthere")
         self.assertEquals(os.path.exists(out.get_tempfile()), True)
+
+
+    def test3(self):
+
+        filename = "test/tmp/safefile"
+
+        out = safefile.open(filename, "w", codec="utf-8")
+        out.write(u"\u2022 hello\nthere\nagain\n")
+        out.close()
+
+        lines = safefile.open(filename, codec="utf-8").readlines()
+
+        self.assertEquals(lines, [u"\u2022 hello\n",
+                                  u"there\n",
+                                  u"again\n"])
+
+        lines = list(safefile.open(filename, codec="utf-8"))
+
+        self.assertEquals(lines, [u"\u2022 hello\n",
+                                  u"there\n",
+                                  u"again\n"])
+
+    def test4(self):
+
+        filename = "test/tmp/safefile"
+        
+        out = safefile.open(filename, "w", codec="utf-8")
+
+        out.writelines([u"\u2022 hello\n",
+                        u"there\n",
+                        u"again\n"])
+        out.close()
+
+        lines = safefile.open(filename, codec="utf-8").readlines()
+
+        self.assertEquals(lines, [u"\u2022 hello\n",
+                                  u"there\n",
+                                  u"again\n"])
+
+
         
 suite = unittest.defaultTestLoader.loadTestsFromTestCase(
     TestCaseSafeFile)

@@ -12,15 +12,36 @@
 import os, tempfile, codecs
 
 
+def open(filename, mode="r", tmp=None, codec=None):
+    """
+    Opens a file that writes to a temp location and replaces existing file
+    on close.
+    
+    filename -- filename to open
+    mode     -- write mode (default: 'w')
+    tmp      -- specify tempfile
+    codec    -- preferred encoding
+    """
+    stream = SafeFile(filename, mode, tmp)
+
+    if codec:
+        if "r" in mode:
+            stream = codecs.getreader(codec)(stream)
+        elif "w" in mode:
+            stream = codecs.getwriter(codec)(stream)
+
+    return stream
+
+
 class SafeFile (file):
 
-    def __init__(self, filename, mode="r", tmp=None, codec=None):
+    def __init__(self, filename, mode="r", tmp=None):
         """
         filename -- filename to open
         mode     -- write mode (default: 'w')
         tmp      -- specify tempfile
         """
-        
+
         # set tempfile
         if "w" in mode and tmp is None:
             f, tmp = tempfile.mkstemp(".tmp", filename+"_", dir=".")
@@ -28,16 +49,7 @@ class SafeFile (file):
 
         self._tmp = tmp
         self._filename = filename
-        self._file = None
-
-        if codec:
-            self._encode = codecs.getencoder(codec)
-            self._decode = codecs.getdecoder(codec)
-        else:
-            self._encode = None
-            self._decode = None
-
-
+        
         # open file
         if self._tmp:
             file.__init__(self, self._tmp, mode)
@@ -45,29 +57,31 @@ class SafeFile (file):
             file.__init__(self, filename, mode)
 
 
-    def read(self, *args, **kargs):
-        text = file.read(self, *args, **kargs)
-        if self._decode:
-            return self._decode(text)[0]
-        else:
-            return text
-        
-
-    def write(self, text):
-        if self._encode:
-            text, size = self._encode(text)
-        return file.write(self, text)
-            
-
     def close(self):
-        """Closes file"""
+        """Closes file and moves temp file to final location"""
         
         file.close(self)
 
         if self._tmp:
             os.rename(self._tmp, self._filename)
+            self._tmp = None
 
+
+    def discard(self):
+        """
+        Close and discard written data.
+
+        Temp file does not replace existing file
+        """
+
+        file.close(self)
+
+        if self._tmp:
+            os.remove(self._tmp)
+            self._tmp = None
+    
 
     def get_tempfile(self):
         """Returns tempfile filename"""
         return self._tmp
+

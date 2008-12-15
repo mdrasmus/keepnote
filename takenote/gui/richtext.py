@@ -51,6 +51,8 @@ from takenote.gui.richtext_tags import \
 # richtext io
 from takenote.gui.richtext_html import HtmlBuffer, HtmlError
 
+from takenote import safefile
+
 
 #=============================================================================
 # constants
@@ -144,7 +146,7 @@ class RichTextIO (object):
                                                    None,
                                                    IGNORE_TAGS)
             
-            out = open(filename, "wb")
+            out = safefile.open(filename, "wb", codec="utf-8")
             self._html_buffer.set_output(out)
             self._html_buffer.write(buffer_contents,
                                     textbuffer.tag_table)
@@ -172,7 +174,8 @@ class RichTextIO (object):
         try:
             #from rasmus import util
             #util.tic("read")
-            buffer_contents = list(self._html_buffer.read(open(filename, "r")))
+            buffer_contents = list(self._html_buffer.read(
+                safefile.open(filename, "r", codec="utf-8")))
             #util.toc()
             
             #util.tic("read2")            
