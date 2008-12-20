@@ -36,6 +36,7 @@ class WaitDialog (object):
                                  "wait_dialog")
         self.dialog = self.xml.get_widget("wait_dialog")
         self.xml.signal_autoconnect(self)
+        self.dialog.connect("close", self._on_close)
         self.dialog.set_transient_for(self.main_window)
         self.text = self.xml.get_widget("wait_text_label")
         self.progressbar = self.xml.get_widget("wait_progressbar")
@@ -48,12 +49,49 @@ class WaitDialog (object):
 
 
         self.dialog.show()
-        gobject.timeout_add(100, self._on_idle)
+        #gobject.timeout_add(100, self._on_idle)
+        proc = threading.Thread(target=self._on_idle)
+        proc.start()
         self.dialog.run()
         self._task.join()
 
 
     def _on_idle(self):
+        """Idle thread"""
+        
+        while not self._task.is_stopped():
+
+            gtk.gdk.threads_enter()
+
+            percent = self._task.get_percent()
+
+            if percent is None:            
+                self.progressbar.pulse()
+            else:
+                self.progressbar.set_fraction(percent)
+
+            # filter for messages we process
+            messages = filter(lambda x: isinstance(x, tuple) and len(x) == 2,
+                              self._task.get_messages())
+            texts = filter(lambda (a,b): a == "text", messages)
+            details = filter(lambda (a,b): a == "detail", messages)
+
+            if len(texts) > 0:
+                self.text.set_text(texts[-1][1])
+            if len(details) > 0:
+                self.progressbar.set_text(details[-1][1])
+            
+            gtk.gdk.threads_leave()
+            
+            time.sleep(.1)
+            
+
+        # kill dialog and stop idling
+        self.dialog.destroy()
+        
+
+
+    def _on_idle2(self):
         """Idle callback"""
         
         if not self._task.is_stopped():
@@ -76,9 +114,9 @@ class WaitDialog (object):
                 self.text.set_text(texts[-1][1])
             if len(details) > 0:
                 self.progressbar.set_text(details[-1][1])
-
+                        
             #time.sleep(.05)
-            gobject.timeout_add(50, self._on_idle)
+            gobject.timeout_add(1000, self._on_idle)
             return False
         else:
             # kill dialog and stop idling
@@ -88,8 +126,9 @@ class WaitDialog (object):
     def _on_task_update(self):
         pass
 
-        
-        
+
+    def _on_close(self, window):
+        pass
 
     def on_cancel_button_clicked(self, button):
         """Attempt to stop the task"""

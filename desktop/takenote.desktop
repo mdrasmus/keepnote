@@ -1,0 +1,11 @@
+[Desktop Entry]
+Encoding=UTF-8
+Type=Application
+Name=TakeNote
+GenericName=Note-taking Application
+Icon=takenote
+Exec=takenote %f
+Categories=Office
+#MimeType=
+#Terminal=false
+#StartupNotify=false

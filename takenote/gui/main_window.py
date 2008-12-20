@@ -67,6 +67,9 @@ class FontUI (object):
         self.signal = signal
 
 
+
+
+
 class TakeNoteWindow (gtk.Window):
     """Main windows for TakeNote"""
 
@@ -88,6 +91,7 @@ class TakeNoteWindow (gtk.Window):
         self._queue_list_select = []   # nodes to select in listview after treeview change
         self._ignore_view_mode = False # prevent recursive view mode changes
         self._font_ui_signals = []     # list of font ui widgets
+                
         
 
         self.init_layout()
@@ -724,33 +728,34 @@ class TakeNoteWindow (gtk.Window):
         # do nothing if notebook is not defined
         if not self.notebook:
             return
-        
-        # prepare search iterator
+
+        # get words
         words = [x.lower() for x in
                  self.search_box.get_text().strip().split()]
+        
+        # prepare search iterator
         nodes = takenote.search.search_manual(self.notebook, words)
 
         # clear listview
         self.listview.view_nodes([], nested=False)
 
-        # TODO: add something that stops search
-        # especially if user starts changing listview
-        # need some kind of indicator of active searching
-
-        self.set_status("Searching...")
-        
-        def search():
+        def search(task):
             # do search in another thread
+
             for node in nodes:
+                # terminare if search is canceled
+                if task.aborted():
+                    break
+
                 gtk.gdk.threads_enter()
                 self.listview.append_node(node)
                 gtk.gdk.threads_leave()
-            gtk.gdk.threads_enter()
-            self.set_status("Search complete")
-            gtk.gdk.threads_leave()
-        proc = threading.Thread(target=search)
-        proc.start()
+                
+            task.finish()
 
+        # launch task
+        self.wait_dialog("Searching notebook", "Searching...",
+                         tasklib.Task(search))
 
 
     def focus_on_search_box(self):
@@ -762,6 +767,7 @@ class TakeNoteWindow (gtk.Window):
     def on_notebook_node_changed(self, nodes, recurse):
         """Callback for when the notebook changes"""
         self.set_notebook_modified(True)
+        #self._search_proc.cancel()
         
     
     def set_notebook_modified(self, modified):

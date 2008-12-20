@@ -7,6 +7,7 @@ include takenote/images/*.png
 include takenote/images/*.ico
 include takenote/rc/takenote.glade
 include takenote/extensions/backup_tar/*.py
+include desktop/*
 include post_py2exe.py
 include pywin.py
 include installer.iss

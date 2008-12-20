@@ -29,43 +29,72 @@ TAKENOTE_VERSION = takenote.PROGRAM_VERSION_TEXT
 
 
 #=============================================================================
-# resource files/data
-
-# get images
-image_dir = "takenote/images"
-image_files = [os.path.join(image_dir, x) 
-               for x in os.listdir("takenote/images")]
+# helper functions
 
 # get extensions
-efiles = {}
-def walk(path):
-    for f in os.listdir(path):
-        f = os.path.join(path, f)
-        if f.endswith(".pyc"):
-            continue
-        elif os.path.isdir(f):
-            walk(f)
-        else:
-            efiles.setdefault(os.path.dirname(f.replace("takenote/", "")), 
-                              []).append(f)
-walk("takenote/extensions")
+def get_extension_files():
+    efiles = {}
+    def walk(path, path2):
+        for f in os.listdir(path):
+            filename = os.path.join(path, f)
+            filename2 = os.path.join(path2, f)
+            if filename.endswith(".pyc"):
+                # ignore .pyc files
+                continue
+            elif os.path.isdir(filename):
+                # recurse directories
+                
+                walk(filename, filename2)
+            else:
+                # record all other files
+                efiles.setdefault(path2, []).append(filename)
+    walk("takenote/extensions", "extensions")
+    return efiles
+
+
+def get_image_files(image_dir):
+    return [os.path.join(image_dir, x)
+            for x in os.listdir(image_dir)]
+
+def remove_package_dir(filename):
+    i = filename.index("/")
+    return filename[i+1:]
+
+
+#=============================================================================
+# resource files/data
+
+# get resources
+resource_files = ["takenote/rc/takenote.glade"]
+image_files = get_image_files("takenote/images")
+efiles = get_extension_files()
+freedesktop_files = [
+    # application icon
+    ("share/icons/hicolor/48x48/apps",
+     ["desktop/takenote.png"]),
+
+    # desktop menu entry
+    ("share/applications",
+     ["desktop/takenote.desktop"])]
 
 
 # get data files
 if "py2exe" in sys.argv:
     data_files = [
         ('images', image_files),
-        ('rc', ['takenote/rc/takenote.glade']),
+        ('rc', resource_files)
     ] + efiles.items()
     package_data = {}
+    
 else:
-    data_files = []
-    package_data = {'takenote': [x.replace("takenote/", "")
-                                 for x in image_files] + [
-                                "rc/takenote.glade"]
-                                }
+    data_files = freedesktop_files
+    package_data = {'takenote':
+                    map(remove_package_dir,
+                        image_files +
+                        resource_files)
+                    }
     for v in efiles.values():
-        package_data['takenote'].extend([x.replace("takenote/", "") for x in v])
+        package_data['takenote'].extend(map(remove_package_dir, v))
 
 
 
