@@ -1,6 +1,6 @@
 import os, shutil, unittest, codecs
 
-from takenote.safefile import SafeFile
+
 from takenote import safefile
 
 
@@ -25,14 +25,15 @@ class TestCaseSafeFile (unittest.TestCase):
         filename = "test/tmp/safefile"
 
         out = safefile.open(filename, "w", codec="utf-8")
-
+        tmp = out.get_tempfile()
+        
         out.write(u"\u2022 hello\n")
         out.write(u"there")
         out.close()
 
         self.assertEquals(safefile.open(filename, codec="utf-8").read(),
                           u"\u2022 hello\nthere")
-        self.assertEquals(os.path.exists(out.get_tempfile()), False)
+        self.assertEquals(os.path.exists(tmp), False)
 
 
     def test2(self):

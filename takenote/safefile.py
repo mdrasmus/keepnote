@@ -63,6 +63,8 @@ class SafeFile (file):
         file.close(self)
 
         if self._tmp:
+            # NOTE: windows will not allow rename when destination file exists
+            os.remove(self._filename)
             os.rename(self._tmp, self._filename)
             self._tmp = None
 

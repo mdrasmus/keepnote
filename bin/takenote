@@ -154,7 +154,15 @@ def main(argv):
     else:
         app.show_main_window()
 
-    gtk.gdk.threads_init()
+    if takenote.get_platform() == "windows":
+        #def sleeper():
+        #    time.sleep(.001)
+        #    return True # repeat timer
+        #gtk.timeout_add(400, sleeper)
+        pass
+        
+    else:
+        gtk.gdk.threads_init()
     gtk.main()
     
 
