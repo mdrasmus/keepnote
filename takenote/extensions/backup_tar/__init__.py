@@ -6,7 +6,7 @@
 #
 
 import sys, os, re, shutil, time
-import tarfile, zipfile
+import tarfile
 
 import takenote
 from takenote.notebook import NoteBookError, get_valid_unique_filename
