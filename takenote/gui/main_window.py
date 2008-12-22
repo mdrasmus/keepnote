@@ -747,9 +747,13 @@ class TakeNoteWindow (gtk.Window):
                 if task.aborted():
                     break
 
-                gtk.gdk.threads_enter()
-                self.listview.append_node(node)
-                gtk.gdk.threads_leave()
+                def gui_update(node):
+                    def func():
+                        gtk.gdk.threads_enter()
+                        self.listview.append_node(node)
+                        gtk.gdk.threads_leave()
+                    return func
+                gtk.idle_add(gui_update(node))
                 
             task.finish()
 

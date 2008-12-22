@@ -61,33 +61,33 @@ class WaitDialog (object):
         
         while not self._task.is_stopped():
 
-            gtk.gdk.threads_enter()
+            def gui_update():
+                gtk.gdk.threads_enter()
+                percent = self._task.get_percent()
+                if percent is None:            
+                    self.progressbar.pulse()
+                else:
+                    self.progressbar.set_fraction(percent)
 
-            percent = self._task.get_percent()
+                # filter for messages we process
+                messages = filter(lambda x: isinstance(x, tuple) and len(x) == 2,
+                                  self._task.get_messages())
+                texts = filter(lambda (a,b): a == "text", messages)
+                details = filter(lambda (a,b): a == "detail", messages)
 
-            if percent is None:            
-                self.progressbar.pulse()
-            else:
-                self.progressbar.set_fraction(percent)
-
-            # filter for messages we process
-            messages = filter(lambda x: isinstance(x, tuple) and len(x) == 2,
-                              self._task.get_messages())
-            texts = filter(lambda (a,b): a == "text", messages)
-            details = filter(lambda (a,b): a == "detail", messages)
-
-            if len(texts) > 0:
-                self.text.set_text(texts[-1][1])
-            if len(details) > 0:
-                self.progressbar.set_text(details[-1][1])
-            
-            gtk.gdk.threads_leave()
+                if len(texts) > 0:
+                    self.text.set_text(texts[-1][1])
+                if len(details) > 0:
+                    self.progressbar.set_text(details[-1][1])
+                
+                gtk.gdk.threads_leave()
+            gtk.idle_add(gui_update)
             
             time.sleep(.1)
             
 
         # kill dialog and stop idling
-        self.dialog.destroy()
+        gtk.idle_add(lambda: self.dialog.destroy())
         
 
 
