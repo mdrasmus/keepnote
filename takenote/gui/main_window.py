@@ -1298,6 +1298,8 @@ class TakeNoteWindow (gtk.Window):
     def on_view_node_external_app(self, app, node=None, widget="focus",
                                   page_only=False):
         """View a node with an external app"""
+
+        self.save_notebook()
         
         if node is None:
             nodes, widget = self.get_selected_nodes(widget)
