@@ -5,7 +5,7 @@
 #
 
 PKG=takenote
-VERSION=0.4.5
+VERSION=0.4.6
 
 # release files
 INSTALLER=Output/$(PKG)-$(VERSION).exe
