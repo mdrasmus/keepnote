@@ -33,13 +33,6 @@ ACCEL_FILE = "accel.txt"
 _g_pixbufs = {}
 _g_node_icons = {}
 
-def quote_filename(filename):
-    if " " in filename:
-        filename = filename.replace("\\", "\\\\")
-        filename = filename.replace('"', '\"')
-        filename = '"%s"' % filename
-    return filename
-
 
 def get_pixbuf(filename):
     """

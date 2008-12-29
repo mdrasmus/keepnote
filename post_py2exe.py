@@ -27,9 +27,13 @@ def prune(path):
 include(find_path("GTK/lib/gtk-2.0/2.10.0/engines"), "dist/lib/gtk-2.0/2.10.0/engines")
 include(find_path("GTK/lib/gtk-2.0/2.10.0/loaders"), "dist/lib/gtk-2.0/2.10.0/loaders")
 include(find_path("GTK/lib/pango"), "dist/lib/pango")
+
+# needed for jpeg
+include(find_path("GTK/bin/jpeg62.dll"), "dist/jpeg62.dll")
+
 include(find_path("GTK/etc"), "dist/etc")
 
-#include(find_path("GTK/share"), "dist/share")
+
 include(find_path("GTK/share/applications"), "dist/share/applications")
 include(find_path("GTK/share/gettext"), "dist/share/gettext")
 include(find_path("GTK/share/glade3"), "dist/share/glade3")

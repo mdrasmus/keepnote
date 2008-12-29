@@ -732,8 +732,11 @@ class RichTextView (gtk.TextView):
         pixbuf = selection_data.get_pixbuf()
         image = RichTextImage()
         image.set_from_pixbuf(pixbuf)
-        
+
+        self._textbuffer.begin_user_action()
+        self._textbuffer.delete_selection(False, True)
         self._textbuffer.insert_image(image)
+        self._textbuffer.end_user_action()
         self.scroll_mark_onscreen(self._textbuffer.get_insert())
         
     
@@ -744,7 +747,10 @@ class RichTextView (gtk.TextView):
             # do nothing
             return
 
+        self._textbuffer.begin_user_action()
+        self._textbuffer.delete_selection(False, True)
         self._textbuffer.insert_contents(self._clipboard_contents)
+        self._textbuffer.end_user_action()
         self.scroll_mark_onscreen(self._textbuffer.get_insert())        
     
     

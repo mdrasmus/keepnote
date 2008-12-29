@@ -121,21 +121,21 @@ class TakeNoteBaseTreeView (gtk.TreeView):
 
     def set_model(self, model):
         """Set the model for the view"""
-
-        # TODO: set the notebook in here
-
+        
         # TODO: could group signal IDs into lists, for each detach
         # if model already attached, disconnect all of its signals
         if self.model is not None:
             if hasattr(self.model, "get_model"):
-                self.model.get_model().disconnect(self.changed_start_id)
-                self.model.get_model().disconnect(self.changed_end_id)
+                model2 = self.model.get_model()
+                
             else:
-                self.model.disconnect(self.changed_start_id)
-                self.model.disconnect(self.changed_end_id)
-            self.model.disconnect(self.insert_id)
-            self.model.disconnect(self.delete_id)
-            self.model.disconnect(self.has_child_id)
+                model2 = self.model
+                
+            model2.disconnect(self.changed_start_id)
+            model2.disconnect(self.changed_end_id)
+            model2.disconnect(self.insert_id)
+            model2.disconnect(self.delete_id)
+            model2.disconnect(self.has_child_id)
 
         # set new model
         self.model = model
@@ -168,6 +168,20 @@ class TakeNoteBaseTreeView (gtk.TreeView):
             self.has_child_id = self.model.connect(
                 "row-has-child-toggled",
                 self.on_row_has_child_toggled)
+
+
+    def popup_menu(self, x, y, button, time):
+        """Display popup menu"""
+        
+        path = self.get_path_at_pos(int(x), int(y))
+        if path is None:
+            return False
+        
+        path = path[0]
+        self.get_selection().select_path(path)
+        self.menu.popup(None, None, None, button, time)
+        self.menu.show()
+        return True
 
 
 

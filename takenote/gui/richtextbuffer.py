@@ -322,7 +322,7 @@ class RichTextImage (RichTextAnchor):
 
         # TODO: move this to external function
         f, ext = os.path.splitext(filename)
-        ext = ext.replace(".", "")        
+        ext = ext.replace(".", "").lower()
         if ext == "jpg":
             ext = "jpeg"
 

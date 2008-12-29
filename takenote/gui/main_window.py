@@ -44,7 +44,6 @@ from takenote.gui.richtext_tags import color_tuple_to_string
 from takenote.gui.treeview import TakeNoteTreeView
 from takenote.gui.listview import TakeNoteListView
 from takenote.gui import \
-    quote_filename, \
     screenshot_win, \
     dialog_app_options, \
     dialog_find, \

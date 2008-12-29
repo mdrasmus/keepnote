@@ -119,16 +119,9 @@ class TakeNoteTreeView (basetreeview.TakeNoteBaseTreeView):
         
         if event.button == 3:            
             # popup menu
-            path = self.get_path_at_pos(int(event.x), int(event.y))
-
-            if path is not None:
-                path = path[0]
-                self.get_selection().select_path(path)
+            self.popup_menu(event.x, event.y, event.button, event.time)
             
-                self.menu.popup(None, None, None,
-                                event.button, event.time)
-                self.menu.show()
-                return True
+
     
     #==============================================
     # actions

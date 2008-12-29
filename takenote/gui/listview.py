@@ -208,7 +208,7 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
         if event.keyval == gdk.keyval_from_name("Delete"):
             # capture node deletes
             self.stop_emission("key-release-event")            
-            self.on_delete_node() #delete_page()
+            self.on_delete_node()
             
         elif event.keyval == gdk.keyval_from_name("BackSpace") and \
              event.state & gdk.CONTROL_MASK:
@@ -228,16 +228,8 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
     def on_button_press(self, widget, event):
         if event.button == 3:            
             # popup menu
-            path = self.get_path_at_pos(int(event.x), int(event.y))
-
-            if path is not None:
-                path = path[0]
-                self.get_selection().select_path(path)
+            self.popup_menu(event.x, event.y, event.button, event.time)
             
-                self.menu.popup(None, None, None,
-                                event.button, event.time)
-                self.menu.show()
-                return True
 
         if event.button == 1 and event.type == gtk.gdk._2BUTTON_PRESS:
             model, paths = self.get_selection().get_selected_rows()
@@ -252,6 +244,7 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
 
     def is_view_tree(self):
 
+        # TODO: document this more
         return self.get_master_node() is not None
     
     #====================================================
@@ -266,9 +259,6 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
         if self._sel_nodes is not None and len(self._sel_nodes) == 1:
             self.save_sorting(self._sel_nodes[0])
             
-
-        #from rasmus import util
-        #util.tic("view")
 
         model = self.model
         #self.set_model(None)
@@ -304,8 +294,6 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
         # reactivate model
         #self.set_model(model)
         
-        #util.toc()
-
         # expand rows
         for node in roots:
             if node.get_attr("expanded2", False):
@@ -381,6 +369,8 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
     
     def save_sorting(self, node):
         """Save sorting information into node"""
+
+        # TODO: generalize
         
         info_sort, sort_dir = self.model.get_sort_column_id()
 
@@ -404,6 +394,8 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
 
     def load_sorting(self, node, model):
         """Load sorting information from node"""
+
+        # TODO: generalize
 
         info_sort, sort_dir = node.get_info_sort()
             
@@ -432,6 +424,8 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
         if self.on_status:
             self.on_status(text, bar=bar)
 
+
+# register new gtk signals
 gobject.type_register(TakeNoteListView)
 gobject.signal_new("goto-node", TakeNoteListView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object,))
