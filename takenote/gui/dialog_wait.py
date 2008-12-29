@@ -81,13 +81,13 @@ class WaitDialog (object):
                     self.progressbar.set_text(details[-1][1])
                 
                 gtk.gdk.threads_leave()
-            gtk.idle_add(gui_update)
+            gobject.idle_add(gui_update)
             
             time.sleep(.1)
             
 
         # kill dialog and stop idling
-        gtk.idle_add(lambda: self.dialog.destroy())
+        gobject.idle_add(lambda: self.dialog.destroy())
         
 
 

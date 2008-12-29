@@ -57,7 +57,6 @@ class TakeNoteTreeView (basetreeview.TakeNoteBaseTreeView):
         
         # selection config
         #self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
-        self.get_selection().connect("changed", self.on_select_changed)
         
         self.set_headers_visible(False)
 
@@ -130,78 +129,6 @@ class TakeNoteTreeView (basetreeview.TakeNoteBaseTreeView):
                                 event.button, event.time)
                 self.menu.show()
                 return True
-
-    #=====================================
-    # selections
-    
-    def on_select_changed(self, treeselect): 
-        model, paths = treeselect.get_selected_rows()
-        
-        nodes = [self.model.get_value(self.model.get_iter(path), COL_NODE)
-                 for path in paths]
-        self.emit("select-nodes", nodes)
-        return True
-
-
-    def get_selected_nodes(self):
-        model, it = self.get_selection().get_selected()
-        if it is None:
-            return []
-        node = self.model.get_value(it, COL_NODE)
-        return [node]
-    
-    
-    def on_delete_node(self):
-        # TODO: add folder name to message box
-        
-        # get node to delete
-        nodes = self.get_selected_nodes()
-        if len(nodes) == 0:
-            return
-        node = nodes[0]
-        
-        if isinstance(node, NoteBookTrash):
-            self.emit("error", "The Trash folder cannot be deleted.", None)
-            return
-        elif node.get_parent() == None:
-            self.emit("error", "The top-level folder cannot be deleted.", None)
-            return
-        elif node.is_page():
-            message = "Do you want to delete this page?"
-        else:
-            message = "Do you want to delete this folder and all of its pages?"
-        
-        dialog = gtk.MessageDialog(self.get_toplevel(), 
-            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-            type=gtk.MESSAGE_QUESTION, 
-            buttons=gtk.BUTTONS_YES_NO, 
-            message_format=message)
-
-        response = dialog.run()
-        
-        if response == gtk.RESPONSE_YES:
-            dialog.destroy()
-            self._delete_node(node)
-            
-        elif response == gtk.RESPONSE_NO:
-            dialog.destroy()
-            
-    
-    def _delete_node(self, node):
-        parent = node.get_parent()
-        
-        if parent is not None:
-            try:
-                node.trash()
-            except NoteBookError, e:
-                self.emit("error", e.msg, e)
-        else:
-            # warn
-            self.emit("error", "Cannot delete notebook's toplevel directory", None)
-        
-        self.emit("select-nodes", [])
-        
-    
     
     #==============================================
     # actions
@@ -241,11 +168,3 @@ class TakeNoteTreeView (basetreeview.TakeNoteBaseTreeView):
         path = treemodel.get_path_from_node(self.model, node)
         self.expand_to_path(path)
 
-
-
-# new signals
-gobject.type_register(TakeNoteTreeView)
-gobject.signal_new("select-nodes", TakeNoteTreeView, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object,))
-gobject.signal_new("error", TakeNoteTreeView, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (str, object,))

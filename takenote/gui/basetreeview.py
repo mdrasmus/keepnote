@@ -8,7 +8,7 @@ import gtk, gobject, pango
 from gtk import gdk
 
 # takenote imports
-from takenote.notebook import NoteBookError
+from takenote.notebook import NoteBookError, NoteBookTrash
 from takenote.gui.treemodel import \
      COL_NODE, \
      COL_ICON, \
@@ -61,6 +61,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
 
         # selection
         self.get_selection().connect("changed", self.__on_select_changed)
+        self.get_selection().connect("changed", self.on_select_changed)
 
         # row expand/collapse
         self.connect("row-expanded", self._on_row_expanded)
@@ -288,7 +289,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
 
 
     #===========================================
-    # actions
+    # selection
 
     def select_nodes(self, nodes):
 
@@ -306,8 +307,78 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         else:
 
             # NOTE: this may be invalid
-            #self.set_cursor(None)
-            pass
+            self.get_selection().unselect_all()
+
+
+    def on_select_changed(self, treeselect): 
+        model, paths = treeselect.get_selected_rows()
+        
+        nodes = [self.model.get_value(self.model.get_iter(path), COL_NODE)
+                 for path in paths]
+        self.emit("select-nodes", nodes)
+        return True
+    
+
+    def get_selected_nodes(self):
+        """Returns a list of currently selected nodes"""
+        model, it = self.get_selection().get_selected()        
+        if it is None:
+            return []
+        return [self.model.get_value(it, COL_NODE)]
+
+
+
+    #=====================================================
+    # delete node
+    
+    def on_delete_node(self):
+        # TODO: add folder name to message box
+        
+        # get node to delete
+        nodes = self.get_selected_nodes()
+        if len(nodes) == 0:
+            return
+        node = nodes[0]
+        
+        if isinstance(node, NoteBookTrash):
+            self.emit("error", "The Trash folder cannot be deleted.", None)
+            return
+        elif node.get_parent() == None:
+            self.emit("error", "The top-level folder cannot be deleted.", None)
+            return
+        elif node.is_page():
+            message = "Do you want to delete this page?"
+        else:
+            message = "Do you want to delete this folder and all of its pages?"
+        
+        dialog = gtk.MessageDialog(self.get_toplevel(), 
+            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            type=gtk.MESSAGE_QUESTION, 
+            buttons=gtk.BUTTONS_YES_NO, 
+            message_format=message)
+
+        response = dialog.run()
+        dialog.destroy()
+        
+        if response == gtk.RESPONSE_YES:
+            self._delete_node(node)
+            
+    
+    def _delete_node(self, node):
+        parent = node.get_parent()
+        self.select_nodes([])
+        
+        if parent is not None:
+            try:
+                node.trash()
+            except NoteBookError, e:
+                self.emit("error", e.msg, e)
+        else:
+            # warn
+            self.emit("error", "Cannot delete notebook's toplevel directory", None)
+        
+        #self.emit("select-nodes", [])
+        
 
 
     #============================================
@@ -656,3 +727,9 @@ class TakeNoteBaseTreeView (gtk.TreeView):
 
 
 
+gobject.type_register(TakeNoteBaseTreeView)
+gobject.signal_new("select-nodes", TakeNoteBaseTreeView,
+                   gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, (object,))
+gobject.signal_new("error", TakeNoteBaseTreeView, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (str, object,))

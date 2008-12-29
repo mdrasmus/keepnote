@@ -64,7 +64,7 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
         # init view
         self.connect("key-release-event", self.on_key_released)
         self.connect("button-press-event", self.on_button_press)
-        self.get_selection().connect("changed", self.on_select_changed)
+        
         self.set_rules_hint(True)
         self.set_fixed_height_mode(True)
         
@@ -208,7 +208,7 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
         if event.keyval == gdk.keyval_from_name("Delete"):
             # capture node deletes
             self.stop_emission("key-release-event")            
-            self.on_delete_page()
+            self.on_delete_node() #delete_page()
             
         elif event.keyval == gdk.keyval_from_name("BackSpace") and \
              event.state & gdk.CONTROL_MASK:
@@ -248,65 +248,7 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
 
                 # NOTE: can only view one node
                 self.emit("goto-node", nodes[0])
-
-
     
-    def on_select_changed(self, treeselect):
-        """Callback for selection change"""
-
-        # notify listeners of selection change in terms of nodes
-        model, paths = treeselect.get_selected_rows()
-        
-        if len(paths) > 0:
-            nodes = [self.model.get_value(self.model.get_iter(x), COL_NODE)
-                     for x in paths]
-            self.emit("select-nodes", nodes)
-        else:
-            self.emit("select-nodes", [])
-        return True
-    
-    
-    def on_delete_page(self):
-        """Callback for delete page event"""
-
-        # TODO: maybe push this into main window?
-        dialog = gtk.MessageDialog(self.get_toplevel(), 
-            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-            type=gtk.MESSAGE_QUESTION, 
-            buttons=gtk.BUTTONS_YES_NO, 
-            message_format="Do you want to delete this page?")
-
-        response = dialog.run()
-        
-        if response == gtk.RESPONSE_YES:
-            dialog.destroy()
-            self.delete_page()
-            
-        elif response == gtk.RESPONSE_NO:
-            dialog.destroy()    
-
-
-    def get_selected_nodes(self):
-        """Returns a list of currently selected nodes"""
-        model, it = self.get_selection().get_selected()        
-        if it is None:
-            return []
-        return [self.model.get_value(it, COL_NODE)]
-        
-    
-    def delete_page(self):
-        """Deletes selected page"""
-        model, it = self.get_selection().get_selected()
-        if it is None:
-            return
-        
-        page = self.model.get_value(it, COL_NODE)
-        
-        try:
-            page.trash()
-        except NoteBookError, e:
-            self.emit("error", e.msg, e)
-        
 
     def is_view_tree(self):
 
@@ -491,11 +433,7 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
             self.on_status(text, bar=bar)
 
 gobject.type_register(TakeNoteListView)
-gobject.signal_new("select-nodes", TakeNoteListView, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object,))
 gobject.signal_new("goto-node", TakeNoteListView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object,))
 gobject.signal_new("goto-parent-node", TakeNoteListView,
     gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())
-gobject.signal_new("error", TakeNoteListView, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (str, object,))

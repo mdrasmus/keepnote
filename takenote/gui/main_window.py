@@ -753,7 +753,7 @@ class TakeNoteWindow (gtk.Window):
                         self.listview.append_node(node)
                         gtk.gdk.threads_leave()
                     return func
-                gtk.idle_add(gui_update(node))
+                gobject.idle_add(gui_update(node))
                 
             task.finish()
 
