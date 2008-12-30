@@ -26,12 +26,6 @@ from takenote.gui.treemodel import \
     COL_NODE
 from takenote.gui import treemodel
 from takenote.gui import basetreeview
-
-from takenote.gui import \
-     get_resource, \
-     get_resource_image, \
-     get_resource_pixbuf, \
-     get_node_icon
 from takenote.notebook import NoteBookTrash, \
               NoteBookError
 
@@ -154,11 +148,6 @@ class TakeNoteTreeView (basetreeview.TakeNoteBaseTreeView):
         path = treemodel.get_path_from_node(self.model, node)
         self.set_cursor_on_cell(path, self.column, self.cell_text, 
                                          True)
-        self.scroll_to_cell(path)
+        gobject.add_idle(lambda: self.scroll_to_cell(path))
 
-    
-    def expand_node(self, node):
-        path = treemodel.get_path_from_node(self.model, node)
-        if path is not None:
-            self.expand_to_path(path)
 

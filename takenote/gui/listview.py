@@ -335,21 +335,10 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
             self.set_status("1 page", "stats")
 
         
-
-                
-    def expand_node(self, node):
-        try:
-            path = treemodel.get_path_from_node(self.model, node)        
-            self.expand_to_path(path)
-        except Exception:
-            pass
-        
     
     def edit_node(self, page):
-        try:
-            path = treemodel.get_path_from_node(self.model, page)
-            assert path is not None
-        except:
+        path = treemodel.get_path_from_node(self.model, page)
+        if path is None:
             # view page first if not in view
             self.emit("goto-node", page)
             path = treemodel.get_path_from_node(self.model, page)
@@ -357,20 +346,13 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
         self.set_cursor_on_cell(path, self.title_column, self.title_text, True)
         path, col = self.get_cursor()
         self.scroll_to_cell(path)
-    
-    
-    def select_pages(self, pages):
-        page = pages[0]
-        path = treemodel.get_path_from_node(self.model, page)
-        if path is not None:
-            self.set_cursor_on_cell(path)
-
+        
 
     
     def save_sorting(self, node):
         """Save sorting information into node"""
 
-        # TODO: generalize
+        # TODO: generalize for arbitrary columns
         
         info_sort, sort_dir = self.model.get_sort_column_id()
 

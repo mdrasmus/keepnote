@@ -290,6 +290,15 @@ class TakeNoteBaseTreeView (gtk.TreeView):
     def on_row_has_child_toggled(self, model, path, it):
         pass
 
+    #===========================================
+    # actions
+
+    def expand_node(self, node):
+        """Expand a node in TreeView"""
+        path = treemodel.get_path_from_node(self.model, node)
+        if path is not None:
+            self.expand_to_path(path)
+
 
     #===========================================
     # selection
