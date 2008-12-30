@@ -12,8 +12,7 @@ from takenote.notebook import NoteBookError, NoteBookTrash
 from takenote.gui.treemodel import \
      COL_NODE, \
      COL_ICON, \
-     get_path_from_node, \
-     TreeModelPathError
+     get_path_from_node
      
 
 
@@ -207,15 +206,8 @@ class TakeNoteBaseTreeView (gtk.TreeView):
                     if self.is_node_expanded(child):
                         self.expand_row(path, False)
             else:
-                try:
-                    path = get_path_from_node(self.model, node)
-                    if path is None:
-                        raise
-                except TreeModelPathError:
-                    # NOTE: ignoring this exception is OK
-                    # it just means node is out of view
-                    pass
-                else:
+                path = get_path_from_node(self.model, node)
+                if path is not None:
                     parent = node.get_parent()
 
                     # NOTE: parent may lose expand state if it has one child
@@ -231,16 +223,13 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         
         # if nodes still exist, and expanded, try to reselect them
         if len(self.__sel_nodes2) > 0:
-            try:
-                # TODO: only reselects one node
-                path2 = get_path_from_node(self.model, self.__sel_nodes2[0])
-                if len(path2) <= 1 or self.row_expanded(path2[:-1]):
-                    self.set_cursor(path2)
-                    self.scroll_to_cell(path2)
-                else:
-                    self.get_selection().emit("changed")
-            except TreeModelPathError:            
-                self.get_selection().emit("changed")
+            # TODO: only reselects one node
+            path2 = get_path_from_node(self.model, self.__sel_nodes2[0])
+            if path2 is not None and \
+               (len(path2) <= 1 or self.row_expanded(path2[:-1])):
+                # reselect and scroll to node    
+                self.set_cursor(path2)
+                gobject.idle_add(lambda: self.scroll_to_cell(path2))
 
         # resume emitting selection changes
         self.__suppress_sel = False
@@ -310,17 +299,13 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         # NOTE: for now only select one node
         if len(nodes) > 0:
             node = nodes[0]
-            try:
-                path = get_path_from_node(self.model, node)
-                if len(path) > 1:
-                    self.expand_to_path(path[:-1])
-                self.set_cursor(path)
-                self.scroll_to_cell(path)
-            except TreeModelPathError:
-                pass
+            path = get_path_from_node(self.model, node)
+            if path is not None and len(path) > 1:
+                self.expand_to_path(path[:-1])
+            self.set_cursor(path)
+            gobject.idle_add(lambda: self.scroll_to_cell(path))
         else:
-
-            # NOTE: this may be invalid
+            # unselect all nodes
             self.get_selection().unselect_all()
 
 
@@ -347,6 +332,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
     
     def on_delete_node(self):
         # TODO: add folder name to message box
+        # factor out confirm dialog?
         
         # get node to delete
         nodes = self.get_selected_nodes()
@@ -391,8 +377,6 @@ class TakeNoteBaseTreeView (gtk.TreeView):
             # warn
             self.emit("error", "Cannot delete notebook's toplevel directory", None)
         
-        #self.emit("select-nodes", [])
-        
 
 
     #============================================
@@ -402,7 +386,6 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         """Callback for start of title editing"""
         # remember editing state
         self.editing = True
-        self.scroll_to_cell(path)
         gobject.idle_add(lambda: self.scroll_to_cell(path))
     
     def on_editing_canceled(self, cellrenderer):
@@ -438,17 +421,11 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         # is selected)
         if self.model.iter_n_children(None) > 0:
             self.set_cursor((0,))
-        try:
-            path = get_path_from_node(self.model, node)
+        
+        path = get_path_from_node(self.model, node)
+        if path is not None:
             self.set_cursor(path)
-            # TODO: line above once gave me
-            #  gtk_tree_model_sort_real_unref_node: assertion `VALID_ITER (iter, tree_model_sort)' failed
-            # when I renamed a node in the tree with nothing visible in the
-            # listview
-            self.scroll_to_cell(path)
             gobject.idle_add(lambda: self.scroll_to_cell(path))
-        except TreeModelPathError:
-            pass
         
     
 
@@ -641,7 +618,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         if (drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or
             drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER):
             new_parent_path = get_path_from_node(self.model, new_parent)
-            if new_parent_path:
+            if new_parent_path is not None:
                 self.expand_row(new_parent_path, False)
 
         # notify that drag was successful

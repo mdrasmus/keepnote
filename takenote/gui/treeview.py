@@ -159,5 +159,6 @@ class TakeNoteTreeView (basetreeview.TakeNoteBaseTreeView):
     
     def expand_node(self, node):
         path = treemodel.get_path_from_node(self.model, node)
-        self.expand_to_path(path)
+        if path is not None:
+            self.expand_to_path(path)
 

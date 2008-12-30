@@ -29,8 +29,6 @@ COL_NODE          = 9
 COL_TYPES = [gdk.Pixbuf, gdk.Pixbuf,
              str, str, str, int, str, int, int, object]
 
-class TreeModelPathError (StandardError):
-    pass
 
 
 def get_path_from_node(model, node):
@@ -57,7 +55,8 @@ def get_path_from_node(model, node):
         node_path.append(node)
         node = node.get_parent()
         if node is None:
-            raise TreeModelPathError()
+            # node is not in the model (e.g. listview subset)
+            return None
 
     # walk back down and record path
     path = [root_set[node]]
