@@ -630,12 +630,8 @@ class TakeNoteBaseTreeView (gtk.TreeView):
 
         # do tree move if source path is in our tree
         if source_path is not None:
-            # get target and source iters
-            source = self.model.get_iter(source_path)
-
-            # record old and new parent paths
-            old_parent = source_node.get_parent()
-            old_parent_path = source_path[:-1]                
+            
+            # determine new parent
             new_parent_path = new_path[:-1]
             if len(new_parent_path) == 0:
                 new_parent = self._master_node
@@ -651,37 +647,11 @@ class TakeNoteBaseTreeView (gtk.TreeView):
                 drag_context.finish(False, False, eventtime)
                 self.emit("error", e.msg, e)
                 return
-
-            # TODO: is this still needed, give the smarter treemodel?
-            # expand old parent if it was before (move may collapse old_parent)
-            if len(old_parent_path) > 0 and \
-               old_parent.get_attr("expanded", False):
-                old_parent_path = get_path_from_node(self.model, old_parent)
-                self.expand_to_path(old_parent_path)
-
-            # expand new parent if it was before (move may collapse new_parent)
-            if len(new_parent_path) > 0 and \
-               new_parent.get_attr("expanded", False):
-                new_parent_path = get_path_from_node(self.model, new_parent)
-                self.expand_to_path(new_parent_path)
             
             # make sure to show new children
             if (drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or
                 drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER):
-                try:
-                    new_parent_path = get_path_from_node(self.model,
-                                                         new_parent)
-                    if new_parent_path is not None:
-                        treeview.expand_row(new_parent_path, False)
-                except TreeModelPathError:
-                    # TODO: make sure why I have this exception
-                    # my guess is that get_path_from_node will through if
-                    # new parent is outide view.  Which will be True if it
-                    # is the master node, in which case the exception is
-                    # perfectly normal and should be ignored
-                    # However, I should make it a special exception and just
-                    # catch that.
-                    pass
+                treeview.expand_row(new_parent_path, False)
 
             # notify that drag was successful
             drag_context.finish(True, True, eventtime)
@@ -708,11 +678,6 @@ class TakeNoteBaseTreeView (gtk.TreeView):
 
             # notify that drag is successful
             drag_context.finish(True, True, eventtime)
-
-            # expand new parent
-            if new_parent.get_attr("expanded", False):
-                self.expand_to_path(new_parent_path)
-
     
         
     def _drop_allowed(self, source_node, target_node, drop_position):
