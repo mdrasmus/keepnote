@@ -466,7 +466,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
     
     def get_drag_node(self):
         model, source = self.get_selection().get_selected()
-        source_path = model.get_path(source)
+        #source_path = model.get_path(source)
         return self.model.get_value(source, COL_NODE)
 
 
@@ -516,7 +516,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
                 # get source
                 source_widget = drag_context.get_source_widget()
                 source_node = source_widget.get_drag_node()
-                source_path = get_path_from_node(self.model, source_node)
+                #source_path = get_path_from_node(self.model, source_node)
             
                 # determine if drag is allowed
                 if self._drop_allowed(source_node, target_node, drop_position):
@@ -571,8 +571,6 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         model, source = self.get_selection().get_selected()
         source_path = model.get_path(source)
         selection_data.tree_set_row_drag_data(model, source_path)
-        
-
     
     
     def _on_drag_data_received(self, treeview, drag_context, x, y,
@@ -595,7 +593,7 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         if "drop_node" in drag_context.targets:
             # process node drops
             self._on_drag_node_received(treeview, drag_context, x, y,
-                                   selection_data, info, eventtime)            
+                                        selection_data, info, eventtime)
         else:
             # unknown drop type, reject
             drag_context.finish(False, False, eventtime)
@@ -607,10 +605,6 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         Callback for node received from another widget
         """
 
-        # TODO: the expand get_attr() calls look too treeview specific.
-        # Maybe I need to generalize so that listview can override with
-        # its own behavior
-
         # get target
         target_path, drop_position  = self._dest_row
         target = self.model.get_iter(target_path)
@@ -620,64 +614,38 @@ class TakeNoteBaseTreeView (gtk.TreeView):
         # get source
         source_widget = drag_context.get_source_widget()
         source_node = source_widget.get_drag_node()
-        source_path = get_path_from_node(self.model, source_node)
-
 
         # determine if drop is allowed
         if not self._drop_allowed(source_node, target_node, drop_position):
             drag_context.finish(False, False, eventtime)
             return
 
-        # do tree move if source path is in our tree
-        if source_path is not None:
-            
-            # determine new parent
-            new_parent_path = new_path[:-1]
-            if len(new_parent_path) == 0:
-                new_parent = self._master_node
-                assert self._master_node is not None
-            else:
-                new_parent_it = self.model.get_iter(new_parent_path)
-                new_parent = self.model.get_value(new_parent_it, COL_NODE)
+        # determine new parent
+        new_parent_path = new_path[:-1]
+        if len(new_parent_path) == 0:
+            new_parent = self._master_node
+            assert self._master_node is not None
+        else:
+            new_parent_it = self.model.get_iter(new_parent_path)
+            new_parent = self.model.get_value(new_parent_it, COL_NODE)
 
-            # perform move in notebook model
-            try:
-                source_node.move(new_parent, new_path[-1])
-            except NoteBookError, e:
-                drag_context.finish(False, False, eventtime)
-                self.emit("error", e.msg, e)
-                return
-            
-            # make sure to show new children
-            if (drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or
-                drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER):
-                treeview.expand_row(new_parent_path, False)
+        # perform move in notebook model
+        try:
+            source_node.move(new_parent, new_path[-1])
+        except NoteBookError, e:
+            drag_context.finish(False, False, eventtime)
+            self.emit("error", e.msg, e)
+            return
 
-            # notify that drag was successful
-            drag_context.finish(True, True, eventtime)
+        # make sure to show new children
+        if (drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or
+            drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER):
+            new_parent_path = get_path_from_node(self.model, new_parent)
+            if new_parent_path:
+                self.expand_row(new_parent_path, False)
 
-        else:                
-            # process node move that is not in treeview
-
-            # determine new parent
-            new_parent_path = new_path[:-1]
-            if len(new_parent_path) == 0:
-                new_parent = self._master_node
-                assert self._master_node is not None
-            else:
-                new_parent_it = self.model.get_iter(new_parent_path)
-                new_parent = self.model.get_value(new_parent_it, COL_NODE)
-
-            # perform move in notebook
-            try:
-                source_node.move(new_parent, new_path[-1])
-            except NoteBookError, e:
-                drag_context.finish(False, False, eventtime)
-                self.emit("error", e.msg, e)
-                return
-
-            # notify that drag is successful
-            drag_context.finish(True, True, eventtime)
+        # notify that drag was successful
+        drag_context.finish(True, True, eventtime)
     
         
     def _drop_allowed(self, source_node, target_node, drop_position):
