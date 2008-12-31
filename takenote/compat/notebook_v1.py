@@ -190,44 +190,35 @@ def update_notebook(filename, desired_version):
     """Updates a notebook to the desired version (downgrading not implemented)"""
 
     # try to open notebook (may raise exceptions)
-    try:
-        notebook = NoteBook()
-        notebook.load(filename)
+    notebook = Notebook()
+    notebook.load(filename)
 
-        if notebook.pref.version >= desired_version:
-            return
-    except:
-        # can't read notebook
-        # TODO: add code to handle this situation
-        # e.g. try old notebook version load()
-        raise
+    if notebook.version >= desired_version:
+        return
 
 
     # NOTE: for now, this code only works for version 1 to 2
 
     assert desired_version == 2
 
-    if notebook.pref.version == 1:
-        from takenote.compat import notebook_v1 as old_notebooklib
+    if notebook.version == 1:
+        from takenote.backcompat import notebook_v1 as old_notebooklib
 
         # try to load old notebook (may raise exceptions)
-        notebook = old_notebooklib.NoteBook()
-        notebook.load(filename)
+        old_notebook = old_notebooklib.Notebook()
+        old_notebook.load(filename)
 
         def walk(node):
-            # write to "node.xml" meta file
-            child.write_meta_data2()
-
-            # remove old "page.xml" meta file
-            if isinstance(child, old_notebooklib.NoteBookPage):
-                try:
-                    os.remove(child.get_meta_file())
-                except:
-                    pass
-            
             for child in node.get_children():
-                walk(child)
-        walk(notebook)
+                # write to "node.xml" meta file
+                child.write_meta_data2()
+
+                # remove old "page.xml" meta file
+                if isinstance(child, old_notebooklib.NoteBookPage):
+                    try:
+                        os.remove(child.get_meta_file())
+                    except:
+                        pass
             
 
 
