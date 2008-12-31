@@ -134,7 +134,7 @@ class RichTextIO (object):
         self._html_buffer = HtmlBuffer()
 
     
-    def save(self, textbuffer, filename):
+    def save(self, textbuffer, filename, title=None):
         """Save buffer contents to file"""
         
         path = os.path.dirname(filename)
@@ -149,7 +149,8 @@ class RichTextIO (object):
             out = safefile.open(filename, "wb", codec="utf-8")
             self._html_buffer.set_output(out)
             self._html_buffer.write(buffer_contents,
-                                    textbuffer.tag_table)
+                                    textbuffer.tag_table,
+                                    title=title)
             out.close()
         except IOError, e:
             raise RichTextError("Could not save '%s'." % filename, e)

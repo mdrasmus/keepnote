@@ -6,6 +6,7 @@
 # python imports
 import re
 from HTMLParser import HTMLParser
+from xml.sax.saxutils import escape
 
 # takenote imports
 from takenote.gui.textbuffer_tools import \
@@ -46,10 +47,10 @@ XHTML_HEADER = """\
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
-<body>"""
+"""
 XHTML_FOOTER = "</body></html>"
 
-HTML_HEADER = "<html><body>"
+HTML_HEADER = "<html>"
 HTML_FOOTER = "</body></html>"
 
 BULLET_STR = u"\u2022 "
@@ -670,13 +671,11 @@ class HtmlBuffer (HTMLParser):
     #================================================
     # Writing HTML
 
-    def write(self, buffer_content, tag_table, partial=False, xhtml=True):
+    def write(self, buffer_content, tag_table, title=None,
+              partial=False, xhtml=True):
 
         if not partial:
-            if xhtml:
-                self._out.write(XHTML_HEADER)
-            else:
-                self._out.write(HTML_HEADER)
+            self._write_header(title, xhtml=xhtml)
 
         # normalize contents, prepare them for DOM
         contents = normalize_tags(
@@ -689,10 +688,25 @@ class HtmlBuffer (HTMLParser):
         self.write_dom(dom, xhtml=xhtml)
 
         if not partial:
-            if xhtml:
-                self._out.write(XHTML_FOOTER)
-            else:
-                self._out.write(HTML_FOOTER)
+            self._write_footer(xhtml=xhtml)
+
+
+    def _write_header(self, title, xhtml=True):
+        if xhtml:
+            self._out.write(XHTML_HEADER)
+        else:
+            self._out.write(HTML_HEADER)
+        if title:
+            self._out.write(u"<head><title>%s</title><head>\n" %
+                            escape(title))
+        self._out.write("<body>")
+        
+
+    def _write_footer(self, xhtml=True):
+        if xhtml:
+            self._out.write(XHTML_FOOTER)
+        else:
+            self._out.write(HTML_FOOTER)
 
 
     def prepare_dom_write(self, dom):
@@ -845,7 +859,8 @@ class HtmlBuffer (HTMLParser):
 
     def write_text(self, text, xhtml=True):
         """Write text"""
-        
+
+        # TODO: could use escape()
         # TODO: could try to speed this up
         text = text.replace("&", "&amp;")
         text = text.replace(">", "&gt;")
@@ -857,6 +872,7 @@ class HtmlBuffer (HTMLParser):
         else:
             text = text.replace("\n", "<br>\n")
         self._out.write(text)
+
 
     def write_anchor(self, anchor, xhtml=True):
         """Write an anchor object"""

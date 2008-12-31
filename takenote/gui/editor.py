@@ -174,7 +174,8 @@ class TakeNoteEditor (gtk.VBox):
 
             try:
                 self._textview_io.save(self._textview.get_buffer(),
-                                       self._page.get_data_file())
+                                       self._page.get_data_file(),
+                                       self._page.get_title())
             except RichTextError, e:
                 self.emit("error", e.msg, e)
                 return
