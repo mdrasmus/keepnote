@@ -2,6 +2,8 @@ import os, shutil, unittest
 
 
 from takenote import notebook as notebooklib
+from takenote import notebook_update
+
 
 
 def mk_clean_dir(dirname):
@@ -21,15 +23,31 @@ class TestCaseNoteBookUpdate (unittest.TestCase):
 
         old_notebook_filename = "test/data/notebook-v1"
         new_notebook_filename = "test/data/notebook-v2-update"
+        new_version = 2
 
+        # make copy of old notebook
         if os.path.exists(new_notebook_filename):
             shutil.rmtree(new_notebook_filename)
         shutil.copytree(old_notebook_filename,
                         new_notebook_filename)
 
-        notebooklib.update_notebook(new_notebook_filename,
-                                    2)
-        
+        # update (in place) the copy
+        notebook_update.update_notebook(new_notebook_filename, new_version)
+
+        def walk(node):
+            attr = dict(list(node.iter_attr()))
+            node.write_meta_data()
+            node.read_meta_data()
+            attr2 = dict(list(node.iter_attr()))
+
+            self.assertEquals(attr, attr2)
+
+            # recurse
+            for child in node.get_children():
+                walk(child)
+        notebook = notebooklib.NoteBook()
+        notebook.load(new_notebook_filename)
+        walk(notebook)
 
         
 suite = unittest.defaultTestLoader.loadTestsFromTestCase(
