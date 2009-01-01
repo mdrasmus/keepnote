@@ -14,6 +14,7 @@ import pygtk
 pygtk.require('2.0')
 import gtk
 import gtk.gdk
+import gobject
 
 
 #=============================================================================
@@ -140,7 +141,17 @@ def main(argv):
         
     # read preferences
     app = takenote.TakeNote(basedir)
-    
+
+    if takenote.get_platform() == "windows":
+        # HACK: keep gui thread active
+        def sleeper():
+            print "tick"
+            time.sleep(.001)
+            return True # repeat timer
+        gobject.timeout_add(400, sleeper)
+        
+    else:
+        gtk.gdk.threads_init()    
 
     # start TakeNote
     if len(args) > 0:
@@ -154,15 +165,7 @@ def main(argv):
     else:
         app.show_main_window()
 
-    if takenote.get_platform() == "windows":
-        # HACK: keep gui thread active
-        def sleeper():
-            time.sleep(.001)
-            return True # repeat timer
-        gtk.timeout_add(400, sleeper)
-        
-    else:
-        gtk.gdk.threads_init()
+
     gtk.main()
     
 

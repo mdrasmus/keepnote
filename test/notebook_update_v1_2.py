@@ -49,6 +49,24 @@ class TestCaseNoteBookUpdate (unittest.TestCase):
         notebook.load(new_notebook_filename)
         walk(notebook)
 
+
+    def test_gui(self):
+        """test notebook update through gui"""
+
+        old_notebook_filename = "test/data/notebook-v1"
+        new_notebook_filename = "test/data/notebook-v2-update"
+        new_version = 2
+
+        # make copy of old notebook
+        if os.path.exists(new_notebook_filename):
+            shutil.rmtree(new_notebook_filename)
+        shutil.copytree(old_notebook_filename,
+                        new_notebook_filename)
+
+        self.assertEquals(
+            os.system("bin/takenote %s" % new_notebook_filename), 0)
+
+
         
 suite = unittest.defaultTestLoader.loadTestsFromTestCase(
     TestCaseNoteBookUpdate)

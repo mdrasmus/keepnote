@@ -50,6 +50,7 @@ from takenote.gui import \
     dialog_drag_drop_test, \
     dialog_image_resize, \
     dialog_wait, \
+    dialog_update_notebook, \
     TakeNoteError
 from takenote.gui.font_selector import FontSelector
 from takenote.gui.editor import TakeNoteEditor
@@ -529,11 +530,18 @@ class TakeNoteWindow (gtk.Window):
         
         if self.notebook is not None:
             self.close_notebook()
+
+        # check version
+        version = notebooklib.get_notebook_version(filename)
+        if version < notebooklib.NOTEBOOK_FORMAT_VERSION:
+            if not self.update_notebook(filename):
+                self.error("Cannot open notebook (version too old)")
+                return None
+
         
         notebook = notebooklib.NoteBook()
         notebook.node_changed.add(self.on_notebook_node_changed)
-        error = None
-        tback = None
+
         
         try:
             notebook.load(filename)
@@ -549,6 +557,7 @@ class TakeNoteWindow (gtk.Window):
             return None
         
 
+        # setup notebook
         self.set_notebook(notebook)
         
         self.treeview.grab_focus()
@@ -581,6 +590,15 @@ class TakeNoteWindow (gtk.Window):
             self.set_notebook(None)
             self.set_status("Notebook closed")
 
+
+    def update_notebook(self, filename):
+        try:
+            dialog = dialog_update_notebook.UpdateNoteBookDialog(self)
+            return dialog.show(filename)
+        except Exception, e:
+            self.error("Error occurred", e, sys.exc_info()[2])
+            return False
+        
 
 
     def begin_auto_save(self):
@@ -1728,11 +1746,11 @@ class TakeNoteWindow (gtk.Window):
             ("/Help/Drag and Drop Test...",
                 None, lambda w,e: self.drag_test.on_drag_and_drop_test(),
                 0, None),
-            #("/Help/Wait dialog...",
-            # None, lambda w,e: self.wait_dialog("title",
-            #                                    "message message message message message message message message message message message message message message message message message message message message message message\n message message message message ",
-            #                                    None),
-            # 0, None),
+            ("/Help/Wait dialog...",
+             None, lambda w,e: self.wait_dialog("title",
+                                                "message message message message message message message message message message message message message message message message message message message message message message\n message message message message ",
+                                                None),
+             0, None),
             ("/Help/sep1", None, None, 0, "<Separator>"),
             ("/Help/About", None, lambda w,e: self.on_about(), 0, None ),
             )    

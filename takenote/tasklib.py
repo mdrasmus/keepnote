@@ -109,12 +109,12 @@ class Task (object):
     def _new_thread(self):
         try:            
             self._func(self)
+            self.finish()
             
         except Exception, e:
             
             self._lock.acquire()
             self._exc_info = sys.exc_info()
-            print "task", self._exc_info
             self._aborted = True
             self._state = STOPPED
             self._lock.release()

@@ -203,7 +203,27 @@ def read_data_as_plain_text(infile):
         yield strip_tags(line)
 
 
+#=============================================================================
+# functions
 
+
+def get_notebook_version(filename):
+    """Read the version of a notebook from its preference file"""
+    
+    if os.path.isdir(filename):
+        filename = get_pref_file(filename)
+
+    pref = NoteBookPreferences()
+
+    try:
+        g_notebook_pref_parser.read(pref, filename)
+    except IOError, e:
+        raise NoteBookError("Cannot read notebook preferences", e)
+    except xmlo.XmlError, e:
+        raise NoteBookError("Notebook preference data is corrupt", e)
+
+    return pref.version
+    
 
 #=============================================================================
 # classes
