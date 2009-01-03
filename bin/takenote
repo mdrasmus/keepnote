@@ -78,9 +78,10 @@ except ImportError:
     # if this works we know we are running from src_path (1)
     basedir = takenote.get_basedir()
 
-    
-import takenote.gui.main_window
 
+# takenote imports
+import takenote.gui.main_window
+from takenote.commands import get_command_executor
 
 
 #=============================================================================
@@ -98,7 +99,15 @@ o.add_option("--no-show-errors", dest="show_errors",
 o.add_option("--no-default", dest="default_notebook",
              action="store_false",
              help="do not open default notebook")
+o.add_option("--listen", dest="listen",
+             action="store_true",
+             help="listen for commands")
+o.add_option("--focus", dest="focus",
+             action="store_true",
+             help="unminimize and focus an existing window")
 
+
+#=============================================================================
 
 def start_error_log(show_errors):
     """Starts TakeNote error log"""
@@ -118,8 +127,21 @@ def start_error_log(show_errors):
                                             time.asctime()))
 
 
-def main(argv):
-    """Main execution"""
+
+def setup_threading():
+    if takenote.get_platform() == "windows":
+        # HACK: keep gui thread active
+        def sleeper():
+            time.sleep(.001)
+            return True # repeat timer
+        gobject.timeout_add(400, sleeper)
+
+    else:
+        gtk.gdk.threads_init()
+
+
+def parse_argv(argv):
+    """Parse arguments"""
 
     # set default arguments
     options = o.get_default_values()    
@@ -128,46 +150,85 @@ def main(argv):
     else:
         options.show_errors = True
 
-    # parse args
+    # parse args and process
     (options, args) = o.parse_args(argv[1:], options)
-    
-    
-    # init preference dir
-    if not os.path.exists(takenote.get_user_pref_dir()):
-        takenote.init_user_pref_dir()
+    return options, args
 
-    # start error log
-    start_error_log(options.show_errors)
+
+def execute_command(app, argv):
+    """Execute commands given on command line"""
+    
+    options, args = parse_argv(argv)
+    
+    if options.focus:
+        if app.window:
+            app.window.restore_window()
+
+
+def contains_command(options, args):
+    """Returns True if options contains a command"""
+    return options.focus
+
+
+def main(argv):
+    """Main execution"""
+
+    options, args = parse_argv(argv)
+
+    # setup command executor
+    if options.listen:
+        # start a new listening process
+        main_proc, cmd_exec = get_command_executor(True, execute_command)
+        if not main_proc:
+            # quit, already listening
+            print >>sys.stderr, "Cannot listen application already running"
+            sys.exit(1)
+
+    elif contains_command(options, args):
+        # process command
+        main_proc, cmd_exec = get_command_executor(True, execute_command)
+
+    else:
+        # create trivial command executor 
+        main_proc, cmd_exec = get_command_executor(False, execute_command)
+                    
+
+    if main_proc:
+        # initiate main process
+
+        # setup threading environment
+        setup_threading()
+
+        # init preference dir
+        if not os.path.exists(takenote.get_user_pref_dir()):
+            takenote.init_user_pref_dir()
+
+        # start error log
+        start_error_log(options.show_errors)
+
+        # read preferences
+        app = takenote.TakeNote(basedir)
+        cmd_exec.set_app(app)
+
         
-    # read preferences
-    app = takenote.TakeNote(basedir)
 
-    if takenote.get_platform() == "windows":
-        # HACK: keep gui thread active
-        def sleeper():
-            print "tick"
-            time.sleep(.001)
-            return True # repeat timer
-        gobject.timeout_add(400, sleeper)
+        # start TakeNote
+        if len(args) > 0:
+            # open specified notebook
+            app.open_notebook(args[0].rstrip("/"))
+
+        elif options.default_notebook and app.pref.default_notebook != "":
+            # open default notebook
+            app.open_notebook(app.pref.default_notebook)
+
+        else:
+            app.show_main_window()
+
+        gtk.main()
         
     else:
-        gtk.gdk.threads_init()    
-
-    # start TakeNote
-    if len(args) > 0:
-        # open specified notebook
-        app.open_notebook(args[0].rstrip("/"))
-        
-    elif options.default_notebook and app.pref.default_notebook != "":
-        # open default notebook
-        app.open_notebook(app.pref.default_notebook)
-        
-    else:
-        app.show_main_window()
-
-
-    gtk.main()
-    
+        # this is a command process, send command to main process
+        cmd_exec.execute(argv)
 
 
 try:

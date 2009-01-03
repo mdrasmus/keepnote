@@ -141,13 +141,11 @@ class TakeNoteTreeView (basetreeview.TakeNoteBaseTreeView):
             if root.get_attr("expanded", True):
                 self.expand_to_path((0,))
 
-            
-    
     
     def edit_node(self, node):
         path = treemodel.get_path_from_node(self.model, node)
         self.set_cursor_on_cell(path, self.column, self.cell_text, 
                                          True)
-        gobject.add_idle(lambda: self.scroll_to_cell(path))
+        gobject.idle_add(lambda: self.scroll_to_cell(path))
 
 

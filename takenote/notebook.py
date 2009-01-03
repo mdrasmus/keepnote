@@ -416,6 +416,11 @@ class NoteBookNode (object):
             self._basename = None
         else:
             self._basename = os.path.basename(path)
+
+
+    def get_version(self):
+        """Returns the format version of this node"""
+        return self._version
     
     
     def get_title(self):
@@ -566,7 +571,14 @@ class NoteBookNode (object):
         self._set_dirty(False)
         
         # make sure to recursively invalidate
-        self._invalidate_children()
+        def walk(node):
+            """Uncache children list"""
+
+            if node._children is not None:
+                for child in node._children:
+                    child._valid = False
+                    walk(child)
+        walk(self)
 
         # parent node notifies listeners of change
         self._parent.notify_change(True)
@@ -597,15 +609,6 @@ class NoteBookNode (object):
                 return True
             ptr = ptr._parent
         return False
-            
-    
-    def _invalidate_children(self):
-        """Uncache children list"""
-        
-        if self._children is not None:
-            for child in self._children:
-                child._valid = False
-                child._invalidate_children()
     
     
     def rename(self, title):
@@ -664,6 +667,14 @@ class NoteBookNode (object):
         node.save(True)
         self.notify_change(True)
         return node
+    
+    
+    def get_children(self):
+        """Returns all children of this node"""
+        if self._children is None:
+            self._get_children()
+        
+        return self._children
     
     
     def _get_children(self):
@@ -727,32 +738,17 @@ class NoteBookNode (object):
             self._children.append(child)
 
         child._set_dirty(True)
-
-        
-    def get_children(self):
-        """Returns all children of this node"""
-        if self._children is None:
-            self._get_children()
-        
-        return self._children
     
-    
-    def get_pages(self):
-        """Returns the pages in this node"""
-        
-        if self._children is None:
-            self._get_children()
-        
-        for child in self._children:
-            if isinstance(child, NoteBookPage):
-                yield child
 
     def _remove_child(self, child):
         """Remove a child node"""
         if self._children is None:
             self._get_children()
         self._children.remove(child)
-    
+
+
+    #===============================================
+    # listeners
     
     def notify_change(self, recurse):
         """Notify listeners that node has changed"""
@@ -773,6 +769,10 @@ class NoteBookNode (object):
         """Resume notification of listeners for node changes"""        
         if self._notebook:
             self._notebook.node_changed.resume(listener)
+
+
+    #==============================================
+    # input/output
     
     def load(self):
         """Load a node from filesystem"""
@@ -820,7 +820,7 @@ class NoteBookNode (object):
     def write_meta_data(self):
         
         self._meta.write(self.get_meta_file(),
-                         self._attr,
+                         self,
                          self._notebook.notebook_attrs)
 
     def read_meta_data(self):
@@ -835,6 +835,7 @@ class NoteBookNode (object):
         
 
 class NoteBookNodeMetaData (object):
+    """Reads and writes metadata for NoteBookNode objects"""
 
     def __init__(self):
         self.attr = {}
@@ -845,15 +846,15 @@ class NoteBookNodeMetaData (object):
         self.__meta_tag = None
 
                     
-    def write(self, filename, attrs, notebook_attrs):
+    def write(self, filename, node, notebook_attrs):
         
         try:
             out = safefile.open(filename, "w", codec="utf-8")
             out.write(XML_HEADER)
             out.write("<node>\n"
-                      "<version>%s</version>\n" % attrs["version"])
+                      "<version>%s</version>\n" % node.get_version())
             
-            for key, val in attrs.iteritems():
+            for key, val in node.iter_attr():
                 attr = notebook_attrs.get(key, None)
 
                 if attr is not None:
@@ -867,6 +868,7 @@ class NoteBookNodeMetaData (object):
             out.write("</node>\n")
             out.close()
         except Exception, e:
+            print e
             raise NoteBookError("Cannot write meta data", e)
 
 
