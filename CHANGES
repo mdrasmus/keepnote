@@ -1,7 +1,14 @@
 TakeNote Change Log
 -------------------
 
-takenote-0.4.5
+takenote-0.4.6
+--------------
+- new metadat file format
+- more desktop integration
+  - use dbus to raise window with desktop shortcut keys
+
+
+takenote-0.4.5 (2008/12/20)
 --------------
 - added "Paste As Text"
 - add progress bars, background tasks

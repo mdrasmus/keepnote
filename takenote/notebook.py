@@ -149,14 +149,6 @@ def get_node_meta_file(nodepath):
     """Returns the metadata file for a node"""
     return os.path.join(nodepath, NODE_META_FILE)
 
-def get_dir_meta_file(nodepath):
-    """Returns the metadata file for a dir"""
-    return os.path.join(nodepath, NODE_META_FILE)
-
-def get_page_meta_file(pagepath):
-    """Retruns the metadata file for a page"""
-    return os.path.join(pagepath, PAGE_META_FILE)
-
 def get_page_data_file(pagepath):
     """Returns the HTML data file for a page"""
     return os.path.join(pagepath, PAGE_DATA_FILE)
@@ -317,40 +309,6 @@ g_default_attrs = [
 # 2. attrs can appear in listview
 
 
-    
-
-# basic file format for all NoteBookNode's
-g_node_meta_data_tags = [
-    xmlo.Tag("version",
-        getobj=("_version", int),
-        set=lambda s: str(NOTEBOOK_FORMAT_VERSION)),
-    xmlo.Tag("title", 
-        get=lambda s, x: s._attr.__setitem__("title", x),
-        set=lambda s: s._attr["title"]),
-    xmlo.Tag("order",
-        get=lambda s, x: s._attr.__setitem__("order", int(x)),
-        set=lambda s: str(s._attr["order"])),
-    xmlo.Tag("created_time",
-        get=lambda s, x: s._attr.__setitem__("created_time", int(x)),
-        set=lambda s: str(s._attr["created_time"])),
-    xmlo.Tag("modified_time",
-        get=lambda s, x: s._attr.__setitem__("modified_time", int(x)),
-        set=lambda s: str(s._attr["modified_time"])),
-    xmlo.Tag("info_sort", 
-        get=lambda s, x: s._attr.__setitem__("info_sort", int(x)),
-        set=lambda s: str(s._attr["info_sort"])),
-    xmlo.Tag("info_sort_dir", 
-        get=lambda s, x: s._attr.__setitem__("info_sort_dir", int(x)),
-        set=lambda s: str(s._attr["info_sort_dir"])),
-    xmlo.Tag("expanded",
-        get=lambda s, x: s._attr.__setitem__("expanded", bool(int(x))),
-        set=lambda s: str(int(s._attr["expanded"]))),
-    xmlo.Tag("expanded2",
-        get=lambda s, x: s._attr.__setitem__("expanded2", bool(int(x))),
-        set=lambda s: str(int(s._attr["expanded2"]))) ]
-
-
-
 
 
 class NoteBookNode (object):
@@ -369,7 +327,7 @@ class NoteBookNode (object):
         self.clear_attr(title=title, content_type=content_type)
 
         # TODO: add a mechanism to register implict attrs that in turn do lookup
-        # "type", "title", "parent", "nchildren"
+        # "parent", "nchildren"
         
         self._set_basename(path)
         
@@ -400,7 +358,7 @@ class NoteBookNode (object):
         
         path_list = []
         ptr = self
-        while ptr != None:
+        while ptr is not None:
             path_list.append(ptr._basename)
             ptr = ptr._parent
         path_list.reverse()
@@ -410,7 +368,7 @@ class NoteBookNode (object):
     
     def _set_basename(self, path):
         """Sets the basename directory of the node"""
-        if self._parent == None:
+        if self._parent is None:
             self._basename = path
         elif path is None:
             self._basename = None
@@ -425,7 +383,7 @@ class NoteBookNode (object):
     
     def get_title(self):
         """Returns the display title of a node"""
-        if self._attr["title"] == None:
+        if self._attr["title"] is None:
             self.read_meta_data()
         return self._attr["title"]
     
@@ -453,6 +411,8 @@ class NoteBookNode (object):
 
 
     def clear_attr(self, title="", content_type=CONTENT_TYPE_DIR):
+        """Clear attributes (set them to defaults)"""
+        
         self._attr = {
             "title": title,
             "content_type": content_type,
@@ -841,6 +801,11 @@ class NoteBookNodeMetaData (object):
         self.attr = {}
         self._notebook_attrs = {}
 
+        self._parser = xml.parsers.expat.ParserCreate()
+        self._parser.StartElementHandler = self.__meta_start_element
+        self._parser.EndElementHandler = self.__meta_end_element
+        self._parser.CharacterDataHandler = self.__meta_char_data
+
         self.__meta_root = False
         self.__meta_data = None
         self.__meta_tag = None
@@ -882,21 +847,13 @@ class NoteBookNodeMetaData (object):
         self.attr["modified_time"] = None    
 
     
-        try:
-
-            # TODO: move?
-            parser = xml.parsers.expat.ParserCreate()
-            parser.StartElementHandler = self.__meta_start_element
-            parser.EndElementHandler = self.__meta_end_element
-            parser.CharacterDataHandler = self.__meta_char_data
-
-            infile = open(filename, "rb")
-
+        try:            
             self.__meta_root = False
             self.__meta_data = None
             self.__meta_tag = None
 
-            parser.ParseFile(infile)
+            infile = open(filename, "rb")
+            self._parser.ParseFile(infile)
             infile.close()
             
         except xml.parsers.expat.ExpatError, e:

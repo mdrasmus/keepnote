@@ -160,19 +160,24 @@ class TakeNoteListView (basetreeview.TakeNoteBaseTreeView):
 
     
     def set_notebook(self, notebook):
+        """Set the notebook for listview"""
         basetreeview.TakeNoteBaseTreeView.set_notebook(self, notebook)
         
         if self.model is not None:
-            self.set_sensitive(True)
             self.model.get_model().set_root_nodes([])
+
+        if notebook:
+            self.set_sensitive(True)
         else:
             self.set_sensitive(False)
 
 
     def set_date_formats(self, formats):
+        """Set the date formats used for dates"""
         self.model.get_model().set_date_formats(formats)
 
     def get_root_nodes(self):
+        """Returns the root nodes displayed in listview"""
         if self.model:
             return self.model.get_model().get_root_nodes()
         else:

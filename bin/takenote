@@ -23,6 +23,8 @@ import gobject
 """
 Three ways to run TakeNote
 
+bin_path = os.path.dirname(sys.argv[0])
+
 (1) directly from source dir
     
     pkgdir = bin_path + "../takenote"
@@ -36,7 +38,8 @@ Three ways to run TakeNote
 
 (2) from installation location by setup.py 
 
-    basedir = takenote.get_basedir()
+    pkgdir = takenote.get_basedir()
+    basedir = pkgdir
 
     prefix/bin/takenote
     prefix/lib/python-XXX/site-packages/takenote/__init__.py
@@ -129,6 +132,8 @@ def start_error_log(show_errors):
 
 
 def setup_threading():
+    """Initialize threading environment"""
+    
     if takenote.get_platform() == "windows":
         # HACK: keep gui thread active
         def sleeper():
@@ -191,7 +196,7 @@ def main(argv):
     else:
         # create trivial command executor 
         main_proc, cmd_exec = get_command_executor(False, execute_command)
-                    
+    
 
     if main_proc:
         # initiate main process
