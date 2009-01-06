@@ -131,38 +131,37 @@ class TakeNoteEditor (gtk.VBox):
         # TODO: generalize to multiple pages
         assert len(pages) <= 1
 
+        # save current page before changing pages
         self.save()
+
+        pages = [node for node in pages
+                 if node.is_page()]
         
-        if len(pages) == 0:
-            
+        if len(pages) == 0:            
             self.clear_view()
                 
         else:
             page = pages[0]
-            
-            if page.is_page():
-                self._page = page
-                self._textview.enable()
-            
-                try:
-                    self._queued_scroll = self._page_scrolls.get(
-                        self._page, None)
-                    #print self._queued_scroll
+            self._page = page
+            self._textview.enable()
 
-                    #print "loading"
-                    self._textview_io.load(self._textview,
-                                           self._textview.get_buffer(),
-                                           self._page.get_data_file())
-                    #print "done loading"
-                    
-                except RichTextError, e:
-                    self.clear_view()                
-                    self.emit("error", e.msg, e)
-                except Exception, e:
-                    self.clear_view()
-                    self.emit("error", "Unknown error", e)
-            else:
+            try:
+                self._queued_scroll = self._page_scrolls.get(
+                    self._page, None)
+                #print self._queued_scroll
+
+                #print "loading"
+                self._textview_io.load(self._textview,
+                                       self._textview.get_buffer(),
+                                       self._page.get_data_file())
+                #print "done loading"
+
+            except RichTextError, e:
+                self.clear_view()                
+                self.emit("error", e.msg, e)
+            except Exception, e:
                 self.clear_view()
+                self.emit("error", "Unknown error", e)
                 
     
     def save(self):

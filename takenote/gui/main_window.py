@@ -270,35 +270,38 @@ class TakeNoteWindow (gtk.Window):
         if self._treeview_sel_nodes == nodes:
             return
 
+        # remember which nodes are selected in the treeview
         self._treeview_sel_nodes = nodes
+
+        # view the children of these nodes in the listview
         self.listview.view_nodes(nodes)
 
+        # if nodes are queued for selection in listview (via goto parent)
+        # then select them here
         if len(self._queue_list_select) > 0:
             self.listview.select_nodes(self._queue_list_select)
             self._queue_list_select = []
-                
-        # view pages
+
+        # If selected node in tree is a page, then select it in listview and
+        # so that it shows up in editor
         pages = [node for node in nodes 
                  if node.is_page()]
-        
-        if len(pages) > 0:
-            self.listview.select_nodes(pages)
-        else:
-            self.listview.select_nodes([])
+        self.listview.select_nodes(pages)
 
     
     def on_list_select(self, listview, pages):
         """Callback for listview selection change"""
 
         # TODO: will need to generalize to multiple pages
+
+        # remember the selected node
+        if len(pages) > 0:
+            self._current_page = pages[0]
+        else:
+            self._current_page = None
         
         try:
-            if len(pages) > 0:
-                self._current_page = pages[0]
-            else:
-                self._current_page = None
             self.editor.view_pages(pages)
-            
         except RichTextError, e:
             self.error("Could not load page '%s'" % pages[0].get_title(),
                        e, sys.exc_info()[2])
@@ -402,18 +405,17 @@ class TakeNoteWindow (gtk.Window):
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "New", gtk.RESPONSE_OK))
         dialog.set_current_folder(self.app.pref.new_notebook_path)
-        
         response = dialog.run()
-
-        self.app.pref.new_notebook_path = dialog.get_current_folder()
-        filename = dialog.get_filename()
-        dialog.destroy()
         
-        if response == gtk.RESPONSE_OK:            
-            self.new_notebook(filename)
-            
-        elif response == gtk.RESPONSE_CANCEL:
-            pass
+        
+        if response == gtk.RESPONSE_OK:
+            # remember new notebook directory
+            self.app.pref.new_notebook_path = dialog.get_current_folder()
+
+            # create new notebook
+            self.new_notebook(dialog.get_filename())
+
+        dialog.destroy()
     
     
     def on_open_notebook(self):
@@ -438,15 +440,12 @@ class TakeNoteWindow (gtk.Window):
         
         response = dialog.run()
 
-        self.app.pref.new_notebook_path = os.path.dirname(dialog.get_current_folder())
-        filename = dialog.get_filename()
-        dialog.destroy()
 
         if response == gtk.RESPONSE_OK:
-            self.open_notebook(filename)
-            
-        elif response == gtk.RESPONSE_CANCEL:
-            pass
+            self.app.pref.new_notebook_path = os.path.dirname(dialog.get_current_folder())
+            self.open_notebook(dialog.get_filename())
+
+        dialog.destroy()
 
     
     def on_quit(self):

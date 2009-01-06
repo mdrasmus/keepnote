@@ -932,7 +932,7 @@ class NoteBookDir (NoteBookNode):
     
     def __init__(self, path, title="", parent=None, notebook=None):
         NoteBookNode.__init__(self, path, title, parent, notebook,
-                              content_type=CONTENT_TYPE_PAGE)
+                              content_type=CONTENT_TYPE_DIR)
 
 
 
