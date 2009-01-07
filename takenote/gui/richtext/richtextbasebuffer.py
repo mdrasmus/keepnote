@@ -9,7 +9,7 @@ from gtk import gdk
 from takenote.undo import UndoStack
 
 # import textbuffer tools
-from takenote.gui.textbuffer_tools import \
+from takenote.gui.richtext.textbuffer_tools import \
      iter_buffer_contents, \
      buffer_contents_iter_to_offset, \
      normalize_tags, \
@@ -17,7 +17,7 @@ from takenote.gui.textbuffer_tools import \
      buffer_contents_apply_tags
 
 # import tags
-from takenote.gui.richtext_tags import \
+from takenote.gui.richtext.richtext_tags import \
      RichTextTagTable, \
      RichTextTag, \
      RichTextModTag, \

@@ -9,7 +9,7 @@ from HTMLParser import HTMLParser
 from xml.sax.saxutils import escape
 
 # takenote imports
-from takenote.gui.textbuffer_tools import \
+from takenote.gui.richtext.textbuffer_tools import \
      iter_buffer_contents, \
      buffer_contents_iter_to_offset, \
      normalize_tags, \
@@ -22,7 +22,7 @@ from takenote.gui.textbuffer_tools import \
      TagNameDom
 
 
-from takenote.gui.richtextbuffer import \
+from takenote.gui.richtext.richtextbuffer import \
      IGNORE_TAGS, \
      add_child_to_buffer, \
      RichTextBuffer, \

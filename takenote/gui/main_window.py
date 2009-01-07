@@ -40,7 +40,7 @@ from takenote import notebook as notebooklib
 import takenote.search
 from takenote.gui import richtext
 from takenote.gui.richtext import RichTextView, RichTextImage, RichTextError
-from takenote.gui.richtext_tags import color_tuple_to_string
+from takenote.gui.richtext.richtext_tags import color_tuple_to_string
 from takenote.gui.treeview import TakeNoteTreeView
 from takenote.gui.listview import TakeNoteListView
 from takenote.gui import \
@@ -404,7 +404,8 @@ class TakeNoteWindow (gtk.Window):
             action=gtk.FILE_CHOOSER_ACTION_SAVE, #CREATE_FOLDER,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "New", gtk.RESPONSE_OK))
-        dialog.set_current_folder(self.app.pref.new_notebook_path)
+        if os.path.exists(self.app.pref.new_notebook_path):
+            dialog.set_current_folder(self.app.pref.new_notebook_path)
         response = dialog.run()
         
         
@@ -425,7 +426,9 @@ class TakeNoteWindow (gtk.Window):
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "Open", gtk.RESPONSE_OK))
-        dialog.set_current_folder(self.app.pref.new_notebook_path)        
+
+        if os.path.exists(self.app.pref.new_notebook_path):
+            dialog.set_current_folder(self.app.pref.new_notebook_path)
 
         
         file_filter = gtk.FileFilter()

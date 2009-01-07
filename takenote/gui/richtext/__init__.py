@@ -25,11 +25,11 @@ except ImportError:
 
 
 # textbuffer_tools imports
-from takenote.gui.textbuffer_tools import \
+from takenote.gui.richtext.textbuffer_tools import \
      iter_buffer_contents
 
 # richtextbuffer imports
-from takenote.gui.richtextbuffer import \
+from takenote.gui.richtext.richtextbuffer import \
      IGNORE_TAGS, \
      add_child_to_buffer, \
      RichTextBuffer, \
@@ -38,7 +38,7 @@ from takenote.gui.richtextbuffer import \
      RichTextIndentTag
 
 # tag imports
-from takenote.gui.richtext_tags import \
+from takenote.gui.richtext.richtext_tags import \
      RichTextModTag, \
      RichTextJustifyTag, \
      RichTextFamilyTag, \
@@ -49,7 +49,7 @@ from takenote.gui.richtext_tags import \
      RichTextBulletTag
 
 # richtext io
-from takenote.gui.richtext_html import HtmlBuffer, HtmlError
+from takenote.gui.richtext.richtext_html import HtmlBuffer, HtmlError
 
 from takenote import safefile
 
@@ -639,8 +639,6 @@ class RichTextView (gtk.TextView):
             return
         
         self.copy_clipboard(clipboard)
-
-        # TODO: core dumps have occurred here...
         self._textbuffer.delete_selection(True, default_editable)
 
     
@@ -895,6 +893,7 @@ class RichTextView (gtk.TextView):
             # image menu
             self._image_menu.popup(None, None, None, button, activate_time)
             self._image_menu.show()
+
             
     def get_image_menu(self):
         """Returns the image popup menu"""
@@ -965,7 +964,7 @@ class RichTextView (gtk.TextView):
         # scan contents
         for kind, pos, param in contents:
             
-            # download and images included in html
+            # download images included in html
             if kind == "anchor" and isinstance(param[0], RichTextImage):
                 img = param[0]
                 if img.get_filename().startswith("http:") or \
@@ -1119,6 +1118,11 @@ class RichTextView (gtk.TextView):
     #===========================================================
     # font manipulation
 
+    def _apply_tag(self, tag_name):
+        if self._textbuffer:
+            self._textbuffer.apply_tag_selected(
+                self._textbuffer.tag_table.lookup(tag_name))
+
     def toggle_font_mod(self, mod):
         """Toggle a font modification"""
         if self._textbuffer:
@@ -1127,9 +1131,8 @@ class RichTextView (gtk.TextView):
 
     def set_font_mod(self, mod):
         """Sets a font modification"""
-        if self._textbuffer:
-            self._textbuffer.apply_tag_selected(
-                self._textbuffer.tag_table.lookup(RichTextModTag.tag_name(mod)))
+        self._apply_tag(RichTextModTag.tag_name(mod))
+        
 
     def set_font(self, font_name):
         """Font change from choose font widget"""
@@ -1139,7 +1142,7 @@ class RichTextView (gtk.TextView):
         
         family, mods, size = parse_font(font_name)
 
-        tag_table = self._textbuffer.tag_table
+        self._textbuffer.begin_user_action()
         
         # apply family and size tags
         self.set_font_family(family)
@@ -1151,38 +1154,28 @@ class RichTextView (gtk.TextView):
 
         # disable modifications not given
         mod_class = self._textbuffer.tag_table.get_tag_class("mod")
-        for tag in mod_class:
+        for tag in mod_class.tags:
             if tag.get_property("name") not in mods:
                 self._textbuffer.remove_tag_selected(tag)
+
+        self._textbuffer.end_user_action()
                     
     
     def set_font_family(self, family):
         """Sets the family font of the selection"""
-        if self._textbuffer:
-            self._textbuffer.apply_tag_selected(
-                self._textbuffer.tag_table.lookup(
-                    RichTextFamilyTag.tag_name(family)))
+        self._apply_tag(RichTextFamilyTag.tag_name(family))
     
     def toggle_font_family(self, family):
         """Toggles the family font of the selection"""
-        if self._textbuffer:
-            self._textbuffer.toggle_tag_selected(
-                self._textbuffer.tag_table.lookup(
-                   RichTextFamilyTag.tag_name(family)))
+        self._apply_tag(RichTextFamilyTag.tag_name(family))
     
     def set_font_size(self, size):
         """Sets the font size of the selection"""
-        if self._textbuffer:
-            self._textbuffer.apply_tag_selected(
-                self._textbuffer.tag_table.lookup(
-                    RichTextSizeTag.tag_name(size)))
+        self._apply_tag(RichTextSizeTag.tag_name(size))
     
     def set_justify(self, justify):
         """Sets the text justification"""
-        if self._textbuffer:
-            self._textbuffer.apply_tag_selected(
-                self._textbuffer.tag_table.lookup(
-                    RichTextJustifyTag.tag_name(justify)))
+        self._apply_tag(RichTextJustifyTag.tag_name(justify))
 
     def set_font_fg_color(self, color):
         """Sets the text foreground color"""
