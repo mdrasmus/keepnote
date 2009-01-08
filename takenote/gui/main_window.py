@@ -68,6 +68,391 @@ class FontUI (object):
 
 
 
+class EditorMenus (object):
+
+    def __init__(self, editor):
+        self._editor = editor
+        self._font_ui_signals = []     # list of font ui widgets
+
+
+    #=============================================================
+    # Update UI (menubar) from font under cursor
+    
+    def on_font_change(self, editor, font):
+        """Update the toolbar reflect the font under the cursor"""
+        
+        # block toolbar handlers
+        for ui in self._font_ui_signals:
+            ui.widget.handler_block(ui.signal)
+
+        # update font mods
+        self.bold.widget.set_active(font.mods["bold"])
+        self.italic.widget.set_active(font.mods["italic"])
+        self.underline.widget.set_active(font.mods["underline"])
+        self.fixed_width.widget.set_active(font.mods["tt"])
+        self.no_wrap.widget.set_active(font.mods["nowrap"])
+        
+        # update text justification
+        self.left_align.widget.set_active(font.justify == "left")
+        self.center_align.widget.set_active(font.justify == "center")
+        self.right_align.widget.set_active(font.justify == "right")
+        self.fill_align.widget.set_active(font.justify == "fill")
+
+        # update bullet list
+        self.bullet.widget.set_active(font.par_type == "bullet")
+        
+        # update family/size buttons        
+        self.font_family_combo.set_family(font.family)
+        self.font_size_button.set_value(font.size)
+        
+        # unblock toolbar handlers
+        for ui in self._font_ui_signals:
+            ui.widget.handler_unblock(ui.signal)
+
+
+    #==================================================
+    # changing font handlers
+
+    def on_mod(self, mod):
+        """Toggle a font modification"""
+        self._editor.get_textview().toggle_font_mod(mod)
+
+        #font = self._editor.get_textview().get_font()        
+        #mod_button.handler_block(mod_id)
+        #mod_button.set_active(font.mods[mod])
+        #mod_button.handler_unblock(mod_id)
+
+    def on_justify(self, justify):
+        """Set font justification"""
+        self._editor.get_textview().set_justify(justify)
+        font = self._editor.get_textview().get_font()
+        self.on_font_change(self._editor, font)
+        
+    def on_bullet_list(self):
+        """Toggle bullet list"""
+        self._editor.get_textview().toggle_bullet()
+        font = self._editor.get_textview().get_font()
+        self.on_font_change(self._editor, font)
+        
+    def on_indent(self):
+        """Indent current paragraph"""
+        self._editor.get_textview().indent()
+
+    def on_unindent(self):
+        """Unindent current paragraph"""
+        self._editor.get_textview().unindent()
+
+
+    
+    def on_family_set(self):
+        """Set the font family"""
+        self._editor.get_textview().set_font_family(
+            self.font_family_combo.get_family())
+        self._editor.get_textview().grab_focus()
+        
+
+    def on_font_size_change(self, size):
+        """Set the font size"""
+        self._editor.get_textview().set_font_size(size)
+        self._editor.get_textview().grab_focus()
+    
+    def on_font_size_inc(self):
+        """Increase font size"""
+        font = self._editor.get_textview().get_font()
+        font.size += 2        
+        self._editor.get_textview().set_font_size(font.size)
+        self.on_font_change(self._editor, font)
+    
+    
+    def on_font_size_dec(self):
+        """Decrease font size"""
+        font = self._editor.get_textview().get_font()
+        if font.size > 4:
+            font.size -= 2
+        self._editor.get_textview().set_font_size(font.size)
+        self.on_font_change(self._editor, font)
+
+
+    def on_color_set(self, kind, color=0):
+        """Set text/background color"""
+        
+        if color == 0:
+            if kind == "fg":
+                color = self.fg_color_button.color
+            elif kind == "bg":
+                color = self.bg_color_button.color
+            else:
+                color = None
+
+        if color is not None:
+            colorstr = color_tuple_to_string(color)
+        else:
+            colorstr = None
+
+        if kind == "fg":
+            self._editor.get_textview().set_font_fg_color(colorstr)
+        elif kind == "bg":
+            self._editor.get_textview().set_font_bg_color(colorstr)
+        else:
+            raise Exception("unknown color type '%s'" % str(kind))
+        
+
+    def on_choose_font(self):
+        """Callback for opening Choose Font Dialog"""
+        
+        font = self._editor.get_textview().get_font()
+
+        dialog = gtk.FontSelectionDialog("Choose Font")
+        dialog.set_font_name("%s %d" % (font.family, font.size))
+        response = dialog.run()
+
+        if response == gtk.RESPONSE_OK:
+            self._editor.get_textview().set_font(dialog.get_font_name())
+            self._editor.get_textview().grab_focus()
+
+        dialog.destroy()
+
+
+    def _make_toggle_button(self, toolbar, tips, tip_text, icon, 
+                            stock_id=None, 
+                            func=lambda: None,
+                            use_stock_icons=False):
+
+        button = gtk.ToggleToolButton()
+        if use_stock_icons and stock_id:
+            button.set_stock_id(stock_id)
+        else:
+            button.set_icon_widget(get_resource_image(icon))
+        signal = button.connect("toggled", lambda w: func())
+        font_ui = FontUI(button, signal)
+        self._font_ui_signals.append(font_ui)
+        
+        toolbar.insert(button, -1)
+        tips.set_tip(button, tip_text)
+
+        return font_ui
+
+
+    def make_toolbar(self, toolbar, tips, use_stock_icons):
+        
+        # bold tool
+        self.bold = self._make_toggle_button(
+            toolbar, tips,
+            "Bold", "bold.png", gtk.STOCK_BOLD,
+            lambda: self._editor.get_textview().toggle_font_mod("bold"),
+            use_stock_icons)
+        
+        # italic tool
+        self.italic = self._make_toggle_button(
+            toolbar, tips,
+            "Italic", "italic.png", gtk.STOCK_ITALIC,
+            lambda: self._editor.get_textview().toggle_font_mod("italic"),
+            use_stock_icons)
+
+        # underline tool
+        self.underline = self._make_toggle_button(
+            toolbar, tips,
+            "Underline", "underline.png", gtk.STOCK_UNDERLINE,
+            lambda: self._editor.get_textview().toggle_font_mod("underline"),
+            use_stock_icons)
+        
+        # fixed-width tool
+        self.fixed_width = self._make_toggle_button(
+            toolbar, tips,
+            "Monospace", "fixed-width.png", gtk.STOCK_UNDERLINE,
+            lambda: self._editor.get_textview().toggle_font_mod("tt"),
+            use_stock_icons)
+
+        # no wrap tool
+        self.no_wrap = self._make_toggle_button(
+            toolbar, tips,
+            "No Wrapping", "no-wrap.png", gtk.STOCK_UNDERLINE,
+            lambda: self._editor.get_textview().toggle_font_mod("nowrap"),
+            use_stock_icons)
+
+
+        # family combo
+        self.font_family_combo = FontSelector()
+        self.font_family_combo.set_size_request(150, 25)
+        item = gtk.ToolItem()
+        item.add(self.font_family_combo)
+        tips.set_tip(item, "Font Family")
+        toolbar.insert(item, -1)
+        self.font_family_id = self.font_family_combo.connect("changed",
+            lambda w: self.on_family_set())
+        self._font_ui_signals.append(FontUI(self.font_family_combo,
+                                           self.font_family_id))
+                
+        # font size
+        DEFAULT_FONT_SIZE = 10
+        self.font_size_button = gtk.SpinButton(
+          gtk.Adjustment(value=DEFAULT_FONT_SIZE, lower=2, upper=500, 
+                         step_incr=1))
+        self.font_size_button.set_size_request(-1, 25)
+        #self.font_size_button.set_range(2, 100)
+        self.font_size_button.set_value(DEFAULT_FONT_SIZE)
+        self.font_size_button.set_editable(False)
+        item = gtk.ToolItem()
+        item.add(self.font_size_button)
+        tips.set_tip(item, "Font Size")
+        toolbar.insert(item, -1)
+        self.font_size_id = self.font_size_button.connect("value-changed",
+            lambda w: 
+            self.on_font_size_change(self.font_size_button.get_value()))
+        self._font_ui_signals.append(FontUI(self.font_size_button,
+                                           self.font_size_id))
+
+
+        # font fg color
+        # TODO: code in proper default color
+        self.fg_color_button = FgColorTool(14, 15, (0, 0, 0))
+        self.fg_color_button.connect("set-color",
+                                     lambda w, color: self.on_color_set("fg",
+                                                                     color))
+        tips.set_tip(self.fg_color_button, "Set Text Color")
+        toolbar.insert(self.fg_color_button, -1)
+        
+
+        # font bg color
+        self.bg_color_button = BgColorTool(14, 15, (65535, 65535, 65535))
+        self.bg_color_button.connect("set-color",
+                                     lambda w, color: self.on_color_set("bg",
+                                                                     color))
+        tips.set_tip(self.bg_color_button, "Set Background Color")
+        toolbar.insert(self.bg_color_button, -1)
+
+                
+        
+        # separator
+        toolbar.insert(gtk.SeparatorToolItem(), -1)
+        
+                
+        # left tool
+        self.left_align = self._make_toggle_button(
+            toolbar, tips,
+            "Left Align", "alignleft.png", gtk.STOCK_JUSTIFY_LEFT,
+            lambda: self.on_justify("left"),
+            use_stock_icons)
+
+        # center tool
+        self.center_align = self._make_toggle_button(
+            toolbar, tips,
+            "Center Align", "aligncenter.png", gtk.STOCK_JUSTIFY_CENTER,
+            lambda: self.on_justify("center"),
+            use_stock_icons)
+
+        # right tool
+        self.right_align = self._make_toggle_button(
+            toolbar, tips,
+            "Right Align", "alignright.png", gtk.STOCK_JUSTIFY_RIGHT,
+            lambda: self.on_justify("right"),
+            use_stock_icons)
+
+        # justify tool
+        self.fill_align = self._make_toggle_button(
+            toolbar, tips,
+            "Justify Align", "alignjustify.png", gtk.STOCK_JUSTIFY_FILL,
+            lambda: self.on_justify("fill"),
+            use_stock_icons)
+        
+        
+        # bullet list tool
+        self.bullet = self._make_toggle_button(
+            toolbar, tips,
+            "Bullet List", "bullet.png", None,
+            lambda: self.on_bullet_list(),
+            use_stock_icons)
+        
+        
+    def get_format_menu(self):
+
+        return [
+            ("/Fo_rmat", 
+             None, None, 0, "<Branch>"),
+
+            ("/Format/_Bold", 
+             "<control>B", lambda w,e: self.on_mod("bold"), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("bold.png")),
+            ("/Format/_Italic", 
+             "<control>I", lambda w,e: self.on_mod("italic"), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("italic.png")),
+            ("/Format/_Underline", 
+             "<control>U", lambda w,e: self.on_mod("underline"), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("underline.png")),
+            ("/Format/_Monospace",
+             "<control>M", lambda w,e: self.on_mod("tt"), 0,
+             "<ImageItem>",
+             get_resource_pixbuf("fixed-width.png")),
+            ("/Format/No _Wrapping",
+             None, lambda w, e: self.on_mod("nowrap"), 0,
+             "<ImageItem>",
+             get_resource_pixbuf("no-wrap.png")),
+            
+            ("/Format/sep1",
+             None, None, 0, "<Separator>" ),            
+            
+            ("/Format/_Left Align", 
+             "<control>L", lambda w,e: self.on_justify("left"), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("alignleft.png")),
+            ("/Format/C_enter Align", 
+             "<control>E", lambda w,e: self.on_justify("center"), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("aligncenter.png")),
+            ("/Format/_Right Align", 
+             "<control>R", lambda w,e: self.on_justify("right"), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("alignright.png")),
+            ("/Format/_Justify Align", 
+             "<control>J", lambda w,e: self.on_justify("fill"), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("alignjustify.png")),
+            ("/Format/sep2",
+             None, None, 0, "<Separator>" ),
+
+            ("/Format/_Bullet List", 
+             "<control>asterisk", lambda w,e: self.on_bullet_list(), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("bullet.png")),
+            ("/Format/Indent M_ore", 
+             "<control>parenright", lambda w,e: self.on_indent(), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("indent-more.png")),     
+            ("/Format/Indent Le_ss", 
+             "<control>parenleft", lambda w,e: self.on_unindent(), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("indent-less.png")),
+            
+            ("/Format/sep4", 
+                None, None, 0, "<Separator>" ),
+            ("/Format/Increase Font _Size", 
+                "<control>equal", lambda w, e: self.on_font_size_inc(), 0, 
+                "<ImageItem>", 
+                get_resource_pixbuf("font-inc.png")),
+            ("/Format/_Decrease Font Size", 
+                "<control>minus", lambda w, e: self.on_font_size_dec(), 0, 
+                "<ImageItem>", 
+                get_resource_pixbuf("font-dec.png")),
+
+            ("/Format/sep5", 
+                None, None, 0, "<Separator>" ),
+            ("/Format/_Apply Text Color", 
+                "", lambda w, e: self.on_color_set("fg"), 0),
+            ("/Format/A_pply Background Color", 
+                "", lambda w, e: self.on_color_set("bg"), 0),
+            
+            
+            ("/Format/sep6", 
+                None, None, 0, "<Separator>" ),
+            ("/Format/Choose _Font", 
+                "<control><shift>F", lambda w, e: self.on_choose_font(), 0, 
+                "<ImageItem>", 
+                get_resource_pixbuf("font.png"))
+        ]
+
 
 
 class TakeNoteWindow (gtk.Window):
@@ -90,10 +475,8 @@ class TakeNoteWindow (gtk.Window):
         
         self._queue_list_select = []   # nodes to select in listview after treeview change
         self._ignore_view_mode = False # prevent recursive view mode changes
-        self._font_ui_signals = []     # list of font ui widgets
-                
         
-
+        
         self.init_layout()
 
         
@@ -130,11 +513,13 @@ class TakeNoteWindow (gtk.Window):
         
         # editor
         self.editor = TakeNoteEditor()
-        self.editor.connect("font-change", self.on_font_change)
+        self._editor_menus = EditorMenus(self.editor)        
+        self.editor.connect("font-change", self._editor_menus.on_font_change)
         self.editor.connect("modified", self.on_page_editor_modified)
         self.editor.connect("error", lambda w,t,e: self.error(t, e))
         self.editor.connect("child-activated", self.on_child_activated)
         self.editor.view_pages([])
+
 
 
         
@@ -853,162 +1238,6 @@ class TakeNoteWindow (gtk.Window):
         
         self._ignore_view_mode = False
     
-    #=============================================================
-    # Update UI (menubar) from font under cursor
-    
-    def on_font_change(self, editor, font):
-        """Update the toolbar reflect the font under the cursor"""
-        
-        # block toolbar handlers
-        for ui in self._font_ui_signals:
-            ui.widget.handler_block(ui.signal)
-
-        # update font mods
-        self.bold_button.set_active(font.mods["bold"])
-        self.italic_button.set_active(font.mods["italic"])
-        self.underline_button.set_active(font.mods["underline"])
-        self.fixed_width_button.set_active(font.mods["tt"])
-        self.no_wrap_button.set_active(font.mods["nowrap"])
-        
-        # update text justification
-        self.left_button.set_active(font.justify == "left")
-        self.center_button.set_active(font.justify == "center")
-        self.right_button.set_active(font.justify == "right")
-        self.fill_button.set_active(font.justify == "fill")
-
-        # update bullet list
-        self.bullet_button.set_active(font.par_type == "bullet")
-        
-        # update family/size buttons        
-        self.font_family_combo.set_family(font.family)
-        self.font_size_button.set_value(font.size)
-        
-        # unblock toolbar handlers
-        for ui in self._font_ui_signals:
-            ui.widget.handler_unblock(ui.signal)
-
-
-    #==================================================
-    # changing font handlers
-
-    def on_mod(self, mod, mod_button, mod_id):
-        """Toggle a font modification"""
-        self.editor.get_textview().toggle_font_mod(mod)
-        font = self.editor.get_textview().get_font()
-        
-        mod_button.handler_block(mod_id)
-        mod_button.set_active(font.mods[mod])
-        mod_button.handler_unblock(mod_id)
-
-    def on_bold(self):
-        """Toggle bold font"""
-        self.on_mod("bold", self.bold_button, self.bold_id)
-    
-    def on_italic(self):
-        """Toggle italic font"""
-        self.on_mod("italic", self.italic_button, self.italic_id)
-    
-    def on_underline(self):
-        """Toggle underline font"""
-        self.on_mod("underline", self.underline_button, self.underline_id)
-    
-    def on_fixed_width(self, toolbar):
-        """Toggle fixed width font"""
-        self.on_mod("tt", self.fixed_width_button, self.fixed_width_id)
-
-    def on_no_wrap(self):
-        """Toggle line wrapping"""
-        self.on_mod("nowrap", self.no_wrap_button, self.no_wrap_id)        
-
-    def on_justify(self, justify):
-        """Set font justification"""
-        self.editor.get_textview().set_justify(justify)
-        font = self.editor.get_textview().get_font()
-        self.on_font_change(self.editor, font)
-        
-    def on_bullet_list(self):
-        """Toggle bullet list"""
-        self.editor.get_textview().toggle_bullet()
-        font = self.editor.get_textview().get_font()
-        self.on_font_change(self.editor, font)
-        
-    def on_indent(self):
-        """Indent current paragraph"""
-        self.editor.get_textview().indent()
-
-    def on_unindent(self):
-        """Unindent current paragraph"""
-        self.editor.get_textview().unindent()
-
-
-    
-    def on_family_set(self):
-        """Set the font family"""
-        self.editor.get_textview().set_font_family(
-            self.font_family_combo.get_family())
-        self.editor.get_textview().grab_focus()
-        
-
-    def on_font_size_change(self, size):
-        """Set the font size"""
-        self.editor.get_textview().set_font_size(size)
-        self.editor.get_textview().grab_focus()
-    
-    def on_font_size_inc(self):
-        """Increase font size"""
-        font = self.editor.get_textview().get_font()
-        font.size += 2        
-        self.editor.get_textview().set_font_size(font.size)
-        self.on_font_change(self.editor, font)
-    
-    
-    def on_font_size_dec(self):
-        """Decrease font size"""
-        font = self.editor.get_textview().get_font()
-        if font.size > 4:
-            font.size -= 2
-        self.editor.get_textview().set_font_size(font.size)
-        self.on_font_change(self.editor, font)
-
-
-    def on_color_set(self, kind, color=0):
-        """Set text/background color"""
-        
-        if color == 0:
-            if kind == "fg":
-                color = self.fg_color_button.color
-            elif kind == "bg":
-                color = self.bg_color_button.color
-            else:
-                color = None
-
-        if color is not None:
-            colorstr = color_tuple_to_string(color)
-        else:
-            colorstr = None
-
-        if kind == "fg":
-            self.editor.get_textview().set_font_fg_color(colorstr)
-        elif kind == "bg":
-            self.editor.get_textview().set_font_bg_color(colorstr)
-        else:
-            raise Exception("unknown color type '%s'" % str(kind))
-        
-
-    def on_choose_font(self):
-        """Callback for opening Choose Font Dialog"""
-        
-        font = self.editor.get_textview().get_font()
-
-        dialog = gtk.FontSelectionDialog("Choose Font")
-        dialog.set_font_name("%s %d" % (font.family, font.size))
-        response = dialog.run()
-
-        if response == gtk.RESPONSE_OK:
-            self.editor.get_textview().set_font(dialog.get_font_name())
-            self.editor.get_textview().grab_focus()
-
-        dialog.destroy()
                 
 
     #=================================================
@@ -1484,7 +1713,7 @@ class TakeNoteWindow (gtk.Window):
     def make_menubar(self):
         """Initialize the menu bar"""
         
-        self.menu_items = (
+        self.menu_items = [
             ("/_File",               
                 None, None, 0, "<Branch>"),
             ("/File/_New Notebook",
@@ -1600,95 +1829,10 @@ class TakeNoteWindow (gtk.Window):
                 "<StockItem>", gtk.STOCK_FIND),                 
             ("/Search/_Replace In Page",     
                 "<control><shift>R", lambda w,e: self.find_dialog.on_find(True), 0, 
-                "<StockItem>", gtk.STOCK_FIND), 
-                
-            
-            ("/Fo_rmat", 
-             None, None, 0, "<Branch>"),
-
-            ("/Format/_Bold", 
-             "<control>B", lambda w,e: self.on_bold(), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("bold.png")),
-            ("/Format/_Italic", 
-             "<control>I", lambda w,e: self.on_italic(), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("italic.png")),
-            ("/Format/_Underline", 
-             "<control>U", lambda w,e: self.on_underline(), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("underline.png")),
-            ("/Format/_Monospace",
-             "<control>M", lambda w,e: self.on_fixed_width(False), 0,
-             "<ImageItem>",
-             get_resource_pixbuf("fixed-width.png")),
-            ("/Format/No _Wrapping",
-             None, lambda w, e: self.on_no_wrap(), 0,
-             "<ImageItem>",
-             get_resource_pixbuf("no-wrap.png")),
-            
-            ("/Format/sep1",
-             None, None, 0, "<Separator>" ),            
-            
-            ("/Format/_Left Align", 
-             "<control>L", lambda w,e: self.on_justify("left"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("alignleft.png")),
-            ("/Format/C_enter Align", 
-             "<control>E", lambda w,e: self.on_justify("center"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("aligncenter.png")),
-            ("/Format/_Right Align", 
-             "<control>R", lambda w,e: self.on_justify("right"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("alignright.png")),
-            ("/Format/_Justify Align", 
-             "<control>J", lambda w,e: self.on_justify("fill"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("alignjustify.png")),
-            ("/Format/sep2",
-             None, None, 0, "<Separator>" ),
-
-            ("/Format/_Bullet List", 
-             "<control>asterisk", lambda w,e: self.on_bullet_list(), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("bullet.png")),
-            ("/Format/Indent M_ore", 
-             "<control>parenright", lambda w,e: self.on_indent(), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("indent-more.png")),     
-            ("/Format/Indent Le_ss", 
-             "<control>parenleft", lambda w,e: self.on_unindent(), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("indent-less.png")),
-            
-            ("/Format/sep4", 
-                None, None, 0, "<Separator>" ),
-            ("/Format/Increase Font _Size", 
-                "<control>equal", lambda w, e: self.on_font_size_inc(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("font-inc.png")),
-            ("/Format/_Decrease Font Size", 
-                "<control>minus", lambda w, e: self.on_font_size_dec(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("font-dec.png")),
-
-            ("/Format/sep5", 
-                None, None, 0, "<Separator>" ),
-            ("/Format/_Apply Text Color", 
-                "", lambda w, e: self.on_color_set("fg"), 0),
-            ("/Format/A_pply Background Color", 
-                "", lambda w, e: self.on_color_set("bg"), 0),
-            
-            
-            ("/Format/sep6", 
-                None, None, 0, "<Separator>" ),
-            ("/Format/Choose _Font", 
-                "<control><shift>F", lambda w, e: self.on_choose_font(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("font.png")),
-
-            
+                "<StockItem>", gtk.STOCK_FIND)
+            ] + \
+            self._editor_menus.get_format_menu() + \
+            [
             ("/_View", None, None, 0, "<Branch>"),
             ("/View/View Note in File Explorer",
              None, lambda w,e:
@@ -1755,7 +1899,7 @@ class TakeNoteWindow (gtk.Window):
              0, None),
             ("/Help/sep1", None, None, 0, "<Separator>"),
             ("/Help/About", None, lambda w,e: self.on_about(), 0, None ),
-            )    
+            ]
     
         accel_group = gtk.AccelGroup()
         accel_file = get_accel_file()
@@ -1873,190 +2017,8 @@ class TakeNoteWindow (gtk.Window):
         # separator
         toolbar.insert(gtk.SeparatorToolItem(), -1)        
 
-        
-        # bold tool
-        self.bold_button = gtk.ToggleToolButton()
-        if self.app.pref.use_stock_icons:
-            self.bold_button.set_stock_id(gtk.STOCK_BOLD)
-        else:
-            self.bold_button.set_icon_widget(get_resource_image("bold.png"))
-        tips.set_tip(self.bold_button, "Bold")
-        self.bold_id = self.bold_button.connect("toggled",
-            lambda w: self.editor.get_textview().toggle_font_mod("bold"))
-        toolbar.insert(self.bold_button, -1)
-        self._font_ui_signals.append(FontUI(self.bold_button, self.bold_id))
-
-
-        # italic tool
-        self.italic_button = gtk.ToggleToolButton()
-        if self.app.pref.use_stock_icons:
-            self.italic_button.set_stock_id(gtk.STOCK_ITALIC)
-        else:
-            self.italic_button.set_icon_widget(get_resource_image("italic.png"))
-        tips.set_tip(self.italic_button, "Italic")
-        self.italic_id = self.italic_button.connect("toggled",
-            lambda w: self.editor.get_textview().toggle_font_mod("italic"))
-        toolbar.insert(self.italic_button, -1)
-        self._font_ui_signals.append(FontUI(self.italic_button, self.italic_id))
-
-        # underline tool
-        self.underline_button = gtk.ToggleToolButton()
-        if self.app.pref.use_stock_icons:
-            self.underline_button.set_stock_id(gtk.STOCK_UNDERLINE)
-        else:
-            self.underline_button.set_icon_widget(
-                get_resource_image("underline.png"))
-        tips.set_tip(self.underline_button, "Underline")            
-        self.underline_id = self.underline_button.connect("toggled",
-            lambda w: self.editor.get_textview().toggle_font_mod("underline"))
-        toolbar.insert(self.underline_button, -1)
-        self._font_ui_signals.append(FontUI(self.underline_button,
-                                           self.underline_id))
-        
-        # fixed-width tool
-        self.fixed_width_button = gtk.ToggleToolButton()
-        self.fixed_width_button.set_icon_widget(
-            get_resource_image("fixed-width.png"))
-        tips.set_tip(self.fixed_width_button, "Monospace")
-        self.fixed_width_id = self.fixed_width_button.connect("toggled",
-            lambda w: self.on_fixed_width(True))
-        toolbar.insert(self.fixed_width_button, -1)
-        self._font_ui_signals.append(FontUI(self.fixed_width_button,
-                                           self.fixed_width_id))
-
-        # no wrap tool
-        self.no_wrap_button = gtk.ToggleToolButton()
-        self.no_wrap_button.set_icon_widget(get_resource_image("no-wrap.png"))
-        tips.set_tip(self.no_wrap_button, "No Wrapping")
-        self.no_wrap_id = self.no_wrap_button.connect("toggled",
-            lambda w: self.editor.get_textview().toggle_font_mod("nowrap"))
-        toolbar.insert(self.no_wrap_button, -1)
-        self._font_ui_signals.append(FontUI(self.no_wrap_button,
-                                           self.no_wrap_id))
-
-        # family combo
-        self.font_family_combo = FontSelector()
-        self.font_family_combo.set_size_request(150, 25)
-        item = gtk.ToolItem()
-        item.add(self.font_family_combo)
-        tips.set_tip(item, "Font Family")
-        toolbar.insert(item, -1)
-        self.font_family_id = self.font_family_combo.connect("changed",
-            lambda w: self.on_family_set())
-        self._font_ui_signals.append(FontUI(self.font_family_combo,
-                                           self.font_family_id))
-                
-        # font size
-        DEFAULT_FONT_SIZE = 10
-        self.font_size_button = gtk.SpinButton(
-          gtk.Adjustment(value=DEFAULT_FONT_SIZE, lower=2, upper=500, 
-                         step_incr=1))
-        self.font_size_button.set_size_request(-1, 25)
-        #self.font_size_button.set_range(2, 100)
-        self.font_size_button.set_value(DEFAULT_FONT_SIZE)
-        self.font_size_button.set_editable(False)
-        item = gtk.ToolItem()
-        item.add(self.font_size_button)
-        tips.set_tip(item, "Font Size")
-        toolbar.insert(item, -1)
-        self.font_size_id = self.font_size_button.connect("value-changed",
-            lambda w: 
-            self.on_font_size_change(self.font_size_button.get_value()))
-        self._font_ui_signals.append(FontUI(self.font_size_button,
-                                           self.font_size_id))
-
-
-        # font fg color
-        # TODO: code in proper default color
-        self.fg_color_button = FgColorTool(14, 15, (0, 0, 0))
-        self.fg_color_button.connect("set-color",
-                                     lambda w, color: self.on_color_set("fg",
-                                                                     color))
-        tips.set_tip(self.fg_color_button, "Set Text Color")
-        toolbar.insert(self.fg_color_button, -1)
-        
-
-        # font bg color
-        self.bg_color_button = BgColorTool(14, 15, (65535, 65535, 65535))
-        self.bg_color_button.connect("set-color",
-                                     lambda w, color: self.on_color_set("bg",
-                                                                     color))
-        tips.set_tip(self.bg_color_button, "Set Background Color")
-        toolbar.insert(self.bg_color_button, -1)
-
-                
-        
-        # separator
-        toolbar.insert(gtk.SeparatorToolItem(), -1)
-        
-                
-        # left tool
-        self.left_button = gtk.ToggleToolButton()
-        if self.app.pref.use_stock_icons:
-            self.left_button.set_stock_id(gtk.STOCK_JUSTIFY_LEFT)
-        else:
-            self.left_button.set_icon_widget(
-                get_resource_image("alignleft.png"))
-        tips.set_tip(self.left_button, "Left Align")
-        self.left_id = self.left_button.connect("toggled",
-                                            lambda w: self.on_justify("left"))
-        toolbar.insert(self.left_button, -1)
-        self._font_ui_signals.append(FontUI(self.left_button,
-                                           self.left_id))
-        
-        # center tool
-        self.center_button = gtk.ToggleToolButton()
-        if self.app.pref.use_stock_icons:
-            self.center_button.set_stock_id(gtk.STOCK_JUSTIFY_CENTER)
-        else:
-            self.center_button.set_icon_widget(
-                get_resource_image("aligncenter.png"))
-        tips.set_tip(self.center_button, "Center Align")
-        self.center_id = self.center_button.connect("toggled",
-                                          lambda w: self.on_justify("center"))
-        toolbar.insert(self.center_button, -1)
-        self._font_ui_signals.append(FontUI(self.center_button,
-                                           self.center_id))
-        
-        # right tool
-        self.right_button = gtk.ToggleToolButton()
-        if self.app.pref.use_stock_icons:
-            self.right_button.set_stock_id(gtk.STOCK_JUSTIFY_RIGHT)
-        else:
-            self.right_button.set_icon_widget(
-                get_resource_image("alignright.png"))
-        tips.set_tip(self.right_button, "Right Align")
-        self.right_id = self.right_button.connect("toggled",
-                                           lambda w: self.on_justify("right"))
-        toolbar.insert(self.right_button, -1)
-        self._font_ui_signals.append(FontUI(self.right_button,
-                                           self.right_id))
-        
-        # justify tool
-        self.fill_button = gtk.ToggleToolButton()
-        if self.app.pref.use_stock_icons:
-            self.fill_button.set_stock_id(gtk.STOCK_JUSTIFY_FILL)
-        else:
-            self.fill_button.set_icon_widget(
-                get_resource_image("alignjustify.png"))
-        tips.set_tip(self.fill_button, "Justify Align")
-        self.fill_id = self.fill_button.connect("toggled",
-                                             lambda w: self.on_justify("fill"))
-        toolbar.insert(self.fill_button, -1)
-        self._font_ui_signals.append(FontUI(self.fill_button,
-                                           self.fill_id))
-
-
-        # bullet list tool
-        self.bullet_button = gtk.ToggleToolButton()
-        self.bullet_button.set_icon_widget(get_resource_image("bullet.png"))
-        tips.set_tip(self.bullet_button, "Bullet List")
-        self.bullet_id = self.bullet_button.connect("toggled",
-                                            lambda w: self.on_bullet_list())
-        toolbar.insert(self.bullet_button, -1)
-        self._font_ui_signals.append(FontUI(self.bullet_button,
-                                    self.bullet_id))
-
+        self._editor_menus.make_toolbar(toolbar, tips,
+                                        self.app.pref.use_stock_icons)
 
         # separator
         spacer = gtk.SeparatorToolItem()

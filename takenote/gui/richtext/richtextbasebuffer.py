@@ -601,7 +601,8 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         action = TagAction(self, tag, start.get_offset(), 
                            end.get_offset(), False)
         self.undo_stack.do(action.do, action.undo, False)
-        self.set_modified(True)        
+        self.set_modified(True)
+
     
     
     def _on_changed(self, textbuffer):
@@ -662,6 +663,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         self.end_user_action()
 
 
+
     #==============================================================
     # Tag manipulation    
 
@@ -672,7 +674,8 @@ class RichTextBaseBuffer (gtk.TextBuffer):
 
     def set_current_tags(self, tags):
         """Sets the currently active tags"""
-        self._current_tags = list(tags)            
+        self._current_tags = list(tags)
+        self.emit("font-change", self.get_font())
     
 
     def can_be_current_tag(self, tag):
@@ -695,7 +698,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
                 self.clear_current_tag_class(tag)
                 self._current_tags.append(tag)
             else:
-                self._current_tags.remove(tag)
+                self._current_tags.remove(tag)            
 
         # update region
         if len(it) == 2:
@@ -706,6 +709,8 @@ class RichTextBaseBuffer (gtk.TextBuffer):
                 self.remove_tag(tag, it[0], it[1])
         
         self.end_user_action()
+
+        self.emit("font-change", self.get_font())
 
 
     def apply_tag_selected(self, tag, start=None, end=None):
@@ -722,13 +727,15 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         if self.can_be_current_tag(tag):
             if tag not in self._current_tags:
                 self.clear_current_tag_class(tag)
-                self._current_tags.append(tag)
+                self._current_tags.append(tag)        
 
         # update region
         if len(it) == 2:
             self.clear_tag_class(tag, it[0], it[1])
             self.apply_tag(tag, it[0], it[1])
         self.end_user_action()
+
+        self.emit("font-change", self.get_font())
 
 
     def remove_tag_selected(self, tag, start=None, end=None):
@@ -750,6 +757,8 @@ class RichTextBaseBuffer (gtk.TextBuffer):
             self.remove_tag(tag, it[0], it[1])
         self.end_user_action()
 
+        self.emit("font-change", self.get_font())
+
 
     def remove_tag_class_selected(self, tag, start=None, end=None):
         """Remove all tags of a class from selection or current tags"""
@@ -762,12 +771,14 @@ class RichTextBaseBuffer (gtk.TextBuffer):
             it = [start, end]
         
         # no selection, remove tag from current tags
-        self.clear_current_tag_class(tag)
+        self.clear_current_tag_class(tag)        
 
         # update region
         if len(it) == 2:
             self.clear_tag_class(tag, it[0], it[1])
         self.end_user_action()
+
+        self.emit("font-change", self.get_font())
 
     
     def clear_tag_class(self, tag, start, end):
@@ -781,6 +792,8 @@ class RichTextBaseBuffer (gtk.TextBuffer):
             for tag2 in cls.tags:
                 self.remove_tag(tag2, start, end)
 
+        self.emit("font-change", self.get_font())
+
 
 
     def clear_current_tag_class(self, tag):
@@ -790,6 +803,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         if cls is not None and cls.exclusive:
             self._current_tags = [x for x in self._current_tags
                                   if x not in cls.tags]
+            
 
     
     #===========================================================
