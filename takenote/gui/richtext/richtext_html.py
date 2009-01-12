@@ -64,6 +64,19 @@ HTML_FOOTER = "</body></html>"
 
 BULLET_STR = u"\u2022 "
 
+JUSTIFY_VALUES = set([
+    "left",
+    "center",
+    "right",
+    "fill",
+    "justify"])
+
+
+def tagcolor_to_html(c):
+    assert len(c) == 13
+    return c[0] + c[1] + c[2] + c[5] + c[6] + c[9] + c[10]
+    
+
 
 def nest_indent_tags(contents, tag_table):
     """Convert indent tags so that they nest like HTML tags"""
@@ -274,6 +287,59 @@ def find_paragraphs(contents):
         yield item
 
 
+def parse_css_style(stylestr):
+
+    # TODO: this parsing may be too simplistic
+    for statement in stylestr.split(";"):
+        statement = statement.strip()            
+
+        if statement.startswith("font-size"):
+            # font size
+            size = int("".join(filter(lambda x: x.isdigit(),
+                               statement.split(":")[1])))
+            yield "size " + str(size)
+
+        elif statement.startswith("font-family"):
+            # font family
+            yield "family " + statement.split(":")[1].strip()
+
+        elif statement.startswith("text-align"):
+            # text justification
+            align = statement.split(":")[1].strip()
+
+            if align not in JUSTIFY_VALUES:
+                raise HtmlError("unknown justification '%s'" % align)
+
+            if align == "justify":
+                yield "fill"
+            else:
+                yield align
+
+        elif statement.startswith("color"):
+            # foreground color
+            fg_color = statement.split(":")[1].strip()
+
+            if fg_color.startswith("#"):
+                if len(fg_color) == 4:
+                    x, a, b, c = fg_color
+                    fg_color = x + a + a + b + b+ c + c
+
+                if len(fg_color) == 7:
+                    yield "fg_color " + fg_color
+
+
+        elif statement.startswith("background-color"):
+            # background color
+            bg_color = statement.split(":")[1].strip()
+
+            if bg_color.startswith("#"):
+                if len(bg_color) == 4:
+                    x, a, b, c = bg_color
+                    bg_color = x + a + a + b + b+ c + c
+
+                if len(bg_color) == 7:
+                        yield "bg_color " + bg_color
+
         
 
 class HtmlTagDom (TagDom):
@@ -285,7 +351,11 @@ class RichTextParTag (RichTextTag):
         RichTextTag.__init__(self, "p")
         self.kind = kind
 
-LI_TAG = RichTextTag("li ")
+class RichTextLiTag (RichTextTag):
+    def __init__(self):
+        RichTextTag.__init__(self, "li ")
+
+LI_TAG = RichTextLiTag()
 P_TAG = RichTextParTag("none")
 P_BULLET_TAG = RichTextParTag("bullet")
 
@@ -298,20 +368,41 @@ class HtmlError (StandardError):
     """Error for HTML parsing"""
     pass
 
+#=============================================================================
+# tag input/output
 
-class HtmlTagIO (object):
+class HtmlTagReader (object):
 
-    def __init__(self, io, htmltag, tagclass):
+    def __init__(self, io, htmltag):
         self._io = io
         self.htmltag = htmltag
-        self.tagclass = tagclass
 
 
     def parse_starttag(self, htmltag, attrs):
         pass
 
+    def parse_endtag(self, htmltag):
+        pass
 
-class HtmlTagModIO (HtmlTagIO):
+
+class HtmlTagWriter (object):
+
+    def __init__(self, io, tagclass):
+        self._io = io
+        self.tagclass = tagclass
+
+    def write_tag_begin(self, out, dom, xhtml):
+        pass
+
+    def write_tag_end(self, out, dom, xhtml):
+        pass
+
+    def write(self, out, dom, xhtml):
+        pass
+
+
+
+class HtmlTagModReader (HtmlTagReader):
     """simple font modifications (b/i/u)"""
 
     html2buffer_tag = {
@@ -320,6 +411,15 @@ class HtmlTagModIO (HtmlTagIO):
         "u": "underline",
         "tt": "tt",
         "nobr": "nowrap"}
+    
+
+    def parse_starttag(self, htmltag, attrs):
+        tagstr = self.html2buffer_tag[htmltag]
+        self._io.append_child(TagNameDom(tagstr), True)
+
+
+class HtmlTagModWriter (HtmlTagWriter):
+
     buffer_tag2html = {
         "bold": "b",
         "italic": "i",
@@ -328,11 +428,323 @@ class HtmlTagModIO (HtmlTagIO):
         "nowrap": "nobr"
         }
 
+    def __init__(self, io):
+        HtmlTagWriter.__init__(self, io, RichTextModTag)
+
+    def write_tag_begin(self, out, dom, xhtml):        
+        out.write("<%s>" % self.buffer_tag2html[dom.tag.get_property("name")])
+
+    def write_tag_end(self, out, dom, xhtml):
+        out.write("</%s>" % self.buffer_tag2html[dom.tag.get_property("name")])
+
+
+
+class HtmlTagLinkReader (HtmlTagReader):
+
+    def __init__(self, io):
+        HtmlTagReader.__init__(self, io, "a")
+
     def parse_starttag(self, htmltag, attrs):
-        tagstr = self.html2buffer_tag[htmltag]
-        self._io.append_child(TagNameDom(tagstr), True)
-    
+        for key, value in attrs:
+            if key == "href":
+                tag = TagNameDom("link " + value)
+                self._io.append_child(tag, True)
+                break
+
+
+class HtmlTagLinkWriter (HtmlTagWriter):
+
+    def __init__(self, io):
+        HtmlTagWriter.__init__(self, io, RichTextLinkTag)
+
+    def write_tag_begin(self, out, dom, xhtml):
+        tag = dom.tag
+        out.write('<a href="%s">' % escape(tag.get_href()))
+
+    def write_tag_end(self, out, dom, xhtml):
+        out.write("</a>")
+            
+
+class HtmlTagSpanReader (HtmlTagReader):
+    """<span> tags"""
+
+    def __init__(self, io):
+        HtmlTagReader.__init__(self, io, "span")
+
+
+    def parse_starttag(self, htmltag, attrs):
+        for key, value in attrs:
+            if key == "style":
+                for tagstr in parse_css_style(value):
+                    self._io.append_child(TagNameDom(tagstr), True)
+
+
+class HtmlTagDivReader (HtmlTagReader):
+
+    def __init__(self, io):
+        HtmlTagReader.__init__(self, io, "div")
+
+    def parse_starttag(self, htmltag, attrs):
+        for key, value in attrs:
+            if key == "style":
+                for tagstr in parse_css_style(value):
+                    self._io.append_child(TagNameDom(tagstr), True)
+
+
+class HtmlTagSizeWriter (HtmlTagWriter):
+
+    def __init__(self, io):
+        HtmlTagWriter.__init__(self, io, RichTextSizeTag)
+
+    def write_tag_begin(self, out, dom, xhtml):
+        tag = dom.tag
+        out.write('<span style="font-size: %dpt">' % tag.get_size())
+
+    def write_tag_end(self, out, dom, xhtml):
+        out.write("</span>")
+
+
+class HtmlTagFamilyWriter (HtmlTagWriter):
+
+    def __init__(self, io):
+        HtmlTagWriter.__init__(self, io, RichTextFamilyTag)
+
+    def write_tag_begin(self, out, dom, xhtml):
+        tag = dom.tag
+        out.write('<span style="font-family: %s">' % tag.get_family())
+
+    def write_tag_end(self, out, dom, xhtml):
+        out.write("</span>")
+
+
+class HtmlTagFGColorWriter (HtmlTagWriter):
+
+    def __init__(self, io):
+        HtmlTagWriter.__init__(self, io, RichTextFGColorTag)
+
+    def write_tag_begin(self, out, dom, xhtml):
+        tag = dom.tag
+        out.write('<span style="color: %s">' %
+                  tagcolor_to_html(tag.get_color()))
+
+    def write_tag_end(self, out, dom, xhtml):
+        out.write("</span>")
+
+
+class HtmlTagBGColorWriter (HtmlTagWriter):
+
+    def __init__(self, io):
+        HtmlTagWriter.__init__(self, io, RichTextBGColorTag)
+
+    def write_tag_begin(self, out, dom, xhtml):
+        tag = dom.tag
+        out.write('<span style="background-color: %s">' % 
+                  tagcolor_to_html(tag.get_color()))
+
+    def write_tag_end(self, out, dom, xhtml):
+        out.write("</span>")
+
+
+class HtmlTagAlignWriter (HtmlTagWriter):
+
+    def __init__(self, io):
+        HtmlTagWriter.__init__(self, io, RichTextJustifyTag)
         
+    def write_tag_begin(self, out, dom, xhtml):
+        tagname = dom.tag.get_property("name")
+        if tagname == "fill":
+            text = "justify"
+        else:
+            text = tagname
+        out.write('<div style="text-align: %s">' % text)
+
+    def write_tag_end(self, out, dom, xhtml):
+        out.write("</div>")
+       
+
+class HtmlTagParReader (HtmlTagReader):
+    # paragraph
+    # NOTE: this tag is currently not used by TakeNote, but if pasting
+    # text from another HTML source, TakeNote will interpret it as
+    # a newline char
+
+    def __init__(self, io):
+        HtmlTagReader.__init__(self, io, "p")
+
+    def parse_starttag(self, htmltag, attrs):
+        self._io.append_text("\n")
+
+    def parse_endtag(self, htmltag):
+        self._io.append_text("\n")
+
+
+class HtmlTagListItemReader (HtmlTagReader):
+
+    def __init__(self, io):
+        HtmlTagReader.__init__(self, io, "li")
+
+    def parse_starttag(self, htmltag, attrs):
+        par_type = "bullet"
+
+        for key, value in attrs:
+            if key == "style":
+                for statement in value.split(";"):
+                    key2, value2 = statement.split(":")
+                    value2 = value2.strip()
+
+                    if key2.strip() == "list-style-type":
+                        if value2 == "disc":
+                            par_type = "bullet"
+                        elif value2 == "none":
+                            par_type = "none"
+
+        tag = TagNameDom("li %s" % par_type)
+        self._io.append_child(tag, True)
+
+
+class HtmlTagListItemWriter (HtmlTagWriter):
+
+    def __init__(self, io):
+        HtmlTagWriter.__init__(self, io, RichTextLiTag)
+
+    def write_tag_begin(self, out, dom, xhtml):
+        if dom.kind == "bullet":
+            #self._out.write('<li style="list-style-type: disc">')
+            out.write('<li>')
+        else:
+            out.write('<li style="list-style-type: none">')
+
+    def write_tag_end(self, out, dom, xhtml):
+        out.write("</li>\n")
+
+
+class HtmlTagUnorderedListReader (HtmlTagReader):
+
+    def __init__(self, io):
+        HtmlTagReader.__init__(self, io, "ul")
+
+    def parse_starttag(self, htmltag, attrs):
+        self._io.append_child(TagNameDom("ol"), True)
+
+class HtmlTagOrderedListReader (HtmlTagReader):
+
+    def __init__(self, io):
+        HtmlTagReader.__init__(self, io, "ol")
+
+    def parse_starttag(self, htmltag, attrs):
+        self._io.append_child(TagNameDom("ol"), True)
+
+
+class HtmlTagUnorderedListWriter (HtmlTagWriter):
+
+    def __init__(self, io):
+        HtmlTagWriter.__init__(self, io, RichTextIndentTag)
+        
+    def write_tag_begin(self, out, dom, xhtml):
+        out.write("<ul>")
+        #out.write("<ol>")
+
+    def write_tag_end(self, out, dom, xhtml):
+        out.write("</ul>\n")
+        #out.write("</ol>\n")
+
+class HtmlTagBulletWriter (HtmlTagWriter):
+    
+    def __init__(self, io):
+        HtmlTagWriter.__init__(self, io, RichTextBulletTag)
+
+
+
+
+class HtmlTagHrReader (HtmlTagReader):
+
+    def __init__(self, io):
+        HtmlTagReader.__init__(self, io, "hr")
+
+    def parse_starttag(self, htmltag, attrs):
+        # horizontal break
+        hr = RichTextHorizontalRule()
+        self._io.append_text("\n")
+        self._io.append_child(AnchorDom(hr), False)
+        self._io.append_text("\n")
+
+
+class HtmlTagHrWriter (HtmlTagWriter):
+
+    def __init__(self, io):
+        HtmlTagWriter.__init__(self, io, RichTextHorizontalRule)
+
+    def write(self, out, dom, xhtml):
+        if xhtml:
+            out.write("<hr/>")
+        else:
+            out.write("<hr>")
+
+
+class HtmlTagImgReader (HtmlTagReader):
+
+    def __init__(self, io):
+        HtmlTagReader.__init__(self, io, "img")
+
+    def parse_starttag(self, htmltag, attrs):
+        """Parse image tag"""
+        
+        img = RichTextImage()
+        width, height = None, None
+        
+        for key, value in attrs:
+            if key == "src":
+                img.set_filename(value)
+                    
+            elif key == "width":
+                try:
+                    width = int(value)
+                except ValueError, e:
+                    # ignore width if we cannot parse it
+                    pass
+                
+            elif key == "height":
+                try:
+                    height = int(value)
+                except ValueError, e:
+                    # ignore height if we cannot parse it
+                    pass
+                
+            else:
+                # ignore other attributes
+                pass            
+
+        img.scale(width, height)
+        self._io.append_child(AnchorDom(img), False)
+        
+
+
+class HtmlTagImgWriter (HtmlTagWriter):
+
+    def __init__(self, io):
+        HtmlTagWriter.__init__(self, io, RichTextImage)
+
+
+    def write(self, out, dom, xhtml):
+        # write image
+        size_str = ""
+        anchor = dom.anchor
+        size = anchor.get_size()
+
+        if size[0] is not None:
+            size_str += " width=\"%d\"" % size[0]
+        if size[1] is not None:
+            size_str += " height=\"%d\"" % size[1]
+
+        if xhtml:
+            out.write("<img src=\"%s\"%s />" % 
+                      (anchor.get_filename(), size_str))
+        else:
+            out.write("<img src=\"%s\"%s >" % 
+                      (anchor.get_filename(), size_str))
+
+
+#=============================================================================
 
 # TODO: may need to include support for ignoring information between
 # <scirpt> and <style> tags
@@ -344,26 +756,7 @@ class HtmlBuffer (HTMLParser):
         HTMLParser.__init__(self)
     
         self._out = out
-        self._mod_tags = "biu"
-        self._html2buffer_tag = {
-            "b": "bold",
-            "i": "italic",
-            "u": "underline",
-            "tt": "tt",
-            "nobr": "nowrap"}
-        self._buffer_tag2html = {
-            "bold": "b",
-            "italic": "i",
-            "underline": "u",
-            "tt": "tt",
-            "nowrap": "nobr"
-            }
-        self._justify = set([
-            "left",
-            "center",
-            "right",
-            "fill",
-            "justify"])
+        self._mod_tags = "biu"        
         self._newline = False
 
         self._tag_stack = []
@@ -383,17 +776,53 @@ class HtmlBuffer (HTMLParser):
         
         self._charref2char = {"09": "\t"}
 
-        self._tag_io_lookup = {}
+        self._tag_readers = {}
+        self._tag_writers = []
 
-        self.add_tag_io(HtmlTagModIO(self, "b", RichTextModTag))
-        self.add_tag_io(HtmlTagModIO(self, "i", RichTextModTag))
-        self.add_tag_io(HtmlTagModIO(self, "u", RichTextModTag))
-        self.add_tag_io(HtmlTagModIO(self, "tt", RichTextModTag))
-        self.add_tag_io(HtmlTagModIO(self, "nobr", RichTextModTag))
+        # misc tags
+        self.add_tag_reader(HtmlTagParReader(self))
+        self.add_tag_reader(HtmlTagHrReader(self))
+        self.add_tag_writer(HtmlTagHrWriter(self))
+        self.add_tag_reader(HtmlTagImgReader(self))
+        self.add_tag_writer(HtmlTagImgWriter(self))
+        self.add_tag_reader(HtmlTagLinkReader(self))
+        self.add_tag_writer(HtmlTagLinkWriter(self))
+
+
+        # mod tags
+        self.add_tag_reader(HtmlTagModReader(self, "b"))
+        self.add_tag_reader(HtmlTagModReader(self, "i"))
+        self.add_tag_reader(HtmlTagModReader(self, "u"))
+        self.add_tag_reader(HtmlTagModReader(self, "tt"))
+        self.add_tag_reader(HtmlTagModReader(self, "nobr"))
+        self.add_tag_writer(HtmlTagModWriter(self))
+
+        # span/div readers
+        self.add_tag_reader(HtmlTagSpanReader(self))
+        self.add_tag_reader(HtmlTagDivReader(self))
+
+        # span/div writers
+        self.add_tag_writer(HtmlTagAlignWriter(self))
+        self.add_tag_writer(HtmlTagSizeWriter(self))
+        self.add_tag_writer(HtmlTagFamilyWriter(self))
+        self.add_tag_writer(HtmlTagFGColorWriter(self))
+        self.add_tag_writer(HtmlTagBGColorWriter(self))
+
+        # lists
+        self.add_tag_reader(HtmlTagListItemReader(self))
+        self.add_tag_writer(HtmlTagListItemWriter(self))
+        self.add_tag_reader(HtmlTagUnorderedListReader(self))
+        self.add_tag_reader(HtmlTagOrderedListReader(self))
+        self.add_tag_writer(HtmlTagUnorderedListWriter(self))
+        self.add_tag_writer(HtmlTagBulletWriter(self))
+    
         
 
-    def add_tag_io(self, tag_io):
-        self._tag_io_lookup[tag_io.htmltag] = tag_io
+    def add_tag_reader(self, tag_reader):
+        self._tag_readers[tag_reader.htmltag] = tag_reader
+
+    def add_tag_writer(self, tag_writer):
+        self._tag_writers.append(tag_writer)
         
     
     def set_output(self, out):
@@ -481,96 +910,15 @@ class HtmlBuffer (HTMLParser):
             # note that we are within the body tag
             self._within_body = True
 
-        elif htmltag in self._tag_io_lookup:
-            self._tag_io_lookup[htmltag].parse_starttag(htmltag, attrs)
-
-        
-        elif htmltag in self._html2buffer_tag:
-            # simple font modifications (b/i/u)
-            
-            tagstr = self._html2buffer_tag[htmltag]
-            tag = TagNameDom(tagstr)
-            self._dom_ptr.append_child(tag)
-            self._dom_ptr = tag
-
-        elif htmltag == "span":
-            # apply style
-            
-            for key, value in attrs:
-                if key == "style":
-                    self.parse_style(value)
-                else:
-                    # ignore other attributes
-                    pass
-        
-        elif htmltag == "div":
-            # text justification
-            
-            for key, value in attrs:
-                if key == "style":
-                    self.parse_style(value)
-                else:
-                    # ignore other attributes
-                    pass
-
-        elif htmltag == "p":
-            # paragraph
-            # NOTE: this tag is currently not used by TakeNote, but if pasting
-            # text from another HTML source, TakeNote will interpret it as
-            # a newline char
-            self.append_text("\n")
-            
         elif htmltag == "br":
             # insert newline
             self.append_text("\n")
             self._newline = True
+        
+        elif htmltag in self._tag_readers:
+            # use tag parser
+            self._tag_readers[htmltag].parse_starttag(htmltag, attrs)
             
-        elif htmltag == "hr":
-            # horizontal break
-            hr = RichTextHorizontalRule()
-            self.append_text("\n")
-            self._dom_ptr.append_child(AnchorDom(hr))
-            self.append_text("\n")
-    
-        elif htmltag == "img":
-            # insert image
-            img = self.parse_image(attrs)
-            self._dom_ptr.append_child(AnchorDom(img))
-
-        elif htmltag == "ul" or htmltag == "ol":
-            # indent
-            tag = TagNameDom("ol")
-            self._dom_ptr.append_child(tag)
-            self._dom_ptr = tag
-            
-        elif htmltag == "li":            
-            par_type = "bullet"
-
-            for key, value in attrs:
-                if key == "style":
-                    for statement in value.split(";"):
-                        key2, value2 = statement.split(":")
-                        value2 = value2.strip()
-                        
-                        if key2.strip() == "list-style-type":
-                            if value2 == "disc":
-                                par_type = "bullet"
-                            elif value2 == "none":
-                                par_type = "none"
-
-            tag = TagNameDom("li %s" % par_type)
-            self._dom_ptr.append_child(tag)
-            self._dom_ptr = tag
-
-        elif htmltag == "a":
-            
-            for key, value in attrs:
-                if key == "href":
-                    tag = TagNameDom("link " + value)
-                    self._dom_ptr.append_child(tag)
-                    self._dom_ptr = tag
-                    break
-
         else:
             # ingore other html tags
             pass
@@ -591,10 +939,10 @@ class HtmlBuffer (HTMLParser):
         
         if htmltag == "ul" or htmltag == "ol" or htmltag == "li":
             self._newline = True
-        
-        elif htmltag == "p":
-            # paragraph tag
-            self.append_text("\n")
+
+        elif htmltag in self._tag_readers:
+            # use tag parser
+            self._tag_readers[htmltag].parse_endtag(htmltag)
 
 
         # pop dom stack
@@ -639,107 +987,6 @@ class HtmlBuffer (HTMLParser):
 
 
 
-    def parse_style(self, stylestr):
-        """Parse a style attribute"""
-
-        # TODO: this parsing may be too simplistic
-        for statement in stylestr.split(";"):
-            statement = statement.strip()
-            
-            tagstr = None
-        
-            if statement.startswith("font-size"):
-                # font size
-                size = int("".join(filter(lambda x: x.isdigit(),
-                                   statement.split(":")[1])))
-                tagstr = "size " + str(size)
-                        
-            elif statement.startswith("font-family"):
-                # font family
-                tagstr = "family " + statement.split(":")[1].strip()
-
-                
-            elif statement.startswith("text-align"):
-                # text justification
-                align = statement.split(":")[1].strip()
-                
-                if align not in self._justify:
-                    raise HtmlError("unknown justification '%s'" % align)
-
-                if align == "justify":
-                    tagstr = "fill"
-                else:
-                    tagstr = align
-
-            elif statement.startswith("color"):
-                # foreground color
-                fg_color = statement.split(":")[1].strip()
-                
-                if fg_color.startswith("#"):
-                    if len(fg_color) == 4:
-                        x, a, b, c = fg_color
-                        fg_color = x + a + a + b + b+ c + c
-                        
-                    if len(fg_color) == 7:
-                        tagstr = "fg_color " + fg_color
-
-            elif statement.startswith("background-color"):
-                # background color
-                bg_color = statement.split(":")[1].strip()
-                
-                if bg_color.startswith("#"):
-                    if len(bg_color) == 4:
-                        x, a, b, c = bg_color
-                        bg_color = x + a + a + b + b+ c + c
-                        
-                    if len(bg_color) == 7:
-                        tagstr = "bg_color " + bg_color
-
-            else:
-                # ignore other styles
-                pass
-
-        
-            if tagstr is not None:
-                tag = TagNameDom(tagstr)
-                self._dom_ptr.append_child(tag)
-                self._dom_ptr = tag
-
-
-    def parse_image(self, attrs):
-        """Parse image tag and return image child anchor"""
-        
-        img = RichTextImage()
-        width, height = None, None
-            
-        for key, value in attrs:
-            if key == "src":
-                img.set_filename(value)
-                    
-            elif key == "width":
-                try:
-                    width = int(value)
-                except ValueError, e:
-                    # ignore width if we cannot parse it
-                    pass
-                
-            elif key == "height":
-                try:
-                    height = int(value)
-                except ValueError, e:
-                    # ignore height if we cannot parse it
-                    pass
-                
-            else:
-                # ignore other attributes
-                pass
-            
-
-        img.scale(width, height)
-        return img
-
-
-
     #================================================
     # Writing HTML
 
@@ -778,6 +1025,80 @@ class HtmlBuffer (HTMLParser):
             self._out.write(XHTML_FOOTER)
         else:
             self._out.write(HTML_FOOTER)
+
+
+    def write_dom(self, dom, xhtml=True):
+        """Write DOM"""
+        for child in dom:
+            if isinstance(child, TextDom):
+                self.write_text(child.text, xhtml=xhtml)
+
+            elif isinstance(child, TagDom):                
+                self.write_tag_begin(child, xhtml=xhtml)
+                self.write_dom(child, xhtml=xhtml)
+                self.write_tag_end(child, xhtml=xhtml)
+            
+            elif isinstance(child, AnchorDom):
+                self.write_anchor(child, child.anchor, xhtml=xhtml)
+
+            else:
+                raise Exception("unknown dom '%s'" % str(dom))
+
+
+    def write_text(self, text, xhtml=True):
+        """Write text"""
+
+        # TODO: could use escape()
+        # TODO: could try to speed this up
+        text = text.replace("&", "&amp;")
+        text = text.replace(">", "&gt;")
+        text = text.replace("<", "&lt;")
+        text = text.replace("\t", "&#09;")
+        text = text.replace("  ", " &nbsp;")
+        if xhtml:
+            text = text.replace("\n", "<br/>\n")
+        else:
+            text = text.replace("\n", "<br>\n")
+        self._out.write(text)
+
+
+    def write_anchor(self, dom, anchor, xhtml=True):
+        """Write an anchor object"""
+        
+        for tag_writer in self._tag_writers:
+            if isinstance(anchor, tag_writer.tagclass):
+                tag_writer.write(self._out, dom, xhtml)
+                return
+        
+        # warning
+        #TODO:
+        print "unknown anchor element", anchor
+
+    
+    def write_tag_begin(self, dom, xhtml=True):
+        """Write opening tag of DOM"""
+        
+        tag = dom.tag
+
+        for tag_writer in self._tag_writers:
+            if isinstance(tag, tag_writer.tagclass):
+                tag_writer.write_tag_begin(self._out, dom, xhtml)
+                return
+
+        if tag.get_property("name") in IGNORE_TAGS:
+            pass        
+        else:
+            raise HtmlError("unknown tag '%s' " % tag.get_property("name"))
+                
+        
+    def write_tag_end(self, dom, xhtml=True):
+        """Write closing tag of DOM"""
+        
+        tag = dom.tag
+        for tag_writer in self._tag_writers:
+            if isinstance(tag, tag_writer.tagclass):
+                tag_writer.write_tag_end(self._out, dom, xhtml)
+                return
 
 
     def prepare_dom_write(self, dom):
@@ -909,166 +1230,3 @@ class HtmlBuffer (HTMLParser):
         walk(dom)
 
                     
-
-    def write_dom(self, dom, xhtml=True):
-        """Write DOM"""
-        for child in dom:
-            if isinstance(child, TextDom):
-                self.write_text(child.text, xhtml=xhtml)
-
-            elif isinstance(child, TagDom):                
-                self.write_tag_begin(child, xhtml=xhtml)
-                self.write_dom(child, xhtml=xhtml)
-                self.write_tag_end(child, xhtml=xhtml)
-            
-            elif isinstance(child, AnchorDom):
-                self.write_anchor(child.anchor, xhtml=xhtml)
-
-            else:
-                raise Exception("unknown dom '%s'" % str(dom))
-
-
-    def write_text(self, text, xhtml=True):
-        """Write text"""
-
-        # TODO: could use escape()
-        # TODO: could try to speed this up
-        text = text.replace("&", "&amp;")
-        text = text.replace(">", "&gt;")
-        text = text.replace("<", "&lt;")
-        text = text.replace("\t", "&#09;")
-        text = text.replace("  ", " &nbsp;")
-        if xhtml:
-            text = text.replace("\n", "<br/>\n")
-        else:
-            text = text.replace("\n", "<br>\n")
-        self._out.write(text)
-
-
-    def write_anchor(self, anchor, xhtml=True):
-        """Write an anchor object"""
-        
-        if isinstance(anchor, RichTextImage):
-            # write image
-            size_str = ""
-            size = anchor.get_size()
-                        
-            if size[0] is not None:
-                size_str += " width=\"%d\"" % size[0]
-            if size[1] is not None:
-                size_str += " height=\"%d\"" % size[1]
-
-            if xhtml:
-                self._out.write("<img src=\"%s\"%s />" % 
-                                (anchor.get_filename(), size_str))
-            else:
-                self._out.write("<img src=\"%s\"%s >" % 
-                                (anchor.get_filename(), size_str))
-
-        elif isinstance(anchor, RichTextHorizontalRule):
-            # write horizontal rule
-            if xhtml:
-                self._out.write("<hr/>")
-            else:
-                self._out.write("<hr>")
-                    
-        else:
-            # warning
-            #TODO:
-            print "unknown anchor element", anchor
-
-    
-    def write_tag_begin(self, dom, xhtml=True):
-        """Write opening tag of DOM"""
-        
-        tag = dom.tag
-        tagname = tag.get_property("name")
-
-        
-        if tagname in IGNORE_TAGS:
-            pass
-
-        elif tagname in self._buffer_tag2html:
-            self._out.write("<%s>" % self._buffer_tag2html[tagname])
-                    
-        elif isinstance(tag, RichTextSizeTag):
-            self._out.write('<span style="font-size: %dpt">' % 
-                            tag.get_size())
-
-        elif isinstance(tag, RichTextJustifyTag):
-            if tagname == "fill":
-                text = "justify"
-            else:
-                text = tagname
-            self._out.write('<div style="text-align: %s">' % text)
-                
-        elif isinstance(tag, RichTextFamilyTag):
-            self._out.write('<span style="font-family: %s">' % 
-                            tag.get_family())
-
-        elif isinstance(tag, RichTextFGColorTag):
-            self._out.write('<span style="color: %s">' % 
-                            tagcolor_to_html(
-                                tag.get_color()))
-
-        elif isinstance(tag, RichTextBGColorTag):
-            self._out.write('<span style="background-color: %s">' % 
-                            tagcolor_to_html(
-                                tag.get_color()))
-
-        elif isinstance(tag, RichTextIndentTag):
-            self._out.write("<ul>")
-            #self._out.write("<ol>")
-
-        elif isinstance(tag, RichTextBulletTag):
-            pass
-
-        elif isinstance(dom, LiHtmlTagDom):
-            if dom.kind == "bullet":
-                #self._out.write('<li style="list-style-type: disc">')
-                self._out.write('<li>')
-            else:
-                self._out.write('<li style="list-style-type: none">')
-
-        elif isinstance(tag, RichTextLinkTag):
-            self._out.write('<a href="%s">' % escape(tag.get_href()))
-
-        else:
-            raise HtmlError("unknown tag '%s'" % tag.get_property("name"))
-                
-        
-    def write_tag_end(self, dom, xhtml=True):
-        """Write closing tag of DOM"""
-        
-        tag = dom.tag
-        tagname = tag.get_property("name")
-        
-        if tagname in self._buffer_tag2html:
-            self._out.write("</%s>" % self._buffer_tag2html[tagname])
-                            
-        elif tagname in self._justify:
-            self._out.write("</div>")
-
-        elif isinstance(tag, RichTextIndentTag):
-            self._out.write("</ul>\n")
-            #self._out.write("</ol>\n")
-            
-        elif isinstance(dom, LiHtmlTagDom):
-            self._out.write("</li>\n")
-
-        elif isinstance(tag, RichTextBulletTag):
-            pass
-
-        elif isinstance(tag, RichTextLinkTag):
-            self._out.write("</a>")
-        
-        else:
-            self._out.write("</span>")
-
-
-def tagcolor_to_html(c):
-    assert len(c) == 13
-    return c[0] + c[1] + c[2] + c[5] + c[6] + c[9] + c[10]
-    
-
-
