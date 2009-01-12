@@ -40,7 +40,6 @@ from takenote import notebook as notebooklib
 import takenote.search
 from takenote.gui import richtext
 from takenote.gui.richtext import RichTextView, RichTextImage, RichTextError
-from takenote.gui.richtext.richtext_tags import color_tuple_to_string
 from takenote.gui.treeview import TakeNoteTreeView
 from takenote.gui.listview import TakeNoteListView
 from takenote.gui import \

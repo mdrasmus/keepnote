@@ -31,6 +31,8 @@ from takenote.gui import \
      get_resource_pixbuf
 from takenote.gui.font_selector import FontSelector
 from takenote.gui.colortool import FgColorTool, BgColorTool
+from takenote.gui.richtext.richtext_tags import color_tuple_to_string
+
 
 
 # TODO: may need to update fonts on page change
