@@ -28,7 +28,9 @@ from takenote.gui.richtext.richtextbuffer import \
      RichTextBuffer, \
      RichTextImage, \
      RichTextHorizontalRule, \
-     RichTextError, \
+     RichTextError
+
+from takenote.gui.richtext.richtext_tags import \
      RichTextTag, \
      RichTextModTag, \
      RichTextFamilyTag, \
@@ -37,20 +39,27 @@ from takenote.gui.richtext.richtextbuffer import \
      RichTextFGColorTag, \
      RichTextBGColorTag, \
      RichTextIndentTag, \
-     RichTextBulletTag
+     RichTextBulletTag, \
+     RichTextLinkTag
 
 
 
+# NOTE: leave this out in order to make my XHTML compatiable to HTML browsers
+# <?xml version="1.0" encoding="UTF-8"?>
 
 # constants
 XHTML_HEADER = """\
-<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 """
 XHTML_FOOTER = "</body></html>"
 
-HTML_HEADER = "<html>"
+HTML_HEADER = """<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+"""
 HTML_FOOTER = "</body></html>"
 
 BULLET_STR = u"\u2022 "
@@ -143,7 +152,7 @@ def unnest_indent_tags(contents):
                 # increase indent
                 indent += 1
 
-            elif param.startswith("li"):
+            elif param.startswith("li "):
                 # close open indents
                 if len(li_stack) > 0:
                     yield ("endstr", None, li_stack[-1])
@@ -167,7 +176,7 @@ def unnest_indent_tags(contents):
                 # decrease indent
                 indent -= 1
 
-            elif param.startswith("li"):
+            elif param.startswith("li "):
                 # stop indent
                 par_type = param[3:]
                 li_stack.pop()
@@ -276,7 +285,7 @@ class RichTextParTag (RichTextTag):
         RichTextTag.__init__(self, "p")
         self.kind = kind
 
-LI_TAG = RichTextTag("li")
+LI_TAG = RichTextTag("li ")
 P_TAG = RichTextParTag("none")
 P_BULLET_TAG = RichTextParTag("bullet")
 
@@ -289,6 +298,41 @@ class HtmlError (StandardError):
     """Error for HTML parsing"""
     pass
 
+
+class HtmlTagIO (object):
+
+    def __init__(self, io, htmltag, tagclass):
+        self._io = io
+        self.htmltag = htmltag
+        self.tagclass = tagclass
+
+
+    def parse_starttag(self, htmltag, attrs):
+        pass
+
+
+class HtmlTagModIO (HtmlTagIO):
+    """simple font modifications (b/i/u)"""
+
+    html2buffer_tag = {
+        "b": "bold",
+        "i": "italic",
+        "u": "underline",
+        "tt": "tt",
+        "nobr": "nowrap"}
+    buffer_tag2html = {
+        "bold": "b",
+        "italic": "i",
+        "underline": "u",
+        "tt": "tt",
+        "nowrap": "nobr"
+        }
+
+    def parse_starttag(self, htmltag, attrs):
+        tagstr = self.html2buffer_tag[htmltag]
+        self._io.append_child(TagNameDom(tagstr), True)
+    
+        
 
 # TODO: may need to include support for ignoring information between
 # <scirpt> and <style> tags
@@ -338,8 +382,18 @@ class HtmlBuffer (HTMLParser):
             self._entity2char[name] = ch
         
         self._charref2char = {"09": "\t"}
+
+        self._tag_io_lookup = {}
+
+        self.add_tag_io(HtmlTagModIO(self, "b", RichTextModTag))
+        self.add_tag_io(HtmlTagModIO(self, "i", RichTextModTag))
+        self.add_tag_io(HtmlTagModIO(self, "u", RichTextModTag))
+        self.add_tag_io(HtmlTagModIO(self, "tt", RichTextModTag))
+        self.add_tag_io(HtmlTagModIO(self, "nobr", RichTextModTag))
         
-        
+
+    def add_tag_io(self, tag_io):
+        self._tag_io_lookup[tag_io.htmltag] = tag_io
         
     
     def set_output(self, out):
@@ -384,7 +438,7 @@ class HtmlBuffer (HTMLParser):
                 if node.prev_sibling():
                     node.get_parent().insert_before(node, TextDom("\n"))
             
-            if isinstance(node, TagNameDom) and node.tagname.startswith("li"):
+            if isinstance(node, TagNameDom) and node.tagname.startswith("li "):
                 # list items end with an implied newline
 
                 if not (isinstance(node.last_child(), TagNameDom) and \
@@ -403,6 +457,186 @@ class HtmlBuffer (HTMLParser):
                 last_child.text += text
             else:
                 self._dom_ptr.append_child(TextDom(text))
+
+    def append_child(self, child, visit):
+        self._dom_ptr.append_child(child)
+        if visit:
+            self._dom_ptr = child
+        
+    
+    def handle_starttag(self, htmltag, attrs):
+        """Callback for parsing a starting HTML tag"""
+        
+        self._newline = False
+
+        # start a new tag on htmltag stack
+        self._tag_stack.append((htmltag, self._dom_ptr))
+
+
+        if htmltag == "html":
+            # ignore html tag
+            pass
+        
+        elif htmltag == "body":
+            # note that we are within the body tag
+            self._within_body = True
+
+        elif htmltag in self._tag_io_lookup:
+            self._tag_io_lookup[htmltag].parse_starttag(htmltag, attrs)
+
+        
+        elif htmltag in self._html2buffer_tag:
+            # simple font modifications (b/i/u)
+            
+            tagstr = self._html2buffer_tag[htmltag]
+            tag = TagNameDom(tagstr)
+            self._dom_ptr.append_child(tag)
+            self._dom_ptr = tag
+
+        elif htmltag == "span":
+            # apply style
+            
+            for key, value in attrs:
+                if key == "style":
+                    self.parse_style(value)
+                else:
+                    # ignore other attributes
+                    pass
+        
+        elif htmltag == "div":
+            # text justification
+            
+            for key, value in attrs:
+                if key == "style":
+                    self.parse_style(value)
+                else:
+                    # ignore other attributes
+                    pass
+
+        elif htmltag == "p":
+            # paragraph
+            # NOTE: this tag is currently not used by TakeNote, but if pasting
+            # text from another HTML source, TakeNote will interpret it as
+            # a newline char
+            self.append_text("\n")
+            
+        elif htmltag == "br":
+            # insert newline
+            self.append_text("\n")
+            self._newline = True
+            
+        elif htmltag == "hr":
+            # horizontal break
+            hr = RichTextHorizontalRule()
+            self.append_text("\n")
+            self._dom_ptr.append_child(AnchorDom(hr))
+            self.append_text("\n")
+    
+        elif htmltag == "img":
+            # insert image
+            img = self.parse_image(attrs)
+            self._dom_ptr.append_child(AnchorDom(img))
+
+        elif htmltag == "ul" or htmltag == "ol":
+            # indent
+            tag = TagNameDom("ol")
+            self._dom_ptr.append_child(tag)
+            self._dom_ptr = tag
+            
+        elif htmltag == "li":            
+            par_type = "bullet"
+
+            for key, value in attrs:
+                if key == "style":
+                    for statement in value.split(";"):
+                        key2, value2 = statement.split(":")
+                        value2 = value2.strip()
+                        
+                        if key2.strip() == "list-style-type":
+                            if value2 == "disc":
+                                par_type = "bullet"
+                            elif value2 == "none":
+                                par_type = "none"
+
+            tag = TagNameDom("li %s" % par_type)
+            self._dom_ptr.append_child(tag)
+            self._dom_ptr = tag
+
+        elif htmltag == "a":
+            
+            for key, value in attrs:
+                if key == "href":
+                    tag = TagNameDom("link " + value)
+                    self._dom_ptr.append_child(tag)
+                    self._dom_ptr = tag
+                    break
+
+        else:
+            # ingore other html tags
+            pass
+        
+        
+
+    def handle_endtag(self, htmltag):
+        """Callback for parsing a ending HTML tag"""
+
+
+        if not self._partial:
+            if htmltag in ("html", "body") or not self._within_body:
+                return
+
+        # keep track of newline status
+        if htmltag != "br":
+            self._newline = False
+        
+        if htmltag == "ul" or htmltag == "ol" or htmltag == "li":
+            self._newline = True
+        
+        elif htmltag == "p":
+            # paragraph tag
+            self.append_text("\n")
+
+
+        # pop dom stack
+        if len(self._tag_stack) == 0:
+            return
+        else:
+            htmltag2, self._dom_ptr = self._tag_stack.pop()
+            while len(self._tag_stack) > 0 and htmltag2 != htmltag:
+                htmltag2, self._dom_ptr = self._tag_stack.pop()
+
+    
+    
+    def handle_data(self, data):
+        """Callback for character data"""
+
+        if not self._partial and not self._within_body:
+            return
+
+        if self._newline:
+            data = re.sub("^\n[\n ]*", "", data)
+            data = re.sub("[\n ]+", " ", data)
+            self._newline = False
+        else:
+            data = re.sub("[\n ]+", " ", data)
+        
+        if len(data) > 0:
+            self.append_text(data)
+
+    
+    def handle_entityref(self, name):
+        """Callback for reading entityref"""
+        if not self._partial and not self._within_body:
+            return
+        self.append_text(self._entity2char.get(name, ""))
+    
+    
+    def handle_charref(self, name):
+        """Callback for reading charref"""
+        if not self._partial and not self._within_body:
+            return
+        self.append_text(self._charref2char.get(name, ""))
+
 
 
     def parse_style(self, stylestr):
@@ -503,168 +737,6 @@ class HtmlBuffer (HTMLParser):
 
         img.scale(width, height)
         return img
-        
-    
-    def handle_starttag(self, htmltag, attrs):
-        """Callback for parsing a starting HTML tag"""
-        
-        self._newline = False
-
-        # start a new tag on htmltag stack
-        self._tag_stack.append((htmltag, self._dom_ptr))
-
-
-        if htmltag == "html":
-            # ignore html tag
-            pass
-        
-        elif htmltag == "body":
-            # note that we are within the body tag
-            self._within_body = True
-
-        
-        elif htmltag in self._html2buffer_tag:
-            # simple font modifications (b/i/u)
-            
-            tagstr = self._html2buffer_tag[htmltag]
-            tag = TagNameDom(tagstr)
-            self._dom_ptr.append_child(tag)
-            self._dom_ptr = tag
-
-        elif htmltag == "span":
-            # apply style
-            
-            for key, value in attrs:
-                if key == "style":
-                    self.parse_style(value)
-                else:
-                    # ignore other attributes
-                    pass
-        
-        elif htmltag == "div":
-            # text justification
-            
-            for key, value in attrs:
-                if key == "style":
-                    self.parse_style(value)
-                else:
-                    # ignore other attributes
-                    pass
-
-        elif htmltag == "p":
-            # paragraph
-            # NOTE: this tag is currently not used by TakeNote, but if pasting
-            # text from another HTML source, TakeNote will interpret it as
-            # a newline char
-            self.append_text("\n")
-            
-        elif htmltag == "br":
-            # insert newline
-            self.append_text("\n")
-            self._newline = True
-            
-        elif htmltag == "hr":
-            # horizontal break
-            hr = RichTextHorizontalRule()
-            self.append_text("\n")
-            self._dom_ptr.append_child(AnchorDom(hr))
-            self.append_text("\n")
-    
-        elif htmltag == "img":
-            # insert image
-            img = self.parse_image(attrs)
-            self._dom_ptr.append_child(AnchorDom(img))
-
-        elif htmltag == "ul" or htmltag == "ol":
-            # indent
-            tag = TagNameDom("ol")
-            self._dom_ptr.append_child(tag)
-            self._dom_ptr = tag
-            
-        elif htmltag == "li":            
-            par_type = "bullet"
-
-            for key, value in attrs:
-                if key == "style":
-                    for statement in value.split(";"):
-                        key2, value2 = statement.split(":")
-                        value2 = value2.strip()
-                        
-                        if key2.strip() == "list-style-type":
-                            if value2 == "disc":
-                                par_type = "bullet"
-                            elif value2 == "none":
-                                par_type = "none"
-
-            tag = TagNameDom("li %s" % par_type)
-            self._dom_ptr.append_child(tag)
-            self._dom_ptr = tag
-
-        else:
-            # ingore other html tags
-            pass
-        
-        
-
-    def handle_endtag(self, htmltag):
-        """Callback for parsing a ending HTML tag"""
-
-
-        if not self._partial:
-            if htmltag in ("html", "body") or not self._within_body:
-                return
-
-        # keep track of newline status
-        if htmltag != "br":
-            self._newline = False
-        
-        if htmltag == "ul" or htmltag == "ol" or htmltag == "li":
-            self._newline = True
-        
-        elif htmltag == "p":
-            # paragraph tag
-            self.append_text("\n")
-
-
-        # pop dom stack
-        if len(self._tag_stack) == 0:
-            return
-        else:
-            htmltag2, self._dom_ptr = self._tag_stack.pop()
-            while len(self._tag_stack) > 0 and htmltag2 != htmltag:
-                htmltag2, self._dom_ptr = self._tag_stack.pop()
-
-    
-    
-    def handle_data(self, data):
-        """Callback for character data"""
-
-        if not self._partial and not self._within_body:
-            return
-
-        if self._newline:
-            data = re.sub("^\n[\n ]*", "", data)
-            data = re.sub("[\n ]+", " ", data)
-            self._newline = False
-        else:
-            data = re.sub("[\n ]+", " ", data)
-        
-        if len(data) > 0:
-            self.append_text(data)
-
-    
-    def handle_entityref(self, name):
-        """Callback for reading entityref"""
-        if not self._partial and not self._within_body:
-            return
-        self.append_text(self._entity2char.get(name, ""))
-    
-    
-    def handle_charref(self, name):
-        """Callback for reading charref"""
-        if not self._partial and not self._within_body:
-            return
-        self.append_text(self._charref2char.get(name, ""))
 
 
 
@@ -697,9 +769,8 @@ class HtmlBuffer (HTMLParser):
         else:
             self._out.write(HTML_HEADER)
         if title:
-            self._out.write(u"<head><title>%s</title><head>\n" %
-                            escape(title))
-        self._out.write("<body>")
+            self._out.write(u"<title>%s</title>\n" % escape(title))
+        self._out.write("</head><body>")
         
 
     def _write_footer(self, xhtml=True):
@@ -916,7 +987,7 @@ class HtmlBuffer (HTMLParser):
         
         if tagname in IGNORE_TAGS:
             pass
-        
+
         elif tagname in self._buffer_tag2html:
             self._out.write("<%s>" % self._buffer_tag2html[tagname])
                     
@@ -959,6 +1030,9 @@ class HtmlBuffer (HTMLParser):
             else:
                 self._out.write('<li style="list-style-type: none">')
 
+        elif isinstance(tag, RichTextLinkTag):
+            self._out.write('<a href="%s">' % escape(tag.get_href()))
+
         else:
             raise HtmlError("unknown tag '%s'" % tag.get_property("name"))
                 
@@ -984,6 +1058,9 @@ class HtmlBuffer (HTMLParser):
 
         elif isinstance(tag, RichTextBulletTag):
             pass
+
+        elif isinstance(tag, RichTextLinkTag):
+            self._out.write("</a>")
         
         else:
             self._out.write("</span>")

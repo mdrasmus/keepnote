@@ -52,406 +52,9 @@ from takenote.gui import \
     dialog_wait, \
     dialog_update_notebook, \
     TakeNoteError
-from takenote.gui.font_selector import FontSelector
-from takenote.gui.editor import TakeNoteEditor
-from takenote.gui.colortool import FgColorTool, BgColorTool
+from takenote.gui.editor import TakeNoteEditor, EditorMenus
 
 from takenote import tasklib
-
-
-
-class FontUI (object):
-
-    def __init__(self, widget, signal):
-        self.widget = widget
-        self.signal = signal
-
-
-
-class EditorMenus (object):
-
-    def __init__(self, editor):
-        self._editor = editor
-        self._font_ui_signals = []     # list of font ui widgets
-
-
-    #=============================================================
-    # Update UI (menubar) from font under cursor
-    
-    def on_font_change(self, editor, font):
-        """Update the toolbar reflect the font under the cursor"""
-        
-        # block toolbar handlers
-        for ui in self._font_ui_signals:
-            ui.widget.handler_block(ui.signal)
-
-        # update font mods
-        self.bold.widget.set_active(font.mods["bold"])
-        self.italic.widget.set_active(font.mods["italic"])
-        self.underline.widget.set_active(font.mods["underline"])
-        self.fixed_width.widget.set_active(font.mods["tt"])
-        self.no_wrap.widget.set_active(font.mods["nowrap"])
-        
-        # update text justification
-        self.left_align.widget.set_active(font.justify == "left")
-        self.center_align.widget.set_active(font.justify == "center")
-        self.right_align.widget.set_active(font.justify == "right")
-        self.fill_align.widget.set_active(font.justify == "fill")
-
-        # update bullet list
-        self.bullet.widget.set_active(font.par_type == "bullet")
-        
-        # update family/size buttons        
-        self.font_family_combo.set_family(font.family)
-        self.font_size_button.set_value(font.size)
-        
-        # unblock toolbar handlers
-        for ui in self._font_ui_signals:
-            ui.widget.handler_unblock(ui.signal)
-
-
-    #==================================================
-    # changing font handlers
-
-    def on_mod(self, mod):
-        """Toggle a font modification"""
-        self._editor.get_textview().toggle_font_mod(mod)
-
-        #font = self._editor.get_textview().get_font()        
-        #mod_button.handler_block(mod_id)
-        #mod_button.set_active(font.mods[mod])
-        #mod_button.handler_unblock(mod_id)
-
-    def on_justify(self, justify):
-        """Set font justification"""
-        self._editor.get_textview().set_justify(justify)
-        font = self._editor.get_textview().get_font()
-        self.on_font_change(self._editor, font)
-        
-    def on_bullet_list(self):
-        """Toggle bullet list"""
-        self._editor.get_textview().toggle_bullet()
-        font = self._editor.get_textview().get_font()
-        self.on_font_change(self._editor, font)
-        
-    def on_indent(self):
-        """Indent current paragraph"""
-        self._editor.get_textview().indent()
-
-    def on_unindent(self):
-        """Unindent current paragraph"""
-        self._editor.get_textview().unindent()
-
-
-    
-    def on_family_set(self):
-        """Set the font family"""
-        self._editor.get_textview().set_font_family(
-            self.font_family_combo.get_family())
-        self._editor.get_textview().grab_focus()
-        
-
-    def on_font_size_change(self, size):
-        """Set the font size"""
-        self._editor.get_textview().set_font_size(size)
-        self._editor.get_textview().grab_focus()
-    
-    def on_font_size_inc(self):
-        """Increase font size"""
-        font = self._editor.get_textview().get_font()
-        font.size += 2        
-        self._editor.get_textview().set_font_size(font.size)
-        self.on_font_change(self._editor, font)
-    
-    
-    def on_font_size_dec(self):
-        """Decrease font size"""
-        font = self._editor.get_textview().get_font()
-        if font.size > 4:
-            font.size -= 2
-        self._editor.get_textview().set_font_size(font.size)
-        self.on_font_change(self._editor, font)
-
-
-    def on_color_set(self, kind, color=0):
-        """Set text/background color"""
-        
-        if color == 0:
-            if kind == "fg":
-                color = self.fg_color_button.color
-            elif kind == "bg":
-                color = self.bg_color_button.color
-            else:
-                color = None
-
-        if color is not None:
-            colorstr = color_tuple_to_string(color)
-        else:
-            colorstr = None
-
-        if kind == "fg":
-            self._editor.get_textview().set_font_fg_color(colorstr)
-        elif kind == "bg":
-            self._editor.get_textview().set_font_bg_color(colorstr)
-        else:
-            raise Exception("unknown color type '%s'" % str(kind))
-        
-
-    def on_choose_font(self):
-        """Callback for opening Choose Font Dialog"""
-        
-        font = self._editor.get_textview().get_font()
-
-        dialog = gtk.FontSelectionDialog("Choose Font")
-        dialog.set_font_name("%s %d" % (font.family, font.size))
-        response = dialog.run()
-
-        if response == gtk.RESPONSE_OK:
-            self._editor.get_textview().set_font(dialog.get_font_name())
-            self._editor.get_textview().grab_focus()
-
-        dialog.destroy()
-
-
-    def _make_toggle_button(self, toolbar, tips, tip_text, icon, 
-                            stock_id=None, 
-                            func=lambda: None,
-                            use_stock_icons=False):
-
-        button = gtk.ToggleToolButton()
-        if use_stock_icons and stock_id:
-            button.set_stock_id(stock_id)
-        else:
-            button.set_icon_widget(get_resource_image(icon))
-        signal = button.connect("toggled", lambda w: func())
-        font_ui = FontUI(button, signal)
-        self._font_ui_signals.append(font_ui)
-        
-        toolbar.insert(button, -1)
-        tips.set_tip(button, tip_text)
-
-        return font_ui
-
-
-    def make_toolbar(self, toolbar, tips, use_stock_icons):
-        
-        # bold tool
-        self.bold = self._make_toggle_button(
-            toolbar, tips,
-            "Bold", "bold.png", gtk.STOCK_BOLD,
-            lambda: self._editor.get_textview().toggle_font_mod("bold"),
-            use_stock_icons)
-        
-        # italic tool
-        self.italic = self._make_toggle_button(
-            toolbar, tips,
-            "Italic", "italic.png", gtk.STOCK_ITALIC,
-            lambda: self._editor.get_textview().toggle_font_mod("italic"),
-            use_stock_icons)
-
-        # underline tool
-        self.underline = self._make_toggle_button(
-            toolbar, tips,
-            "Underline", "underline.png", gtk.STOCK_UNDERLINE,
-            lambda: self._editor.get_textview().toggle_font_mod("underline"),
-            use_stock_icons)
-        
-        # fixed-width tool
-        self.fixed_width = self._make_toggle_button(
-            toolbar, tips,
-            "Monospace", "fixed-width.png", gtk.STOCK_UNDERLINE,
-            lambda: self._editor.get_textview().toggle_font_mod("tt"),
-            use_stock_icons)
-
-        # no wrap tool
-        self.no_wrap = self._make_toggle_button(
-            toolbar, tips,
-            "No Wrapping", "no-wrap.png", gtk.STOCK_UNDERLINE,
-            lambda: self._editor.get_textview().toggle_font_mod("nowrap"),
-            use_stock_icons)
-
-
-        # family combo
-        self.font_family_combo = FontSelector()
-        self.font_family_combo.set_size_request(150, 25)
-        item = gtk.ToolItem()
-        item.add(self.font_family_combo)
-        tips.set_tip(item, "Font Family")
-        toolbar.insert(item, -1)
-        self.font_family_id = self.font_family_combo.connect("changed",
-            lambda w: self.on_family_set())
-        self._font_ui_signals.append(FontUI(self.font_family_combo,
-                                           self.font_family_id))
-                
-        # font size
-        DEFAULT_FONT_SIZE = 10
-        self.font_size_button = gtk.SpinButton(
-          gtk.Adjustment(value=DEFAULT_FONT_SIZE, lower=2, upper=500, 
-                         step_incr=1))
-        self.font_size_button.set_size_request(-1, 25)
-        #self.font_size_button.set_range(2, 100)
-        self.font_size_button.set_value(DEFAULT_FONT_SIZE)
-        self.font_size_button.set_editable(False)
-        item = gtk.ToolItem()
-        item.add(self.font_size_button)
-        tips.set_tip(item, "Font Size")
-        toolbar.insert(item, -1)
-        self.font_size_id = self.font_size_button.connect("value-changed",
-            lambda w: 
-            self.on_font_size_change(self.font_size_button.get_value()))
-        self._font_ui_signals.append(FontUI(self.font_size_button,
-                                           self.font_size_id))
-
-
-        # font fg color
-        # TODO: code in proper default color
-        self.fg_color_button = FgColorTool(14, 15, (0, 0, 0))
-        self.fg_color_button.connect("set-color",
-                                     lambda w, color: self.on_color_set("fg",
-                                                                     color))
-        tips.set_tip(self.fg_color_button, "Set Text Color")
-        toolbar.insert(self.fg_color_button, -1)
-        
-
-        # font bg color
-        self.bg_color_button = BgColorTool(14, 15, (65535, 65535, 65535))
-        self.bg_color_button.connect("set-color",
-                                     lambda w, color: self.on_color_set("bg",
-                                                                     color))
-        tips.set_tip(self.bg_color_button, "Set Background Color")
-        toolbar.insert(self.bg_color_button, -1)
-
-                
-        
-        # separator
-        toolbar.insert(gtk.SeparatorToolItem(), -1)
-        
-                
-        # left tool
-        self.left_align = self._make_toggle_button(
-            toolbar, tips,
-            "Left Align", "alignleft.png", gtk.STOCK_JUSTIFY_LEFT,
-            lambda: self.on_justify("left"),
-            use_stock_icons)
-
-        # center tool
-        self.center_align = self._make_toggle_button(
-            toolbar, tips,
-            "Center Align", "aligncenter.png", gtk.STOCK_JUSTIFY_CENTER,
-            lambda: self.on_justify("center"),
-            use_stock_icons)
-
-        # right tool
-        self.right_align = self._make_toggle_button(
-            toolbar, tips,
-            "Right Align", "alignright.png", gtk.STOCK_JUSTIFY_RIGHT,
-            lambda: self.on_justify("right"),
-            use_stock_icons)
-
-        # justify tool
-        self.fill_align = self._make_toggle_button(
-            toolbar, tips,
-            "Justify Align", "alignjustify.png", gtk.STOCK_JUSTIFY_FILL,
-            lambda: self.on_justify("fill"),
-            use_stock_icons)
-        
-        
-        # bullet list tool
-        self.bullet = self._make_toggle_button(
-            toolbar, tips,
-            "Bullet List", "bullet.png", None,
-            lambda: self.on_bullet_list(),
-            use_stock_icons)
-        
-        
-    def get_format_menu(self):
-
-        return [
-            ("/Fo_rmat", 
-             None, None, 0, "<Branch>"),
-
-            ("/Format/_Bold", 
-             "<control>B", lambda w,e: self.on_mod("bold"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("bold.png")),
-            ("/Format/_Italic", 
-             "<control>I", lambda w,e: self.on_mod("italic"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("italic.png")),
-            ("/Format/_Underline", 
-             "<control>U", lambda w,e: self.on_mod("underline"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("underline.png")),
-            ("/Format/_Monospace",
-             "<control>M", lambda w,e: self.on_mod("tt"), 0,
-             "<ImageItem>",
-             get_resource_pixbuf("fixed-width.png")),
-            ("/Format/No _Wrapping",
-             None, lambda w, e: self.on_mod("nowrap"), 0,
-             "<ImageItem>",
-             get_resource_pixbuf("no-wrap.png")),
-            
-            ("/Format/sep1",
-             None, None, 0, "<Separator>" ),            
-            
-            ("/Format/_Left Align", 
-             "<control>L", lambda w,e: self.on_justify("left"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("alignleft.png")),
-            ("/Format/C_enter Align", 
-             "<control>E", lambda w,e: self.on_justify("center"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("aligncenter.png")),
-            ("/Format/_Right Align", 
-             "<control>R", lambda w,e: self.on_justify("right"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("alignright.png")),
-            ("/Format/_Justify Align", 
-             "<control>J", lambda w,e: self.on_justify("fill"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("alignjustify.png")),
-            ("/Format/sep2",
-             None, None, 0, "<Separator>" ),
-
-            ("/Format/_Bullet List", 
-             "<control>asterisk", lambda w,e: self.on_bullet_list(), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("bullet.png")),
-            ("/Format/Indent M_ore", 
-             "<control>parenright", lambda w,e: self.on_indent(), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("indent-more.png")),     
-            ("/Format/Indent Le_ss", 
-             "<control>parenleft", lambda w,e: self.on_unindent(), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("indent-less.png")),
-            
-            ("/Format/sep4", 
-                None, None, 0, "<Separator>" ),
-            ("/Format/Increase Font _Size", 
-                "<control>equal", lambda w, e: self.on_font_size_inc(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("font-inc.png")),
-            ("/Format/_Decrease Font Size", 
-                "<control>minus", lambda w, e: self.on_font_size_dec(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("font-dec.png")),
-
-            ("/Format/sep5", 
-                None, None, 0, "<Separator>" ),
-            ("/Format/_Apply Text Color", 
-                "", lambda w, e: self.on_color_set("fg"), 0),
-            ("/Format/A_pply Background Color", 
-                "", lambda w, e: self.on_color_set("bg"), 0),
-            
-            
-            ("/Format/sep6", 
-                None, None, 0, "<Separator>" ),
-            ("/Format/Choose _Font", 
-                "<control><shift>F", lambda w, e: self.on_choose_font(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("font.png"))
-        ]
 
 
 
@@ -478,8 +81,8 @@ class TakeNoteWindow (gtk.Window):
         
         
         self.init_layout()
+        self.setup_systray()
 
-        
 
     def init_layout(self):
         # init main window
@@ -599,8 +202,13 @@ class TakeNoteWindow (gtk.Window):
         # load preferences
         self.get_app_preferences()
         self.set_view_mode(self.app.pref.view_mode)
-
         
+        #self.show_all()
+        self.treeview.grab_focus()
+
+
+    def setup_systray(self):
+    
         # system tray icon
         if self.app.pref.use_systray and gtk.gtk_version > (2, 10):
             self.tray_icon = gtk.StatusIcon()
@@ -610,8 +218,75 @@ class TakeNoteWindow (gtk.Window):
         else:
             self.tray_icon = None
         
-        #self.show_all()
-        self.treeview.grab_focus()
+
+    #=================================================
+    # view config
+        
+    def set_view_mode(self, mode):
+        """Sets the view mode of the window
+        
+        modes:
+            "vertical"
+            "horizontal"
+        """
+        
+        if self._ignore_view_mode:
+            return
+
+        self._ignore_view_mode = True
+
+        # update menu
+        self.view_mode_h_toggle.set_active(mode == "horizontal")
+        self.view_mode_v_toggle.set_active(mode == "vertical")
+        
+        # detach widgets
+        self.paned2.remove(self.listview_sw)
+        self.paned2.remove(self.editor)
+        self.hpaned.remove(self.paned2)
+
+        # remake paned2
+        if mode == "vertical":
+            # create a vertical paned widget
+            self.paned2 = gtk.VPaned()
+        else:
+            # create a horizontal paned widget
+            self.paned2 = gtk.HPaned()
+                    
+        self.paned2.set_position(self.app.pref.vsash_pos)
+        self.paned2.show()        
+        
+        self.hpaned.add2(self.paned2)
+        self.hpaned.show()
+        
+        self.paned2.add1(self.listview_sw)
+        self.paned2.add2(self.editor)
+        
+        self.app.pref.view_mode = mode        
+        self.app.pref.write()
+        
+        self._ignore_view_mode = False
+    
+                
+
+    #=================================================
+    # Window manipulation
+
+    def minimize_window(self):
+        """Minimize the window (block until window is minimized"""
+        
+        # TODO: add timer in case minimize fails
+        def on_window_state(window, event):            
+            if event.new_window_state & gtk.gdk.WINDOW_STATE_ICONIFIED:
+                gtk.main_quit()
+        sig = self.connect("window-state-event", on_window_state)
+        self.iconify()
+        gtk.main()
+        self.disconnect(sig)
+
+    def restore_window(self):
+        """Restore the window from minimization"""
+        self.deiconify()
+        self.present()
 
 
     #=========================================================
@@ -642,108 +317,7 @@ class TakeNoteWindow (gtk.Window):
     def on_tray_icon_activate(self, icon):
         """Try icon has been clicked in system tray"""
         self.restore_window()
-        
-    
-    #=============================================================
-    # Treeview, listview, editor callbacks
-    
-    
-    def on_tree_select(self, treeview, nodes):
-        """Callback for treeview selection change"""
 
-        # do nothing if selection is unchanged
-        if self._treeview_sel_nodes == nodes:
-            return
-
-        # remember which nodes are selected in the treeview
-        self._treeview_sel_nodes = nodes
-
-        # view the children of these nodes in the listview
-        self.listview.view_nodes(nodes)
-
-        # if nodes are queued for selection in listview (via goto parent)
-        # then select them here
-        if len(self._queue_list_select) > 0:
-            self.listview.select_nodes(self._queue_list_select)
-            self._queue_list_select = []
-
-        # If selected node in tree is a page, then select it in listview and
-        # so that it shows up in editor
-        pages = [node for node in nodes 
-                 if node.is_page()]
-        self.listview.select_nodes(pages)
-
-    
-    def on_list_select(self, listview, pages):
-        """Callback for listview selection change"""
-
-        # TODO: will need to generalize to multiple pages
-
-        # remember the selected node
-        if len(pages) > 0:
-            self._current_page = pages[0]
-        else:
-            self._current_page = None
-        
-        try:
-            self.editor.view_pages(pages)
-        except RichTextError, e:
-            self.error("Could not load page '%s'" % pages[0].get_title(),
-                       e, sys.exc_info()[2])
-
-    def on_list_view_node(self, listview, node):
-        """Focus listview on a node"""
-        if node is None:
-            nodes = self.listview.get_selected_nodes()
-            if len(nodes) == 0:
-                return
-            node = nodes[0]
-        
-        self.treeview.select_nodes([node])
-
-
-    def on_list_view_parent_node(self, node=None):
-        """Focus listview on a node's parent"""
-
-        # get node
-        if node is None:
-            if len(self._treeview_sel_nodes) == 0:
-                return
-            if len(self._treeview_sel_nodes) > 1 or \
-               not self.listview.is_view_tree():
-                nodes = self.listview.get_selected_nodes()
-                if len(nodes) == 0:
-                    return
-                node = nodes[0]
-            else:
-                node = self._treeview_sel_nodes[0]
-
-        # get parent
-        parent = node.get_parent()
-        if parent is None:
-            return
-
-        # queue list select
-        nodes = self.listview.get_selected_nodes()
-        if len(nodes) > 0:
-            self._queue_list_select = nodes
-        else:
-            self._queue_list_select = [node]
-
-        # select parent
-        self.treeview.select_nodes([parent])
-
-        
-    def on_page_editor_modified(self, editor, page, modified):
-        if modified:
-            self.set_notebook_modified(modified)
-
-
-    def on_child_activated(self, editor, textview, child):
-        if isinstance(child, richtext.RichTextImage):
-            self.view_image(child.get_filename())
-    
-    
     
     #==============================================
     # Application preferences     
@@ -778,6 +352,9 @@ class TakeNoteWindow (gtk.Window):
         
         self.app.pref.write()
         
+        
+    
+
            
     #=============================================
     # Notebook open/save/close UI
@@ -1016,6 +593,107 @@ class TakeNoteWindow (gtk.Window):
         self.treeview.set_notebook(notebook)
 
 
+    #=============================================================
+    # Treeview, listview, editor callbacks
+    
+    
+    def on_tree_select(self, treeview, nodes):
+        """Callback for treeview selection change"""
+
+        # do nothing if selection is unchanged
+        if self._treeview_sel_nodes == nodes:
+            return
+
+        # remember which nodes are selected in the treeview
+        self._treeview_sel_nodes = nodes
+
+        # view the children of these nodes in the listview
+        self.listview.view_nodes(nodes)
+
+        # if nodes are queued for selection in listview (via goto parent)
+        # then select them here
+        if len(self._queue_list_select) > 0:
+            self.listview.select_nodes(self._queue_list_select)
+            self._queue_list_select = []
+
+        # If selected node in tree is a page, then select it in listview and
+        # so that it shows up in editor
+        pages = [node for node in nodes 
+                 if node.is_page()]
+        self.listview.select_nodes(pages)
+
+    
+    def on_list_select(self, listview, pages):
+        """Callback for listview selection change"""
+
+        # TODO: will need to generalize to multiple pages
+
+        # remember the selected node
+        if len(pages) > 0:
+            self._current_page = pages[0]
+        else:
+            self._current_page = None
+        
+        try:
+            self.editor.view_pages(pages)
+        except RichTextError, e:
+            self.error("Could not load page '%s'" % pages[0].get_title(),
+                       e, sys.exc_info()[2])
+
+    def on_list_view_node(self, listview, node):
+        """Focus listview on a node"""
+        if node is None:
+            nodes = self.listview.get_selected_nodes()
+            if len(nodes) == 0:
+                return
+            node = nodes[0]
+        
+        self.treeview.select_nodes([node])
+
+
+    def on_list_view_parent_node(self, node=None):
+        """Focus listview on a node's parent"""
+
+        # get node
+        if node is None:
+            if len(self._treeview_sel_nodes) == 0:
+                return
+            if len(self._treeview_sel_nodes) > 1 or \
+               not self.listview.is_view_tree():
+                nodes = self.listview.get_selected_nodes()
+                if len(nodes) == 0:
+                    return
+                node = nodes[0]
+            else:
+                node = self._treeview_sel_nodes[0]
+
+        # get parent
+        parent = node.get_parent()
+        if parent is None:
+            return
+
+        # queue list select
+        nodes = self.listview.get_selected_nodes()
+        if len(nodes) > 0:
+            self._queue_list_select = nodes
+        else:
+            self._queue_list_select = [node]
+
+        # select parent
+        self.treeview.select_nodes([parent])
+
+        
+    def on_page_editor_modified(self, editor, page, modified):
+        if modified:
+            self.set_notebook_modified(modified)
+
+
+    def on_child_activated(self, editor, textview, child):
+        if isinstance(child, richtext.RichTextImage):
+            self.view_image(child.get_filename())
+    
+    
+
     
     #===========================================================
     # page and folder actions
@@ -1146,17 +824,17 @@ class TakeNoteWindow (gtk.Window):
         def search(task):
             # do search in another thread
 
+            def gui_update(node):
+                def func():
+                    gtk.gdk.threads_enter()
+                    self.listview.append_node(node)
+                    gtk.gdk.threads_leave()
+                return func
+
             for node in nodes:
                 # terminare if search is canceled
                 if task.aborted():
                     break
-
-                def gui_update(node):
-                    def func():
-                        gtk.gdk.threads_enter()
-                        self.listview.append_node(node)
-                        gtk.gdk.threads_leave()
-                    return func
                 gobject.idle_add(gui_update(node))
                 
             task.finish()
@@ -1191,77 +869,38 @@ class TakeNoteWindow (gtk.Window):
                 self.set_title("%s" % self.notebook.get_title())
     
     
-    #=================================================
-    # view config
-        
-    def set_view_mode(self, mode):
-        """Sets the view mode of the window
-        
-        modes:
-            "vertical"
-            "horizontal"
-        """
-        
-        if self._ignore_view_mode:
-            return
-
-        self._ignore_view_mode = True
-
-        # update menu
-        self.view_mode_h_toggle.set_active(mode == "horizontal")
-        self.view_mode_v_toggle.set_active(mode == "vertical")
-        
-        # detach widgets
-        self.paned2.remove(self.listview_sw)
-        self.paned2.remove(self.editor)
-        self.hpaned.remove(self.paned2)
-
-        # remake paned2
-        if mode == "vertical":
-            # create a vertical paned widget
-            self.paned2 = gtk.VPaned()
-        else:
-            # create a horizontal paned widget
-            self.paned2 = gtk.HPaned()
-                    
-        self.paned2.set_position(self.app.pref.vsash_pos)
-        self.paned2.show()        
-        
-        self.hpaned.add2(self.paned2)
-        self.hpaned.show()
-        
-        self.paned2.add1(self.listview_sw)
-        self.paned2.add2(self.editor)
-        
-        self.app.pref.view_mode = mode        
-        self.app.pref.write()
-        
-        self._ignore_view_mode = False
-    
-                
-
-    #=================================================
-    # Window manipulation
-
-    def minimize_window(self):
-        """Minimize the window (block until window is minimized"""
-        
-        # TODO: add timer in case minimize fails
-        def on_window_state(window, event):            
-            if event.new_window_state & gtk.gdk.WINDOW_STATE_ICONIFIED:
-                gtk.main_quit()
-        sig = self.connect("window-state-event", on_window_state)
-        self.iconify()
-        gtk.main()
-        self.disconnect(sig)
-
-    def restore_window(self):
-        """Restore the window from minimization"""
-        self.deiconify()
-        self.present()
         
     #==================================================
     # Image/screenshot actions
+
+    def take_screenshot(self, filename):
+        
+            if takenote.get_platform() == "windows":
+                # use win32api to take screenshot
+                # create temp file
+                f, imgfile = tempfile.mkstemp(".bmp", filename)
+                os.close(f)
+                screenshot_win.take_screenshot(imgfile)
+            else:
+                # use external app for screen shot
+                screenshot = self.app.pref.get_external_app("screen_shot")
+                if screenshot is None or screenshot.prog == "":
+                    raise Exception("You must specify a Screen Shot program in Application Options")
+
+                # create temp file
+                f, imgfile = tempfile.mkstemp(".png", filename)
+                os.close(f)
+
+                proc = subprocess.Popen([screenshot.prog, imgfile])
+                if proc.wait() != 0:
+                    raise OSError("Exited with error")
+
+            if not os.path.exists(imgfile):
+                # catch error if image is not created
+                raise Exception("The screenshot program did not create the necessary image file '%s'" % imgfile)
+
+            return imgfile
+
 
     def on_screenshot(self):
         """Take and insert a screen shot image"""
@@ -1270,65 +909,36 @@ class TakeNoteWindow (gtk.Window):
         if self._current_page is None:
             return
 
+        imgfile = ""
+
         # Minimize window
         self.minimize_window()
         
-        # TODO: generalize
         try:
-            if takenote.get_platform() == "windows":
-                # use win32api to take screenshot
-                # create temp file
-                f, imgfile = tempfile.mkstemp(".bmp", "takenote")
-                os.close(f)
-                screenshot_win.take_screenshot(imgfile)
-            else:
-                # use external app for screen shot
-                screenshot = self.app.pref.get_external_app("screen_shot")
-                if screenshot is None:
-                    self.error("You must specify a Screen Shot program in Application Options")
-                    return
-
-                # create temp file
-                f, imgfile = tempfile.mkstemp(".png", "takenote")
-                os.close(f)
-
-                try:
-                    proc = subprocess.Popen([screenshot.prog, imgfile])
-                    if proc.wait() != 0:
-                        raise OSError("Exited with error")
-                except OSError, e:
-                    raise e
+            imgfile = self.take_screenshot("takenote")
+            self.restore_window()
             
-        except Exception, e:        
+            # insert image
+            try:
+                self.insert_image(imgfile, "screenshot.png")
+            except Exception, e:
+                # TODO: make exception more specific
+                raise Exception("Error importing screenshot '%s'" % imgfile)
+            
+        except Exception, e:
             # catch exceptions for screenshot program
             self.restore_window()
-            self.error("The screenshot program encountered an error", e,
-                       sys.exc_info()[2])
-            
-        else:
-            if not os.path.exists(imgfile):
-                # catch error if image is not created
-                self.restore_window()
-                self.error("The screenshot program did not create the necessary image file '%s'" % imgfile)
-            else:
-                # insert image
-                try:
-                    self.insert_image(imgfile, "screenshot.png")
-                except Exception, e:
-                    # TODO: make exception more specific
-                    self.restore_window()
-                    self.error("Error importing screenshot '%s'" % imgfile,
-                               e, sys.exc_info()[2])
+            self.error("The screenshot program encountered an error:\n %s"
+                       % str(e), e, sys.exc_info()[2])
+        
             
         # remove temp file
         try:
-            os.remove(imgfile)
+            if os.path.exists(imgfile):
+                os.remove(imgfile)
         except OSError, e:
-            self.restore_window()
             self.error("%s was unable to remove temp file for screenshot" %
                        takenote.PROGRAM_NAME, e, sys.exc_info()[2])
-
-        self.restore_window()
 
 
     def on_insert_hr(self):
@@ -1337,6 +947,7 @@ class TakeNoteWindow (gtk.Window):
             return
         
         self.editor.get_textview().insert_hr()
+
         
     def on_insert_image(self):
         """Displays the Insert Image Dialog"""
@@ -1347,18 +958,18 @@ class TakeNoteWindow (gtk.Window):
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "Insert", gtk.RESPONSE_OK))
-        dialog.set_current_folder(self.app.pref.insert_image_path)
-        
 
+        if os.path.exists(self.app.pref.insert_image_path):
+            dialog.set_current_folder(self.app.pref.insert_image_path)        
+            
+            
         # run dialog
         response = dialog.run()
 
-
-        self.app.pref.insert_image_path = dialog.get_current_folder()
-        
         if response == gtk.RESPONSE_OK:
+            self.app.pref.insert_image_path = dialog.get_current_folder()
+            
             filename = dialog.get_filename()
-            dialog.destroy()
                         
             imgname, ext = os.path.splitext(os.path.basename(filename))
             if ext.lower() in (".jpg", ".jpeg"):
@@ -1373,8 +984,7 @@ class TakeNoteWindow (gtk.Window):
                 self.error("Could not insert image '%s'" % filename, e,
                            sys.exc_info()[2])
             
-        elif response == gtk.RESPONSE_CANCEL:
-            dialog.destroy()
+        dialog.destroy()
         
     
     
@@ -1414,7 +1024,7 @@ class TakeNoteWindow (gtk.Window):
             except OSError, e:
                 self.error("Could not open Image Viewer", e, sys.exc_info()[2])
         else:
-            self.error("You specify an Image Viewer in Application Options""")
+            self.error("You must specify an Image Viewer in Application Options""")
 
 
     def on_edit_image(self, menuitem):
@@ -1435,7 +1045,7 @@ class TakeNoteWindow (gtk.Window):
             except OSError, e:
                 self.error("Could not open Image Editor", e, sys.exc_info()[2])
         else:
-            self.error("You specify an Image Editor in Application Options""")
+            self.error("You must specify an Image Editor in Application Options")
 
 
     def on_resize_image(self, menuitem):
@@ -1465,13 +1075,16 @@ class TakeNoteWindow (gtk.Window):
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "Save", gtk.RESPONSE_OK))
         dialog.set_default_response(gtk.RESPONSE_OK)
-        dialog.set_current_folder(self.app.pref.save_image_path)
+
+        if os.path.exists(self.app.pref.save_image_path):
+            dialog.set_current_folder(self.app.pref.save_image_path)
         
         response = dialog.run()
 
-        self.app.pref.save_image_path = dialog.get_current_folder()
 
         if response == gtk.RESPONSE_OK:
+            self.app.pref.save_image_path = dialog.get_current_folder()
+            
             if dialog.get_filename() == "":
                 self.error("Must specify a filename for the image.")
             else:
@@ -1504,9 +1117,7 @@ class TakeNoteWindow (gtk.Window):
     
     
     #=====================================================
-    # Cut/copy/paste
-
-    # NOTE: for now all copy/cut/paste is sent to textview
+    # Cut/copy/paste    
     
     def on_cut(self):
         """Cut callback"""
@@ -1515,8 +1126,6 @@ class TakeNoteWindow (gtk.Window):
         if gobject.signal_lookup("cut-clipboard", widget) != 0:
             widget.emit("cut-clipboard")
 
-        #if self.editor.get_textview().is_focus():
-        #    self.editor.get_textview().emit("cut-clipboard")
     
     def on_copy(self):
         """Copy callback"""
@@ -1525,8 +1134,6 @@ class TakeNoteWindow (gtk.Window):
         if gobject.signal_lookup("copy-clipboard", widget) != 0:
             widget.emit("copy-clipboard")
 
-        #if self.editor.get_textview().is_focus():
-        #    self.editor.get_textview().emit("copy-clipboard")
     
     def on_paste(self):
         """Paste callback"""
@@ -1535,10 +1142,6 @@ class TakeNoteWindow (gtk.Window):
         if gobject.signal_lookup("paste-clipboard", widget) != 0:
             widget.emit("paste-clipboard")
 
-        #if self.editor.get_textview().is_focus():
-        #    self.editor.get_textview().emit("paste-clipboard")
-            
-    
     
     #=====================================================
     # External app viewers
@@ -1585,14 +1188,14 @@ class TakeNoteWindow (gtk.Window):
             self.app.run_external_app("text_editor", filename2)
         except Exception, e:
             self.error("Could not open error log", e, sys.exc_info()[2])
-                                       
+
+
+    #=======================================================
+    # spellcheck
     
     def on_spell_check_toggle(self, num, widget):
         """Toggle spell checker"""
-
-        textview = self.editor.get_textview()
-        if textview is not None:
-            self.enable_spell_check(widget.get_active())
+        self.enable_spell_check(widget.get_active())
 
 
     def enable_spell_check(self, enabled):
@@ -1604,7 +1207,11 @@ class TakeNoteWindow (gtk.Window):
             
             # see if spell check became enabled
             enabled = textview.is_spell_check_enabled()
+
+            # record state in preferences
             self.app.pref.spell_check = enabled
+
+            # update UI to match
             self.spell_check_toggle.set_active(enabled)
     
     #==================================================
@@ -1660,51 +1267,26 @@ class TakeNoteWindow (gtk.Window):
             traceback.print_exception(type(error), error, tracebk)
 
 
-    def wait_dialog(self, title, text, task=None):
+    def wait_dialog(self, title, text, task):
         """Display a wait dialog"""
 
-        if task is None:
-            # dummy testing task
-            
-            def func(task):
-                complete = 0.0
-                while task.is_running():
-                    print complete
-                    complete = 1.0 - (1.0 - complete) * .9999
-                    task.set_percent(complete)
-                task.finish()
-            task = tasklib.Task(func)
-        
         dialog = dialog_wait.WaitDialog(self)
         dialog.show(title, text, task)
+
+
+    def wait_dialog_test_task(self):
+        # create dummy testing task
+        
+        def func(task):
+            complete = 0.0
+            while task.is_running():
+                print complete
+                complete = 1.0 - (1.0 - complete) * .9999
+                task.set_percent(complete)
+            task.finish()
+        return tasklib.Task(func)
         
 
-        '''
-        dialog = gtk.MessageDialog(self.get_toplevel(), 
-            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-            type=gtk.MESSAGE_INFO, 
-            buttons=gtk.BUTTONS_CANCEL, 
-            message_format=text)
-        dialog.connect("response", lambda d,r: d.destroy())
-        dialog.set_title(title)
-
-        def func2():
-            func()
-            dialog.destroy()
-        
-        # run thread
-        proc = threading.Thread(target=func2)
-        proc.start()
-
-        # run dialog
-        try:
-            # dialog may destroy quickly
-            dialog.run()
-        except:
-            pass
-
-        proc.join()
-        '''
         
     
     #================================================
@@ -1754,15 +1336,7 @@ class TakeNoteWindow (gtk.Window):
                 None, lambda w, e: self.close_notebook(), 0, 
                 "<StockItem>", gtk.STOCK_CLOSE),
 
-            #("/File/sep3", 
-            #    None, None, 0, "<Separator>" ),
-
-            #("/File/_Backup Notebook",
-            # None, lambda w, e: self.on_archive_notebook(), 0,
-            #    None),
-            #("/File/R_estore Notebook",
-            # None, lambda w, e: self.on_restore_notebook(), 0,
-            #    None),
+            # NOTE: backup_tar extension installs backup/restore options here
             
             ("/File/sep4", 
                 None, None, 0, "<Separator>" ),
@@ -1895,7 +1469,7 @@ class TakeNoteWindow (gtk.Window):
             ("/Help/Wait dialog...",
              None, lambda w,e: self.wait_dialog("title",
                                                 "message message message message message message message message message message message message message message message message message message message message message message\n message message message message ",
-                                                None),
+                                    lambda w,e: self.wait_dialog_test_task()),
              0, None),
             ("/Help/sep1", None, None, 0, "<Separator>"),
             ("/Help/About", None, lambda w,e: self.on_about(), 0, None ),

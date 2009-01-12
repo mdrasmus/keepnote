@@ -81,7 +81,7 @@ class RichTextTagTable (gtk.TextTagTable):
         self.new_tag_class("bg_color", RichTextBGColorTag)
         self.new_tag_class("indent", RichTextIndentTag)
         self.new_tag_class("bullet", RichTextBulletTag)
-
+        self.new_tag_class("link", RichTextLinkTag)
 
         
         # modification (mod) font tags
@@ -206,12 +206,12 @@ class RichTextTag (gtk.TextTag):
     @classmethod
     def tag_name(cls):
         # NOT implemented
-        raise
+        raise Exception("Not implemented")
 
     @classmethod
     def get_value(cls, tag_name):
         # NOT implemented
-        raise
+        raise Exception("Not implemented")
 
     @classmethod
     def is_name(cls, tag_name):
@@ -277,7 +277,6 @@ class RichTextJustifyTag (RichTextTag):
 class RichTextFamilyTag (RichTextTag):
     """A tag that represents a font family"""
 
-
     def __init__(self, family):
         RichTextTag.__init__(self, "family " + family, family=family)
 
@@ -300,6 +299,7 @@ class RichTextFamilyTag (RichTextTag):
 
 class RichTextSizeTag (RichTextTag):
     """A tag that represents a font size"""
+    
     def __init__(self, size):
         RichTextTag.__init__(self, "size %d" % size, size_points=size)
 
@@ -321,6 +321,7 @@ class RichTextSizeTag (RichTextTag):
     
 class RichTextFGColorTag (RichTextTag):
     """A tag that represents a font foreground color"""
+    
     def __init__(self, color):
         RichTextTag.__init__(self, "fg_color %s" % color,
                              foreground=color)
@@ -344,6 +345,7 @@ class RichTextFGColorTag (RichTextTag):
 
 class RichTextBGColorTag (RichTextTag):
     """A tag that represents a font background color"""
+    
     def __init__(self, color):
         RichTextTag.__init__(self, "bg_color %s" % color,
                              background=color)
@@ -366,6 +368,7 @@ class RichTextBGColorTag (RichTextTag):
 
 class RichTextIndentTag (RichTextTag):
     """A tag that represents an indentation level"""
+    
     def __init__(self, indent, par_type="none"):
 
         #if indent <= 0:
@@ -459,3 +462,27 @@ class RichTextBulletTag (RichTextTag):
     def is_par_related(self):
         return True
 
+
+
+class RichTextLinkTag (RichTextTag):
+    """A tag that represents hyperlink"""
+    
+    def __init__(self, href):
+        RichTextTag.__init__(self, "link %s" % href,
+                             foreground="#00000000ffff")
+        self._href = href
+
+    def get_href(self):
+        return self._href
+
+    @classmethod
+    def tag_name(cls, color):
+        return "link " + self._href
+
+    @classmethod
+    def get_value(cls, tag_name):
+        return tag_name.split(" ", 1)[1]
+
+    @classmethod
+    def is_name(cls, tag_name):
+        return tag_name.startswith("link ")
