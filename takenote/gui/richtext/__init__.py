@@ -34,7 +34,6 @@ from takenote.gui.richtext.richtextbuffer import \
      add_child_to_buffer, \
      RichTextBuffer, \
      RichTextImage, \
-     RichTextError, \
      RichTextIndentTag
 
 # tag imports
@@ -46,7 +45,8 @@ from takenote.gui.richtext.richtext_tags import \
      RichTextFGColorTag, \
      RichTextBGColorTag, \
      RichTextIndentTag, \
-     RichTextBulletTag
+     RichTextBulletTag, \
+     RichTextLinkTag
 
 # richtext io
 from takenote.gui.richtext.richtext_html import HtmlBuffer, HtmlError
@@ -112,6 +112,24 @@ def is_relative_file(filename):
 
 
 #=============================================================================
+
+
+class RichTextError (StandardError):
+    """Class for errors with RichText"""
+
+    # NOTE: this is only used for saving and loading in textview
+    # should this stay here?
+    
+    def __init__(self, msg, error):
+        StandardError.__init__(self, msg)
+        self.msg = msg
+        self.error = error
+    
+    def __str__(self):
+        if self.error:
+            return str(self.error) + "\n" + self.msg
+        else:
+            return self.msg
 
 
 class RichTextMenu (gtk.Menu):
@@ -282,6 +300,7 @@ class RichTextView (gtk.TextView):
         self.connect("key-press-event", self.on_key_press_event)
         #self.connect("insert-at-cursor", self.on_insert_at_cursor)
         self.connect("backspace", self.on_backspace)
+        self.connect("button-press-event", self.on_button_press)
 
         # drag and drop
         self.connect("drag-data-received", self.on_drag_data_received)
@@ -437,8 +456,37 @@ class RichTextView (gtk.TextView):
                 self.stop_emission("backspace")
                         
 
-    #def on_button_press(self, widget, event):
-    #    pass #print "click"
+    #==============================================
+    # callbacks
+
+
+    def on_button_press(self, widget, event):
+        """Process context popup menu"""
+
+        
+        if event.button == 1 and event.type == gtk.gdk._2BUTTON_PRESS:
+            # double left click
+            
+            x, y = self.window_to_buffer_coords(gtk.TEXT_WINDOW_TEXT,
+                                                int(event.x), int(event.y))
+            it = self.get_iter_at_location(x, y)
+
+            if self.click_iter(it):
+                self.stop_emission("button-press-event")
+            
+
+    def click_iter(self, it):
+        """Perfrom click action at TextIter it"""
+
+        if not self._textbuffer:
+            return
+
+        for tag in it.get_tags():
+            if isinstance(tag, RichTextLinkTag):
+                self.emit("visit-url", tag.get_href())
+                return True
+
+        return False
 
     
 
@@ -899,6 +947,7 @@ class RichTextView (gtk.TextView):
         """Returns the image popup menu"""
         return self._image_menu
 
+
     #==========================================
     # child events
 
@@ -1132,34 +1181,17 @@ class RichTextView (gtk.TextView):
     def set_font_mod(self, mod):
         """Sets a font modification"""
         self._apply_tag(RichTextModTag.tag_name(mod))
-        
 
-    def set_font(self, font_name):
-        """Font change from choose font widget"""
 
-        if not self._textbuffer:
-            return
-        
-        family, mods, size = parse_font(font_name)
+    def toggle_link(self):
+        """Toggles a link tag"""
+        self._textbuffer.toggle_tag_selected(
+            self._textbuffer.tag_table.lookup(
+                RichTextLinkTag.tag_name("")))
 
-        self._textbuffer.begin_user_action()
-        
-        # apply family and size tags
-        self.set_font_family(family)
-        self.set_font_size(size)
-        
-        # apply modifications
-        for mod in mods:
-            self.set_font_mod(mod)
-
-        # disable modifications not given
-        mod_class = self._textbuffer.tag_table.get_tag_class("mod")
-        for tag in mod_class.tags:
-            if tag.get_property("name") not in mods:
-                self._textbuffer.remove_tag_selected(tag)
-
-        self._textbuffer.end_user_action()
-                    
+    def set_link(self, url=""):
+        """Sets a link for the selected region"""
+        self._apply_tag(RichTextLinkTag.tag_name(url))
     
     def set_font_family(self, family):
         """Sets the family font of the selection"""
@@ -1207,7 +1239,33 @@ class RichTextView (gtk.TextView):
         """Toggle state of a bullet list"""
         if self._textbuffer:
             self._textbuffer.toggle_bullet_list(par_type)
-            
+
+
+    def set_font(self, font_name):
+        """Font change from choose font widget"""
+
+        if not self._textbuffer:
+            return
+        
+        family, mods, size = parse_font(font_name)
+
+        self._textbuffer.begin_user_action()
+        
+        # apply family and size tags
+        self.set_font_family(family)
+        self.set_font_size(size)
+        
+        # apply modifications
+        for mod in mods:
+            self.set_font_mod(mod)
+
+        # disable modifications not given
+        mod_class = self._textbuffer.tag_table.get_tag_class("mod")
+        for tag in mod_class.tags:
+            if tag.get_property("name") not in mods:
+                self._textbuffer.remove_tag_selected(tag)
+
+        self._textbuffer.end_user_action()
     
     #==================================================================
     # UI Updating from changing font under cursor
@@ -1265,5 +1323,6 @@ gobject.signal_new("child-activated", RichTextView, gobject.SIGNAL_RUN_LAST,
     gobject.TYPE_NONE, (object,))
 gobject.signal_new("loaded", RichTextView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, ())
-
+gobject.signal_new("visit-url", RichTextView, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (str,))
 

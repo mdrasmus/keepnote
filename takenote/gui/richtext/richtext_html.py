@@ -27,8 +27,7 @@ from takenote.gui.richtext.richtextbuffer import \
      add_child_to_buffer, \
      RichTextBuffer, \
      RichTextImage, \
-     RichTextHorizontalRule, \
-     RichTextError
+     RichTextHorizontalRule
 
 from takenote.gui.richtext.richtext_tags import \
      RichTextTag, \
@@ -367,6 +366,9 @@ class LiHtmlTagDom (HtmlTagDom):
 class HtmlError (StandardError):
     """Error for HTML parsing"""
     pass
+
+
+
 
 #=============================================================================
 # tag input/output

@@ -18,20 +18,11 @@ from takenote.gui.richtext.textbuffer_tools import \
 
 # import tags
 from takenote.gui.richtext.richtext_tags import \
-     RichTextTagTable, \
-     RichTextTag, \
-     RichTextModTag, \
-     RichTextJustifyTag, \
-     RichTextFamilyTag, \
-     RichTextSizeTag, \
-     RichTextFGColorTag, \
-     RichTextBGColorTag, \
      RichTextIndentTag, \
      RichTextBulletTag
 
 from takenote.gui.richtext.richtextbasebuffer import \
      RichTextBaseBuffer, \
-     RichTextFont, \
      add_child_to_buffer, \
      move_to_start_of_line, \
      move_to_end_of_line, \

@@ -56,6 +56,41 @@ from takenote.gui.editor import TakeNoteEditor, EditorMenus
 from takenote import tasklib
 
 
+class LinkEditor (gtk.Frame):
+    def __init__(self):
+        gtk.Frame.__init__(self, "Link editor")
+        align = gtk.Alignment()
+        self.add(align)
+        align.set_padding(5, 5, 5, 5)
+
+        vbox = gtk.VBox(False, 5)
+        align.add(vbox)
+
+        hbox = gtk.HBox(False, 5)
+        vbox.pack_start(hbox, True, True, 0)
+
+        label = gtk.Label("url:")
+        hbox.pack_start(label, False, True, 0)
+        label.set_alignment(0, .5)
+        self.url_text = gtk.Entry()
+        hbox.pack_start(self.url_text, True, True, 0)
+        self.url_text.set_width_chars(50)
+        self.url_text.connect("focus-out-event", self._on_url_text_done)
+
+        self.use_text_check = gtk.CheckButton("_use text as url")
+        vbox.pack_start(self.use_text_check, False, False, 0)
+        self.use_text_check.connect("toggled", self._on_use_text_toggled)
+        self.use_text = self.use_text_check.get_active()
+
+    def _on_use_text_toggled(self, check):
+        self.use_text = check.get_active()
+
+    def _on_url_text_done(self, widget, event):
+        self.set_url()
+
+    def set_url(self):
+        print self.url_text.get_text()
+
 
 class TakeNoteWindow (gtk.Window):
     """Main windows for TakeNote"""
@@ -114,7 +149,7 @@ class TakeNoteWindow (gtk.Window):
         
         
         # editor
-        self.editor = TakeNoteEditor()
+        self.editor = TakeNoteEditor(self.app)
         self._editor_menus = EditorMenus(self.editor)        
         self.editor.connect("font-change", self._editor_menus.on_font_change)
         self.editor.connect("modified", self.on_page_editor_modified)
@@ -122,7 +157,13 @@ class TakeNoteWindow (gtk.Window):
         self.editor.connect("child-activated", self.on_child_activated)
         self.editor.view_pages([])
 
+        self.editor_pane = gtk.VBox(False, 5)#Paned()
+        #self.editor_pane.add1(self.editor)
+        self.editor_pane.pack_start(self.editor, True, True, 0)
 
+        self.link_editor = LinkEditor()
+        #self.editor_pane.add2(self.link_editor)
+        self.editor_pane.pack_start(self.link_editor, False, True, 0)
 
         
         #====================================
@@ -196,7 +237,7 @@ class TakeNoteWindow (gtk.Window):
         self.paned2.add1(self.listview_sw)
         
         # layout editor
-        self.paned2.add2(self.editor)
+        self.paned2.add2(self.editor_pane)
 
         # load preferences
         self.get_app_preferences()
@@ -240,7 +281,7 @@ class TakeNoteWindow (gtk.Window):
         
         # detach widgets
         self.paned2.remove(self.listview_sw)
-        self.paned2.remove(self.editor)
+        self.paned2.remove(self.editor_pane)
         self.hpaned.remove(self.paned2)
 
         # remake paned2
@@ -258,7 +299,7 @@ class TakeNoteWindow (gtk.Window):
         self.hpaned.show()
         
         self.paned2.add1(self.listview_sw)
-        self.paned2.add2(self.editor)
+        self.paned2.add2(self.editor_pane)
         
         self.app.pref.view_mode = mode        
         self.app.pref.write()
@@ -873,32 +914,32 @@ class TakeNoteWindow (gtk.Window):
     # Image/screenshot actions
 
     def take_screenshot(self, filename):
-        
-            if takenote.get_platform() == "windows":
-                # use win32api to take screenshot
-                # create temp file
-                f, imgfile = tempfile.mkstemp(".bmp", filename)
-                os.close(f)
-                screenshot_win.take_screenshot(imgfile)
-            else:
-                # use external app for screen shot
-                screenshot = self.app.pref.get_external_app("screen_shot")
-                if screenshot is None or screenshot.prog == "":
-                    raise Exception("You must specify a Screen Shot program in Application Options")
 
-                # create temp file
-                f, imgfile = tempfile.mkstemp(".png", filename)
-                os.close(f)
+        if takenote.get_platform() == "windows":
+            # use win32api to take screenshot
+            # create temp file
+            f, imgfile = tempfile.mkstemp(".bmp", filename)
+            os.close(f)
+            screenshot_win.take_screenshot(imgfile)
+        else:
+            # use external app for screen shot
+            screenshot = self.app.pref.get_external_app("screen_shot")
+            if screenshot is None or screenshot.prog == "":
+                raise Exception("You must specify a Screen Shot program in Application Options")
 
-                proc = subprocess.Popen([screenshot.prog, imgfile])
-                if proc.wait() != 0:
-                    raise OSError("Exited with error")
+            # create temp file
+            f, imgfile = tempfile.mkstemp(".png", filename)
+            os.close(f)
 
-            if not os.path.exists(imgfile):
-                # catch error if image is not created
-                raise Exception("The screenshot program did not create the necessary image file '%s'" % imgfile)
+            proc = subprocess.Popen([screenshot.prog, imgfile])
+            if proc.wait() != 0:
+                raise OSError("Exited with error")
 
-            return imgfile
+        if not os.path.exists(imgfile):
+            # catch error if image is not created
+            raise Exception("The screenshot program did not create the necessary image file '%s'" % imgfile)
+
+        return imgfile
 
 
     def on_screenshot(self):
@@ -1187,6 +1228,8 @@ class TakeNoteWindow (gtk.Window):
             self.app.run_external_app("text_editor", filename2)
         except Exception, e:
             self.error("Could not open error log", e, sys.exc_info()[2])
+
+
 
 
     #=======================================================

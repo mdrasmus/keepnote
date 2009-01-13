@@ -14,6 +14,7 @@ from gtk import gdk
 import takenote
 from takenote.undo import UndoStack
 
+# textbuffer imports
 from takenote.gui.richtext.textbuffer_tools import \
      iter_buffer_contents, \
      buffer_contents_iter_to_offset, \
@@ -21,7 +22,7 @@ from takenote.gui.richtext.textbuffer_tools import \
      insert_buffer_contents, \
      buffer_contents_apply_tags
 
-# import tags
+# richtext tags imports
 from takenote.gui.richtext.richtext_tags import \
      RichTextTagTable, \
      RichTextTag, \
@@ -32,14 +33,17 @@ from takenote.gui.richtext.richtext_tags import \
      RichTextFGColorTag, \
      RichTextBGColorTag, \
      RichTextIndentTag, \
-     RichTextBulletTag
+     RichTextBulletTag, \
+     RichTextLinkTag, \
+     color_to_string
 
+# richtext imports
 from takenote.gui.richtext.richtextbasebuffer import \
      RichTextBaseBuffer, \
-     RichTextFont, \
+     RichTextBaseFont, \
      add_child_to_buffer
-
 from takenote.gui.richtext.richtextbuffer_indent import IndentManager
+
 
 # TODO: fix bug with spell check interferring with underline tags
 
@@ -82,26 +86,6 @@ def download_file(url, filename):
     except Exception:
         return False
         
-
-
-
-
-class RichTextError (StandardError):
-    """Class for errors with RichText"""
-
-    # NOTE: this is only used for saving and loading in textview
-    # should this stay here?
-    
-    def __init__(self, msg, error):
-        StandardError.__init__(self, msg)
-        self.msg = msg
-        self.error = error
-    
-    def __str__(self):
-        if self.error:
-            return str(self.error) + "\n" + self.msg
-        else:
-            return self.msg
 
 
 
@@ -522,17 +506,93 @@ class RichTextImage (RichTextAnchor):
 #=============================================================================
 # font
 
-class RichTextFontIndent (RichTextFont):
+class RichTextFont (RichTextBaseFont):
     """Class for representing a font in a simple way"""
     
     def __init__(self):
+        RichTextBaseFont.__init__(self)
+        
+        # TODO: remove hard-coding
+        self.mods = {}
+        self.justify = "left"
+        self.family = "Sans"
+        self.size = 10
+        self.fg_color = ""
+        self.bg_color = ""        
         self.indent = 0
         self.par_type = "none"
 
-    def set_font(self, attr, tags, current_tags, tag_table):
-        # set basic font attr
-        RichTextFont.set_font(self, attr, tags, current_tags, tag_table)
 
+    def set_font(self, attr, tags, current_tags, tag_table):    
+        # set basic font attr
+        RichTextBaseFont.set_font(self, attr, tags, current_tags, tag_table)
+        
+        font = attr.font
+        
+        if font:
+            # get font family
+            self.family = font.get_family()
+
+            # get size in points (get_size() returns pango units)
+            PIXELS_PER_PANGO_UNIT = 1024
+            self.size = font.get_size() // PIXELS_PER_PANGO_UNIT
+
+            weight = font.get_weight()
+            style = font.get_style()
+        else:
+            # TODO: replace this hard-coding
+            self.family = "Sans"
+            self.size = 10
+            weight = pango.WEIGHT_NORMAL
+            style = pango.STYLE_NORMAL
+        
+        
+        # get colors
+        self.fg_color = color_to_string(attr.fg_color)
+        self.bg_color = color_to_string(attr.bg_color)
+
+        bold = tag_table.lookup("bold")
+        italic = tag_table.lookup("italic")
+        underline = tag_table.lookup("underline")
+        tt = tag_table.lookup("tt")
+        nowrap = tag_table.lookup("nowrap")
+
+        tag_set = set(tags)
+        
+        # set modifications (current tags override)
+        self.mods = {"bold":
+                     bold in current_tags or
+                     bold in tag_set,
+                     "italic": 
+                     italic in current_tags or
+                     italic in tag_set,
+                     "underline":
+                     underline in current_tags or
+                     underline in tag_set,
+                     "tt":
+                     tt in current_tags or
+                     tt in tag_set or
+                     self.family == "Monospace",
+                     "nowrap":
+                     nowrap in current_tags or
+                     nowrap in tag_set}
+        
+        # set justification
+        self.justify = RichTextJustifyTag.justify2name[attr.justification]
+        
+        # current tags override for family and size
+        for tag in current_tags:
+            if isinstance(tag, RichTextJustifyTag):
+                self.justify = tag.get_justify()
+            elif isinstance(tag, RichTextFamilyTag):
+                self.family = tag.get_family()            
+            elif isinstance(tag, RichTextSizeTag):
+                self.size = tag.get_size()
+            elif isinstance(tag, RichTextFGColorTag):
+                self.fg_color = tag.get_color()
+            elif isinstance(tag, RichTextBGColorTag):
+                self.bg_color = tag.get_color()
+                
         # set indentation info
         for tag in tags:
             if isinstance(tag, RichTextIndentTag):
@@ -560,7 +620,7 @@ class RichTextBuffer (RichTextBaseBuffer):
     """
     
     def __init__(self, textview=None):
-        RichTextBaseBuffer.__init__(self)
+        RichTextBaseBuffer.__init__(self, RichTextTagTable())
 
         # indentation manager
         self._indent = IndentManager(self)
@@ -886,7 +946,7 @@ class RichTextBuffer (RichTextBaseBuffer):
         """Get font under cursor"""
 
         if font is None:
-            font = RichTextFontIndent()
+            font = RichTextFont()
         return RichTextBaseBuffer.get_font(self, font)
 
 

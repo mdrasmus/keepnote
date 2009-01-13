@@ -714,6 +714,18 @@ class TakeNote (object):
             return proc.wait()
 
 
+    def open_webpage(self, url):
+        """View a node with an external web browser"""
+
+        if url:
+            self.run_external_app("web_browser", url)
+        
+            
+
+    #================================
+    # extensions
+
+
     def scan_extensions_dir(self, extensions_dir):
         """Scan extensions directory"""
         

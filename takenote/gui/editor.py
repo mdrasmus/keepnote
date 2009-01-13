@@ -19,6 +19,8 @@ import gobject
 
 # takenote imports
 import takenote
+from takenote import \
+     TakeNoteError
 from takenote.notebook import \
      NoteBookError, \
      NoteBookVersionError
@@ -40,8 +42,9 @@ from takenote.gui.richtext.richtext_tags import color_tuple_to_string
 
 class TakeNoteEditor (gtk.VBox):
 
-    def __init__(self):
+    def __init__(self, app):
         gtk.VBox.__init__(self, False, 0)
+        self._app = app
         self._notebook = None
         
         # state
@@ -62,6 +65,7 @@ class TakeNoteEditor (gtk.VBox):
         self._textview.connect("modified", self._on_modified_callback)
         self._textview.connect("child-activated", self._on_child_activated)
         self._textview.connect("loaded", self._on_loaded)
+        self._textview.connect("visit-url", self._on_visit_url)
         self._textview.disable()
         self._sw.get_vadjustment().connect("value-changed", self._on_scroll)
         #self._sw.get_vadjustment().connect("changed", self._on_scroll_setup)
@@ -106,6 +110,13 @@ class TakeNoteEditor (gtk.VBox):
         #    self._sw.get_vadjustment().set_value(self._queued_scroll)
         #    #self._queued_scroll = None
 
+
+    def _on_visit_url(self, textview, url):
+
+        try:
+            self._app.open_webpage(url)
+        except TakeNoteError, e:
+            self.emit("error", e.msg, e)
                             
     
     def get_textview(self):
@@ -275,6 +286,11 @@ class EditorMenus (object):
         #mod_button.set_active(font.mods[mod])
         #mod_button.handler_unblock(mod_id)
 
+
+    def on_toggle_link(self):
+        self._editor.get_textview().toggle_link()
+    
+
     def on_justify(self, justify):
         """Set font justification"""
         self._editor.get_textview().set_justify(justify)
@@ -412,17 +428,25 @@ class EditorMenus (object):
         # fixed-width tool
         self.fixed_width = self._make_toggle_button(
             toolbar, tips,
-            "Monospace", "fixed-width.png", gtk.STOCK_UNDERLINE,
+            "Monospace", "fixed-width.png", None,
             lambda: self._editor.get_textview().toggle_font_mod("tt"),
+            use_stock_icons)
+
+        # link
+        self.link = self._make_toggle_button(
+            toolbar, tips,
+            "Make Link", "link.png", None,
+            lambda: self._editor.get_textview().toggle_link(),
             use_stock_icons)
 
         # no wrap tool
         self.no_wrap = self._make_toggle_button(
             toolbar, tips,
-            "No Wrapping", "no-wrap.png", gtk.STOCK_UNDERLINE,
+            "No Wrapping", "no-wrap.png", None,
             lambda: self._editor.get_textview().toggle_font_mod("nowrap"),
             use_stock_icons)
 
+        
 
         # family combo
         self.font_family_combo = FontSelector()
@@ -460,8 +484,7 @@ class EditorMenus (object):
         # TODO: code in proper default color
         self.fg_color_button = FgColorTool(14, 15, (0, 0, 0))
         self.fg_color_button.connect("set-color",
-                                     lambda w, color: self.on_color_set("fg",
-                                                                     color))
+            lambda w, color: self.on_color_set("fg", color))
         tips.set_tip(self.fg_color_button, "Set Text Color")
         toolbar.insert(self.fg_color_button, -1)
         
@@ -469,8 +492,7 @@ class EditorMenus (object):
         # font bg color
         self.bg_color_button = BgColorTool(14, 15, (65535, 65535, 65535))
         self.bg_color_button.connect("set-color",
-                                     lambda w, color: self.on_color_set("bg",
-                                                                     color))
+            lambda w, color: self.on_color_set("bg", color))
         tips.set_tip(self.bg_color_button, "Set Background Color")
         toolbar.insert(self.bg_color_button, -1)
 
@@ -539,6 +561,10 @@ class EditorMenus (object):
              "<control>M", lambda w,e: self.on_mod("tt"), 0,
              "<ImageItem>",
              get_resource_pixbuf("fixed-width.png")),
+            ("/Format/Lin_k",
+             "<control><shift>L", lambda w, e: self.on_toggle_link(), 0,
+             "<ImageItem>",
+             get_resource_pixbuf("link.png")),
             ("/Format/No _Wrapping",
              None, lambda w, e: self.on_mod("nowrap"), 0,
              "<ImageItem>",

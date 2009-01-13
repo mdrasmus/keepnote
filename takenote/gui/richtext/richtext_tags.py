@@ -4,11 +4,18 @@
 
 """
 
-
+# pygtk imports
 import pygtk
 pygtk.require('2.0')
 import gtk, gobject, pango
 from gtk import gdk
+
+
+# richtext imports
+from takenote.gui.richtext.richtextbasebuffer import \
+     RichTextBaseTagTable, \
+     RichTextTagClass, \
+     RichTextTag
 
 
 # default indentation sizes
@@ -49,7 +56,7 @@ def color_tuple_to_string(color):
 
 
 
-class RichTextTagTable (gtk.TextTagTable):
+class RichTextTagTable (RichTextBaseTagTable):
     """A tag table for a RichTextBuffer"""
 
     # Class Tags:
@@ -59,18 +66,7 @@ class RichTextTagTable (gtk.TextTagTable):
 
     
     def __init__(self):
-        gtk.TextTagTable.__init__(self)
-
-        self._tag_classes = {}
-        self._tag2class = {}
-
-        self.setup()
-        
-
-    def setup(self):
-        """Setup builtin tags and tag classes"""
-
-        # TODO: maybe move to richtextbase?
+        RichTextBaseTagTable.__init__(self)
 
         # class sets
         self.new_tag_class("mod", RichTextModTag, exclusive=False)
@@ -166,60 +162,6 @@ class RichTextTagTable (gtk.TextTagTable):
         
         raise Exception("unknown tag '%s'" % name)
 
-
-
-class RichTextTagClass (object):
-    """A class of tags that specify the same attribute
-    """
-
-    def __init__(self, name, class_type, exclusive=True):
-        """
-        name:        name of the class of tags (i.e. "family", "fg_color")
-        class_type:  RichTextTag class for all tags in class
-        exclusive:   bool for whether tags in class should be mutually exclusive
-        """
-        
-        self.name = name
-        self.tags = set()
-        self.class_type = class_type
-        self.exclusive = exclusive
-
-
-
-class RichTextTag (gtk.TextTag):
-    """A TextTag in a RichTextBuffer"""
-    def __init__(self, name, **kargs):
-        gtk.TextTag.__init__(self, name)
-
-        for key, val in kargs.iteritems():
-            self.set_property(key.replace("_", "-"), val)
-
-    def can_be_current(self):
-        return True
-
-    def can_be_copied(self):
-        return True
-
-    def is_par_related(self):
-        return False
-
-    @classmethod
-    def tag_name(cls):
-        # NOT implemented
-        raise Exception("Not implemented")
-
-    @classmethod
-    def get_value(cls, tag_name):
-        # NOT implemented
-        raise Exception("Not implemented")
-
-    @classmethod
-    def is_name(cls, tag_name):
-        return False
-
-    @classmethod
-    def make_from_name(cls, tag_name):        
-        return cls(cls.get_value(tag_name))
 
 
 class RichTextModTag (RichTextTag):
@@ -466,18 +408,21 @@ class RichTextBulletTag (RichTextTag):
 
 class RichTextLinkTag (RichTextTag):
     """A tag that represents hyperlink"""
+
+    LINK_COLOR = "#00000000ffff"
     
     def __init__(self, href):
         RichTextTag.__init__(self, "link %s" % href,
-                             foreground="#00000000ffff")
+                             foreground=self.LINK_COLOR,
+                             underline=pango.UNDERLINE_SINGLE)
         self._href = href
 
     def get_href(self):
         return self._href
 
     @classmethod
-    def tag_name(cls, color):
-        return "link " + self._href
+    def tag_name(cls, href):
+        return "link " + href
 
     @classmethod
     def get_value(cls, tag_name):
