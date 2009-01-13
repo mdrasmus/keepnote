@@ -59,6 +59,14 @@ from takenote import tasklib
 class LinkEditor (gtk.Frame):
     def __init__(self):
         gtk.Frame.__init__(self, "Link editor")
+
+        self.use_text = False
+        self.current_url = None
+
+        self.layout()
+
+    def layout(self):
+        # layout
         align = gtk.Alignment()
         self.add(align)
         align.set_padding(5, 5, 5, 5)
@@ -85,11 +93,30 @@ class LinkEditor (gtk.Frame):
     def _on_use_text_toggled(self, check):
         self.use_text = check.get_active()
 
+        if self.use_text and self.current_url is not None:
+            self.url_text.set_text(self.current_url)
+            self.url_text.set_sensitive(False)
+            self.set_url()
+        else:
+            self.url_text.set_sensitive(True)
+    
     def _on_url_text_done(self, widget, event):
         self.set_url()
 
     def set_url(self):
         print self.url_text.get_text()
+
+    def on_font_change(self, editor, font):
+        """Callback for when font changes under richtext cursor"""
+
+        if font.link:
+            self.set_sensitive(True)
+            self.current_url = font.link.get_href()
+            self.url_text.set_text(self.current_url)
+        else:
+            self.set_sensitive(False)
+            self.current_url = None
+            self.url_text.set_text("")
 
 
 class TakeNoteWindow (gtk.Window):
@@ -162,6 +189,7 @@ class TakeNoteWindow (gtk.Window):
         self.editor_pane.pack_start(self.editor, True, True, 0)
 
         self.link_editor = LinkEditor()
+        self.editor.connect("font-change", self.link_editor.on_font_change)
         #self.editor_pane.add2(self.link_editor)
         self.editor_pane.pack_start(self.link_editor, False, True, 0)
 

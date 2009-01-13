@@ -37,7 +37,6 @@ from takenote.gui.richtext.richtext_tags import color_tuple_to_string
 
 
 
-# TODO: may need to update fonts on page change
 
 
 class TakeNoteEditor (gtk.VBox):

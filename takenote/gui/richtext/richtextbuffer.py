@@ -22,6 +22,13 @@ from takenote.gui.richtext.textbuffer_tools import \
      insert_buffer_contents, \
      buffer_contents_apply_tags
 
+# richtext imports
+from takenote.gui.richtext.richtextbasebuffer import \
+     RichTextBaseBuffer, \
+     RichTextBaseFont, \
+     add_child_to_buffer
+from takenote.gui.richtext.richtextbuffer_indent import IndentManager
+
 # richtext tags imports
 from takenote.gui.richtext.richtext_tags import \
      RichTextTagTable, \
@@ -37,15 +44,6 @@ from takenote.gui.richtext.richtext_tags import \
      RichTextLinkTag, \
      color_to_string
 
-# richtext imports
-from takenote.gui.richtext.richtextbasebuffer import \
-     RichTextBaseBuffer, \
-     RichTextBaseFont, \
-     add_child_to_buffer
-from takenote.gui.richtext.richtextbuffer_indent import IndentManager
-
-
-# TODO: fix bug with spell check interferring with underline tags
 
 # these tags will not be enumerated by iter_buffer_contents
 IGNORE_TAGS = set(["gtkspell-misspelled"])
@@ -69,7 +67,7 @@ DEFAULT_HR_COLOR = (0, 0, 0)
 # TODO: Maybe move somewhere more general
 def download_file(url, filename):
     """Download a url to a file 'filename'"""
-
+    
     try:
         # open url and download image
         opener = urllib2.build_opener()
@@ -83,7 +81,7 @@ def download_file(url, filename):
 
         return True
 
-    except Exception:
+    except Exception, e:
         return False
         
 
@@ -391,7 +389,7 @@ class RichTextImage (RichTextAnchor):
             f, imgfile = tempfile.mkstemp("", "takenote")
             os.close(f)
 
-            if download_url(url, imgfile):
+            if download_file(url, imgfile):
                 self.set_from_file(imgfile)
                 self.set_filename(filename)
             else:
@@ -518,9 +516,10 @@ class RichTextFont (RichTextBaseFont):
         self.family = "Sans"
         self.size = 10
         self.fg_color = ""
-        self.bg_color = ""        
+        self.bg_color = ""
         self.indent = 0
         self.par_type = "none"
+        self.link = None
 
 
     def set_font(self, attr, tags, current_tags, tag_table):    
@@ -598,6 +597,9 @@ class RichTextFont (RichTextBaseFont):
             if isinstance(tag, RichTextIndentTag):
                 self.indent = tag.get_indent()
                 self.par_type = tag.get_par_indent()
+
+            elif isinstance(tag, RichTextLinkTag):
+                self.link = tag
         
         
 
