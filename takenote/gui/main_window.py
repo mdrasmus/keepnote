@@ -56,23 +56,35 @@ from takenote.gui.editor import TakeNoteEditor, EditorMenus
 from takenote import tasklib
 
 
+# TODO: make more checks for start, end not None
+
 class LinkEditor (gtk.Frame):
     def __init__(self):
         gtk.Frame.__init__(self, "Link editor")
 
         self.use_text = False
         self.current_url = None
+        self.active = False
+        self.textview = None
 
         self.layout()
 
+    def set_textview(self, textview):
+        self.textview = textview
+        
+
     def layout(self):
-        # layout
-        align = gtk.Alignment()
-        self.add(align)
-        align.set_padding(5, 5, 5, 5)
+        # layout        
+        self.set_no_show_all(True)
+        
+        self.align = gtk.Alignment()
+        self.add(self.align)
+        self.align.set_padding(5, 5, 5, 5)
+        self.show()        
+        self.align.show_all()
 
         vbox = gtk.VBox(False, 5)
-        align.add(vbox)
+        self.align.add(vbox)
 
         hbox = gtk.HBox(False, 5)
         vbox.pack_start(hbox, True, True, 0)
@@ -83,12 +95,18 @@ class LinkEditor (gtk.Frame):
         self.url_text = gtk.Entry()
         hbox.pack_start(self.url_text, True, True, 0)
         self.url_text.set_width_chars(50)
+        self.url_text.connect("focus-in-event", self._on_url_text_start)
         self.url_text.connect("focus-out-event", self._on_url_text_done)
+        self.url_text.connect("activate", self._on_activate)
 
         self.use_text_check = gtk.CheckButton("_use text as url")
         vbox.pack_start(self.use_text_check, False, False, 0)
         self.use_text_check.connect("toggled", self._on_use_text_toggled)
         self.use_text = self.use_text_check.get_active()
+        
+        if not self.active:
+            self.hide()
+
 
     def _on_use_text_toggled(self, check):
         self.use_text = check.get_active()
@@ -103,20 +121,68 @@ class LinkEditor (gtk.Frame):
     def _on_url_text_done(self, widget, event):
         self.set_url()
 
+    def _on_url_text_start(self, widget, event):
+
+        if self.textview:
+            tag, start, end = self.textview.get_link()
+            self.textview.get_buffer().select_range(start, end)
+
     def set_url(self):
-        print self.url_text.get_text()
+
+        if self.textview is None:
+            return
+        
+        url = self.url_text.get_text()
+        tag, start, end = self.textview.get_link()
+        if start is not None:
+            if url == "":
+                self.textview.set_link(None, start, end)
+            else:
+                self.textview.set_link(url, start, end)
+                              
 
     def on_font_change(self, editor, font):
         """Callback for when font changes under richtext cursor"""
 
         if font.link:
-            self.set_sensitive(True)
+            self.active = True
+            self.show()
+            self.align.show_all()
             self.current_url = font.link.get_href()
             self.url_text.set_text(self.current_url)
-        else:
-            self.set_sensitive(False)
+
+            if self.textview:
+                gobject.idle_add(lambda :
+                self.textview.scroll_mark_onscreen(
+                    self.textview.get_buffer().get_insert()))
+            
+        elif self.active:
+            self.active = False
+            self.hide()
             self.current_url = None
             self.url_text.set_text("")
+        
+
+    def edit(self):
+
+        if self.active:
+            self.url_text.select_region(0, -1)
+            self.url_text.grab_focus()
+
+            if self.textview:
+                tag, start, end = self.textview.get_link()
+                self.textview.get_buffer().select_range(start, end)
+
+    def _on_activate(self, entry):
+
+        if self.textview is None:
+            return
+        
+        tag, start, end = self.textview.get_link()
+        if end:
+            self.set_url()
+            self.textview.get_buffer().place_cursor(end)
+            self.textview.grab_focus()
 
 
 class TakeNoteWindow (gtk.Window):
@@ -177,7 +243,8 @@ class TakeNoteWindow (gtk.Window):
         
         # editor
         self.editor = TakeNoteEditor(self.app)
-        self._editor_menus = EditorMenus(self.editor)        
+        self._editor_menus = EditorMenus(self.editor)
+        self._editor_menus.connect("make-link", self.on_make_link)
         self.editor.connect("font-change", self._editor_menus.on_font_change)
         self.editor.connect("modified", self.on_page_editor_modified)
         self.editor.connect("error", lambda w,t,e: self.error(t, e))
@@ -189,6 +256,7 @@ class TakeNoteWindow (gtk.Window):
         self.editor_pane.pack_start(self.editor, True, True, 0)
 
         self.link_editor = LinkEditor()
+        self.link_editor.set_textview(self.editor.get_textview())
         self.editor.connect("font-change", self.link_editor.on_font_change)
         #self.editor_pane.add2(self.link_editor)
         self.editor_pane.pack_start(self.link_editor, False, True, 0)
@@ -1066,6 +1134,16 @@ class TakeNoteWindow (gtk.Window):
         img = RichTextImage()
         img.set_from_pixbuf(pixbuf)
         self.editor.get_textview().insert_image(img, savename)
+
+
+    #================================================
+    # links
+
+    def on_make_link(self, editor_menu):
+
+        tag, start, end = self.editor.get_textview().get_link()
+        self.link_editor.edit()
+        
 
 
     #=================================================

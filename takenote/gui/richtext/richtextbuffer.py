@@ -861,8 +861,53 @@ class RichTextBuffer (RichTextBaseBuffer):
                     return False
         return True
         
+
+    #=============================================
+    # links
+
+    def get_tag_region(self, it, tag):
+        """
+        Get the start and end TextIters for tag occuring at TextIter it
+        Assumes tag occurs at TextIter it
+        """
+        
+        # get bounds of link tag
+        start = it.copy()
+        if tag not in it.get_toggled_tags(True):
+            start.backward_to_tag_toggle(tag)
+
+        end = it.copy()
+        if tag not in it.get_toggled_tags(False):
+            end.forward_to_tag_toggle(tag)
+
+        return start, end
     
 
+    def get_link(self, it=None):
+        
+        if it is None:
+            # use cursor
+            it = self.get_iter_at_mark(self.get_insert())
+
+        for tag in it.get_tags():
+            if isinstance(tag, RichTextLinkTag):
+                start, end = self.get_tag_region(it, tag)
+                return tag, start, end
+
+        return None, None, None
+
+    
+    def set_link(self, url, start, end):
+
+        if url is None:
+            tag = self.tag_table.lookup(RichTextLinkTag.tag_name(""))
+            self.clear_tag_class(tag, start, end)
+            return None
+        else:
+            tag = self.tag_table.lookup(RichTextLinkTag.tag_name(url))
+            self.apply_tag_selected(tag, start, end)
+            return tag
+        
 
     #==============================================
     # Child callbacks

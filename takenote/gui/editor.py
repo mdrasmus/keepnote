@@ -231,9 +231,11 @@ class FontUI (object):
 
 
 
-class EditorMenus (object):
+class EditorMenus (gobject.GObject):
 
     def __init__(self, editor):
+        gobject.GObject.__init__(self)
+        
         self._editor = editor
         self._font_ui_signals = []     # list of font ui widgets
 
@@ -253,6 +255,7 @@ class EditorMenus (object):
         self.italic.widget.set_active(font.mods["italic"])
         self.underline.widget.set_active(font.mods["underline"])
         self.fixed_width.widget.set_active(font.mods["tt"])
+        self.link.widget.set_active(font.link is not None)
         self.no_wrap.widget.set_active(font.mods["nowrap"])
         
         # update text justification
@@ -287,7 +290,13 @@ class EditorMenus (object):
 
 
     def on_toggle_link(self):
-        self._editor.get_textview().toggle_link()
+
+        textview = self._editor.get_textview()
+        textview.toggle_link()        
+        tag, start, end = textview.get_link()
+
+        if tag is not None:
+            self.emit("make-link")
     
 
     def on_justify(self, justify):
@@ -435,7 +444,7 @@ class EditorMenus (object):
         self.link = self._make_toggle_button(
             toolbar, tips,
             "Make Link", "link.png", None,
-            lambda: self._editor.get_textview().toggle_link(),
+            self.on_toggle_link,
             use_stock_icons)
 
         # no wrap tool
@@ -631,5 +640,6 @@ class EditorMenus (object):
                 get_resource_pixbuf("font.png"))
         ]
 
-
-
+gobject.type_register(EditorMenus)
+gobject.signal_new("make-link", EditorMenus, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, ())

@@ -1026,6 +1026,24 @@ class RichTextView (gtk.TextView):
 
 
 
+    def get_link(self, it=None):
+
+        if self._textbuffer is None:
+            return None, None, None
+        return self._textbuffer.get_link(it)
+
+    
+    def set_link(self, url="", start=None, end=None):
+        if self._textbuffer is None:
+            return
+
+        if start is None or end is None:
+            tagname = RichTextLinkTag.tag_name(url)
+            self._apply_tag(tagname)
+            return self._textbuffer.tag_table.looku(tagname)
+        else:
+            return self._textbuffer.set_link(url, start, end)
+                
 
     #==========================================================
     # Find/Replace
@@ -1188,10 +1206,6 @@ class RichTextView (gtk.TextView):
         self._textbuffer.toggle_tag_selected(
             self._textbuffer.tag_table.lookup(
                 RichTextLinkTag.tag_name("")))
-
-    def set_link(self, url=""):
-        """Sets a link for the selected region"""
-        self._apply_tag(RichTextLinkTag.tag_name(url))
     
     def set_font_family(self, family):
         """Sets the family font of the selection"""
