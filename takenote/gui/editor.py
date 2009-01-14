@@ -292,7 +292,7 @@ class EditorMenus (gobject.GObject):
     def on_toggle_link(self):
 
         textview = self._editor.get_textview()
-        textview.toggle_link()        
+        textview.toggle_link()
         tag, start, end = textview.get_link()
 
         if tag is not None:
@@ -570,7 +570,7 @@ class EditorMenus (gobject.GObject):
              "<ImageItem>",
              get_resource_pixbuf("fixed-width.png")),
             ("/Format/Lin_k",
-             "<control><shift>L", lambda w, e: self.on_toggle_link(), 0,
+             "<control>L", lambda w, e: self.on_toggle_link(), 0,
              "<ImageItem>",
              get_resource_pixbuf("link.png")),
             ("/Format/No _Wrapping",
@@ -582,19 +582,19 @@ class EditorMenus (gobject.GObject):
              None, None, 0, "<Separator>" ),            
             
             ("/Format/_Left Align", 
-             "<control>L", lambda w,e: self.on_justify("left"), 0, 
+             "<shift><control>L", lambda w,e: self.on_justify("left"), 0, 
              "<ImageItem>", 
              get_resource_pixbuf("alignleft.png")),
             ("/Format/C_enter Align", 
-             "<control>E", lambda w,e: self.on_justify("center"), 0, 
+             "<shift><control>E", lambda w,e: self.on_justify("center"), 0, 
              "<ImageItem>", 
              get_resource_pixbuf("aligncenter.png")),
             ("/Format/_Right Align", 
-             "<control>R", lambda w,e: self.on_justify("right"), 0, 
+             "<shift><control>R", lambda w,e: self.on_justify("right"), 0, 
              "<ImageItem>", 
              get_resource_pixbuf("alignright.png")),
             ("/Format/_Justify Align", 
-             "<control>J", lambda w,e: self.on_justify("fill"), 0, 
+             "<shift><control>J", lambda w,e: self.on_justify("fill"), 0, 
              "<ImageItem>", 
              get_resource_pixbuf("alignjustify.png")),
             ("/Format/sep2",

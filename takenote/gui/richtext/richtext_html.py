@@ -1105,6 +1105,8 @@ class HtmlBuffer (HTMLParser):
 
     def prepare_dom_write(self, dom):
         """Prepare a DOM for writing"""
+
+        # TODO: break up into separate functions
         
         # (1) change all <p> tags to li, if inside indent
         # (2) else remove <p>

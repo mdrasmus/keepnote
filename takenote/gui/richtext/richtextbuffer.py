@@ -2,7 +2,7 @@
 # python imports
 import sys, os, tempfile, re
 import urllib2
-
+from itertools import chain
 
 # pygtk imports
 import pygtk
@@ -78,7 +78,7 @@ def download_file(url, filename):
         outfile = open(filename, "wb")
         outfile.write(infile.read())
         outfile.close()
-
+        
         return True
 
     except Exception, e:
@@ -593,7 +593,7 @@ class RichTextFont (RichTextBaseFont):
                 self.bg_color = tag.get_color()
                 
         # set indentation info
-        for tag in tags:
+        for tag in chain(tags, current_tags):
             if isinstance(tag, RichTextIndentTag):
                 self.indent = tag.get_indent()
                 self.par_type = tag.get_par_indent()

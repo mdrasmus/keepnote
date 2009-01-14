@@ -95,6 +95,7 @@ class LinkEditor (gtk.Frame):
         self.url_text = gtk.Entry()
         hbox.pack_start(self.url_text, True, True, 0)
         self.url_text.set_width_chars(50)
+        self.url_text.connect("key-press-event", self._on_key_press_event)
         self.url_text.connect("focus-in-event", self._on_url_text_start)
         self.url_text.connect("focus-out-event", self._on_url_text_done)
         self.url_text.connect("activate", self._on_activate)
@@ -106,6 +107,8 @@ class LinkEditor (gtk.Frame):
         
         if not self.active:
             self.hide()
+
+
 
 
     def _on_use_text_toggled(self, check):
@@ -120,6 +123,7 @@ class LinkEditor (gtk.Frame):
     
     def _on_url_text_done(self, widget, event):
         self.set_url()
+        #pass
 
     def _on_url_text_start(self, widget, event):
 
@@ -134,6 +138,7 @@ class LinkEditor (gtk.Frame):
         
         url = self.url_text.get_text()
         tag, start, end = self.textview.get_link()
+        #print "set", url, start, end
         if start is not None:
             if url == "":
                 self.textview.set_link(None, start, end)
@@ -157,6 +162,7 @@ class LinkEditor (gtk.Frame):
                     self.textview.get_buffer().get_insert()))
             
         elif self.active:
+            self.set_url()            
             self.active = False
             self.hide()
             self.current_url = None
@@ -174,13 +180,24 @@ class LinkEditor (gtk.Frame):
                 self.textview.get_buffer().select_range(start, end)
 
     def _on_activate(self, entry):
+        self.dismiss(True)
 
+
+    def _on_key_press_event(self, widget, event):
+
+        if event.keyval == gtk.gdk.keyval_from_name("Escape"):
+            self.dismiss(False)
+            
+
+    def dismiss(self, set_url):
+        
         if self.textview is None:
             return
         
         tag, start, end = self.textview.get_link()
         if end:
-            self.set_url()
+            if set_url:
+                self.set_url()
             self.textview.get_buffer().place_cursor(end)
             self.textview.grab_focus()
 
@@ -1259,8 +1276,18 @@ class TakeNoteWindow (gtk.Window):
     def on_goto_editor(self):
         """Switch focus to Editor"""
         self.editor.get_textview().grab_focus()
-    
-    
+
+    def on_goto_link(self):
+        """Visit link under cursor"""
+        
+        tag, start, end = self.editor.get_textview().get_link()
+        if tag:
+            url = tag.get_href()            
+            try:
+                self.app.open_webpage(url)
+            except TakeNoteError, e:
+                self.emit("error", e.msg, e)
+
     
     #=====================================================
     # Cut/copy/paste    
@@ -1589,6 +1616,9 @@ class TakeNoteWindow (gtk.Window):
                 "<control>Y", lambda w,e: self.on_goto_listview(), 0, None),
             ("/Go/Go to _Editor",
                 "<control>D", lambda w,e: self.on_goto_editor(), 0, None),
+            ("/Go/Go to Lin_k",
+                "<control>space", lambda w,e: self.on_goto_link(), 0, None),
+
             
             ("/_Options", None, None, 0, "<Branch>"),
             ("/Options/_Spell check", 
