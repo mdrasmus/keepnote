@@ -45,7 +45,7 @@ else:
     PROGRAM_VERSION_TEXT = "%d.%d" % (PROGRAM_VERSION_MAJOR,
                                       PROGRAM_VERSION_MINOR)
 
-WEBSITE = "http://rasm.ods.org/takenote"
+WEBSITE = "http://rasm.ods.org/keepnote"
 
 
 BASEDIR = ""

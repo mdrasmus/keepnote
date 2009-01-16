@@ -1,22 +1,22 @@
-TakeNote INSTALL Instructions
+KeepNote INSTALL Instructions
 =============================
 
 
 Windows Install
 
-  There is a Binary Installer for Windows available on the TakeNote website.
-  It is the recommended way to install TakeNote for Windows.
+  There is a Binary Installer for Windows available on the KeepNote website.
+  It is the recommended way to install KeepNote for Windows.
 
 
 Linux Install
 
   Debian 
     If you run the Debian distribution, I have created a *.deb package for
-    takenote available from the TakeNote website.  This package will 
+    keepnote available from the KeepNote website.  This package will 
     automatically install any dependencies.  Once you download a package
-    takenote_X.Y.Z-1_all.deb you can install it with the command
+    keepnote_X.Y.Z-1_all.deb you can install it with the command
 
-    $ dpkg -i takenote_X.Y.Z-1_all.deb
+    $ dpkg -i keepnote_X.Y.Z-1_all.deb
     
     You most likely need root permissions for this command.
 
@@ -39,32 +39,32 @@ Linux Install
   Once third-party libraries are installed, you can extract the .tar.gz file
   using the command (if you haven't already done so):
 
-    $ tar zxvf takenote-X.Y.Z.tar.gz
+    $ tar zxvf keepnote-X.Y.Z.tar.gz
 
-  Where X.Y.Z is the version of TakeNote you have downloaded.  One of
-  the easiest ways to run takenote, is directly from its source
+  Where X.Y.Z is the version of KeepNote you have downloaded.  One of
+  the easiest ways to run keepnote, is directly from its source
   directory using the command
 
-    $ YOUR_DOWNLOAD_PATH/takenote-X.Y.Z/bin/takenote
+    $ YOUR_DOWNLOAD_PATH/keepnote-X.Y.Z/bin/keepnote
 
   or you can install with python distutils
 
     $ python setup.py install
 
-  To install TakeNote as user you can do 
+  To install KeepNote as user you can do 
 
     $ python setup.py install --prefix=YOUR_INSTALL_LOCATION
 
-  Lastly, TakeNote can be installed using Python's easy_install system
+  Lastly, KeepNote can be installed using Python's easy_install system
 
-    $ easy_install takenote
+    $ easy_install keepnote
 
-  This will download and install TakeNote to your default path.
+  This will download and install KeepNote to your default path.
 
 
 MacOS X Install
 
-  All third-party libraries for the Linux version of TakeNote are 
+  All third-party libraries for the Linux version of KeepNote are 
   cross-platform and should also work for MacOS X.  
 
      - python (http://www.python.org)
@@ -72,19 +72,19 @@ MacOS X Install
      - pygtk (http://www.pygtk.org)
 
   All of these libraries are also available through fink for MaxOS X.  Once
-  installed, TakeNote can be run directly from its source directory
+  installed, KeepNote can be run directly from its source directory
 
-    $ path-to-takenote-src/bin/takenote
+    $ path-to-keepnote-src/bin/keepnote
 
   
-  Alternative: Another option for running TakeNote is to use the Windows 
+  Alternative: Another option for running KeepNote is to use the Windows 
   version in WINE or another Virtual Machine (VMware, etc).
 
 
 =============================================================================
 Windows Build
 
-  Most people will just want to install TakeNote.  For basic installation, 
+  Most people will just want to install KeepNote.  For basic installation, 
   see the Windows Install instructions above.  These instructions are for 
   developers who want to *build* the windows installer.
   
@@ -102,12 +102,12 @@ Windows Build
   NOTE: pygtk-2.12.1-2.win32-py2.5.exe (notice the -2) seems to have a bug
   with get_source_widget()
 
-  Once third-party packages are installed, execute in the takenote source dir:
+  Once third-party packages are installed, execute in the KeepNote source dir:
   
     $ python setup.exe py2exe
 
   - Use Inno to compile installer.iss
   
-  Installer will be in Output/takenote-X.Y.Z.exe
+  Installer will be in Output/keepnote-X.Y.Z.exe
   
   

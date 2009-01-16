@@ -1,10 +1,10 @@
 [Desktop Entry]
 Encoding=UTF-8
 Type=Application
-Name=TakeNote
+Name=KeepNote
 GenericName=Note-taking Application
-Icon=takenote
-Exec=takenote %f
+Icon=keepnote
+Exec=keepnote %f
 Categories=Office
 #MimeType=
 #Terminal=false

@@ -3,10 +3,10 @@ include COPYING
 include LICENSE
 include INSTALL
 include README
-include takenote/images/*.png
-include takenote/images/*.ico
-include takenote/rc/takenote.glade
-include takenote/extensions/backup_tar/*.py
+include keepnote/images/*.png
+include keepnote/images/*.ico
+include keepnote/rc/keepnote.glade
+include keepnote/extensions/backup_tar/*.py
 include desktop/*
 include post_py2exe.py
 include pywin.py

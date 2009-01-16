@@ -1,15 +1,17 @@
-TakeNote Change Log
+KeepNote Change Log
 -------------------
 
-takenote-0.4.6
+keepnote-0.4.6
 --------------
-- new metadat file format
+- external web links
+- new metadata file format
+- changed name to KeepNote
 - more desktop integration
   - use dbus to raise window with desktop shortcut keys
 
 
 takenote-0.4.5 (2008/12/20)
---------------
+---------------------------
 - added "Paste As Text"
 - add progress bars, background tasks
   - backup and restore
@@ -30,7 +32,6 @@ takenote-0.4.5 (2008/12/20)
 
 takenote-0.4.4 (2008/11/06)
 ---------------------------
-
 - added colored font
 - added xdg user configuration support 
 - bug fixes

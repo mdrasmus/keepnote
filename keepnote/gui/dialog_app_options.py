@@ -30,7 +30,7 @@ class ApplicationOptionsDialog (object):
         
     
     def on_app_options(self):
-        self.xml = gtk.glade.XML(get_resource("rc", "takenote.glade"),
+        self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                  "app_config_dialog")
         self.dialog = self.xml.get_widget("app_config_dialog")
         self.dialog.set_transient_for(self.main_window)

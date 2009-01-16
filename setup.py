@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # 
-# setup for TakeNote
+# setup for KeepNote
 #
-# use the following command to install TakeNote:
+# use the following command to install KeepNote:
 #   python setup.py install
 #
 #=============================================================================
@@ -24,8 +24,8 @@ except ImportError:
 #=============================================================================
 # constants
 
-import takenote
-TAKENOTE_VERSION = takenote.PROGRAM_VERSION_TEXT
+import keepnote
+KEEPNOTE_VERSION = keepnote.PROGRAM_VERSION_TEXT
 
 
 #=============================================================================
@@ -48,7 +48,7 @@ def get_extension_files():
             else:
                 # record all other files
                 efiles.setdefault(path2, []).append(filename)
-    walk("takenote/extensions", "extensions")
+    walk("keepnote/extensions", "extensions")
     return efiles
 
 
@@ -65,17 +65,17 @@ def remove_package_dir(filename):
 # resource files/data
 
 # get resources
-resource_files = ["takenote/rc/takenote.glade"]
-image_files = get_image_files("takenote/images")
+resource_files = ["keepnote/rc/keepnote.glade"]
+image_files = get_image_files("keepnote/images")
 efiles = get_extension_files()
 freedesktop_files = [
     # application icon
     ("share/icons/hicolor/48x48/apps",
-     ["desktop/takenote.png"]),
+     ["desktop/keepnote.png"]),
 
     # desktop menu entry
     ("share/applications",
-     ["desktop/takenote.desktop"])]
+     ["desktop/keepnote.desktop"])]
 
 
 # get data files
@@ -88,13 +88,13 @@ if "py2exe" in sys.argv:
     
 else:
     data_files = freedesktop_files
-    package_data = {'takenote':
+    package_data = {'keepnote':
                     map(remove_package_dir,
                         image_files +
                         resource_files)
                     }
     for v in efiles.values():
-        package_data['takenote'].extend(map(remove_package_dir, v))
+        package_data['keepnote'].extend(map(remove_package_dir, v))
 
 
 
@@ -103,11 +103,11 @@ else:
 # setup
 
 setup(
-    name='takenote',
-    version=TAKENOTE_VERSION,
+    name='keepnote',
+    version=KEEPNOTE_VERSION,
     description='A cross-platform note taking application',
     long_description = """
-        TakeNote is a cross-platform note taking application.  Its features 
+        KeepNote is a cross-platform note taking application.  Its features 
         include:
         
         - rich text editing
@@ -120,8 +120,8 @@ setup(
     """,
     author='Matt Rasmussen',
     author_email='rasmus@mit.edu',
-    url='http://rasm.ods.org/takenote/',
-    download_url='http://rasm.ods.org/takenote/download/takenote-%s.tar.gz' % TAKENOTE_VERSION,
+    url='http://rasm.ods.org/keepnote/',
+    download_url='http://rasm.ods.org/keepnote/download/keepnote-%s.tar.gz' % KEEPNOTE_VERSION,
     
     classifiers=[
           'Development Status :: 5 - Production/Stable',
@@ -140,14 +140,14 @@ setup(
           ],
     license="GPL",
     
-    packages=['takenote', 'takenote.gui'],
-    scripts=['bin/takenote'],
+    packages=['keepnote', 'keepnote.gui'],
+    scripts=['bin/keepnote'],
     data_files=data_files,
     package_data=package_data,
     
     windows=[{
-        'script': 'bin/takenote',
-        'icon_resources': [(1, 'takenote/images/takenote.ico')],
+        'script': 'bin/keepnote',
+        'icon_resources': [(1, 'keepnote/images/keepnote.ico')],
         }],
     options = {
         'py2exe' : {

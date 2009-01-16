@@ -54,7 +54,7 @@ class KeepNoteFindDialog (object):
         
 
         
-        self.find_xml = gtk.glade.XML(get_resource("rc", "takenote.glade"))    
+        self.find_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"))    
         self.find_dialog = self.find_xml.get_widget("find_dialog")
         self.find_dialog.connect("delete-event", lambda w,e: self.on_find_response("close"))
         self.find_last_pos = -1

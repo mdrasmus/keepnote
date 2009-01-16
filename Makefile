@@ -1,10 +1,10 @@
 #
-# Makefile for TakeNote
+# Makefile for KeepNote
 #
 # I keep common building task here
 #
 
-PKG=takenote
+PKG=keepnote
 VERSION=0.4.6
 
 # release files
@@ -24,8 +24,8 @@ EBUILD=dist/$(EBUILDFILE)
 UPLOAD_FILES=$(SDIST) $(RPM) $(DEB) $(EBUILD)
 
 # personal www paths
-LINUX_WWW=/var/www/dev/rasm/takenote
-WIN_WWW=/z/mnt/big/www/dev/rasm/takenote
+LINUX_WWW=/var/www/dev/rasm/keepnote
+WIN_WWW=/z/mnt/big/www/dev/rasm/keepnote
 
 
 #=============================================================================

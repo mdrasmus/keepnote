@@ -231,9 +231,9 @@ class KeepNoteWindow (gtk.Window):
         # init main window
         self.set_title(keepnote.PROGRAM_NAME)
         self.set_default_size(*keepnote.DEFAULT_WINDOW_SIZE)
-        self.set_icon_list(get_resource_pixbuf("takenote-16x16.png"),
-                           get_resource_pixbuf("takenote-32x32.png"),
-                           get_resource_pixbuf("takenote-64x64.png"))
+        self.set_icon_list(get_resource_pixbuf("keepnote-16x16.png"),
+                           get_resource_pixbuf("keepnote-32x32.png"),
+                           get_resource_pixbuf("keepnote-64x64.png"))
 
 
         # main window signals
@@ -364,7 +364,7 @@ class KeepNoteWindow (gtk.Window):
         # system tray icon
         if self.app.pref.use_systray and gtk.gtk_version > (2, 10):
             self.tray_icon = gtk.StatusIcon()
-            self.tray_icon.set_from_pixbuf(get_resource_pixbuf("takenote-32x32.png"))
+            self.tray_icon.set_from_pixbuf(get_resource_pixbuf("keepnote-32x32.png"))
             self.tray_icon.set_tooltip(keepnote.PROGRAM_NAME)
             self.tray_icon.connect("activate", self.on_tray_icon_activate)
         else:
@@ -1399,7 +1399,7 @@ class KeepNoteWindow (gtk.Window):
         about.set_name(keepnote.PROGRAM_NAME)
         about.set_version(keepnote.PROGRAM_VERSION_TEXT)
         about.set_copyright("Copyright Matt Rasmussen 2008")
-        about.set_logo(get_resource_pixbuf("takenote-icon.png"))
+        about.set_logo(get_resource_pixbuf("keepnote-icon.png"))
         about.set_website(keepnote.WEBSITE)
         about.set_transient_for(self)
         about.set_position(gtk.WIN_POS_CENTER_ON_PARENT)

@@ -1,7 +1,7 @@
 import sys, threading
 
 
-from takenote import listening
+from keepnote import listening
 
 
 STOPPED = 0

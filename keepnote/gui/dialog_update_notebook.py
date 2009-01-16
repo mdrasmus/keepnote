@@ -35,7 +35,7 @@ class UpdateNoteBookDialog (object):
     
     def show(self, notebook_filename):
 
-        self.xml = gtk.glade.XML(get_resource("rc", "takenote.glade"),
+        self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                  "update_notebook_dialog")
         self.dialog = self.xml.get_widget("update_notebook_dialog")
         self.xml.signal_autoconnect(self)
