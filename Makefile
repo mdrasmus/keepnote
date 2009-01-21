@@ -8,7 +8,7 @@ PKG=keepnote
 VERSION=0.4.6
 
 # release files
-INSTALLER=Output/$(PKG)-$(VERSION).exe
+INSTALLER=dest/$(PKG)-$(VERSION).exe
 
 SDISTFILE=$(PKG)-$(VERSION).tar.gz
 RPMFILE=$(PKG)-$(VERSION)-1.noarch.rpm
@@ -35,9 +35,15 @@ winbuild: $(INSTALLER)
 winupload: $(INSTALLER)
 	cp $(INSTALLER) $(WIN_WWW)/download
 
-$(INSTALLER):
+winbuild:
 	python setup.py py2exe
 	iscc installer.iss
+
+winebuild:
+	./wine.sh python setup.py py2exe
+
+wineinstaller:
+	./wine.sh iscc installer.iss
 
 winclean:
 	rm -rf dist

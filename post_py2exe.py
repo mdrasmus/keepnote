@@ -3,6 +3,11 @@ import os, sys, shutil
 
 from pywin import find_path
 
+import keepnote
+
+dest = "dist/keepnote-%s.win/" % keepnote.PROGRAM_VERSION_TEXT
+
+
 
 def include(src, dest, exclude=[]):
     if not os.path.exists(dest):
@@ -12,8 +17,11 @@ def include(src, dest, exclude=[]):
         base = os.path.split(dest)[0]
         if not os.path.exists(base):
             os.makedirs(base)
-        
-        shutil.copytree(src, dest)
+
+        if os.path.isfile(src):
+            shutil.copyfile(src, dest)
+        else:
+            shutil.copytree(src, dest)
 
 def prune(path):
     if os.path.exists(path):
@@ -24,32 +32,32 @@ def prune(path):
             os.remove(path)
 
         
-include(find_path("GTK/lib/gtk-2.0/2.10.0/engines"), "dist/lib/gtk-2.0/2.10.0/engines")
-include(find_path("GTK/lib/gtk-2.0/2.10.0/loaders"), "dist/lib/gtk-2.0/2.10.0/loaders")
-include(find_path("GTK/lib/pango"), "dist/lib/pango")
+include(find_path("GTK/lib/gtk-2.0/2.10.0/engines"), dest+"lib/gtk-2.0/2.10.0/engines")
+include(find_path("GTK/lib/gtk-2.0/2.10.0/loaders"), dest+"lib/gtk-2.0/2.10.0/loaders")
+include(find_path("GTK/lib/pango"), dest+"lib/pango")
 
 # needed for jpeg
-include(find_path("GTK/bin/jpeg62.dll"), "dist/jpeg62.dll")
+include(find_path("GTK/bin/jpeg62.dll"), dest+"jpeg62.dll")
 
-include(find_path("GTK/etc"), "dist/etc")
+include(find_path("GTK/etc"), dest+"etc")
 
 
-include(find_path("GTK/share/applications"), "dist/share/applications")
-include(find_path("GTK/share/gettext"), "dist/share/gettext")
-include(find_path("GTK/share/glade3"), "dist/share/glade3")
-include(find_path("GTK/share/glib-2.0"), "dist/share/glib-2.0")
-include(find_path("GTK/share/gtk-2.0"), "dist/share/gtk-2.0")
-include(find_path("GTK/share/gtkthemeselector"), "dist/share/gtkthemeselector")
-include(find_path("GTK/share/icons/hicolor/16x16/stock"), "dist/share/icons/hicolor/16x16/stock")
-include(find_path("GTK/share/locale/en@quot"), "dist/share/locale/en@quot")
-include(find_path("GTK/share/locale/en@boldquot"), "dist/share/locale/en@boldquot")
-include(find_path("GTK/share/locale/en_CA"), "dist/share/locale/en_CA")
-include(find_path("GTK/share/locale/en_GB"), "dist/share/locale/en_GB")
-include(find_path("GTK/share/themes"), "dist/share/themes")
-include(find_path("GTK/share/xml"), "dist/share/xml")
+include(find_path("GTK/share/applications"), dest+"share/applications")
+include(find_path("GTK/share/gettext"), dest+"share/gettext")
+include(find_path("GTK/share/glade3"), dest+"share/glade3")
+include(find_path("GTK/share/glib-2.0"), dest+"share/glib-2.0")
+include(find_path("GTK/share/gtk-2.0"), dest+"share/gtk-2.0")
+include(find_path("GTK/share/gtkthemeselector"), dest+"share/gtkthemeselector")
+include(find_path("GTK/share/icons/hicolor/16x16/stock"), dest+"share/icons/hicolor/16x16/stock")
+include(find_path("GTK/share/locale/en@quot"), dest+"share/locale/en@quot")
+include(find_path("GTK/share/locale/en@boldquot"), dest+"share/locale/en@boldquot")
+include(find_path("GTK/share/locale/en_CA"), dest+"share/locale/en_CA")
+include(find_path("GTK/share/locale/en_GB"), dest+"share/locale/en_GB")
+include(find_path("GTK/share/themes"), dest+"share/themes")
+include(find_path("GTK/share/xml"), dest+"share/xml")
 
 # make sure accels can be changed
-out = open("dist/etc/gtk-2.0/gtkrc", "a")
+out = open(dest+"etc/gtk-2.0/gtkrc", "a")
 out.write("gtk-can-change-accels = 1\n")
 out.close()
 

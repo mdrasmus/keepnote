@@ -140,19 +140,23 @@ setup(
           ],
     license="GPL",
     
-    packages=['keepnote', 'keepnote.gui'],
+    packages=['keepnote',
+              'keepnote.gui',
+              'keepnote.gui.richtext',
+              'keepnote.compat'],
     scripts=['bin/keepnote'],
     data_files=data_files,
     package_data=package_data,
     
     windows=[{
         'script': 'bin/keepnote',
-        'icon_resources': [(1, 'keepnote/images/keepnote.ico')],
+        #'icon_resources': [(1, 'keepnote/images/keepnote.ico')],
         }],
     options = {
         'py2exe' : {
             'packages': 'encodings',
             'includes': 'cairo,pango,pangocairo,atk,gobject',
+            'dist_dir': 'dist/keepnote-%s.win' % KEEPNOTE_VERSION
         },
         #'sdist': {
         #    'formats': 'zip',

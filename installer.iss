@@ -14,6 +14,7 @@ VersionInfoVersion=0.4.6
 VersionInfoCompany=Matt Rasmussen
 VersionInfoDescription=KeepNote
 ChangesAssociations=yes
+OutputDir=dist\
 ;WizardImageFile=keepnote\images\keepnote-64x64.bmp
 ;WizardImageStretch=no
 ; PrivilegeRequired=admin
@@ -22,7 +23,7 @@ ChangesAssociations=yes
 Name: {app}; Flags: uninsalwaysuninstall;
 
 [Files]
-Source: dist\*; DestDir: {app}; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: dist\keepnote-0.4.6.win\*; DestDir: {app}; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: {group}\KeepNote; Filename: {app}\keepnote.exe; WorkingDir: {app}
