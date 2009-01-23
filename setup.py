@@ -111,9 +111,12 @@ setup(
         include:
         
         - rich text editing
+          - bullet points
+          - fonts/colors
+          - hyperlinks
+          - inline images
         - hierarchical organization for notes
         - full text search
-        - inline images
         - integrated screenshot
         - spell checking (via gtkspell)
         - backup and restore
@@ -150,7 +153,7 @@ setup(
     
     windows=[{
         'script': 'bin/keepnote',
-        #'icon_resources': [(1, 'keepnote/images/keepnote.ico')],
+        'icon_resources': [(1, 'keepnote/images/keepnote.ico')],
         }],
     options = {
         'py2exe' : {

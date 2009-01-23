@@ -882,6 +882,7 @@ class HtmlBuffer (HTMLParser):
 
     
     def append_text(self, text):
+        
         if len(text) > 0:
             last_child = self._dom_ptr.last_child()
             if isinstance(last_child, TextDom):
@@ -897,7 +898,7 @@ class HtmlBuffer (HTMLParser):
     
     def handle_starttag(self, htmltag, attrs):
         """Callback for parsing a starting HTML tag"""
-        
+
         self._newline = False
 
         # start a new tag on htmltag stack
@@ -930,9 +931,11 @@ class HtmlBuffer (HTMLParser):
     def handle_endtag(self, htmltag):
         """Callback for parsing a ending HTML tag"""
 
-
         if not self._partial:
-            if htmltag in ("html", "body") or not self._within_body:
+            if not self._within_body:
+                return
+            if htmltag in ("html", "body"):
+                self._within_body = False
                 return
 
         # keep track of newline status
