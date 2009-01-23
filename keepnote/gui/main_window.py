@@ -648,11 +648,18 @@ class KeepNoteWindow (gtk.Window):
             self.close_notebook()
 
         # check version
-        version = notebooklib.get_notebook_version(filename)
-        if version < notebooklib.NOTEBOOK_FORMAT_VERSION:
-            if not self.update_notebook(filename):
-                self.error("Cannot open notebook (version too old)")
-                return None
+        try:
+            version = notebooklib.get_notebook_version(filename)
+        except Exception, e:
+            # give up opening notebook
+            self.error("Could not load notebook '%s'" % filename,
+                       e, sys.exc_info()[2])
+        else:
+            if version < notebooklib.NOTEBOOK_FORMAT_VERSION:
+                if not self.update_notebook(filename):
+                    self.error("Cannot open notebook (version too old)")
+                    return None
+
 
         
         notebook = notebooklib.NoteBook()
