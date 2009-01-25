@@ -81,7 +81,7 @@ def get_valid_filename(filename, default="folder"):
     filename = re.sub(REGEX_SLASHES, "-", filename)
     filename = re.sub(REGEX_BAD_CHARS, "", filename)
     filename = filename.replace("\t", " ")
-    filename = filename.strip()
+    filename = filename.strip(" \t.")
     
     # don't allow files to start with two underscores
     if filename.startswith("__"):
@@ -230,8 +230,8 @@ class NoteBookError (StandardError):
     
     
     def __str__(self):
-        if self.error:
-            return str(self.error) + "\n" + self.msg
+        if self.error is not None:
+            return repr(self.error) + "\n" + self.msg
         else:
             return self.msg
 
@@ -801,10 +801,7 @@ class NoteBookNodeMetaData (object):
         self.attr = {}
         self._notebook_attrs = {}
 
-        self._parser = xml.parsers.expat.ParserCreate()
-        self._parser.StartElementHandler = self.__meta_start_element
-        self._parser.EndElementHandler = self.__meta_end_element
-        self._parser.CharacterDataHandler = self.__meta_char_data
+        self._parser = None
 
         self.__meta_root = False
         self.__meta_data = None
@@ -821,13 +818,19 @@ class NoteBookNodeMetaData (object):
             
             for key, val in node.iter_attr():
                 attr = notebook_attrs.get(key, None)
-
+                
                 if attr is not None:
                     out.write('<attr key="%s">%s</attr>\n' %
-                              (key, attr.write(val)))
+                              (key, escape(attr.write(val))))
+                elif key == "version":
+                    # skip version attr
+                    pass
+                elif isinstance(val, basestring):
+                    # write unknown attrs
+                    out.write('<attr key="%s">%s</attr>\n' %
+                              (escape(key), escape(val)))
                 else:
-                    # TODO: how handle unknown attrs
-                    # version goes through for now
+                    # drop attribute
                     pass
 
             out.write("</node>\n")
@@ -851,6 +854,11 @@ class NoteBookNodeMetaData (object):
             self.__meta_root = False
             self.__meta_data = None
             self.__meta_tag = None
+
+            self._parser = xml.parsers.expat.ParserCreate()
+            self._parser.StartElementHandler = self.__meta_start_element
+            self._parser.EndElementHandler = self.__meta_end_element
+            self._parser.CharacterDataHandler = self.__meta_char_data
 
             infile = open(filename, "rb")
             self._parser.ParseFile(infile)
@@ -904,6 +912,9 @@ class NoteBookNodeMetaData (object):
                 attr = self._notebook_attrs.get(key, None)
                 if attr is not None:
                     self.attr[key] = attr.read(self.__meta_data)
+                else:
+                    # unknown attribute is read as a string
+                    self.attr[key] = self.__meta_data
 
         # clear state
         self.__meta_tag = None

@@ -1,7 +1,7 @@
 import os, shutil, unittest, codecs
 
 
-from takenote import safefile
+from keepnote import safefile
 
 
 def mk_clean_dir(dirname):

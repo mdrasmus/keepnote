@@ -80,6 +80,8 @@ class LinkEditor (gtk.Frame):
         self.align = gtk.Alignment()
         self.add(self.align)
         self.align.set_padding(5, 5, 5, 5)
+        self.align.set(0, 0, 1, 1)
+
         self.show()        
         self.align.show_all()
 
@@ -87,24 +89,25 @@ class LinkEditor (gtk.Frame):
         self.align.add(vbox)
 
         hbox = gtk.HBox(False, 5)
+        #self.align.add(hbox)
         vbox.pack_start(hbox, True, True, 0)
 
         label = gtk.Label("url:")
-        hbox.pack_start(label, False, True, 0)
+        hbox.pack_start(label, False, False, 0)
         label.set_alignment(0, .5)
         self.url_text = gtk.Entry()
         hbox.pack_start(self.url_text, True, True, 0)
-        self.url_text.set_width_chars(50)
+        self.url_text.set_width_chars(-1)
         self.url_text.connect("key-press-event", self._on_key_press_event)
         self.url_text.connect("focus-in-event", self._on_url_text_start)
         self.url_text.connect("focus-out-event", self._on_url_text_done)
         self.url_text.connect("activate", self._on_activate)
 
-        self.use_text_check = gtk.CheckButton("_use text as url")
-        vbox.pack_start(self.use_text_check, False, False, 0)
-        self.use_text_check.connect("toggled", self._on_use_text_toggled)
-        self.use_text = self.use_text_check.get_active()
-        
+        #self.use_text_check = gtk.CheckButton("_use text as url")
+        #vbox.pack_start(self.use_text_check, False, False, 0)
+        #self.use_text_check.connect("toggled", self._on_use_text_toggled)
+        #self.use_text = self.use_text_check.get_active()
+
         if not self.active:
             self.hide()
 
@@ -150,6 +153,7 @@ class LinkEditor (gtk.Frame):
 
         if font.link:
             self.active = True
+            self.url_text.set_width_chars(-1)
             self.show()
             self.align.show_all()
             self.current_url = font.link.get_href()

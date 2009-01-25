@@ -1,8 +1,8 @@
-import os, shutil, unittest
+import os, shutil, unittest, traceback, sys
 
 
-from takenote import notebook as notebooklib
-from takenote import notebook_update
+from keepnote import notebook as notebooklib
+from keepnote import notebook_update
 
 
 
@@ -32,12 +32,18 @@ class TestCaseNoteBookUpdate (unittest.TestCase):
                         new_notebook_filename)
 
         # update (in place) the copy
-        notebook_update.update_notebook(new_notebook_filename, new_version)
+        notebook_update.update_notebook(new_notebook_filename, new_version,
+                                        verify=False)
 
         def walk(node):
             attr = dict(list(node.iter_attr()))
             node.write_meta_data()
-            node.read_meta_data()
+
+            try:
+                node.read_meta_data()
+            except:
+                print "error reading node '%s'" % node.get_path()
+                raise
             attr2 = dict(list(node.iter_attr()))
 
             self.assertEquals(attr, attr2)
@@ -64,7 +70,7 @@ class TestCaseNoteBookUpdate (unittest.TestCase):
                         new_notebook_filename)
 
         self.assertEquals(
-            os.system("bin/takenote %s" % new_notebook_filename), 0)
+            os.system("bin/keepnote %s" % new_notebook_filename), 0)
 
 
         

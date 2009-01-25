@@ -51,7 +51,8 @@ class Extension (keepnote.Extension):
         menu.insert(gtk.SeparatorMenuItem(), i+1)
 
         item = gtk.MenuItem("_Backup Notebook")
-        item.connect("activate", lambda w: self.on_archive_notebook(window))
+        item.connect("activate", lambda w: self.on_archive_notebook(window,
+                                                                    window.notebook))
         menu.insert(item, i+2)
 
         item = gtk.MenuItem("_Restore Notebook")
@@ -59,11 +60,8 @@ class Extension (keepnote.Extension):
         menu.insert(item, i+3)
 
 
-    def on_archive_notebook(self, window):
+    def on_archive_notebook(self, window, notebook):
         """Callback from gui for archiving a notebook"""
-
-        if window.notebook is None:
-            return
 
         dialog = gtk.FileChooserDialog("Backup Notebook", window, 
             action=gtk.FILE_CHOOSER_ACTION_SAVE,
@@ -104,10 +102,13 @@ class Extension (keepnote.Extension):
                 filename += ".tar.gz"
 
             window.set_status("Archiving...")
-            self.archive_notebook(window, filename)
+            return self.archive_notebook(window, filename)
+            
 
         elif response == gtk.RESPONSE_CANCEL:
             dialog.destroy()
+            return False
+            
 
 
     def on_restore_notebook(self, window):
@@ -206,15 +207,18 @@ class Extension (keepnote.Extension):
             if error:
                 raise error
             window.set_status("Notebook archived")
+            return True
 
         except NoteBookError, e:
             window.set_status("")
             window.error("Error while archiving notebook:\n%s" % e.msg, e,
                          tracebk)
+            return False
 
         except Exception, e:
             window.set_status("")
             window.error("unknown error", e, tracebk)
+            return False
 
         
 

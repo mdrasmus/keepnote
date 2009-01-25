@@ -5,10 +5,10 @@
 #
 
 PKG=keepnote
-VERSION=0.4.6
+VERSION=0.5
 
 # release files
-INSTALLER=dest/$(PKG)-$(VERSION).exe
+INSTALLER=dist/$(PKG)-$(VERSION).exe
 
 SDISTFILE=$(PKG)-$(VERSION).tar.gz
 RPMFILE=$(PKG)-$(VERSION)-1.noarch.rpm
@@ -21,7 +21,7 @@ DEB=dist/$(DEBFILE)
 EBUILD=dist/$(EBUILDFILE)
 
 
-UPLOAD_FILES=$(SDIST) $(RPM) $(DEB) $(EBUILD)
+UPLOAD_FILES=$(SDIST) $(RPM) $(DEB) $(EBUILD) $(INSTALLER)
 
 # personal www paths
 LINUX_WWW=/var/www/dev/rasm/keepnote
@@ -30,19 +30,24 @@ WIN_WWW=/z/mnt/big/www/dev/rasm/keepnote
 
 #=============================================================================
 # windows build
-winbuild: $(INSTALLER)
 
-winupload: $(INSTALLER)
+winupload:
 	cp $(INSTALLER) $(WIN_WWW)/download
 
 winbuild:
 	python setup.py py2exe
 	iscc installer.iss
 
-winebuild:
-	./wine.sh python setup.py py2exe
+winebuild: dist/$(PKG)-$(VERSION).win/$(PKG).exe
 
-wineinstaller:
+dist/$(PKG)-$(VERSION).win/$(PKG).exe:
+	./wine.sh python setup.py py2exe
+	python fix_pe.py
+
+
+wineinstaller: $(INSTALLER)
+
+$(INSTALLER): dist/$(PKG)-$(VERSION).win/$(PKG).exe
 	./wine.sh iscc installer.iss
 
 winclean:
@@ -70,6 +75,10 @@ $(DEB): $(SDIST)
 ebuild: $(EBUILD)
 $(EBUILD):
 	cp pkg/ebuild/$(PKG)-template.ebuild $(EBUILD)
+
+
+clean:
+	rm -rf $(UPLOAD_FILES)
 
 #=============================================================================
 # linux upload

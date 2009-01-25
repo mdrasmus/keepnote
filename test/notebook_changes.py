@@ -2,17 +2,17 @@ import os, shutil, unittest
 
 from richtext_html import TestCaseHtmlBuffer
 
-# takenote imports
-from takenote import notebook
+# keepnote imports
+from keepnote import notebook
 
-from takenote.gui.richtext_html import HtmlBuffer, nest_indent_tags, \
+from keepnote.gui.richtext.richtext_html import HtmlBuffer, nest_indent_tags, \
      find_paragraphs, P_TAG
 
 import StringIO
-from takenote.gui.richtextbuffer import RichTextBuffer, IGNORE_TAGS, \
+from keepnote.gui.richtext.richtextbuffer import RichTextBuffer, IGNORE_TAGS, \
      RichTextIndentTag
 
-from takenote.gui.textbuffer_tools import \
+from keepnote.gui.richtext.textbuffer_tools import \
      insert_buffer_contents, \
      normalize_tags, \
      iter_buffer_contents, \

@@ -29,7 +29,7 @@ class WaitDialog (object):
         self._task = None
 
     
-    def show(self, title, message, task):
+    def show(self, title, message, task, cancel=True):
         self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                  "wait_dialog")
         self.dialog = self.xml.get_widget("wait_dialog")
@@ -44,6 +44,8 @@ class WaitDialog (object):
         self._task = task
         self._task.run()
 
+        cancel_button = self.xml.get_widget("cancel_button")
+        cancel_button.set_sensitive(cancel)
 
         self.dialog.show()
         proc = threading.Thread(target=self._on_idle)

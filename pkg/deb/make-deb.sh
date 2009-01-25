@@ -1,4 +1,4 @@
-# Make debian packages for TakeNote
+# Make debian packages for Keepnote
 
 if [ $# -lt 1 ]; then
     echo "NEED TO GIVE VERSION NUMBER"
@@ -8,7 +8,7 @@ fi
 # configure
 export DEBFULLNAME="Matt Rasmussen"
 export DEBEMAIL="rasmus@mit.edu"
-PKG_NAME=takenote
+PKG_NAME=keepnote
 PKG_VERSION="$1"
 
 
@@ -37,7 +37,7 @@ if [ $# -gt 1 ]; then
 
     CHANGELOG_MSG="$2"
 else
-    CHANGELOG_MSG="Debian release of takenote-${PKG_VERSION}"
+    CHANGELOG_MSG="Debian release of keepnote-${PKG_VERSION}"
 fi
 
 

@@ -1,5 +1,5 @@
 import os, shutil, unittest
-
+from keepnote import PROGRAM_NAME, PROGRAM_VERSION_TEXT
 
 def mk_clean_dir(dirname):
     if os.path.exists(dirname):
@@ -35,7 +35,7 @@ class TestCaseInstall (unittest.TestCase):
     def test_distutil_sdist(self):
         """Test distutil install"""
 
-        pkg = "takenote-0.4.5"
+        pkg = "keepnote-%s" % PROGRAM_VERSION_TEXT
         sdist = "dist/%s.tar.gz" % pkg
         install_dir = "test/tmp/distutil"
         home_dir = "test/tmp/home"

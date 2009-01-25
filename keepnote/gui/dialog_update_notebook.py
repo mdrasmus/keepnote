@@ -56,7 +56,9 @@ class UpdateNoteBookDialog (object):
 
             # do backup
             if self.saved.get_active():
-                while not self.backup(notebook_filename): pass
+                if not self.backup(notebook_filename):
+                    self.dialog.destroy()
+                    return False
 
             # do update
             def func(task):
@@ -68,7 +70,7 @@ class UpdateNoteBookDialog (object):
             dialog2 = dialog_wait.WaitDialog(self.main_window)
             dialog2.show("Updating Notebook",
                          "Updating notebook...",
-                         task)
+                         task, cancel=False)
 
             ret = not task.aborted()
             ty, err, tb =  task.exc_info()
@@ -93,6 +95,7 @@ class UpdateNoteBookDialog (object):
 
 
     def backup(self, notebook_filename):
+        
         dialog = gtk.FileChooserDialog("Choose Backup Notebook Name",
             self.main_window, 
             action=gtk.FILE_CHOOSER_ACTION_SAVE, #CREATE_FOLDER,
@@ -113,7 +116,7 @@ class UpdateNoteBookDialog (object):
             dialog2 = dialog_wait.WaitDialog(self.dialog)
             dialog2.show("Backing Up Notebook",
                          "Backing up old notebook...",
-                         task)
+                         task, cancel=False)
 
             # handle errors
             if task.aborted():

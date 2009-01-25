@@ -39,7 +39,8 @@ def update_notebook(filename, desired_version, warn=lambda w: False,
         notebook.write_preferences()
 
         # recursively upgrade notes
-        def walk(node):
+        def walk(node):            
+            
             try:
                 if isinstance(node, old_notebooklib.NoteBookTrash):
                     # create new content-type: trash
@@ -86,6 +87,7 @@ def update_notebook(filename, desired_version, warn=lambda w: False,
 
 
 def write_meta_data(node):
+    
     try:
         filename = notebooklib.get_node_meta_file(node.get_path())
         out = safefile.open(filename, "w")

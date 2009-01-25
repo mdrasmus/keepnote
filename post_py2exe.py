@@ -62,6 +62,7 @@ out.write("gtk-can-change-accels = 1\n")
 out.close()
 
 
+
 #prune("dist/share/doc")
 #prune("dist/share/gtk-doc")
 #for name in os.listdir("dist/share/locale"):
