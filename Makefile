@@ -71,7 +71,8 @@ clean:
 winebuild: $(WINEXE)
 $(WINEXE):
 	./wine.sh python setup.py py2exe
-	python fix_pe.py
+	./wine.sh python setup.py py2exe
+	python pkg/win/fix_pe.py
 
 
 wineinstaller: $(WININSTALLER)
@@ -79,10 +80,11 @@ $(WININSTALLER): $(WINEXE) $(WININSTALLER_SRC)
 	./wine.sh iscc $(WININSTALLER_SRC)
 
 $(WININSTALLER_SRC):
-	python make-win-installer-src.py > $(WININSTALLER_SRC)
+	python pkg/win/make-win-installer-src.py \
+		pkg/win/installer-template.iss > $(WININSTALLER_SRC)
 
 winclean:
-	rm -f $(WININSTALLER) $(WININSTALLER_SRC)
+	rm -rf $(WININSTALLER) $(WININSTALLER_SRC) $(WINDIR)
 
 #=============================================================================
 # linux upload

@@ -172,4 +172,4 @@ setup(
 
 # execute post-build script
 if "py2exe" in sys.argv:
-    execfile("post_py2exe.py")
+    execfile("pkg/win/post_py2exe.py")
