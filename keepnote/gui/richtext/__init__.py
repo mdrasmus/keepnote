@@ -498,7 +498,19 @@ class RichTextView (gtk.TextView):
 
         if not self._textbuffer:
             return
-        
+
+        # in preference order
+        accepted_targets = MIME_IMAGES + \
+                           ["text/uri-list",
+                            "text/html",
+                            "text/plain"]
+
+        for target in accepted_targets:
+            if target in drag_context.targets:
+                textview.drag_dest_set_target_list([(target, 0, 0)])
+                break
+
+        '''
         # check for image targets
         img_target = self.drag_dest_find_target(drag_context, 
                                                 [(x, 0, 0)
@@ -507,7 +519,7 @@ class RichTextView (gtk.TextView):
              
         if img_target is not None and img_target != "NONE":
             textview.drag_dest_set_target_list([(img_target, 0, 0)])
-        
+            
         elif "application/pdf" in drag_context.targets:
             textview.drag_dest_set_target_list([("application/pdf", 0, 0)])
 
@@ -516,7 +528,7 @@ class RichTextView (gtk.TextView):
             
         else:
             textview.drag_dest_set_target_list([("text/plain", 0, 0)])
-            
+        '''
     
     
     def on_drag_data_received(self, widget, drag_context, x, y,
@@ -543,17 +555,33 @@ class RichTextView (gtk.TextView):
             
                 drag_context.finish(True, True, eventtime)
                 self.stop_emission("drag-data-received")
-                
-                
+
         elif self.drag_dest_find_target(drag_context, 
-            [("application/pdf", 0, 0)]) not in (None, "NONE"):
-            # process pdf drop
+            [("text/uri-list", 0, 0)]) not in (None, "NONE"):
+            # process URI drop
+
+            uris = parse_utf(selection_data.data)
+
+            # remove empty lines and comments
+            uris = [x for x in (uri.strip()
+                                for uri in uris.split("\n"))
+                    if len(x) > 0 and x[0] != "#"]
+
+            links = ['<a href="%s">%s</a> ' % (uri, uri) for uri in uris]
+
+            # insert links
+            self.insert_html("<br />".join(links))
             
-            data = selection_data.data
-            self.drop_pdf(data)
-            
-            drag_context.finish(True, True, eventtime)
-            self.stop_emission("drag-data-received")
+                
+        #elif self.drag_dest_find_target(drag_context, 
+        #    [("application/pdf", 0, 0)]) not in (None, "NONE"):
+        #    # process pdf drop
+        #    
+        #    data = selection_data.data
+        #    self.drop_pdf(data)
+        #    
+        #    drag_context.finish(True, True, eventtime)
+        #    self.stop_emission("drag-data-received")
 
         elif self.drag_dest_find_target(drag_context, 
             [("text/html", 0, 0)]) not in (None, "NONE"):
