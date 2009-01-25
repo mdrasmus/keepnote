@@ -111,10 +111,12 @@ setup(
         include:
         
         - rich text editing
+        
           - bullet points
           - fonts/colors
           - hyperlinks
           - inline images
+          
         - hierarchical organization for notes
         - full text search
         - integrated screenshot
