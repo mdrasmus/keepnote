@@ -27,7 +27,7 @@ class TestCaseInstall (unittest.TestCase):
             0)
 
         self.assertEquals(
-            os.system("HOME=%s %s/bin/takenote --no-default" %
+            os.system("HOME=%s %s/bin/keepnote --no-default" %
                       (home_dir, install_dir)),
             0)
 
@@ -48,12 +48,12 @@ class TestCaseInstall (unittest.TestCase):
             0)
         
         self.assertEquals(
-            os.system("python %s/%s/setup.py install --prefix=%s" %
+            os.system("/usr/bin/python2.4 %s/%s/setup.py install --home=%s" %
                       (install_dir, pkg, install_dir)),
             0)
 
         self.assertEquals(
-            os.system("HOME=%s; PYTHONPATH=%s/lib/python2.5/site-packages; %s/bin/takenote --no-default" %
+            os.system("HOME=%s; PYTHONPATH=%s/lib/python; %s/bin/keepnote --no-default" %
                       (home_dir, install_dir, install_dir)),
             0)
 
