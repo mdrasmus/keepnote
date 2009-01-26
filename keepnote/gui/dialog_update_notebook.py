@@ -111,7 +111,13 @@ class UpdateNoteBookDialog (object):
         
         if response == gtk.RESPONSE_OK:
             def func(task):
-                shutil.copytree(notebook_filename, new_filename)
+                try:
+                    shutil.copytree(notebook_filename, new_filename)
+                except Exception, e:
+                    print >>sys.stderr, e
+                    print >>sys.stderr, "'%s' '%s'" % (notebook_filename,
+                                                       new_filename)
+                    raise
             task = tasklib.Task(func)
             dialog2 = dialog_wait.WaitDialog(self.dialog)
             dialog2.show("Backing Up Notebook",

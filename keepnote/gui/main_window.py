@@ -564,7 +564,9 @@ class KeepNoteWindow (gtk.Window):
 
         if response == gtk.RESPONSE_OK:
             self.app.pref.new_notebook_path = os.path.dirname(dialog.get_current_folder())
-            self.open_notebook(dialog.get_filename())
+
+            notebook_file = dialog.get_filename()            
+            self.open_notebook(notebook_file)
 
         dialog.destroy()
 
@@ -650,6 +652,9 @@ class KeepNoteWindow (gtk.Window):
         
         if self.notebook is not None:
             self.close_notebook()
+
+        if os.path.isfile(filename):
+            filename = os.path.dirname(filename)
 
         # check version
         try:
