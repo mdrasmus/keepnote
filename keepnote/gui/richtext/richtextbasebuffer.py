@@ -681,7 +681,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
                 it2 = it.copy()
                 it2.forward_chars(self._next_action.length)
 
-                # suppress undo stack for applying current tags
+                # OLD: suppress undo stack for applying current tags
                 # they are handled by the InsertAction
                 # and do not need to be recorded separately as TagAction's
                 #self.undo_stack.suppress()
