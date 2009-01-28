@@ -177,7 +177,14 @@ class RichTextBaseTagTable (gtk.TextTagTable):
 
 
 class RichTextTagClass (object):
-    """A class of tags that specify the same attribute
+    """
+    A class of tags that specify the same attribute
+
+
+    Class tags cannot overlap any other tag of the same class.
+    example: a piece of text cannot have two colors, two families,
+    two sizes, or two justifications.
+
     """
 
     def __init__(self, name, class_type, exclusive=True):
@@ -660,6 +667,9 @@ class RichTextBaseBuffer (gtk.TextBuffer):
             return
 
         paragraph_action = None
+
+        self.begin_user_action()
+        self.undo_stack.do(self._next_action.do, self._next_action.undo, False)
         
         if isinstance(self._next_action, InsertAction):
             
@@ -674,10 +684,12 @@ class RichTextBaseBuffer (gtk.TextBuffer):
                 # suppress undo stack for applying current tags
                 # they are handled by the InsertAction
                 # and do not need to be recorded separately as TagAction's
-                self.undo_stack.suppress()
-                for tag in self._next_action.current_tags:
-                    self.apply_tag(tag, it, it2)
-                self.undo_stack.resume()
+                #self.undo_stack.suppress()
+                if not self.undo_stack.is_in_progress():
+                #if 1:
+                    for tag in self._next_action.current_tags:
+                        self.apply_tag(tag, it, it2)
+                #self.undo_stack.resume()
 
             # detect paragraph spliting
             if "\n" in self._next_action.text:
@@ -698,8 +710,6 @@ class RichTextBaseBuffer (gtk.TextBuffer):
                 par_start, par_end = get_paragraph(
                     self.get_iter_at_mark(self._delete_text_mark))
         
-        self.begin_user_action()
-        self.undo_stack.do(self._next_action.do, self._next_action.undo, False)
         
         if paragraph_action == "split":
             self.on_paragraph_split(par_start, par_end)
@@ -926,7 +936,8 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     def _on_end_user_action(self, textbuffer):
         """End a composite undo/redo action"""
         
-        if not self._user_action_ending:
+        if not self.undo_stack.is_in_progress() and \
+           not self._user_action_ending:
             self._user_action_ending = True
             self.on_ending_user_action()
             self._user_action_ending = False

@@ -131,7 +131,11 @@ class LinkEditor (gtk.Frame):
 
         if self.textview:
             tag, start, end = self.textview.get_link()
-            self.textview.get_buffer().select_range(start, end)
+            if tag:
+                self.textview.get_buffer().select_range(start, end)
+            else:
+                self.dismiss(False)
+                
 
     def set_url(self):
 

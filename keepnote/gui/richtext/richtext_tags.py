@@ -59,10 +59,6 @@ def color_tuple_to_string(color):
 class RichTextTagTable (RichTextBaseTagTable):
     """A tag table for a RichTextBuffer"""
 
-    # Class Tags:
-    # Class tags cannot overlap any other tag of the same class.
-    # example: a piece of text cannot have two colors, two families,
-    # two sizes, or two justifications.
 
     
     def __init__(self):
@@ -113,54 +109,6 @@ class RichTextTagTable (RichTextBaseTagTable):
         self.bullet_tag = self.tag_class_add("bullet", RichTextBulletTag())
 
 
-
-    def new_tag_class(self, class_name, class_type, exclusive=True):
-        """Create a new RichTextTag class for RichTextTagTable"""
-        c = RichTextTagClass(class_name, class_type, exclusive)
-        self._tag_classes[class_name] = c
-        return c
-
-    def get_tag_class(self, class_name):
-        """Return the set of tags for a class"""
-        return self._tag_classes[class_name]
-
-    def get_tag_class_type(self, class_name):
-        """Return the RichTextTag type for a class"""
-        return self._tag_classes[class_name].class_type
-
-    def tag_class_add(self, class_name, tag):
-        """Add a tag to a tag class"""
-        c = self._tag_classes[class_name]
-        c.tags.add(tag)
-        self.add(tag)
-        self._tag2class[tag] = c
-        return tag
-        
-
-    def get_class_of_tag(self, tag):
-        """Returns the exclusive class of tag,
-           or None if not an exclusive tag"""
-        return self._tag2class.get(tag, None)
-    
-
-    def lookup(self, name):
-        """Lookup any tag, create it if needed"""
-
-        # test to see if name is directly in table
-        #  modifications and justifications are directly stored
-        tag = gtk.TextTagTable.lookup(self, name)        
-        if tag:
-            return tag
-
-        # make tag from scratch
-        for tag_class in self._tag_classes.itervalues():
-            if tag_class.class_type.is_name(name):
-                tag = tag_class.class_type.make_from_name(name)
-                self.tag_class_add(tag_class.name, tag)
-                return tag
-        
-        
-        raise Exception("unknown tag '%s'" % name)
 
 
 
@@ -417,6 +365,9 @@ class RichTextLinkTag (RichTextTag):
                              underline=pango.UNDERLINE_SINGLE)
         self._href = href
 
+        #self.connect("event", self.on_event)
+
+
     def get_href(self):
         return self._href
 
@@ -431,3 +382,8 @@ class RichTextLinkTag (RichTextTag):
     @classmethod
     def is_name(cls, tag_name):
         return tag_name.startswith("link ")
+
+
+    #def on_event(self, texttag, widget, event, it):
+    #    print event, it
+        

@@ -694,8 +694,7 @@ class RichTextBuffer (RichTextBaseBuffer):
         """
 
         # perfrom queued indentation updates
-        if not self.undo_stack.is_in_progress():
-            self._indent.update_indentation()
+        self._indent.update_indentation()
 
     def on_paragraph_split(self, start, end):
         """Callback for when paragraphs split"""
