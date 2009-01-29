@@ -5,7 +5,7 @@
 #
 
 PKG=keepnote
-VERSION=0.5.1
+VERSION=0.5.2
 
 # release filenames
 SDIST_FILE=$(PKG)-$(VERSION).tar.gz

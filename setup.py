@@ -7,7 +7,14 @@
 #
 #=============================================================================
 
+#=============================================================================
+# constants
 
+import keepnote
+KEEPNOTE_VERSION = keepnote.PROGRAM_VERSION_TEXT
+
+
+#=============================================================================
 # python and distutils imports
 import os, sys, shutil
 #from ez_setup import use_setuptools
@@ -20,12 +27,6 @@ try:
     import py2exe
 except ImportError:
     pass
-
-#=============================================================================
-# constants
-
-import keepnote
-KEEPNOTE_VERSION = keepnote.PROGRAM_VERSION_TEXT
 
 
 #=============================================================================
