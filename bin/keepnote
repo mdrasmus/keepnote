@@ -85,7 +85,7 @@ except ImportError:
 # keepnote imports
 import keepnote.gui.main_window
 from keepnote.commands import get_command_executor
-
+from keepnote.teefile import TeeFileStream
 
 #=============================================================================
 # options
@@ -119,8 +119,8 @@ def start_error_log(show_errors):
 
     errorlog = open(keepnote.get_user_error_log(), "a")
     if show_errors:
-        sys.stderr = keepnote.TeeFileStream([sys.stderr, errorlog],
-                                            autoflush=True)
+        sys.stderr = TeeFileStream([sys.stderr, errorlog],
+                                   autoflush=True)
     else:
         sys.stderr = errorlog
     

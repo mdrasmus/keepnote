@@ -268,26 +268,6 @@ def iter_extensions(extensions_dir):
 
 
 
-
-class TeeFileStream (object):
-    """Create a file stream that forwards writes to multiple streams"""
-    
-    def __init__(self, streams, autoflush=False):
-        self._streams = list(streams)
-        self._autoflush = autoflush
-
-
-    def write(self, data):
-        for stream in self._streams:
-            stream.write(data)
-            if self._autoflush:
-                stream.flush()
-
-    def flush(self):
-        for stream in self._streams:
-            stream.flush()            
-
-
 #=============================================================================
 # Preference data structures
 
@@ -340,13 +320,13 @@ DEFAULT_EXTERNAL_APPS = [
 
 DEFAULT_EXTERNAL_APPS_WINDOWS = [
     ExternalApp("web_browser", "Web Browser",
-                "C:\Program Files\Internet Explorer\iexplore.exe"),
+                "C:\\Program Files\\Internet Explorer\\iexplore.exe"),
     ExternalApp("file_explorer", "File Explorer", "explorer.exe"),
     ExternalApp("text_editor", "Text Editor",
-                "C:\Program Files\Windows NT\Accessories\wordpad.exe"),
+                "C:\Program Files\\Windows NT\\Accessories\\wordpad.exe"),
     ExternalApp("image_editor", "Image Editor", "mspaint.exe"),
     ExternalApp("image_viewer", "Image Viewer",
-                "C:\Program Files\Internet Explorer\iexplore.exe"),
+                "C:\\Program Files\\Internet Explorer\\iexplore.exe"),
     ExternalApp("screen_shot", "Screen Shot", "")
 ]
 
@@ -384,6 +364,9 @@ class KeepNotePreferences (object):
         self.vsash_pos = DEFAULT_VSASH_POS
         self.hsash_pos = DEFAULT_HSASH_POS        
         self.view_mode = DEFAULT_VIEW_MODE
+
+        self.last_treeview_node_path = []
+        
         self.treeview_lines = True
         self.listview_rules = True
         self.use_stock_icons = False
@@ -504,75 +487,81 @@ class KeepNotePreferences (object):
 g_keepnote_pref_parser = xmlo.XmlObject(
     xmlo.Tag("takenote", tags=[
         xmlo.Tag("default_notebook",
-            getobj=("default_notebook", str),
-            set=lambda s: s.default_notebook),
+                 getobj=("default_notebook", str),
+                 set=lambda s: s.default_notebook),
 
         # window presentation options
         xmlo.Tag("view_mode",
-            getobj=("view_mode", str),
-            set=lambda s: s.view_mode),
+                 getobj=("view_mode", str),
+                 set=lambda s: s.view_mode),
         xmlo.Tag("window_size", 
-            getobj=("window_size", lambda x: tuple(map(int,x.split(",")))),
-            set=lambda s: "%d,%d" % s.window_size),
+                 getobj=("window_size", lambda x: tuple(map(int,x.split(",")))),
+                 set=lambda s: "%d,%d" % s.window_size),
         xmlo.Tag("window_maximized",
-            getobj=("window_maximized", lambda x: bool(int(x))),
-            set=lambda s: "%d" % int(s.window_maximized)),
+                 getobj=("window_maximized", lambda x: bool(int(x))),
+                 set=lambda s: "%d" % int(s.window_maximized)),
         xmlo.Tag("vsash_pos",
-            getobj=("vsash_pos", int),
-            set=lambda s: "%d" % s.vsash_pos),
+                 getobj=("vsash_pos", int),
+                 set=lambda s: "%d" % s.vsash_pos),
         xmlo.Tag("hsash_pos",
-            getobj=("hsash_pos", int),
-            set=lambda s: "%d" % s.hsash_pos),
+                 getobj=("hsash_pos", int),
+                 set=lambda s: "%d" % s.hsash_pos),
+
+        #xmlo.Tag("last_treeview_node_path",
+        #         getobj=("last_treeview_node_path",
+        #                 lambda x: x.split("/")),
+        #         set=lambda s: "/".join(s.last_tree_view_node_path)),
+        
         xmlo.Tag("treeview_lines",
-            getobj=("treeview_lines", lambda x: bool(int(x))),
-            set=lambda s: "%d" % int(s.treeview_lines)),
+                 getobj=("treeview_lines", lambda x: bool(int(x))),
+                 set=lambda s: "%d" % int(s.treeview_lines)),
         xmlo.Tag("listview_rules",
-            getobj=("listview_rules", lambda x: bool(int(x))),
-            set=lambda s: "%d" % int(s.listview_rules)),
+                 getobj=("listview_rules", lambda x: bool(int(x))),
+                 set=lambda s: "%d" % int(s.listview_rules)),
         xmlo.Tag("use_stock_icons",
-            getobj=("use_stock_icons", lambda x: bool(int(x))),
-            set=lambda s: "%d" % int(s.use_stock_icons)),
+                 getobj=("use_stock_icons", lambda x: bool(int(x))),
+                 set=lambda s: "%d" % int(s.use_stock_icons)),
 
         # image resize
         xmlo.Tag("image_size_snap",
-            getobj=("image_size_snap", lambda x: bool(int(x))),
-            set=lambda s: "%d" % int(s.image_size_snap)),
+                 getobj=("image_size_snap", lambda x: bool(int(x))),
+                 set=lambda s: "%d" % int(s.image_size_snap)),
         xmlo.Tag("image_size_snap_amount",
-            getobj=("image_size_snap_amount", int),
-            set=lambda s: "%d" % s.image_size_snap_amount),
+                 getobj=("image_size_snap_amount", int),
+                 set=lambda s: "%d" % s.image_size_snap_amount),
 
         xmlo.Tag("use_systray",
-            getobj=("use_systray", lambda x: bool(int(x))),
-            set=lambda s: "%d" % int(s.use_systray)),
+                 getobj=("use_systray", lambda x: bool(int(x))),
+                 set=lambda s: "%d" % int(s.use_systray)),
 
         # misc options
         xmlo.Tag("spell_check",
-            getobj=("spell_check", lambda x: bool(int(x))),
-            set=lambda s: "%d" % int(s.spell_check)),
+                 getobj=("spell_check", lambda x: bool(int(x))),
+                 set=lambda s: "%d" % int(s.spell_check)),
 
         xmlo.Tag("autosave",
-            getobj=("autosave", lambda x: bool(int(x))),
-            set=lambda s: str(int(s.autosave))),
+                 getobj=("autosave", lambda x: bool(int(x))),
+                 set=lambda s: str(int(s.autosave))),
         xmlo.Tag("autosave_time",
-            getobj=("autosave_time", int),
-            set=lambda s: "%d" % s.autosave_time),
-
+                 getobj=("autosave_time", int),
+                 set=lambda s: "%d" % s.autosave_time),
+                 
         # default paths
         xmlo.Tag("new_notebook_path",
-            getobj=("new_notebook_path", str),
-            set=lambda s: s.new_notebook_path),
+                 getobj=("new_notebook_path", str),
+                 set=lambda s: s.new_notebook_path),
         xmlo.Tag("archive_notebook_path",
-            getobj=("archive_notebook_path", str),
-            set=lambda s: s.archive_notebook_path),
+                 getobj=("archive_notebook_path", str),
+                 set=lambda s: s.archive_notebook_path),
         xmlo.Tag("insert_image_path",
-            getobj=("insert_image_path", str),
-            set=lambda s: s.insert_image_path),
+                 getobj=("insert_image_path", str),
+                 set=lambda s: s.insert_image_path),
         xmlo.Tag("save_image_path",
-            getobj=("save_image_path", str),
-            set=lambda s: s.save_image_path),
+                 getobj=("save_image_path", str),
+                 set=lambda s: s.save_image_path),
         
         xmlo.Tag("external_apps", tags=[
-            xmlo.TagMany("app",
+           xmlo.TagMany("app",
                 iterfunc=lambda s: range(len(s.external_apps)),
                 before=lambda (s,i): setattr(s, "_last_app_key", "") or
                                      setattr(s, "_last_app_title", "") or 

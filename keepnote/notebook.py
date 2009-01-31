@@ -7,7 +7,7 @@
 """
 
 # python imports
-import os, sys, shutil, time, re
+import os, sys, shutil, time, re, traceback
 
 # xml imports
 import xml.dom.minidom as xmldom
@@ -25,6 +25,7 @@ from keepnote.timestamp import \
      get_localtime, \
      get_str_timestamp
 from keepnote import safefile
+from keepnote import uuid
 
 
 # constants
@@ -297,7 +298,8 @@ g_default_attrs = [
     NoteBookAttr("Expaned", bool, "expanded"),
     NoteBookAttr("Expanded2", bool, "expanded2"),
     NoteBookAttr("Folder Sort", int, "info_sort"),
-    NoteBookAttr("Folder Sort Direction", int, "info_sort_dir")
+    NoteBookAttr("Folder Sort Direction", int, "info_sort_dir"),
+    NoteBookAttr("Node ID", str, "nodeid")
 ]
 
 
@@ -364,7 +366,20 @@ class NoteBookNode (object):
         path_list.reverse()
         
         return os.path.join(* path_list)
-            
+
+
+    def get_name_path(self):
+        """Returns list of basenames from root to node"""
+
+        path_list = []
+        ptr = self
+        while ptr is not None:
+            path_list.append(ptr._basename)
+            ptr = ptr._parent
+        path_list.pop()
+        path_list.reverse()
+        return path_list
+    
     
     def _set_basename(self, path):
         """Sets the basename directory of the node"""
@@ -656,6 +671,8 @@ class NoteBookNode (object):
                     self._children.append(node)
                 
             except NoteBookError, e:
+                print "error reading", path2
+                traceback.print_exception(*sys.exc_info())
                 continue                
                 # TODO: raise warning, not all children read
                             
@@ -791,7 +808,21 @@ class NoteBookNode (object):
 
     def set_meta_data(self, attr):
         self._version = self._meta.attr.get("version", NOTEBOOK_FORMAT_VERSION)
+
+        # set defaults
+        if "created_time" not in attr:
+            attr["created_time"] = get_timestamp()
+            self._set_dirty(True)
+        if "modified_time" not in attr:
+            attr["modified_time"] = get_timestamp()
+            self._set_dirty(True)            
+        if "nodeid" not in attr:
+            attr["nodeid"] = str(uuid.uuid4())
+            self._set_dirty(True)            
+        
         self._attr.update(attr)
+
+        
         
 
 class NoteBookNodeMetaData (object):
@@ -844,11 +875,6 @@ class NoteBookNodeMetaData (object):
 
         self._notebook_attrs = notebook_attrs
         self.attr = {}
-
-        # prep attrs
-        self.attr["created_time"] = None
-        self.attr["modified_time"] = None    
-
     
         try:            
             self.__meta_root = False
@@ -870,13 +896,6 @@ class NoteBookNodeMetaData (object):
         except Exception, e:
             raise NoteBookError("Cannot read meta data", e)
 
-        # set defaults
-        if self.attr["created_time"] is None:
-            self.attr["created_time"] = get_timestamp()
-            #set_dirty(True)
-        if self.attr["modified_time"] is None:
-            self.attr["modified_time"] = get_timestamp()
-            #self._set_dirty(True)
 
 
     def __meta_start_element(self, name, attrs):
@@ -897,30 +916,34 @@ class NoteBookNodeMetaData (object):
         
     def __meta_end_element(self, name):
 
-        if name == "node":
-            self.__meta_root = False
+        try:
+            if name == "node":
+                self.__meta_root = False
 
-        if not self.__meta_root:
-            return
-        
-        if self.__meta_tag == "version":
-            self.attr["version"] = int(self.__meta_data)
+            if not self.__meta_root:
+                return
 
-        elif self.__meta_tag == "attr":
-            key = self.__meta_attr.get("key", None)
-            if key is not None:
-                attr = self._notebook_attrs.get(key, None)
-                if attr is not None:
-                    self.attr[key] = attr.read(self.__meta_data)
-                else:
-                    # unknown attribute is read as a string
-                    self.attr[key] = self.__meta_data
+            if self.__meta_tag == "version":
+                self.attr["version"] = int(self.__meta_data)
 
-        # clear state
-        self.__meta_tag = None
-        self.__meta_attr = None
-        self.__meta_data = None
-                
+            elif self.__meta_tag == "attr":
+                key = self.__meta_attr.get("key", None)
+                if key is not None:
+                    attr = self._notebook_attrs.get(key, None)
+                    if attr is not None:
+                        self.attr[key] = attr.read(self.__meta_data)
+                    else:
+                        # unknown attribute is read as a string
+                        self.attr[key] = self.__meta_data
+
+            # clear state
+            self.__meta_tag = None
+            self.__meta_attr = None
+            self.__meta_data = None
+        except Exception:
+            # TODO: I could record parsing exceptions here
+            raise
+
         
     def __meta_char_data(self, data):
         """read character data and give it to current tag"""
@@ -1015,6 +1038,8 @@ class NoteBook (NoteBookDir):
         
         if rootdir:
             self._trash_path = get_trash_dir(self.get_path())
+        else:
+            self._trash_path = None
         
         # listeners
         self.node_changed = Listeners()  # node, recurse

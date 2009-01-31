@@ -509,6 +509,14 @@ class KeepNoteWindow (gtk.Window):
         self.app.pref.vsash_pos = self.paned2.get_position()
         self.app.pref.hsash_pos = self.hpaned.get_position()
         self.app.pref.window_maximized = self._maximized
+
+        # TODO: assumes one selected treeview node
+        if len(self._treeview_sel_nodes) > 0:            
+            self.app.pref.last_treeview_name_path = \
+                self._treeview_sel_nodes[0].get_name_path()
+        else:
+            self.app.pref.last_treeview_name_path = []
+        
         
         self.app.pref.write()
         
