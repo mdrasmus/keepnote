@@ -551,6 +551,39 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
                            'line2\n',
                            'END:indent 1 bullet'])
 
+
+
+    def test_bullet_undo(self):
+        """Make sure bullets interact with undo correctly"""
+
+        self.read(self.buffer, StringIO.StringIO(
+            '''<ul><li>line1</li>
+<li style="list-style-type: none"><ul><li>line2</li>
+</ul>
+</li>
+</ul>'''))
+
+        self.write(self.buffer, sys.stdout)
+
+        self.buffer.undo()
+        self.buffer.redo()
+
+        self.write(self.buffer, sys.stdout)
+
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['BEGIN:bullet',
+                           'BEGIN:indent 1 bullet',
+                           u'\u2022 ',
+                           'END:bullet',
+                           'line1\n',
+                           'END:indent 1 bullet',
+                           'BEGIN:bullet',
+                           'BEGIN:indent 2 bullet',                           
+                           u'\u2022 ',
+                           'END:bullet',
+                           'line2\n',
+                           'END:indent 2 bullet'])
+
         
     def test_image1(self):
         """Simple read/write, text should not change"""

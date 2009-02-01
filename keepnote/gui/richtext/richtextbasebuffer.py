@@ -418,6 +418,146 @@ class RichTextBaseFont (object):
         pass
 
 
+class UndoHandler (object):
+    """TextBuffer Handler that provides undo/redo functionality"""
+
+    def __init__(self, textbuffer):
+        self.undo_stack = UndoStack(MAX_UNDOS)
+        self._next_action = None
+        self._buffer = textbuffer
+    
+    
+    def is_insert_allowed(self, it, text):
+        """TODO"""
+        return self._buffer.is_insert_allowed(it, text)
+
+
+    def on_paragraph_change(self, start, end):
+        """TODO"""
+        return self._buffer.on_paragraph_change(start, end)
+
+
+    def on_after_changed(self, action):
+        """TODO"""
+        return self._buffer.on_after_changed(action)
+
+    
+
+    def _on_insert_text(self, textbuffer, it, text, length):
+        """Callback for text insert"""
+
+        # NOTE: GTK does not give us a proper UTF string, so fix it
+        text = unicode(text, "utf_8")
+        length = len(text)
+
+        # TODO: perhaps this could run in a later (separate) listener
+        # check to see if insert is allowed
+        if textbuffer.is_interactive() and \
+           not self.is_insert_allowed(it, text):
+            textbuffer.stop_emission("insert_text")
+            return
+
+        offset = it.get_offset()
+        cursor_insert = (offset == 
+                         textbuffer.get_iter_at_mark(
+            textbuffer.get_insert()).get_offset())
+        
+        # start next action
+        assert self._next_action is None
+        self._next_action = InsertAction(textbuffer, offset, text, length,
+                                         cursor_insert)
+        
+        
+    def _on_delete_range(self, textbuffer, start, end):
+        """Callback for delete range"""
+        # start next action
+        assert self._next_action is None
+        self._next_action = DeleteAction(textbuffer, start.get_offset(), 
+                                         end.get_offset(),
+                                         start.get_slice(end),
+                                         textbuffer.get_iter_at_mark(
+                                             textbuffer.get_insert()).get_offset())
+
+    
+    def _on_insert_pixbuf(self, textbuffer, it, pixbuf):
+        """Callback for inserting a pixbuf"""
+        pass
+    
+    
+    def _on_insert_child_anchor(self, textbuffer, it, anchor):
+        """Callback for inserting a child anchor"""
+
+        # TODO: this could done in a later (separate) listener
+        if not self.is_insert_allowed(it, ""):
+            self.stop_emission("insert_child_anchor")
+            return
+        
+        self._next_action = InsertChildAction(textbuffer, it.get_offset(),
+                                              anchor)
+
+    
+    def _on_apply_tag(self, textbuffer, tag, start, end):
+        """Callback for tag apply"""
+
+        if not isinstance(tag, RichTextTag):
+            # do not process tags that are not rich text
+            # i.e. gtkspell tags (ignored by undo/redo)
+            return
+
+        # TODO: probably ok to run after pushing action on stack
+        # and thus could be in another listener
+        if tag.is_par_related():
+            self.on_paragraph_change(start, end)
+
+        action = TagAction(textbuffer, tag, start.get_offset(), 
+                           end.get_offset(), True)
+        self.undo_stack.do(action.do, action.undo, False)
+        textbuffer.set_modified(True)
+
+    
+    def _on_remove_tag(self, textbuffer, tag, start, end):
+        """Callback for tag remove"""
+
+        if not isinstance(tag, RichTextTag):
+            # do not process tags that are not rich text
+            # i.e. gtkspell tags (ignored by undo/redo)
+            return
+
+        # TODO: probably ok to run after pushing action on stack
+        # and thus could be in another listener
+        if tag.is_par_related():
+            self.on_paragraph_change(start, end)
+
+        action = TagAction(textbuffer, tag, start.get_offset(), 
+                           end.get_offset(), False)
+        self.undo_stack.do(action.do, action.undo, False)
+        textbuffer.set_modified(True)
+
+    
+    
+    def _on_changed(self, textbuffer):
+        """Callback for buffer change"""
+        
+        # process actions that have changed the buffer
+        if not self._next_action:
+            return
+        
+        
+        textbuffer.begin_user_action()
+
+        # add action to undo stack
+        action = self._next_action
+        self._next_action = None
+        self.undo_stack.do(action.do, action.undo, False)
+                
+        # perfrom additional "clean-up" actions
+        # note: only if undo/redo is not currently in progress
+        if not self.undo_stack.is_in_progress():
+            self.on_after_changed(action)
+        
+        textbuffer.end_user_action()
+
+
 
 class RichTextBaseBuffer (gtk.TextBuffer):
     """Basic RichTextBuffer with the following features
@@ -428,19 +568,15 @@ class RichTextBaseBuffer (gtk.TextBuffer):
 
     def __init__(self, tag_table=RichTextBaseTagTable()):
         gtk.TextBuffer.__init__(self, tag_table)
-        self.undo_stack = UndoStack(MAX_UNDOS)
+        #self.undo_stack = UndoStack(MAX_UNDOS)
+        self._undo_handler = UndoHandler(self)
+        self.undo_stack = self._undo_handler.undo_stack
 
         self._insert_mark = self.get_insert()
         self._old_insert_mark = self.create_mark(
             None, self.get_iter_at_mark(self._insert_mark), True)
 
-        # action state
-        self._insert_text_mark = self.create_mark(None, self.get_start_iter(),
-                                                  True)
-        self._delete_text_mark = self.create_mark(None, self.get_start_iter(),
-                                                  True)
         
-        self._next_action = None
         self._current_tags = []
         self._user_action_ending = False
         self._noninteractive = 0
@@ -450,13 +586,15 @@ class RichTextBaseBuffer (gtk.TextBuffer):
             self.connect("begin_user_action", self._on_begin_user_action),
             self.connect("end_user_action", self._on_end_user_action),
             self.connect("mark-set", self._on_mark_set),
-            self.connect("insert-text", self._on_insert_text),
-            self.connect("delete-range", self._on_delete_range),
-            self.connect("insert-pixbuf", self._on_insert_pixbuf),
-            self.connect("insert-child-anchor", self._on_insert_child_anchor),
-            self.connect("apply-tag", self._on_apply_tag),
-            self.connect("remove-tag", self._on_remove_tag),
-            self.connect("changed", self._on_changed)
+
+            # undo unhandler
+            self.connect("insert-text", self._undo_handler._on_insert_text),
+            self.connect("delete-range", self._undo_handler._on_delete_range),
+            self.connect("insert-pixbuf", self._undo_handler._on_insert_pixbuf),
+            self.connect("insert-child-anchor", self._undo_handler._on_insert_child_anchor),
+            self.connect("apply-tag", self._undo_handler._on_apply_tag),
+            self.connect("remove-tag", self._undo_handler._on_remove_tag),
+            self.connect("changed", self._undo_handler._on_changed)
             ]
 
         self._default_attr = gtk.TextAttributes()
@@ -573,152 +711,46 @@ class RichTextBaseBuffer (gtk.TextBuffer):
             # update UI for current fonts
             self.emit("font-change", self.get_font())
     
-    
-    def _on_insert_text(self, textbuffer, it, text, length):
-        """Callback for text insert"""
 
-        # NOTE: GTK does not give us a proper UTF string, so fix it
-        text = unicode(text, "utf_8")
-        length = len(text)
 
-        # check to see if insert is allowed
-        if self.is_interactive() and not self.is_insert_allowed(it, text):
-            self.stop_emission("insert_text")
-            return
-
-        offset = it.get_offset()
-        cursor_insert = (offset == 
-                         self.get_iter_at_mark(self.get_insert()).get_offset())
-        
-        # start next action
-        assert self._next_action is None
-        self._next_action = InsertAction(self, offset, text, length,
-                                         cursor_insert)
-        self.move_mark(self._insert_text_mark, it)
-        
-        
-    def _on_delete_range(self, textbuffer, start, end):
-        """Callback for delete range"""
-        # start next action
-        assert self._next_action is None
-        self._next_action = DeleteAction(self, start.get_offset(), 
-                                         end.get_offset(),
-                                         start.get_slice(end),
-                                         self.get_iter_at_mark(
-                                             self.get_insert()).get_offset())
-        self.move_mark(self._delete_text_mark, start)
-
-    
-    def _on_insert_pixbuf(self, textbuffer, it, pixbuf):
-        """Callback for inserting a pixbuf"""
-        pass
-    
-    
-    def _on_insert_child_anchor(self, textbuffer, it, anchor):
-        """Callback for inserting a child anchor"""
-
-        if not self.is_insert_allowed(it, ""):
-            self.stop_emission("insert_child_anchor")
-            return
-        
-        self._next_action = InsertChildAction(self, it.get_offset(), anchor)
-
-    
-    def _on_apply_tag(self, textbuffer, tag, start, end):
-        """Callback for tag apply"""
-
-        if not isinstance(tag, RichTextTag):
-            # do not process tags that are not rich text
-            # i.e. gtkspell tags (ignored by undo/redo)
-            return
-
-        if tag.is_par_related():
-            self.on_paragraph_change(start, end)
-
-        action = TagAction(self, tag, start.get_offset(), 
-                           end.get_offset(), True)
-        self.undo_stack.do(action.do, action.undo, False)
-        self.set_modified(True)
-
-    
-    def _on_remove_tag(self, textbuffer, tag, start, end):
-        """Callback for tag remove"""
-
-        if not isinstance(tag, RichTextTag):
-            # do not process tags that are not rich text
-            # i.e. gtkspell tags (ignored by undo/redo)
-            return
-
-        if tag.is_par_related():
-            self.on_paragraph_change(start, end)
-
-        action = TagAction(self, tag, start.get_offset(), 
-                           end.get_offset(), False)
-        self.undo_stack.do(action.do, action.undo, False)
-        self.set_modified(True)
-
-    
-    
-    def _on_changed(self, textbuffer):
-        """Callback for buffer change"""
-
-        # process actions that have changed the buffer
-        if not self._next_action:
-            return
-
-        paragraph_action = None
+    def on_after_changed(self, action):
+        """Callback after change has occurred"""
 
         self.begin_user_action()
-        self.undo_stack.do(self._next_action.do, self._next_action.undo, False)
-        
-        if isinstance(self._next_action, InsertAction):
-            
-            # apply current style to inserted text if inserted text is
-            # at cursor
-            if self._next_action.cursor_insert and \
-               len(self._current_tags) > 0:
-                it = self.get_iter_at_mark(self._insert_text_mark)
-                it2 = it.copy()
-                it2.forward_chars(self._next_action.length)
 
-                # OLD: suppress undo stack for applying current tags
-                # they are handled by the InsertAction
-                # and do not need to be recorded separately as TagAction's
-                #self.undo_stack.suppress()
-                if not self.undo_stack.is_in_progress():
-                #if 1:
-                    for tag in self._next_action.current_tags:
-                        self.apply_tag(tag, it, it2)
-                #self.undo_stack.resume()
+        if isinstance(action, InsertAction):
+
+            # apply current style to inserted text if inserted text is
+            # at cursor            
+            if action.cursor_insert and \
+               len(self._current_tags) > 0:
+
+                it = self.get_iter_at_offset(action.pos)
+                it2 = it.copy()
+                it2.forward_chars(action.length)
+
+                for tag in action.current_tags:
+                    self.apply_tag(tag, it, it2)
 
             # detect paragraph spliting
-            if "\n" in self._next_action.text:
-                paragraph_action = "split"
-                par_start = self.get_iter_at_mark(self._insert_text_mark)
+            if "\n" in action.text:
+                par_start = self.get_iter_at_offset(action.pos)
                 par_end = par_start.copy()
                 par_start.backward_line()
-                par_end.forward_chars(self._next_action.length)
+                par_end.forward_chars(action.length)
                 par_end.forward_line()
+                self.on_paragraph_split(par_start, par_end)
 
-            
-                
-        elif isinstance(self._next_action, DeleteAction):
-            
+
+        elif isinstance(action, DeleteAction):
+
             # detect paragraph merging
-            if "\n" in self._next_action.text:
-                paragraph_action = "merge"
+            if "\n" in action.text:
                 par_start, par_end = get_paragraph(
-                    self.get_iter_at_mark(self._delete_text_mark))
-        
-        
-        if paragraph_action == "split":
-            self.on_paragraph_split(par_start, par_end)
-        elif paragraph_action == "merge":
-            self.on_paragraph_merge(par_start, par_end)
-        
-        self._next_action = None            
-        self.end_user_action()
+                    self.get_iter_at_offset(action.start_offset))
+                self.on_paragraph_merge(par_start, par_end)
 
+        self.end_user_action()
 
 
     #==============================================================
