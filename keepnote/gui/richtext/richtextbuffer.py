@@ -26,7 +26,8 @@ from keepnote.gui.richtext.textbuffer_tools import \
 from keepnote.gui.richtext.richtextbasebuffer import \
      RichTextBaseBuffer, \
      RichTextBaseFont, \
-     add_child_to_buffer
+     add_child_to_buffer, \
+     RichTextAnchor
 from keepnote.gui.richtext.richtextbuffer_indent import IndentManager
 
 # richtext tags imports
@@ -90,43 +91,6 @@ def download_file(url, filename):
 #=============================================================================
 # RichText child objects
 
-
-class RichTextAnchor (gtk.TextChildAnchor):
-    """Base class of all anchor objects in a RichTextView"""
-    
-    def __init__(self):
-        gtk.TextChildAnchor.__init__(self)
-        self._widget = None
-        self._buffer = None
-    
-    def get_widget(self):
-        return self._widget
-
-    def set_buffer(self, buf):
-        self._buffer = buf
-    
-    def copy(self):
-        anchor = RichTextAnchor()
-        anchor.set_buffer(self._buffer)
-        return anchor
-    
-    def highlight(self):
-        if self._widget:
-            self._widget.highlight()
-    
-    def unhighlight(self):
-        if self._widget:
-            self._widget.unhighlight()
-
-gobject.type_register(RichTextAnchor)
-gobject.signal_new("selected", RichTextAnchor, gobject.SIGNAL_RUN_LAST, 
-                   gobject.TYPE_NONE, ())
-gobject.signal_new("activated", RichTextAnchor, gobject.SIGNAL_RUN_LAST, 
-                   gobject.TYPE_NONE, ())
-gobject.signal_new("popup-menu", RichTextAnchor, gobject.SIGNAL_RUN_LAST,
-                   gobject.TYPE_NONE, (int, object))
-gobject.signal_new("init", RichTextAnchor, gobject.SIGNAL_RUN_LAST, 
-                   gobject.TYPE_NONE, ())
 
 
 
@@ -792,7 +756,13 @@ class RichTextBuffer (RichTextBaseBuffer):
 
     def _add_child_at_anchor(self, child, textview):
         #print "add", child.get_widget()
+
+        # skip children whose insertion was rejected
+        if child.get_deleted():
+            return
+
         textview.add_child_at_anchor(child.get_widget(), child)
+        
         child.get_widget().show()
         #print "added", child.get_widget()
 

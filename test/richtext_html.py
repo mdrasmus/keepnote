@@ -439,6 +439,59 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         self.assertEquals([display_item(x) for x in contents1],
                           [display_item(x) for x in contents2])
     
+
+
+    def test_bullet_insert(self):
+        """
+        Test whether insert inside bullet string '* ' is rejected
+        """
+
+        self.buffer.toggle_bullet_list()
+        self.buffer.insert_at_cursor("line1")
+
+        contents1 = list(iter_buffer_contents(self.buffer,
+                                              None, None, IGNORE_TAGS))
+
+        it = self.buffer.get_start_iter()
+        it.forward_chars(1)
+        self.buffer.insert(it, "XXX")
+
+        contents2 = list(iter_buffer_contents(self.buffer,
+                                              None, None, IGNORE_TAGS))
+        
+        # check the internal indentation structure
+        self.assertEquals([display_item(x) for x in contents1],
+                          [display_item(x) for x in contents2])
+                
+
+
+    def test_bullet_apply_tag(self):
+        """
+        Test whether par_related tags are properly handled
+        """
+
+        self.buffer.toggle_bullet_list()
+        self.buffer.insert_at_cursor("line1")
+
+        it = self.buffer.get_start_iter()
+        #it.forward_chars(1)
+        it2 = self.buffer.get_start_iter()
+        it2.forward_chars(2)
+
+        tag = self.buffer.tag_table.lookup("indent 2 none")
+        print tag.is_par_related()
+        self.buffer.apply_tag_selected(tag, it, it2)
+        
+        contents1 = list(iter_buffer_contents(self.buffer,
+                                              None, None, IGNORE_TAGS))
+        
+        # check the internal indentation structure
+        self.assertEquals([display_item(x) for x in contents1],
+                          ['BEGIN:indent 2 none',
+                           u'line1\n',
+                           'END:indent 2 none'])
+                
+        
                           
     def test_bullet_blank_lines(self):
         """

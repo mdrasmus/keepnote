@@ -5,8 +5,6 @@ pygtk.require('2.0')
 import gtk, gobject, pango
 from gtk import gdk
 
-# keepnote imports
-from keepnote.undo import UndoStack
 
 # import textbuffer tools
 from keepnote.gui.richtext.textbuffer_tools import \
@@ -16,13 +14,24 @@ from keepnote.gui.richtext.textbuffer_tools import \
      insert_buffer_contents, \
      buffer_contents_apply_tags
 
+from keepnote.gui.richtext.undo_handler import \
+     UndoHandler, \
+     Action, \
+     InsertAction, \
+     DeleteAction, \
+     InsertChildAction, \
+     TagAction
+
+# richtext imports
+from keepnote.gui.richtext.richtextbase_tags import \
+     RichTextBaseTagTable, \
+     RichTextTagClass, \
+     RichTextTag
 
 
 # these tags will not be enumerated by iter_buffer_contents
 IGNORE_TAGS = set(["gtkspell-misspelled"])
 
-# default maximum undo levels
-MAX_UNDOS = 100
 
 
 def add_child_to_buffer(textbuffer, it, anchor):
@@ -106,306 +115,51 @@ def get_paragraphs_selected(buf):
     return start, end
 
 
+
+
 #=============================================================================
-# tags and tag table
 
-
-class RichTextBaseTagTable (gtk.TextTagTable):
-    """A tag table for a RichTextBuffer"""
-
-    # Class Tags:
-    # Class tags cannot overlap any other tag of the same class.
-    # example: a piece of text cannot have two colors, two families,
-    # two sizes, or two justifications.
-
+class RichTextAnchor (gtk.TextChildAnchor):
+    """Base class of all anchor objects in a RichTextView"""
     
     def __init__(self):
-        gtk.TextTagTable.__init__(self)
-
-        self._tag_classes = {}
-        self._tag2class = {}        
-
-
-    def new_tag_class(self, class_name, class_type, exclusive=True):
-        """Create a new RichTextTag class for RichTextBaseTagTable"""
-        c = RichTextTagClass(class_name, class_type, exclusive)
-        self._tag_classes[class_name] = c
-        return c
-
-    def get_tag_class(self, class_name):
-        """Return the set of tags for a class"""
-        return self._tag_classes[class_name]
-
-    def get_tag_class_type(self, class_name):
-        """Return the RichTextTag type for a class"""
-        return self._tag_classes[class_name].class_type
-
-    def tag_class_add(self, class_name, tag):
-        """Add a tag to a tag class"""
-        c = self._tag_classes[class_name]
-        c.tags.add(tag)
-        self.add(tag)
-        self._tag2class[tag] = c
-        return tag
-        
-
-    def get_class_of_tag(self, tag):
-        """Returns the exclusive class of tag,
-           or None if not an exclusive tag"""
-        return self._tag2class.get(tag, None)
+        gtk.TextChildAnchor.__init__(self)
+        self._widget = None
+        self._buffer = None
     
+    def get_widget(self):
+        return self._widget
 
-    def lookup(self, name):
-        """Lookup any tag, create it if needed"""
+    def set_buffer(self, buf):
+        self._buffer = buf
 
-        # test to see if name is directly in table
-        #  modifications and justifications are directly stored
-        tag = gtk.TextTagTable.lookup(self, name)        
-        if tag:
-            return tag
-
-        # make tag from scratch
-        for tag_class in self._tag_classes.itervalues():
-            if tag_class.class_type.is_name(name):
-                tag = tag_class.class_type.make_from_name(name)
-                self.tag_class_add(tag_class.name, tag)
-                return tag
-        
-        
-        raise Exception("unknown tag '%s'" % name)
-
-
-
-class RichTextTagClass (object):
-    """
-    A class of tags that specify the same attribute
-
-
-    Class tags cannot overlap any other tag of the same class.
-    example: a piece of text cannot have two colors, two families,
-    two sizes, or two justifications.
-
-    """
-
-    def __init__(self, name, class_type, exclusive=True):
-        """
-        name:        name of the class of tags (i.e. "family", "fg_color")
-        class_type:  RichTextTag class for all tags in class
-        exclusive:   bool for whether tags in class should be mutually exclusive
-        """
-        
-        self.name = name
-        self.tags = set()
-        self.class_type = class_type
-        self.exclusive = exclusive
-
-
-
-class RichTextTag (gtk.TextTag):
-    """A TextTag in a RichTextBuffer"""
-    def __init__(self, name, **kargs):
-        gtk.TextTag.__init__(self, name)
-
-        for key, val in kargs.iteritems():
-            self.set_property(key.replace("_", "-"), val)
-
-    def can_be_current(self):
-        return True
-
-    def can_be_copied(self):
-        return True
-
-    def is_par_related(self):
-        return False
-
-    @classmethod
-    def tag_name(cls):
-        # NOT implemented
-        raise Exception("Not implemented")
-
-    @classmethod
-    def get_value(cls, tag_name):
-        # NOT implemented
-        raise Exception("Not implemented")
-
-    @classmethod
-    def is_name(cls, tag_name):
-        return False
-
-    @classmethod
-    def make_from_name(cls, tag_name):        
-        return cls(cls.get_value(tag_name))
-
-
-
-#=============================================================================
-# RichTextBaseBuffer undoable actions
-
-class Action (object):
-    """A base class for undoable actions in RichTextBuffer"""
+    def get_buffer(self):
+        return self._buffer
     
-    def __init__(self):
-        pass
+    def copy(self):
+        anchor = RichTextAnchor()
+        anchor.set_buffer(self._buffer)
+        return anchor
     
-    def do(self):
-        pass
+    def highlight(self):
+        if self._widget:
+            self._widget.highlight()
     
-    def undo(self):
-        pass
+    def unhighlight(self):
+        if self._widget:
+            self._widget.unhighlight()
+
+gobject.type_register(RichTextAnchor)
+gobject.signal_new("selected", RichTextAnchor, gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, ())
+gobject.signal_new("activated", RichTextAnchor, gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, ())
+gobject.signal_new("popup-menu", RichTextAnchor, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, (int, object))
+gobject.signal_new("init", RichTextAnchor, gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, ())
 
 
-class InsertAction (Action):
-    """Represents the act of inserting text"""
-    
-    def __init__(self, textbuffer, pos, text, length, cursor_insert=False):
-        Action.__init__(self)
-        self.textbuffer = textbuffer
-        self.current_tags = list(textbuffer.get_current_tags())
-        self.pos = pos
-        self.text = text
-        self.length = length
-        self.cursor_insert = cursor_insert
-        #assert len(self.text) == self.length
-
-        
-    def do(self):
-        start = self.textbuffer.get_iter_at_offset(self.pos)
-        self.textbuffer.place_cursor(start)
-
-        # set current tags and insert text
-        self.textbuffer.set_current_tags(self.current_tags)
-        self.textbuffer.insert(start, self.text)
-    
-    def undo(self):
-        start = self.textbuffer.get_iter_at_offset(self.pos)
-        end = self.textbuffer.get_iter_at_offset(self.pos + self.length)
-        self.textbuffer.place_cursor(start)
-
-        #assert start.get_slice(end) == self.text, \
-        #       (start.get_slice(end), self.text)
-        self.textbuffer.delete(start, end)
-
-
-
-class DeleteAction (Action):
-    """Represents the act of deleting a region in a RichTextBuffer"""
-    
-    def __init__(self, textbuffer, start_offset, end_offset, text,
-                 cursor_offset):
-        Action.__init__(self)
-        self.textbuffer = textbuffer
-        self.start_offset = start_offset
-        self.end_offset = end_offset
-        self.text = text
-        self.cursor_offset = cursor_offset
-        self.contents = []        
-        self._record_range()
-
-
-    def do(self):
-        start = self.textbuffer.get_iter_at_offset(self.start_offset)
-        end = self.textbuffer.get_iter_at_offset(self.end_offset)
-        self.textbuffer.place_cursor(start)
-        self._record_range()
-        self.textbuffer.delete(start, end)
-
-
-    def undo(self):
-        start = self.textbuffer.get_iter_at_offset(self.start_offset)
-        
-        self.textbuffer.begin_user_action()
-        insert_buffer_contents(self.textbuffer, start, self.contents,
-                               add_child=add_child_to_buffer)
-        cursor = self.textbuffer.get_iter_at_offset(self.cursor_offset)
-        self.textbuffer.place_cursor(cursor)
-        self.textbuffer.end_user_action()
-
-    
-    def _record_range(self):
-        start = self.textbuffer.get_iter_at_offset(self.start_offset)
-        end = self.textbuffer.get_iter_at_offset(self.end_offset)
-        self.contents = list(buffer_contents_iter_to_offset(
-            iter_buffer_contents(self.textbuffer, start, end)))
-
-
-
-class InsertChildAction (Action):
-    """Represents the act of inserting a child object into a RichTextBuffer"""
-    
-    def __init__(self, textbuffer, pos, child):
-        Action.__init__(self)
-        self.textbuffer = textbuffer
-        self.pos = pos
-        self.child = child
-        
-    
-    def do(self):
-        it = self.textbuffer.get_iter_at_offset(self.pos)
-
-        # NOTE: this is RichTextBuffer specific
-        self.child = self.child.copy()
-        self.textbuffer.add_child(it, self.child)
-        
-
-    
-    def undo(self):
-        it = self.textbuffer.get_iter_at_offset(self.pos)
-        self.child = it.get_child_anchor()
-        it2 = it.copy()
-        it2.forward_char()
-        self.textbuffer.delete(it, it2)
-        
-
-
-class TagAction (Action):
-    """Represents the act of applying a tag to a region in a RichTextBuffer"""
-    
-    def __init__(self, textbuffer, tag, start_offset, end_offset, applied):
-        Action.__init__(self)
-        self.textbuffer = textbuffer
-        self.tag = tag
-        self.start_offset = start_offset
-        self.end_offset = end_offset
-        self.applied = applied
-        self.contents = []
-        self._record_range()
-        
-    
-    def do(self):
-        start = self.textbuffer.get_iter_at_offset(self.start_offset)
-        end = self.textbuffer.get_iter_at_offset(self.end_offset)
-        self._record_range()
-        if self.applied:
-            self.textbuffer.apply_tag(self.tag, start, end)
-        else:
-            self.textbuffer.remove_tag(self.tag, start, end)
-
-    
-    def undo(self):
-        start = self.textbuffer.get_iter_at_offset(self.start_offset)
-        end = self.textbuffer.get_iter_at_offset(self.end_offset)
-        
-        if self.applied:
-            self.textbuffer.remove_tag(self.tag, start, end)
-        # undo for remove tag is simply to restore old tags
-        buffer_contents_apply_tags(self.textbuffer, self.contents)
-        
-    
-    def _record_range(self):
-        start = self.textbuffer.get_iter_at_offset(self.start_offset)
-        end = self.textbuffer.get_iter_at_offset(self.end_offset)
-
-        # TODO: I can probably discard iter's.  Maybe make argument to
-        # iter_buffer_contents
-        self.contents = filter(lambda (kind, it, param): 
-            kind in ("begin", "end") and param == self.tag,
-            buffer_contents_iter_to_offset(
-                iter_buffer_contents(self.textbuffer, start, end)))
-
-
-
-#=============================================================================
-# RichText Base
 
 class RichTextBaseFont (object):
     """Class for representing a font in a simple way"""
@@ -416,146 +170,6 @@ class RichTextBaseFont (object):
 
     def set_font(self, attr, tags, current_tags, tag_table):
         pass
-
-
-class UndoHandler (object):
-    """TextBuffer Handler that provides undo/redo functionality"""
-
-    def __init__(self, textbuffer):
-        self.undo_stack = UndoStack(MAX_UNDOS)
-        self._next_action = None
-        self._buffer = textbuffer
-    
-    
-    def is_insert_allowed(self, it, text):
-        """TODO"""
-        return self._buffer.is_insert_allowed(it, text)
-
-
-    def on_paragraph_change(self, start, end):
-        """TODO"""
-        return self._buffer.on_paragraph_change(start, end)
-
-
-    def on_after_changed(self, action):
-        """TODO"""
-        return self._buffer.on_after_changed(action)
-
-    
-
-    def _on_insert_text(self, textbuffer, it, text, length):
-        """Callback for text insert"""
-
-        # NOTE: GTK does not give us a proper UTF string, so fix it
-        text = unicode(text, "utf_8")
-        length = len(text)
-
-        # TODO: perhaps this could run in a later (separate) listener
-        # check to see if insert is allowed
-        if textbuffer.is_interactive() and \
-           not self.is_insert_allowed(it, text):
-            textbuffer.stop_emission("insert_text")
-            return
-
-        offset = it.get_offset()
-        cursor_insert = (offset == 
-                         textbuffer.get_iter_at_mark(
-            textbuffer.get_insert()).get_offset())
-        
-        # start next action
-        assert self._next_action is None
-        self._next_action = InsertAction(textbuffer, offset, text, length,
-                                         cursor_insert)
-        
-        
-    def _on_delete_range(self, textbuffer, start, end):
-        """Callback for delete range"""
-        # start next action
-        assert self._next_action is None
-        self._next_action = DeleteAction(textbuffer, start.get_offset(), 
-                                         end.get_offset(),
-                                         start.get_slice(end),
-                                         textbuffer.get_iter_at_mark(
-                                             textbuffer.get_insert()).get_offset())
-
-    
-    def _on_insert_pixbuf(self, textbuffer, it, pixbuf):
-        """Callback for inserting a pixbuf"""
-        pass
-    
-    
-    def _on_insert_child_anchor(self, textbuffer, it, anchor):
-        """Callback for inserting a child anchor"""
-
-        # TODO: this could done in a later (separate) listener
-        if not self.is_insert_allowed(it, ""):
-            self.stop_emission("insert_child_anchor")
-            return
-        
-        self._next_action = InsertChildAction(textbuffer, it.get_offset(),
-                                              anchor)
-
-    
-    def _on_apply_tag(self, textbuffer, tag, start, end):
-        """Callback for tag apply"""
-
-        if not isinstance(tag, RichTextTag):
-            # do not process tags that are not rich text
-            # i.e. gtkspell tags (ignored by undo/redo)
-            return
-
-        # TODO: probably ok to run after pushing action on stack
-        # and thus could be in another listener
-        if tag.is_par_related():
-            self.on_paragraph_change(start, end)
-
-        action = TagAction(textbuffer, tag, start.get_offset(), 
-                           end.get_offset(), True)
-        self.undo_stack.do(action.do, action.undo, False)
-        textbuffer.set_modified(True)
-
-    
-    def _on_remove_tag(self, textbuffer, tag, start, end):
-        """Callback for tag remove"""
-
-        if not isinstance(tag, RichTextTag):
-            # do not process tags that are not rich text
-            # i.e. gtkspell tags (ignored by undo/redo)
-            return
-
-        # TODO: probably ok to run after pushing action on stack
-        # and thus could be in another listener
-        if tag.is_par_related():
-            self.on_paragraph_change(start, end)
-
-        action = TagAction(textbuffer, tag, start.get_offset(), 
-                           end.get_offset(), False)
-        self.undo_stack.do(action.do, action.undo, False)
-        textbuffer.set_modified(True)
-
-    
-    
-    def _on_changed(self, textbuffer):
-        """Callback for buffer change"""
-        
-        # process actions that have changed the buffer
-        if not self._next_action:
-            return
-        
-        
-        textbuffer.begin_user_action()
-
-        # add action to undo stack
-        action = self._next_action
-        self._next_action = None
-        self.undo_stack.do(action.do, action.undo, False)
-                
-        # perfrom additional "clean-up" actions
-        # note: only if undo/redo is not currently in progress
-        if not self.undo_stack.is_in_progress():
-            self.on_after_changed(action)
-        
-        textbuffer.end_user_action()
 
 
 
@@ -571,6 +185,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         #self.undo_stack = UndoStack(MAX_UNDOS)
         self._undo_handler = UndoHandler(self)
         self.undo_stack = self._undo_handler.undo_stack
+        self._undo_handler.after_changed.add(self.on_after_changed)
 
         self._insert_mark = self.get_insert()
         self._old_insert_mark = self.create_mark(
@@ -583,11 +198,17 @@ class RichTextBaseBuffer (gtk.TextBuffer):
 
         # setup signals
         self._signals = [
+
+            # local events            
             self.connect("begin_user_action", self._on_begin_user_action),
             self.connect("end_user_action", self._on_end_user_action),
             self.connect("mark-set", self._on_mark_set),
+            self.connect("insert-text", self._on_insert_text),
+            self.connect("insert-child-anchor", self._on_insert_child_anchor),
+            self.connect("apply-tag", self._on_apply_tag),
+            self.connect("remove-tag", self._on_remove_tag),
 
-            # undo unhandler
+            # undo handler events
             self.connect("insert-text", self._undo_handler._on_insert_text),
             self.connect("delete-range", self._undo_handler._on_delete_range),
             self.connect("insert-pixbuf", self._undo_handler._on_insert_pixbuf),
@@ -595,6 +216,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
             self.connect("apply-tag", self._undo_handler._on_apply_tag),
             self.connect("remove-tag", self._undo_handler._on_remove_tag),
             self.connect("changed", self._undo_handler._on_changed)
+            
             ]
 
         self._default_attr = gtk.TextAttributes()
@@ -713,6 +335,49 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     
 
 
+    def _on_insert_text(self, textbuffer, it, text, length):
+        """Callback for text insert"""
+
+        # NOTE: GTK does not give us a proper UTF string, so fix it
+        text = unicode(text, "utf_8")
+        length = len(text)
+        
+        # check to see if insert is allowed
+        if textbuffer.is_interactive() and \
+           not self.is_insert_allowed(it, text):
+            textbuffer.stop_emission("insert_text")
+            
+
+    def _on_insert_child_anchor(self, textbuffer, it, anchor):
+        """Callback for inserting a child anchor"""
+
+        if not self.is_insert_allowed(it, ""):
+            self.stop_emission("insert_child_anchor")
+        
+    def _on_apply_tag(self, textbuffer, tag, start, end):
+        """Callback for tag apply"""
+
+        if not isinstance(tag, RichTextTag):
+            # do not process tags that are not rich text
+            # i.e. gtkspell tags (ignored by undo/redo)
+            return
+
+        if tag.is_par_related():
+            self.on_paragraph_change(start, end)
+
+    
+    def _on_remove_tag(self, textbuffer, tag, start, end):
+        """Callback for tag remove"""
+
+        if not isinstance(tag, RichTextTag):
+            # do not process tags that are not rich text
+            # i.e. gtkspell tags (ignored by undo/redo)
+            return
+        
+        if tag.is_par_related():
+            self.on_paragraph_change(start, end)
+
+
     def on_after_changed(self, action):
         """Callback after change has occurred"""
 
@@ -750,7 +415,14 @@ class RichTextBaseBuffer (gtk.TextBuffer):
                     self.get_iter_at_offset(action.start_offset))
                 self.on_paragraph_merge(par_start, par_end)
 
+        elif isinstance(action, InsertChildAction):
+
+            # set buffer of child
+            action.child.set_buffer(self)
+            
+
         self.end_user_action()
+
 
 
     #==============================================================
