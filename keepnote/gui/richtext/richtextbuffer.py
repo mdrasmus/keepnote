@@ -28,7 +28,7 @@ from keepnote.gui.richtext.richtextbasebuffer import \
      RichTextBaseFont, \
      add_child_to_buffer, \
      RichTextAnchor
-from keepnote.gui.richtext.richtextbuffer_indent import IndentManager
+from keepnote.gui.richtext.indent_handler import IndentHandler
 
 # richtext tags imports
 from keepnote.gui.richtext.richtext_tags import \
@@ -63,6 +63,10 @@ USER_AGENT = ""
 DEFAULT_BGCOLOR = (65535, 65535, 65535)
 
 DEFAULT_HR_COLOR = (0, 0, 0)
+
+
+def ignore_tag(tag):
+    return tag.get_property("name") in IGNORE_TAGS
 
 
 # TODO: Maybe move somewhere more general
@@ -589,7 +593,7 @@ class RichTextBuffer (RichTextBaseBuffer):
         RichTextBaseBuffer.__init__(self, RichTextTagTable())
 
         # indentation manager
-        self._indent = IndentManager(self)
+        self._indent = IndentHandler(self)
 
         # set of all anchors in buffer
         self._anchors = set()
@@ -626,7 +630,7 @@ class RichTextBuffer (RichTextBaseBuffer):
     def copy_contents(self, start, end):
         """Return a content stream for copying from iter start and end"""
 
-        contents = iter(iter_buffer_contents(self, start, end, IGNORE_TAGS))
+        contents = iter(iter_buffer_contents(self, start, end, ignore_tag))
 
         # remove regions that can't be copied
         for item in contents:
@@ -682,6 +686,7 @@ class RichTextBuffer (RichTextBaseBuffer):
 
     def _on_delete_range(self, textbuffer, start, end):
 
+        # TODO: should I add something like this back?
         # let indent manager prepare the delete
         #if self.is_interactive():
         #    self._indent.prepare_delete_range(start, end)

@@ -18,6 +18,7 @@ from keepnote.gui.richtext.richtextbase_tags import \
      RichTextTag
 
 
+# TODO: remove hard coding for 'Sans 10'
 # default indentation sizes
 MIN_INDENT = 5
 INDENT_SIZE = 30
@@ -275,7 +276,6 @@ class RichTextIndentTag (RichTextTag):
         RichTextTag.__init__(self, "indent %d %s" % (indent, par_type),
                              left_margin=MIN_INDENT + INDENT_SIZE * (indent-1) +
                                          extra_margin,
-                             #background="red",
                              indent=-par_indent_size)
             
         self._indent = indent

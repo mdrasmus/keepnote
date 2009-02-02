@@ -29,10 +29,6 @@ from keepnote.gui.richtext.richtextbase_tags import \
      RichTextTag
 
 
-# these tags will not be enumerated by iter_buffer_contents
-IGNORE_TAGS = set(["gtkspell-misspelled"])
-
-
 
 def add_child_to_buffer(textbuffer, it, anchor):
     textbuffer.add_child(it, anchor)

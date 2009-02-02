@@ -38,12 +38,13 @@ class PushIter (object):
 
 
 def iter_buffer_contents(textbuffer, start=None, end=None,
-                         ignore_tags={}):
+                         ignore_tag=lambda x: False):
     """Iterate over the items of a textbuffer
 
     textbuffer -- buffer to iterate over
     start      -- starting position (TextIter)
     end        -- ending position (TextIter)
+    ignore_tag -- function that takes a tag returns whether to ignore it (bool)
     """
 
     # initialize iterators
@@ -59,9 +60,8 @@ def iter_buffer_contents(textbuffer, start=None, end=None,
 
     # yield opening tags at begining of region
     for tag in it.get_tags():
-        if tag.get_property("name") in ignore_tags:
-            continue
-        yield ("begin", it, tag)
+        if not ignore_tag(tag):
+            yield ("begin", it, tag)
     
     while True:
         it2 = it.copy()
@@ -110,15 +110,13 @@ def iter_buffer_contents(textbuffer, start=None, end=None,
         
         # yield closing tags
         for tag in it.get_toggled_tags(False):
-            if tag.get_property("name") in ignore_tags:
-                continue
-            yield ("end", it, tag)
+            if not ignore_tag(tag):
+                yield ("end", it, tag)
 
         # yield opening tags
         for tag in it.get_toggled_tags(True):
-            if tag.get_property("name") in ignore_tags:
-                continue
-            yield ("begin", it, tag)
+            if not ignore_tag(tag):
+                yield ("begin", it, tag)
         
         #last = it.copy()
         
@@ -128,9 +126,7 @@ def iter_buffer_contents(textbuffer, start=None, end=None,
     # yield tags that have not been closed yet
     toggled = set(end.get_toggled_tags(False))
     for tag in end.get_tags():
-        if tag not in toggled:
-            if tag.get_property("name") in ignore_tags:
-                continue
+        if tag not in toggled and not ignore_tag(tag):
             yield ("end", end, tag)
 
 
