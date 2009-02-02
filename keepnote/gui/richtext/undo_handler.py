@@ -20,6 +20,9 @@ from keepnote.gui.richtext.richtextbase_tags import \
 
 
 
+def add_child_to_buffer(textbuffer, it, anchor):
+    textbuffer.add_child(it, anchor)
+
 
 #=============================================================================
 # RichTextBaseBuffer undoable actions

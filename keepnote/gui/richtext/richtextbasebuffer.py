@@ -379,7 +379,16 @@ class RichTextBaseBuffer (gtk.TextBuffer):
 
 
     def on_after_changed(self, action):
-        """Callback after change has occurred"""
+        """
+        Callback after content change has occurred
+
+        Fix up textbuffer to restore consistent state (paragraph tags,
+        current font application)
+        """
+
+        # do not process action if we are in an non-interactive state
+        if not self.is_interactive():
+            return
 
         self.begin_user_action()
 
