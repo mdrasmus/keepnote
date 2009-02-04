@@ -280,15 +280,12 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         # populate model
         roots = []
         for node in nodes:
-            if not node.is_page():
-                if nested:
-                    # list directory contents
-                    for child in node.get_children():
-                        roots.append(child)
-                else:
-                    # list directory itself
-                    roots.append(node)
-            elif node.is_page():
+            if nested and len(node.get_children()) > 0:
+                # list directory contents
+                for child in node.get_children():
+                    roots.append(child)
+            else:
+                # list directory itself
                 roots.append(node)
 
         model.get_model().set_root_nodes(roots)

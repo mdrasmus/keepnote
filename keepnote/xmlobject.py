@@ -32,13 +32,21 @@ class XmlError (StandardError):
     pass
 
 
+def bool2str(b):
+    return str(int(b))
+
+def str2bool(s):
+    return bool(int(s))
+    
+
 class Tag (object):
     def __init__(self, name,
                  get=None,
                  set=None,
                  getobj=None,
+                 attr=None,
                  tags=[]):
-        self.name = name
+        self.name = name                
         
         self._tag_list = list(tags)
         self._read_data = get
@@ -47,10 +55,26 @@ class Tag (object):
         self._object = None
         self._data = []
 
+
+        if attr is not None:
+            attr_name, attr_get, attr_set = attr
+            
+            if attr_get is None:
+                self._read_data = lambda s,x: s.__setattr__(attr_name, x)
+            else:
+                self._read_data = lambda s,x: s.__setattr__(attr_name, attr_get(x))
+
+            if attr_set is None:
+                self._write_data = lambda s: s.__dict__[attr_name]
+            else:
+                self._write_data = lambda s: attr_set(s.__dict__[attr_name])
+
+
         # init tag lookup
         self._tags = {}
         for tag in tags:
             self._tags[tag.name] = tag
+
 
         # init read_data function
         if self._read_data_obj is not None:

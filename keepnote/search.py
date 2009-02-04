@@ -150,7 +150,7 @@ def match_words(node, words):
         if word in title:
             matches[word] = True            
 
-    if node.is_page():
+    if node.get_attr("content_type") == notebooklib.CONTENT_TYPE_PAGE:
         for line in node.read_data_as_plain_text():
             line = line.lower()
             for word in words:

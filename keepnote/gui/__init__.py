@@ -23,6 +23,7 @@ from keepnote import get_resource
 from keepnote.notebook import \
      NoteBookError, \
      NoteBookTrash
+import keepnote.notebook as notebooklib
 
 
 ACCEL_FILE = "accel.txt"
@@ -69,16 +70,17 @@ def get_node_icon_filenames(node):
         return (get_resource(keepnote.IMAGE_DIR, "trash.png"),
                 get_resource(keepnote.IMAGE_DIR, "trash.png"))
     
-    elif not node.is_page():
+    elif node.get_attr("content_type") == notebooklib.CONTENT_TYPE_DIR:
         return (get_resource(keepnote.IMAGE_DIR, "folder.png"),
                 get_resource(keepnote.IMAGE_DIR, "folder-open.png"))
     
-    elif node.is_page():
+    elif node.get_attr("content_type") == notebooklib.CONTENT_TYPE_PAGE:
         filename = get_resource(keepnote.IMAGE_DIR, "note.png")
         return (filename, filename)
 
     else:
-        raise Exception("Unknown node type")
+        filename = get_resource(keepnote.IMAGE_DIR, "note-unkown.png")
+        return (filename, filename)
 
 
 

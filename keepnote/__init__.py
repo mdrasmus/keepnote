@@ -266,6 +266,30 @@ def iter_extensions(extensions_dir):
     for filename in os.listdir(extensions_dir):
         yield os.path.join(extensions_dir, filename)
 
+#=============================================================================
+# utilities
+
+def compose2(f, g):
+    """
+    Compose two functions into one
+
+    compose2(f, g)(x) <==> f(g(x))
+    """
+    return lambda *args, **kargs: f(g(*args, **kargs))
+    
+
+def compose(*funcs):
+    """Composes two or more functions into one function
+    
+       example:
+       compose(f,g)(x) <==> f(g(x))
+    """
+
+    funcs = reversed(funcs)
+    f = funcs.next()
+    for g in funcs:
+        f = compose2(g, f)
+    return f
 
 
 #=============================================================================
@@ -382,6 +406,7 @@ class KeepNotePreferences (object):
         self.image_size_snap = True
         self.image_size_snap_amount = 50
         self.use_systray = True
+        self.skip_taskbar = False
 
         # dialog chooser paths
         self.new_notebook_path = get_user_documents()
@@ -487,25 +512,21 @@ class KeepNotePreferences (object):
 g_keepnote_pref_parser = xmlo.XmlObject(
     xmlo.Tag("takenote", tags=[
         xmlo.Tag("default_notebook",
-                 getobj=("default_notebook", str),
-                 set=lambda s: s.default_notebook),
+                 attr=("default_notebook", None, None)),
 
         # window presentation options
         xmlo.Tag("view_mode",
-                 getobj=("view_mode", str),
-                 set=lambda s: s.view_mode),
-        xmlo.Tag("window_size", 
-                 getobj=("window_size", lambda x: tuple(map(int,x.split(",")))),
-                 set=lambda s: "%d,%d" % s.window_size),
+                 attr=("view_mode", None, None)),
+        xmlo.Tag("window_size",
+                 attr=("window_size",
+                       lambda x: tuple(map(int, x.split(","))),
+                       lambda x: "%d,%d" % x)),
         xmlo.Tag("window_maximized",
-                 getobj=("window_maximized", lambda x: bool(int(x))),
-                 set=lambda s: "%d" % int(s.window_maximized)),
+                 attr=("window_maximized", xmlo.str2bool, xmlo.bool2str)), 
         xmlo.Tag("vsash_pos",
-                 getobj=("vsash_pos", int),
-                 set=lambda s: "%d" % s.vsash_pos),
+                 attr=("vsash_pos", int, compose(str, int))),
         xmlo.Tag("hsash_pos",
-                 getobj=("hsash_pos", int),
-                 set=lambda s: "%d" % s.hsash_pos),
+                 attr=("hsash_pos", int, compose(str, int))),
 
         #xmlo.Tag("last_treeview_node_path",
         #         getobj=("last_treeview_node_path",
@@ -513,52 +534,41 @@ g_keepnote_pref_parser = xmlo.XmlObject(
         #         set=lambda s: "/".join(s.last_tree_view_node_path)),
         
         xmlo.Tag("treeview_lines",
-                 getobj=("treeview_lines", lambda x: bool(int(x))),
-                 set=lambda s: "%d" % int(s.treeview_lines)),
+                 attr=("treeview_lines", xmlo.str2bool, xmlo.bool2str)),
         xmlo.Tag("listview_rules",
-                 getobj=("listview_rules", lambda x: bool(int(x))),
-                 set=lambda s: "%d" % int(s.listview_rules)),
+                 attr=("listview_rules", xmlo.str2bool, xmlo.bool2str)),
         xmlo.Tag("use_stock_icons",
-                 getobj=("use_stock_icons", lambda x: bool(int(x))),
-                 set=lambda s: "%d" % int(s.use_stock_icons)),
+                 attr=("use_stock_icons", xmlo.str2bool, xmlo.bool2str)),
 
         # image resize
         xmlo.Tag("image_size_snap",
-                 getobj=("image_size_snap", lambda x: bool(int(x))),
-                 set=lambda s: "%d" % int(s.image_size_snap)),
+                 attr=("image_size_snap", xmlo.str2bool, xmlo.bool2str)),
         xmlo.Tag("image_size_snap_amount",
-                 getobj=("image_size_snap_amount", int),
-                 set=lambda s: "%d" % s.image_size_snap_amount),
+                 attr=("image_size_snap_amount", int, compose(str, int))),
 
         xmlo.Tag("use_systray",
-                 getobj=("use_systray", lambda x: bool(int(x))),
-                 set=lambda s: "%d" % int(s.use_systray)),
-
+                 attr=("use_systray", xmlo.str2bool, xmlo.bool2str)),
+        xmlo.Tag("skip_taskbar",
+                 attr=("skip_taskbar", xmlo.str2bool, xmlo.bool2str)),
+                 
         # misc options
         xmlo.Tag("spell_check",
-                 getobj=("spell_check", lambda x: bool(int(x))),
-                 set=lambda s: "%d" % int(s.spell_check)),
+                 attr=("spell_check", xmlo.str2bool, xmlo.bool2str)),
 
         xmlo.Tag("autosave",
-                 getobj=("autosave", lambda x: bool(int(x))),
-                 set=lambda s: str(int(s.autosave))),
+                 attr=("autosave", xmlo.str2bool, xmlo.bool2str)),
         xmlo.Tag("autosave_time",
-                 getobj=("autosave_time", int),
-                 set=lambda s: "%d" % s.autosave_time),
+                 attr=("autosave_time", int, compose(str, int))),
                  
         # default paths
         xmlo.Tag("new_notebook_path",
-                 getobj=("new_notebook_path", str),
-                 set=lambda s: s.new_notebook_path),
+                 attr=("new_notebook_path", None, None)),        
         xmlo.Tag("archive_notebook_path",
-                 getobj=("archive_notebook_path", str),
-                 set=lambda s: s.archive_notebook_path),
+                 attr=("archive_notebook_path", None, None)),
         xmlo.Tag("insert_image_path",
-                 getobj=("insert_image_path", str),
-                 set=lambda s: s.insert_image_path),
+                 attr=("insert_image_path", None, None)),
         xmlo.Tag("save_image_path",
-                 getobj=("save_image_path", str),
-                 set=lambda s: s.save_image_path),
+                 attr=("save_image_path", None, None)),
         
         xmlo.Tag("external_apps", tags=[
            xmlo.TagMany("app",

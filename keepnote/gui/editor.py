@@ -153,7 +153,8 @@ class KeepNoteEditor (gtk.VBox):
         self.save()
 
         pages = [node for node in pages
-                 if node.is_page()]
+                 if node.get_attr("content_type") ==
+                    notebooklib.CONTENT_TYPE_PAGE]
         
         if len(pages) == 0:            
             self.clear_view()

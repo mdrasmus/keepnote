@@ -309,10 +309,11 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         if len(nodes) > 0:
             node = nodes[0]
             path = get_path_from_node(self.model, node)
-            if path is not None and len(path) > 1:
-                self.expand_to_path(path[:-1])
-            self.set_cursor(path)
-            gobject.idle_add(lambda: self.scroll_to_cell(path))
+            if path is not None:
+                if len(path) > 1:
+                    self.expand_to_path(path[:-1])
+                self.set_cursor(path)
+                gobject.idle_add(lambda: self.scroll_to_cell(path))
         else:
             # unselect all nodes
             self.get_selection().unselect_all()
@@ -355,10 +356,10 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         elif node.get_parent() == None:
             self.emit("error", "The top-level folder cannot be deleted.", None)
             return
-        elif node.is_page():
-            message = "Do you want to delete this page?"
+        elif len(node.get_children()) > 0:
+            message = "Do you want to delete this note and all of its children?"
         else:
-            message = "Do you want to delete this folder and all of its pages?"
+            message = "Do you want to delete this note?"
         
         dialog = gtk.MessageDialog(self.get_toplevel(), 
             flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
@@ -651,7 +652,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         return not (target_node.get_parent() is None and \
                     (drop_position == gtk.TREE_VIEW_DROP_BEFORE or 
                      drop_position == gtk.TREE_VIEW_DROP_AFTER)) and \
-               not (target_node.is_page() and \
+               not ((not target_node.allows_children()) and \
                     (drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or 
                      drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER)) and \
                not (self._reorder == REORDER_FOLDER and \

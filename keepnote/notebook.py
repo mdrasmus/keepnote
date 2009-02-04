@@ -420,10 +420,10 @@ class NoteBookNode (object):
         """Returns True if node is valid (not deleted)"""
         return self._valid
     
-    def is_page(self):
-        """Returns True if node is a page"""
-        return self._attr["content_type"] == CONTENT_TYPE_PAGE
-
+    def allows_children(self):
+        """Returns True is this node allows children"""
+        return self._attr["content_type"] == CONTENT_TYPE_DIR
+    
 
     def clear_attr(self, title="", content_type=CONTENT_TYPE_DIR):
         """Clear attributes (set them to defaults)"""

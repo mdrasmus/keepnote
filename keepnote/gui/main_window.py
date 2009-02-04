@@ -225,7 +225,7 @@ class KeepNoteWindow (gtk.Window):
         # window state
         self._maximized = False   # True if window is maximized
         self._iconified = False   # True if window is minimized
-
+        self.tray_icon = None
         
         self._queue_list_select = []   # nodes to select in listview after treeview change
         self._ignore_view_mode = False # prevent recursive view mode changes
@@ -370,13 +370,19 @@ class KeepNoteWindow (gtk.Window):
     def setup_systray(self):
     
         # system tray icon
-        if self.app.pref.use_systray and gtk.gtk_version > (2, 10):
-            self.tray_icon = gtk.StatusIcon()
-            self.tray_icon.set_from_pixbuf(get_resource_pixbuf("keepnote-32x32.png"))
-            self.tray_icon.set_tooltip(keepnote.PROGRAM_NAME)
-            self.tray_icon.connect("activate", self.on_tray_icon_activate)
+        if gtk.gtk_version > (2, 10):
+            if not self.tray_icon:
+                self.tray_icon = gtk.StatusIcon()
+                self.tray_icon.set_from_pixbuf(get_resource_pixbuf("keepnote-32x32.png"))
+                self.tray_icon.set_tooltip(keepnote.PROGRAM_NAME)
+                self.tray_icon.connect("activate", self.on_tray_icon_activate)
+
+            self.tray_icon.set_property("visible", self.app.pref.use_systray)
+            self.set_property("skip-taskbar-hint", self.app.pref.skip_taskbar)
+            
         else:
             self.tray_icon = None
+            self.set_property("skip-taskbar-hint", False)
         
 
     #=================================================
@@ -484,6 +490,7 @@ class KeepNoteWindow (gtk.Window):
     
     def get_app_preferences(self):
         """Load preferences"""
+        
         self.resize(*self.app.pref.window_size)
         self.paned2.set_position(self.app.pref.vsash_pos)
         self.hpaned.set_position(self.app.pref.hsash_pos)
@@ -498,6 +505,8 @@ class KeepNoteWindow (gtk.Window):
         except:
             pass
         self.listview.set_rules_hint(self.app.pref.listview_rules)
+
+        self.setup_systray()
 
         if self.app.pref.window_maximized:
             self.maximize()
@@ -516,7 +525,8 @@ class KeepNoteWindow (gtk.Window):
                 self._treeview_sel_nodes[0].get_name_path()
         else:
             self.app.pref.last_treeview_name_path = []
-        
+
+        self.app.pref.skip_taskbar = self.get_property("skip-taskbar-hint")
         
         self.app.pref.write()
         
@@ -798,12 +808,9 @@ class KeepNoteWindow (gtk.Window):
         if len(self._queue_list_select) > 0:
             self.listview.select_nodes(self._queue_list_select)
             self._queue_list_select = []
-
-        # If selected node in tree is a page, then select it in listview and
-        # so that it shows up in editor
-        pages = [node for node in nodes 
-                 if node.is_page()]
-        self.listview.select_nodes(pages)
+        
+        # make sure nodes are also selected in listview
+        self.listview.select_nodes(nodes)
 
     
     def on_list_select(self, listview, pages):
@@ -925,7 +932,7 @@ class KeepNoteWindow (gtk.Window):
         else:
             parent = self.notebook.get_root_node()
         
-        if parent.is_page():
+        if not parent.allows_children():
             parent = parent.get_parent()
         node = parent.new_dir()
 
@@ -958,7 +965,7 @@ class KeepNoteWindow (gtk.Window):
         else:
             parent = self.notebook.get_root_node()
 
-        if parent.is_page():
+        if not parent.allows_children():
             parent = parent.get_parent()
         node = parent.new_page()
         
@@ -1314,7 +1321,7 @@ class KeepNoteWindow (gtk.Window):
             try:
                 self.app.open_webpage(url)
             except KeepNoteError, e:
-                self.emit("error", e.msg, e)
+                self.error(e.msg, e, sys.exc_info()[2])
 
     
     #=====================================================
@@ -1360,7 +1367,7 @@ class KeepNoteWindow (gtk.Window):
                 return            
             node = nodes[0]
 
-            if page_only and not node.is_page():
+            if page_only and node.get_attr("content_type") != notebooklib.CONTENT_TYPE_PAGE:
                 self.error("Only pages can be viewed with %s." %
                            self.app.external_apps[app].title)
                 return
@@ -1422,6 +1429,14 @@ class KeepNoteWindow (gtk.Window):
     
     def on_about(self):
         """Display about dialog"""
+
+        def func(dialog, link, data):
+            try:
+                self.app.open_webpage(link)
+            except KeepNoteError, e:
+                self.error(e.msg, e, sys.exc_info()[2])
+        gtk.about_dialog_set_url_hook(func, None)
+        
         
         about = gtk.AboutDialog()
         about.set_name(keepnote.PROGRAM_NAME)
@@ -1434,8 +1449,8 @@ class KeepNoteWindow (gtk.Window):
         about.connect("response", lambda d,r: about.destroy())
         about.show()
 
-        # gtk.about_dialog_set_url_hook(func, data)
-        # def func(dialog, link, user_data)
+
+        
         
 
     #===========================================
