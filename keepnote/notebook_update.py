@@ -1,5 +1,7 @@
 
 import os
+from xml.sax.saxutils import escape
+
 
 from keepnote import notebook as notebooklib
 from keepnote import safefile
@@ -100,10 +102,10 @@ def write_meta_data(node):
 
             if attr is not None:
                 out.write('<attr key="%s">%s</attr>\n' %
-                          (key, attr.write(val)))
+                          (key, escape(attr.write(val))))
                 
             elif key == "content_type":
-                out.write('<attr key="content_type">%s</attr>\n' % val)
+                out.write('<attr key="content_type">%s</attr>\n' % escape(val))
 
         out.write("</node>\n")
         out.close()

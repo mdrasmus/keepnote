@@ -760,6 +760,7 @@ class NoteBookNode (object):
         """Save node if modified (dirty)"""
         
         if (force or self._is_dirty()) and self._valid:
+            self.set_attr("modified_time", get_timestamp())
             self.write_meta_data()
             self._set_dirty(False)
             
