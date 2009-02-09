@@ -30,45 +30,16 @@ class ApplicationOptionsDialog (object):
         
     
     def on_app_options(self):
+        """Display application options"""
+        
         self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                  "app_config_dialog")
         self.dialog = self.xml.get_widget("app_config_dialog")
         self.dialog.set_transient_for(self.main_window)
         self.tabs = self.xml.get_widget("app_config_tabs")
+        self.setup_overview_tree()
 
-
-
-        # setup treeview
-        self.overview = self.xml.get_widget("app_config_treeview")
-        overview_store = gtk.TreeStore(str)
-        self.overview.set_model(overview_store)
-        self.overview.connect("cursor-changed", self.on_overview_select)
-        #self.set_headers_visible(False)
-
-        # create the treeview column
-        column = gtk.TreeViewColumn()
-        self.overview.append_column(column)
-        cell_text = gtk.CellRendererText()
-        column.pack_start(cell_text, True)
-        column.add_attribute(cell_text, 'text', 0)
-
-        # populate treestore
-        app = overview_store.append(None, [keepnote.PROGRAM_NAME])
-        overview_store.append(app, ["Look and Feel"])
-        overview_store.append(app, ["Helper Applications"])
-        overview_store.append(app, ["Data and Time"])        
-        note = overview_store.append(None, ["This Notebook"])
-
-        self.overview.expand_all()
-
-        self.tree2tab = {
-            (0,): 0,
-            (0, 0,): 4,            
-            (0, 1,): 1,
-            (0, 2,): 2,
-            (1,): 3
-            }
-
+        
 
         # populate default notebook
         self.xml.get_widget("default_notebook_entry").\
@@ -92,6 +63,8 @@ class ApplicationOptionsDialog (object):
 
         # use systray icon
         self.xml.get_widget("systray_check").set_active(self.app.pref.use_systray)
+        self.xml.get_widget("skip_taskbar_check").set_active(self.app.pref.skip_taskbar)
+        self.xml.get_widget("skip_taskbar_check").set_sensitive(self.app.pref.use_systray)
 
         # look and feel
         self.treeview_lines_check = self.xml.get_widget("treeview_lines_check")
@@ -174,10 +147,8 @@ class ApplicationOptionsDialog (object):
             self.notebook_font_family.set_family(family)
             self.notebook_font_size.set_value(size)
 
-
+        self.xml.signal_autoconnect(self)
         self.xml.signal_autoconnect({
-            "on_ok_button_clicked": 
-                lambda w: self.on_ok(),
             "on_cancel_button_clicked": 
                 lambda w: self.dialog.destroy(),
                 
@@ -186,29 +157,70 @@ class ApplicationOptionsDialog (object):
                     "default_notebook", 
                     "Choose Default Notebook",
                     self.app.pref.default_notebook),
-            "on_set_default_notebook_button_clicked":
-                lambda w: self.on_set_default_notebook(),
-            "on_autosave_check_toggled":
-                lambda w: self.on_autosave_toggle(w)            
             })
 
         self.dialog.show()
+
+
+    def setup_overview_tree(self):
+
+        # setup treeview
+        self.overview = self.xml.get_widget("app_config_treeview")
+        overview_store = gtk.TreeStore(str)
+        self.overview.set_model(overview_store)
+        self.overview.connect("cursor-changed", self.on_overview_select)
+        #self.set_headers_visible(False)
+
+        # create the treeview column
+        column = gtk.TreeViewColumn()
+        self.overview.append_column(column)
+        cell_text = gtk.CellRendererText()
+        column.pack_start(cell_text, True)
+        column.add_attribute(cell_text, 'text', 0)
+
+        # populate treestore
+        app = overview_store.append(None, [keepnote.PROGRAM_NAME])
+        overview_store.append(app, ["Look and Feel"])
+        overview_store.append(app, ["Helper Applications"])
+        overview_store.append(app, ["Data and Time"])        
+        note = overview_store.append(None, ["This Notebook"])
+
+        self.overview.expand_all()
+
+        self.tree2tab = {
+            (0,): 0,
+            (0, 0,): 4,            
+            (0, 1,): 1,
+            (0, 2,): 2,
+            (1,): 3
+            }
         
 
     def on_overview_select(self, overview):
+        """Callback for changing topic in overview"""
+        
         row, col = overview.get_cursor()
         if row is not None:
             self.tabs.set_current_page(self.tree2tab[row])
 
 
-    def on_autosave_toggle(self, widget):
+    def on_autosave_check_toggled(self, widget):
+        """The autosave option controls sensitivity of autosave time"""
         self.xml.get_widget("autosave_entry").set_sensitive(
             widget.get_active())
         self.xml.get_widget("autosave_label").set_sensitive(
             widget.get_active())
+
+
+    def on_systray_check_toggled(self, widget):
+        """Systray option controls sensitivity of skip taskbar"""
+        self.xml.get_widget("skip_taskbar_check").set_sensitive(
+            widget.get_active())
         
     
     def on_browse(self, name, title, filename):
+        """Callback for selecting file browser"""
+        
         dialog = gtk.FileChooserDialog(title, self.dialog, 
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
@@ -224,7 +236,6 @@ class ApplicationOptionsDialog (object):
         
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
-            dialog.destroy()
 
             if name == "default_notebook":
                 self.xml.get_widget("default_notebook_entry").\
@@ -232,11 +243,10 @@ class ApplicationOptionsDialog (object):
             else:
                 self.entries[name].set_text(filename)
             
-        elif response == gtk.RESPONSE_CANCEL:
-            dialog.destroy()
+        dialog.destroy()
 
 
-    def on_set_default_notebook(self):
+    def on_set_default_notebook_button_clicked(self, widget):
 
         if self.main_window.notebook:
             self.xml.get_widget("default_notebook_entry").set_text(
@@ -244,7 +254,7 @@ class ApplicationOptionsDialog (object):
             
         
     
-    def on_ok(self):
+    def on_ok_button_clicked(self, widget):
         # TODO: add arguments
     
         self.app.pref.default_notebook = \
@@ -261,6 +271,7 @@ class ApplicationOptionsDialog (object):
 
         # use systray icon
         self.app.pref.use_systray = self.xml.get_widget("systray_check").get_active()
+        self.app.pref.skip_taskbar = self.xml.get_widget("skip_taskbar_check").get_active()
 
         # look and feel
         self.app.pref.treeview_lines = self.treeview_lines_check.get_active()

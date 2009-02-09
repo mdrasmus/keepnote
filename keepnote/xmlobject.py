@@ -13,17 +13,12 @@ import sys
 import codecs
 
 # xml imports
-import xml.dom.minidom as xmldom
-import xml.dom
 import xml.parsers.expat
 from xml.sax.saxutils import escape
 
 # keepnote imports
 from keepnote import safefile
 
-
-# constants
-ELEMENT_NODE = xml.dom.Node.ELEMENT_NODE
 
 
 
@@ -43,14 +38,12 @@ class Tag (object):
     def __init__(self, name,
                  get=None,
                  set=None,
-                 getobj=None,
                  attr=None,
                  tags=[]):
         self.name = name                
         
         self._tag_list = list(tags)
         self._read_data = get
-        self._read_data_obj = getobj
         self._write_data = set
         self._object = None
         self._data = []
@@ -69,45 +62,20 @@ class Tag (object):
             else:
                 self._write_data = lambda s: attr_set(s.__dict__[attr_name])
 
-
+        
         # init tag lookup
         self._tags = {}
         for tag in tags:
             self._tags[tag.name] = tag
 
 
-        # init read_data function
-        if self._read_data_obj is not None:
-            attr, get = self._read_data_obj
-            if get is None:
-                self._read_data = lambda s,x: s.__setattr__(attr, x)
-            else:
-                self._read_data = lambda s,x: s.__setattr__(attr, get(x))
-        
+    #===========================================
+    # reading
+
 
     def set_object(self, obj):
         self._object = obj
 
-
-    def write(self, obj, out):
-        # write opening
-        if self.name != "":
-            out.write("<%s>" % self.name)
-        
-        if len(self._tags) > 0:
-            out.write("\n")
-            for child_tag in self._tag_list:
-                child_tag.write(obj, out)
-        elif self._write_data:
-            text = self._write_data(obj)
-            if not isinstance(text, basestring):
-                raise XmlError("bad text (%s,%s): %s" %
-                               (self.name, str(self._object),
-                                str(type(text))))
-            out.write(escape(text))
-        
-        if self.name != "":
-            out.write("</%s>\n" % self.name)
 
     def new_tag(self, name):
         tag = self._tags.get(name, None)
@@ -133,12 +101,38 @@ class Tag (object):
             except Exception, e:
                 raise XmlError("Error parsing tag '%s': %s" % (self.name,
                                                                str(e)))
-
     
     def add(self, tag):
+        """Add a tag child to this tag"""
+        
         self._tag_list.append(tag)
         self._tags[tag.name] = tag
 
+
+    #===================
+    # writing
+
+    def write(self, obj, out):
+        """Write tag to output stream"""
+        
+        # write openning        
+        if self.name != "":
+            out.write("<%s>" % self.name)
+        
+        if len(self._tags) > 0:
+            out.write("\n")
+            for child_tag in self._tag_list:
+                child_tag.write(obj, out)
+        elif self._write_data:
+            text = self._write_data(obj)
+            if not isinstance(text, basestring):
+                raise XmlError("bad text (%s,%s): %s" %
+                               (self.name, str(self._object),
+                                str(type(text))))
+            out.write(escape(text))
+        
+        if self.name != "":
+            out.write("</%s>\n" % self.name)
         
     
 
@@ -160,6 +154,9 @@ class TagMany (Tag):
         self._afterfunc = after
         self._index = 0
 
+
+    #=============================
+    # reading
 
     def new_tag(self, name):
         tag = self._tags.get(name, None)
@@ -191,15 +188,19 @@ class TagMany (Tag):
         if self._afterfunc:
             self._afterfunc((self._object, self._index))
         self._index += 1
+
+
+    #=====================
+    # writing
     
     def write(self, obj, out):
         # write opening
-        if len(self._tags)==0:
+        if len(self._tags) == 0:
             assert self._write_item is not None
                 
             for i in self._iterfunc(obj):
                 out.write("<%s>%s</%s>\n" % (self.name,
-                                             escape(self._write_item(obj, i)),
+                                             escape(self._write_item((obj, i))),
                                              self.name))
         else:
             for i in self._iterfunc(obj):
@@ -301,20 +302,18 @@ if __name__ == "__main__":
 
     parser = XmlObject(
         Tag("notebook", tags=[
-            Tag("window_size", 
-                get=lambda s, x: s.__setattr__("window_size",
-                    tuple(map(int,x.split(",")))),
-                set=lambda s: "%d,%d" % s.window_size),
+            Tag("window_size",
+                attr=("window_size",
+                      lambda x: tuple(map(int, x.split(","))),
+                      lambda x: "%d,%d" % x)),
             Tag("window_pos",
-                getobj=("window_pos", lambda x: 
-                    tuple(map(int,x.split(",")))),
-                set=lambda s: "%d,%d" % s.window_pos),
+                attr=("window_pos",
+                      lambda x: tuple(map(int, x.split(","))),
+                      lambda x: "%d,%d" % x)),
             Tag("vsash_pos",
-                get=lambda s, x: s.__setattr__("vhash_pos", int(x)),
-                set=lambda s: "%d" % s.vsash_pos),
+                attr=("vhash_pos", int, str)),
             Tag("hsash_pos",
-                get=lambda s, x: s.__setattr__("hsash_pos", int(x)),
-                set=lambda s: "%d" % s.hsash_pos),
+                attr=("hsash_pos", int, str)),
             Tag("external_apps", tags=[
                 TagMany("app",
                         iterfunc=lambda s: range(len(s.apps)),
@@ -323,7 +322,7 @@ if __name__ == "__main__":
             Tag("external_apps2", tags=[
                 TagMany("app",
                         iterfunc=lambda s: range(len(s.apps2)),
-                        before=lambda s,i: s.apps2.append([None, None]),
+                        before=lambda (s,i): s.apps2.append([None, None]),
                         tags=[Tag("name",
                                   get=lambda (s,i),x: s.apps2[i].__setitem__(0, x),
                                   set=lambda (s,i): s.apps2[i][0]),

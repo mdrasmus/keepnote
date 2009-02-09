@@ -378,11 +378,9 @@ class KeepNoteWindow (gtk.Window):
                 self.tray_icon.connect("activate", self.on_tray_icon_activate)
 
             self.tray_icon.set_property("visible", self.app.pref.use_systray)
-            self.set_property("skip-taskbar-hint", self.app.pref.skip_taskbar)
             
         else:
             self.tray_icon = None
-            self.set_property("skip-taskbar-hint", False)
         
 
     #=================================================
@@ -462,10 +460,16 @@ class KeepNoteWindow (gtk.Window):
         """Callback for window state"""
 
         # keep track of maximized and minimized state
-        self._maximized = event.new_window_state & \
-                          gtk.gdk.WINDOW_STATE_MAXIMIZED
-        self._iconified = event.new_window_state & \
-                          gtk.gdk.WINDOW_STATE_ICONIFIED
+        self._maximized = bool(event.new_window_state & 
+                               gtk.gdk.WINDOW_STATE_MAXIMIZED)
+        self._iconified = bool(event.new_window_state & 
+                               gtk.gdk.WINDOW_STATE_ICONIFIED)
+
+        if self._iconified:
+            self.set_property("skip-taskbar-hint", self.app.pref.skip_taskbar)
+        else:
+            self.set_property("skip-taskbar-hint", False)
+
 
 
     def on_window_size(self, window, event):
@@ -525,8 +529,6 @@ class KeepNoteWindow (gtk.Window):
                 self._treeview_sel_nodes[0].get_name_path()
         else:
             self.app.pref.last_treeview_name_path = []
-
-        self.app.pref.skip_taskbar = self.get_property("skip-taskbar-hint")
         
         self.app.pref.write()
         

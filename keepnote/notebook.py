@@ -671,7 +671,7 @@ class NoteBookNode (object):
                     self._children.append(node)
                 
             except NoteBookError, e:
-                print "error reading", path2
+                print >>sys.stderr, "error reading", path2
                 traceback.print_exception(*sys.exc_info())
                 continue                
                 # TODO: raise warning, not all children read
@@ -1008,19 +1008,18 @@ class NoteBookPreferences (object):
 g_notebook_pref_parser = xmlo.XmlObject(
     xmlo.Tag("notebook", tags=[
         xmlo.Tag("version",
-            getobj=("version", int),
-            set=lambda s: str(s.version)),
+            attr=("verison", int, str)),
         xmlo.Tag("default_font",
-            getobj=("default_font", str),
-            set=lambda s: s.default_font),
+            attr=("default_font", None, None))
         ]))
-    
+
 
 class NoteBook (NoteBookDir):
     """Class represents a NoteBook"""
     
     def __init__(self, rootdir=None):
         """rootdir -- Root directory of notebook"""
+        
         NoteBookDir.__init__(self, rootdir, notebook=self)
         self.pref = NoteBookPreferences()
         if rootdir is not None:
@@ -1139,6 +1138,8 @@ class NoteBook (NoteBookDir):
         
 
     def read_node(self, parent, path):
+        """Read a NoteBookNode"""
+        
         return self._node_factory.read_node(self, parent, path)
         
     
@@ -1152,6 +1153,8 @@ class NoteBook (NoteBookDir):
 
 
     def _init_trash(self):
+        """Ensures Trash directory exists in a notebook"""
+        
         # ensure trash directory exists
         self._trash = None
         for child in self._children:

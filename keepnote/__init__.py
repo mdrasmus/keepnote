@@ -452,6 +452,7 @@ class KeepNotePreferences (object):
                                         get_user_pref_file(self._pref_dir))
         except IOError, e:
             raise NoteBookError("Cannot read preferences", e)
+
         
         # make lookup
         for app in self.external_apps:
