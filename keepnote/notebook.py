@@ -616,32 +616,18 @@ class NoteBookNode (object):
         self.notify_change(False)
 
 
-    # TODO: refactor this to a kind argument and make a factory function...
-    
-    def new_page(self, title=DEFAULT_PAGE_NAME):
-        """Add a new page under node"""
+    def new_node(self, content_type, title):
+        """Add a new node under this node"""
+        
         path = self.get_path()
         newpath = get_valid_unique_filename(path, title)
-        page = NoteBookPage(newpath, title=title, parent=self,
-                            notebook=self._notebook)
-        page.create()
-        self._add_child(page)
-        page.save(True)
-        self.notify_change(True)
-        return page
-    
-    
-    def new_dir(self, title=DEFAULT_DIR_NAME):
-        """Add a new folder under node"""
-        path = self.get_path()
-        newpath = get_valid_unique_filename(path, title)
-        node = NoteBookDir(newpath, title=title, parent=self,
-                           notebook=self._notebook)
+        node = self._notebook.new_node(content_type, newpath, self, {})
+
         node.create()
         self._add_child(node)
         node.save(True)
         self.notify_change(True)
-        return node
+        return node    
     
     
     def get_children(self):
@@ -957,7 +943,8 @@ class NoteBookNodeMetaData (object):
 class NoteBookPage (NoteBookNode):
     """Class that represents a Page in the NoteBook"""
     
-    def __init__(self, path, title="", parent=None, notebook=None):
+    def __init__(self, path, title=DEFAULT_PAGE_NAME,
+                 parent=None, notebook=None):
         NoteBookNode.__init__(self, path, title, parent, notebook,
                               content_type=CONTENT_TYPE_PAGE)
 
@@ -965,7 +952,8 @@ class NoteBookPage (NoteBookNode):
 class NoteBookDir (NoteBookNode):
     """Class that represents Folders in NoteBook"""
     
-    def __init__(self, path, title="", parent=None, notebook=None):
+    def __init__(self, path, title=DEFAULT_DIR_NAME,
+                 parent=None, notebook=None):
         NoteBookNode.__init__(self, path, title, parent, notebook,
                               content_type=CONTENT_TYPE_DIR)
 
@@ -1139,8 +1127,13 @@ class NoteBook (NoteBookDir):
 
     def read_node(self, parent, path):
         """Read a NoteBookNode"""
-        
         return self._node_factory.read_node(self, parent, path)
+
+
+    def new_node(self, content_type, path, parent, attr):
+        """Create a new NodeBookNode"""        
+        return self._node_factory.new_node(content_type, path,
+                                           parent, self, attr)
         
     
     def get_children(self):
@@ -1243,6 +1236,8 @@ class NoteBookNodeFactory (object):
         
     
     def read_node(self, notebook, parent, path):
+        """Reads a node from disk"""
+        
         filename = os.path.basename(path)
         metafile = get_node_meta_file(path)        
         meta = NoteBookNodeMetaData()
@@ -1250,20 +1245,35 @@ class NoteBookNodeFactory (object):
 
         if os.path.exists(metafile):
             meta.read(metafile, notebook.notebook_attrs)
+
+            node = self.new_node(meta.attr.get("content_type",
+                                               CONTENT_TYPE_DIR),
+                                 path, parent, notebook, meta.attr)
             
-            maker = self._makers.get(meta.attr.get("content_type",
-                                                   CONTENT_TYPE_DIR), None)
-            if maker:
-                node = maker(path, parent, notebook, meta.attr)
-                node.set_meta_data(meta.attr)                
-            else:
+            #maker = self._makers.get(meta.attr.get("content_type",
+            #                                       CONTENT_TYPE_DIR), None)
+            #if maker:
+            #    node = maker(path, parent, notebook, meta.attr)
+            #    node.set_meta_data(meta.attr)                
+            #else:
                 # ignore unknown node
                 # TODO: could add some error handling error
                 # or add NoteBookUnknownNode()
-                pass
+            #    pass
         else:
             # ignore directory, not a NoteBook directory            
             pass
 
         return node
 
+
+    def new_node(self, content_type, path, parent, notebook, attr):
+        """Creates a new node"""
+        
+        maker = self._makers.get(content_type, None)
+        if maker:
+            node = maker(path, parent, notebook, attr)
+            node.set_meta_data(attr)
+            return node
+        else:
+            return None

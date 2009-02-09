@@ -1,9 +1,16 @@
 KeepNote Change Log
 -------------------
 
+keepnote-0.5.2
+--------------
+- add minimize to tray option (hide from taskbar)
+- easy install fix
+- fixed modified time bug
+
+
 keepnote-0.5.1
 --------------
-
+- install fix
 
 
 keepnote-0.5.0 (2008/1/24)
