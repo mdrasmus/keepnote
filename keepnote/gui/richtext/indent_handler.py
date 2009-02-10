@@ -40,14 +40,13 @@ BULLET_STR = u"\u2022 "
 
 #=============================================================================
 
-class IndentManager (object):
+class IndentHandler (object):
     """This object will manage the indentation of paragraphs in a
        TextBuffer with RichTextTags
     """
 
     def __init__(self, textbuffer):
         self._buf = textbuffer
-        self._updating = False
 
         self._indent_update = False
         self._indent_update_start = self._buf.create_mark("indent_update_start",
@@ -76,8 +75,7 @@ class IndentManager (object):
         if start is None or end is None:
             start, end = get_paragraphs_selected(self._buf)
 
-        #start, end = self._ensure_par_newline(start, end)
-
+        
         self._buf.begin_user_action()
         
         # loop through paragraphs
@@ -241,10 +239,9 @@ class IndentManager (object):
     def on_paragraph_change(self, start, end):
         """Callback for when the tags of a paragraph changes"""
 
-        if not self._updating:
-            start = move_to_start_of_line(start.copy())
-            end = move_to_end_of_line(end.copy())
-            self._queue_update_indentation(start, end)
+        start = move_to_start_of_line(start.copy())
+        end = move_to_end_of_line(end.copy())
+        self._queue_update_indentation(start, end)
     
 
     def _queue_update_indentation(self, start, end):
@@ -292,76 +289,78 @@ class IndentManager (object):
         # each paragraph should determines the indentation of the rest
         # of the paragraph
 
-        if self._indent_update:
-            self._updating = True
-            self._indent_update = False 
-            
-            self._buf.begin_user_action()
-            self._buf.begin_noninteractive()
+        # if no indentation requests are queued then do nothing
+        if not self._indent_update:
+            return
 
-            
-            # get range of updating
-            pos = self._buf.get_iter_at_mark(self._indent_update_start)
-            end = self._buf.get_iter_at_mark(self._indent_update_end)
-            pos = move_to_start_of_line(pos)
-            end.forward_line()
-            
-            # iterate through the paragraphs that need updating
-            for pos in paragraph_iter(self._buf, pos, end):                
-                par_end = pos.copy()
+        self._indent_update = False 
+
+        self._buf.begin_user_action()
+        self._buf.begin_noninteractive()
+
+
+        # get range of updating
+        pos = self._buf.get_iter_at_mark(self._indent_update_start)
+        end = self._buf.get_iter_at_mark(self._indent_update_end)
+        pos = move_to_start_of_line(pos)
+        end.forward_line()
+
+        # iterate through the paragraphs that need updating
+        for pos in paragraph_iter(self._buf, pos, end):                
+            par_end = pos.copy()
+            par_end.forward_line()
+            indent_tag = self.get_indent_tag(pos)
+
+            # remove bullets mid paragraph
+            it = pos.copy()
+            it.forward_char()
+            while True:
+                match = it.forward_search(BULLET_STR, 0, par_end)
+                if not match:
+                    it.backward_char()
+                    pos, par_end = get_paragraph(it)
+                    break
+                self._buf.move_mark(self._indent_update_start, match[0])
+                self._buf.delete(match[0], match[1])
+                it = self._buf.get_iter_at_mark(self._indent_update_start)
+                par_end = it.copy()
                 par_end.forward_line()
-                indent_tag = self.get_indent_tag(pos)
 
-                # remove bullets mid paragraph
-                it = pos.copy()
-                it.forward_char()
-                while True:
-                    match = it.forward_search(BULLET_STR, 0, par_end)
-                    if not match:
-                        it.backward_char()
-                        pos, par_end = get_paragraph(it)
-                        break
-                    self._buf.move_mark(self._indent_update_start, match[0])
-                    self._buf.delete(match[0], match[1])
-                    it = self._buf.get_iter_at_mark(self._indent_update_start)
-                    par_end = it.copy()
-                    par_end.forward_line()
+            # check indentation
+            if indent_tag is None:
+                # remove all indent tags
+                # TODO: RichTextBaseBuffer function
+                self._buf.clear_tag_class(
+                    self._buf.tag_table.lookup(
+                        RichTextIndentTag.tag_name(1)),
+                    pos, par_end)
+                # remove bullets
+                par_type = "none"
 
-                # check indentation
-                if indent_tag is None:
-                    # remove all indent tags
-                    # TODO: RichTextBaseBuffer function
-                    self._buf.clear_tag_class(
-                        self._buf.tag_table.lookup(
-                            RichTextIndentTag.tag_name(1)),
-                        pos, par_end)
-                    # remove bullets
-                    par_type = "none"
+            else:
+                self._buf.clear_tag_class(indent_tag, pos, par_end)
+                self._buf.apply_tag(indent_tag, pos, par_end)
 
-                else:
-                    self._buf.clear_tag_class(indent_tag, pos, par_end)
-                    self._buf.apply_tag(indent_tag, pos, par_end)
+                # check for bullets
+                par_type = indent_tag.get_par_indent()
 
-                    # check for bullets
-                    par_type = indent_tag.get_par_indent()
 
-                    
-                # check paragraph type
-                if par_type == "bullet":
-                    # ensure proper bullet is in place
-                    pos = self._insert_bullet(pos, indent_tag)
-                    
-                elif par_type == "none":
-                    # remove bullets
-                    pos = self._remove_bullet(pos)
-                    
-                else:
-                    raise Exception("unknown par_type '%s'" % par_type)
-            
-                    
-            self._updating = False
-            self._buf.end_noninteractive()
-            self._buf.end_user_action()
+            # check paragraph type
+            if par_type == "bullet":
+                # ensure proper bullet is in place
+                pos = self._insert_bullet(pos, indent_tag)
+
+            elif par_type == "none":
+                # remove bullets
+                pos = self._remove_bullet(pos)
+
+            else:
+                raise Exception("unknown par_type '%s'" % par_type)
+
+
+        #self._updating = False
+        self._buf.end_noninteractive()
+        self._buf.end_user_action()
 
 
     #==========================================

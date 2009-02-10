@@ -9,7 +9,7 @@ from keepnote.gui.richtext.richtext_html import HtmlBuffer, nest_indent_tags, \
      find_paragraphs, P_TAG
 
 import StringIO
-from keepnote.gui.richtext.richtextbuffer import RichTextBuffer, IGNORE_TAGS, \
+from keepnote.gui.richtext.richtextbuffer import RichTextBuffer, ignore_tag, \
      RichTextIndentTag
 
 from keepnote.gui.richtext.textbuffer_tools import \
@@ -53,7 +53,7 @@ class TestCaseRichTextBufferBase (unittest.TestCase):
 
     def get_contents(self):
         return list(iter_buffer_contents(self.buffer,
-                                         None, None, IGNORE_TAGS))
+                                         None, None, ignore_tag))
 
     
 
@@ -69,10 +69,7 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         self.insert(self.buffer, contents)
 
     def write(self, buffer, outfile):
-        contents = iter_buffer_contents(self.buffer,
-                                        None,
-                                        None,
-                                        IGNORE_TAGS)
+        contents = iter_buffer_contents(self.buffer, None, None, ignore_tag)
         self.io.set_output(outfile)
         self.io.write(contents, self.buffer.tag_table, partial=True)
 
@@ -93,13 +90,6 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
 
     #===================================================
 
-
-    #def test_iter_buffer(self):
-    #    infile = StringIO.StringIO('<b>hello world</b>')
-    #    self.read(self.buffer, infile)
-    #
-    #    print list(iter_buffer_contents(self.buffer, None, None, IGNORE_TAGS))
-        
 
     def test_nested_tags(self):
         """Simple read/write, text should not change"""
@@ -232,7 +222,7 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         self.read(self.buffer, infile)
 
         contents = list(iter_buffer_contents(self.buffer,
-                                             None, None, IGNORE_TAGS))
+                                             None, None, ignore_tag))
         
         # check the internal indentation structure
         self.assertEquals([display_item(x) for x in contents],
@@ -257,7 +247,7 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         self.read(self.buffer, infile)
 
         contents = list(iter_buffer_contents(self.buffer,
-                                             None, None, IGNORE_TAGS))
+                                             None, None, ignore_tag))
         
         # check the internal indentation structure
         self.assertEquals([display_item(x) for x in contents],
@@ -288,7 +278,7 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         
         
         contents = list(iter_buffer_contents(self.buffer,
-                                             None, None, IGNORE_TAGS))
+                                             None, None, ignore_tag))
 
         dom = TextBufferDom(
             normalize_tags(find_paragraphs(
@@ -381,7 +371,7 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         self.buffer.insert_at_cursor("new ")
         
         contents = list(iter_buffer_contents(self.buffer,
-                                             None, None, IGNORE_TAGS))
+                                             None, None, ignore_tag))
         
         # check the internal indentation structure
         self.assertEquals([display_item(x) for x in contents],
@@ -401,13 +391,13 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         self.buffer.insert_at_cursor("line1")
 
         contents1 = list(iter_buffer_contents(self.buffer,
-                                              None, None, IGNORE_TAGS))
+                                              None, None, ignore_tag))
         
         self.buffer.toggle_bullet_list()
         self.buffer.undo()
 
         contents2 = list(iter_buffer_contents(self.buffer,
-                                              None, None, IGNORE_TAGS))
+                                              None, None, ignore_tag))
         
         # check the internal indentation structure
         self.assertEquals([display_item(x) for x in contents1],
@@ -423,22 +413,75 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         self.buffer.insert_at_cursor("line1")
 
         contents1 = list(iter_buffer_contents(self.buffer,
-                                              None, None, IGNORE_TAGS))
+                                              None, None, ignore_tag))
         
         self.buffer.toggle_bullet_list()
 
         print [display_item(x) for x in iter_buffer_contents(self.buffer,
-                                       None, None, IGNORE_TAGS)]
+                                       None, None, ignore_tag)]
         
         self.buffer.undo()
 
         contents2 = list(iter_buffer_contents(self.buffer,
-                                              None, None, IGNORE_TAGS))
+                                              None, None, ignore_tag))
         
         # check the internal indentation structure
         self.assertEquals([display_item(x) for x in contents1],
                           [display_item(x) for x in contents2])
     
+
+
+    def test_bullet_insert(self):
+        """
+        Test whether insert inside bullet string '* ' is rejected
+        """
+
+        self.buffer.toggle_bullet_list()
+        self.buffer.insert_at_cursor("line1")
+
+        contents1 = list(iter_buffer_contents(self.buffer,
+                                              None, None, ignore_tag))
+
+        it = self.buffer.get_start_iter()
+        it.forward_chars(1)
+        self.buffer.insert(it, "XXX")
+
+        contents2 = list(iter_buffer_contents(self.buffer,
+                                              None, None, ignore_tag))
+        
+        # check the internal indentation structure
+        self.assertEquals([display_item(x) for x in contents1],
+                          [display_item(x) for x in contents2])
+                
+
+
+    def test_bullet_apply_tag(self):
+        """
+        Test whether par_related tags are properly handled
+        """
+
+        self.buffer.toggle_bullet_list()
+        self.buffer.insert_at_cursor("line1")
+
+        it = self.buffer.get_start_iter()
+        #it.forward_chars(1)
+        it2 = self.buffer.get_start_iter()
+        it2.forward_chars(2)
+
+        tag = self.buffer.tag_table.lookup("indent 2 none")
+        print tag.is_par_related()
+        self.buffer.apply_tag_selected(tag, it, it2)
+        
+        contents1 = list(iter_buffer_contents(self.buffer,
+                                              None, None, ignore_tag))
+        
+        # check the internal indentation structure
+        self.assertEquals([display_item(x) for x in contents1],
+                          ['BEGIN:indent 2 none',
+                           u'line1\n',
+                           'END:indent 2 none'])
+                
+        
                           
     def test_bullet_blank_lines(self):
         """
@@ -550,6 +593,39 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
                            'END:bullet',
                            'line2\n',
                            'END:indent 1 bullet'])
+
+
+
+    def test_bullet_undo(self):
+        """Make sure bullets interact with undo correctly"""
+
+        self.read(self.buffer, StringIO.StringIO(
+            '''<ul><li>line1</li>
+<li style="list-style-type: none"><ul><li>line2</li>
+</ul>
+</li>
+</ul>'''))
+
+        self.write(self.buffer, sys.stdout)
+
+        self.buffer.undo()
+        self.buffer.redo()
+
+        self.write(self.buffer, sys.stdout)
+
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['BEGIN:bullet',
+                           'BEGIN:indent 1 bullet',
+                           u'\u2022 ',
+                           'END:bullet',
+                           'line1\n',
+                           'END:indent 1 bullet',
+                           'BEGIN:bullet',
+                           'BEGIN:indent 2 bullet',                           
+                           u'\u2022 ',
+                           'END:bullet',
+                           'line2\n',
+                           'END:indent 2 bullet'])
 
         
     def test_image1(self):

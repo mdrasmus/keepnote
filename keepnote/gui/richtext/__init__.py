@@ -30,7 +30,7 @@ from keepnote.gui.richtext.textbuffer_tools import \
 
 # richtextbuffer imports
 from keepnote.gui.richtext.richtextbuffer import \
-     IGNORE_TAGS, \
+     ignore_tag, \
      add_child_to_buffer, \
      RichTextBuffer, \
      RichTextImage, \
@@ -162,7 +162,7 @@ class RichTextIO (object):
             buffer_contents = iter_buffer_contents(textbuffer,
                                                    None,
                                                    None,
-                                                   IGNORE_TAGS)
+                                                   ignore_tag)
             
             out = safefile.open(filename, "wb", codec="utf-8")
             self._html_buffer.set_output(out)
@@ -239,7 +239,7 @@ class RichTextIO (object):
 
         for kind, it, param in iter_buffer_contents(textbuffer,
                                                     None, None,
-                                                    IGNORE_TAGS):
+                                                    ignore_tag):
             if kind == "anchor":
                 child, widgets = param
                     
@@ -256,7 +256,7 @@ class RichTextIO (object):
         
         for kind, it, param in iter_buffer_contents(textbuffer,
                                                     None, None,
-                                                    IGNORE_TAGS):
+                                                    ignore_tag):
             if kind == "anchor":
                 child, widgets = param
                     

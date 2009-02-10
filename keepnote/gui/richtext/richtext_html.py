@@ -23,8 +23,6 @@ from keepnote.gui.richtext.textbuffer_tools import \
 
 
 from keepnote.gui.richtext.richtextbuffer import \
-     IGNORE_TAGS, \
-     add_child_to_buffer, \
      RichTextBuffer, \
      RichTextImage, \
      RichTextHorizontalRule
@@ -1089,11 +1087,6 @@ class HtmlBuffer (HTMLParser):
             if isinstance(tag, tag_writer.tagclass):
                 tag_writer.write_tag_begin(self._out, dom, xhtml)
                 return
-
-        if tag.get_property("name") in IGNORE_TAGS:
-            pass        
-        else:
-            raise HtmlError("unknown tag '%s' " % tag.get_property("name"))
                 
         
     def write_tag_end(self, dom, xhtml=True):

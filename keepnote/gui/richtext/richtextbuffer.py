@@ -26,8 +26,9 @@ from keepnote.gui.richtext.textbuffer_tools import \
 from keepnote.gui.richtext.richtextbasebuffer import \
      RichTextBaseBuffer, \
      RichTextBaseFont, \
-     add_child_to_buffer
-from keepnote.gui.richtext.richtextbuffer_indent import IndentManager
+     add_child_to_buffer, \
+     RichTextAnchor
+from keepnote.gui.richtext.indent_handler import IndentHandler
 
 # richtext tags imports
 from keepnote.gui.richtext.richtext_tags import \
@@ -64,6 +65,10 @@ DEFAULT_BGCOLOR = (65535, 65535, 65535)
 DEFAULT_HR_COLOR = (0, 0, 0)
 
 
+def ignore_tag(tag):
+    return tag.get_property("name") in IGNORE_TAGS
+
+
 # TODO: Maybe move somewhere more general
 def download_file(url, filename):
     """Download a url to a file 'filename'"""
@@ -90,43 +95,6 @@ def download_file(url, filename):
 #=============================================================================
 # RichText child objects
 
-
-class RichTextAnchor (gtk.TextChildAnchor):
-    """Base class of all anchor objects in a RichTextView"""
-    
-    def __init__(self):
-        gtk.TextChildAnchor.__init__(self)
-        self._widget = None
-        self._buffer = None
-    
-    def get_widget(self):
-        return self._widget
-
-    def set_buffer(self, buf):
-        self._buffer = buf
-    
-    def copy(self):
-        anchor = RichTextAnchor()
-        anchor.set_buffer(self._buffer)
-        return anchor
-    
-    def highlight(self):
-        if self._widget:
-            self._widget.highlight()
-    
-    def unhighlight(self):
-        if self._widget:
-            self._widget.unhighlight()
-
-gobject.type_register(RichTextAnchor)
-gobject.signal_new("selected", RichTextAnchor, gobject.SIGNAL_RUN_LAST, 
-                   gobject.TYPE_NONE, ())
-gobject.signal_new("activated", RichTextAnchor, gobject.SIGNAL_RUN_LAST, 
-                   gobject.TYPE_NONE, ())
-gobject.signal_new("popup-menu", RichTextAnchor, gobject.SIGNAL_RUN_LAST,
-                   gobject.TYPE_NONE, (int, object))
-gobject.signal_new("init", RichTextAnchor, gobject.SIGNAL_RUN_LAST, 
-                   gobject.TYPE_NONE, ())
 
 
 
@@ -625,7 +593,7 @@ class RichTextBuffer (RichTextBaseBuffer):
         RichTextBaseBuffer.__init__(self, RichTextTagTable())
 
         # indentation manager
-        self._indent = IndentManager(self)
+        self._indent = IndentHandler(self)
 
         # set of all anchors in buffer
         self._anchors = set()
@@ -662,7 +630,7 @@ class RichTextBuffer (RichTextBaseBuffer):
     def copy_contents(self, start, end):
         """Return a content stream for copying from iter start and end"""
 
-        contents = iter(iter_buffer_contents(self, start, end, IGNORE_TAGS))
+        contents = iter(iter_buffer_contents(self, start, end, ignore_tag))
 
         # remove regions that can't be copied
         for item in contents:
@@ -698,15 +666,18 @@ class RichTextBuffer (RichTextBaseBuffer):
 
     def on_paragraph_split(self, start, end):
         """Callback for when paragraphs split"""
-        self._indent.on_paragraph_split(start, end)
+        if self.is_interactive():
+            self._indent.on_paragraph_split(start, end)
 
     def on_paragraph_merge(self, start, end):
         """Callback for when paragraphs merge"""
-        self._indent.on_paragraph_merge(start, end)
+        if self.is_interactive():        
+            self._indent.on_paragraph_merge(start, end)
 
     def on_paragraph_change(self, start, end):
         """Callback for when paragraph type changes"""
-        self._indent.on_paragraph_change(start, end)
+        if self.is_interactive():
+            self._indent.on_paragraph_change(start, end)
 
     def is_insert_allowed(self, it, text=""):
         """Returns True if insertion is allowed at iter 'it'"""
@@ -718,6 +689,7 @@ class RichTextBuffer (RichTextBaseBuffer):
 
     def _on_delete_range(self, textbuffer, start, end):
 
+        # TODO: should I add something like this back?
         # let indent manager prepare the delete
         #if self.is_interactive():
         #    self._indent.prepare_delete_range(start, end)
@@ -792,7 +764,13 @@ class RichTextBuffer (RichTextBaseBuffer):
 
     def _add_child_at_anchor(self, child, textview):
         #print "add", child.get_widget()
+
+        # skip children whose insertion was rejected
+        if child.get_deleted():
+            return
+
         textview.add_child_at_anchor(child.get_widget(), child)
+        
         child.get_widget().show()
         #print "added", child.get_widget()
 
