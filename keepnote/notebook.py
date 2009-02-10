@@ -28,9 +28,10 @@ from keepnote import safefile
 from keepnote import uuid
 
 
+# NOTE: the <?xml ?> header is left off to keep it compatiable with IE,
+# for the time being.
 # constants
 BLANK_NOTE = """\
-<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><body></body></html>
 """
@@ -252,6 +253,10 @@ class NoteBookVersionError (NoteBookError):
 # TODO: finish
 
 class NoteBookAttr (object):
+    """
+    A NoteBookAttr is a metadata attribute that can be associated to
+    nodes in a NoteBook.
+    """
 
     def __init__(self, name, datatype, key=None, write=None, read=None):
         if key == None:
@@ -810,7 +815,371 @@ class NoteBookNode (object):
         self._attr.update(attr)
 
         
+
+class NoteBookPage (NoteBookNode):
+    """Class that represents a Page in the NoteBook"""
+    
+    def __init__(self, path, title=DEFAULT_PAGE_NAME,
+                 parent=None, notebook=None):
+        NoteBookNode.__init__(self, path, title, parent, notebook,
+                              content_type=CONTENT_TYPE_PAGE)
+
+
+class NoteBookDir (NoteBookNode):
+    """Class that represents Folders in NoteBook"""
+    
+    def __init__(self, path, title=DEFAULT_DIR_NAME,
+                 parent=None, notebook=None):
+        NoteBookNode.__init__(self, path, title, parent, notebook,
+                              content_type=CONTENT_TYPE_DIR)
+
+
+
+class NoteBookTrash (NoteBookDir):
+    """Class represents the Trash Folder in a NoteBook"""
+
+    def __init__(self, name, notebook):
+        NoteBookDir.__init__(self, get_trash_dir(notebook.get_path()), 
+                             name, parent=notebook, notebook=notebook)
+        self.set_attr("content_type", CONTENT_TYPE_TRASH)
         
+        
+    def move(self, parent, index=None):
+        """Trash folder only be under root directory"""
+        
+        if parent == self._notebook:
+            assert parent == self._parent
+            NoteBookDir.move(self, parent, index)
+        else:
+            raise NoteBookError("The Trash folder must be a top-level folder.")
+    
+    def delete(self):
+        """Trash folder cannot be deleted"""
+        
+        raise NoteBookError("The Trash folder cannot be deleted.")
+
+
+class NoteBookPreferences (object):
+    """Preference data structure for a NoteBook"""
+    def __init__(self):
+        
+        self.version = NOTEBOOK_FORMAT_VERSION
+        self.default_font = DEFAULT_FONT
+
+
+
+# file format for NoteBook preferences
+g_notebook_pref_parser = xmlo.XmlObject(
+    xmlo.Tag("notebook", tags=[
+        xmlo.Tag("version",
+            attr=("verison", int, str)),
+        xmlo.Tag("default_font",
+            attr=("default_font", None, None))
+        ]))
+
+
+class NoteBook (NoteBookDir):
+    """Class represents a NoteBook"""
+    
+    def __init__(self, rootdir=None):
+        """rootdir -- Root directory of notebook"""
+        
+        NoteBookDir.__init__(self, rootdir, notebook=self)
+        self.pref = NoteBookPreferences()
+        if rootdir is not None:
+            self._attr["title"] = os.path.basename(rootdir)
+        else:
+            self._attr["title"] = None
+        self._dirty = set()
+        self._trash = None
+        
+        self._attr["order"] = 0
+
+        # init notebook attributes
+        self._init_default_attr()
+
+        # init trash
+        if rootdir:
+            self._trash_path = get_trash_dir(self.get_path())
+        else:
+            self._trash_path = None
+        
+        # listeners
+        self.node_changed = Listeners()  # signature = (node, recurse)
+
+        # add node types
+        self._init_default_node_types()
+
+
+    def _init_default_attr(self):
+        """Initialize default notebook attributes"""
+        
+        self.notebook_attrs = {}
+        for attr in g_default_attrs:
+            self.notebook_attrs[attr.key] = attr
+        
+        
+    def _init_default_node_types(self):
+        """Initialize default node types for notebook"""
+        
+        self._node_factory = NoteBookNodeFactory()
+        self._node_factory.add_node_type(
+            CONTENT_TYPE_DIR,
+            lambda path, parent, notebook, attr:
+            NoteBookDir(path,
+                        parent=parent,
+                        notebook=notebook))
+        self._node_factory.add_node_type(
+            CONTENT_TYPE_PAGE,
+            lambda path, parent, notebook, attr:
+            NoteBookPage(path,
+                         parent=parent,
+                         notebook=notebook))
+        self._node_factory.add_node_type(
+            CONTENT_TYPE_TRASH,
+            lambda path, parent, notebook, attr:
+            NoteBookTrash(TRASH_NAME, notebook))
+
+    
+    def get_root_node(self):
+        """Returns the root node of the notebook"""
+        return self
+
+    def get_children(self):
+        """Returns all children of this node"""
+        if self._children is None:
+            self._get_children()        
+            self._init_trash()
+        
+        return self._children
+
+    #===================================================
+    # input/output
+    
+    def create(self):
+        """Initialize NoteBook on the file-system"""
+        
+        NoteBookDir.create(self)
+        os.mkdir(self.get_pref_dir())
+        self.write_meta_data()
+        self.write_preferences()
+
+    
+    def load(self, filename=None):
+        """Load the NoteBook from the file-system"""
+        if filename is not None:
+            if os.path.isdir(filename):
+                self._set_basename(filename)
+            elif os.path.isfile(filename):
+                filename = os.path.dirname(filename)
+                self._set_basename(filename)
+            else:
+                raise NoteBookError("Cannot find notebook '%s'" % filename)
+            
+            self._trash_path = get_trash_dir(self.get_path())
+        self.read_meta_data()
+        self.read_preferences()
+        self.notify_change(True)
+    
+    
+    def save(self, force=False):
+        """Recursively save any loaded nodes"""
+
+        if force or self in self._dirty:
+            self.write_meta_data()
+            self.write_preferences()
+        
+        self._set_dirty(False)
+
+        if force:
+            for node in self.get_children():
+                node.save(force=force)
+        else:
+            for node in list(self._dirty):
+                node.save()
+        
+        self._dirty.clear()
+
+
+
+    def _set_dirty_node(self, node, dirty):
+        """Mark a node to be dirty (needs saving) in NoteBook"""
+        if dirty:
+            self._dirty.add(node)
+        else:
+            if node in self._dirty:
+                self._dirty.remove(node)
+    
+    
+    def _is_dirty_node(self, node):
+        """Returns True if node is dirty (needs saving)"""
+        return node in self._dirty
+        
+    
+    def save_needed(self):
+        """Returns True if save is needed"""
+        return len(self._dirty) > 0
+
+
+    def read_node(self, parent, path):
+        """Read a NoteBookNode"""
+        return self._node_factory.read_node(self, parent, path)
+
+
+    def new_node(self, content_type, path, parent, attr):
+        """Create a new NodeBookNode"""        
+        return self._node_factory.new_node(content_type, path,
+                                           parent, self, attr)
+
+
+    #=====================================
+    # trash functions
+
+    def get_trash(self):
+        """Returns the Trash Folder for the NoteBook"""
+        return self._trash        
+
+
+    def _init_trash(self):
+        """Ensures Trash directory exists in a notebook"""
+        
+        # ensure trash directory exists
+        self._trash = None
+        for child in self._children:
+            if self.is_trash_dir(child):
+                self._trash = child
+                break
+
+        # if no trash folder, create it
+        if self._trash is None:
+            try:
+                self._trash = NoteBookTrash(TRASH_NAME, self)
+                self._trash.create()
+                self._add_child(self._trash)
+            except NoteBookError, e:
+                raise NoteBookError("Cannot create Trash folder", e)
+
+
+    
+    
+    def is_trash_dir(self, child):
+        """Returns True if child node is the Trash Folder"""
+        return child.get_path() == self._trash_path
+
+
+    def empty_trash(self):
+        """Deletes all nodes under Trash Folder"""
+
+        if self._trash is None:
+            self._init_trash()
+
+        for child in reversed(list(self._trash.get_children())):
+            child.delete()
+        
+        
+    
+    #===============================================
+    # preferences
+    
+    def get_pref_file(self):
+        """Gets the NoteBook's preference file"""
+        return get_pref_file(self.get_path())
+    
+    def get_pref_dir(self):
+        """Gets the NoteBook's preference directory"""
+        return get_pref_dir(self.get_path())
+    
+    
+    def write_preferences(self):
+        """Writes the NoteBooks preferences to the file-system"""
+        try:
+            # ensure preference directory exists
+            if not os.path.exists(self.get_pref_dir()):
+                os.mkdir(self.get_pref_dir())
+
+            g_notebook_pref_parser.write(self.pref, self.get_pref_file())
+        except (IOError, OSError), e:
+            raise NoteBookError("Cannot save notebook preferences", e)
+        except xmlo.XmlError, e:
+            raise NoteBookError("File format error", e)
+
+    
+    def read_preferences(self):
+        """Reads the NoteBook's preferneces from the file-system"""
+        try:
+            g_notebook_pref_parser.read(self.pref, self.get_pref_file())
+        except IOError, e:
+            raise NoteBookError("Cannot read notebook preferences", e)
+        except xmlo.XmlError, e:
+            raise NoteBookError("Notebook preference data is corrupt", e)
+
+        
+        if self.pref.version > NOTEBOOK_FORMAT_VERSION:
+            raise NoteBookVersionError(self.pref.version,
+                                       NOTEBOOK_FORMAT_VERSION)
+
+
+
+#
+# TODO: perhaps factory and metadata reader should be combined?
+#
+
+class NoteBookNodeFactory (object):
+    """
+    This is a factory class that creates NoteBookNode's.  
+    """
+
+    def __init__(self):
+        self._makers = {}
+        self._meta = NoteBookNodeMetaData()
+
+
+    def add_node_type(self, content_type, make_func):
+        """
+        Adds a new node content_type to the factory.
+        Enables factory to build nodes of the given type by calling the
+        given function 'make_func'.
+
+        make_func must have the signature:
+           make_func(path, parent, notebook, attr_dict)
+        """
+        
+        self._makers[content_type] = make_func
+        
+    
+    def read_node(self, notebook, parent, path):
+        """Reads a node from disk"""
+        
+        filename = os.path.basename(path)
+        metafile = get_node_meta_file(path)
+        node = None
+
+        if os.path.exists(metafile):
+            self._meta.read(metafile, notebook.notebook_attrs)
+
+            # NOTE: node can be None
+            node = self.new_node(self._meta.attr.get("content_type",
+                                                     CONTENT_TYPE_DIR),
+                                 path, parent, notebook, self._meta.attr)
+        else:
+            # ignore directory, not a NoteBook directory            
+            pass
+
+        return node
+
+
+    def new_node(self, content_type, path, parent, notebook, attr):
+        """Creates a new node given a content_type"""
+        
+        maker = self._makers.get(content_type, None)
+        if maker:
+            node = maker(path, parent, notebook, attr)
+            node.set_meta_data(attr)
+            return node
+        else:
+            return None
+
+
 
 class NoteBookNodeMetaData (object):
     """Reads and writes metadata for NoteBookNode objects"""
@@ -820,7 +1189,6 @@ class NoteBookNodeMetaData (object):
         self._notebook_attrs = {}
 
         self._parser = None
-
         self.__meta_root = False
         self.__meta_data = None
         self.__meta_tag = None
@@ -844,9 +1212,9 @@ class NoteBookNodeMetaData (object):
                     # skip version attr
                     pass
                 elif isinstance(val, basestring):
-                    # write unknown attrs
+                    # write unknown attrs if they are strings
                     out.write('<attr key="%s">%s</attr>\n' %
-                              (escape(key), escape(val)))
+                              (key, escape(val)))
                 else:
                     # drop attribute
                     pass
@@ -939,341 +1307,3 @@ class NoteBookNodeMetaData (object):
             self.__meta_data += data
             
 
-
-class NoteBookPage (NoteBookNode):
-    """Class that represents a Page in the NoteBook"""
-    
-    def __init__(self, path, title=DEFAULT_PAGE_NAME,
-                 parent=None, notebook=None):
-        NoteBookNode.__init__(self, path, title, parent, notebook,
-                              content_type=CONTENT_TYPE_PAGE)
-
-
-class NoteBookDir (NoteBookNode):
-    """Class that represents Folders in NoteBook"""
-    
-    def __init__(self, path, title=DEFAULT_DIR_NAME,
-                 parent=None, notebook=None):
-        NoteBookNode.__init__(self, path, title, parent, notebook,
-                              content_type=CONTENT_TYPE_DIR)
-
-
-
-class NoteBookTrash (NoteBookDir):
-    """Class represents the Trash Folder in a NoteBook"""
-
-    def __init__(self, name, notebook):
-        NoteBookDir.__init__(self, get_trash_dir(notebook.get_path()), 
-                             name, parent=notebook, notebook=notebook)
-        self.set_attr("content_type", CONTENT_TYPE_TRASH)
-        
-        
-    def move(self, parent, index=None):
-        """Trash folder only be under root directory"""
-        
-        if parent == self._notebook:
-            assert parent == self._parent
-            NoteBookDir.move(self, parent, index)
-        else:
-            raise NoteBookError("The Trash folder must be a top-level folder.")
-    
-    def delete(self):
-        """Trash folder cannot be deleted"""
-        
-        raise NoteBookError("The Trash folder cannot be deleted.")
-
-
-class NoteBookPreferences (object):
-    """Preference data structure for a NoteBook"""
-    def __init__(self):
-        
-        self.version = NOTEBOOK_FORMAT_VERSION
-        self.default_font = DEFAULT_FONT
-
-
-
-# file format for NoteBook preferences
-g_notebook_pref_parser = xmlo.XmlObject(
-    xmlo.Tag("notebook", tags=[
-        xmlo.Tag("version",
-            attr=("verison", int, str)),
-        xmlo.Tag("default_font",
-            attr=("default_font", None, None))
-        ]))
-
-
-class NoteBook (NoteBookDir):
-    """Class represents a NoteBook"""
-    
-    def __init__(self, rootdir=None):
-        """rootdir -- Root directory of notebook"""
-        
-        NoteBookDir.__init__(self, rootdir, notebook=self)
-        self.pref = NoteBookPreferences()
-        if rootdir is not None:
-            self._attr["title"] = os.path.basename(rootdir)
-        else:
-            self._attr["title"] = None
-        self._dirty = set()
-        self._trash = None
-        
-        self._attr["order"] = 0
-
-        # init notebook attributes
-        self.notebook_attrs = {}
-        for attr in g_default_attrs:
-            self.notebook_attrs[attr.key] = attr
-        
-        if rootdir:
-            self._trash_path = get_trash_dir(self.get_path())
-        else:
-            self._trash_path = None
-        
-        # listeners
-        self.node_changed = Listeners()  # node, recurse
-
-        # add node types
-        self._node_factory = NoteBookNodeFactory()
-        self._node_factory.add_node_type(
-            CONTENT_TYPE_DIR,
-            lambda path, parent, notebook, attr:
-            NoteBookDir(path,
-                        parent=parent,
-                        notebook=notebook))
-        self._node_factory.add_node_type(
-            CONTENT_TYPE_PAGE,
-            lambda path, parent, notebook, attr:
-            NoteBookPage(path,
-                         parent=parent,
-                         notebook=notebook))
-        self._node_factory.add_node_type(
-            CONTENT_TYPE_TRASH,
-            lambda path, parent, notebook, attr:
-            NoteBookTrash(TRASH_NAME, notebook))
-
-
-    def get_trash(self):
-        """Returns the Trash Folder for the NoteBook"""
-        return self._trash        
-
-    def _set_dirty_node(self, node, dirty):
-        """Mark a node to be dirty (needs saving) in NoteBook"""
-        if dirty:
-            self._dirty.add(node)
-        else:
-            if node in self._dirty:
-                self._dirty.remove(node)
-    
-    
-    def _is_dirty_node(self, node):
-        """Returns True if node is dirty (needs saving)"""
-        return node in self._dirty
-        
-    
-    def save_needed(self):
-        """Returns True if save is needed"""
-        return len(self._dirty) > 0
-        
-        
-    def create(self):
-        """Initialize NoteBook on the file-system"""
-        
-        NoteBookDir.create(self)
-        os.mkdir(self.get_pref_dir())
-        self.write_meta_data()
-        self.write_preferences()
-
-    
-    def get_root_node(self):
-        """Returns the root node of the notebook"""
-        return self
-    
-    
-    def load(self, filename=None):
-        """Load the NoteBook from the file-system"""
-        if filename is not None:
-            if os.path.isdir(filename):
-                self._set_basename(filename)
-            elif os.path.isfile(filename):
-                filename = os.path.dirname(filename)
-                self._set_basename(filename)
-            else:
-                raise NoteBookError("Cannot find notebook '%s'" % filename)
-            
-            self._trash_path = get_trash_dir(self.get_path())
-        self.read_meta_data()
-        self.read_preferences()
-        self.notify_change(True)
-    
-    
-    def save(self, force=False):
-        """Recursively save any loaded nodes"""
-
-        if force or self in self._dirty:
-            self.write_meta_data()
-            self.write_preferences()
-        
-        self._set_dirty(False)
-
-        if force:
-            for node in self.get_children():
-                node.save(force=force)
-        else:
-            for node in list(self._dirty):
-                node.save()
-        
-        self._dirty.clear()
-        
-
-    def read_node(self, parent, path):
-        """Read a NoteBookNode"""
-        return self._node_factory.read_node(self, parent, path)
-
-
-    def new_node(self, content_type, path, parent, attr):
-        """Create a new NodeBookNode"""        
-        return self._node_factory.new_node(content_type, path,
-                                           parent, self, attr)
-        
-    
-    def get_children(self):
-        """Returns all children of this node"""
-        if self._children is None:
-            self._get_children()        
-            self._init_trash()
-        
-        return self._children
-
-
-    def _init_trash(self):
-        """Ensures Trash directory exists in a notebook"""
-        
-        # ensure trash directory exists
-        self._trash = None
-        for child in self._children:
-            if self.is_trash_dir(child):
-                self._trash = child
-                break
-
-        # if no trash folder, create it
-        if self._trash is None:
-            try:
-                self._trash = NoteBookTrash(TRASH_NAME, self)
-                self._trash.create()
-                self._add_child(self._trash)
-            except NoteBookError, e:
-                raise NoteBookError("Cannot create Trash folder", e)
-
-
-    
-    
-    def is_trash_dir(self, child):
-        """Returns True if child node is the Trash Folder"""
-        return child.get_path() == self._trash_path
-
-
-    def empty_trash(self):
-        """Deletes all nodes under Trash Folder"""
-
-        if self._trash is None:
-            self._init_trash()
-
-        for child in reversed(list(self._trash.get_children())):
-            child.delete()
-        
-        
-    
-    #===============================================
-    # preferences
-    
-    def get_pref_file(self):
-        """Gets the NoteBook's preference file"""
-        return get_pref_file(self.get_path())
-    
-    def get_pref_dir(self):
-        """Gets the NoteBook's preference directory"""
-        return get_pref_dir(self.get_path())
-    
-    
-    def write_preferences(self):
-        """Writes the NoteBooks preferences to the file-system"""
-        try:
-            # ensure preference directory exists
-            if not os.path.exists(self.get_pref_dir()):
-                os.mkdir(self.get_pref_dir())
-
-            g_notebook_pref_parser.write(self.pref, self.get_pref_file())
-        except (IOError, OSError), e:
-            raise NoteBookError("Cannot save notebook preferences", e)
-        except xmlo.XmlError, e:
-            raise NoteBookError("File format error", e)
-
-    
-    def read_preferences(self):
-        """Reads the NoteBook's preferneces from the file-system"""
-        try:
-            g_notebook_pref_parser.read(self.pref, self.get_pref_file())
-        except IOError, e:
-            raise NoteBookError("Cannot read notebook preferences", e)
-        except xmlo.XmlError, e:
-            raise NoteBookError("Notebook preference data is corrupt", e)
-
-        
-        if self.pref.version > NOTEBOOK_FORMAT_VERSION:
-            raise NoteBookVersionError(self.pref.version,
-                                       NOTEBOOK_FORMAT_VERSION)
-
-
-
-class NoteBookNodeFactory (object):
-
-    def __init__(self):
-        self._makers = {}
-
-
-    def add_node_type(self, content_type, make_func):
-        self._makers[content_type] = make_func
-        
-    
-    def read_node(self, notebook, parent, path):
-        """Reads a node from disk"""
-        
-        filename = os.path.basename(path)
-        metafile = get_node_meta_file(path)        
-        meta = NoteBookNodeMetaData()
-        node = None
-
-        if os.path.exists(metafile):
-            meta.read(metafile, notebook.notebook_attrs)
-
-            node = self.new_node(meta.attr.get("content_type",
-                                               CONTENT_TYPE_DIR),
-                                 path, parent, notebook, meta.attr)
-            
-            #maker = self._makers.get(meta.attr.get("content_type",
-            #                                       CONTENT_TYPE_DIR), None)
-            #if maker:
-            #    node = maker(path, parent, notebook, meta.attr)
-            #    node.set_meta_data(meta.attr)                
-            #else:
-                # ignore unknown node
-                # TODO: could add some error handling error
-                # or add NoteBookUnknownNode()
-            #    pass
-        else:
-            # ignore directory, not a NoteBook directory            
-            pass
-
-        return node
-
-
-    def new_node(self, content_type, path, parent, notebook, attr):
-        """Creates a new node"""
-        
-        maker = self._makers.get(content_type, None)
-        if maker:
-            node = maker(path, parent, notebook, attr)
-            node.set_meta_data(attr)
-            return node
-        else:
-            return None
