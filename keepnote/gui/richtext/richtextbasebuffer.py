@@ -169,7 +169,7 @@ class RichTextBaseFont (object):
 
 
 
-class RichTextBaseBuffer (gtk.TextBuffer):
+class RichTextBaseBuffer2 (gtk.TextBuffer):
     """Basic RichTextBuffer with the following features
     
         - maintains undo/redo stacks
@@ -178,17 +178,18 @@ class RichTextBaseBuffer (gtk.TextBuffer):
 
     def __init__(self, tag_table=RichTextBaseTagTable()):
         gtk.TextBuffer.__init__(self, tag_table)
-        #self.undo_stack = UndoStack(MAX_UNDOS)
         self._undo_handler = UndoHandler(self)
-        self.undo_stack = self._undo_handler.undo_stack
         self._undo_handler.after_changed.add(self.on_after_changed)
+        self.undo_stack = self._undo_handler.undo_stack
 
+        # insert mark tracking
         self._insert_mark = self.get_insert()
         self._old_insert_mark = self.create_mark(
             None, self.get_iter_at_mark(self._insert_mark), True)
 
         
         self._current_tags = []
+        
         self._user_action_ending = False
         self._noninteractive = 0
 
@@ -205,13 +206,13 @@ class RichTextBaseBuffer (gtk.TextBuffer):
             self.connect("remove-tag", self._on_remove_tag),
 
             # undo handler events
-            self.connect("insert-text", self._undo_handler._on_insert_text),
-            self.connect("delete-range", self._undo_handler._on_delete_range),
-            self.connect("insert-pixbuf", self._undo_handler._on_insert_pixbuf),
-            self.connect("insert-child-anchor", self._undo_handler._on_insert_child_anchor),
-            self.connect("apply-tag", self._undo_handler._on_apply_tag),
-            self.connect("remove-tag", self._undo_handler._on_remove_tag),
-            self.connect("changed", self._undo_handler._on_changed)
+            self.connect("insert-text", self._undo_handler.on_insert_text),
+            self.connect("delete-range", self._undo_handler.on_delete_range),
+            self.connect("insert-pixbuf", self._undo_handler.on_insert_pixbuf),
+            self.connect("insert-child-anchor", self._undo_handler.on_insert_child_anchor),
+            self.connect("apply-tag", self._undo_handler.on_apply_tag),
+            self.connect("remove-tag", self._undo_handler.on_remove_tag),
+            self.connect("changed", self._undo_handler.on_changed)
             
             ]
 
@@ -277,6 +278,13 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         """Add TextChildAnchor to buffer"""
         pass
 
+    def update_child(self, action):
+        
+        if isinstance(action, InsertChildAction):
+            # set buffer of child
+            action.child.set_buffer(self)
+        
+
     #======================================
     # selection callbacks
     
@@ -297,6 +305,29 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         pass
 
 
+    def update_paragraphs(self, action):
+
+        if isinstance(action, InsertAction):
+
+            # detect paragraph spliting
+            if "\n" in action.text:
+                par_start = self.get_iter_at_offset(action.pos)
+                par_end = par_start.copy()
+                par_start.backward_line()
+                par_end.forward_chars(action.length)
+                par_end.forward_line()
+                self.on_paragraph_split(par_start, par_end)
+
+
+        elif isinstance(action, DeleteAction):
+
+            # detect paragraph merging
+            if "\n" in action.text:
+                par_start, par_end = get_paragraph(
+                    self.get_iter_at_offset(action.start_offset))
+                self.on_paragraph_merge(par_start, par_end)
+
+     
 
     #===========================================================
     # callbacks
@@ -381,10 +412,93 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         Fix up textbuffer to restore consistent state (paragraph tags,
         current font application)
         """
+        
+        
+        self.begin_user_action()
+        
+        self.update_current_tags(action)
+        self.update_paragraphs(action)
+        self.update_child(action)
+        
+        self.end_user_action()
 
-        # do not process action if we are in an non-interactive state
-        if not self.is_interactive():
-            return
+
+    #==================================================================
+    # records whether text insert is currently user interactive, or is
+    # automated
+        
+
+    def begin_noninteractive(self):
+        """Begins a noninteractive mode"""
+        self._noninteractive += 1
+
+    def end_noninteractive(self):
+        """Ends a noninteractive mode"""
+        self._noninteractive -= 1
+
+    def is_interactive(self):
+        """Returns True when insert is currently interactive"""
+        return self._noninteractive == 0
+
+
+    #=====================================================================
+    # undo/redo methods
+    
+    def undo(self):
+        """Undo the last action in the RichTextView"""
+        self.begin_noninteractive()
+        self.undo_stack.undo()
+        self.end_noninteractive()
+        
+    def redo(self):
+        """Redo the last action in the RichTextView"""
+        self.begin_noninteractive()        
+        self.undo_stack.redo()
+        self.end_noninteractive()
+    
+    def _on_begin_user_action(self, textbuffer):
+        """Begin a composite undo/redo action"""
+
+        #self._user_action = True
+        self.undo_stack.begin_action()
+
+    def _on_end_user_action(self, textbuffer):
+        """End a composite undo/redo action"""
+        
+        if not self.undo_stack.is_in_progress() and \
+           not self._user_action_ending:
+            self._user_action_ending = True
+            self.on_ending_user_action()
+            self._user_action_ending = False
+        self.undo_stack.end_action()
+
+
+    def on_ending_user_action(self):
+        """
+        Callback for when user action is about to end
+        Convenient for implementing extra actions that should be included
+        in current user action
+        """
+        pass
+
+
+
+class RichTextBaseBuffer (RichTextBaseBuffer2):
+    """Basic RichTextBuffer with the following features
+    
+        - manages "current font" behavior
+    """
+    
+    def __init__(self, tag_table=RichTextBaseTagTable()):
+        RichTextBaseBuffer2.__init__(self, tag_table)
+
+        self._current_tags = []
+
+    #==============================================================
+    # Tag manipulation    
+
+    def update_current_tags(self, action):
+        """Check if current tags need to be applited due to action"""
 
         self.begin_user_action()
 
@@ -402,36 +516,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
                 for tag in action.current_tags:
                     self.apply_tag(tag, it, it2)
 
-            # detect paragraph spliting
-            if "\n" in action.text:
-                par_start = self.get_iter_at_offset(action.pos)
-                par_end = par_start.copy()
-                par_start.backward_line()
-                par_end.forward_chars(action.length)
-                par_end.forward_line()
-                self.on_paragraph_split(par_start, par_end)
-
-
-        elif isinstance(action, DeleteAction):
-
-            # detect paragraph merging
-            if "\n" in action.text:
-                par_start, par_end = get_paragraph(
-                    self.get_iter_at_offset(action.start_offset))
-                self.on_paragraph_merge(par_start, par_end)
-
-        elif isinstance(action, InsertChildAction):
-
-            # set buffer of child
-            action.child.set_buffer(self)
-            
-
         self.end_user_action()
-
-
-
-    #==============================================================
-    # Tag manipulation    
 
     
     def get_current_tags(self):
@@ -603,63 +688,6 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         return font
 
 
-    #==================================================================
-    # records whether text insert is currently user interactive, or is
-    # automated
-        
-
-    def begin_noninteractive(self):
-        """Begins a noninteractive mode"""
-        self._noninteractive += 1
-
-    def end_noninteractive(self):
-        """Ends a noninteractive mode"""
-        self._noninteractive -= 1
-
-    def is_interactive(self):
-        """Returns True when insert is currently interactive"""
-        return self._noninteractive == 0
-
-
-    #=====================================================================
-    # undo/redo methods
-    
-    def undo(self):
-        """Undo the last action in the RichTextView"""
-        self.begin_noninteractive()
-        self.undo_stack.undo()
-        self.end_noninteractive()
-        
-    def redo(self):
-        """Redo the last action in the RichTextView"""
-        self.begin_noninteractive()        
-        self.undo_stack.redo()
-        self.end_noninteractive()
-    
-    def _on_begin_user_action(self, textbuffer):
-        """Begin a composite undo/redo action"""
-
-        #self._user_action = True
-        self.undo_stack.begin_action()
-
-    def _on_end_user_action(self, textbuffer):
-        """End a composite undo/redo action"""
-        
-        if not self.undo_stack.is_in_progress() and \
-           not self._user_action_ending:
-            self._user_action_ending = True
-            self.on_ending_user_action()
-            self._user_action_ending = False
-        self.undo_stack.end_action()
-
-
-    def on_ending_user_action(self):
-        """
-        Callback for when user action is about to end
-        Convenient for implementing extra actions that should be included
-        in current user action
-        """
-        pass
 
 
 

@@ -204,7 +204,7 @@ class UndoHandler (object):
         self.after_changed = Listeners()
         
 
-    def _on_insert_text(self, textbuffer, it, text, length):
+    def on_insert_text(self, textbuffer, it, text, length):
         """Callback for text insert"""
 
         # NOTE: GTK does not give us a proper UTF string, so fix it
@@ -220,7 +220,7 @@ class UndoHandler (object):
                                 textbuffer.get_insert()).get_offset()))
         
         
-    def _on_delete_range(self, textbuffer, start, end):
+    def on_delete_range(self, textbuffer, start, end):
         """Callback for delete range"""
         # setup next action
         self._next_action = DeleteAction(textbuffer, start.get_offset(), 
@@ -230,19 +230,19 @@ class UndoHandler (object):
                                              textbuffer.get_insert()).get_offset())
 
     
-    def _on_insert_pixbuf(self, textbuffer, it, pixbuf):
+    def on_insert_pixbuf(self, textbuffer, it, pixbuf):
         """Callback for inserting a pixbuf"""
         pass
     
     
-    def _on_insert_child_anchor(self, textbuffer, it, anchor):
+    def on_insert_child_anchor(self, textbuffer, it, anchor):
         """Callback for inserting a child anchor"""
         # setup next action
         self._next_action = InsertChildAction(textbuffer, it.get_offset(),
                                               anchor)
 
     
-    def _on_apply_tag(self, textbuffer, tag, start, end):
+    def on_apply_tag(self, textbuffer, tag, start, end):
         """Callback for tag apply"""
 
         if not isinstance(tag, RichTextTag):
@@ -256,7 +256,7 @@ class UndoHandler (object):
         textbuffer.set_modified(True)
 
     
-    def _on_remove_tag(self, textbuffer, tag, start, end):
+    def on_remove_tag(self, textbuffer, tag, start, end):
         """Callback for tag remove"""
 
         if not isinstance(tag, RichTextTag):
@@ -271,7 +271,7 @@ class UndoHandler (object):
 
     
     
-    def _on_changed(self, textbuffer):
+    def on_changed(self, textbuffer):
         """Callback for buffer change"""
         
         # process actions that have changed the buffer

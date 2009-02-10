@@ -666,15 +666,18 @@ class RichTextBuffer (RichTextBaseBuffer):
 
     def on_paragraph_split(self, start, end):
         """Callback for when paragraphs split"""
-        self._indent.on_paragraph_split(start, end)
+        if self.is_interactive():
+            self._indent.on_paragraph_split(start, end)
 
     def on_paragraph_merge(self, start, end):
         """Callback for when paragraphs merge"""
-        self._indent.on_paragraph_merge(start, end)
+        if self.is_interactive():        
+            self._indent.on_paragraph_merge(start, end)
 
     def on_paragraph_change(self, start, end):
         """Callback for when paragraph type changes"""
-        self._indent.on_paragraph_change(start, end)
+        if self.is_interactive():
+            self._indent.on_paragraph_change(start, end)
 
     def is_insert_allowed(self, it, text=""):
         """Returns True if insertion is allowed at iter 'it'"""
