@@ -56,16 +56,31 @@ DEFAULT_FONT = "%s %d" % (DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE)
 
 # content types
 CONTENT_TYPE_PAGE = "text/xhtml+xml"
+#CONTENT_TYPE_PLAIN_TEXT = "text/plain"
 CONTENT_TYPE_TRASH = "application/x-notebook-trash"
 CONTENT_TYPE_DIR = "application/x-notebook-dir"
 
 
+# TODO: use attribute system instead, record keys not ints
 # information sort constants
 INFO_SORT_NONE, \
 INFO_SORT_MANUAL, \
 INFO_SORT_TITLE, \
 INFO_SORT_CREATED_TIME, \
 INFO_SORT_MODIFIED_TIME = range(5)
+
+def attr_key2col(key):
+    return {"0": 0,
+            "none": 0,
+            "1": 1,
+            "order": 1,
+            "2": 2,
+            "title": 2,
+            "3": 3,
+            "created_time": 3,
+            "4": 4,
+            "modified_time": 4}[key]
+            
 
 
 #=============================================================================

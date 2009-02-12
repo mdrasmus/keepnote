@@ -255,6 +255,7 @@ class EditorMenus (gobject.GObject):
         self.bold.widget.set_active(font.mods["bold"])
         self.italic.widget.set_active(font.mods["italic"])
         self.underline.widget.set_active(font.mods["underline"])
+        self.strike.widget.set_active(font.mods["strike"])
         self.fixed_width.widget.set_active(font.mods["tt"])
         self.link.widget.set_active(font.link is not None)
         self.no_wrap.widget.set_active(font.mods["nowrap"])
@@ -433,6 +434,13 @@ class EditorMenus (gobject.GObject):
             "Underline", "underline.png", gtk.STOCK_UNDERLINE,
             lambda: self._editor.get_textview().toggle_font_mod("underline"),
             use_stock_icons)
+
+        # strikethrough
+        self.strike = self._make_toggle_button(
+            toolbar, tips,
+            "Strike", "strike.png", gtk.STOCK_STRIKETHROUGH,
+            lambda: self._editor.get_textview().toggle_font_mod("strike"),
+            use_stock_icons)
         
         # fixed-width tool
         self.fixed_width = self._make_toggle_button(
@@ -566,6 +574,10 @@ class EditorMenus (gobject.GObject):
              "<control>U", lambda w,e: self.on_mod("underline"), 0, 
              "<ImageItem>", 
              get_resource_pixbuf("underline.png")),
+            ("/Format/S_trike", 
+             "", lambda w,e: self.on_mod("strike"), 0, 
+             "<ImageItem>", 
+             get_resource_pixbuf("strike.png")),            
             ("/Format/_Monospace",
              "<control>M", lambda w,e: self.on_mod("tt"), 0,
              "<ImageItem>",

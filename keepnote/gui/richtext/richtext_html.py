@@ -409,6 +409,7 @@ class HtmlTagModReader (HtmlTagReader):
         "b": "bold",
         "i": "italic",
         "u": "underline",
+        "strike": "strike",
         "tt": "tt",
         "nobr": "nowrap"}
     
@@ -424,6 +425,7 @@ class HtmlTagModWriter (HtmlTagWriter):
         "bold": "b",
         "italic": "i",
         "underline": "u",
+        "strike": "strike",
         "tt": "tt",
         "nowrap": "nobr"
         }
@@ -793,6 +795,7 @@ class HtmlBuffer (HTMLParser):
         self.add_tag_reader(HtmlTagModReader(self, "b"))
         self.add_tag_reader(HtmlTagModReader(self, "i"))
         self.add_tag_reader(HtmlTagModReader(self, "u"))
+        self.add_tag_reader(HtmlTagModReader(self, "strike"))
         self.add_tag_reader(HtmlTagModReader(self, "tt"))
         self.add_tag_reader(HtmlTagModReader(self, "nobr"))
         self.add_tag_writer(HtmlTagModWriter(self))

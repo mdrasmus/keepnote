@@ -518,16 +518,27 @@ class RichTextFont (RichTextBaseFont):
         self.fg_color = color_to_string(attr.fg_color)
         self.bg_color = color_to_string(attr.bg_color)
 
-        bold = tag_table.lookup("bold")
-        italic = tag_table.lookup("italic")
-        underline = tag_table.lookup("underline")
-        tt = tag_table.lookup("tt")
-        nowrap = tag_table.lookup("nowrap")
+        mod_class = tag_table.get_tag_class("mod")
+        
+        #bold = tag_table.lookup("bold")
+        #italic = tag_table.lookup("italic")
+        #underline = tag_table.lookup("underline")
+        #strike = tag_table.lookup("strike")
+        #tt = tag_table.lookup("tt")
+        #nowrap = tag_table.lookup("nowrap")
 
         tag_set = set(tags)
         
         # set modifications (current tags override)
-        self.mods = {"bold":
+        self.mods = {}
+        for tag in mod_class.tags:
+            self.mods[tag.get_property("name")] = (tag in current_tags or
+                                                   tag in tag_set)
+        self.mods["tt"] = (self.mods["tt"] or self.family == "Monospace")
+        
+
+        '''
+        "bold":
                      bold in current_tags or
                      bold in tag_set,
                      "italic": 
@@ -536,6 +547,9 @@ class RichTextFont (RichTextBaseFont):
                      "underline":
                      underline in current_tags or
                      underline in tag_set,
+                     "strike":
+                     strike in current_tags or
+                     strike in tag_set,
                      "tt":
                      tt in current_tags or
                      tt in tag_set or
@@ -543,6 +557,7 @@ class RichTextFont (RichTextBaseFont):
                      "nowrap":
                      nowrap in current_tags or
                      nowrap in tag_set}
+        '''
         
         # set justification
         self.justify = RichTextJustifyTag.justify2name[attr.justification]
