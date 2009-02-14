@@ -14,16 +14,6 @@ import gtk, gobject, pango
 from gtk import gdk
 
 # keepnote imports
-from keepnote.gui.treemodel import \
-    COL_ICON, \
-    COL_ICON_EXPAND, \
-    COL_TITLE, \
-    COL_CREATED_TEXT, \
-    COL_CREATED_INT, \
-    COL_MODIFIED_TEXT, \
-    COL_MODIFIED_INT, \
-    COL_MANUAL, \
-    COL_NODE
 from keepnote.gui import treemodel
 from keepnote.gui import basetreeview
 from keepnote.notebook import NoteBookTrash, \
@@ -55,7 +45,7 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
         self.set_headers_visible(False)
 
         # make treeview searchable
-        self.set_search_column(treemodel.COL_TITLE)
+        self.set_search_column(self.model.get_column_by_name("title").pos)
         #self.set_fixed_height_mode(True)       
 
         # tree style
@@ -84,9 +74,12 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
         self.column.pack_start(self.cell_text, True)
 
         # map cells to columns in treestore
-        self.column.add_attribute(self.cell_icon, 'pixbuf', treemodel.COL_ICON)
-        self.column.add_attribute(self.cell_icon, 'pixbuf-expander-open', treemodel.COL_ICON_EXPAND)
-        self.column.add_attribute(self.cell_text, 'text', treemodel.COL_TITLE)
+        self.column.add_attribute(self.cell_icon, 'pixbuf',
+                                  self.model.get_column_by_name("icon").pos)
+        self.column.add_attribute(self.cell_icon, 'pixbuf-expander-open',
+                                  self.model.get_column_by_name("icon_open").pos)
+        self.column.add_attribute(self.cell_text, 'text',
+                                  self.model.get_column_by_name("title").pos)
 
         self.menu = gtk.Menu()
         self.menu.attach_to_widget(self, lambda w,m:None)
@@ -143,7 +136,8 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
 
     
     def edit_node(self, node):
-        path = treemodel.get_path_from_node(self.model, node)
+        path = treemodel.get_path_from_node(self.model, node,
+                                            self.rich_model.get_node_column())
         self.set_cursor_on_cell(path, self.column, self.cell_text, 
                                          True)
         gobject.idle_add(lambda: self.scroll_to_cell(path))

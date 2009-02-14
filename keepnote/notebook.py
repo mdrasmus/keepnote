@@ -44,6 +44,7 @@ NOTEBOOK_FORMAT_VERSION = 2
 ELEMENT_NODE = 1
 NODE_META_FILE = "node.xml"
 PAGE_DATA_FILE = "page.html"
+PLAIN_TEXT_DATA_FILE = "page.txt"
 PREF_FILE = "notebook.nbk"
 NOTEBOOK_META_DIR = "__NOTEBOOK__"
 TRASH_DIR = "__TRASH__"
@@ -61,26 +62,6 @@ CONTENT_TYPE_TRASH = "application/x-notebook-trash"
 CONTENT_TYPE_DIR = "application/x-notebook-dir"
 
 
-# TODO: use attribute system instead, record keys not ints
-# information sort constants
-INFO_SORT_NONE, \
-INFO_SORT_MANUAL, \
-INFO_SORT_TITLE, \
-INFO_SORT_CREATED_TIME, \
-INFO_SORT_MODIFIED_TIME = range(5)
-
-def attr_key2col(key):
-    return {"0": 0,
-            "none": 0,
-            "1": 1,
-            "order": 1,
-            "2": 2,
-            "title": 2,
-            "3": 3,
-            "created_time": 3,
-            "4": 4,
-            "modified_time": 4}[key]
-            
 
 
 #=============================================================================
@@ -170,6 +151,10 @@ def get_page_data_file(pagepath):
     """Returns the HTML data file for a page"""
     return os.path.join(pagepath, PAGE_DATA_FILE)
 
+def get_plain_text_data_file(pagepath):
+    """Returns the plain text data file for a page"""
+    return os.path.join(pagepath, PLAIN_TEXT_DATA_FILE)
+
 def get_pref_file(nodepath):
     """Returns the filename of the notebook preference file"""
     return os.path.join(nodepath, PREF_FILE)
@@ -192,6 +177,8 @@ def strip_tags(line):
 
 def read_data_as_plain_text(infile):
     """Read a Note data file as plain text"""
+
+    # TODO: need to handle case when <body> and </body> are on same line
 
     for line in infile:
         # skip until body tag
@@ -232,7 +219,10 @@ def get_notebook_version(filename):
         raise NoteBookError("Notebook preference data is corrupt", e)
 
     return pref.version
-    
+
+
+def new_nodeid():
+    return str(uuid.uuid4())
 
 #=============================================================================
 # classes
@@ -273,7 +263,8 @@ class NoteBookAttr (object):
     nodes in a NoteBook.
     """
 
-    def __init__(self, name, datatype, key=None, write=None, read=None):
+    def __init__(self, name, datatype, key=None, write=None, read=None,
+                 default=None):
         if key == None:
             self.key = name
         else:
@@ -299,28 +290,54 @@ class NoteBookAttr (object):
                 self.read = datatype
         else:
             self.read = read
+
+        # default function
+        self.default = default
+        
         
 
 class NoteBookTable (object):
-    def __init__(self, name):
+    def __init__(self, name, attrs=[]):
         self.name = name
-        self.cols = []
+        self.attrs = list(attrs)
 
         # TODO: add col widths
         # NoteBooks have tables and attrs
 
+
+
+# mapping for old style of saving sort order
+_sort_info_backcompat = {"0": "order",
+                          "1": "order",
+                          "2": "title",
+                          "3": "created_time",
+                          "4": "modified_time"} 
+def read_info_sort(key):
+    return _sort_info_backcompat.get(key, key)
+
+
+title_attr = NoteBookAttr("Title", unicode, "title")
+created_time_attr = NoteBookAttr("Created", int, "created_time", default=get_timestamp)
+modified_time_attr = NoteBookAttr("Modified", int, "modified_time", default=get_timestamp)
+
 g_default_attrs = [
-    NoteBookAttr("Title", unicode, "title"),
+    title_attr,
     NoteBookAttr("Content type", unicode, "content_type"),
     NoteBookAttr("Order", int, "order"),
-    NoteBookAttr("Created", int, "created_time"),
-    NoteBookAttr("Modified", int, "modified_time"),
+    created_time_attr,
+    modified_time_attr,
     NoteBookAttr("Expaned", bool, "expanded"),
     NoteBookAttr("Expanded2", bool, "expanded2"),
-    NoteBookAttr("Folder Sort", int, "info_sort"),
+    NoteBookAttr("Folder Sort", str, "info_sort", read=read_info_sort),
     NoteBookAttr("Folder Sort Direction", int, "info_sort_dir"),
-    NoteBookAttr("Node ID", str, "nodeid")
+    NoteBookAttr("Node ID", str, "nodeid", default=new_nodeid)
 ]
+
+
+default_notebook_table = NoteBookTable("default", attrs=[title_attr,
+                                                         created_time_attr,
+                                                         modified_time_attr])
+
 
 
 # TODO: parent might be an implict attr
@@ -447,7 +464,9 @@ class NoteBookNode (object):
 
     def clear_attr(self, title="", content_type=CONTENT_TYPE_DIR):
         """Clear attributes (set them to defaults)"""
-        
+
+        # TODO: generalize this
+        # make clear method in attributes
         self._attr = {
             "title": title,
             "content_type": content_type,
@@ -456,7 +475,7 @@ class NoteBookNode (object):
             "modified_time": None,
             "expanded": False,
             "expanded2": False,
-            "info_sort": INFO_SORT_NONE,
+            "info_sort": "order",
             "info_sort_dir": 1}
         
     
@@ -609,7 +628,7 @@ class NoteBookNode (object):
     def rename(self, title):
         """Renames the title of the node"""
         
-        # do noting if title is the same
+        # do nothing if title is the same
         if title == self._attr["title"]:
             return
         
@@ -777,6 +796,8 @@ class NoteBookNode (object):
 
     def read_data_as_plain_text(self):
         """Iterates over the lines of the data file as plain text"""
+
+        # TODO: make sure to open with UTF-8 encoding
         
         filename = self.get_data_file()
         infile = open(filename)
@@ -824,7 +845,7 @@ class NoteBookNode (object):
             attr["modified_time"] = get_timestamp()
             self._set_dirty(True)            
         if "nodeid" not in attr:
-            attr["nodeid"] = str(uuid.uuid4())
+            attr["nodeid"] = new_nodeid()
             self._set_dirty(True)            
         
         self._attr.update(attr)
@@ -838,6 +859,38 @@ class NoteBookPage (NoteBookNode):
                  parent=None, notebook=None):
         NoteBookNode.__init__(self, path, title, parent, notebook,
                               content_type=CONTENT_TYPE_PAGE)
+
+
+# TODO: in progress
+class NoteBookPlainText (NoteBookNode):
+    """Class that represents a plain text Page in the NoteBook"""
+    
+    def __init__(self, path, title=DEFAULT_PAGE_NAME,
+                 parent=None, notebook=None):
+        NoteBookNode.__init__(self, path, title, parent, notebook,
+                              content_type="text/plain")
+
+    def get_data_file(self):
+        """Returns filename of data/text/html/etc"""
+        return get_plain_text_data_file(self.get_path())
+
+
+    def read_data_as_plain_text(self):
+        """Iterates over the lines of the data file as plain text"""
+
+        # TODO: make sure the codec is UTF-8
+        return iter(open(self.get_data_file()))
+            
+    
+    def write_empty_data_file(self):
+        """Initializes an empty data file on file-system"""
+        datafile = self.get_data_file()
+        
+        try:
+            out = safefile.open(datafile, "w", codec="utf-8")
+            out.close()
+        except IOError, e:
+            raise NoteBookError("Cannot initialize richtext file '%s'" % datafile, e)
 
 
 class NoteBookDir (NoteBookNode):

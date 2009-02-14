@@ -14,19 +14,7 @@ import gtk, gobject, pango
 from gtk import gdk
 
 
-from keepnote.gui.treemodel import \
-    COL_ICON, \
-    COL_ICON_EXPAND, \
-    COL_TITLE, \
-    COL_TITLE_SORT, \
-    COL_CREATED_TEXT, \
-    COL_CREATED_INT, \
-    COL_MODIFIED_TEXT, \
-    COL_MODIFIED_INT, \
-    COL_MANUAL, \
-    COL_NODE
 from keepnote.gui import basetreeview
-
 from keepnote.gui import \
      get_resource, \
      get_resource_image, \
@@ -104,11 +92,15 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         self.title_text.connect("editing-started", self.on_editing_started)
         self.title_text.connect("editing-canceled", self.on_editing_canceled)        
         self.title_text.set_property("editable", True)
-        self.title_column.set_sort_column_id(COL_TITLE_SORT)
+        self.title_column.set_sort_column_id(
+            self.rich_model.get_column_by_name("title_sort").pos)
         # map cells to columns in model
-        self.title_column.add_attribute(cell_icon, 'pixbuf', COL_ICON)
-        self.title_column.add_attribute(cell_icon, 'pixbuf-expander-open', COL_ICON_EXPAND)
-        self.title_column.add_attribute(self.title_text, 'text', COL_TITLE)
+        self.title_column.add_attribute(cell_icon, 'pixbuf',
+            self.rich_model.get_column_by_name("icon").pos)
+        self.title_column.add_attribute(cell_icon, 'pixbuf-expander-open',
+            self.rich_model.get_column_by_name("icon_open").pos)
+        self.title_column.add_attribute(self.title_text, 'text',
+            self.rich_model.get_column_by_name("title").pos)
         self.append_column(self.title_column)
         self.set_expander_column(self.title_column)
         
@@ -122,12 +114,14 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         column.set_property("resizable", True)
         column.set_min_width(10)
         column.set_fixed_width(150)
-        column.set_sort_column_id(COL_CREATED_INT)
+        column.set_sort_column_id(
+            self.rich_model.get_column_by_name("created_time_sort").pos)
         column.connect("clicked", self.on_column_clicked)
         #column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
         #column.set_property("min-width", 5)
         column.pack_start(cell_text, True)
-        column.add_attribute(cell_text, 'text', COL_CREATED_TEXT)
+        column.add_attribute(cell_text, 'text',
+            self.rich_model.get_column_by_name("created_time").pos)
         self.append_column(column)
     
         # modified column
@@ -139,18 +133,22 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         column.set_property("resizable", True)
         column.set_min_width(10)
         column.set_fixed_width(150)
-        column.set_sort_column_id(COL_MODIFIED_INT)
+        column.set_sort_column_id(
+            self.rich_model.get_column_by_name("modified_time_sort").pos)
         column.connect("clicked", self.on_column_clicked)
         #column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
         #column.set_property("min-width", 5)
         column.pack_start(cell_text, True)
-        column.add_attribute(cell_text, 'text', COL_MODIFIED_TEXT)
+        column.add_attribute(cell_text, 'text',
+            self.rich_model.get_column_by_name("modified_time").pos)
         self.append_column(column)
         
         
         # set default sorting
         # remember sort per node
-        self.model.set_sort_column_id(COL_MANUAL, gtk.SORT_ASCENDING)
+        self.model.set_sort_column_id(
+            self.rich_model.get_column_by_name("order").pos,
+            gtk.SORT_ASCENDING)
         self.set_reorder(basetreeview.REORDER_ALL)
         
         self.menu = gtk.Menu()
@@ -164,8 +162,8 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         """Set the notebook for listview"""
         basetreeview.KeepNoteBaseTreeView.set_notebook(self, notebook)
         
-        if self.model is not None:
-            self.model.get_model().set_root_nodes([])
+        if self.rich_model is not None:
+            self.rich_model.set_root_nodes([])
 
         if notebook:
             self.set_sensitive(True)
@@ -175,12 +173,13 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
 
     def set_date_formats(self, formats):
         """Set the date formats used for dates"""
-        self.model.get_model().set_date_formats(formats)
+        if self.rich_model:
+            self.rich_model.set_date_formats(formats)
 
     def get_root_nodes(self):
         """Returns the root nodes displayed in listview"""
-        if self.model:
-            return self.model.get_model().get_root_nodes()
+        if self.rich_model:
+            return self.rich_model.get_root_nodes()
         else:
             return []
 
@@ -200,7 +199,9 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             
     def on_directory_column_clicked(self, column):
         """sort pages by directory order"""
-        self.model.set_sort_column_id(COL_MANUAL, gtk.SORT_ASCENDING)
+        self.model.set_sort_column_id(
+            self.rich_model.get_column_by_name("order").pos,
+            gtk.SORT_ASCENDING)
         self.set_reorder(basetreeview.REORDER_ALL)
         
     
@@ -241,7 +242,8 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             model, paths = self.get_selection().get_selected_rows()
             # double click --> goto node
             if len(paths) > 0:
-                nodes = [self.model.get_value(self.model.get_iter(x), COL_NODE)
+                nodes = [self.model.get_value(self.model.get_iter(x),
+                                              self.rich_model.get_node_column())
                          for x in paths]
 
                 # NOTE: can only view one node
@@ -265,12 +267,10 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         if self._sel_nodes is not None and len(self._sel_nodes) == 1:
             self.save_sorting(self._sel_nodes[0])
             
-
-        model = self.model
-        #self.set_model(None)
+        
         self._sel_nodes = nodes
 
-        model.get_model().set_nested(nested)
+        self.rich_model.set_nested(nested)
 
         if len(nodes) == 1:
             self.set_master_node(nodes[0])
@@ -288,19 +288,17 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
                 # list directory itself
                 roots.append(node)
 
-        model.get_model().set_root_nodes(roots)
+        self.rich_model.set_root_nodes(roots)
         
         # load sorting if single node is selected
         if len(nodes) == 1:
-            self.load_sorting(nodes[0], model)
-        
-        # reactivate model
-        #self.set_model(model)
+            self.load_sorting(nodes[0], self.model)
         
         # expand rows
         for node in roots:
             if node.get_attr("expanded2", False):
-                self.expand_to_path(treemodel.get_path_from_node(self.model, node))
+                self.expand_to_path(treemodel.get_path_from_node(
+                    self.model, node, self.rich_model.get_node_column()))
 
         # disable if no roots
         if len(roots) == 0:
@@ -324,9 +322,10 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         if self.get_master_node() is not None:
             return
 
-        self.model.get_model().append(node)
+        self.rich_model.append(node)
         if node.get_attr("expanded2", False):
-            self.expand_to_path(treemodel.get_path_from_node(self.model, node))
+            self.expand_to_path(treemodel.get_path_from_node(
+                self.model, node, self.rich_model.get_node_column()))
 
         self.set_sensitive(True)
 
@@ -340,11 +339,13 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         
     
     def edit_node(self, page):
-        path = treemodel.get_path_from_node(self.model, page)
+        path = treemodel.get_path_from_node(
+            self.model, page, self.rich_model.get_node_column())
         if path is None:
             # view page first if not in view
             self.emit("goto-node", page)
-            path = treemodel.get_path_from_node(self.model, page)
+            path = treemodel.get_path_from_node(
+                self.model, page, self.get_node_column())
             assert path is not None
         self.set_cursor_on_cell(path, self.title_column, self.title_text, True)
         path, col = self.get_cursor()
@@ -355,8 +356,6 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
     def save_sorting(self, node):
         """Save sorting information into node"""
 
-        # TODO: generalize for arbitrary columns
-        
         info_sort, sort_dir = self.model.get_sort_column_id()
 
         if sort_dir == gtk.SORT_ASCENDING:
@@ -364,23 +363,17 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         else:
             sort_dir = 0
 
-        if info_sort == COL_MANUAL or info_sort == -1:
-            node.set_info_sort(notebook.INFO_SORT_MANUAL, sort_dir)
+        if info_sort == -1:
+            col = self.rich_model.get_column_by_name("order")
+        else:
+            col = self.rich_model.get_column(info_sort)
 
-        elif info_sort == COL_TITLE_SORT:
-            node.set_info_sort(notebook.INFO_SORT_TITLE, sort_dir)
-            
-        elif info_sort == COL_CREATED_INT:
-            node.set_info_sort(notebook.INFO_SORT_CREATED_TIME, sort_dir)
-
-        elif info_sort == COL_MODIFIED_INT:
-            node.set_info_sort(notebook.INFO_SORT_MODIFIED_TIME, sort_dir)
+        if col.attr:
+            node.set_info_sort(col.attr, sort_dir)
 
 
     def load_sorting(self, node, model):
         """Load sorting information from node"""
-
-        # TODO: generalize
 
         info_sort, sort_dir = node.get_info_sort()
             
@@ -389,20 +382,19 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         else:
             sort_dir = gtk.SORT_DESCENDING            
 
-            
-        if info_sort == notebook.INFO_SORT_MANUAL or \
-           info_sort == notebook.INFO_SORT_NONE:
-            model.set_sort_column_id(COL_MANUAL, sort_dir)
-            self.set_reorder(basetreeview.REORDER_ALL)
-        elif info_sort == notebook.INFO_SORT_TITLE:
-            model.set_sort_column_id(COL_TITLE_SORT, sort_dir)
-            self.set_reorder(basetreeview.REORDER_FOLDER)
-        elif info_sort == notebook.INFO_SORT_CREATED_TIME:
-            model.set_sort_column_id(COL_CREATED_INT, sort_dir)
-            self.set_reorder(basetreeview.REORDER_FOLDER)
-        elif info_sort == notebook.INFO_SORT_MODIFIED_TIME:
-            model.set_sort_column_id(COL_MODIFIED_INT, sort_dir)
-            self.set_reorder(basetreeview.REORDER_FOLDER)
+        # default sorting
+        if info_sort == "":
+            info_sort = "order"
+
+        if info_sort == "order":
+            reorder_mode = basetreeview.REORDER_ALL
+        else:
+            reorder_mode = basetreeview.REORDER_FOLDER
+
+        for col in self.rich_model.get_columns():
+            if info_sort == col.attr:
+                model.set_sort_column_id(col.pos, sort_dir)
+                self.set_reorder(reorder_mode)
 
     
     def set_status(self, text, bar="status"):

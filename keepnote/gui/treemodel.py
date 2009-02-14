@@ -12,26 +12,8 @@ from keepnote.gui import get_node_icon
 from keepnote.notebook import NoteBookError, get_str_timestamp
 
 
-# TODO: generalize
-# treeview column numbers
-COL_ICON          = 0
-COL_ICON_EXPAND   = 1
-COL_TITLE         = 2
-COL_TITLE_SORT    = 3
-COL_CREATED_TEXT  = 4
-COL_CREATED_INT   = 5
-COL_MODIFIED_TEXT = 6
-COL_MODIFIED_INT  = 7
-COL_MANUAL        = 8
-COL_NODE          = 9
 
-# treeview column types
-COL_TYPES = [gdk.Pixbuf, gdk.Pixbuf,
-             str, str, str, int, str, int, int, object]
-
-
-
-def get_path_from_node(model, node):
+def get_path_from_node(model, node, node_col):
     """Determine the path of a NoteBookNode 'node' in a gtk.TreeModel 'model'"""
 
     # NOTE: I must make no assumptions about the type of the model
@@ -45,7 +27,7 @@ def get_path_from_node(model, node):
     child = model.iter_children(None)
     i = 0
     while child is not None:
-        root_set[model.get_value(child, COL_NODE)] = i
+        root_set[model.get_value(child, node_col)] = i
         child = model.iter_next(child)
         i += 1
 
@@ -66,7 +48,7 @@ def get_path_from_node(model, node):
         i = 0
 
         while child is not None:
-            if model.get_value(child, COL_NODE) == node:
+            if model.get_value(child, node_col) == node:
                 path.append(i)
                 it = child
                 break
@@ -78,6 +60,17 @@ def get_path_from_node(model, node):
     return tuple(path)
         
 
+class TreeModelColumn (object):
+
+    def __init__(self, name, datatype, attr=None, get=lambda node: ""):
+        self.pos = None
+        self.name = name
+        self.type = datatype
+        self.attr = attr
+        self.get_value = get
+
+
+
 
 
 class KeepNoteTreeModel (gtk.GenericTreeModel):
@@ -87,18 +80,85 @@ class KeepNoteTreeModel (gtk.GenericTreeModel):
     The subset is defined by the self._roots list.
     """
 
-    _col_types = COL_TYPES
-
     def __init__(self, roots=[]):
         gtk.GenericTreeModel.__init__(self)
-        self.set_property("leak-references", False)
-                
+        self.set_property("leak-references", False)        
+        
         self._notebook = None
         self._roots = []
         self._master_node = None
         self._date_formats = None
         self.set_root_nodes(roots)
         self._nested = True
+        self._columns = []
+        self._columns_lookup = {}
+
+        # init default columns
+        self.append_column(TreeModelColumn("icon", gdk.Pixbuf,
+                            get=lambda node: get_node_icon(node, False)))
+        self.append_column(
+            TreeModelColumn("icon_open", gdk.Pixbuf,
+                            get=lambda node: get_node_icon(node, True)))
+        self.append_column(
+            TreeModelColumn("title", str, get=lambda node: node.get_title()))
+        self.append_column(
+            TreeModelColumn("title_sort", str,
+                            attr="title",
+                            get=lambda node: node.get_title().lower()))
+        self.append_column(
+            TreeModelColumn("created_time", str,
+                            get=lambda node: self.get_time_text(node,
+                                                            "created_time")))
+        self.append_column(
+            TreeModelColumn("created_time_sort", int,
+                            attr="created_time",
+                            get=lambda node: node.get_attr("created_time", 0)))
+        self.append_column(
+            TreeModelColumn("modified_time", str,
+                            get=lambda node: self.get_time_text(node,
+                                                         "modified_time")))
+        self.append_column(
+            TreeModelColumn("modified_time_sort", int,
+                            attr="modified_time",
+                            get=lambda node: node.get_attr("modified_time", 0)))
+        self.append_column(
+            TreeModelColumn("order", int,
+                            attr="order",
+                            get=lambda node: node.get_order()))
+        self.append_column(TreeModelColumn("node", object,
+                                           get=lambda node: node))
+
+
+        self._node_column = self.get_column_by_name("node")
+
+
+
+
+    def append_column(self, column):
+        column.pos = len(self._columns)
+        self._columns.append(column)
+        self._columns_lookup[column.name] = column
+
+
+    def get_column(self, pos):
+        return self._columns[pos]
+
+    def get_columns(self):
+        return self._columns
+
+    def get_column_by_name(self, colname):
+        return self._columns_lookup[colname]
+
+    def get_node_column(self):
+        return self._node_column.pos
+
+
+    def get_time_text(self, node, attr_key):
+        timestamp = node.get_attr(attr_key, None)
+        if timestamp is None:
+            return ""
+        else:
+            return get_str_timestamp(timestamp, formats=self._date_formats)
 
 
     if gtk.gtk_version < (2, 10):
@@ -115,9 +175,8 @@ class KeepNoteTreeModel (gtk.GenericTreeModel):
         Set the notebook for this model
         A notebook must be set before any nodes can be added to the model
         """
-
-
-        # TODO: eventually initialize the COL_TYPES array based on notebook
+        
+        # TODO: eventually initialize columns based on notebook
         
         # unhook listeners for old notebook. if it exists
         if self._notebook is not None:
@@ -209,10 +268,10 @@ class KeepNoteTreeModel (gtk.GenericTreeModel):
         return gtk.TREE_MODEL_ITERS_PERSIST
     
     def on_get_n_columns(self):
-        return len(self._col_types)
+        return len(self._columns)
 
     def on_get_column_type(self, index):
-        return self._col_types[index]
+        return self._columns[index].type
     
     def on_get_iter(self, path):
         if path[0] >= len(self._roots):
@@ -244,38 +303,8 @@ class KeepNoteTreeModel (gtk.GenericTreeModel):
         return tuple(reversed(path))
     
     def on_get_value(self, rowref, column):
-        node = rowref
+        return self.get_column(column).get_value(rowref)
 
-        # TODO: generalize
-        
-        if column == COL_ICON:
-            return get_node_icon(node, False)
-        elif column == COL_ICON_EXPAND:
-            return get_node_icon(node, True)
-        elif column == COL_TITLE:
-            return node.get_title()
-        elif column == COL_TITLE_SORT:
-            return node.get_title().lower()
-        elif column == COL_CREATED_TEXT:
-            timestamp = node.get_attr("created_time", None)
-            if timestamp is None:
-                return ""
-            else:
-                return get_str_timestamp(timestamp, formats=self._date_formats)
-        elif column == COL_CREATED_INT:
-            return node.get_attr("created_time", 0)
-        elif column == COL_MODIFIED_TEXT:
-            timestamp = node.get_attr("modified_time", None)
-            if timestamp is None:
-                return ""
-            else:
-                return get_str_timestamp(timestamp, formats=self._date_formats)
-        elif column == COL_MODIFIED_INT:
-            return node.get_attr("modified_time", 0)
-        elif column == COL_MANUAL:
-            return node.get_order()
-        elif column == COL_NODE:
-            return node
     
     def on_iter_next(self, rowref):
         parent = rowref.get_parent()

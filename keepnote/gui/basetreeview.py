@@ -10,8 +10,6 @@ from gtk import gdk
 # keepnote imports
 from keepnote.notebook import NoteBookError, NoteBookTrash
 from keepnote.gui.treemodel import \
-     COL_NODE, \
-     COL_ICON, \
      get_path_from_node
      
 
@@ -49,14 +47,17 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
     def __init__(self):
         gtk.TreeView.__init__(self)
-
+        
         self.model = None
+        self.rich_model = None
         self._notebook = None
         self._master_node = None
         self.editing = False
         self.__sel_nodes = []
         self.__sel_nodes2 = []
         self.__suppress_sel = False
+        self._node_col = None
+        self._get_icon = None
 
         # selection
         self.get_selection().connect("changed", self.__on_select_changed)
@@ -124,42 +125,41 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # TODO: could group signal IDs into lists, for each detach
         # if model already attached, disconnect all of its signals
         if self.model is not None:
-            if hasattr(self.model, "get_model"):
-                model2 = self.model.get_model()
-                
-            else:
-                model2 = self.model
-                
-            model2.disconnect(self.changed_start_id)
-            model2.disconnect(self.changed_end_id)
-            model2.disconnect(self.insert_id)
-            model2.disconnect(self.delete_id)
-            model2.disconnect(self.has_child_id)
+            self.rich_model.disconnect(self.changed_start_id)
+            self.rich_model.disconnect(self.changed_end_id)
+            self.rich_model.disconnect(self.insert_id)
+            self.rich_model.disconnect(self.delete_id)
+            self.rich_model.disconnect(self.has_child_id)
+
+            self._node_col = None
+            self._get_icon = None
 
         # set new model
         self.model = model
+        self.rich_model = None
         gtk.TreeView.set_model(self, self.model)
 
 
         # set new model
         if self.model is not None:
-            # init signals for model
+            # look to see if model has an inner model (happens when we have
+            # sorting models)
             if hasattr(self.model, "get_model"):
-                self.model.get_model().set_notebook(self._notebook)
-                
-                self.changed_start_id = self.model.get_model().\
-                    connect("node-changed-start", self._on_node_changed_start)
-                self.changed_end_id = self.model.get_model().\
-                    connect("node-changed-end", self._on_node_changed_end)
+                self.rich_model = self.model.get_model()
             else:
-                self.model.set_notebook(self._notebook)
+                self.rich_model = model
+
+            # init signals for model
+            self.rich_model.set_notebook(self._notebook)
+            self.changed_start_id = self.rich_model.connect("node-changed-start",
+                                                   self._on_node_changed_start)
+            self.changed_end_id = self.rich_model.connect("node-changed-end",
+                                                 self._on_node_changed_end)
+            self._node_col = self.rich_model.get_node_column()
+            self._get_icon = lambda row: \
+                             self.model.get_value(row, self.rich_model.get_column_by_name("icon").pos)
+
                 
-                self.changed_start_id = self.model.connect(
-                    "node-changed-start",
-                    self._on_node_changed_start)
-                self.changed_end_id = self.model.connect(
-                    "node-changed-end",
-                    self._on_node_changed_end)                
             self.insert_id = self.model.connect("row-inserted",
                                                 self.on_row_inserted)
             self.delete_id = self.model.connect("row-deleted",
@@ -202,11 +202,12 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
             if node == self._master_node:
                 for child in node.get_children():
-                    path = get_path_from_node(self.model, child)
+                    path = get_path_from_node(self.model, child, self.rich_model.get_node_column())
                     if self.is_node_expanded(child):
                         self.expand_row(path, False)
             else:
-                path = get_path_from_node(self.model, node)
+                path = get_path_from_node(self.model, node,
+                                          self.rich_model.get_node_column())
                 if path is not None:
                     parent = node.get_parent()
 
@@ -224,7 +225,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # if nodes still exist, and expanded, try to reselect them
         if len(self.__sel_nodes2) > 0:
             # TODO: only reselects one node
-            path2 = get_path_from_node(self.model, self.__sel_nodes2[0])
+            path2 = get_path_from_node(self.model, self.__sel_nodes2[0],
+                                       self.rich_model.get_node_column())
             if path2 is not None and \
                (len(path2) <= 1 or self.row_expanded(path2[:-1])):
                 # reselect and scroll to node    
@@ -240,7 +242,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         model, paths = treeselect.get_selected_rows()
 
         self.__sel_nodes = [self.model.get_value(self.model.get_iter(path),
-                                                 COL_NODE)
+                                                 self._node_col)
                             for path in paths]
 
         if self.__suppress_sel:
@@ -262,13 +264,13 @@ class KeepNoteBaseTreeView (gtk.TreeView):
            Performs smart expansion (remembers children expansion)"""
 
         # save expansion in node
-        self.set_node_expanded(self.model.get_value(it, COL_NODE), True)
+        self.set_node_expanded(self.model.get_value(it, self._node_col), True)
 
         # recursively expand nodes that should be expanded
         def walk(it):
             child = self.model.iter_children(it)
             while child:
-                node = self.model.get_value(child, COL_NODE)
+                node = self.model.get_value(child, self._node_col)
                 if self.is_node_expanded(node):
                     path = self.model.get_path(child)
                     self.expand_row(path, False)
@@ -278,7 +280,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
     
     def _on_row_collapsed(self, treeview, it, path):
         # save expansion in node
-        self.set_node_expanded(self.model.get_value(it, COL_NODE), False)
+        self.set_node_expanded(self.model.get_value(it, self._node_col), False)
 
 
     def on_row_inserted(self, model, path, it):
@@ -295,7 +297,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
     def expand_node(self, node):
         """Expand a node in TreeView"""
-        path = get_path_from_node(self.model, node)
+        path = get_path_from_node(self.model, node,
+                                  self.rich_model.get_node_column())
         if path is not None:
             self.expand_to_path(path)
 
@@ -308,7 +311,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # NOTE: for now only select one node
         if len(nodes) > 0:
             node = nodes[0]
-            path = get_path_from_node(self.model, node)
+            path = get_path_from_node(self.model, node,
+                                      self.rich_model.get_node_column())
             if path is not None:
                 if len(path) > 1:
                     self.expand_to_path(path[:-1])
@@ -322,7 +326,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
     def on_select_changed(self, treeselect): 
         model, paths = treeselect.get_selected_rows()
         
-        nodes = [self.model.get_value(self.model.get_iter(path), COL_NODE)
+        nodes = [self.model.get_value(self.model.get_iter(path), self._node_col)
                  for path in paths]
         self.emit("select-nodes", nodes)
         return True
@@ -333,7 +337,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         model, it = self.get_selection().get_selected()        
         if it is None:
             return []
-        return [self.model.get_value(it, COL_NODE)]
+        return [self.model.get_value(it, self._node_col)]
 
 
 
@@ -410,7 +414,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         self.editing = False
 
         # get node being edited
-        node = self.model.get_value(self.model.get_iter(path), COL_NODE)
+        node = self.model.get_value(self.model.get_iter(path), self._node_col)
         if node is None:
             return
         
@@ -432,7 +436,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         if self.model.iter_n_children(None) > 0:
             self.set_cursor((0,))
         
-        path = get_path_from_node(self.model, node)
+        path = get_path_from_node(self.model, node,
+                                  self.rich_model.get_node_column())
         if path is not None:
             self.set_cursor(path)
             gobject.idle_add(lambda: self.scroll_to_cell(path))
@@ -454,7 +459,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
     def get_drag_node(self):
         model, source = self.get_selection().get_selected()
         #source_path = model.get_path(source)
-        return self.model.get_value(source, COL_NODE)
+        return self.model.get_value(source, self._node_col)
 
 
     #  drag and drop callbacks
@@ -467,9 +472,10 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         model, source = self.get_selection().get_selected()
 
         # setup the drag icon
-        pixbuf = self.model.get_value(source, COL_ICON)
-        pixbuf = pixbuf.scale_simple(40, 40, gtk.gdk.INTERP_BILINEAR)
-        self.drag_source_set_icon_pixbuf(pixbuf)
+        if self._get_icon:
+            pixbuf = self._get_icon(source)
+            pixbuf = pixbuf.scale_simple(40, 40, gtk.gdk.INTERP_BILINEAR)
+            self.drag_source_set_icon_pixbuf(pixbuf)
 
         # clear the destination row
         self._dest_row = None
@@ -496,7 +502,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             # get target info
             target_path, drop_position = dest_row
             target = self.model.get_iter(target_path)
-            target_node = self.model.get_value(target, COL_NODE)
+            target_node = self.model.get_value(target, self._node_col)
         
             # process node drops
             if "drop_node" in drag_context.targets:
@@ -595,7 +601,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # get target
         target_path, drop_position  = self._dest_row
         target = self.model.get_iter(target_path)
-        target_node = self.model.get_value(target, COL_NODE)
+        target_node = self.model.get_value(target, self._node_col)
         new_path = compute_new_path(self.model, target, drop_position)
 
         # get source
@@ -614,7 +620,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             assert self._master_node is not None
         else:
             new_parent_it = self.model.get_iter(new_parent_path)
-            new_parent = self.model.get_value(new_parent_it, COL_NODE)
+            new_parent = self.model.get_value(new_parent_it, self._node_col)
 
         # perform move in notebook model
         try:
@@ -627,7 +633,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # make sure to show new children
         if (drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or
             drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER):
-            new_parent_path = get_path_from_node(self.model, new_parent)
+            new_parent_path = get_path_from_node(self.model, new_parent,
+                                             self.rich_model.get_node_column())
             if new_parent_path is not None:
                 self.expand_row(new_parent_path, False)
 
