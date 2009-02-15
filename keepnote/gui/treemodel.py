@@ -93,6 +93,7 @@ class KeepNoteTreeModel (gtk.GenericTreeModel):
         self._columns = []
         self._columns_lookup = {}
 
+        # TODO: move to set_notebook
         # init default columns
         self.append_column(TreeModelColumn("icon", gdk.Pixbuf,
                             get=lambda node: get_node_icon(node, False)))
