@@ -4,11 +4,12 @@ KeepNote Change Log
 keepnote-0.5.2
 --------------
 - add minimize to tray option (hide from taskbar)
+- editor remembers scroll and cursor position in each page (for the session)
 - easy install fix
 - fixed modified time bug
 
 
-keepnote-0.5.1
+keepnote-0.5.1 (2008/1/25)
 --------------
 - install fix
 

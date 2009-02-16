@@ -68,6 +68,8 @@ MIME_IMAGES = ["image/png",
                "image/bmp",
                "image/jpeg",
                "image/xpm"]
+
+# TODO: add more text MIME types?
 MIME_TEXT = ["text/plain",
              "text/plain;charset=utf-8",
              "text/plain;charset=UTF-8",
@@ -588,6 +590,7 @@ class RichTextView (gtk.TextView):
             # process html drop
 
             html = parse_utf(selection_data.data)
+            #html = 
             self.insert_html(html)
             
         
@@ -792,7 +795,8 @@ class RichTextView (gtk.TextView):
 
     def _do_paste_html(self, clipboard, selection_data, data):
         """Paste HTML into buffer"""
-        
+
+        # TODO: figure out right way to parse selection.data
         html = parse_utf(selection_data.data)        
         self._textbuffer.begin_user_action()
         self._textbuffer.delete_selection(False, True)

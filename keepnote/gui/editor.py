@@ -50,7 +50,7 @@ class KeepNoteEditor (gtk.VBox):
         self._textview = RichTextView()    # textview
         self._page = None                  # current NoteBookPage
         self._page_scrolls = {}            # remember scroll in each page
-        self._queued_scroll = None
+        self._page_cursors = {}
         self._textview_io = RichTextIO()
 
         
@@ -63,12 +63,8 @@ class KeepNoteEditor (gtk.VBox):
         self._textview.connect("font-change", self._on_font_callback)
         self._textview.connect("modified", self._on_modified_callback)
         self._textview.connect("child-activated", self._on_child_activated)
-        self._textview.connect("loaded", self._on_loaded)
         self._textview.connect("visit-url", self._on_visit_url)
         self._textview.disable()
-        self._sw.get_vadjustment().connect("value-changed", self._on_scroll)
-        #self._sw.get_vadjustment().connect("changed", self._on_scroll_setup)
-        #self._textviews[-1].connect("show", self._on_scroll_init)
         self.show_all()
 
 
@@ -102,13 +98,6 @@ class KeepNoteEditor (gtk.VBox):
     def _on_child_activated(self, textview, child):
         self.emit("child-activated", textview, child)
 
-    def _on_loaded(self, textview):
-        return
-        #if self._queued_scroll is not None:
-        #    print "set", self._queued_scroll
-        #    self._sw.get_vadjustment().set_value(self._queued_scroll)
-        #    #self._queued_scroll = None
-
 
     def _on_visit_url(self, textview, url):
 
@@ -121,19 +110,6 @@ class KeepNoteEditor (gtk.VBox):
     def get_textview(self):
         return self._textview
     
-
-    def _on_scroll(self, adjust):
-        if self._page:
-            self._page_scrolls[self._page] = adjust.get_value()
-
-
-    def _on_scroll_setup(self, adjust):
-        print "setup"
-
-
-    def _on_scroll_init(self, widget):
-        print "init"
-
         
     def is_focus(self):
         return self._textview.is_focus()
@@ -152,6 +128,16 @@ class KeepNoteEditor (gtk.VBox):
         # save current page before changing pages
         self.save()
 
+        if self._page is not None:
+            mark = self._textview.get_buffer().get_insert()
+            it = self._textview.get_buffer().get_iter_at_mark(mark)
+            self._page_cursors[self._page] = it.get_offset()
+            
+            x, y = self._textview.window_to_buffer_coords(gtk.TEXT_WINDOW_TEXT, 0, 0)
+            it = self._textview.get_iter_at_location(x, y)
+            self._page_scrolls[self._page] = it.get_offset()
+            
+
         pages = [node for node in pages
                  if node.get_attr("content_type") ==
                     notebooklib.CONTENT_TYPE_PAGE]
@@ -165,15 +151,25 @@ class KeepNoteEditor (gtk.VBox):
             self._textview.enable()
 
             try:
-                self._queued_scroll = self._page_scrolls.get(
-                    self._page, None)
-                #print self._queued_scroll
-
-                #print "loading"
                 self._textview_io.load(self._textview,
                                        self._textview.get_buffer(),
                                        self._page.get_data_file())
-                #print "done loading"
+
+                # place cursor in last location
+                if self._page in self._page_cursors:
+                    offset = self._page_cursors[self._page]
+                    it = self._textview.get_buffer().get_iter_at_offset(offset)
+                    self._textview.get_buffer().place_cursor(it)
+
+                # place scroll in last position
+                if self._page in self._page_scrolls:
+                    offset = self._page_scrolls[self._page]
+                    buf = self._textview.get_buffer()
+                    it = buf.get_iter_at_offset(offset)
+                    mark = buf.create_mark(None, it, True)
+                    self._textview.scroll_to_mark(mark,
+                        0.49, use_align=True, xalign=0.0)
+                    buf.delete_mark(mark)
 
             except RichTextError, e:
                 self.clear_view()                
@@ -194,11 +190,12 @@ class KeepNoteEditor (gtk.VBox):
                 self._textview_io.save(self._textview.get_buffer(),
                                        self._page.get_data_file(),
                                        self._page.get_title())
+                
             except RichTextError, e:
                 self.emit("error", e.msg, e)
                 return
             
-            self._page.set_attr_timestamp("modified")
+            self._page.set_attr_timestamp("modified_time")
             
             try:
                 self._page.save()

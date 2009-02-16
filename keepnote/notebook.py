@@ -459,7 +459,7 @@ class NoteBookNode (object):
     
     def allows_children(self):
         """Returns True is this node allows children"""
-        return self._attr["content_type"] == CONTENT_TYPE_DIR
+        return True #self._attr["content_type"] == CONTENT_TYPE_DIR
     
 
     def clear_attr(self, title="", content_type=CONTENT_TYPE_DIR):
@@ -785,7 +785,6 @@ class NoteBookNode (object):
         """Save node if modified (dirty)"""
         
         if (force or self._is_dirty()) and self._valid:
-            self.set_attr("modified_time", get_timestamp())
             self.write_meta_data()
             self._set_dirty(False)
             
