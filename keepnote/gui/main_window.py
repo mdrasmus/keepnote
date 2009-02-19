@@ -936,8 +936,8 @@ class KeepNoteWindow (gtk.Window):
         
         if parent.get_attr("content_type") != notebooklib.CONTENT_TYPE_DIR:
             parent = parent.get_parent()
-        node = parent.new_node(notebooklib.CONTENT_TYPE_DIR,
-                               notebooklib.DEFAULT_DIR_NAME)
+        node = parent.new_child(notebooklib.CONTENT_TYPE_DIR,
+                                notebooklib.DEFAULT_DIR_NAME)
 
         if widget == "treeview":
             self.treeview.expand_node(parent)
@@ -970,8 +970,8 @@ class KeepNoteWindow (gtk.Window):
 
         if parent.get_attr("content_type") != notebooklib.CONTENT_TYPE_DIR:
             parent = parent.get_parent()
-        node = parent.new_node(notebooklib.CONTENT_TYPE_PAGE,
-                               notebooklib.DEFAULT_PAGE_NAME)
+        node = parent.new_child(notebooklib.CONTENT_TYPE_PAGE,
+                                notebooklib.DEFAULT_PAGE_NAME)
         
         if widget == "treeview":
             self.treeview.expand_node(parent)

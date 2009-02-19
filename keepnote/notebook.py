@@ -670,7 +670,7 @@ class NoteBookNode (object):
         self.notify_change(False)
 
 
-    def new_node(self, content_type, title):
+    def new_child(self, content_type, title):
         """Add a new node under this node"""
         
         path = self.get_path()
