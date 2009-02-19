@@ -47,6 +47,7 @@ PAGE_DATA_FILE = "page.html"
 PLAIN_TEXT_DATA_FILE = "page.txt"
 PREF_FILE = "notebook.nbk"
 NOTEBOOK_META_DIR = "__NOTEBOOK__"
+NOTEBOOK_ICON_DIR = "icons"
 TRASH_DIR = "__TRASH__"
 TRASH_NAME = "Trash"
 DEFAULT_PAGE_NAME = "New Page"
@@ -60,7 +61,7 @@ CONTENT_TYPE_PAGE = "text/xhtml+xml"
 #CONTENT_TYPE_PLAIN_TEXT = "text/plain"
 CONTENT_TYPE_TRASH = "application/x-notebook-trash"
 CONTENT_TYPE_DIR = "application/x-notebook-dir"
-
+CONTENT_TYPE_UNKNOWN = "application/x-notebook-unknown"
 
 
 
@@ -162,6 +163,10 @@ def get_pref_file(nodepath):
 def get_pref_dir(nodepath):
     """Returns the directory of the notebook preference file"""
     return os.path.join(nodepath, NOTEBOOK_META_DIR)
+
+def get_icon_dir(nodepath):
+    """Returns the directory of the notebook icons"""
+    return os.path.join(nodepath, NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR)
 
 def get_trash_dir(nodepath):
     """Returns the trash directory of the notebook"""
@@ -294,6 +299,11 @@ class NoteBookAttr (object):
         # default function
         self.default = default
         
+
+class UnknownAttr (object):
+    def __init__(self, value):
+        self.value = value
+
         
 
 class NoteBookTable (object):
@@ -330,7 +340,9 @@ g_default_attrs = [
     NoteBookAttr("Expanded2", bool, "expanded2"),
     NoteBookAttr("Folder Sort", str, "info_sort", read=read_info_sort),
     NoteBookAttr("Folder Sort Direction", int, "info_sort_dir"),
-    NoteBookAttr("Node ID", str, "nodeid", default=new_nodeid)
+    NoteBookAttr("Node ID", str, "nodeid", default=new_nodeid),
+    NoteBookAttr("Icon", unicode, "icon"),
+    NoteBookAttr("Icon Open", unicode, "icon_open")
 ]
 
 
@@ -487,6 +499,9 @@ class NoteBookNode (object):
         """Set the value of an attribute"""
         self._attr[name] = value
         self._set_dirty(True)
+
+    def has_attr(self, name):
+        return name in self._attr
 
 
     def del_attr(self, name):
@@ -1028,6 +1043,7 @@ class NoteBook (NoteBookDir):
         
         NoteBookDir.create(self)
         os.mkdir(self.get_pref_dir())
+        os.mkdir(self.get_icon_dir())
         self.write_meta_data()
         self.write_preferences()
 
@@ -1142,8 +1158,16 @@ class NoteBook (NoteBookDir):
 
         for child in reversed(list(self._trash.get_children())):
             child.delete()
-        
-        
+
+    #==============================================
+    # icons
+
+    def get_icon_file(self, filename):
+        filename2 = os.path.join(self.get_icon_dir(), filename)
+        if os.path.exists(filename2):
+            return filename2
+        else:
+            return None
     
     #===============================================
     # preferences
@@ -1155,6 +1179,10 @@ class NoteBook (NoteBookDir):
     def get_pref_dir(self):
         """Gets the NoteBook's preference directory"""
         return get_pref_dir(self.get_path())
+
+    def get_icon_dir(self):
+        """Gets the NoteBook's icon directory"""
+        return get_icon_dir(self.get_path())
     
     
     def write_preferences(self):
@@ -1163,6 +1191,10 @@ class NoteBook (NoteBookDir):
             # ensure preference directory exists
             if not os.path.exists(self.get_pref_dir()):
                 os.mkdir(self.get_pref_dir())
+                
+            # ensure icon directory exists
+            if not os.path.exists(self.get_icon_dir()):
+                os.mkdir(self.get_icon_dir())
 
             g_notebook_pref_parser.write(self.pref, self.get_pref_file())
         except (IOError, OSError), e:
@@ -1244,6 +1276,7 @@ class NoteBookNodeFactory (object):
             node.set_meta_data(attr)
             return node
         else:
+            # TODO: return unknown node here
             return None
 
 
@@ -1253,6 +1286,7 @@ class NoteBookNodeMetaData (object):
 
     def __init__(self):
         self.attr = {}
+        self.attr_unknown = {}
         self._notebook_attrs = {}
 
         self._parser = None
@@ -1278,14 +1312,14 @@ class NoteBookNodeMetaData (object):
                 elif key == "version":
                     # skip version attr
                     pass
-                elif isinstance(val, basestring):
+                elif isinstance(val, UnknownAttr):
                     # write unknown attrs if they are strings
                     out.write('<attr key="%s">%s</attr>\n' %
-                              (key, escape(val)))
+                              (key, escape(val.value)))
                 else:
                     # drop attribute
                     pass
-
+                
             out.write("</node>\n")
             out.close()
         except Exception, e:
@@ -1297,6 +1331,7 @@ class NoteBookNodeMetaData (object):
 
         self._notebook_attrs = notebook_attrs
         self.attr = {}
+        self.attr_unknown = {}
     
         try:            
             self.__meta_root = False
@@ -1355,8 +1390,8 @@ class NoteBookNodeMetaData (object):
                     if attr is not None:
                         self.attr[key] = attr.read(self.__meta_data)
                     else:
-                        # unknown attribute is read as a string
-                        self.attr[key] = self.__meta_data
+                        # unknown attribute is read as a UnknownAttr
+                        self.attr[key] = UnknownAttr(self.__meta_data)
 
             # clear state
             self.__meta_tag = None

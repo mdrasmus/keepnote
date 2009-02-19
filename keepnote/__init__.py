@@ -382,6 +382,8 @@ class KeepNotePreferences (object):
         self._external_apps = []
         self._external_apps_lookup = {}
 
+        self.id = None
+
         # window presentation options
         self.window_size = DEFAULT_WINDOW_SIZE
         self.window_maximized = True
@@ -453,6 +455,10 @@ class KeepNotePreferences (object):
         except IOError, e:
             raise NoteBookError("Cannot read preferences", e)
 
+
+        # setup id
+        if self.id is None:
+            self.id = str(uuid.uuid4())
         
         # make lookup
         for app in self.external_apps:
@@ -512,6 +518,7 @@ class KeepNotePreferences (object):
 
 g_keepnote_pref_parser = xmlo.XmlObject(
     xmlo.Tag("takenote", tags=[
+        xmlo.Tag("id", attr=("id", None, None)),
         xmlo.Tag("default_notebook",
                  attr=("default_notebook", None, None)),
 

@@ -18,8 +18,7 @@ from keepnote.gui import basetreeview
 from keepnote.gui import \
      get_resource, \
      get_resource_image, \
-     get_resource_pixbuf, \
-     get_node_icon
+     get_resource_pixbuf
 from keepnote.gui import treemodel
 from keepnote import notebook
 from keepnote.notebook import NoteBookError

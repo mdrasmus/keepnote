@@ -934,7 +934,7 @@ class KeepNoteWindow (gtk.Window):
         else:
             parent = self.notebook.get_root_node()
         
-        if not parent.allows_children():
+        if parent.get_attr("content_type") != notebooklib.CONTENT_TYPE_DIR:
             parent = parent.get_parent()
         node = parent.new_node(notebooklib.CONTENT_TYPE_DIR,
                                notebooklib.DEFAULT_DIR_NAME)
@@ -968,7 +968,7 @@ class KeepNoteWindow (gtk.Window):
         else:
             parent = self.notebook.get_root_node()
 
-        if not parent.allows_children():
+        if parent.get_attr("content_type") != notebooklib.CONTENT_TYPE_DIR:
             parent = parent.get_parent()
         node = parent.new_node(notebooklib.CONTENT_TYPE_PAGE,
                                notebooklib.DEFAULT_PAGE_NAME)

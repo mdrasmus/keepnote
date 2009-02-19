@@ -431,15 +431,19 @@ class RichTextView (gtk.TextView):
         if event.keyval == gtk.gdk.keyval_from_name("Delete"):
             # delete key pressed
 
+            # TODO: make sure selection with delete does not fracture
+            # unedititable regions.
             it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
 
             if not self._textbuffer.get_selection_bounds() and \
                self._textbuffer.starts_par(it) and \
-               not it.editable(True) and \
+               not self._textbuffer.is_insert_allowed(it) and \
                self._textbuffer.get_indent(it)[0] > 0:
                 # delete inside bullet phrase, removes bullet
                 self.toggle_bullet("none")
+                self.unindent()
                 return True
+
 
 
     def on_backspace(self, textview):

@@ -627,6 +627,16 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
                            'line2\n',
                            'END:indent 2 bullet'])
 
+    '''def test_bullet_delete(self):
+        """Remove bullet with delete"""        
+
+        self.read(self.buffer, StringIO.StringIO(
+            """<ul><li>hello</li></ul>\n"""))
+
+        print [display_item(x) for x in self.get_contents()]
+        self.buffer.place_cursor(self.buffer.get_start_iter())
+    '''
+        
         
     def test_image1(self):
         """Simple read/write, text should not change"""
