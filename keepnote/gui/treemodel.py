@@ -203,6 +203,9 @@ class KeepNoteTreeModel (gtk.GenericTreeModel):
         self._nested = nested
         self.set_root_nodes(self._roots)
 
+    def get_nested(self):
+        return self._nested
+
 
     def clear(self):
         """Clear all rows from model"""

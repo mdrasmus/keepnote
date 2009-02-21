@@ -183,9 +183,13 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         return node.get_attr("expanded2", False)
 
     def set_node_expanded(self, node, expand):
-        node.set_attr("expanded2", expand)
-        
 
+        # don't save the expand state of the master node
+        if len(treemodel.get_path_from_node(
+               self.model, node,
+               self.rich_model.get_node_column())) > 1:
+            node.set_attr("expanded2", expand)
+            
     '''
     def on_column_clicked(self, column):
         pass
@@ -275,22 +279,23 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             
         
         self._sel_nodes = nodes
-
         self.rich_model.set_nested(nested)
 
-        if len(nodes) == 1:
-            self.set_master_node(nodes[0])
-        else:
-            self.set_master_node(None)
+        # set master node
+        #if len(nodes) == 1:
+        #    self.set_master_node(nodes[0])
+        #else:
+        #    self.set_master_node(None)
+        self.set_master_node(None)
         
         # populate model
         roots = []
         for node in nodes:
-            if nested and len(node.get_children()) > 0:
-                # list directory contents
-                for child in node.get_children():
-                    roots.append(child)
-            else:
+            #if nested and len(node.get_children()) > 0:
+            #    # list directory contents
+            #    for child in node.get_children():
+            #        roots.append(child)
+            #else:
                 # list directory itself
                 roots.append(node)
 
@@ -302,7 +307,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         
         # expand rows
         for node in roots:
-            if node.get_attr("expanded2", False):
+            if True: #node.get_attr("expanded2", False):
                 self.expand_to_path(treemodel.get_path_from_node(
                     self.model, node, self.rich_model.get_node_column()))
 
@@ -406,6 +411,19 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
     def set_status(self, text, bar="status"):
         if self.on_status:
             self.on_status(text, bar=bar)
+
+
+    def _on_node_changed_end(self, model, nodes):
+        basetreeview.KeepNoteBaseTreeView._on_node_changed_end(self, model, nodes)
+
+        # make sure root is always expanded
+        if self.rich_model.get_nested():
+            # determine root set
+            child = model.iter_children(None)
+            while child is not None:
+                self.expand_row(model.get_path(child), False)
+                child = model.iter_next(child)
+
 
 
 # register new gtk signals

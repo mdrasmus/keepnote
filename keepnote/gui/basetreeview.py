@@ -96,11 +96,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
     def set_master_node(self, node):
         self._master_node = node
         
-        if self.model:
-            if hasattr(self.model, "get_model"):
-                self.model.get_model().set_master_node(node)
-            else:
-                self.model.set_master_node(node)
+        if self.rich_model:
+            self.rich_model.set_master_node(node)
 
 
     def get_master_node(self):
