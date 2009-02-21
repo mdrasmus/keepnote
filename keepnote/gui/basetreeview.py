@@ -622,6 +622,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             new_parent_it = self.model.get_iter(new_parent_path)
             new_parent = self.model.get_value(new_parent_it, self._node_col)
 
+        
         # perform move in notebook model
         try:
             source_node.move(new_parent, new_path[-1])
@@ -651,20 +652,25 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             if ptr == source_node:
                 return False
             ptr = ptr.get_parent()
-        
 
-        # (1) do not let nodes move out of notebook root
-        # (2) do not let nodes move into pages
-        # (3) only allow INTO drops if reorder == FOLDER
-        return not (target_node.get_parent() is None and \
-                    (drop_position == gtk.TREE_VIEW_DROP_BEFORE or 
-                     drop_position == gtk.TREE_VIEW_DROP_AFTER)) and \
-               not ((not target_node.allows_children()) and \
-                    (drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or 
-                     drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER)) and \
-               not (self._reorder == REORDER_FOLDER and \
-                    (drop_position not in (gtk.TREE_VIEW_DROP_INTO_OR_BEFORE,
-                                           gtk.TREE_VIEW_DROP_INTO_OR_AFTER)))
+        drop_into = (drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or 
+                     drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER)
+        
+        return (
+            # (1) do not let nodes move out of notebook root
+            not (target_node.get_parent() is None and not drop_into) and
+
+            # (2) do not let nodes move into nodes that don't allow children
+            not (not target_node.allows_children() and drop_into) and
+
+            # (3) if reorder == FOLDER, ensure drop is either INTO a node
+            #     or new_parent == old_parent
+            not (self._reorder == REORDER_FOLDER and not drop_into and
+                 target_node.get_parent() == source_node.get_parent()))
+                #       or 
+                #not (self._reorder == REORDER_FOLDER and 
+                #    (drop_position not in (gtk.TREE_VIEW_DROP_INTO_OR_BEFORE,
+                #                           gtk.TREE_VIEW_DROP_INTO_OR_AFTER))))
 
 
 

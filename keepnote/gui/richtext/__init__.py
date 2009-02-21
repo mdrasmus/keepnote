@@ -228,7 +228,6 @@ class RichTextIO (object):
         textview.enable()
         
         textbuffer.set_modified(False)
-        textbuffer.check_loaded()
         
         # reraise error
         if not ret:
@@ -386,8 +385,6 @@ class RichTextView (gtk.TextView):
                                         self._on_child_activated),
                 self._textbuffer.connect("child-menu",
                                         self._on_child_popup_menu),
-                self._textbuffer.connect("loaded",
-                                         self._on_buffer_loaded),
                 self._modified_id
                 ]
             
@@ -894,10 +891,6 @@ class RichTextView (gtk.TextView):
         self.emit("modified", textbuffer.get_modified())
 
 
-    def _on_buffer_loaded(self, textbuffer):
-        """Callback for when buffer is loaded"""
-        self.emit("loaded")
-        
         
     def enable(self):
         self.set_sensitive(True)
@@ -1372,8 +1365,6 @@ gobject.signal_new("font-change", RichTextView, gobject.SIGNAL_RUN_LAST,
     gobject.TYPE_NONE, (object,))
 gobject.signal_new("child-activated", RichTextView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object,))
-gobject.signal_new("loaded", RichTextView, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, ())
 gobject.signal_new("visit-url", RichTextView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (str,))
 

@@ -25,17 +25,6 @@ from keepnote.notebook import NoteBookError
 
 
 
-'''    
-class SelectorColumn (object):
-    def __init__(self, name, kind, col):
-        self.name = name
-        self.kind = kind
-        self.col = col
-
-TITLE_COLUMN = SelectorColumn("Title", str, 0)
-CREATED_COLUMN = SelectorColumn("Created", str, 1)
-MODIFIED_COLUMN = SelectorColumn("Modified", str, 2)
-'''
 
 class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
     
@@ -48,6 +37,8 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         
         # init model
         self.set_model(gtk.TreeModelSort(treemodel.KeepNoteTreeModel()))
+
+        self.model.connect("sort-column-changed", self._sort_column_changed)
         
         # init view
         self.connect("key-release-event", self.on_key_released)
@@ -58,6 +49,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         
         
         # directory order column
+        '''
         column = gtk.TreeViewColumn()
         img = get_resource_image("folder.png")
         img.show()
@@ -72,6 +64,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         cell_text.set_fixed_height_from_font(1)
         column.pack_start(cell_text, True)
         self.append_column(column)
+        '''
 
         
         # title column
@@ -194,14 +187,28 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         
 
     def on_column_clicked(self, column):
-        self.set_reorder(basetreeview.REORDER_FOLDER)
-            
+        pass
+        #self.set_reorder(basetreeview.REORDER_FOLDER)
+
+    '''
     def on_directory_column_clicked(self, column):
         """sort pages by directory order"""
         self.model.set_sort_column_id(
             self.rich_model.get_column_by_name("order").pos,
             gtk.SORT_ASCENDING)
         self.set_reorder(basetreeview.REORDER_ALL)
+    '''
+
+    def _sort_column_changed(self, sortmodel):
+        col, sort_dir = self.model.get_sort_column_id()
+
+        if col is None or col < 0:
+            self.model.set_sort_column_id(
+                self.rich_model.get_column_by_name("order").pos,
+                gtk.SORT_ASCENDING)
+            self.set_reorder(basetreeview.REORDER_ALL)
+        else:
+            self.set_reorder(basetreeview.REORDER_FOLDER)
         
     
     def on_key_released(self, widget, event):
@@ -362,7 +369,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         else:
             sort_dir = 0
 
-        if info_sort == -1:
+        if info_sort is None or info_sort < 0:
             col = self.rich_model.get_column_by_name("order")
         else:
             col = self.rich_model.get_column(info_sort)
@@ -385,15 +392,15 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         if info_sort == "":
             info_sort = "order"
 
-        if info_sort == "order":
-            reorder_mode = basetreeview.REORDER_ALL
-        else:
-            reorder_mode = basetreeview.REORDER_FOLDER
+        #if info_sort == "order":
+        #    reorder_mode = basetreeview.REORDER_ALL
+        #else:
+        #    reorder_mode = basetreeview.REORDER_FOLDER
 
         for col in self.rich_model.get_columns():
             if info_sort == col.attr:
                 model.set_sort_column_id(col.pos, sort_dir)
-                self.set_reorder(reorder_mode)
+                #self.set_reorder(reorder_mode)
 
     
     def set_status(self, text, bar="status"):

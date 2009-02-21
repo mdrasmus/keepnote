@@ -95,7 +95,7 @@ def download_file(url, filename):
 #=============================================================================
 # RichText child objects
 
-
+# TODO: remove init signals
 
 
 class BaseWidget (gtk.EventBox):
@@ -130,6 +130,8 @@ gobject.signal_new("init", BaseWidget, gobject.SIGNAL_RUN_LAST,
 
 class RichTextSep (BaseWidget):
     """Separator widget for a Horizontal Rule"""
+
+    # TODO: dynamically resize
     
     def __init__(self):
         BaseWidget.__init__(self)
@@ -162,12 +164,6 @@ class RichTextSep (BaseWidget):
         req.width = self._size[0]        
         req.height = self._size[1]
 
-    def _on_size_change(self, sep, alloc):
-        """Callback for when size is set"""
-
-        # when size is set then were are initialized
-        if (alloc.width, alloc.height) == self._size:
-            self.emit("init")
     
     
 
@@ -192,11 +188,7 @@ class BaseImage (BaseWidget):
     def __init__(self, *args, **kargs):
         BaseWidget.__init__(self)
         self._img = gtk.Image(*args, **kargs)
-        self._img.connect("size-allocate", self._on_size_change)
-        self._expected_size = None
         self.add(self._img)
-
-
     
     def highlight(self):
         self.drag_highlight()
@@ -206,19 +198,10 @@ class BaseImage (BaseWidget):
     
     def set_from_pixbuf(self, pixbuf):
         self._img.set_from_pixbuf(pixbuf)
-
-        # record expected size
-        # when this size is achieved, we are loaded
-        self._expected_size = (pixbuf.get_width(), pixbuf.get_height())
     
     def set_from_stock(self, stock, size):
         self._img.set_from_stock(stock, size)
     
-    
-    def _on_size_change(self, img, alloc):
-        if (alloc.width, alloc.height) == self._expected_size:
-            self.emit("init")
-
 
 # TODO: think about how a single anchor could manage multiple widgets in
 # multiple textviews
@@ -238,7 +221,6 @@ class RichTextImage (RichTextAnchor):
 
         self._widget.connect("destroy", self._on_image_destroy)
         self._widget.connect("button-press-event", self._on_clicked)
-        self._widget.connect("init", lambda w: self.emit("init"))
         
 
     def is_valid(self):
@@ -758,7 +740,6 @@ class RichTextBuffer (RichTextBaseBuffer):
         child.connect("activated", self._on_child_activated)
         child.connect("selected", self._on_child_selected)
         child.connect("popup-menu", self._on_child_popup_menu)
-        child.connect("init", self._on_child_init)
         self.insert_child_anchor(it, child)
 
         # let textview, if attached know we added a child
@@ -933,25 +914,14 @@ class RichTextBuffer (RichTextBaseBuffer):
         # forward callback to listeners (textview)
         self.emit("child-menu", child, button, activate_time)
 
-
-    def _on_child_init(self, child):
-        
-        if child in self._child_uninit:
-            self._child_uninit.remove(child)
-            if len(self._child_uninit) == 0:
-                self.emit("loaded")
-
-    def is_loaded(self):
-        return len(self._child_uninit) == 0
-
-
-    def check_loaded(self):
-        if len(self._child_uninit) == 0:
-            self.emit("loaded")
             
     
     def highlight_children(self):
         """Highlight any children that are within selection range"""
+
+        # TODO: I once had an exception that said an anchor in self._anchors
+        # was already deleted.  I do not know yet how this got out of
+        # sync, seeing as I listen for deletes.
         
         sel = self.get_selection_bounds()
         focus = None
@@ -1000,6 +970,4 @@ gobject.signal_new("child-activated", RichTextBuffer, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, (object,))
 gobject.signal_new("child-menu", RichTextBuffer, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, (object, object, object))
-gobject.signal_new("loaded", RichTextBuffer, gobject.SIGNAL_RUN_LAST,
-                   gobject.TYPE_NONE, ())
 
