@@ -63,6 +63,7 @@ CONTENT_TYPE_TRASH = "application/x-notebook-trash"
 CONTENT_TYPE_DIR = "application/x-notebook-dir"
 CONTENT_TYPE_UNKNOWN = "application/x-notebook-unknown"
 
+NULL = object()
 
 
 #=============================================================================
@@ -497,8 +498,16 @@ class NoteBookNode (object):
 
     def set_attr(self, name, value):
         """Set the value of an attribute"""
+        oldvalue = self._attr.get(name, NULL)
         self._attr[name] = value
-        self._set_dirty(True)
+
+        # if attr is one that the notebook manages then we are dirty
+        # TODO: should have additional test that attr needs to be saved
+        # this test is added for the icon_loaded attr, which is not needed to
+        # to be saved
+        if name in self._notebook.notebook_attrs and \
+           value != oldvalue:
+            self._set_dirty(True)
 
     def has_attr(self, name):
         return name in self._attr
@@ -724,10 +733,12 @@ class NoteBookNode (object):
     
     def _set_child_order(self):
         """Ensures that child know their order in the children list"""
+
         for i, child in enumerate(self._children):
             if child._attr["order"] != i:
                 child._attr["order"] = i
                 child._set_dirty(True)
+
             
 
     def _add_child(self, child, index=None):
@@ -837,7 +848,6 @@ class NoteBookNode (object):
         return get_node_meta_file(self.get_path())
 
     def write_meta_data(self):
-        
         self._meta.write(self.get_meta_file(),
                          self,
                          self._notebook.notebook_attrs)
@@ -850,7 +860,7 @@ class NoteBookNode (object):
 
     def set_meta_data(self, attr):
         self._version = self._meta.attr.get("version", NOTEBOOK_FORMAT_VERSION)
-
+        
         # set defaults
         if "created_time" not in attr:
             attr["created_time"] = get_timestamp()
@@ -1086,7 +1096,7 @@ class NoteBook (NoteBookDir):
 
 
     def _set_dirty_node(self, node, dirty):
-        """Mark a node to be dirty (needs saving) in NoteBook"""
+        """Mark a node to be dirty (needs saving) in NoteBook"""        
         if dirty:
             self._dirty.add(node)
         else:

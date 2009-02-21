@@ -142,7 +142,7 @@ class RichTextSep (BaseWidget):
         self._sep.modify_bg(gtk.STATE_NORMAL, gdk.Color(* DEFAULT_HR_COLOR))
         self._sep.modify_fg(gtk.STATE_NORMAL, gdk.Color(* DEFAULT_HR_COLOR))
         self._sep.connect("size-request", self._on_resize)
-        self._sep.connect("size-allocate", self._on_size_change)
+        #self._sep.connect("size-allocate", self._on_size_change)
 
         #width = 400
         #height = 1

@@ -242,6 +242,8 @@ class KeepNoteTreeModel (gtk.GenericTreeModel):
 
 
     def _on_node_changed(self, nodes, recurse):
+
+        from rasmus import util
         
         self.emit("node-changed-start", nodes)
         
@@ -249,19 +251,20 @@ class KeepNoteTreeModel (gtk.GenericTreeModel):
             if node == self._master_node:
                 # reset roots
                 self.set_root_nodes(self._master_node.get_children())
-            else:                        
+            else:
                 try:
                     path = self.on_get_path(node)
                 except:
                     # node is not part of model, ignore it
                     continue
+                
                 rowref = self.create_tree_iter(node)
 
                 self.row_deleted(path)
                 self.row_inserted(path, rowref)
                 self.row_has_child_toggled(path, rowref)
-                self.row_has_child_toggled(path, rowref)            
-
+                self.row_has_child_toggled(path, rowref)
+                
         self.emit("node-changed-end", nodes)
 
     

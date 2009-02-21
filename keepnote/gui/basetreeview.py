@@ -202,8 +202,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
             if node == self._master_node:
                 for child in node.get_children():
-                    path = get_path_from_node(self.model, child, self.rich_model.get_node_column())
                     if self.is_node_expanded(child):
+                        path = get_path_from_node(self.model, child, self.rich_model.get_node_column())
                         self.expand_row(path, False)
             else:
                 path = get_path_from_node(self.model, node,

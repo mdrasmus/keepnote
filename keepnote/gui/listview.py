@@ -78,7 +78,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         self.title_column.set_property("resizable", True)
         self.title_column.pack_start(cell_icon, False)
         self.title_column.pack_start(self.title_text, True)
-        self.title_column.connect("clicked", self.on_column_clicked)
+        #self.title_column.connect("clicked", self.on_column_clicked)
         self.title_text.set_fixed_height_from_font(1)
         self.title_text.connect("edited", self.on_edit_title)
         self.title_text.connect("editing-started", self.on_editing_started)
@@ -108,7 +108,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         column.set_fixed_width(150)
         column.set_sort_column_id(
             self.rich_model.get_column_by_name("created_time_sort").pos)
-        column.connect("clicked", self.on_column_clicked)
+        #column.connect("clicked", self.on_column_clicked)
         #column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
         #column.set_property("min-width", 5)
         column.pack_start(cell_text, True)
@@ -127,7 +127,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         column.set_fixed_width(150)
         column.set_sort_column_id(
             self.rich_model.get_column_by_name("modified_time_sort").pos)
-        column.connect("clicked", self.on_column_clicked)
+        #column.connect("clicked", self.on_column_clicked)
         #column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
         #column.set_property("min-width", 5)
         column.pack_start(cell_text, True)
@@ -186,11 +186,11 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         node.set_attr("expanded2", expand)
         
 
+    '''
     def on_column_clicked(self, column):
         pass
         #self.set_reorder(basetreeview.REORDER_FOLDER)
 
-    '''
     def on_directory_column_clicked(self, column):
         """sort pages by directory order"""
         self.model.set_sort_column_id(
