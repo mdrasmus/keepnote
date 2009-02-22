@@ -43,29 +43,12 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         # init view
         self.connect("key-release-event", self.on_key_released)
         self.connect("button-press-event", self.on_button_press)
+        self.connect("row-expanded", self._on_listview_row_expanded)
+        self.connect("row-collapsed", self._on_listview_row_collapsed)
         
         self.set_rules_hint(True)
         self.set_fixed_height_mode(True)
         
-        
-        # directory order column
-        '''
-        column = gtk.TreeViewColumn()
-        img = get_resource_image("folder.png")
-        img.show()
-        column.set_widget(img)
-        column.set_clickable(True)
-        column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
-        w, h = img.size_request()
-        column.set_min_width(w+10)
-        column.set_fixed_width(w+10)
-        column.connect("clicked", self.on_directory_column_clicked)
-        cell_text = gtk.CellRendererText()
-        cell_text.set_fixed_height_from_font(1)
-        column.pack_start(cell_text, True)
-        self.append_column(column)
-        '''
-
         
         # title column
         cell_icon = gtk.CellRendererPixbuf()
@@ -190,18 +173,6 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
                self.rich_model.get_node_column())) > 1:
             node.set_attr("expanded2", expand)
             
-    '''
-    def on_column_clicked(self, column):
-        pass
-        #self.set_reorder(basetreeview.REORDER_FOLDER)
-
-    def on_directory_column_clicked(self, column):
-        """sort pages by directory order"""
-        self.model.set_sort_column_id(
-            self.rich_model.get_column_by_name("order").pos,
-            gtk.SORT_ASCENDING)
-        self.set_reorder(basetreeview.REORDER_ALL)
-    '''
 
     def _sort_column_changed(self, sortmodel):
         col, sort_dir = self.model.get_sort_column_id()
@@ -282,23 +253,10 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         self.rich_model.set_nested(nested)
 
         # set master node
-        #if len(nodes) == 1:
-        #    self.set_master_node(nodes[0])
-        #else:
-        #    self.set_master_node(None)
         self.set_master_node(None)
         
         # populate model
-        roots = []
-        for node in nodes:
-            #if nested and len(node.get_children()) > 0:
-            #    # list directory contents
-            #    for child in node.get_children():
-            #        roots.append(child)
-            #else:
-                # list directory itself
-                roots.append(node)
-
+        roots = nodes
         self.rich_model.set_root_nodes(roots)
         
         # load sorting if single node is selected
@@ -307,9 +265,8 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         
         # expand rows
         for node in roots:
-            if True: #node.get_attr("expanded2", False):
-                self.expand_to_path(treemodel.get_path_from_node(
-                    self.model, node, self.rich_model.get_node_column()))
+            self.expand_to_path(treemodel.get_path_from_node(
+                self.model, node, self.rich_model.get_node_column()))
 
         # disable if no roots
         if len(roots) == 0:
@@ -318,11 +275,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             self.set_sensitive(True)
 
         # update status
-        npages = len(self.get_root_nodes())
-        if npages != 1:
-            self.set_status("%d pages" % npages, "stats")
-        else:
-            self.set_status("1 page", "stats")
+        self.display_page_count()
 
         self.emit("select-nodes", [])
 
@@ -334,19 +287,43 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             return
 
         self.rich_model.append(node)
+        
         if node.get_attr("expanded2", False):
             self.expand_to_path(treemodel.get_path_from_node(
                 self.model, node, self.rich_model.get_node_column()))
 
-        self.set_sensitive(True)
+        self.set_sensitive(True)        
 
         # update status
-        npages = len(self.get_root_nodes())
+        self.display_page_count()
+
+
+    def display_page_count(self, npages=None):
+
+        if npages is None:
+            #npages = len(self.get_root_nodes())
+            npages = self.count_pages(self.get_root_nodes())
+
         if npages != 1:
             self.set_status("%d pages" % npages, "stats")
         else:
             self.set_status("1 page", "stats")
 
+
+    def count_pages(self, roots):
+
+        # TODO: is there a way to make this faster?
+        
+        def walk(node):
+            npages = 1
+            if (self.rich_model.get_nested() and 
+                (node.get_attr("expanded2"))):
+                for child in node.get_children():
+                    npages += walk(child)
+            return npages
+
+        return sum(walk(child) for node in roots
+                   for child in node.get_children())
         
     
     def edit_node(self, page):
@@ -356,7 +333,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             # view page first if not in view
             self.emit("goto-node", page)
             path = treemodel.get_path_from_node(
-                self.model, page, self.get_node_column())
+                self.model, page, self.rich_model.get_node_column())
             assert path is not None
         self.set_cursor_on_cell(path, self.title_column, self.title_text, True)
         path, col = self.get_cursor()
@@ -397,15 +374,9 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         if info_sort == "":
             info_sort = "order"
 
-        #if info_sort == "order":
-        #    reorder_mode = basetreeview.REORDER_ALL
-        #else:
-        #    reorder_mode = basetreeview.REORDER_FOLDER
-
         for col in self.rich_model.get_columns():
             if info_sort == col.attr:
                 model.set_sort_column_id(col.pos, sort_dir)
-                #self.set_reorder(reorder_mode)
 
     
     def set_status(self, text, bar="status"):
@@ -424,6 +395,13 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
                 self.expand_row(model.get_path(child), False)
                 child = model.iter_next(child)
 
+    def _on_listview_row_expanded(self, treeview, it, path):
+        """Callback for row expand"""
+        self.display_page_count()
+        
+    
+    def _on_listview_row_collapsed(self, treeview, it, path):
+        self.display_page_count()
 
 
 # register new gtk signals

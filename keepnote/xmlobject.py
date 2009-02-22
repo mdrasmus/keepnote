@@ -348,9 +348,9 @@ if __name__ == "__main__":
         def write(self, filename):
             parser.write(self, filename)
     
-    from rasmus import util
+    #from rasmus import util
     
-    util.tic("run")
+    #util.tic("run")
 
     infile = StringIO.StringIO("""<?xml version="1.0" encoding="UTF-8"?>
        <notebook>
@@ -374,7 +374,7 @@ if __name__ == "__main__":
         pref.read(infile)
         pref.write(sys.stdout)
     
-    util.toc()
+    #util.toc()
     
 
 

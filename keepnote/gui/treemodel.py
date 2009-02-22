@@ -246,8 +246,6 @@ class KeepNoteTreeModel (gtk.GenericTreeModel):
 
     def _on_node_changed(self, nodes, recurse):
 
-        from rasmus import util
-        
         self.emit("node-changed-start", nodes)
         
         for node in nodes:
