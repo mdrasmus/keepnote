@@ -1040,6 +1040,17 @@ class KeepNoteWindow (gtk.Window):
 
     def focus_on_search_box(self):
         self.search_box.grab_focus()
+
+
+    def on_change_icon(self, widget="focus"):
+        """Change the icon for a node"""
+
+        if self.notebook is None:
+            return
+
+        nodes, widget = self.get_selected_nodes(widget)
+        
+    
     
     #=====================================================
     # Notebook callbacks
@@ -1750,29 +1761,7 @@ class KeepNoteWindow (gtk.Window):
         
         tips = gtk.Tooltips()
         tips.enable()
-
-        # open notebook
-        #button = gtk.ToolButton()
-        #if self.app.pref.use_stock_icons:
-        #    button.set_stock_id(gtk.STOCK_OPEN)
-        #else:
-        #    button.set_icon_widget(get_resource_image("open.png"))
-        #tips.set_tip(button, "Open Notebook")
-        #button.connect("clicked", lambda w: self.on_open_notebook())
-        #toolbar.insert(button, -1)
-
-        # save notebook
-        #button = gtk.ToolButton()
-        #if self.app.pref.use_stock_icons:
-        #    button.set_stock_id(gtk.STOCK_SAVE)
-        #else:
-        #    button.set_icon_widget(get_resource_image("save.png"))
-        #tips.set_tip(button, "Save Notebook")
-        #button.connect("clicked", lambda w: self.save_notebook())
-        #toolbar.insert(button, -1)        
-
-        # separator
-        #toolbar.insert(gtk.SeparatorToolItem(), -1)        
+      
 
         # new folder
         button = gtk.ToolButton()
@@ -1816,6 +1805,7 @@ class KeepNoteWindow (gtk.Window):
         # separator
         toolbar.insert(gtk.SeparatorToolItem(), -1)        
 
+        # insert editor toolbar
         self._editor_menus.make_toolbar(toolbar, tips,
                                         self.app.pref.use_stock_icons)
 
@@ -1847,41 +1837,39 @@ class KeepNoteWindow (gtk.Window):
         return toolbar
 
 
+    def make_image_menu(self, menu):
+        """image context menu"""
 
-    def make_context_menus(self):
-        """Initialize context menus"""        
-
-        #==========================
-        # image context menu
         item = gtk.SeparatorMenuItem()
         item.show()
-        self.editor.get_textview().get_image_menu().append(item)
+        menu.append(item)
             
         # image/edit
         item = gtk.MenuItem("_View Image...")
         item.connect("activate", self.on_view_image)
         item.child.set_markup_with_mnemonic("<b>_View Image...</b>")
         item.show()
-        self.editor.get_textview().get_image_menu().append(item)
+        menu.append(item)
         
         item = gtk.MenuItem("_Edit Image...")
         item.connect("activate", self.on_edit_image)
         item.show()
-        self.editor.get_textview().get_image_menu().append(item)
+        menu.append(item)
 
         item = gtk.MenuItem("_Resize Image...")
         item.connect("activate", self.on_resize_image)
         item.show()
-        self.editor.get_textview().get_image_menu().append(item)
+        menu.append(item)
 
         # image/save
         item = gtk.ImageMenuItem("_Save Image As...")
         item.connect("activate", self.on_save_image_as)
         item.show()
-        self.editor.get_textview().get_image_menu().append(item)
+        menu.append(item)
 
-        #===============================
-        # treeview context menu
+    def make_node_menu(self, menu, control):
+        """make list of menu options for nodes"""
+
         # treeview/new folder
         item = gtk.ImageMenuItem()        
         item.set_image(get_resource_image("folder-new.png"))
@@ -1890,8 +1878,8 @@ class KeepNoteWindow (gtk.Window):
         label.set_alignment(0.0, 0.5)
         label.show()
         item.add(label)
-        item.connect("activate", lambda w: self.on_new_dir("treeview"))
-        self.treeview.menu.append(item)
+        item.connect("activate", lambda w: self.on_new_dir(control))
+        menu.append(item)
         item.show()
         
         # treeview/new page
@@ -1902,18 +1890,32 @@ class KeepNoteWindow (gtk.Window):
         label.set_alignment(0.0, 0.5)
         label.show()
         item.add(label)        
-        item.connect("activate", lambda w: self.on_new_page("treeview"))
-        self.treeview.menu.append(item)
+        item.connect("activate", lambda w: self.on_new_page(control))
+        menu.append(item)
         item.show()
 
         # treeview/delete node
         item = gtk.ImageMenuItem(gtk.STOCK_DELETE)
-        item.connect("activate", lambda w: self.treeview.on_delete_node())
-        self.treeview.menu.append(item)
+        if control == "treeview":
+            item.connect("activate", lambda w: self.treeview.on_delete_node())
+        elif control == "listview":
+            item.connect("activate", lambda w: self.listview.on_delete_node())
+        else:
+            raise Exception("unknown control '%s'" % control)
+        menu.append(item)
         item.show()
 
+
+        # change icon
+        item = gtk.MenuItem("Change _Icon")
+        item.connect("activate", lambda w: self.on_change_icon(control))
+        menu.append(item)
+        item.show()
+        
+
+        #=============================================================
         item = gtk.SeparatorMenuItem()
-        self.treeview.menu.append(item)
+        menu.append(item)
         item.show()
 
 
@@ -1922,8 +1924,8 @@ class KeepNoteWindow (gtk.Window):
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("file_explorer",
                                                               None,
-                                                              "treeview"))
-        self.treeview.menu.append(item)
+                                                              control))
+        menu.append(item)
         item.show()        
 
         # treeview/web browser
@@ -1931,9 +1933,9 @@ class KeepNoteWindow (gtk.Window):
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("web_browser",
                                                               None,
-                                                             "treeview",
+                                                              control,
                                                               page_only=True))
-        self.treeview.menu.append(item)
+        menu.append(item)
         item.show()        
 
         # treeview/text editor
@@ -1941,14 +1943,21 @@ class KeepNoteWindow (gtk.Window):
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("text_editor",
                                                               None,
-                                                              "treeview",
+                                                              control,
                                                               page_only=True))
-        self.treeview.menu.append(item)
+        menu.append(item)
         item.show()
+        
+        
+
+    def make_treeview_menu(self, menu):
+        """treeview context menu"""
+
+        self.make_node_menu(menu, "treeview")
 
         
-        #=================================
-        # listview context menu
+    def make_listview_menu(self, menu):
+        """listview context menu"""
 
         # listview/view note
         item = gtk.ImageMenuItem(gtk.STOCK_GO_DOWN)
@@ -1956,7 +1965,7 @@ class KeepNoteWindow (gtk.Window):
         item.child.set_markup_with_mnemonic("<b>Go to _Note</b>")
         item.connect("activate",
                      lambda w: self.on_list_view_node(None, None))
-        self.listview.menu.append(item)
+        menu.append(item)
         item.show()
 
         # listview/view note
@@ -1964,75 +1973,24 @@ class KeepNoteWindow (gtk.Window):
         item.child.set_label("Go to _Parent Note")
         item.connect("activate",
                      lambda w: self.on_list_view_parent_node())
-        self.listview.menu.append(item)
+        menu.append(item)
         item.show()
 
         item = gtk.SeparatorMenuItem()
-        self.listview.menu.append(item)
+        menu.append(item)
         item.show()
 
-        # listview/new folder
-        item = gtk.ImageMenuItem()
-        item.set_image(get_resource_image("folder-new.png"))
-        label = gtk.Label("New _Folder")
-        label.set_use_underline(True)
-        label.set_alignment(0.0, 0.5)
-        label.show()
-        item.add(label)
-        item.connect("activate", lambda w: self.on_new_dir("listview"))
-        self.listview.menu.append(item)
-        item.show()
-        
-        # listview/new page
-        item = gtk.ImageMenuItem()
-        item.set_image(get_resource_image("note-new.png"))        
-        label = gtk.Label("New _Page")
-        label.set_use_underline(True)
-        label.set_alignment(0.0, 0.5)
-        label.show()
-        item.add(label)        
-        item.connect("activate", lambda w: self.on_new_page("listview"))
-        self.listview.menu.append(item)
-        item.show()
+        self.make_node_menu(menu, "listview")
 
-        # listview/delete node
-        item = gtk.ImageMenuItem(gtk.STOCK_DELETE)
-        item.connect("activate", lambda w: self.listview.on_delete_page())
-        self.listview.menu.append(item)
-        item.show()
 
-        item = gtk.SeparatorMenuItem()
-        item.show()
-        self.listview.menu.append(item)
-        
-        # listview/file explorer
-        item = gtk.MenuItem("View in File _Explorer")
-        item.connect("activate",
-                     lambda w: self.on_view_node_external_app("file_explorer",
-                                                              None,
-                                                              "listview"))
-        self.listview.menu.append(item)
-        item.show()
 
-        # listview/web browser
-        item = gtk.MenuItem("View in _Web Browser")
-        item.connect("activate",
-                     lambda w: self.on_view_node_external_app("web_browser",
-                                                              None,
-                                                             "listview",
-                                                              page_only=True))
-        self.listview.menu.append(item)
-        item.show()        
+    def make_context_menus(self):
+        """Initialize context menus"""        
 
-        # listview/text editor
-        item = gtk.MenuItem("View in _Text Editor")
-        item.connect("activate",
-                     lambda w: self.on_view_node_external_app("text_editor",
-                                                              None,
-                                                              "listview",
-                                                              page_only=True))
-        self.listview.menu.append(item)
-        item.show()        
+        self.make_image_menu(self.editor.get_textview().get_image_menu())
+        self.make_treeview_menu(self.treeview.menu)
+        self.make_listview_menu(self.listview.menu)
+
 
 
 

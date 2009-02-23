@@ -31,37 +31,37 @@ from keepnote import uuid
 # NOTE: the <?xml ?> header is left off to keep it compatiable with IE,
 # for the time being.
 # constants
-BLANK_NOTE = """\
+BLANK_NOTE = u"""\
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml"><body></body></html>
 """
 
-XML_HEADER = """\
+XML_HEADER = u"""\
 <?xml version="1.0" encoding="UTF-8"?>
 """
 
 NOTEBOOK_FORMAT_VERSION = 2
 ELEMENT_NODE = 1
-NODE_META_FILE = "node.xml"
-PAGE_DATA_FILE = "page.html"
-PLAIN_TEXT_DATA_FILE = "page.txt"
-PREF_FILE = "notebook.nbk"
-NOTEBOOK_META_DIR = "__NOTEBOOK__"
-NOTEBOOK_ICON_DIR = "icons"
-TRASH_DIR = "__TRASH__"
-TRASH_NAME = "Trash"
-DEFAULT_PAGE_NAME = "New Page"
-DEFAULT_DIR_NAME = "New Folder"
+NODE_META_FILE = u"node.xml"
+PAGE_DATA_FILE = u"page.html"
+PLAIN_TEXT_DATA_FILE = u"page.txt"
+PREF_FILE = u"notebook.nbk"
+NOTEBOOK_META_DIR = u"__NOTEBOOK__"
+NOTEBOOK_ICON_DIR = u"icons"
+TRASH_DIR = u"__TRASH__"
+TRASH_NAME = u"Trash"
+DEFAULT_PAGE_NAME = u"New Page"
+DEFAULT_DIR_NAME = u"New Folder"
 DEFAULT_FONT_FAMILY = "Sans"
 DEFAULT_FONT_SIZE = 10
 DEFAULT_FONT = "%s %d" % (DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE)
 
 # content types
-CONTENT_TYPE_PAGE = "text/xhtml+xml"
+CONTENT_TYPE_PAGE = u"text/xhtml+xml"
 #CONTENT_TYPE_PLAIN_TEXT = "text/plain"
-CONTENT_TYPE_TRASH = "application/x-notebook-trash"
-CONTENT_TYPE_DIR = "application/x-notebook-dir"
-CONTENT_TYPE_UNKNOWN = "application/x-notebook-unknown"
+CONTENT_TYPE_TRASH = u"application/x-notebook-trash"
+CONTENT_TYPE_DIR = u"application/x-notebook-dir"
+CONTENT_TYPE_UNKNOWN = u"application/x-notebook-unknown"
 
 NULL = object()
 
@@ -69,26 +69,26 @@ NULL = object()
 #=============================================================================
 # filename creation functions
 
-REGEX_SLASHES = re.compile(r"[/\\]")
-REGEX_BAD_CHARS = re.compile(r"[\?'&<>|`:;]")
+REGEX_SLASHES = re.compile(ur"[/\\]")
+REGEX_BAD_CHARS = re.compile(ur"[\?'&<>|`:;]")
 
-def get_valid_filename(filename, default="folder"):
+def get_valid_filename(filename, default=u"folder"):
     """Converts a filename into a valid one
     
     Strips bad characters from filename
     """
     
-    filename = re.sub(REGEX_SLASHES, "-", filename)
-    filename = re.sub(REGEX_BAD_CHARS, "", filename)
-    filename = filename.replace("\t", " ")
-    filename = filename.strip(" \t.")
+    filename = re.sub(REGEX_SLASHES, u"-", filename)
+    filename = re.sub(REGEX_BAD_CHARS, u"", filename)
+    filename = filename.replace(u"\t", " ")
+    filename = filename.strip(u" \t.")
     
     # don't allow files to start with two underscores
-    if filename.startswith("__"):
+    if filename.startswith(u"__"):
         filename = filename[2:]
     
     # don't allow pure whitespace filenames
-    if filename == "":
+    if filename == u"":
         filename = default
     
     # use only lower case, some filesystems have trouble with mixed case
@@ -97,7 +97,7 @@ def get_valid_filename(filename, default="folder"):
     return filename
     
 
-def get_unique_filename(path, filename, ext="", sep=" ", number=2):
+def get_unique_filename(path, filename, ext=u"", sep=u" ", number=2):
     """Returns a unique version of a filename for a given directory"""
 
     if path != "":
@@ -117,13 +117,13 @@ def get_unique_filename(path, filename, ext="", sep=" ", number=2):
         i += 1
 
 
-def get_valid_unique_filename(path, filename, ext="", sep=" ", number=2):
+def get_valid_unique_filename(path, filename, ext=u"", sep=u" ", number=2):
     """Returns a valid and unique version of a filename for a given path"""
     return get_unique_filename(path, get_valid_filename(filename), 
                                ext, sep, number)
     
 
-def get_unique_filename_list(filenames, filename, ext="", sep=" ", number=2):
+def get_unique_filename_list(filenames, filename, ext=u"", sep=u" ", number=2):
     """Returns a unique filename for a given list of existing files"""
     filenames = set(filenames)
     

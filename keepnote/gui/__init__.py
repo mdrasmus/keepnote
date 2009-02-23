@@ -84,7 +84,7 @@ def get_icon_filename(node, filename):
     if filename2:
         return filename2
     else:
-        filename = get_resource(keepnote.IMAGE_DIR, filename)
+        filename = get_resource(keepnote.NODE_ICON_DIR, filename)
         if filename:
             return filename
         else:
@@ -99,8 +99,8 @@ def get_node_icon_filenames(node):
 
     # TODO: add lookup in notebook icon dir
     # lookup filenames
-    return (get_icon_filename(node, filenames[0]),
-            get_icon_filename(node, filenames[1]))
+    return [get_icon_filename(node, filenames[0]),
+            get_icon_filename(node, filenames[1])]
 
 
 
@@ -124,26 +124,25 @@ def get_node_icon(node, expand=False):
         # load icon
         if node.has_attr("icon"):
             # use attr
-            node.set_attr("icon_load",
-                          get_icon_filename(node, node.get_attr("icon")))
-        else:
-            # use default
-            node.set_attr("icon_load", filenames[0])
+            filename2 = get_icon_filename(node, node.get_attr("icon"))
+            if filename2 and os.path.exists(filename2):
+                filenames[0] = filename2
+        node.set_attr("icon_load", filenames[0])
 
+        
         # load icon with open state
         if node.has_attr("icon_open"):
             # use attr
-            node.set_attr("icon_open_load",
-                          get_icon_filename(node, node.get_attr("icon_open")))
+            filename2 = get_icon_filename(node, node.get_attr("icon_open"))
+            if filename2 and os.path.exists(filename2):
+                filenames[1] = filename2                          
         else:
-
             if node.has_attr("icon"):
                 # use icon as open icon if it is specified
-                node.set_attr("icon_open_load",
-                          get_icon_filename(node, node.get_attr("icon")))
-            else:
-                # use default
-                node.set_attr("icon_open_load", filenames[1])
+                filename2 = get_icon_filename(node, node.get_attr("icon"))
+                if filename2 and os.path.exists(filename2):
+                    filenames[1] = filename2
+        node.set_attr("icon_open_load", filenames[1])
         
         return get_pixbuf(filenames[int(expand)])
 

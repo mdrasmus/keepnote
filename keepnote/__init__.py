@@ -50,6 +50,7 @@ WEBSITE = "http://rasm.ods.org/keepnote"
 
 BASEDIR = ""
 IMAGE_DIR = "images"
+NODE_ICON_DIR = os.path.join(IMAGE_DIR, "node_icons")
 PLATFORM = None
 
 USER_PREF_DIR = "takenote"
