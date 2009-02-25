@@ -33,7 +33,8 @@ from keepnote.gui import \
      get_resource, \
      get_resource_image, \
      get_resource_pixbuf, \
-     get_accel_file
+     get_accel_file, \
+     get_icon_filename
 from keepnote.notebook import \
      NoteBookError, \
      NoteBookVersionError
@@ -207,6 +208,57 @@ class LinkEditor (gtk.Frame):
                 self.set_url()
             #self.textview.get_buffer().place_cursor(end)
             self.textview.grab_focus()
+
+
+class IconMenu (gtk.Menu):
+    """Icon picker menu"""
+
+    def __init__(self):
+        gtk.Menu.__init__(self)
+
+        self.width = 4
+        self.posi = 0
+        self.posj = 0
+
+        for iconfile in keepnote.gui.builtin_icons:                    
+            self.add_icon(self.posi, self.posj, iconfile)
+
+            self.posj += 1
+            if self.posj >= self.width:
+                self.posj = 0
+                self.posi += 1
+
+        # reset posi, posj
+        if self.posj > 0:
+            self.posi += 1
+            self.posj = 0
+
+        item = gtk.MenuItem("_Default Icon")
+        item.connect("activate", lambda w: self.emit("set-icon", None))
+        item.show()        
+        self.attach(item, self.posj, self.width, self.posi, self.posi+1)
+        self.posi += 1
+        
+
+    def add_icon(self, i, j, iconfile):
+
+        child = gtk.MenuItem("")
+        child.remove(child.child)
+        img = gtk.Image()
+        iconfile2 = get_icon_filename(None, iconfile)
+        img.set_from_file(iconfile2)
+        child.add(img)
+        child.child.show()
+        child.show()
+        child.connect("activate",
+                      lambda w: self.emit("set-icon", iconfile))
+        self.attach(child, j, j+1, i, i+1)
+
+gobject.type_register(IconMenu)
+gobject.signal_new("set-icon", IconMenu, gobject.SIGNAL_RUN_LAST, 
+           gobject.TYPE_NONE, (object,))
+
+
 
 
 class KeepNoteWindow (gtk.Window):
@@ -1042,13 +1094,23 @@ class KeepNoteWindow (gtk.Window):
         self.search_box.grab_focus()
 
 
-    def on_change_icon(self, widget="focus"):
+    def on_set_icon(self, iconfile, widget="focus"):
         """Change the icon for a node"""
 
         if self.notebook is None:
             return
 
         nodes, widget = self.get_selected_nodes(widget)
+
+        for node in nodes:
+            if iconfile is None:
+                node.del_attr("icon")
+            else:
+                node.set_attr("icon", iconfile)
+            
+            node.del_attr("icon_open")
+            node.del_attr("icon_load")
+            node.del_attr("icon_open_load")
         
     
     
@@ -1905,11 +1967,20 @@ class KeepNoteWindow (gtk.Window):
         menu.append(item)
         item.show()
 
-
         # change icon
-        item = gtk.MenuItem("Change _Icon")
-        item.connect("activate", lambda w: self.on_change_icon(control))
+        item = gtk.ImageMenuItem()
+        label = gtk.Label("Change _Icon")
+        label.set_use_underline(True)
+        label.set_alignment(0.0, 0.5)
+        label.show()
+        item.add(label)
+        img = gtk.Image()
+        img.set_from_file(get_icon_filename(None, "folder-red.png"))
+        item.set_image(img)
         menu.append(item)
+        iconmenu = IconMenu()
+        iconmenu.connect("set-icon", lambda w, i: self.on_set_icon(i, control))
+        item.set_submenu(iconmenu)
         item.show()
         
 

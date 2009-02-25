@@ -37,7 +37,14 @@ _g_default_node_icon_filenames = {
     notebooklib.CONTENT_TYPE_PAGE: ("note.png", "note.png")
 }
 _g_unknown_icons = ("note-unknown.png", "note-unknown.png")
-      
+
+
+_colors = ["", "-red", "-orange", "-yellow",
+           "-green", "-blue", "-violet", "-grey"]
+           
+builtin_icons = ["folder" + c + ".png" for c in _colors] + \
+                ["note" + c + ".png" for c in _colors]
+
 
 
 def get_pixbuf(filename):
@@ -78,18 +85,26 @@ def get_default_icon_filenames(node):
     return _g_default_node_icon_filenames.get(content_type, _g_unknown_icons)
     
 
-def get_icon_filename(node, filename):
+def get_icon_filename(notebook, filename):
 
-    filename2 = node.get_notebook().get_icon_file(filename)
-    if filename2:
-        return filename2
+    if notebook is not None:
+        filename2 = notebook.get_icon_file(filename)
+        if filename2:
+            return filename2
+    
+    filename = get_resource(keepnote.NODE_ICON_DIR, filename)
+    if filename:
+        return filename
     else:
-        filename = get_resource(keepnote.NODE_ICON_DIR, filename)
-        if filename:
-            return filename
-        else:
-            # TODO: handle this better
-            return None
+        # TODO: handle this better
+        return None
+
+
+def guess_open_icon_file(icon_file):
+    """Guess an 'open' version of an icon from its closed version"""
+
+    path, ext = os.path.splitext(icon_file)
+    return path + u"-open" + ext
 
 
 def get_node_icon_filenames(node):
@@ -99,13 +114,15 @@ def get_node_icon_filenames(node):
 
     # TODO: add lookup in notebook icon dir
     # lookup filenames
-    return [get_icon_filename(node, filenames[0]),
-            get_icon_filename(node, filenames[1])]
+    return [get_icon_filename(node.get_notebook(), filenames[0]),
+            get_icon_filename(node.get_notebook(), filenames[1])]
 
 
-
+        
 def get_node_icon(node, expand=False):
     """Returns cached pixbuf of NoteBookNode icon from resource path"""
+
+    notebook = node.get_notebook()
     
     if not expand and node.has_attr("icon_load"):
         # return loaded icon
@@ -124,7 +141,7 @@ def get_node_icon(node, expand=False):
         # load icon
         if node.has_attr("icon"):
             # use attr
-            filename2 = get_icon_filename(node, node.get_attr("icon"))
+            filename2 = get_icon_filename(notebook, node.get_attr("icon"))
             if filename2 and os.path.exists(filename2):
                 filenames[0] = filename2
         node.set_attr("icon_load", filenames[0])
@@ -133,20 +150,29 @@ def get_node_icon(node, expand=False):
         # load icon with open state
         if node.has_attr("icon_open"):
             # use attr
-            filename2 = get_icon_filename(node, node.get_attr("icon_open"))
+            filename2 = get_icon_filename(notebook,
+                                          node.get_attr("icon_open"))
             if filename2 and os.path.exists(filename2):
                 filenames[1] = filename2                          
         else:
             if node.has_attr("icon"):
-                # use icon as open icon if it is specified
-                filename2 = get_icon_filename(node, node.get_attr("icon"))
+
+                # use icon to guess open icon
+                filename2 = get_icon_filename(notebook,
+                    guess_open_icon_file(node.get_attr("icon")))
                 if filename2 and os.path.exists(filename2):
                     filenames[1] = filename2
+                else:
+                    # use icon as-is for open icon if it is specified
+                    filename2 = get_icon_filename(notebook,
+                                                  node.get_attr("icon"))
+                    if filename2 and os.path.exists(filename2):
+                        filenames[1] = filename2
         node.set_attr("icon_open_load", filenames[1])
         
         return get_pixbuf(filenames[int(expand)])
 
-        
+  
 def get_accel_file():
     """Returns gtk accel file"""
 

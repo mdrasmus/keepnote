@@ -517,8 +517,8 @@ class NoteBookNode (object):
         """Delete an attribute"""
 
         # TODO: check against un-deletable attributes
-        
-        del self._attr[name]
+        if name in self._attr:
+            del self._attr[name]
         
 
     def iter_attr(self):
