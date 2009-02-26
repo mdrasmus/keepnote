@@ -51,7 +51,8 @@ from keepnote.gui import \
     dialog_drag_drop_test, \
     dialog_image_resize, \
     dialog_wait, \
-    dialog_update_notebook
+    dialog_update_notebook, \
+    dialog_node_icon
 from keepnote.gui.editor import KeepNoteEditor, EditorMenus
 
 from keepnote import tasklib
@@ -221,26 +222,44 @@ class IconMenu (gtk.Menu):
         self.posj = 0
 
         for iconfile in keepnote.gui.builtin_icons:                    
-            self.add_icon(self.posi, self.posj, iconfile)
+            self.add_icon(iconfile)
 
-            self.posj += 1
-            if self.posj >= self.width:
-                self.posj = 0
-                self.posi += 1
+        # separator
+        item = gtk.SeparatorMenuItem()
+        item.show()
+        self.append(item)
 
+        # default icon
+        self.default_icon = gtk.MenuItem("_Default Icon")
+        self.default_icon.connect("activate",
+                                  lambda w: self.emit("set-icon", None))
+        self.default_icon.show()
+        self.append(self.default_icon)
+
+        # new icon
+        self.new_icon = gtk.MenuItem("_New Icon...")
+        self.new_icon.show()
+        self.append(self.new_icon)
+        
+
+    def append_grid(self, item):
+        self.attach(item, self.posj, self.posj+1, self.posi, self.posi+1)
+        
+        self.posj += 1
+        if self.posj >= self.width:
+            self.posj = 0
+            self.posi += 1
+
+    def append(self, item):
+        
         # reset posi, posj
         if self.posj > 0:
             self.posi += 1
             self.posj = 0
 
-        item = gtk.MenuItem("_Default Icon")
-        item.connect("activate", lambda w: self.emit("set-icon", None))
-        item.show()        
-        self.attach(item, self.posj, self.width, self.posi, self.posi+1)
-        self.posi += 1
-        
+        gtk.Menu.append(self, item)
 
-    def add_icon(self, i, j, iconfile):
+    def add_icon(self, iconfile):
 
         child = gtk.MenuItem("")
         child.remove(child.child)
@@ -252,7 +271,8 @@ class IconMenu (gtk.Menu):
         child.show()
         child.connect("activate",
                       lambda w: self.emit("set-icon", iconfile))
-        self.attach(child, j, j+1, i, i+1)
+        self.append_grid(child)
+
 
 gobject.type_register(IconMenu)
 gobject.signal_new("set-icon", IconMenu, gobject.SIGNAL_RUN_LAST, 
@@ -346,6 +366,7 @@ class KeepNoteWindow (gtk.Window):
         self.drag_test = dialog_drag_drop_test.DragDropTestDialog(self)
         self.image_resize_dialog = \
             dialog_image_resize.ImageResizeDialog(self, self.app.pref)
+        self.node_icon_dialog = dialog_node_icon.NodeIconDialog(self)
 
         # context menus
         self.make_context_menus()
@@ -1111,7 +1132,17 @@ class KeepNoteWindow (gtk.Window):
             node.del_attr("icon_open")
             node.del_attr("icon_load")
             node.del_attr("icon_open_load")
-        
+
+
+    def on_new_icon(self, widget="focus"):
+        """Change the icon for a node"""
+
+        if self.notebook is None:
+            return
+
+        self.node_icon_dialog.show()
+
+        #self.on_set_icon(iconfile, widget)
     
     
     #=====================================================
@@ -1980,6 +2011,8 @@ class KeepNoteWindow (gtk.Window):
         menu.append(item)
         iconmenu = IconMenu()
         iconmenu.connect("set-icon", lambda w, i: self.on_set_icon(i, control))
+        iconmenu.new_icon.connect("activate",
+                                  lambda w: self.on_new_icon(control))
         item.set_submenu(iconmenu)
         item.show()
         

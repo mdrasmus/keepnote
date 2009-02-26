@@ -43,7 +43,11 @@ _colors = ["", "-red", "-orange", "-yellow",
            "-green", "-blue", "-violet", "-grey"]
            
 builtin_icons = ["folder" + c + ".png" for c in _colors] + \
-                ["note" + c + ".png" for c in _colors]
+                ["note" + c + ".png" for c in _colors] + \
+                ["note-plain-text.png",
+                 "note-unknown.png",
+                 "note-delete.png",
+                 "folder-delete.png"]
 
 
 
@@ -96,11 +100,10 @@ def get_icon_filename(notebook, filename):
     if filename:
         return filename
     else:
-        # TODO: handle this better
         return None
 
 
-def guess_open_icon_file(icon_file):
+def guess_open_icon_filename(icon_file):
     """Guess an 'open' version of an icon from its closed version"""
 
     path, ext = os.path.splitext(icon_file)
@@ -159,7 +162,7 @@ def get_node_icon(node, expand=False):
 
                 # use icon to guess open icon
                 filename2 = get_icon_filename(notebook,
-                    guess_open_icon_file(node.get_attr("icon")))
+                    guess_open_icon_filename(node.get_attr("icon")))
                 if filename2 and os.path.exists(filename2):
                     filenames[1] = filename2
                 else:
