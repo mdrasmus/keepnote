@@ -36,7 +36,7 @@ class IconMenu (gtk.Menu):
         # default icon
         self.default_icon = gtk.MenuItem("_Default Icon")
         self.default_icon.connect("activate",
-                                  lambda w: self.emit("set-icon", None))
+                                  lambda w: self.emit("set-icon", ""))
         self.default_icon.show()
         self.append(self.default_icon)
 

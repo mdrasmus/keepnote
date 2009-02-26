@@ -103,9 +103,9 @@ class NodeIconDialog (object):
             icon_open_file = self.icon_open_entry.get_text()
 
             if icon_file.strip() == "":
-                icon_file = None
+                icon_file = ""
             if icon_open_file.strip() == "":
-                icon_open_file = None
+                icon_open_file = ""
         
         self.dialog.destroy()
 
@@ -150,11 +150,16 @@ class NodeIconDialog (object):
             if self.icon_open_entry.get_text().strip() == "":
                 open_filename = guess_open_icon_filename(filename)
 
-                if lookup_icon_filename(self.main_window.notebook,
-                                        open_filename):
-                    self.set_preview("icon_open", open_filename)
+                if os.path.isabs(open_filename):
+                    # do a full set
+                    self.set_icon("icon_open", open_filename)
                 else:
-                    self.set_preview("icon_open", filename)
+                    # just do preview
+                    if lookup_icon_filename(self.main_window.notebook,
+                                            open_filename):
+                        self.set_preview("icon_open", open_filename)
+                    else:
+                        self.set_preview("icon_open", filename)
 
 
     def set_preview(self, kind, filename):

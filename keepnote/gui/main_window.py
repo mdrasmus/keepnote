@@ -1049,7 +1049,13 @@ class KeepNoteWindow (gtk.Window):
 
 
     def on_set_icon(self, icon_file, icon_open_file, widget="focus"):
-        """Change the icon for a node"""
+        """
+        Change the icon for a node
+
+        icon_file, icon_open_file -- icon basenames
+            use "" to delete icon setting (set default)
+            use None to leave icon setting unchanged
+        """
 
         if self.notebook is None:
             return
@@ -1058,14 +1064,14 @@ class KeepNoteWindow (gtk.Window):
 
         for node in nodes:
 
-            if icon_file is None:
+            if icon_file is "":
                 node.del_attr("icon")
-            else:
+            elif icon_file is not None:
                 node.set_attr("icon", icon_file)
 
-            if icon_open_file is None:
+            if icon_open_file is "":
                 node.del_attr("icon_open")
-            else:
+            elif icon_open_file is not None:
                 node.set_attr("icon_open", icon_open_file)
 
             node.del_attr("icon_load")
@@ -1963,7 +1969,7 @@ class KeepNoteWindow (gtk.Window):
         menu.append(item)
         iconmenu = IconMenu()
         iconmenu.connect("set-icon",
-                         lambda w, i: self.on_set_icon(i, None, control))
+                         lambda w, i: self.on_set_icon(i, "", control))
         iconmenu.new_icon.connect("activate",
                                   lambda w: self.on_new_icon(control))
         item.set_submenu(iconmenu)
