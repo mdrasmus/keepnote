@@ -1172,12 +1172,32 @@ class NoteBook (NoteBookDir):
     #==============================================
     # icons
 
-    def get_icon_file(self, filename):
-        filename2 = os.path.join(self.get_icon_dir(), filename)
-        if os.path.exists(filename2):
-            return filename2
+    def get_icon_file(self, basename):
+        """Lookup icon filename in notebook icon store"""
+        filename = os.path.join(self.get_icon_dir(), basename)
+        if os.path.exists(filename):
+            return filename
         else:
             return None
+
+    def get_icons(self):
+        """Returns list of icons in notebook icon store"""
+
+        path = self.get_icon_dir()
+        filenames = os.listdir(path)
+        filenames.sort()
+        return filenames
+
+    def install_icon(self, filename):
+        """Installs an icon into the notebook icon store"""
+
+        icondir = self.get_icon_dir()
+        basename = os.path.basename(filename)
+        basename, ext = os.path.splitext(basename)
+        filename2 = get_unique_filename(icondir, basename, ext, "-")
+        shutil.copy(filename, filename2)
+
+        return os.path.basename(filename2)
     
     #===============================================
     # preferences

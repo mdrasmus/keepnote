@@ -2382,7 +2382,7 @@ the first Monday are considered to be in week 0</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
                                 <property name="response_id">0</property>
-                                <signal name="activate" handler="on_set_icon_button_activate"/>
+                                <signal name="clicked" handler="on_set_icon_button_clicked"/>
                                 <child>
                                   <widget class="GtkAlignment" id="alignment14">
                                     <property name="visible">True</property>
@@ -2422,7 +2422,7 @@ the first Monday are considered to be in week 0</property>
                                 <property name="can_focus">True</property>
                                 <property name="receives_default">True</property>
                                 <property name="response_id">0</property>
-                                <signal name="activate" handler="on_set_icon_open_button_activate"/>
+                                <signal name="clicked" handler="on_set_icon_open_button_clicked"/>
                                 <child>
                                   <widget class="GtkAlignment" id="alignment15">
                                     <property name="visible">True</property>
@@ -2473,6 +2473,7 @@ the first Monday are considered to be in week 0</property>
                             <property name="shadow_type">GTK_SHADOW_IN</property>
                             <child>
                               <widget class="GtkIconView" id="iconview">
+                                <property name="height_request">200</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
                               </widget>
@@ -2517,7 +2518,7 @@ the first Monday are considered to be in week 0</property>
                 <property name="receives_default">True</property>
                 <property name="label" translatable="yes">gtk-cancel</property>
                 <property name="use_stock">True</property>
-                <property name="response_id">0</property>
+                <property name="response_id">-6</property>
               </widget>
             </child>
             <child>
@@ -2527,7 +2528,7 @@ the first Monday are considered to be in week 0</property>
                 <property name="receives_default">True</property>
                 <property name="label" translatable="yes">gtk-ok</property>
                 <property name="use_stock">True</property>
-                <property name="response_id">0</property>
+                <property name="response_id">-5</property>
               </widget>
               <packing>
                 <property name="position">1</property>
