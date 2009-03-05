@@ -13,6 +13,9 @@ import gtk
 
 import keepnote.gui
 
+default_menu_icons = [x for x in keepnote.gui.builtin_icons
+                      if "-open." not in x][:20]
+
 
 
 class IconMenu (gtk.Menu):
@@ -25,7 +28,7 @@ class IconMenu (gtk.Menu):
         self.posi = 0
         self.posj = 0
 
-        for iconfile in keepnote.gui.builtin_icons:                    
+        for iconfile in default_menu_icons:                    
             self.add_icon(iconfile)
 
         # separator

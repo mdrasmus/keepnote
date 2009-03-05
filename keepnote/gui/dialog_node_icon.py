@@ -82,7 +82,33 @@ class NodeIconDialog (object):
         self.icon_open_entry = self.xml.get_widget("icon_open_entry")
         self.icon_image = self.xml.get_widget("icon_image")
         self.icon_open_image = self.xml.get_widget("icon_open_image")
-        self.iconview = self.xml.get_widget("iconview")
+        
+        self.standard_iconview = self.xml.get_widget("standard_iconview")
+        self.notebook_iconview = self.xml.get_widget("notebook_iconview")
+        self.quick_iconview = self.xml.get_widget("quick_pick_iconview")
+
+        self.standard_iconlist = gtk.ListStore(gtk.gdk.Pixbuf, str)
+        self.notebook_iconlist = gtk.ListStore(gtk.gdk.Pixbuf, str)
+        self.quick_iconlist = gtk.ListStore(gtk.gdk.Pixbuf, str)
+        
+
+        self.iconviews = [
+            self.standard_iconview,
+            self.notebook_iconview,
+            self.quick_iconview]
+
+        self.iconlists = [
+            self.standard_iconlist,
+            self.notebook_iconlist,
+            self.quick_iconlist]
+        
+        self.iconview_signals = {}
+        for iconview in self.iconviews:
+            self.iconview_signals[iconview] = \
+                iconview.connect("selection-changed",
+                                 self.on_iconview_selection_changed)
+        
+        #self.iconview.connect("item-activated", self.on_iconview_activated)
 
         if node:            
             self.set_icon("icon", node.get_attr("icon", ""))
@@ -106,31 +132,93 @@ class NodeIconDialog (object):
                 icon_file = ""
             if icon_open_file.strip() == "":
                 icon_open_file = ""
+
+            # TODO: also set quick pick icons
         
         self.dialog.destroy()
 
         return icon_file, icon_open_file
 
 
-    def populate_iconview(self):
-        """Show icons in iconview"""
-
-        self.iconlist = gtk.ListStore(gtk.gdk.Pixbuf, str)
-
-        for iconfile in get_all_icon_basenames(self.main_window.notebook):
+    def populate_iconlist(self, list, icons):
+        for iconfile in icons:
             filename = lookup_icon_filename(self.main_window.notebook, iconfile)
-
             if filename:
                 try:
                     pixbuf = get_pixbuf(filename)
                 except GError:
                     continue
-                self.iconlist.append((pixbuf, iconfile))
+                list.append((pixbuf, iconfile))
+            
 
-        self.iconview.set_model(self.iconlist)
-        self.iconview.set_pixbuf_column(0)
+    def populate_iconview(self):
+        """Show icons in iconview"""
+
+
+        # populate stanard
+        self.populate_iconlist(self.standard_iconlist,
+                               keepnote.gui.builtin_icons)
+        self.populate_iconlist(self.standard_iconlist,
+                               keepnote.gui.builtin_icons)
+        self.populate_iconlist(self.standard_iconlist,
+                               keepnote.gui.builtin_icons)
+        self.populate_iconlist(self.standard_iconlist,
+                               keepnote.gui.builtin_icons)
+        self.standard_iconview.set_model(self.standard_iconlist)
+        self.standard_iconview.set_pixbuf_column(0)
+
+
+        # populate notebook
+        self.populate_iconlist(self.notebook_iconlist,
+                               self.main_window.notebook.get_icons())
+        self.notebook_iconview.set_model(self.notebook_iconlist)
+        self.notebook_iconview.set_pixbuf_column(0)
+
+
+        #self.populate_iconlist(self.quick_iconlist,
+        #                       self.main_window.notebook.get_icons())
+        self.quick_iconview.set_model(self.quick_iconlist)
+        self.quick_iconview.set_pixbuf_column(0)
+
+        #self.quick_pick_iconview.set_model(self.iconlist)
+        #self.quick_pick_iconview.set_pixbuf_column(0)
         #self.iconview.set_text_column(1)
+
+
+    def get_iconview_selection(self):
         
+        for iconview, iconlist in zip(self.iconviews, self.iconlists):
+            for path in iconview.get_selected_items():
+                it = iconlist.get_iter(path)
+                icon = iconlist.get_value(it, 0)
+                iconfile = iconlist.get_value(it, 1)
+                return iconview, icon, iconfile
+        return None, None, None
+    
+
+    def on_iconview_selection_changed(self, iconview):
+
+        # make selection mutually exclusive
+        for iconview2 in self.iconviews:
+            if iconview2 != iconview:
+                iconview2.handler_block(self.iconview_signals[iconview2])
+                iconview2.unselect_all()
+                iconview2.handler_unblock(self.iconview_signals[iconview2])
+    
+
+    def on_add_quick_pick_button_clicked(self, widget):
+
+        iconview, icon, iconfile = self.get_iconview_selection()
+        if iconview in (self.standard_iconview, self.notebook_iconview):
+            self.quick_iconlist.append((icon, iconfile))
+        
+
+    def on_remove_quick_pick_button_clicked(self, widget):
+
+        for path in self.quick_iconview.get_selected_items():
+            it = self.quick_iconlist.get_iter(path)
+            self.quick_iconlist.remove(it)
+
 
     def set_icon(self, kind, filename):
 
@@ -199,16 +287,16 @@ class NodeIconDialog (object):
 
     def on_set_icon_button_clicked(self, widget):
 
-        for path in self.iconview.get_selected_items():
-            it = self.iconlist.get_iter(path)
-            self.set_icon("icon", self.iconlist.get_value(it, 1))
-
+        iconview, icon, iconfile = self.get_iconview_selection()
+        if iconfile:
+            self.set_icon("icon", iconfile)
 
     def on_set_icon_open_button_clicked(self, widget):
 
-        for path in self.iconview.get_selected_items():
-            it = self.iconlist.get_iter(path)
-            self.set_icon("icon_open", self.iconlist.get_value(it, 1))
+        iconview, icon, iconfile = self.get_iconview_selection()
+        if iconfile:
+            self.set_icon("icon_open", iconfile)
+            
             
 
     

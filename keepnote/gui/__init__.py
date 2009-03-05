@@ -43,11 +43,14 @@ _colors = ["", "-red", "-orange", "-yellow",
            "-green", "-blue", "-violet", "-grey"]
            
 builtin_icons = ["folder" + c + ".png" for c in _colors] + \
+                ["folder" + c + "-open.png" for c in _colors] + \
                 ["note" + c + ".png" for c in _colors] + \
                 ["note-plain-text.png",
                  "note-unknown.png",
                  "note-delete.png",
                  "folder-delete.png"]
+
+
 
 
 

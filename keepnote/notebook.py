@@ -97,23 +97,31 @@ def get_valid_filename(filename, default=u"folder"):
     return filename
     
 
-def get_unique_filename(path, filename, ext=u"", sep=u" ", number=2):
+def get_unique_filename(path, filename, ext=u"", sep=u" ", number=2,
+                        return_number=False, use_number=False):
     """Returns a unique version of a filename for a given directory"""
 
     if path != "":
         assert os.path.exists(path), path
     
     # try the given filename
-    newname = os.path.join(path, filename + ext)
-    if not os.path.exists(newname):
-        return newname
+    if not use_number:
+        newname = os.path.join(path, filename + ext)
+        if not os.path.exists(newname):
+            if return_number:
+                return (newname, None)
+            else:
+                return newname
     
     # try numbered suffixes
     i = number
     while True:
         newname = os.path.join(path, filename + sep + str(i) + ext)
         if not os.path.exists(newname):
-            return newname
+            if return_number:
+                return (newname, i)
+            else:
+                return newname
         i += 1
 
 
@@ -1191,13 +1199,61 @@ class NoteBook (NoteBookDir):
     def install_icon(self, filename):
         """Installs an icon into the notebook icon store"""
 
-        icondir = self.get_icon_dir()
         basename = os.path.basename(filename)
         basename, ext = os.path.splitext(basename)
-        filename2 = get_unique_filename(icondir, basename, ext, "-")
-        shutil.copy(filename, filename2)
+        newfilename = get_unique_filename(self.get_icon_dir(),
+                                          basename, ext, "-")
+        shutil.copy(filename, newfilename)
 
-        return os.path.basename(filename2)
+        return os.path.basename(newfilename)
+
+
+    def install_icons(self, filename, filename_open):
+        """Installs an icon into the notebook icon store"""
+
+        basename = os.path.basename(filename)
+        basename, ext = os.path.splitext(basename)
+
+        number = 2
+        use_number = False
+        while True:
+            newfilename, number = get_unique_filename(
+                self.get_icon_dir(), basename, ext, "-",
+                number=number, return_number=True, use_number=use_number)
+
+            # determine open icon filename
+            newfilename_open = os.path.join(
+                self.get_icon_dir(), basename)
+            if number:
+                newfilename_open += "-" + str(number)
+            else:
+                number = 2
+            newfilename_open += "-open" + ext
+
+            # see if it already exists
+            if os.path.exists(newfilename_open):
+                number += 1
+                use_number = True
+            else:
+                # we are done searching for names
+                break
+            
+        shutil.copy(filename, newfilename)
+        shutil.copy(filename_open, newfilename_open)
+
+        return os.path.basename(newfilename), \
+               os.path.basename(newfilename_open)
+
+    def uninstall_icon(self, basename):
+        """Removes an icon from the notebook icon store"""
+
+        if len(basename) == 0:
+            return
+
+        filename = self.get_icon_file(basename)
+        if filename:
+            os.remove(filename)
+    
     
     #===============================================
     # preferences

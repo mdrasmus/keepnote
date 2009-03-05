@@ -1093,10 +1093,15 @@ class KeepNoteWindow (gtk.Window):
         icon_file, icon_open_file = self.node_icon_dialog.show(node)
 
         # NOTE: files may be filename or basename, use isabs to distinguish
-        if icon_file and os.path.isabs(icon_file):
-            icon_file = self.notebook.install_icon(icon_file)
-        if icon_open_file and os.path.isabs(icon_open_file):
-            icon_open_file = self.notebook.install_icon(icon_open_file)
+        if icon_file and os.path.isabs(icon_file) and \
+           icon_open_file and os.path.isabs(icon_open_file):
+            icon_file, icon_open_file = self.notebook.install_icons(
+                icon_file, icon_open_file)
+        else:
+            if icon_file and os.path.isabs(icon_file):
+                icon_file = self.notebook.install_icon(icon_file)
+            if icon_open_file and os.path.isabs(icon_open_file):
+                icon_open_file = self.notebook.install_icon(icon_open_file)
 
         self.on_set_icon(icon_file, icon_open_file)
 
