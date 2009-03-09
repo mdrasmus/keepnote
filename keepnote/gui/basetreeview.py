@@ -430,14 +430,16 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # NOTE: I select the root inorder for set_cursor(path) to really take
         # effect (gtk seems to ignore a select call if it "thinks" the path
         # is selected)
-        if self.model.iter_n_children(None) > 0:
-            self.set_cursor((0,))
+        #if self.model.iter_n_children(None) > 0:
+        #    self.set_cursor((0,))
         
         path = get_path_from_node(self.model, node,
                                   self.rich_model.get_node_column())
         if path is not None:
             self.set_cursor(path)
             gobject.idle_add(lambda: self.scroll_to_cell(path))
+
+        self.emit("edit-title", node, new_text)
         
     
 
@@ -675,5 +677,8 @@ gobject.type_register(KeepNoteBaseTreeView)
 gobject.signal_new("select-nodes", KeepNoteBaseTreeView,
                    gobject.SIGNAL_RUN_LAST, 
                    gobject.TYPE_NONE, (object,))
+gobject.signal_new("edit-title", KeepNoteBaseTreeView,
+                   gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, (object, str))
 gobject.signal_new("error", KeepNoteBaseTreeView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (str, object,))
