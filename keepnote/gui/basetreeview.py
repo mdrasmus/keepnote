@@ -377,7 +377,12 @@ class KeepNoteBaseTreeView (gtk.TreeView):
     
     def _delete_node(self, node):
         parent = node.get_parent()
-        self.select_nodes([])
+        children = parent.get_children()
+        i = children.index(node)
+        if i < len(children) - 1:
+            self.select_nodes([children[i+1]])
+        else:
+            self.select_nodes([parent])
         
         if parent is not None:
             try:
