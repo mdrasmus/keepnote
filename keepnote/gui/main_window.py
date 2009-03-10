@@ -234,7 +234,7 @@ class KeepNoteWindow (gtk.Window):
         
         self._queue_list_select = []   # nodes to select in listview after treeview change
         self._ignore_view_mode = False # prevent recursive view mode changes
-        
+        self._new_page_occurred = False
         
         self.init_layout()
         self.setup_systray()
@@ -259,6 +259,7 @@ class KeepNoteWindow (gtk.Window):
         self.treeview = KeepNoteTreeView()
         self.treeview.connect("select-nodes", self.on_tree_select)
         self.treeview.connect("error", lambda w,t,e: self.error(t, e))
+        self.treeview.connect("edit-title", self.on_edit_title)
         
         # listview
         self.listview = KeepNoteListView()
@@ -267,7 +268,9 @@ class KeepNoteWindow (gtk.Window):
         self.listview.connect("goto-parent-node",
                               lambda w: self.on_list_view_parent_node())
         self.listview.connect("error", lambda w,t,e: self.error(t, e))
+        self.listview.connect("edit-title", self.on_edit_title)
         self.listview.on_status = self.set_status
+        
         
         
         # editor
@@ -978,6 +981,8 @@ class KeepNoteWindow (gtk.Window):
             parent = parent.get_parent()
         node = parent.new_child(notebooklib.CONTENT_TYPE_PAGE,
                                 notebooklib.DEFAULT_PAGE_NAME)
+
+        self._new_page_occurred = True
         
         if widget == "treeview":
             self.treeview.expand_node(parent)
@@ -989,6 +994,13 @@ class KeepNoteWindow (gtk.Window):
             pass
         else:
             raise Exception("unknown widget '%s'" % widget)       
+
+
+    def on_edit_title(self, widget, node, title):
+
+        if self._new_page_occurred:
+            self._new_page_occurred = False
+            self.on_goto_editor()
     
 
     def on_empty_trash(self):
