@@ -66,6 +66,8 @@ CONTENT_TYPE_UNKNOWN = u"application/x-notebook-unknown"
 NULL = object()
 
 
+
+
 #=============================================================================
 # filename creation functions
 
@@ -965,7 +967,7 @@ class NoteBookPreferences (object):
         
         self.version = NOTEBOOK_FORMAT_VERSION
         self.default_font = DEFAULT_FONT
-
+        self.quick_pick_icons = []
 
 
 # file format for NoteBook preferences
@@ -974,8 +976,15 @@ g_notebook_pref_parser = xmlo.XmlObject(
         xmlo.Tag("version",
             attr=("verison", int, str)),
         xmlo.Tag("default_font",
-            attr=("default_font", None, None))
-        ]))
+            attr=("default_font", None, None)),
+        xmlo.Tag("quick_pick_icons", tags=[
+            xmlo.TagMany("icon",
+                iterfunc=lambda s: range(len(s.quick_pick_icons)),
+                get=lambda (s,i),x:
+                    s.quick_pick_icons.append(x),
+                set=lambda (s,i): s.quick_pick_icons[i])
+        ])
+    ]))
 
 
 class NoteBook (NoteBookDir):
@@ -1297,7 +1306,6 @@ class NoteBook (NoteBookDir):
             raise NoteBookError("Cannot read notebook preferences", e)
         except xmlo.XmlError, e:
             raise NoteBookError("Notebook preference data is corrupt", e)
-
         
         if self.pref.version > NOTEBOOK_FORMAT_VERSION:
             raise NoteBookVersionError(self.pref.version,

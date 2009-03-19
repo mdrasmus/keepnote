@@ -24,29 +24,63 @@ class IconMenu (gtk.Menu):
     def __init__(self):
         gtk.Menu.__init__(self)
 
+        # default icon
+        self.default_icon = gtk.MenuItem("_Default Icon")
+        self.default_icon.connect("activate",
+                                  lambda w: self.emit("set-icon", ""))
+        self.default_icon.show()
+
+        # new icon
+        self.new_icon = gtk.MenuItem("_New Icon...")
+        self.new_icon.show()
+
+
         self.width = 4
         self.posi = 0
         self.posj = 0
+        
+        self.setup_menu(None)
 
-        for iconfile in default_menu_icons:                    
-            self.add_icon(iconfile)
+
+    def set_notebook(self, notebook):
+        self._notebook = notebook
+        
+
+    def clear(self):
+        """clear menu"""
+        
+        self.foreach(lambda item: self.remove(item))        
+        self.posi = 0
+        self.posj = 0
+        
+
+    def setup_menu(self, notebook):
+
+        self.clear()       
+
+        self.set_notebook(notebook)
+
+        if notebook is None:
+            for iconfile in default_menu_icons:                    
+                self.add_icon(iconfile)
+        else:
+            for iconfile in notebook.pref.quick_pick_icons:                
+                self.add_icon(iconfile)
 
         # separator
         item = gtk.SeparatorMenuItem()
         item.show()
         self.append(item)
 
-        # default icon
-        self.default_icon = gtk.MenuItem("_Default Icon")
-        self.default_icon.connect("activate",
-                                  lambda w: self.emit("set-icon", ""))
-        self.default_icon.show()
+        # default icon               
         self.append(self.default_icon)
 
-        # new icon
-        self.new_icon = gtk.MenuItem("_New Icon...")
-        self.new_icon.show()
+        # new icon        
         self.append(self.new_icon)
+
+        # make changes visible
+        self.unrealize()
+        self.realize()
         
 
     def append_grid(self, item):
@@ -71,7 +105,7 @@ class IconMenu (gtk.Menu):
         child = gtk.MenuItem("")
         child.remove(child.child)
         img = gtk.Image()
-        iconfile2 = keepnote.gui.lookup_icon_filename(None, iconfile)
+        iconfile2 = keepnote.gui.lookup_icon_filename(self._notebook, iconfile)
         img.set_from_file(iconfile2)
         child.add(img)
         child.child.show()

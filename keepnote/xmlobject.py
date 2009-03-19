@@ -28,9 +28,11 @@ class XmlError (StandardError):
 
 
 def bool2str(b):
+    """Convert a bool into a string"""
     return str(int(b))
 
 def str2bool(s):
+    """Convert a string into a bool"""
     return bool(int(s))
     
 
@@ -48,7 +50,7 @@ class Tag (object):
         self._object = None
         self._data = []
 
-
+        # set read/write based on 'attr'
         if attr is not None:
             attr_name, attr_get, attr_set = attr
             
@@ -68,30 +70,49 @@ class Tag (object):
         for tag in tags:
             self._tags[tag.name] = tag
 
+        # set of initialized tags
+        self._init_tags = __builtins__["set"]()
+
 
     #===========================================
     # reading
 
+    def init(self):
+        """Initialize the a tag before its first use"""
+        self._init_tags.clear()
+        
 
     def set_object(self, obj):
         self._object = obj
 
 
     def new_tag(self, name):
+        """Create new child tag"""
+        
         tag = self._tags.get(name, None)
         if tag:
+            # initialize new tag
             tag.set_object(self._object)
+
+            if tag not in self._init_tags:
+                tag.init()
+                self._init_tags.add(tag)                
         return tag
 
     def start_tag(self):
+        """Start tag callback"""
         self._data = []
 
-    def queue_data(self, data):        
+    def queue_data(self, data):
+        """Content data callback"""
+        
         if self._read_data:
             self._data.append(data)
 
     def end_tag(self):
-        
+        """End tag callback"""
+
+        # read queued data if read function is supplied
         if self._read_data:
             data = "".join(self._data)
             self._data = []
@@ -135,7 +156,7 @@ class Tag (object):
             out.write("</%s>\n" % self.name)
         
     
-
+# TODO: remove get?
 
 class TagMany (Tag):
     def __init__(self, name, iterfunc, get=None, set=None,
@@ -158,32 +179,49 @@ class TagMany (Tag):
     #=============================
     # reading
 
+    def init(self):
+        """Initialize the a tag before its first use"""
+        self._init_tags.clear()
+        self._index = 0
+        
+
     def new_tag(self, name):
+        """Create new child tag"""
         tag = self._tags.get(name, None)
         if tag:
+            # initialize new tag
             tag.set_object((self._object, self._index))
+
+            if tag not in self._init_tags:
+                tag.init()
+                self._init_tags.add(tag)                 
         return tag
 
     def start_tag(self):
+        """Start tag callback"""
         self._data = []
         if self._beforefunc:
             self._beforefunc((self._object, self._index))
 
     def queue_data(self, data):
+        """Content data callback"""
         if self._read_item:
             self._data.append(data)
 
     def end_tag(self):
+        """End tag callback"""
+        
         if self._read_item:
             data = "".join(self._data)
             self._data = []
             
-            try:
+            #try:
+            if 1:
                 if self._read_item is not None:
                     self._read_item((self._object, self._index), data)
-            except Exception, e:
-                raise XmlError("Error parsing tag '%s': %s" % (tag.name,
-                                                               str(e)))
+            #except Exception, e:
+            #    raise XmlError("Error parsing tag '%s': %s" % (self.name,
+            #                                                   str(e)))
         
         if self._afterfunc:
             self._afterfunc((self._object, self._index))
@@ -209,10 +247,31 @@ class TagMany (Tag):
                     child_tag.write((obj, i), out)
                 out.write("</%s>\n" % self.name)
 
+'''
+# TODO: remove get?
 
+class TagList (TagMany):
+    """A specialization of TagMany to work with reading and writing lists"""
+
+    def __init__(self, name, lst, get=None, set=None, before=None, after=None,
+                 tags=[]):
+        TagMany.__init__(self, name, self._iter,
+                         get=get, set=set,
+                         before=before, after=after, tags=tags)
+
+        self._list = lst
+
+        def new_tag(self, name):
+            tag = self._tags.get(name, None)
+            if tag:
+                tag.set_object(self._list)
+            return tag
+'''            
         
 
 class XmlObject (object):
+    """Represents an object <--> XML document binding"""
+    
     def __init__(self, *tags):
         self._object = None
         self._root_tag = Tag("", tags=tags)
@@ -220,7 +279,8 @@ class XmlObject (object):
         
     
     def __start_element(self, name, attrs):
-
+        """Start tag callback"""
+        
         if len(self._current_tags) > 0:
             last_tag = self._current_tags[-1]
             if last_tag:
@@ -231,11 +291,12 @@ class XmlObject (object):
             
         
     def __end_element(self, name):
-                
+        """End tag callback"""
+        
         if len(self._current_tags) > 0:
             last_tag = self._current_tags.pop()
             if last_tag:
-                if last_tag.name == last_tag.name:
+                if last_tag.name == name:
                     last_tag.end_tag()
                 else:
                     raise XmlError("Malformed XML")            
@@ -253,6 +314,8 @@ class XmlObject (object):
             
     
     def read(self, obj, filename):
+        """Read XML from 'filename' and store data into object 'obj'"""
+        
         if isinstance(filename, basestring):
             infile = open(filename, "r")
         else:
@@ -260,6 +323,7 @@ class XmlObject (object):
         self._object = obj
         self._root_tag.set_object(self._object)
         self._current_tags = [self._root_tag]
+        self._root_tag.init()
         
         parser = xml.parsers.expat.ParserCreate()
         parser.StartElementHandler = self.__start_element
@@ -279,10 +343,11 @@ class XmlObject (object):
 
             
     def write(self, obj, filename):
+        """Write object 'obj' to file 'filename'"""
+        
         if isinstance(filename, basestring):
             #out = codecs.open(filename, "w", "utf-8")
-            out = safefile.open(filename, "w", codec="utf-8")
-            #out = file(filename, "w")
+            out = safefile.open(filename, "w", codec="utf-8")            
             need_close = True
         else:
             out = filename

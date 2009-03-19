@@ -723,7 +723,12 @@ class KeepNoteWindow (gtk.Window):
             self.error("Could not load notebook '%s'" % filename,
                        e, sys.exc_info()[2])
             return None
-        
+
+        # check for icons
+        if len(notebook.pref.quick_pick_icons) == 0:
+            notebook.pref.quick_pick_icons = \
+                list(keepnote.gui.DEFAULT_QUICK_PICK_ICONS)
+            notebook.write_preferences()
 
         # setup notebook
         self.set_notebook(notebook)
@@ -795,6 +800,9 @@ class KeepNoteWindow (gtk.Window):
         self.editor.set_notebook(notebook)
         self.listview.set_notebook(notebook)
         self.treeview.set_notebook(notebook)
+
+        self.treeview.menu.iconmenu.setup_menu(notebook)
+        self.listview.menu.iconmenu.setup_menu(notebook)
 
 
     #=============================================================
@@ -1104,16 +1112,44 @@ class KeepNoteWindow (gtk.Window):
 
         icon_file, icon_open_file = self.node_icon_dialog.show(node)
 
+        newly_installed = set()
+
         # NOTE: files may be filename or basename, use isabs to distinguish
         if icon_file and os.path.isabs(icon_file) and \
            icon_open_file and os.path.isabs(icon_open_file):
             icon_file, icon_open_file = self.notebook.install_icons(
                 icon_file, icon_open_file)
+            newly_installed.add(os.path.basename(icon_file))
+            newly_installed.add(os.path.basename(icon_open_file))
+            
         else:
             if icon_file and os.path.isabs(icon_file):
                 icon_file = self.notebook.install_icon(icon_file)
+                newly_installed.add(os.path.basename(icon_file))
+
             if icon_open_file and os.path.isabs(icon_open_file):
                 icon_open_file = self.notebook.install_icon(icon_open_file)
+                newly_installed.add(os.path.basename(icon_open_file))
+
+        # set quick picks if OK was pressed
+        if icon_file is not None:
+            # TODO: rework preference writing in terms of callbacks
+            icons = self.node_icon_dialog.get_quick_pick_icons()
+            self.notebook.pref.quick_pick_icons = icons
+
+            self.treeview.menu.iconmenu.setup_menu(self.notebook)
+            self.listview.menu.iconmenu.setup_menu(self.notebook)
+
+
+            # set notebook icons
+            notebook_icons = self.notebook.get_icons()
+            keep_set = set(self.node_icon_dialog.get_notebook_icons()) | \
+                       newly_installed
+            for icon in notebook_icons:
+                if icon not in keep_set:
+                    self.notebook.uninstall_icon(icon)
+            
+            self.notebook.write_preferences()
 
         self.on_set_icon(icon_file, icon_open_file)
 
@@ -1984,12 +2020,12 @@ class KeepNoteWindow (gtk.Window):
         img.set_from_file(lookup_icon_filename(None, "folder-red.png"))
         item.set_image(img)
         menu.append(item)
-        iconmenu = IconMenu()
-        iconmenu.connect("set-icon",
-                         lambda w, i: self.on_set_icon(i, "", control))
-        iconmenu.new_icon.connect("activate",
-                                  lambda w: self.on_new_icon(control))
-        item.set_submenu(iconmenu)
+        menu.iconmenu = IconMenu()
+        menu.iconmenu.connect("set-icon",
+                              lambda w, i: self.on_set_icon(i, "", control))
+        menu.iconmenu.new_icon.connect("activate",
+                                       lambda w: self.on_new_icon(control))
+        item.set_submenu(menu.iconmenu)
         item.show()
         
 

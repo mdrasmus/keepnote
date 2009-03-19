@@ -50,6 +50,12 @@ builtin_icons = ["folder" + c + ".png" for c in _colors] + \
                  "note-delete.png",
                  "folder-delete.png"]
 
+DEFAULT_QUICK_PICK_ICONS = ["folder" + c + ".png" for c in _colors] + \
+                           ["note" + c + ".png" for c in _colors] + \
+                           ["note-plain-text.png",
+                            "note-unknown.png",
+                            "note-delete.png",
+                            "folder-delete.png"]
 
 
 

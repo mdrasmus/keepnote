@@ -418,9 +418,6 @@ class KeepNotePreferences (object):
         self.save_image_path = get_user_documents()
         
         # temp variables for parsing
-        self._last_app_key = ""
-        self._last_app_title = ""
-        self._last_app_program = ""
         self._last_timestamp_name = ""
         self._last_timestamp_format = ""
 
@@ -580,27 +577,26 @@ g_keepnote_pref_parser = xmlo.XmlObject(
                  attr=("save_image_path", None, None)),
         
         xmlo.Tag("external_apps", tags=[
+
            xmlo.TagMany("app",
                 iterfunc=lambda s: range(len(s.external_apps)),
-                before=lambda (s,i): setattr(s, "_last_app_key", "") or
-                                     setattr(s, "_last_app_title", "") or 
-                                     setattr(s, "_last_app_program", ""),
-                after=lambda (s,i):
-                    s.external_apps.append(ExternalApp(
-                        s._last_app_key,
-                        s._last_app_title,
-                        s._last_app_program)),
+                before=lambda (s,i):
+                        s.external_apps.append(ExternalApp("", "", "")),
                 tags=[
                     xmlo.Tag("title",
-                        get=lambda (s,i),x: setattr(s, "_last_app_title", x),
+                        get=lambda (s,i),x:
+                             setattr(s.external_apps[i], "title", x),
                         set=lambda (s,i): s.external_apps[i].title),
                     xmlo.Tag("name",
-                        get=lambda (s,i),x: setattr(s, "_last_app_key", x),
+                        get=lambda (s,i),x:
+                             setattr(s.external_apps[i], "key", x),
                         set=lambda (s,i): s.external_apps[i].key),
                     xmlo.Tag("program",                             
-                        get=lambda (s,i),x: setattr(s, "_last_app_program", x),
+                        get=lambda (s,i),x:
+                             setattr(s.external_apps[i], "prog", x),
                         set=lambda (s,i): s.external_apps[i].prog)]
            )]
+          
         ),
         xmlo.Tag("timestamp_formats", tags=[
             xmlo.TagMany("timestamp_format",
