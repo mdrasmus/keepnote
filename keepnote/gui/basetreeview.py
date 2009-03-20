@@ -59,6 +59,11 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         self._node_col = None
         self._get_icon = None
 
+        # region, defined by number of vertical pixels from top and bottom of
+        # the treeview widget, where drag scrolling will occur
+        self._drag_scroll_region = 30
+
+
         # selection
         self.get_selection().connect("changed", self.__on_select_changed)
         self.get_selection().connect("changed", self.on_select_changed)
@@ -69,11 +74,14 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
         
         # drag and drop
+        self._is_dragging = False   # whether drag is in progress
+        self._drag_count = 0
         self._dest_row = None       # current drag destition
         self._reorder = REORDER_ALL # enum determining the kind of reordering
                                     # that is possible via drag and drop
         
         self.connect("drag-begin", self._on_drag_begin)
+        self.connect("drag-end", self._on_drag_end)
         self.connect("drag-motion", self._on_drag_motion)
         self.connect("drag-drop", self._on_drag_drop)
         self.connect("drag-data-delete", self._on_drag_data_delete)
@@ -468,6 +476,57 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
     #  drag and drop callbacks
 
+    def _on_drag_timer(self):
+
+        # process scrolling
+        self._process_drag_scroll()
+        return self._is_dragging
+
+
+
+    def _process_drag_scroll(self):
+
+        # get header height
+        header_height = [0]
+        self.forall(lambda w, d: header_height.__setitem__(
+            0, w.allocation.height), None)        
+
+        # get mouse poistion in tree coordinates
+        x, y = self.get_pointer()
+        x, y = self.widget_to_tree_coords(x, y - header_height[0])
+
+        # get visible rect in tree coordinates
+        rect = self.get_visible_rect()
+
+        def dist_to_scroll(dist):
+            """Convert a distance outside the widget into a scroll step"""
+
+            # TODO: put these scroll constants somewhere else
+            small_scroll_dist = 30
+            small_scroll = 30
+            fast_scroll_coeff = small_scroll
+
+            if dist < small_scroll_dist:
+                # slow scrolling
+                self._drag_count = 0
+                return small_scroll
+            else:
+                # fast scrolling
+                self._drag_count += 1
+                return small_scroll + fast_scroll_coeff * self._drag_count**2
+
+        # test for scroll boundary
+        dist = rect.y - y
+        if dist > 0:
+            self.scroll_to_point(-1, rect.y - dist_to_scroll(dist))
+
+        else:
+            dist = y - rect.y - rect.height
+            if dist > 0:            
+                self.scroll_to_point(-1, rect.y + dist_to_scroll(dist))
+
+        
+
     def _on_drag_begin(self, treeview, drag_context):
         """Callback for beginning of drag and drop"""
         self.stop_emission("drag-begin")
@@ -484,13 +543,17 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # clear the destination row
         self._dest_row = None
 
+        self._is_dragging = True
+        self._drag_count = 0
+        gobject.timeout_add(200, self._on_drag_timer)
+
         
     def _on_drag_motion(self, treeview, drag_context, x, y, eventtime):
         """
         Callback for drag motion.
         Indicate which drops are allowed (cannot drop into descendant).
         Also record the destination for later use.
-        """
+        """        
 
         # override gtk's default drag motion code
         self.stop_emission("drag-motion")
@@ -521,13 +584,15 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                     self._dest_row = target_path, drop_position
 
             # NOTE: other kinds of drops can be processed
-            # for example added external files to notebook
+            # for example added external files to notebook           
+
+
 
 
     def _on_drag_drop(self, widget, drag_context, x, y, timestamp):
         """
         Callback for drop event
-        """
+        """        
 
         # override gtk's default drag drop code
         self.stop_emission("drag-drop")
@@ -542,6 +607,11 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
         # accept drop
         return True
+
+
+    def _on_drag_end(self, widget, drag_context):
+        """Callback for end of dragging"""
+        self._is_dragging = False
 
 
     def _on_drag_data_delete(self, widget, drag_context):
