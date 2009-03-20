@@ -24,6 +24,8 @@ WININSTALLER=dist/$(WININSTALLER_FILE)
 # files to upload
 UPLOAD_FILES=$(SDIST) $(RPM) $(DEB) $(EBUILD) $(WININSTALLER)
 
+TMP_FILES=MANIFEST
+
 # windows related variables
 WINDIR=dist/$(PKG)-$(VERSION).win
 WINEXE=$(WINDIR)/$(PKG).exe
@@ -62,7 +64,7 @@ $(EBUILD):
 	cp pkg/ebuild/$(PKG)-template.ebuild $(EBUILD)
 
 clean:
-	rm -rf $(UPLOAD_FILES) $(WINDIR) 
+	rm -rf $(TMP_FILES) $(UPLOAD_FILES) $(WINDIR) 
 
 
 #=============================================================================

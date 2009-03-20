@@ -374,6 +374,14 @@ def _ipconfig_getnode():
 def _netbios_getnode():
     """Get the hardware address on Windows using NetBIOS calls.
     See http://support.microsoft.com/kb/118623 for details."""
+
+    # NOTE: Removed windows dependencies.  I only use UUID4 anyways
+    # Matt Rasmussen
+
+    return
+
+
+    '''
     import win32wnet, netbios
     ncb = netbios.NCB()
     ncb.Command = netbios.NCBENUM
@@ -399,6 +407,7 @@ def _netbios_getnode():
         bytes = map(ord, status.adapter_address)
         return ((bytes[0]<<40L) + (bytes[1]<<32L) + (bytes[2]<<24L) +
                 (bytes[3]<<16L) + (bytes[4]<<8L) + bytes[5])
+    '''
 
 # Thanks to Thomas Heller for ctypes and for his help with its use here.
 

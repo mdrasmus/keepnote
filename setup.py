@@ -54,8 +54,9 @@ def get_extension_files():
 
 
 def get_image_files(image_dir):
-    return [os.path.join(image_dir, x)
-            for x in os.listdir(image_dir)]
+    return [y for y in (os.path.join(image_dir, x)
+                        for x in os.listdir(image_dir))
+            if os.path.isfile(y)]
 
 def remove_package_dir(filename):
     i = filename.index("/")
@@ -68,6 +69,7 @@ def remove_package_dir(filename):
 # get resources
 resource_files = ["keepnote/rc/keepnote.glade"]
 image_files = get_image_files("keepnote/images")
+node_icons = get_image_files("keepnote/images/node_icons")
 efiles = get_extension_files()
 freedesktop_files = [
     # application icon
@@ -83,6 +85,7 @@ freedesktop_files = [
 if "py2exe" in sys.argv:
     data_files = [
         ('images', image_files),
+        ('images/node_icons', node_icons),
         ('rc', resource_files)
     ] + efiles.items()
     package_data = {}
@@ -92,6 +95,7 @@ else:
     package_data = {'keepnote':
                     map(remove_package_dir,
                         image_files +
+                        node_icons +
                         resource_files)
                     }
     for v in efiles.values():

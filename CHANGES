@@ -3,10 +3,14 @@ KeepNote Change Log
 
 keepnote-0.5.2
 --------------
+- customizable node icons
+- any node can have child nodes (e.g. "pages" can have childlren)
 - add minimize to tray option (hide from taskbar)
 - editor remembers scroll and cursor position in each page (for the session)
+- added scrolling to treeview/listview drag-and-drop
 - easy install fix
 - fixed modified time bug
+
 
 
 keepnote-0.5.1 (2008/1/25)
