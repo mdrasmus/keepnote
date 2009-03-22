@@ -238,7 +238,7 @@ def get_notebook_version(filename):
 
 
 def new_nodeid():
-    return uuid.uuid4().urn
+    return uuid.uuid4()
 
 #=============================================================================
 # classes
@@ -878,7 +878,7 @@ class NoteBookNode (object):
         if "modified_time" not in attr:
             attr["modified_time"] = get_timestamp()
             self._set_dirty(True)            
-        if "nodeid" not in attr or not attr["nodeid"].startswith("urn:"):
+        if "nodeid" not in attr or attr["nodeid"].startswith("urn:"):
             attr["nodeid"] = new_nodeid()
             self._set_dirty(True)            
         
