@@ -40,7 +40,7 @@ XML_HEADER = u"""\
 <?xml version="1.0" encoding="UTF-8"?>
 """
 
-NOTEBOOK_FORMAT_VERSION = 2
+NOTEBOOK_FORMAT_VERSION = 3
 ELEMENT_NODE = 1
 NODE_META_FILE = u"node.xml"
 PAGE_DATA_FILE = u"page.html"
@@ -974,7 +974,7 @@ class NoteBookPreferences (object):
 g_notebook_pref_parser = xmlo.XmlObject(
     xmlo.Tag("notebook", tags=[
         xmlo.Tag("version",
-            attr=("verison", int, str)),
+            attr=("version", int, str)),
         xmlo.Tag("default_font",
             attr=("default_font", None, None)),
         xmlo.Tag("quick_pick_icons", tags=[

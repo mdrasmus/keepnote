@@ -24,6 +24,8 @@ from keepnote import notebook as notebooklib
 from keepnote.gui import get_resource
 
 
+MESSAGE_TEXT = "This notebook has format version %d and must be updated to version %d before openning."
+
 
 class UpdateNoteBookDialog (object):
     """Updates a notebook"""
@@ -33,7 +35,7 @@ class UpdateNoteBookDialog (object):
         self.app = main_window.app
 
     
-    def show(self, notebook_filename):
+    def show(self, notebook_filename, version=None):
 
         self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                  "update_notebook_dialog")
@@ -46,8 +48,13 @@ class UpdateNoteBookDialog (object):
         self.text = self.xml.get_widget("update_message_label")
         self.saved = self.xml.get_widget("save_backup_check")
 
+
+        if version is None:
+            version = notebooklib.get_notebook_version(notebook_filename)
         
-        #self.text.set_text(message)
+        self.text.set_text(MESSAGE_TEXT %
+                           (version,
+                            notebooklib.NOTEBOOK_FORMAT_VERSION))
 
         ret = False
         response = self.dialog.run()

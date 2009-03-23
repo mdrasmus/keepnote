@@ -64,7 +64,7 @@ $(EBUILD):
 	cp pkg/ebuild/$(PKG)-template.ebuild $(EBUILD)
 
 clean:
-	rm -rf $(TMP_FILES) $(UPLOAD_FILES) $(WINDIR) 
+	rm -rf $(TMP_FILES) $(UPLOAD_FILES) $(WINDIR) $(WININSTALLER_SRC)
 
 
 #=============================================================================
@@ -99,6 +99,9 @@ upload: $(UPLOAD_FILES)
 	cp $(UPLOAD_FILES) $(LINUX_WWW)/download
 	tar zxv -C $(LINUX_WWW)/download \
 	    -f $(LINUX_WWW)/download/$(SDIST_FILE)
+
+upload-test: $(UPLOAD_FILES)
+	cp $(UPLOAD_FILES) $(LINUX_WWW)/download-test
 
 
 

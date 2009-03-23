@@ -698,7 +698,7 @@ class KeepNoteWindow (gtk.Window):
                        e, sys.exc_info()[2])
         else:
             if version < notebooklib.NOTEBOOK_FORMAT_VERSION:
-                if not self.update_notebook(filename):
+                if not self.update_notebook(filename, version=version):
                     self.error("Cannot open notebook (version too old)")
                     return None
 
@@ -764,10 +764,10 @@ class KeepNoteWindow (gtk.Window):
             self.set_status("Notebook closed")
 
 
-    def update_notebook(self, filename):
+    def update_notebook(self, filename, version=None):
         try:
             dialog = dialog_update_notebook.UpdateNoteBookDialog(self)
-            return dialog.show(filename)
+            return dialog.show(filename, version=version)
         except Exception, e:
             self.error("Error occurred", e, sys.exc_info()[2])
             return False

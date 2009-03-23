@@ -7,6 +7,7 @@ include keepnote/images/*.png
 include keepnote/images/*.ico
 include keepnote/images/node_icons/*
 include keepnote/rc/keepnote.glade
+include keepnote/rc/*.png
 include keepnote/extensions/backup_tar/*.py
 include desktop/*
 include post_py2exe.py
