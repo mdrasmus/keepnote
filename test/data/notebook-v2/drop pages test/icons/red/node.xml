@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<node>
+<version>2</version>
+<attr key="nodeid">e0a2d83e-db09-4647-b9fb-441873f48cf0</attr>
+<attr key="modified_time">1235261179</attr>
+<attr key="expanded2">0</attr>
+<attr key="content_type">text/xhtml+xml</attr>
+<attr key="created_time">1235259217</attr>
+<attr key="info_sort_dir">1</attr>
+<attr key="icon">/mnt/big/archive/projects/keepnote-dev/keepnote/images/node_icons/folder-red.png</attr>
+<attr key="title">red</attr>
+<attr key="expanded">0</attr>
+<attr key="icon_open">folder-red-open.png</attr>
+<attr key="order">2</attr>
+<attr key="info_sort">order</attr>
+</node>

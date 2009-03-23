@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<node>
+<version>2</version>
+<attr key="title">icon test</attr>
+<attr key="expanded">1</attr>
+<attr key="nodeid">3bafeb8a-851b-4f5f-80e9-d11c26409d29</attr>
+<attr key="modified_time">1235240968</attr>
+<attr key="expanded2">1</attr>
+<attr key="content_type">text/xhtml+xml</attr>
+<attr key="created_time">1234721197</attr>
+<attr key="info_sort_dir">1</attr>
+<attr key="order">1</attr>
+<attr key="info_sort">order</attr>
+<attr key="icon">note-plain-text.png</attr>
+</node>

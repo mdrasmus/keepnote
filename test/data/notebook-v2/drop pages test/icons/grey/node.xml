@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<node>
+<version>2</version>
+<attr key="title">grey</attr>
+<attr key="expanded">0</attr>
+<attr key="nodeid">f89d1c02-ea8a-4848-8738-3075785f4505</attr>
+<attr key="modified_time">1235261204</attr>
+<attr key="expanded2">0</attr>
+<attr key="content_type">text/xhtml+xml</attr>
+<attr key="created_time">1235260999</attr>
+<attr key="info_sort_dir">1</attr>
+<attr key="order">8</attr>
+<attr key="info_sort">order</attr>
+<attr key="icon">/mnt/big/archive/projects/keepnote-dev/keepnote/images/node_icons/folder-grey.png</attr>
+</node>

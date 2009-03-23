@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<node>
+<version>3</version>
+<attr key="title">Trash</attr>
+<attr key="expanded">1</attr>
+<attr key="nodeid">43db0a0e-efbb-47ce-82af-f5242b78b587</attr>
+<attr key="modified_time">1234720804</attr>
+<attr key="expanded2">0</attr>
+<attr key="content_type">application/x-notebook-trash</attr>
+<attr key="created_time">1221605843</attr>
+<attr key="info_sort_dir">1</attr>
+<attr key="order">11</attr>
+<attr key="info_sort">order</attr>
+</node>
