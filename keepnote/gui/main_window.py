@@ -1023,9 +1023,12 @@ class KeepNoteWindow (gtk.Window):
 
     def on_edit_title(self, widget, node, title):
 
+        # move cursor to editor after new page has been created
         if self._new_page_occurred:
             self._new_page_occurred = False
-            self.on_goto_editor()
+
+            if node.get_attr("content_type") != notebooklib.CONTENT_TYPE_DIR:
+                self.on_goto_editor()
     
 
     def on_empty_trash(self):

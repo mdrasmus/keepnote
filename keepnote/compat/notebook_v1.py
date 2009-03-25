@@ -10,7 +10,7 @@
 import os, sys, shutil, time, re
 
 # keepnote imports
-import keepnote.xmlobject as xmlo
+import keepnote.compat.xmlobject_v1 as xmlo
 from keepnote.listening import Listeners
 from keepnote.timestamp import \
      DEFAULT_TIMESTAMP_FORMATS, \

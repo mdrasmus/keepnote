@@ -21,13 +21,24 @@ def update_notebook(filename, desired_version, warn=lambda w: False,
             return
     except:
         # try old notebook version load()
-        notebook_update_v1_2.update_notebook(filename, 2, warn=warn,
-                                             verify=verify)
-            
-    # NOTE: only works for version 2 --> 3
+        # NOTE: preference is completely backwards compat so far
+        # So there is nothing left to try
+        raise
+
+
+    # NOTE: only works for version 1,2 --> 3
 
     assert desired_version == 3
 
+    # upgrade 1 --> 2
+    if notebook.pref.version == 1:
+        notebook_update_v1_2.update_notebook(filename, 2, warn=warn,
+                                             verify=verify) 
+        notebook = notebooklib.NoteBook()
+        notebook.load(filename)
+        
+
+    # upgrade 2 --> 3
     if notebook.pref.version == 2:
         from keepnote.compat import notebook_v2 as old_notebooklib
 
