@@ -59,6 +59,10 @@ from keepnote.gui.icon_menu import IconMenu
 from keepnote import tasklib
 
 
+CONTEXT_MENU_ACCEL_PATH = "<main>/context_menu"
+
+
+
 # TODO: make more checks for start, end not None
 
 class LinkEditor (gtk.Frame):
@@ -235,9 +239,15 @@ class KeepNoteWindow (gtk.Window):
         self._queue_list_select = []   # nodes to select in listview after treeview change
         self._ignore_view_mode = False # prevent recursive view mode changes
         self._new_page_occurred = False
-        
+
+        self.init_key_shortcuts()
         self.init_layout()
         self.setup_systray()
+
+        # load preferences
+        self.get_app_preferences()
+        self.set_view_mode(self.app.pref.view_mode)
+        
 
 
     def init_layout(self):
@@ -368,12 +378,19 @@ class KeepNoteWindow (gtk.Window):
         # layout editor
         self.paned2.add2(self.editor_pane)
 
-        # load preferences
-        self.get_app_preferences()
-        self.set_view_mode(self.app.pref.view_mode)
-        
         #self.show_all()
         self.treeview.grab_focus()
+
+
+    def init_key_shortcuts(self):
+        """Setup key shortcuts for the window"""
+
+        self.accel_group = gtk.AccelGroup()
+        accel_file = get_accel_file()
+        if os.path.exists(accel_file):
+            gtk.accel_map_load(accel_file)
+        else:
+            gtk.accel_map_save(accel_file)
 
 
     def setup_systray(self):
@@ -1560,7 +1577,7 @@ class KeepNoteWindow (gtk.Window):
         about = gtk.AboutDialog()
         about.set_name(keepnote.PROGRAM_NAME)
         about.set_version(keepnote.PROGRAM_VERSION_TEXT)
-        about.set_copyright("Copyright Matt Rasmussen 2008")
+        about.set_copyright("Copyright Matt Rasmussen 2009")
         about.set_logo(get_resource_pixbuf("keepnote-icon.png"))
         about.set_website(keepnote.WEBSITE)
         about.set_transient_for(self)
@@ -1806,27 +1823,21 @@ class KeepNoteWindow (gtk.Window):
             ("/Help/Drag and Drop Test...",
                 None, lambda w,e: self.drag_test.on_drag_and_drop_test(),
                 0, None),
-            ("/Help/Wait dialog...",
-             None, lambda w,e: self.wait_dialog("title",
-                                                "message message message message message message message message message message message message message message message message message message message message message message\n message message message message ",
-                                    lambda w,e: self.wait_dialog_test_task()),
-             0, None),
+            #("/Help/Wait dialog...",
+            # None, lambda w,e: self.wait_dialog("title",
+            #                                    "message message message message message message message message message message message message message message message message message message message message message message\n message message message message ",
+            #                        lambda w,e: self.wait_dialog_test_task()),
+            # 0, None),
             ("/Help/sep1", None, None, 0, "<Separator>"),
             ("/Help/About", None, lambda w,e: self.on_about(), 0, None ),
             ]
-    
-        accel_group = gtk.AccelGroup()
-        accel_file = get_accel_file()
-        if os.path.exists(accel_file):
-            gtk.accel_map_load(accel_file)
-        else:
-            gtk.accel_map_save(accel_file)
-            
+                
 
         # Create item factory
-        self.item_factory = gtk.ItemFactory(gtk.MenuBar, "<main>", accel_group)
+        self.item_factory = gtk.ItemFactory(gtk.MenuBar, "<main>",
+                                            self.accel_group)
         self.item_factory.create_items(self.menu_items)
-        self.add_accel_group(accel_group)
+        self.add_accel_group(self.accel_group)
 
         # view mode
         self.view_mode_h_toggle = \
@@ -1944,6 +1955,8 @@ class KeepNoteWindow (gtk.Window):
     def make_image_menu(self, menu):
         """image context menu"""
 
+        menu.set_accel_group(self.accel_group)
+        menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
         item = gtk.SeparatorMenuItem()
         item.show()
         menu.append(item)
@@ -2069,11 +2082,16 @@ class KeepNoteWindow (gtk.Window):
     def make_treeview_menu(self, menu):
         """treeview context menu"""
 
+        menu.set_accel_group(self.accel_group)
+        menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)        
         self.make_node_menu(menu, "treeview")
 
         
     def make_listview_menu(self, menu):
         """listview context menu"""
+
+        menu.set_accel_group(self.accel_group)
+        menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
 
         # listview/view note
         item = gtk.ImageMenuItem(gtk.STOCK_GO_DOWN)
@@ -2103,11 +2121,11 @@ class KeepNoteWindow (gtk.Window):
     def make_context_menus(self):
         """Initialize context menus"""        
 
-        self.make_image_menu(self.editor.get_textview().get_image_menu())
+        self.make_image_menu(self.editor.get_textview().get_image_menu())       
         self.make_treeview_menu(self.treeview.menu)
         self.make_listview_menu(self.listview.menu)
 
-
+        
 
 
 
