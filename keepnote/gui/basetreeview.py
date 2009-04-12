@@ -59,9 +59,6 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         self._node_col = None
         self._get_icon = None
 
-        # region, defined by number of vertical pixels from top and bottom of
-        # the treeview widget, where drag scrolling will occur
-        self._drag_scroll_region = 30
 
 
         # selection
@@ -73,13 +70,18 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         self.connect("row-collapsed", self._on_row_collapsed)
 
         
-        # drag and drop
+        # drag and drop state
         self._is_dragging = False   # whether drag is in progress
         self._drag_count = 0
         self._dest_row = None       # current drag destition
         self._reorder = REORDER_ALL # enum determining the kind of reordering
                                     # that is possible via drag and drop
-        
+        # region, defined by number of vertical pixels from top and bottom of
+        # the treeview widget, where drag scrolling will occur
+        self._drag_scroll_region = 30
+
+
+        # drop and drop events
         self.connect("drag-begin", self._on_drag_begin)
         self.connect("drag-end", self._on_drag_end)
         self.connect("drag-motion", self._on_drag_motion)
@@ -100,6 +102,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         self.drag_dest_set(gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_MOTION,
             [DROP_TREE_MOVE],
             gtk.gdk.ACTION_MOVE)
+
     
     def set_master_node(self, node):
         self._master_node = node
@@ -490,6 +493,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         header_height = [0]
         self.forall(lambda w, d: header_height.__setitem__(
             0, w.allocation.height), None)        
+
+        print header_height[0]
 
         # get mouse poistion in tree coordinates
         x, y = self.get_pointer()

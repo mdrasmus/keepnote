@@ -1465,26 +1465,22 @@ class KeepNoteWindow (gtk.Window):
     
     #=====================================================
     # Cut/copy/paste    
+    # forward cut/copy/paste to the correct widget
     
     def on_cut(self):
         """Cut callback"""
-
         widget = self.get_focus()
         if gobject.signal_lookup("cut-clipboard", widget) != 0:
             widget.emit("cut-clipboard")
-
     
     def on_copy(self):
         """Copy callback"""
-
         widget = self.get_focus()
         if gobject.signal_lookup("copy-clipboard", widget) != 0:
             widget.emit("copy-clipboard")
 
-    
     def on_paste(self):
         """Paste callback"""
-
         widget = self.get_focus()
         if gobject.signal_lookup("paste-clipboard", widget) != 0:
             widget.emit("paste-clipboard")
@@ -1667,28 +1663,17 @@ class KeepNoteWindow (gtk.Window):
                 "<ImageItem>", 
                 get_resource_pixbuf("folder-new.png")),
 
-            #("/File/sep1", 
-            #    None, None, 0, "<Separator>" ),                
-            #("/File/New _Tab",
-            #    "<control>T", lambda w,e: self.editor.new_tab(), 0, None),
-            #("/File/C_lose Tab", 
-            #    "<control>W", lambda w,e: self.editor.close_tab(), 0, None),
-                
             ("/File/sep2", 
                 None, None, 0, "<Separator>" ),
             ("/File/_Open Notebook",          
                 "<control>O", lambda w,e: self.on_open_notebook(), 0,
                 "<StockItem>", gtk.STOCK_OPEN),             
-                #"<ImageItem>", 
-                #get_resource_pixbuf("open.png")),
             ("/File/_Reload Notebook",          
                 None, lambda w,e: self.reload_notebook(), 0, 
                 "<StockItem>", gtk.STOCK_REVERT_TO_SAVED),
             ("/File/_Save Notebook",     
                 "<control>S", lambda w,e: self.save_notebook(), 0,
                 "<StockItem>", gtk.STOCK_SAVE),
-                #"<ImageItem>", 
-                #get_resource_pixbuf("save.png")),
             ("/File/_Close Notebook", 
                 None, lambda w, e: self.close_notebook(), 0, 
                 "<StockItem>", gtk.STOCK_CLOSE),
@@ -1720,15 +1705,6 @@ class KeepNoteWindow (gtk.Window):
                 "<control>V", lambda w,e: self.on_paste(), 0, 
                 "<StockItem>", gtk.STOCK_PASTE), 
             
-            
-            #("/Edit/sep3", 
-            #    None, None, 0, "<Separator>"),
-            #("/Edit/_Delete Folder",
-            #    None, lambda w,e: self.on_delete_dir(), 0, 
-            #    "<ImageItem>", folder_delete.get_pixbuf()),
-            #("/Edit/Delete _Page",     
-            #    None, lambda w,e: self.on_delete_page(), 0,
-            #    "<ImageItem>", page_delete.get_pixbuf()),
             ("/Edit/sep4", 
                 None, None, 0, "<Separator>"),
             ("/Edit/Insert _Horizontal Rule",
