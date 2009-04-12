@@ -491,10 +491,10 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
         # get header height
         header_height = [0]
-        self.forall(lambda w, d: header_height.__setitem__(
-            0, w.allocation.height), None)        
 
-        print header_height[0]
+        if self.get_headers_visible():
+            self.forall(lambda w, d: header_height.__setitem__(
+                0, w.allocation.height), None)
 
         # get mouse poistion in tree coordinates
         x, y = self.get_pointer()
