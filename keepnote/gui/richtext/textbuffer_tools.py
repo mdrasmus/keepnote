@@ -363,6 +363,86 @@ def buffer_contents_apply_tags(textbuffer, contents):
             textbuffer.apply_tag(param, start, end)
 
 
+
+
+#=============================================================================
+# buffer paragraph navigation
+
+
+def move_to_start_of_line(it):
+    """Move a TextIter it to the start of a paragraph"""
+    
+    if not it.starts_line():
+        if it.get_line() > 0:
+            it.backward_line()
+            it.forward_line()
+        else:
+            it = it.get_buffer().get_start_iter()
+    return it
+
+def move_to_end_of_line(it):
+    """Move a TextIter it to the start of a paragraph"""
+    it.forward_line()
+    return it
+
+def get_paragraph(it):
+    """Get iters for the start and end of the paragraph containing 'it'"""
+    start = it.copy()
+    end = it.copy()
+
+    start = move_to_start_of_line(start)
+    end.forward_line()
+    return start, end
+
+class paragraph_iter (object):
+    """Iterate through the paragraphs of a TextBuffer"""
+
+    def __init__(self, buf, start, end):
+        self.buf = buf
+        self.pos = start
+        self.end = end
+    
+        # create marks that survive buffer edits
+        self.pos_mark = buf.create_mark(None, self.pos, True)
+        self.end_mark = buf.create_mark(None, self.end, True)
+
+    def __del__(self):
+        if self.pos_mark is not None:
+            self.buf.delete_mark(self.pos_mark)
+            self.buf.delete_mark(self.end_mark)
+
+    def __iter__(self):
+        while self.pos.compare(self.end) == -1:
+            self.buf.move_mark(self.pos_mark, self.pos)
+            yield self.pos
+
+            self.pos = self.buf.get_iter_at_mark(self.pos_mark)
+            self.end = self.buf.get_iter_at_mark(self.end_mark)
+            if not self.pos.forward_line():
+                break
+
+        # cleanup marks
+        self.buf.delete_mark(self.pos_mark)
+        self.buf.delete_mark(self.end_mark)
+
+        self.pos_mark = None
+        self.end_mark = None
+
+        
+def get_paragraphs_selected(buf):
+    """Get start and end of selection rounded to nears paragraph boundaries"""
+    sel = buf.get_selection_bounds()
+    
+    if not sel:
+        start, end = get_paragraph(buf.get_iter_at_mark(buf.get_insert()))
+    else:
+        start = move_to_start_of_line(sel[0])
+        end = move_to_end_of_line(sel[1])
+    return start, end
+
+
+
+
 #=============================================================================
 # Document Object Model (DOM) for TextBuffers
 

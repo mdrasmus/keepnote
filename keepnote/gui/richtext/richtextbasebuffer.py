@@ -12,7 +12,12 @@ from keepnote.gui.richtext.textbuffer_tools import \
      buffer_contents_iter_to_offset, \
      normalize_tags, \
      insert_buffer_contents, \
-     buffer_contents_apply_tags
+     buffer_contents_apply_tags, \
+     move_to_start_of_line, \
+     move_to_end_of_line, \
+     get_paragraph, \
+     paragraph_iter, \
+     get_paragraphs_selected
 
 from keepnote.gui.richtext.undo_handler import \
      UndoHandler, \
@@ -21,6 +26,7 @@ from keepnote.gui.richtext.undo_handler import \
      DeleteAction, \
      InsertChildAction, \
      TagAction
+
 
 # richtext imports
 from keepnote.gui.richtext.richtextbase_tags import \
@@ -32,84 +38,6 @@ from keepnote.gui.richtext.richtextbase_tags import \
 
 def add_child_to_buffer(textbuffer, it, anchor):
     textbuffer.add_child(it, anchor)
-
-
-#=============================================================================
-# buffer paragraph navigation
-
-# TODO: this might go into textbuffer_tools
-
-def move_to_start_of_line(it):
-    """Move a TextIter it to the start of a paragraph"""
-    
-    if not it.starts_line():
-        if it.get_line() > 0:
-            it.backward_line()
-            it.forward_line()
-        else:
-            it = it.get_buffer().get_start_iter()
-    return it
-
-def move_to_end_of_line(it):
-    """Move a TextIter it to the start of a paragraph"""
-    it.forward_line()
-    return it
-
-def get_paragraph(it):
-    """Get iters for the start and end of the paragraph containing 'it'"""
-    start = it.copy()
-    end = it.copy()
-
-    start = move_to_start_of_line(start)
-    end.forward_line()
-    return start, end
-
-class paragraph_iter (object):
-    """Iterate through the paragraphs of a TextBuffer"""
-
-    def __init__(self, buf, start, end):
-        self.buf = buf
-        self.pos = start
-        self.end = end
-    
-        # create marks that survive buffer edits
-        self.pos_mark = buf.create_mark(None, self.pos, True)
-        self.end_mark = buf.create_mark(None, self.end, True)
-
-    def __del__(self):
-        if self.pos_mark is not None:
-            self.buf.delete_mark(self.pos_mark)
-            self.buf.delete_mark(self.end_mark)
-
-    def __iter__(self):
-        while self.pos.compare(self.end) == -1:
-            self.buf.move_mark(self.pos_mark, self.pos)
-            yield self.pos
-
-            self.pos = self.buf.get_iter_at_mark(self.pos_mark)
-            self.end = self.buf.get_iter_at_mark(self.end_mark)
-            if not self.pos.forward_line():
-                break
-
-        # cleanup marks
-        self.buf.delete_mark(self.pos_mark)
-        self.buf.delete_mark(self.end_mark)
-
-        self.pos_mark = None
-        self.end_mark = None
-
-        
-def get_paragraphs_selected(buf):
-    """Get start and end of selection rounded to nears paragraph boundaries"""
-    sel = buf.get_selection_bounds()
-    
-    if not sel:
-        start, end = get_paragraph(buf.get_iter_at_mark(buf.get_insert()))
-    else:
-        start = move_to_start_of_line(sel[0])
-        end = move_to_end_of_line(sel[1])
-    return start, end
-
 
 
 
@@ -157,38 +85,27 @@ gobject.signal_new("init", RichTextAnchor, gobject.SIGNAL_RUN_LAST,
 
 
 
-class RichTextBaseFont (object):
-    """Class for representing a font in a simple way"""
-    
-    def __init__(self):
-        pass
 
-
-    def set_font(self, attr, tags, current_tags, tag_table):
-        pass
-
-
-
-class RichTextBaseBuffer2 (gtk.TextBuffer):
+class RichTextBaseBuffer (gtk.TextBuffer):
     """Basic RichTextBuffer with the following features
     
         - maintains undo/redo stacks
-        - manages "current font" behavior
     """
 
     def __init__(self, tag_table=RichTextBaseTagTable()):
         gtk.TextBuffer.__init__(self, tag_table)
+
+        # undo handler
         self._undo_handler = UndoHandler(self)
         self._undo_handler.after_changed.add(self.on_after_changed)
         self.undo_stack = self._undo_handler.undo_stack
+
 
         # insert mark tracking
         self._insert_mark = self.get_insert()
         self._old_insert_mark = self.create_mark(
             None, self.get_iter_at_mark(self._insert_mark), True)
 
-        
-        self._current_tags = []
         
         self._user_action_ending = False
         self._noninteractive = 0
@@ -216,7 +133,6 @@ class RichTextBaseBuffer2 (gtk.TextBuffer):
             
             ]
 
-        self._default_attr = gtk.TextAttributes()
 
 
     def block_signals(self):
@@ -232,13 +148,7 @@ class RichTextBaseBuffer2 (gtk.TextBuffer):
             self.handler_unblock(signal)
         self.undo_stack.resume()
         self.undo_stack.reset()
-
-    def set_default_attr(self, attr):
-        self._default_attr = attr
-
-    def get_default_attr(self):
-        return self._default_attr
-    
+   
 
     def clear(self, clear_undo=False):
         """Clear buffer contents"""
@@ -344,22 +254,12 @@ class RichTextBaseBuffer2 (gtk.TextBuffer):
                 self.place_cursor(old_insert)
                 return
             
-            # if cursor startline pick up opening tags,
-            # otherwise closing tags
-            opening = it.starts_line()
-            self._current_tags = [x for x in it.get_toggled_tags(opening)
-                                  if isinstance(x, RichTextTag) and
-                                  x.can_be_current()]
-
             # when cursor moves, selection changes
             self.on_selection_changed()
 
             # keep track of cursor position
             self.move_mark(self._old_insert_mark, it)
-            
-            # update UI for current fonts
-            self.emit("font-change", self.get_font())
-    
+
 
 
     def _on_insert_text(self, textbuffer, it, text, length):
@@ -483,214 +383,4 @@ class RichTextBaseBuffer2 (gtk.TextBuffer):
 
 
 
-class RichTextBaseBuffer (RichTextBaseBuffer2):
-    """Basic RichTextBuffer with the following features
-    
-        - manages "current font" behavior
-    """
-    
-    def __init__(self, tag_table=RichTextBaseTagTable()):
-        RichTextBaseBuffer2.__init__(self, tag_table)
 
-        self._current_tags = []
-
-    #==============================================================
-    # Tag manipulation    
-
-    def update_current_tags(self, action):
-        """Check if current tags need to be applited due to action"""
-
-        self.begin_user_action()
-
-        if isinstance(action, InsertAction):
-
-            # apply current style to inserted text if inserted text is
-            # at cursor            
-            if action.cursor_insert and \
-               len(self._current_tags) > 0:
-
-                it = self.get_iter_at_offset(action.pos)
-                it2 = it.copy()
-                it2.forward_chars(action.length)
-
-                for tag in action.current_tags:
-                    self.apply_tag(tag, it, it2)
-
-        self.end_user_action()
-
-    
-    def get_current_tags(self):
-        """Returns the currently active tags"""
-        return self._current_tags
-
-    def set_current_tags(self, tags):
-        """Sets the currently active tags"""
-        self._current_tags = list(tags)
-        self.emit("font-change", self.get_font())
-    
-
-    def can_be_current_tag(self, tag):
-        return isinstance(tag, RichTextTag) and tag.can_be_current()
-        
-
-    def toggle_tag_selected(self, tag, start=None, end=None):
-        """Toggle tag in selection or current tags"""
-
-        self.begin_user_action()
-
-        if start is None:
-            it = self.get_selection_bounds()
-        else:
-            it = [start, end]
-
-        # toggle current tags
-        if self.can_be_current_tag(tag):
-            if tag not in self._current_tags:
-                self.clear_current_tag_class(tag)
-                self._current_tags.append(tag)
-            else:
-                self._current_tags.remove(tag)            
-
-        # update region
-        if len(it) == 2:
-            if not it[0].has_tag(tag):
-                self.clear_tag_class(tag, it[0], it[1])
-                self.apply_tag(tag, it[0], it[1])
-            else:
-                self.remove_tag(tag, it[0], it[1])
-        
-        self.end_user_action()
-
-        self.emit("font-change", self.get_font())
-
-
-    def apply_tag_selected(self, tag, start=None, end=None):
-        """Apply tag to selection or current tags"""
-        
-        self.begin_user_action()
-
-        if start is None:
-            it = self.get_selection_bounds()
-        else:
-            it = [start, end]
-        
-        # update current tags
-        if self.can_be_current_tag(tag):
-            if tag not in self._current_tags:
-                self.clear_current_tag_class(tag)
-                self._current_tags.append(tag)        
-
-        # update region
-        if len(it) == 2:
-            self.clear_tag_class(tag, it[0], it[1])
-            self.apply_tag(tag, it[0], it[1])
-        self.end_user_action()
-
-        self.emit("font-change", self.get_font())
-
-
-    def remove_tag_selected(self, tag, start=None, end=None):
-        """Remove tag from selection or current tags"""
-
-        self.begin_user_action()
-
-        if start is None:
-            it = self.get_selection_bounds()
-        else:
-            it = [start, end]
-        
-        # no selection, remove tag from current tags
-        if tag in self._current_tags:
-            self._current_tags.remove(tag)
-
-        # update region
-        if len(it) == 2:
-            self.remove_tag(tag, it[0], it[1])
-        self.end_user_action()
-
-        self.emit("font-change", self.get_font())
-
-
-    def remove_tag_class_selected(self, tag, start=None, end=None):
-        """Remove all tags of a class from selection or current tags"""
-
-        self.begin_user_action()
-
-        if start is None:
-            it = self.get_selection_bounds()
-        else:
-            it = [start, end]
-        
-        # no selection, remove tag from current tags
-        self.clear_current_tag_class(tag)        
-
-        # update region
-        if len(it) == 2:
-            self.clear_tag_class(tag, it[0], it[1])
-        self.end_user_action()
-
-        self.emit("font-change", self.get_font())
-
-    
-    def clear_tag_class(self, tag, start, end):
-        """Remove all tags of the same class as 'tag' in region (start, end)"""
-
-        # TODO: is there a faster way to do this?
-        #   make faster mapping from tag to class
-
-        cls = self.tag_table.get_class_of_tag(tag)
-        if cls is not None and cls.exclusive:
-            for tag2 in cls.tags:
-                self.remove_tag(tag2, start, end)
-
-        self.emit("font-change", self.get_font())
-
-
-
-    def clear_current_tag_class(self, tag):
-        """Remove all tags of the same class as 'tag' from current tags"""
-        
-        cls = self.tag_table.get_class_of_tag(tag)
-        if cls is not None and cls.exclusive:
-            self._current_tags = [x for x in self._current_tags
-                                  if x not in cls.tags]
-            
-
-    
-    #===========================================================
-    # Font management
-    
-    def get_font(self, font=None):
-        """Returns the active font under the cursor"""
-        
-        # get iter for retrieving font
-        it2 = self.get_selection_bounds()
-        
-        if len(it2) == 0:
-            it = self.get_iter_at_mark(self.get_insert())
-        else:
-            it = it2[0]
-            it.forward_char()
-        
-        # create a set that is fast for quering the existance of tags
-        current_tags = set(self._current_tags)        
-        
-        # get the text attributes and font at the iter
-        attr = gtk.TextAttributes()
-        self._default_attr.copy_values(attr)
-        it.get_attributes(attr)
-        tags = it.get_tags()
-
-        # create font object and return
-        if font is None:
-            font = RichTextFont()
-        font.set_font(attr, tags, current_tags, self.tag_table)
-        return font
-
-
-
-
-
-gobject.type_register(RichTextBaseBuffer)
-gobject.signal_new("font-change", RichTextBaseBuffer, gobject.SIGNAL_RUN_LAST, 
-                   gobject.TYPE_NONE, (object,))

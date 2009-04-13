@@ -1,7 +1,7 @@
 #
 # Makefile for KeepNote
 #
-# I keep common building task here
+# common building tasks
 #
 
 PKG=keepnote
@@ -33,8 +33,7 @@ WININSTALLER_SRC=installer.iss
 
 
 # personal www paths
-LINUX_WWW=/var/www/dev/rasm/keepnote
-WIN_WWW=/z/mnt/big/www/dev/rasm/keepnote
+WWW=/var/www/dev/rasm/keepnote
 
 
 #=============================================================================
@@ -89,28 +88,18 @@ winclean:
 	rm -rf $(WININSTALLER) $(WININSTALLER_SRC) $(WINDIR)
 
 #=============================================================================
-# linux upload
+# upload
 
 pypi:
 	python setup.py register
 
 
 upload: $(UPLOAD_FILES)
-	cp $(UPLOAD_FILES) $(LINUX_WWW)/download
-	tar zxv -C $(LINUX_WWW)/download \
-	    -f $(LINUX_WWW)/download/$(SDIST_FILE)
+	cp $(UPLOAD_FILES) $(WWW)/download
+	tar zxv -C $(WWW)/download \
+	    -f $(WWW)/download/$(SDIST_FILE)
 
 upload-test: $(UPLOAD_FILES)
-	cp $(UPLOAD_FILES) $(LINUX_WWW)/download-test
+	cp $(UPLOAD_FILES) $(WWW)/download-test
 
 
-
-#=============================================================================
-# windows build
-
-winbuild:
-	python setup.py py2exe
-	iscc installer.iss
-
-winupload:
-	cp $(WININSTALLER) $(WIN_WWW)/download

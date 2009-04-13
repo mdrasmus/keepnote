@@ -25,10 +25,12 @@ from keepnote.gui.richtext.textbuffer_tools import \
 # richtext imports
 from keepnote.gui.richtext.richtextbasebuffer import \
      RichTextBaseBuffer, \
-     RichTextBaseFont, \
      add_child_to_buffer, \
      RichTextAnchor
 from keepnote.gui.richtext.indent_handler import IndentHandler
+from keepnote.gui.richtext.font_handler import \
+    FontHandler, RichTextBaseFont
+
 
 # richtext tags imports
 from keepnote.gui.richtext.richtext_tags import \
@@ -501,13 +503,6 @@ class RichTextFont (RichTextBaseFont):
         self.bg_color = color_to_string(attr.bg_color)
 
         mod_class = tag_table.get_tag_class("mod")
-        
-        #bold = tag_table.lookup("bold")
-        #italic = tag_table.lookup("italic")
-        #underline = tag_table.lookup("underline")
-        #strike = tag_table.lookup("strike")
-        #tt = tag_table.lookup("tt")
-        #nowrap = tag_table.lookup("nowrap")
 
         tag_set = set(tags)
         
@@ -517,29 +512,6 @@ class RichTextFont (RichTextBaseFont):
             self.mods[tag.get_property("name")] = (tag in current_tags or
                                                    tag in tag_set)
         self.mods["tt"] = (self.mods["tt"] or self.family == "Monospace")
-        
-
-        '''
-        "bold":
-                     bold in current_tags or
-                     bold in tag_set,
-                     "italic": 
-                     italic in current_tags or
-                     italic in tag_set,
-                     "underline":
-                     underline in current_tags or
-                     underline in tag_set,
-                     "strike":
-                     strike in current_tags or
-                     strike in tag_set,
-                     "tt":
-                     tt in current_tags or
-                     tt in tag_set or
-                     self.family == "Monospace",
-                     "nowrap":
-                     nowrap in current_tags or
-                     nowrap in tag_set}
-        '''
         
         # set justification
         self.justify = RichTextJustifyTag.justify2name[attr.justification]
@@ -589,8 +561,15 @@ class RichTextBuffer (RichTextBaseBuffer):
     def __init__(self, textview=None):
         RichTextBaseBuffer.__init__(self, RichTextTagTable())
 
-        # indentation manager
+        # indentation handler
         self._indent = IndentHandler(self)
+
+        # font handler
+        self.font_handler = FontHandler(self)
+        self.font_handler.set_font_class(RichTextFont)
+        self.font_handler.connect("font-change",
+            lambda w, font: self.emit("font-change", font))
+
 
         # set of all anchors in buffer
         self._anchors = set()
@@ -878,11 +857,11 @@ class RichTextBuffer (RichTextBaseBuffer):
 
         if url is None:
             tag = self.tag_table.lookup(RichTextLinkTag.tag_name(""))
-            self.clear_tag_class(tag, start, end)
+            self.font_handler.clear_tag_class(tag, start, end)
             return None
         else:
             tag = self.tag_table.lookup(RichTextLinkTag.tag_name(url))
-            self.apply_tag_selected(tag, start, end)
+            self.font_handler.apply_tag_selected(tag, start, end)
             return tag
         
 
@@ -963,6 +942,52 @@ class RichTextBuffer (RichTextBaseBuffer):
         return RichTextBaseBuffer.get_font(self, font)
 
 
+    #===============================================
+    # temp font handler interface
+
+
+    def update_current_tags(self, action):
+        return self.font_handler.update_current_tags(action)
+
+    def set_default_attr(self, attr):
+        return self.font_handler.set_default_attr(attr)
+
+    def get_default_attr(self):
+        return self.font_handler.get_default_attr()
+
+    def get_current_tags(self):
+        return self.font_handler.get_current_tags()
+
+    def set_current_tags(self, tags):
+        return self.font_handler.set_current_tags(tags)
+
+    def can_be_current_tag(self, tag):
+        return self.font_handler.can_be_current_tag(tag)
+
+    def toggle_tag_selected(self, tag, start=None, end=None):
+        return self.font_handler.toggle_tag_selected(tag, start, end)
+
+    def apply_tag_selected(self, tag, start=None, end=None):
+        return self.font_handler.apply_tag_selected(tag, start, end)
+
+    def remove_tag_selected(self, tag, start=None, end=None):
+        return self.font_handler.remove_tag_selected(tag, start, end)
+
+    def remove_tag_class_selected(self, tag, start=None, end=None):
+        return self.font_handler.remove_tag_class_selected(tag, start, end)
+    
+    def clear_tag_class(self, tag, start, end):
+        return self.font_handler.clear_tag_class(tag, start, end)
+
+    def clear_current_tag_class(self, tag):
+        return self.font_handler.clear_current_tag_class(tag)
+
+    def get_font(self, font=None):
+        return self.font_handler.get_font(font)
+
+
+
+
 gobject.type_register(RichTextBuffer)
 gobject.signal_new("child-added", RichTextBuffer, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, (object,))
@@ -970,4 +995,7 @@ gobject.signal_new("child-activated", RichTextBuffer, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, (object,))
 gobject.signal_new("child-menu", RichTextBuffer, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, (object, object, object))
+#gobject.type_register(RichTextBaseBuffer)
+gobject.signal_new("font-change", RichTextBuffer, gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, (object,))
 
