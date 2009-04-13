@@ -12,21 +12,23 @@ from gtk import gdk
 
 # keepnote imports
 import keepnote
-from keepnote.undo import UndoStack
+
 
 # textbuffer imports
 from keepnote.gui.richtext.textbuffer_tools import \
-     iter_buffer_contents, \
-     buffer_contents_iter_to_offset, \
-     normalize_tags, \
-     insert_buffer_contents, \
-     buffer_contents_apply_tags
+    move_to_start_of_line, \
+    move_to_end_of_line, \
+    iter_buffer_contents, \
+    buffer_contents_iter_to_offset, \
+    normalize_tags, \
+    insert_buffer_contents, \
+    buffer_contents_apply_tags
 
 # richtext imports
 from keepnote.gui.richtext.richtextbasebuffer import \
-     RichTextBaseBuffer, \
-     add_child_to_buffer, \
-     RichTextAnchor
+    RichTextBaseBuffer, \
+    add_child_to_buffer, \
+    RichTextAnchor
 from keepnote.gui.richtext.indent_handler import IndentHandler
 from keepnote.gui.richtext.font_handler import \
     FontHandler, RichTextBaseFont
@@ -34,18 +36,18 @@ from keepnote.gui.richtext.font_handler import \
 
 # richtext tags imports
 from keepnote.gui.richtext.richtext_tags import \
-     RichTextTagTable, \
-     RichTextTag, \
-     RichTextModTag, \
-     RichTextJustifyTag, \
-     RichTextFamilyTag, \
-     RichTextSizeTag, \
-     RichTextFGColorTag, \
-     RichTextBGColorTag, \
-     RichTextIndentTag, \
-     RichTextBulletTag, \
-     RichTextLinkTag, \
-     color_to_string
+    RichTextTagTable, \
+    RichTextTag, \
+    RichTextModTag, \
+    RichTextJustifyTag, \
+    RichTextFamilyTag, \
+    RichTextSizeTag, \
+    RichTextFGColorTag, \
+    RichTextBGColorTag, \
+    RichTextIndentTag, \
+    RichTextBulletTag, \
+    RichTextLinkTag, \
+    color_to_string
 
 
 # these tags will not be enumerated by iter_buffer_contents
@@ -702,6 +704,49 @@ class RichTextBuffer (RichTextBaseBuffer):
     def get_indent(self, it=None):
         return self._indent.get_indent(it)
     
+
+    #===============================================
+    # font handler interface
+
+    def update_current_tags(self, action):
+        return self.font_handler.update_current_tags(action)
+
+    def set_default_attr(self, attr):
+        return self.font_handler.set_default_attr(attr)
+
+    def get_default_attr(self):
+        return self.font_handler.get_default_attr()
+
+    def get_current_tags(self):
+        return self.font_handler.get_current_tags()
+
+    def set_current_tags(self, tags):
+        return self.font_handler.set_current_tags(tags)
+
+    def can_be_current_tag(self, tag):
+        return self.font_handler.can_be_current_tag(tag)
+
+    def toggle_tag_selected(self, tag, start=None, end=None):
+        return self.font_handler.toggle_tag_selected(tag, start, end)
+
+    def apply_tag_selected(self, tag, start=None, end=None):
+        return self.font_handler.apply_tag_selected(tag, start, end)
+
+    def remove_tag_selected(self, tag, start=None, end=None):
+        return self.font_handler.remove_tag_selected(tag, start, end)
+
+    def remove_tag_class_selected(self, tag, start=None, end=None):
+        return self.font_handler.remove_tag_class_selected(tag, start, end)
+    
+    def clear_tag_class(self, tag, start, end):
+        return self.font_handler.clear_tag_class(tag, start, end)
+
+    def clear_current_tag_class(self, tag):
+        return self.font_handler.clear_current_tag_class(tag)
+
+    def get_font(self, font=None):
+        return self.font_handler.get_font(font)
+
     
     #============================================================
     # child actions
@@ -934,56 +979,12 @@ class RichTextBuffer (RichTextBaseBuffer):
 
 
     # TODO: need to overload get_font to be indent aware
-    def get_font(self, font=None):
-        """Get font under cursor"""
-
-        if font is None:
-            font = RichTextFont()
-        return RichTextBaseBuffer.get_font(self, font)
-
-
-    #===============================================
-    # temp font handler interface
-
-
-    def update_current_tags(self, action):
-        return self.font_handler.update_current_tags(action)
-
-    def set_default_attr(self, attr):
-        return self.font_handler.set_default_attr(attr)
-
-    def get_default_attr(self):
-        return self.font_handler.get_default_attr()
-
-    def get_current_tags(self):
-        return self.font_handler.get_current_tags()
-
-    def set_current_tags(self, tags):
-        return self.font_handler.set_current_tags(tags)
-
-    def can_be_current_tag(self, tag):
-        return self.font_handler.can_be_current_tag(tag)
-
-    def toggle_tag_selected(self, tag, start=None, end=None):
-        return self.font_handler.toggle_tag_selected(tag, start, end)
-
-    def apply_tag_selected(self, tag, start=None, end=None):
-        return self.font_handler.apply_tag_selected(tag, start, end)
-
-    def remove_tag_selected(self, tag, start=None, end=None):
-        return self.font_handler.remove_tag_selected(tag, start, end)
-
-    def remove_tag_class_selected(self, tag, start=None, end=None):
-        return self.font_handler.remove_tag_class_selected(tag, start, end)
-    
-    def clear_tag_class(self, tag, start, end):
-        return self.font_handler.clear_tag_class(tag, start, end)
-
-    def clear_current_tag_class(self, tag):
-        return self.font_handler.clear_current_tag_class(tag)
-
-    def get_font(self, font=None):
-        return self.font_handler.get_font(font)
+    #def get_font(self, font=None):
+    #    """Get font under cursor"""
+    #
+    #    if font is None:
+    #        font = RichTextFont()
+    #    return RichTextBaseBuffer.get_font(self, font)
 
 
 

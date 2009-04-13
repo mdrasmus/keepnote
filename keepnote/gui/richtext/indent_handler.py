@@ -10,6 +10,9 @@ import keepnote
 from keepnote.undo import UndoStack
 
 from keepnote.gui.richtext.textbuffer_tools import \
+     move_to_start_of_line, \
+     move_to_end_of_line, \
+     paragraph_iter, \
      iter_buffer_contents, \
      buffer_contents_iter_to_offset, \
      normalize_tags, \
@@ -24,10 +27,7 @@ from keepnote.gui.richtext.richtext_tags import \
 from keepnote.gui.richtext.richtextbasebuffer import \
      RichTextBaseBuffer, \
      add_child_to_buffer, \
-     move_to_start_of_line, \
-     move_to_end_of_line, \
      get_paragraph, \
-     paragraph_iter, \
      get_paragraphs_selected
 
 

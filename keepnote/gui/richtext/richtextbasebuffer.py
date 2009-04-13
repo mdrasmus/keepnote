@@ -8,15 +8,7 @@ from gtk import gdk
 
 # import textbuffer tools
 from keepnote.gui.richtext.textbuffer_tools import \
-     iter_buffer_contents, \
-     buffer_contents_iter_to_offset, \
-     normalize_tags, \
-     insert_buffer_contents, \
-     buffer_contents_apply_tags, \
-     move_to_start_of_line, \
-     move_to_end_of_line, \
      get_paragraph, \
-     paragraph_iter, \
      get_paragraphs_selected
 
 from keepnote.gui.richtext.undo_handler import \
