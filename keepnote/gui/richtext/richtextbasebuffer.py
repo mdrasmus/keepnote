@@ -40,11 +40,19 @@ class RichTextAnchor (gtk.TextChildAnchor):
     
     def __init__(self):
         gtk.TextChildAnchor.__init__(self)
-        self._widget = None
+        self._widgets = {None: None}
         self._buffer = None
     
-    def get_widget(self):
-        return self._widget
+    def get_widget(self, view=None):
+        return self._widgets[view]
+
+    def get_all_widgets(self):
+        return self._widgets
+
+    def show(self):
+        for widget in self._widgets.itervalues():
+            if widget:
+                widget.show()
 
     def set_buffer(self, buf):
         self._buffer = buf
@@ -58,12 +66,14 @@ class RichTextAnchor (gtk.TextChildAnchor):
         return anchor
     
     def highlight(self):
-        if self._widget:
-            self._widget.highlight()
+        for widget in self._widgets.itervalues():
+            if widget:
+                widget.highlight()
     
     def unhighlight(self):
-        if self._widget:
-            self._widget.unhighlight()
+        for widget in self._widgets.itervalues():
+            if widget:
+                widget.unhighlight()
 
 gobject.type_register(RichTextAnchor)
 gobject.signal_new("selected", RichTextAnchor, gobject.SIGNAL_RUN_LAST, 

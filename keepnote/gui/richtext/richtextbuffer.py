@@ -127,16 +127,14 @@ class BaseWidget (gtk.EventBox):
         gtk.EventBox.show_all(self)
 
 
-gobject.type_register(BaseWidget)
-gobject.signal_new("init", BaseWidget, gobject.SIGNAL_RUN_LAST, 
-                   gobject.TYPE_NONE, ())
+#gobject.type_register(BaseWidget)
+#gobject.signal_new("init", BaseWidget, gobject.SIGNAL_RUN_LAST, 
+#                   gobject.TYPE_NONE, ())
 
 
 class RichTextSep (BaseWidget):
     """Separator widget for a Horizontal Rule"""
 
-    # TODO: dynamically resize
-    
     def __init__(self):
         BaseWidget.__init__(self)
         self._sep = gtk.HSeparator()
@@ -145,8 +143,11 @@ class RichTextSep (BaseWidget):
         
         self._sep.modify_bg(gtk.STATE_NORMAL, gdk.Color(* DEFAULT_HR_COLOR))
         self._sep.modify_fg(gtk.STATE_NORMAL, gdk.Color(* DEFAULT_HR_COLOR))
-        self._sep.connect("size-request", self._on_resize)
-        #self._sep.connect("size-allocate", self._on_size_change)
+
+        self.connect("size-request", self._on_resize)
+        self.connect("parent-set", self._on_parent_set)
+        
+        self._resizes_id = None
 
         #width = 400
         #height = 1
@@ -158,29 +159,48 @@ class RichTextSep (BaseWidget):
         #self._widget.set_from_pixbuf(pixbuf)
         #self._widget.img.set_padding(0, padding)
 
+    def _on_parent_set(self, widget, old_parent):
+        """Callback for changing parent"""
+        
+        if old_parent:
+            old_parent.disconnect(self._resize_id)
+
+        if self.get_parent():
+            self._resize_id = self.get_parent().connect("size-allocate", 
+                                                        self._on_size_change)
+
+    def _on_size_change(self, widget, req):
+        """callback for parent's changed size allocation"""
+
+        w, h = self.get_desired_size()
+        self.set_size_request(w, h)
+
+
     def _on_resize(self, sep, req):
         """Callback for widget resize"""
-        HR_HORIZONTAL_MARGIN = 40
+
+        w, h = self.get_desired_size()
+        req.width = w
+        req.height = h
+
+
+    def get_desired_size(self):
+        """Returns the desired size"""
+
+        HR_HORIZONTAL_MARGIN = 20
         HR_VERTICAL_MARGIN = 10
         self._size = (self.get_parent().get_allocation().width -
                       HR_HORIZONTAL_MARGIN,
                       HR_VERTICAL_MARGIN)
-        req.width = self._size[0]        
-        req.height = self._size[1]
-
-    
+        return self._size
     
 
 class RichTextHorizontalRule (RichTextAnchor):
     def __init__(self):
-        gtk.TextChildAnchor.__init__(self)
-        self._widget = RichTextSep()
-        self._widget.connect("init", lambda w: self.emit("init"))
-        self._widget.show()
-    
-    def get_widget(self):
-        return self._widget
-    
+        RichTextAnchor.__init__(self)
+        self._widgets[None] = RichTextSep()
+        self._widgets[None].show()
+        
     def copy(self):
         return RichTextHorizontalRule()
        
@@ -217,15 +237,29 @@ class RichTextImage (RichTextAnchor):
         RichTextAnchor.__init__(self)
         self._filename = None
         self._download = False
-        self._widget = BaseImage()
         self._pixbuf = None
         self._pixbuf_original = None
         self._size = [None, None]
         self._save_needed = False
 
-        self._widget.connect("destroy", self._on_image_destroy)
-        self._widget.connect("button-press-event", self._on_clicked)
-        
+        self.add_widget(view=None)
+        #self._widgets = {None: BaseImage()}
+        #self._widgets[None].connect("destroy", self._on_image_destroy)
+        #self._widgets[None].connect("button-press-event", self._on_clicked)
+
+
+    def __del__(self):
+        for widget in self._widgets:
+            if widget:
+                widget.disconnect("destroy")
+                widget.disconnect("button-press-event")
+
+
+    def add_widget(self, view=None):
+        self._widgets[view] = BaseImage()
+        self._widgets[view].connect("destroy", self._on_image_destroy)
+        self._widgets[view].connect("button-press-event", self._on_clicked)
+
 
     def is_valid(self):
         """Did the image successfully load an image"""
@@ -275,7 +309,8 @@ class RichTextImage (RichTextAnchor):
         img._size = list(self.get_size())
         
         if self._pixbuf:
-            img.get_widget().set_from_pixbuf(self._pixbuf)
+            for widget in img.get_all_widgets().itervalues():
+                widget.set_from_pixbuf(self._pixbuf)
             img._pixbuf = self._pixbuf
             img._pixbuf_original = self._pixbuf_original
         else:
@@ -308,12 +343,15 @@ class RichTextImage (RichTextAnchor):
             
             if self.is_size_set():
                 self.scale(self._size[0], self._size[1], False)
-            self._widget.set_from_pixbuf(self._pixbuf)
+
+            for widget in self.get_all_widgets().itervalues():
+                widget.set_from_pixbuf(self._pixbuf)
 
 
     def set_no_image(self):
         """Set the 'no image' icon"""
-        self._widget.set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
+        for widget in self.get_all_widgets().itervalues():
+            widget.set_from_stock(gtk.STOCK_MISSING_IMAGE, gtk.ICON_SIZE_MENU)
         self._pixbuf_original = None
         self._pixbuf = None
 
@@ -329,7 +367,8 @@ class RichTextImage (RichTextAnchor):
         if self.is_size_set():
             self.scale(self._size[0], self._size[1], True)
         else:
-            self._widget.set_from_pixbuf(self._pixbuf)
+            for widget in self.get_all_widgets().itervalues():
+                widget.set_from_pixbuf(self._pixbuf)
 
 
     
@@ -401,7 +440,8 @@ class RichTextImage (RichTextAnchor):
             if self._pixbuf != self._pixbuf_original:
                 self._pixbuf = self._pixbuf_original
                 if self._pixbuf is not None and set_widget:
-                    self._widget.set_from_pixbuf(self._pixbuf)
+                    for widget in self.get_all_widgets().itervalues():
+                        widget.set_from_pixbuf(self._pixbuf)
         
         elif self._pixbuf_original is not None:
             # perform scaling
@@ -420,7 +460,8 @@ class RichTextImage (RichTextAnchor):
                 width, height, gtk.gdk.INTERP_BILINEAR)
 
             if set_widget:
-                self._widget.set_from_pixbuf(self._pixbuf)
+                for widget in self.get_all_widgets.itervalues():
+                    widget.set_from_pixbuf(self._pixbuf)
 
         if self._buffer is not None:
             self._buffer.set_modified(True)
@@ -431,14 +472,18 @@ class RichTextImage (RichTextAnchor):
     # GUI callbacks
     
     def _on_image_destroy(self, widget):
-        self._widget = None
+        for key, value in self._widgets.iteritems():
+            if value == widget:
+                del self._widgets[key]
+                break
     
     def _on_clicked(self, widget, event):
         """Callback for when image is clicked"""
         
         if event.button == 1:
             # left click selects image
-            self._widget.grab_focus()
+            widget.grab_focus()
+            #self._widgets[None].grab_focus()
             self.emit("selected")
 
             if event.type == gtk.gdk._2BUTTON_PRESS:
@@ -550,14 +595,14 @@ class RichTextBuffer (RichTextBaseBuffer):
 
     It builds upon the features of RichTextBaseBuffer
     - maintains undo/redo stacks
-    - manages "current font" behavior
 
     Additional Features
     - manages specific child widget actions
       - images
       - horizontal rule
     - manages editing of indentation levels and bullet point lists
-    
+    - manages "current font" behavior    
+
     """
     
     def __init__(self, textview=None):
@@ -575,7 +620,7 @@ class RichTextBuffer (RichTextBaseBuffer):
 
         # set of all anchors in buffer
         self._anchors = set()
-        self._child_uninit = set()
+        #self._child_uninit = set()
 
         # anchors that still need to be added,
         # they are defferred because textview was not available at insert-time
@@ -759,7 +804,7 @@ class RichTextBuffer (RichTextBaseBuffer):
 
         # setup child
         self._anchors.add(child)
-        self._child_uninit.add(child)
+        #self._child_uninit.add(child)
         child.set_buffer(self)
         child.connect("activated", self._on_child_activated)
         child.connect("selected", self._on_child_selected)
@@ -789,9 +834,10 @@ class RichTextBuffer (RichTextBaseBuffer):
         if child.get_deleted():
             return
 
-        textview.add_child_at_anchor(child.get_widget(), child)
+        # TODO: eventually use real view
+        textview.add_child_at_anchor(child.get_widget(view=None), child)
         
-        child.get_widget().show()
+        child.get_widget(view=None).show()
         #print "added", child.get_widget()
 
     
@@ -806,7 +852,7 @@ class RichTextBuffer (RichTextBaseBuffer):
         self.begin_user_action()
         it = self.get_iter_at_mark(self.get_insert())
         self.add_child(it, image)
-        image.get_widget().show()
+        image.show()
         self.end_user_action()
 
 
@@ -963,29 +1009,19 @@ class RichTextBuffer (RichTextBaseBuffer):
                 else:
                     child.unhighlight()
 
-                w = child.get_widget()
-                if w:
-                    top = w.get_toplevel()
-                    if top:
-                        f = top.get_focus()
-                        if f:
-                            focus = f
+                for w in child.get_all_widgets().itervalues():
+                    if w:
+                        top = w.get_toplevel()
+                        if top:
+                            f = top.get_focus()
+                            if f:
+                                focus = f
             if focus:
                 focus.grab_focus()
         else:
             # no selection, unselect all children
             for child in self._anchors:
                 child.unhighlight()
-
-
-    # TODO: need to overload get_font to be indent aware
-    #def get_font(self, font=None):
-    #    """Get font under cursor"""
-    #
-    #    if font is None:
-    #        font = RichTextFont()
-    #    return RichTextBaseBuffer.get_font(self, font)
-
 
 
 
@@ -996,7 +1032,6 @@ gobject.signal_new("child-activated", RichTextBuffer, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, (object,))
 gobject.signal_new("child-menu", RichTextBuffer, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, (object, object, object))
-#gobject.type_register(RichTextBaseBuffer)
 gobject.signal_new("font-change", RichTextBuffer, gobject.SIGNAL_RUN_LAST, 
                    gobject.TYPE_NONE, (object,))
 
