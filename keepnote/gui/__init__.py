@@ -45,10 +45,15 @@ _colors = ["", "-red", "-orange", "-yellow",
 builtin_icons = ["folder" + c + ".png" for c in _colors] + \
                 ["folder" + c + "-open.png" for c in _colors] + \
                 ["note" + c + ".png" for c in _colors] + \
-                ["note-plain-text.png",
-                 "note-unknown.png",
-                 "note-delete.png",
-                 "folder-delete.png"]
+                ["star.png",
+                 "heart.png",
+                 "check.png",
+                 "x.png",
+
+                 "important.png",
+                 "question.png",
+                 "web.png",
+                 "note-unknown.png"]
 
 DEFAULT_QUICK_PICK_ICONS = ["folder" + c + ".png" for c in _colors] + \
                            ["note" + c + ".png" for c in _colors] + \
