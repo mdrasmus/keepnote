@@ -1802,11 +1802,6 @@ class KeepNoteWindow (gtk.Window):
             ("/Help/Drag and Drop Test...",
                 None, lambda w,e: self.drag_test.on_drag_and_drop_test(),
                 0, None),
-            #("/Help/Wait dialog...",
-            # None, lambda w,e: self.wait_dialog("title",
-            #                                    "message message message message message message message message message message message message message message message message message message message message message message\n message message message message ",
-            #                        lambda w,e: self.wait_dialog_test_task()),
-            # 0, None),
             ("/Help/sep1", None, None, 0, "<Separator>"),
             ("/Help/About", None, lambda w,e: self.on_about(), 0, None ),
             ]
@@ -1963,8 +1958,16 @@ class KeepNoteWindow (gtk.Window):
         item.show()
         menu.append(item)
 
+
     def make_node_menu(self, menu, control):
         """make list of menu options for nodes"""
+
+        if control == "treeview":            
+            widget = self.treeview
+        elif control == "listview":
+            widget = self.listview
+        else:
+            raise Exception("unknown control '%s'" % control)
 
         # treeview/new folder
         item = gtk.ImageMenuItem()        
@@ -1992,14 +1995,17 @@ class KeepNoteWindow (gtk.Window):
 
         # treeview/delete node
         item = gtk.ImageMenuItem(gtk.STOCK_DELETE)
-        if control == "treeview":
-            item.connect("activate", lambda w: self.treeview.on_delete_node())
-        elif control == "listview":
-            item.connect("activate", lambda w: self.listview.on_delete_node())
-        else:
-            raise Exception("unknown control '%s'" % control)
+        item.connect("activate", lambda w: widget.on_delete_node())
         menu.append(item)
         item.show()
+
+        # rename node
+        item = gtk.MenuItem("_Rename")
+        item.connect("activate", lambda w:
+                     widget.edit_node(widget.get_selected_nodes()[0]))
+        menu.add(item)
+        item.show()
+        
 
         # change icon
         item = gtk.ImageMenuItem()
