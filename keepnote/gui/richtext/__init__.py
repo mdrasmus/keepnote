@@ -275,17 +275,19 @@ class RichTextIO (object):
 class RichTextView (gtk.TextView):
     """A RichText editor widget"""
 
-    def __init__(self):
-        gtk.TextView.__init__(self, None)
+    def __init__(self, textbuffer=None):
+        gtk.TextView.__init__(self, textbuffer)
         
         self._textbuffer = None
         self._buffer_callbacks = []
         self._clipboard_contents = None
-        self._blank_buffer = RichTextBuffer(self)
+        self._blank_buffer = RichTextBuffer()
         self._popup_menu = None
         self._html_buffer = HtmlBuffer()
-        
-        self.set_buffer(RichTextBuffer(self))
+
+        if textbuffer is None:
+            textbuffer = RichTextBuffer() 
+        self.set_buffer(textbuffer)
         self.set_default_font(DEFAULT_FONT)
         
         

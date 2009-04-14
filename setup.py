@@ -58,6 +58,11 @@ def get_image_files(image_dir):
                         for x in os.listdir(image_dir))
             if os.path.isfile(y)]
 
+def get_resource_files(rc_dir):
+    return [os.path.join(rc_dir, y) 
+            for y in os.listdir(rc_dir)
+            if y.endswith(".glade") or y.endswith(".png")]
+
 def remove_package_dir(filename):
     i = filename.index("/")
     return filename[i+1:]
@@ -67,7 +72,7 @@ def remove_package_dir(filename):
 # resource files/data
 
 # get resources
-resource_files = ["keepnote/rc/keepnote.glade"]
+resource_files = get_resource_files("keepnote/rc")
 image_files = get_image_files("keepnote/images")
 node_icons = get_image_files("keepnote/images/node_icons")
 efiles = get_extension_files()

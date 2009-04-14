@@ -242,12 +242,7 @@ class RichTextImage (RichTextAnchor):
         self._pixbuf_original = None
         self._size = [None, None]
         self._save_needed = False
-
-        #self.add_view(None)
-        #self._widgets = {None: BaseImage()}
-        #self._widgets[None].connect("destroy", self._on_image_destroy)
-        #self._widgets[None].connect("button-press-event", self._on_clicked)
-
+        
 
     def __del__(self):
         for widget in self._widgets:
@@ -611,7 +606,7 @@ class RichTextBuffer (RichTextBaseBuffer):
 
     """
     
-    def __init__(self, textview=None):
+    def __init__(self):
         RichTextBaseBuffer.__init__(self, RichTextTagTable())
 
         # indentation handler
