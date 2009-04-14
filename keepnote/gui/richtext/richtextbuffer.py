@@ -149,15 +149,11 @@ class RichTextSep (BaseWidget):
         
         self._resizes_id = None
 
-        #width = 400
-        #height = 1
-        #color = 0 # black
-        #padding = 5
-
         #pixbuf = gdk.Pixbuf(gdk.COLORSPACE_RGB, False, 8, width, height)
         #pixbuf.fill(color)
         #self._widget.set_from_pixbuf(pixbuf)
         #self._widget.img.set_padding(0, padding)
+
 
     def _on_parent_set(self, widget, old_parent):
         """Callback for changing parent"""
@@ -198,8 +194,12 @@ class RichTextSep (BaseWidget):
 class RichTextHorizontalRule (RichTextAnchor):
     def __init__(self):
         RichTextAnchor.__init__(self)
-        self._widgets[None] = RichTextSep()
-        self._widgets[None].show()
+        #self.add_view(None)
+
+    def add_view(self, view):
+        self._widgets[view] = RichTextSep()
+        self._widgets[view].show()
+        return self._widgets[view]
         
     def copy(self):
         return RichTextHorizontalRule()
@@ -212,6 +212,7 @@ class BaseImage (BaseWidget):
     def __init__(self, *args, **kargs):
         BaseWidget.__init__(self)
         self._img = gtk.Image(*args, **kargs)
+        self._img.show()
         self.add(self._img)
     
     def highlight(self):
@@ -242,7 +243,7 @@ class RichTextImage (RichTextAnchor):
         self._size = [None, None]
         self._save_needed = False
 
-        self.add_widget(view=None)
+        #self.add_view(None)
         #self._widgets = {None: BaseImage()}
         #self._widgets[None].connect("destroy", self._on_image_destroy)
         #self._widgets[None].connect("button-press-event", self._on_clicked)
@@ -250,15 +251,19 @@ class RichTextImage (RichTextAnchor):
 
     def __del__(self):
         for widget in self._widgets:
-            if widget:
-                widget.disconnect("destroy")
-                widget.disconnect("button-press-event")
+            widget.disconnect("destroy")
+            widget.disconnect("button-press-event")
 
 
-    def add_widget(self, view=None):
+    def add_view(self, view):
         self._widgets[view] = BaseImage()
         self._widgets[view].connect("destroy", self._on_image_destroy)
         self._widgets[view].connect("button-press-event", self._on_clicked)
+
+        if self._pixbuf is not None:
+            self._widgets[view].set_from_pixbuf(self._pixbuf)
+        
+        return self._widgets[view]
 
 
     def is_valid(self):
@@ -309,8 +314,9 @@ class RichTextImage (RichTextAnchor):
         img._size = list(self.get_size())
         
         if self._pixbuf:
-            for widget in img.get_all_widgets().itervalues():
-                widget.set_from_pixbuf(self._pixbuf)
+            # TODO: this loop will not be necessary when add_view() is complete
+            #for widget in img.get_all_widgets().itervalues():
+            #    widget.set_from_pixbuf(self._pixbuf)
             img._pixbuf = self._pixbuf
             img._pixbuf_original = self._pixbuf_original
         else:
@@ -804,7 +810,6 @@ class RichTextBuffer (RichTextBaseBuffer):
 
         # setup child
         self._anchors.add(child)
-        #self._child_uninit.add(child)
         child.set_buffer(self)
         child.connect("activated", self._on_child_activated)
         child.connect("selected", self._on_child_selected)
@@ -835,9 +840,11 @@ class RichTextBuffer (RichTextBaseBuffer):
             return
 
         # TODO: eventually use real view
-        textview.add_child_at_anchor(child.get_widget(view=None), child)
-        
-        child.get_widget(view=None).show()
+        widget = child.add_view(textview)
+        textview.add_child_at_anchor(widget, child)
+
+        child.show()
+        #widget.show_all()
         #print "added", child.get_widget()
 
     

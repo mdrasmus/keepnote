@@ -1,16 +1,16 @@
 [Setup]
 AppName=KeepNote
-AppVerName=KeepNote 0.5.2
+AppVerName=KeepNote 0.5.3
 AppPublisher=Matt Rasmussen
 AppPublisherURL=http://rasm.ods.org/keepnote
 DefaultDirName={pf}\KeepNote
 DefaultGroupName=KeepNote
 DisableProgramGroupPage=true
-OutputBaseFilename=keepnote-0.5.2
+OutputBaseFilename=keepnote-0.5.3
 Compression=lzma
 SolidCompression=true
 AllowUNCPath=false
-VersionInfoVersion=0.5.2
+VersionInfoVersion=0.5.3
 VersionInfoCompany=Matt Rasmussen
 VersionInfoDescription=KeepNote
 ChangesAssociations=yes
@@ -25,7 +25,7 @@ WizardSmallImageFile=keepnote\images\keepnote-48x48.bmp
 Name: {app}; Flags: uninsalwaysuninstall;
 
 [Files]
-Source: dist\keepnote-0.5.2.win\*; DestDir: {app}; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: dist\keepnote-0.5.3.win\*; DestDir: {app}; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: {group}\KeepNote; Filename: {app}\keepnote.exe; WorkingDir: {app}

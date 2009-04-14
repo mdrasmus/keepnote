@@ -40,8 +40,11 @@ class RichTextAnchor (gtk.TextChildAnchor):
     
     def __init__(self):
         gtk.TextChildAnchor.__init__(self)
-        self._widgets = {None: None}
+        self._widgets = {} #None: None}
         self._buffer = None
+
+    def add_view(self, view):
+        return None
     
     def get_widget(self, view=None):
         return self._widgets[view]

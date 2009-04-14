@@ -9,7 +9,7 @@
 
 
 # python imports
-import os, sys, shutil, time, re, imp, subprocess
+import os, sys, shutil, time, re, imp, subprocess, tempfile
 import xml.dom.minidom as xmldom
 import xml.dom
 
@@ -35,7 +35,7 @@ import tarfile
 PROGRAM_NAME = "KeepNote"
 PROGRAM_VERSION_MAJOR = 0
 PROGRAM_VERSION_MINOR = 5
-PROGRAM_VERSION_RELEASE = 2
+PROGRAM_VERSION_RELEASE = 3
 
 if PROGRAM_VERSION_RELEASE != 0:
     PROGRAM_VERSION_TEXT = "%d.%d.%d" % (PROGRAM_VERSION_MAJOR,
@@ -45,19 +45,19 @@ else:
     PROGRAM_VERSION_TEXT = "%d.%d" % (PROGRAM_VERSION_MAJOR,
                                       PROGRAM_VERSION_MINOR)
 
-WEBSITE = "http://rasm.ods.org/keepnote"
+WEBSITE = u"http://rasm.ods.org/keepnote"
 
 
-BASEDIR = ""
-IMAGE_DIR = "images"
-NODE_ICON_DIR = os.path.join(IMAGE_DIR, "node_icons")
+BASEDIR = u""
+IMAGE_DIR = u"images"
+NODE_ICON_DIR = os.path.join(IMAGE_DIR, u"node_icons")
 PLATFORM = None
 
-USER_PREF_DIR = "takenote"
-USER_PREF_FILE = "takenote.xml"
-USER_ERROR_LOG = "error-log.txt"
-USER_EXTENSIONS_DIR = "extensions"
-XDG_USER_EXTENSIONS_DIR = "takenote/extensions"
+USER_PREF_DIR = u"takenote"
+USER_PREF_FILE = u"takenote.xml"
+USER_ERROR_LOG = u"error-log.txt"
+USER_EXTENSIONS_DIR = u"extensions"
+XDG_USER_EXTENSIONS_DIR = u"takenote/extensions"
 
 
 DEFAULT_WINDOW_SIZE = (800, 600)
@@ -648,14 +648,17 @@ class KeepNote (object):
 
     
     def __init__(self, basedir=""):
-        set_basedir(basedir)        
-        self.basedir = basedir
+
+        # base directory of keepnote library
+        set_basedir(basedir)
+        self._basedir = basedir
         
         # load application preferences
         self.pref = KeepNotePreferences()
         self.pref.read()
 
-        self.window = None
+        # list of application windows
+        self._windows = []
         
         # get extensions list
         self._extensions = {}
@@ -668,17 +671,23 @@ class KeepNote (object):
     def show_main_window(self):
         """show main window"""
         from keepnote.gui import main_window
-        self.window = main_window.KeepNoteWindow(self)
-        self.init_extensions_window()
+
+        window = main_window.KeepNoteWindow(self)        
+        self._windows.append(window)
         
-        self.window.show_all()
+        self.init_extensions_window(window)
+        window.show_all()
+
+        return window
 
         
-    def open_notebook(self, filename):
+    def open_notebook(self, filename, window=None):
         """Open notebook in window"""
-        if self.window is None:
-            self.show_main_window()
-        self.window.open_notebook(filename)
+        if len(self._windows) == 0:
+            window = self.show_main_window()
+        if window is None:
+            window = self._windows[-1]
+        window.open_notebook(filename)
 
 
     def run_external_app(self, app_key, filename, wait=False):
@@ -721,8 +730,39 @@ class KeepNote (object):
 
         if url:
             self.run_external_app("web_browser", url)
+
         
+    def take_screenshot(self, filename):
+
+        if get_platform() == "windows":
+            # use win32api to take screenshot
+            # create temp file
+
+            import screenshot_win
             
+            f, imgfile = tempfile.mkstemp(".bmp", filename)
+            os.close(f)
+            screenshot_win.take_screenshot(imgfile)
+        else:
+            # use external app for screen shot
+            screenshot = self.pref.get_external_app("screen_shot")
+            if screenshot is None or screenshot.prog == "":
+                raise Exception("You must specify a Screen Shot program in Application Options")
+
+            # create temp file
+            f, imgfile = tempfile.mkstemp(".png", filename)
+            os.close(f)
+
+            proc = subprocess.Popen([screenshot.prog, imgfile])
+            if proc.wait() != 0:
+                raise OSError("Exited with error")
+
+        if not os.path.exists(imgfile):
+            # catch error if image is not created
+            raise Exception("The screenshot program did not create the necessary image file '%s'" % imgfile)
+
+        return imgfile            
+
 
     #================================
     # extensions
@@ -747,13 +787,13 @@ class KeepNote (object):
             raise KeepNotePreferenceError("\n".join(str(e) for e in errors))
 
 
-    def init_extensions_window(self):
+    def init_extensions_window(self, window):
         errors = []
         
         for name in self._extensions:
             try:
                 ext = self.get_extension(name)
-                ext.on_new_window(self.window)
+                ext.on_new_window(window)
                 
             except KeepNotePreferenceError,e :
                 errors.append(e)

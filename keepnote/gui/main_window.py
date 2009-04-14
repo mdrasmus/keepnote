@@ -45,7 +45,6 @@ from keepnote.gui.richtext import RichTextView, RichTextImage, RichTextError
 from keepnote.gui.treeview import KeepNoteTreeView
 from keepnote.gui.listview import KeepNoteListView
 from keepnote.gui import \
-    screenshot_win, \
     dialog_app_options, \
     dialog_find, \
     dialog_drag_drop_test, \
@@ -1202,34 +1201,6 @@ class KeepNoteWindow (gtk.Window):
     #==================================================
     # Image/screenshot actions
 
-    def take_screenshot(self, filename):
-
-        if keepnote.get_platform() == "windows":
-            # use win32api to take screenshot
-            # create temp file
-            f, imgfile = tempfile.mkstemp(".bmp", filename)
-            os.close(f)
-            screenshot_win.take_screenshot(imgfile)
-        else:
-            # use external app for screen shot
-            screenshot = self.app.pref.get_external_app("screen_shot")
-            if screenshot is None or screenshot.prog == "":
-                raise Exception("You must specify a Screen Shot program in Application Options")
-
-            # create temp file
-            f, imgfile = tempfile.mkstemp(".png", filename)
-            os.close(f)
-
-            proc = subprocess.Popen([screenshot.prog, imgfile])
-            if proc.wait() != 0:
-                raise OSError("Exited with error")
-
-        if not os.path.exists(imgfile):
-            # catch error if image is not created
-            raise Exception("The screenshot program did not create the necessary image file '%s'" % imgfile)
-
-        return imgfile
-
 
     def on_screenshot(self):
         """Take and insert a screen shot image"""
@@ -1244,7 +1215,7 @@ class KeepNoteWindow (gtk.Window):
         self.minimize_window()
         
         try:
-            imgfile = self.take_screenshot("keepnote")
+            imgfile = self.app.take_screenshot("keepnote")
             self.restore_window()
             
             # insert image

@@ -31,6 +31,8 @@ ACCEL_FILE = "accel.txt"
 
 # globals
 _g_pixbufs = {}
+
+
 _g_default_node_icon_filenames = {
     notebooklib.CONTENT_TYPE_TRASH: ("trash.png", "trash.png"),
     notebooklib.CONTENT_TYPE_DIR: ("folder.png", "folder-open.png"),
