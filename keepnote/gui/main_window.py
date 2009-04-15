@@ -65,7 +65,145 @@ CONTEXT_MENU_ACCEL_PATH = "<main>/context_menu"
 class ThreePaneViewer (gtk.HBox):
 
     def __init__(self, app, main_window):
-        pass
+
+        self.app = app
+        self.main_window = main_window
+
+        # node selections        
+        self._current_page = None     # current page in editor
+        self._treeview_sel_nodes = [] # current selected nodes in treeview
+        self._queue_list_select = []   # nodes to select in listview after treeview change
+
+
+        # treeview
+        self.treeview = KeepNoteTreeView()
+        self.treeview.connect("select-nodes", self.on_tree_select)
+        self.treeview.connect("error", lambda w,t,e: self.main_window.error(t, e))
+        self.treeview.connect("edit-title", self.main_window.on_edit_title)
+        
+        # listview
+        self.listview = KeepNoteListView()
+        self.listview.connect("select-nodes", self.on_list_select)
+        self.listview.connect("goto-node", self.on_list_view_node)
+        self.listview.connect("goto-parent-node",
+                              lambda w: self.on_list_view_parent_node())
+        self.listview.connect("error", lambda w,t,e: self.main_window.error(t, e))
+        self.listview.connect("edit-title", self.main_window.on_edit_title)
+        self.listview.on_status = self.main_window.set_status
+        
+        
+        
+        # editor
+        self.editor = KeepNoteEditor(self.app)
+        self.editor_menus = EditorMenus(self.editor)
+        self.editor_menus.connect("make-link", self.on_make_link)
+        self.editor.connect("font-change", self.editor_menus.on_font_change)
+        self.editor.connect("modified", self.main_window.on_page_editor_modified)
+        self.editor.connect("error", lambda w,t,e: self.main_window.error(t, e))
+        self.editor.connect("child-activated", self.main_window.on_child_activated)
+        self.editor.view_pages([])
+
+        self.editor_pane = gtk.VBox(False, 5)#Paned()
+        #self.editor_pane.add1(self.editor)
+        self.editor_pane.pack_start(self.editor, True, True, 0)
+
+        self.link_editor = LinkEditor()
+        self.link_editor.set_textview(self.editor.get_textview())
+        self.editor.connect("font-change", self.link_editor.on_font_change)
+        #self.editor_pane.add2(self.link_editor)
+        self.editor_pane.pack_start(self.link_editor, False, True, 0)
+
+
+
+    def on_make_link(self, editor_menu):
+        self.link_editor.edit()
+
+        
+    def on_tree_select(self, treeview, nodes):
+        """Callback for treeview selection change"""
+
+        # do nothing if selection is unchanged
+        if self._treeview_sel_nodes == nodes:
+            return
+
+        # remember which nodes are selected in the treeview
+        self._treeview_sel_nodes = nodes
+
+        # view the children of these nodes in the listview
+        self.listview.view_nodes(nodes)
+
+        # if nodes are queued for selection in listview (via goto parent)
+        # then select them here
+        if len(self._queue_list_select) > 0:
+            self.listview.select_nodes(self._queue_list_select)
+            self._queue_list_select = []
+        
+        # make sure nodes are also selected in listview
+        self.listview.select_nodes(nodes)
+
+    
+    def on_list_select(self, listview, pages):
+        """Callback for listview selection change"""
+
+        # TODO: will need to generalize to multiple pages
+
+        # remember the selected node
+        if len(pages) > 0:
+            self._current_page = pages[0]
+        else:
+            self._current_page = None
+        
+        try:
+            self.editor.view_pages(pages)
+        except RichTextError, e:
+            self.error("Could not load page '%s'" % pages[0].get_title(),
+                       e, sys.exc_info()[2])
+
+    def on_list_view_node(self, listview, node):
+        """Focus listview on a node"""
+        if node is None:
+            nodes = self.listview.get_selected_nodes()
+            if len(nodes) == 0:
+                return
+            node = nodes[0]
+        
+        self.treeview.select_nodes([node])
+
+
+    def on_list_view_parent_node(self, node=None):
+        """Focus listview on a node's parent"""
+
+        # get node
+        if node is None:
+            if len(self._treeview_sel_nodes) == 0:
+                return
+            if len(self._treeview_sel_nodes) > 1 or \
+               not self.listview.is_view_tree():
+                nodes = self.listview.get_selected_nodes()
+                if len(nodes) == 0:
+                    return
+                node = nodes[0]
+            else:
+                node = self._treeview_sel_nodes[0]
+
+        # get parent
+        parent = node.get_parent()
+        if parent is None:
+            return
+
+        # queue list select
+        nodes = self.listview.get_selected_nodes()
+        if len(nodes) > 0:
+            self._queue_list_select = nodes
+        else:
+            self._queue_list_select = [node]
+
+        # select parent
+        self.treeview.select_nodes([parent])
+
+
+    def get_current_page(self):
+        return self._current_page
 
 
 class KeepNoteWindow (gtk.Window):
@@ -77,16 +215,13 @@ class KeepNoteWindow (gtk.Window):
         self.app = app           # application object
         self.notebook = None     # opened notebook
 
-        # node selections
-        self._treeview_sel_nodes = [] # current selected nodes in treeview
-        self._current_page = None     # current page in editor
 
         # window state
         self._maximized = False   # True if window is maximized
         self._iconified = False   # True if window is minimized
         self.tray_icon = None
         
-        self._queue_list_select = []   # nodes to select in listview after treeview change
+        
         self._ignore_view_mode = False # prevent recursive view mode changes
         self._new_page_occurred = False
 
@@ -119,44 +254,14 @@ class KeepNoteWindow (gtk.Window):
         # TODO: move three widgets into viewer
         self.viewer = ThreePaneViewer(self.app, self)
 
-        # treeview
-        self.treeview = KeepNoteTreeView()
-        self.treeview.connect("select-nodes", self.on_tree_select)
-        self.treeview.connect("error", lambda w,t,e: self.error(t, e))
-        self.treeview.connect("edit-title", self.on_edit_title)
+        self.treeview = self.viewer.treeview
+        self.listview = self.viewer.listview
+        self.editor = self.viewer.editor
+        self._editor_menus = self.viewer.editor_menus
+        self.editor_pane = self.viewer.editor_pane
+        self.link_editor = self.viewer.link_editor
+        self.editor_pane = self.viewer.editor_pane
         
-        # listview
-        self.listview = KeepNoteListView()
-        self.listview.connect("select-nodes", self.on_list_select)
-        self.listview.connect("goto-node", self.on_list_view_node)
-        self.listview.connect("goto-parent-node",
-                              lambda w: self.on_list_view_parent_node())
-        self.listview.connect("error", lambda w,t,e: self.error(t, e))
-        self.listview.connect("edit-title", self.on_edit_title)
-        self.listview.on_status = self.set_status
-        
-        
-        
-        # editor
-        self.editor = KeepNoteEditor(self.app)
-        self._editor_menus = EditorMenus(self.editor)
-        self._editor_menus.connect("make-link", self.on_make_link)
-        self.editor.connect("font-change", self._editor_menus.on_font_change)
-        self.editor.connect("modified", self.on_page_editor_modified)
-        self.editor.connect("error", lambda w,t,e: self.error(t, e))
-        self.editor.connect("child-activated", self.on_child_activated)
-        self.editor.view_pages([])
-
-        self.editor_pane = gtk.VBox(False, 5)#Paned()
-        #self.editor_pane.add1(self.editor)
-        self.editor_pane.pack_start(self.editor, True, True, 0)
-
-        self.link_editor = LinkEditor()
-        self.link_editor.set_textview(self.editor.get_textview())
-        self.editor.connect("font-change", self.link_editor.on_font_change)
-        #self.editor_pane.add2(self.link_editor)
-        self.editor_pane.pack_start(self.link_editor, False, True, 0)
-
         
         #====================================
         # Dialogs
@@ -261,6 +366,10 @@ class KeepNoteWindow (gtk.Window):
             
         else:
             self.tray_icon = None
+
+
+    def get_current_page(self):
+        return self.viewer.get_current_page()
         
 
     #=================================================
@@ -404,11 +513,11 @@ class KeepNoteWindow (gtk.Window):
         self.app.pref.window_maximized = self._maximized
 
         # TODO: assumes one selected treeview node
-        if len(self._treeview_sel_nodes) > 0:            
-            self.app.pref.last_treeview_name_path = \
-                self._treeview_sel_nodes[0].get_name_path()
-        else:
-            self.app.pref.last_treeview_name_path = []
+        #if len(self._treeview_sel_nodes) > 0:            
+        #    self.app.pref.last_treeview_name_path = \
+        #        self._treeview_sel_nodes[0].get_name_path()
+        #else:
+        self.app.pref.last_treeview_name_path = []
         
         self.app.pref.write()
         
@@ -679,88 +788,11 @@ class KeepNoteWindow (gtk.Window):
     #=============================================================
     # Treeview, listview, editor callbacks
     
-    
-    def on_tree_select(self, treeview, nodes):
-        """Callback for treeview selection change"""
-
-        # do nothing if selection is unchanged
-        if self._treeview_sel_nodes == nodes:
-            return
-
-        # remember which nodes are selected in the treeview
-        self._treeview_sel_nodes = nodes
-
-        # view the children of these nodes in the listview
-        self.listview.view_nodes(nodes)
-
-        # if nodes are queued for selection in listview (via goto parent)
-        # then select them here
-        if len(self._queue_list_select) > 0:
-            self.listview.select_nodes(self._queue_list_select)
-            self._queue_list_select = []
-        
-        # make sure nodes are also selected in listview
-        self.listview.select_nodes(nodes)
-
-    
-    def on_list_select(self, listview, pages):
-        """Callback for listview selection change"""
-
-        # TODO: will need to generalize to multiple pages
-
-        # remember the selected node
-        if len(pages) > 0:
-            self._current_page = pages[0]
-        else:
-            self._current_page = None
-        
-        try:
-            self.editor.view_pages(pages)
-        except RichTextError, e:
-            self.error("Could not load page '%s'" % pages[0].get_title(),
-                       e, sys.exc_info()[2])
-
     def on_list_view_node(self, listview, node):
-        """Focus listview on a node"""
-        if node is None:
-            nodes = self.listview.get_selected_nodes()
-            if len(nodes) == 0:
-                return
-            node = nodes[0]
-        
-        self.treeview.select_nodes([node])
-
+        return self.viewer.on_list_view_node(listview, node)
 
     def on_list_view_parent_node(self, node=None):
-        """Focus listview on a node's parent"""
-
-        # get node
-        if node is None:
-            if len(self._treeview_sel_nodes) == 0:
-                return
-            if len(self._treeview_sel_nodes) > 1 or \
-               not self.listview.is_view_tree():
-                nodes = self.listview.get_selected_nodes()
-                if len(nodes) == 0:
-                    return
-                node = nodes[0]
-            else:
-                node = self._treeview_sel_nodes[0]
-
-        # get parent
-        parent = node.get_parent()
-        if parent is None:
-            return
-
-        # queue list select
-        nodes = self.listview.get_selected_nodes()
-        if len(nodes) > 0:
-            self._queue_list_select = nodes
-        else:
-            self._queue_list_select = [node]
-
-        # select parent
-        self.treeview.select_nodes([parent])
+        return self.viewer.on_list_view_parent_node(node)
 
         
     def on_page_editor_modified(self, editor, page, modified):
@@ -1061,7 +1093,8 @@ class KeepNoteWindow (gtk.Window):
         """Take and insert a screen shot image"""
 
         # do nothing if no page is selected
-        if self._current_page is None:
+        current_page = self.get_current_page()
+        if current_page is None:
             return
 
         imgfile = ""
@@ -1098,7 +1131,7 @@ class KeepNoteWindow (gtk.Window):
 
     def on_insert_hr(self):
         """Insert horizontal rule into editor"""
-        if self._current_page is None:
+        if self.get_current_page() is None:
             return
         
         self.editor.get_textview().insert_hr()
@@ -1106,7 +1139,8 @@ class KeepNoteWindow (gtk.Window):
         
     def on_insert_image(self):
         """Displays the Insert Image Dialog"""
-        if self._current_page is None:
+        current_page = self.get_current_page()
+        if current_page is None:
             return
                   
         dialog = gtk.FileChooserDialog("Insert Image From File", self, 
@@ -1146,7 +1180,8 @@ class KeepNoteWindow (gtk.Window):
     def insert_image(self, filename, savename="image.png"):
         """Inserts an image into the text editor"""
 
-        if self._current_page is None:
+        current_page = self.get_current_page()
+        if current_page is None:
             return
         
         pixbuf = gdk.pixbuf_new_from_file(filename)
@@ -1155,12 +1190,6 @@ class KeepNoteWindow (gtk.Window):
         self.editor.get_textview().insert_image(img, savename)
 
 
-    #================================================
-    # links
-
-    def on_make_link(self, editor_menu):
-        self.link_editor.edit()
-        
 
 
     #=================================================
@@ -1169,7 +1198,8 @@ class KeepNoteWindow (gtk.Window):
     def on_view_image(self, menuitem):
         """View image in Image Viewer"""
 
-        if self._current_page is None:
+        current_page = self.get_current_page()
+        if current_page is None:
             return
         
         # get image filename
@@ -1178,7 +1208,8 @@ class KeepNoteWindow (gtk.Window):
         
 
     def view_image(self, image_filename):
-        image_path = os.path.join(self._current_page.get_path(), image_filename)
+        current_page = self.get_current_page()
+        image_path = os.path.join(current_page.get_path(), image_filename)
         viewer = self.app.pref.get_external_app("image_viewer")
         
         if viewer is not None:
@@ -1193,13 +1224,14 @@ class KeepNoteWindow (gtk.Window):
     def on_edit_image(self, menuitem):
         """Edit image in Image Editor"""
 
-        if self._current_page is None:
+        current_page = self.get_current_page()
+        if current_page is None:
             return
         
         # get image filename
         image_filename = menuitem.get_parent().get_child().get_filename()
 
-        image_path = os.path.join(self._current_page.get_path(), image_filename)
+        image_path = os.path.join(current_page.get_path(), image_filename)
         editor = self.app.pref.get_external_app("image_editor")
     
         if editor is not None:
@@ -1213,8 +1245,9 @@ class KeepNoteWindow (gtk.Window):
 
     def on_resize_image(self, menuitem):
         """Resize image"""
-        
-        if self._current_page is None:
+
+        current_page = self.get_current_page()
+        if current_page is None:
             return
         
         image = menuitem.get_parent().get_child()
@@ -1224,14 +1257,15 @@ class KeepNoteWindow (gtk.Window):
 
     def on_save_image_as(self, menuitem):
         """Save image as a new file"""
-        
-        if self._current_page is None:
+
+        current_page = self.get_current_page()
+        if current_page is None:
             return
         
         # get image filename
         image = menuitem.get_parent().get_child()
         image_filename = menuitem.get_parent().get_child().get_filename()
-        image_path = os.path.join(self._current_page.get_path(), image_filename)
+        image_path = os.path.join(current_page.get_path(), image_filename)
 
         dialog = gtk.FileChooserDialog("Save Image As...", self, 
             action=gtk.FILE_CHOOSER_ACTION_SAVE,
