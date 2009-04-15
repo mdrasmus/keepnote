@@ -689,7 +689,7 @@ class NoteBookNode (object):
         self.notify_change(False)
 
 
-    def new_child(self, content_type, title):
+    def new_child(self, content_type, title, index=None):
         """Add a new node under this node"""
         
         path = self.get_path()
@@ -697,7 +697,7 @@ class NoteBookNode (object):
         node = self._notebook.new_node(content_type, newpath, self, {})
 
         node.create()
-        self._add_child(node)
+        self._add_child(node, index)
         node.save(True)
         self.notify_change(True)
         return node    

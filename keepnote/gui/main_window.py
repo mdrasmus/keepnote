@@ -54,195 +54,12 @@ from keepnote.gui import \
     dialog_node_icon
 from keepnote.gui.editor import KeepNoteEditor, EditorMenus
 from keepnote.gui.icon_menu import IconMenu
-from keepnote.gui.link_editor import LinkEditor
+from keepnote.gui.three_pane_viewer import ThreePaneViewer
 
 from keepnote import tasklib
 
 
 CONTEXT_MENU_ACCEL_PATH = "<main>/context_menu"
-
-
-class ThreePaneViewer (gtk.VBox):
-
-    def __init__(self, app, main_window):
-        gtk.VBox.__init__(self, False, 0)
-
-        self.app = app
-        self.main_window = main_window
-
-        # node selections        
-        self._current_page = None     # current page in editor
-        self._treeview_sel_nodes = [] # current selected nodes in treeview
-        self._queue_list_select = []   # nodes to select in listview after treeview change
-
-
-        #=========================================
-        # widgets
-        
-        # treeview
-        self.treeview = KeepNoteTreeView()
-        self.treeview.connect("select-nodes", self.on_tree_select)
-        self.treeview.connect("error", lambda w,t,e: self.main_window.error(t, e))
-        self.treeview.connect("edit-title", self.main_window.on_edit_title)
-        
-        # listview
-        self.listview = KeepNoteListView()
-        self.listview.connect("select-nodes", self.on_list_select)
-        self.listview.connect("goto-node", self.on_list_view_node)
-        self.listview.connect("goto-parent-node",
-                              lambda w: self.on_list_view_parent_node())
-        self.listview.connect("error", lambda w,t,e: self.main_window.error(t, e))
-        self.listview.connect("edit-title", self.main_window.on_edit_title)
-        self.listview.on_status = self.main_window.set_status
-        
-        
-        
-        # editor
-        self.editor = KeepNoteEditor(self.app)
-        self.editor_menus = EditorMenus(self.editor)
-        self.editor_menus.connect("make-link", self.on_make_link)
-        self.editor.connect("font-change", self.editor_menus.on_font_change)
-        self.editor.connect("modified", self.main_window.on_page_editor_modified)
-        self.editor.connect("error", lambda w,t,e: self.main_window.error(t, e))
-        self.editor.connect("child-activated", self.main_window.on_child_activated)
-        self.editor.view_pages([])
-
-        self.editor_pane = gtk.VBox(False, 5)
-        self.editor_pane.pack_start(self.editor, True, True, 0)
-
-        self.link_editor = LinkEditor()
-        self.link_editor.set_textview(self.editor.get_textview())
-        self.editor.connect("font-change", self.link_editor.on_font_change)
-        self.editor_pane.pack_start(self.link_editor, False, True, 0)
-
-
-        #=====================================
-        # layout
-
-        # create a horizontal paned widget
-        self.hpaned = gtk.HPaned()
-        self.pack_start(self.hpaned, True, True, 0)
-        self.hpaned.set_position(keepnote.DEFAULT_HSASH_POS)
-
-                
-        # layout major widgets
-        self.paned2 = gtk.VPaned()
-        self.hpaned.add2(self.paned2)
-        self.paned2.set_position(keepnote.DEFAULT_VSASH_POS)
-        
-        # treeview and scrollbars
-        sw = gtk.ScrolledWindow()
-        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        sw.set_shadow_type(gtk.SHADOW_IN)
-        sw.add(self.treeview)
-        self.hpaned.add1(sw)
-        
-        # listview with scrollbars
-        self.listview_sw = gtk.ScrolledWindow()
-        self.listview_sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        self.listview_sw.set_shadow_type(gtk.SHADOW_IN)
-        self.listview_sw.add(self.listview)
-        self.paned2.add1(self.listview_sw)
-        
-        # layout editor
-        self.paned2.add2(self.editor_pane)
-
-        #self.show_all()
-        self.treeview.grab_focus()
-
-
-
-    def get_current_page(self):
-        return self._current_page
-
-
-    def on_make_link(self, editor_menu):
-        self.link_editor.edit()
-
-        
-    def on_tree_select(self, treeview, nodes):
-        """Callback for treeview selection change"""
-
-        # do nothing if selection is unchanged
-        if self._treeview_sel_nodes == nodes:
-            return
-
-        # remember which nodes are selected in the treeview
-        self._treeview_sel_nodes = nodes
-
-        # view the children of these nodes in the listview
-        self.listview.view_nodes(nodes)
-
-        # if nodes are queued for selection in listview (via goto parent)
-        # then select them here
-        if len(self._queue_list_select) > 0:
-            self.listview.select_nodes(self._queue_list_select)
-            self._queue_list_select = []
-        
-        # make sure nodes are also selected in listview
-        self.listview.select_nodes(nodes)
-
-    
-    def on_list_select(self, listview, pages):
-        """Callback for listview selection change"""
-
-        # TODO: will need to generalize to multiple pages
-
-        # remember the selected node
-        if len(pages) > 0:
-            self._current_page = pages[0]
-        else:
-            self._current_page = None
-        
-        try:
-            self.editor.view_pages(pages)
-        except RichTextError, e:
-            self.error("Could not load page '%s'" % pages[0].get_title(),
-                       e, sys.exc_info()[2])
-
-    def on_list_view_node(self, listview, node):
-        """Focus listview on a node"""
-        if node is None:
-            nodes = self.listview.get_selected_nodes()
-            if len(nodes) == 0:
-                return
-            node = nodes[0]
-        
-        self.treeview.select_nodes([node])
-
-
-    def on_list_view_parent_node(self, node=None):
-        """Focus listview on a node's parent"""
-
-        # get node
-        if node is None:
-            if len(self._treeview_sel_nodes) == 0:
-                return
-            if len(self._treeview_sel_nodes) > 1 or \
-               not self.listview.is_view_tree():
-                nodes = self.listview.get_selected_nodes()
-                if len(nodes) == 0:
-                    return
-                node = nodes[0]
-            else:
-                node = self._treeview_sel_nodes[0]
-
-        # get parent
-        parent = node.get_parent()
-        if parent is None:
-            return
-
-        # queue list select
-        nodes = self.listview.get_selected_nodes()
-        if len(nodes) > 0:
-            self._queue_list_select = nodes
-        else:
-            self._queue_list_select = [node]
-
-        # select parent
-        self.treeview.select_nodes([parent])
-
-
 
 
 class KeepNoteWindow (gtk.Window):
@@ -290,17 +107,18 @@ class KeepNoteWindow (gtk.Window):
         self.app.pref.changed.add(self.on_app_options_changed)
         
 
-        # TODO: move three widgets into viewer
+        # viewer
         self.viewer = ThreePaneViewer(self.app, self)
+        self.viewer.connect("error", lambda w,t,e: self.error(t, e))
 
         self.treeview = self.viewer.treeview
         self.listview = self.viewer.listview
         self.editor = self.viewer.editor
         self._editor_menus = self.viewer.editor_menus
-        self.editor_pane = self.viewer.editor_pane
-        self.link_editor = self.viewer.link_editor
-        self.editor_pane = self.viewer.editor_pane
-        
+
+        self.viewer.editor.connect("modified", self.on_page_editor_modified)
+        self.viewer.editor.connect("child-activated", self.on_child_activated)
+
         
         #====================================
         # Dialogs
@@ -336,9 +154,6 @@ class KeepNoteWindow (gtk.Window):
 
         # viewer
         main_vbox2.pack_start(self.viewer, True, True, 0)
-        self.hpaned = self.viewer.hpaned
-        self.paned2 = self.viewer.paned2
-        self.listview_sw = self.viewer.listview_sw        
 
 
         # status bar
@@ -404,38 +219,21 @@ class KeepNoteWindow (gtk.Window):
         if self._ignore_view_mode:
             return
 
-        self._ignore_view_mode = True
 
         # update menu
+        self._ignore_view_mode = True
         self.view_mode_h_toggle.set_active(mode == "horizontal")
         self.view_mode_v_toggle.set_active(mode == "vertical")
+        self._ignore_view_mode = False
         
-        # detach widgets
-        self.paned2.remove(self.listview_sw)
-        self.paned2.remove(self.editor_pane)
-        self.hpaned.remove(self.paned2)
+        # set viewer
+        self.viewer.set_view_mode(mode)
 
-        # remake paned2
-        if mode == "vertical":
-            # create a vertical paned widget
-            self.paned2 = gtk.VPaned()
-        else:
-            # create a horizontal paned widget
-            self.paned2 = gtk.HPaned()
-                    
-        self.paned2.set_position(self.app.pref.vsash_pos)
-        self.paned2.show()        
-        
-        self.hpaned.add2(self.paned2)
-        self.hpaned.show()
-        
-        self.paned2.add1(self.listview_sw)
-        self.paned2.add2(self.editor_pane)
-        
+        # record preference
         self.app.pref.view_mode = mode        
         self.app.pref.write()
         
-        self._ignore_view_mode = False
+        
     
                 
 
@@ -503,20 +301,8 @@ class KeepNoteWindow (gtk.Window):
         """Load preferences"""
         
         self.resize(*self.app.pref.window_size)
-        self.paned2.set_position(self.app.pref.vsash_pos)
-        self.hpaned.set_position(self.app.pref.hsash_pos)
-        
+        self.viewer.load_preferences(self.app.pref)      
         self.enable_spell_check(self.app.pref.spell_check)
-
-        self.listview.set_date_formats(self.app.pref.timestamp_formats)
-        try:
-            # if this version of GTK doesn't have tree-lines, ignore it
-            self.treeview.set_property("enable-tree-lines",
-                                       self.app.pref.treeview_lines)
-        except:
-            pass
-        self.listview.set_rules_hint(self.app.pref.listview_rules)
-
         self.setup_systray()
 
         if self.app.pref.window_maximized:
@@ -525,16 +311,9 @@ class KeepNoteWindow (gtk.Window):
 
     def set_app_preferences(self):
         """Save preferences"""
-        
-        self.app.pref.vsash_pos = self.paned2.get_position()
-        self.app.pref.hsash_pos = self.hpaned.get_position()
-        self.app.pref.window_maximized = self._maximized
 
-        # TODO: assumes one selected treeview node
-        #if len(self._treeview_sel_nodes) > 0:            
-        #    self.app.pref.last_treeview_name_path = \
-        #        self._treeview_sel_nodes[0].get_name_path()
-        #else:
+        self.app.pref.window_maximized = self._maximized
+        self.viewer.save_preferences(self.app.pref)
         self.app.pref.last_treeview_name_path = []
         
         self.app.pref.write()
@@ -795,13 +574,7 @@ class KeepNoteWindow (gtk.Window):
         """Set the NoteBook for the window"""
         
         self.notebook = notebook
-        self.editor.set_notebook(notebook)
-        self.listview.set_notebook(notebook)
-        self.treeview.set_notebook(notebook)
-
-        self.treeview.menu.iconmenu.setup_menu(notebook)
-        self.listview.menu.iconmenu.setup_menu(notebook)
-
+        self.viewer.set_notebook(notebook)
 
     #=============================================================
     # Treeview, listview, editor callbacks
@@ -839,28 +612,10 @@ class KeepNoteWindow (gtk.Window):
            focus    -- nodes selected in widget with focus
         """
         
-        if widget == "focus":
-            if self.listview.is_focus():
-                widget = "listview"
-            elif self.treeview.is_focus():
-                widget = "treeview"
-            elif self.editor.is_focus():
-                widget = "listview"
-            else:
-                return ([], "")
-
-        if widget == "treeview":
-            nodes = self.treeview.get_selected_nodes()
-        elif widget == "listview":
-            nodes = self.listview.get_selected_nodes()
-        else:
-            raise Exception("unknown widget '%s'" % widget)
-
-        return (nodes, widget)
+        return self.viewer.get_selected_nodes(widget)
         
-    
-    def on_new_dir(self, widget="focus"):
-        """Add new folder near selected nodes"""
+
+    def on_new_node(self, kind, widget, pos):
 
         if self.notebook is None:
             return
@@ -872,57 +627,49 @@ class KeepNoteWindow (gtk.Window):
         else:
             parent = self.notebook.get_root_node()
         
-        if parent.get_attr("content_type") != notebooklib.CONTENT_TYPE_DIR:
+        #if parent.get_attr("content_type") != notebooklib.CONTENT_TYPE_DIR:
+        #    parent = parent.get_parent()
+        if pos == "sibling" and parent.get_parent() is not None:
+            index = parent.get_order() + 1
             parent = parent.get_parent()
-        node = parent.new_child(notebooklib.CONTENT_TYPE_DIR,
-                                notebooklib.DEFAULT_DIR_NAME)
+        else:
+            index = None
 
+
+        if kind == notebooklib.CONTENT_TYPE_DIR:
+            node = parent.new_child(notebooklib.CONTENT_TYPE_DIR,
+                                    notebooklib.DEFAULT_DIR_NAME,
+                                    index)
+        else:
+            node = parent.new_child(notebooklib.CONTENT_TYPE_PAGE,
+                                    notebooklib.DEFAULT_PAGE_NAME,
+                                    index)
+        
         if widget == "treeview":
             self.treeview.expand_node(parent)
             self.treeview.edit_node(node)
-            
         elif widget == "listview":
             self.listview.expand_node(parent)
             self.listview.edit_node(node)
-            
         elif widget == "":
             pass
-        
         else:
-            raise Exception("unknown widget '%s'" % widget)            
+            raise Exception("unknown widget '%s'" % widget)
+        
+    
+    def on_new_dir(self, widget="focus"):
+        """Add new folder near selected nodes"""
+        self.on_new_node(notebooklib.CONTENT_TYPE_DIR, widget, "child")
     
             
     
     def on_new_page(self, widget="focus"):
         """Add new page near selected nodes"""
+        self.on_new_node(notebooklib.CONTENT_TYPE_PAGE, widget, "sibling")
+    
 
-        if self.notebook is None:
-            return
-
-        nodes, widget = self.get_selected_nodes(widget)
-        
-        if len(nodes) == 1:
-            parent = nodes[0]
-        else:
-            parent = self.notebook.get_root_node()
-
-        if parent.get_attr("content_type") != notebooklib.CONTENT_TYPE_DIR:
-            parent = parent.get_parent()
-        node = parent.new_child(notebooklib.CONTENT_TYPE_PAGE,
-                                notebooklib.DEFAULT_PAGE_NAME)
-
-        self._new_page_occurred = True
-        
-        if widget == "treeview":
-            self.treeview.expand_node(parent)
-            self.treeview.edit_node(node)
-        elif widget == "listview":
-            self.listview.expand_node(parent)
-            self.listview.edit_node(node)
-        elif widget == "":
-            pass
-        else:
-            raise Exception("unknown widget '%s'" % widget)       
+    def on_new_child_page(self, widget="focus"):
+        self.on_new_node(notebooklib.CONTENT_TYPE_PAGE, widget, "child")
 
 
     def on_edit_title(self, widget, node, title):
@@ -1536,8 +1283,12 @@ class KeepNoteWindow (gtk.Window):
                 "<control>N", lambda w,e: self.on_new_page(), 0, 
                 "<ImageItem>", 
                 get_resource_pixbuf("note-new.png")),
+            ("/File/New _Child Page",      
+                "<control><shift>N", lambda w,e: self.on_new_child_page(), 0, 
+                "<ImageItem>", 
+                get_resource_pixbuf("note-new.png")),
             ("/File/New _Folder", 
-                "<control><shift>N", lambda w,e: self.on_new_dir(), 0, 
+                "<control><shift>M", lambda w,e: self.on_new_dir(), 0, 
                 "<ImageItem>", 
                 get_resource_pixbuf("folder-new.png")),
 
