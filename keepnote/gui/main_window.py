@@ -62,9 +62,10 @@ from keepnote import tasklib
 CONTEXT_MENU_ACCEL_PATH = "<main>/context_menu"
 
 
-class ThreePaneViewer (gtk.HBox):
+class ThreePaneViewer (gtk.VBox):
 
     def __init__(self, app, main_window):
+        gtk.VBox.__init__(self, False, 0)
 
         self.app = app
         self.main_window = main_window
@@ -75,6 +76,9 @@ class ThreePaneViewer (gtk.HBox):
         self._queue_list_select = []   # nodes to select in listview after treeview change
 
 
+        #=========================================
+        # widgets
+        
         # treeview
         self.treeview = KeepNoteTreeView()
         self.treeview.connect("select-nodes", self.on_tree_select)
@@ -103,16 +107,53 @@ class ThreePaneViewer (gtk.HBox):
         self.editor.connect("child-activated", self.main_window.on_child_activated)
         self.editor.view_pages([])
 
-        self.editor_pane = gtk.VBox(False, 5)#Paned()
-        #self.editor_pane.add1(self.editor)
+        self.editor_pane = gtk.VBox(False, 5)
         self.editor_pane.pack_start(self.editor, True, True, 0)
 
         self.link_editor = LinkEditor()
         self.link_editor.set_textview(self.editor.get_textview())
         self.editor.connect("font-change", self.link_editor.on_font_change)
-        #self.editor_pane.add2(self.link_editor)
         self.editor_pane.pack_start(self.link_editor, False, True, 0)
 
+
+        #=====================================
+        # layout
+
+        # create a horizontal paned widget
+        self.hpaned = gtk.HPaned()
+        self.pack_start(self.hpaned, True, True, 0)
+        self.hpaned.set_position(keepnote.DEFAULT_HSASH_POS)
+
+                
+        # layout major widgets
+        self.paned2 = gtk.VPaned()
+        self.hpaned.add2(self.paned2)
+        self.paned2.set_position(keepnote.DEFAULT_VSASH_POS)
+        
+        # treeview and scrollbars
+        sw = gtk.ScrolledWindow()
+        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        sw.set_shadow_type(gtk.SHADOW_IN)
+        sw.add(self.treeview)
+        self.hpaned.add1(sw)
+        
+        # listview with scrollbars
+        self.listview_sw = gtk.ScrolledWindow()
+        self.listview_sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.listview_sw.set_shadow_type(gtk.SHADOW_IN)
+        self.listview_sw.add(self.listview)
+        self.paned2.add1(self.listview_sw)
+        
+        # layout editor
+        self.paned2.add2(self.editor_pane)
+
+        #self.show_all()
+        self.treeview.grab_focus()
+
+
+
+    def get_current_page(self):
+        return self._current_page
 
 
     def on_make_link(self, editor_menu):
@@ -202,8 +243,6 @@ class ThreePaneViewer (gtk.HBox):
         self.treeview.select_nodes([parent])
 
 
-    def get_current_page(self):
-        return self._current_page
 
 
 class KeepNoteWindow (gtk.Window):
@@ -294,12 +333,14 @@ class KeepNoteWindow (gtk.Window):
         main_vbox2 = gtk.VBox(False, 0)
         main_vbox2.set_border_width(1)
         main_vbox.pack_start(main_vbox2, True, True, 0)
-                
-        # create a horizontal paned widget
-        self.hpaned = gtk.HPaned()
-        main_vbox2.pack_start(self.hpaned, True, True, 0)
-        self.hpaned.set_position(keepnote.DEFAULT_HSASH_POS)
-        
+
+        # viewer
+        main_vbox2.pack_start(self.viewer, True, True, 0)
+        self.hpaned = self.viewer.hpaned
+        self.paned2 = self.viewer.paned2
+        self.listview_sw = self.viewer.listview_sw        
+
+
         # status bar
         status_hbox = gtk.HBox(False, 0)
         main_vbox.pack_start(status_hbox, False, True, 0)
@@ -315,30 +356,7 @@ class KeepNoteWindow (gtk.Window):
         status_hbox.pack_start(self.stats_bar, True, True, 0)
         
 
-        # layout major widgets
-        self.paned2 = gtk.VPaned()
-        self.hpaned.add2(self.paned2)
-        self.paned2.set_position(keepnote.DEFAULT_VSASH_POS)
-        
-        # treeview and scrollbars
-        sw = gtk.ScrolledWindow()
-        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        sw.set_shadow_type(gtk.SHADOW_IN)
-        sw.add(self.treeview)
-        self.hpaned.add1(sw)
-        
-        # listview with scrollbars
-        self.listview_sw = gtk.ScrolledWindow()
-        self.listview_sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        self.listview_sw.set_shadow_type(gtk.SHADOW_IN)
-        self.listview_sw.add(self.listview)
-        self.paned2.add1(self.listview_sw)
-        
-        # layout editor
-        self.paned2.add2(self.editor_pane)
 
-        #self.show_all()
-        self.treeview.grab_focus()
 
 
     def init_key_shortcuts(self):
