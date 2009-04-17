@@ -77,9 +77,9 @@ class KeepNoteWindow (gtk.Window):
         self._iconified = False   # True if window is minimized
         self.tray_icon = None
         
+        self.accel_group = gtk.AccelGroup()
         
         self._ignore_view_mode = False # prevent recursive view mode changes
-        self._new_page_occurred = False
 
         self.init_key_shortcuts()
         self.init_layout()
@@ -89,6 +89,19 @@ class KeepNoteWindow (gtk.Window):
         self.get_app_preferences()
         self.set_view_mode(self.app.pref.view_mode)
         
+
+    def new_viewer(self):
+
+        viewer = ThreePaneViewer(self.app, self)
+        viewer.connect("error", lambda w,t,e: self.error(t, e))
+        viewer.listview.on_status = self.set_status  # TODO: clean up
+        viewer.editor.connect("modified", self.on_page_editor_modified)
+        viewer.editor.connect("child-activated", self.on_child_activated)
+
+        # context menus
+        self.make_context_menus(viewer)
+
+        return viewer
 
 
     def init_layout(self):
@@ -108,18 +121,16 @@ class KeepNoteWindow (gtk.Window):
         
 
         # viewer
-        self.viewer = ThreePaneViewer(self.app, self)
-        self.viewer.connect("error", lambda w,t,e: self.error(t, e))
+        self.viewer = self.new_viewer()
 
+        # temp back-compat TODO: refactor
         self.treeview = self.viewer.treeview
         self.listview = self.viewer.listview
         self.editor = self.viewer.editor
         self._editor_menus = self.viewer.editor_menus
-
-        self.viewer.editor.connect("modified", self.on_page_editor_modified)
-        self.viewer.editor.connect("child-activated", self.on_child_activated)
-
         
+
+
         #====================================
         # Dialogs
         
@@ -129,9 +140,7 @@ class KeepNoteWindow (gtk.Window):
         self.image_resize_dialog = \
             dialog_image_resize.ImageResizeDialog(self, self.app.pref)
         self.node_icon_dialog = dialog_node_icon.NodeIconDialog(self)
-
-        # context menus
-        self.make_context_menus()
+        
         
         #====================================
         # Layout
@@ -171,13 +180,13 @@ class KeepNoteWindow (gtk.Window):
         status_hbox.pack_start(self.stats_bar, True, True, 0)
         
 
-
+    def get_accel_group(self):
+        return self.accel_group()
 
 
     def init_key_shortcuts(self):
         """Setup key shortcuts for the window"""
-
-        self.accel_group = gtk.AccelGroup()
+        
         accel_file = get_accel_file()
         if os.path.exists(accel_file):
             gtk.accel_map_load(accel_file)
@@ -351,9 +360,17 @@ class KeepNoteWindow (gtk.Window):
         """Launches Open NoteBook dialog"""
         
         dialog = gtk.FileChooserDialog("Open Notebook", self, 
-            action=gtk.FILE_CHOOSER_ACTION_OPEN,
+            action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, #gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "Open", gtk.RESPONSE_OK))
+
+        def on_folder_changed(filechooser):
+            folder = filechooser.get_current_folder()
+            
+            if os.path.exists(os.path.join(folder, notebooklib.PREF_FILE)):
+                filechooser.response(gtk.RESPONSE_OK)
+                        
+        dialog.connect("current-folder-changed", on_folder_changed)
 
         if os.path.exists(self.app.pref.new_notebook_path):
             dialog.set_current_folder(self.app.pref.new_notebook_path)
@@ -402,7 +419,7 @@ class KeepNoteWindow (gtk.Window):
         
         try:
             # TODO: should this be outside exception
-            self.editor.save()
+            self.viewer.save()
             self.notebook.save()
 
             self.set_status("Notebook saved")
@@ -450,10 +467,7 @@ class KeepNoteWindow (gtk.Window):
             self.set_status("")
             return None
         
-        notebook = self.open_notebook(filename, new=True)
-        self.treeview.expand_node(notebook.get_root_node())
-        
-        return notebook
+        return self.open_notebook(filename, new=True)
         
         
     
@@ -509,8 +523,6 @@ class KeepNoteWindow (gtk.Window):
 
         # setup notebook
         self.set_notebook(notebook)
-        
-        self.treeview.grab_focus()
         
         if not new:
             self.set_status("Loaded '%s'" % self.notebook.get_title())
@@ -616,50 +628,12 @@ class KeepNoteWindow (gtk.Window):
         
 
     def on_new_node(self, kind, widget, pos):
-
-        if self.notebook is None:
-            return
-
-        nodes, widget = self.get_selected_nodes(widget)
-        
-        if len(nodes) == 1:
-            parent = nodes[0]
-        else:
-            parent = self.notebook.get_root_node()
-        
-        #if parent.get_attr("content_type") != notebooklib.CONTENT_TYPE_DIR:
-        #    parent = parent.get_parent()
-        if pos == "sibling" and parent.get_parent() is not None:
-            index = parent.get_order() + 1
-            parent = parent.get_parent()
-        else:
-            index = None
-
-
-        if kind == notebooklib.CONTENT_TYPE_DIR:
-            node = parent.new_child(notebooklib.CONTENT_TYPE_DIR,
-                                    notebooklib.DEFAULT_DIR_NAME,
-                                    index)
-        else:
-            node = parent.new_child(notebooklib.CONTENT_TYPE_PAGE,
-                                    notebooklib.DEFAULT_PAGE_NAME,
-                                    index)
-        
-        if widget == "treeview":
-            self.treeview.expand_node(parent)
-            self.treeview.edit_node(node)
-        elif widget == "listview":
-            self.listview.expand_node(parent)
-            self.listview.edit_node(node)
-        elif widget == "":
-            pass
-        else:
-            raise Exception("unknown widget '%s'" % widget)
+        self.viewer.new_node(kind, widget, pos)
         
     
     def on_new_dir(self, widget="focus"):
         """Add new folder near selected nodes"""
-        self.on_new_node(notebooklib.CONTENT_TYPE_DIR, widget, "child")
+        self.on_new_node(notebooklib.CONTENT_TYPE_DIR, widget, "sibling")
     
             
     
@@ -671,15 +645,6 @@ class KeepNoteWindow (gtk.Window):
     def on_new_child_page(self, widget="focus"):
         self.on_new_node(notebooklib.CONTENT_TYPE_PAGE, widget, "child")
 
-
-    def on_edit_title(self, widget, node, title):
-
-        # move cursor to editor after new page has been created
-        if self._new_page_occurred:
-            self._new_page_occurred = False
-
-            if node.get_attr("content_type") != notebooklib.CONTENT_TYPE_DIR:
-                self.on_goto_editor()
     
 
     def on_empty_trash(self):
@@ -709,8 +674,8 @@ class KeepNoteWindow (gtk.Window):
         # prepare search iterator
         nodes = keepnote.search.search_manual(self.notebook, words)
 
-        # clear listview
-        self.listview.view_nodes([], nested=False)
+        # clear listview        
+        self.viewer.start_search_result()
 
         def search(task):
             # do search in another thread
@@ -718,12 +683,12 @@ class KeepNoteWindow (gtk.Window):
             def gui_update(node):
                 def func():
                     gtk.gdk.threads_enter()
-                    self.listview.append_node(node)
+                    self.viewer.add_search_result(node)
                     gtk.gdk.threads_leave()
                 return func
 
             for node in nodes:
-                # terminare if search is canceled
+                # terminate if search is canceled
                 if task.aborted():
                     break
                 gobject.idle_add(gui_update(node))
@@ -808,6 +773,7 @@ class KeepNoteWindow (gtk.Window):
             icons = self.node_icon_dialog.get_quick_pick_icons()
             self.notebook.pref.quick_pick_icons = icons
 
+            # TODO: make iconmenu setup work via listeners on the notebook
             self.treeview.menu.iconmenu.setup_menu(self.notebook)
             self.listview.menu.iconmenu.setup_menu(self.notebook)
 
@@ -1066,26 +1032,23 @@ class KeepNoteWindow (gtk.Window):
     
     def on_goto_treeview(self):
         """Switch focus to TreeView"""
-        self.treeview.grab_focus()
+        self.viewer.goto_treeview()
+
         
     def on_goto_listview(self):
         """Switch focus to ListView"""
-        self.listview.grab_focus()
+        self.viewer.goto_listview()
+
         
     def on_goto_editor(self):
         """Switch focus to Editor"""
-        self.editor.get_textview().grab_focus()
+        self.viewer.goto_editor()
+
 
     def on_goto_link(self):
         """Visit link under cursor"""
+        self.viewer.goto_link()
         
-        tag, start, end = self.editor.get_textview().get_link()
-        if tag:
-            url = tag.get_href()            
-            try:
-                self.app.open_webpage(url)
-            except KeepNoteError, e:
-                self.error(e.msg, e, sys.exc_info()[2])
 
     
     #=====================================================
@@ -1588,16 +1551,35 @@ class KeepNoteWindow (gtk.Window):
         menu.append(item)
 
 
-    def make_node_menu(self, menu, control):
+    def make_node_menu(self, widget, menu, control):
         """make list of menu options for nodes"""
 
-        if control == "treeview":            
-            widget = self.treeview
-        elif control == "listview":
-            widget = self.listview
-        else:
-            raise Exception("unknown control '%s'" % control)
+        # treeview/new page
+        item = gtk.ImageMenuItem()
+        item.set_image(get_resource_image("note-new.png"))        
+        label = gtk.Label("New _Page")
+        label.set_use_underline(True)
+        label.set_alignment(0.0, 0.5)
+        label.show()
+        item.add(label)        
+        item.connect("activate", lambda w: self.on_new_page(control))
+        menu.append(item)
+        item.show()
 
+
+        # treeview/new child page 
+        item = gtk.ImageMenuItem()
+        item.set_image(get_resource_image("note-new.png"))        
+        label = gtk.Label("New _Child Page")
+        label.set_use_underline(True)
+        label.set_alignment(0.0, 0.5)
+        label.show()
+        item.add(label)        
+        item.connect("activate", lambda w: self.on_new_child_page(control))
+        menu.append(item)
+        item.show()
+
+        
         # treeview/new folder
         item = gtk.ImageMenuItem()        
         item.set_image(get_resource_image("folder-new.png"))
@@ -1610,17 +1592,6 @@ class KeepNoteWindow (gtk.Window):
         menu.append(item)
         item.show()
         
-        # treeview/new page
-        item = gtk.ImageMenuItem()
-        item.set_image(get_resource_image("note-new.png"))        
-        label = gtk.Label("New _Page")
-        label.set_use_underline(True)
-        label.set_alignment(0.0, 0.5)
-        label.show()
-        item.add(label)        
-        item.connect("activate", lambda w: self.on_new_page(control))
-        menu.append(item)
-        item.show()
 
         # treeview/delete node
         item = gtk.ImageMenuItem(gtk.STOCK_DELETE)
@@ -1663,7 +1634,7 @@ class KeepNoteWindow (gtk.Window):
 
 
         # treeview/file explorer
-        item = gtk.MenuItem("View in File Explorer")
+        item = gtk.MenuItem("View in File _Explorer")
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("file_explorer",
                                                               None,
@@ -1672,7 +1643,7 @@ class KeepNoteWindow (gtk.Window):
         item.show()        
 
         # treeview/web browser
-        item = gtk.MenuItem("View in Web Browser")
+        item = gtk.MenuItem("View in _Web Browser")
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("web_browser",
                                                               None,
@@ -1682,7 +1653,7 @@ class KeepNoteWindow (gtk.Window):
         item.show()        
 
         # treeview/text editor
-        item = gtk.MenuItem("View in Text Editor")
+        item = gtk.MenuItem("View in _Text Editor")
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("text_editor",
                                                               None,
@@ -1693,15 +1664,16 @@ class KeepNoteWindow (gtk.Window):
         
         
 
-    def make_treeview_menu(self, menu):
+    def make_treeview_menu(self, treeview, menu):
         """treeview context menu"""
 
         menu.set_accel_group(self.accel_group)
-        menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)        
-        self.make_node_menu(menu, "treeview")
+        menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
+        
+        self.make_node_menu(treeview, menu, "treeview")
 
         
-    def make_listview_menu(self, menu):
+    def make_listview_menu(self, listview, menu):
         """listview context menu"""
 
         menu.set_accel_group(self.accel_group)
@@ -1728,19 +1700,14 @@ class KeepNoteWindow (gtk.Window):
         menu.append(item)
         item.show()
 
-        self.make_node_menu(menu, "listview")
+        self.make_node_menu(listview, menu, "listview")
 
 
 
-    def make_context_menus(self):
+    def make_context_menus(self, viewer):
         """Initialize context menus"""        
 
-        self.make_image_menu(self.editor.get_textview().get_image_menu())       
-        self.make_treeview_menu(self.treeview.menu)
-        self.make_listview_menu(self.listview.menu)
-
-        
-
-
-
+        self.make_image_menu(viewer.editor.get_textview().get_image_menu())       
+        self.make_treeview_menu(viewer.treeview, viewer.treeview.menu)
+        self.make_listview_menu(viewer.listview, viewer.listview.menu)
 

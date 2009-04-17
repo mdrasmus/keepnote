@@ -347,8 +347,8 @@ g_default_attrs = [
     NoteBookAttr("Order", int, "order"),
     created_time_attr,
     modified_time_attr,
-    NoteBookAttr("Expaned", bool, "expanded"),
-    NoteBookAttr("Expanded2", bool, "expanded2"),
+    NoteBookAttr("Expaned", bool, "expanded", default=True),
+    NoteBookAttr("Expanded2", bool, "expanded2", default=True),
     NoteBookAttr("Folder Sort", str, "info_sort", read=read_info_sort),
     NoteBookAttr("Folder Sort Direction", int, "info_sort_dir"),
     NoteBookAttr("Node ID", str, "nodeid", default=new_nodeid),
@@ -496,8 +496,8 @@ class NoteBookNode (object):
             "order": sys.maxint,
             "created_time": None,
             "modified_time": None,
-            "expanded": False,
-            "expanded2": False,
+            "expanded": True,
+            "expanded2": True,
             "info_sort": "order",
             "info_sort_dir": 1}
         

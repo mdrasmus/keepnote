@@ -24,6 +24,8 @@ class IconMenu (gtk.Menu):
     def __init__(self):
         gtk.Menu.__init__(self)
 
+        self._notebook = None
+
         # default icon
         self.default_icon = gtk.MenuItem("_Default Icon")
         self.default_icon.connect("activate",
@@ -52,6 +54,9 @@ class IconMenu (gtk.Menu):
         self.foreach(lambda item: self.remove(item))        
         self.posi = 0
         self.posj = 0
+
+    def set_notebook(self, notebook):
+        self._notebook = notebook
         
 
     def setup_menu(self, notebook):
