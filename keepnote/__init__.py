@@ -9,6 +9,8 @@
 
 
 # python imports
+import gettext
+import locale
 import os, sys, shutil, time, re, imp, subprocess, tempfile
 import xml.dom.minidom as xmldom
 import xml.dom
@@ -67,6 +69,7 @@ DEFAULT_HSASH_POS = 200
 DEFAULT_VIEW_MODE = "vertical"
 DEFAULT_AUTOSAVE_TIME = 10 * 1000 # 10 sec (in msec)
 
+GETTEXT_DOMAIN = 'keepnote'
 
 #=============================================================================
 # application resources
@@ -125,7 +128,19 @@ def use_xdg(home=None):
     
     else:
         return False
-    
+
+
+def get_locale_dir():
+    """Returns KeepNote's locale directory"""
+    return os.path.join(BASEDIR, "locale")
+
+
+def set_locale():
+    locale.setlocale(locale.LC_ALL, '')
+    gettext.bindtextdomain(GETTEXT_DOMAIN, get_locale_dir())
+    gettext.textdomain(GETTEXT_DOMAIN)
+
+
 
 def get_user_pref_dir(home=None):
     """Returns the directory of the application preference file"""

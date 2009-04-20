@@ -1,0 +1,449 @@
+"""
+    KeepNote
+    Copyright Matt Rasmussen 2008
+    
+    Graphical User Interface for KeepNote Application
+"""
+
+
+# python imports
+import traceback
+
+
+# pygtk imports
+import pygtk
+pygtk.require('2.0')
+from gtk import gdk
+import gtk
+import gobject
+
+
+# keepnote imports
+import keepnote
+from keepnote import KeepNoteError
+from keepnote.gui import \
+     get_resource, \
+     get_resource_image, \
+     get_resource_pixbuf, \
+     get_accel_file, \
+     lookup_icon_filename
+from keepnote import notebook as notebooklib
+from keepnote.gui import richtext
+from keepnote.gui.richtext import RichTextView, RichTextImage, RichTextError
+from keepnote.gui.treeview import KeepNoteTreeView
+from keepnote.gui.listview import KeepNoteListView
+from keepnote.gui.editor import KeepNoteEditor, EditorMenus
+from keepnote.gui.icon_menu import IconMenu
+from keepnote.gui.link_editor import LinkEditor
+from keepnote import notebook as notebooklib
+
+
+class Viewer (gtk.VBox):
+
+    def __init__(self):
+        gtk.VBox.__init__(self, False, 0)
+
+
+    def set_notebook(self, notebook):
+        pass
+
+    def set_view_mode(self, mode):
+        pass
+
+    def load_preferences(self, app_pref):
+        pass
+
+    def save_preferences(self, app_pref):
+        pass
+
+    def save(self):
+        pass
+
+    def get_current_page(self):
+        return None
+
+    def get_selected_nodes(self, widget="focus"):
+        pass
+
+    def start_search_result(self):        
+        pass
+
+    def add_search_result(self, node):
+        pass
+
+    def new_node(self, kind, widget, pos):
+        # TODO: choose a more general interface (i.e. deal with widget param)
+        pass
+
+
+class ThreePaneViewer (Viewer):
+
+    def __init__(self, app, main_window):
+        Viewer.__init__(self)
+
+        self._app = app
+        self._main_window = main_window
+        self._notebook = None
+
+        # node selections        
+        self._current_page = None     # current page in editor
+        self._treeview_sel_nodes = [] # current selected nodes in treeview
+        self._queue_list_select = []   # nodes to select in listview after treeview change
+        self._new_page_occurred = False
+
+
+        #=========================================
+        # widgets
+        
+        # treeview
+        self.treeview = KeepNoteTreeView()
+        self.treeview.connect("select-nodes", self._on_tree_select)
+        self.treeview.connect("error", lambda w,t,e: self.emit("error", t, e))
+        self.treeview.connect("edit-title", self._on_edit_title)
+        
+        # listview
+        self.listview = KeepNoteListView()
+        self.listview.connect("select-nodes", self.on_list_select)
+        self.listview.connect("goto-node", self.on_list_view_node)
+        self.listview.connect("goto-parent-node",
+                              lambda w: self.on_list_view_parent_node())
+        self.listview.connect("error", lambda w,t,e: self.emit("error", t, e))
+        self.listview.connect("edit-title", self._on_edit_title)
+        
+        
+        
+        # editor
+        self.editor = KeepNoteEditor(self._app)
+        self.editor_menus = EditorMenus(self.editor)
+        self.editor_menus.connect("make-link", self._on_make_link)
+        self.editor.connect("font-change", self.editor_menus.on_font_change)
+        self.editor.connect("error", lambda w,t,e: self.emit("error", t, e))
+        self.editor.view_pages([])
+
+        self.editor_pane = gtk.VBox(False, 5)
+        self.editor_pane.pack_start(self.editor, True, True, 0)
+
+        self.link_editor = LinkEditor()
+        self.link_editor.set_textview(self.editor.get_textview())
+        self.editor.connect("font-change", self.link_editor.on_font_change)
+        self.editor_pane.pack_start(self.link_editor, False, True, 0)
+
+
+        #=====================================
+        # layout
+
+        # TODO: make sure to add underscore for these variables
+
+        # create a horizontal paned widget
+        self.hpaned = gtk.HPaned()
+        self.pack_start(self.hpaned, True, True, 0)
+        self.hpaned.set_position(keepnote.DEFAULT_HSASH_POS)
+
+                
+        # layout major widgets
+        self.paned2 = gtk.VPaned()
+        self.hpaned.add2(self.paned2)
+        self.paned2.set_position(keepnote.DEFAULT_VSASH_POS)
+        
+        # treeview and scrollbars
+        sw = gtk.ScrolledWindow()
+        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        sw.set_shadow_type(gtk.SHADOW_IN)
+        sw.add(self.treeview)
+        self.hpaned.add1(sw)
+        
+        # listview with scrollbars
+        self.listview_sw = gtk.ScrolledWindow()
+        self.listview_sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.listview_sw.set_shadow_type(gtk.SHADOW_IN)
+        self.listview_sw.add(self.listview)
+        self.paned2.add1(self.listview_sw)
+        
+        # layout editor
+        self.paned2.add2(self.editor_pane)
+
+        #self.show_all()
+        self.treeview.grab_focus()
+
+
+    def set_notebook(self, notebook):
+        
+        self._notebook = notebook
+        self.editor.set_notebook(notebook)
+        self.listview.set_notebook(notebook)
+        self.treeview.set_notebook(notebook)
+
+        self.treeview.menu.iconmenu.setup_menu(notebook)
+        self.listview.menu.iconmenu.setup_menu(notebook)
+        
+        self.treeview.grab_focus()
+
+
+
+    def set_view_mode(self, mode):
+        """Sets view mode for ThreePaneViewer"""
+
+        # detach widgets
+        self.paned2.remove(self.listview_sw)
+        self.paned2.remove(self.editor_pane)
+        self.hpaned.remove(self.paned2)
+
+        # remake paned2
+        if mode == "vertical":
+            # create a vertical paned widget
+            self.paned2 = gtk.VPaned()
+        else:
+            # create a horizontal paned widget
+            self.paned2 = gtk.HPaned()
+                    
+        self.paned2.set_position(self._app.pref.vsash_pos)
+        self.paned2.show()        
+        
+        self.hpaned.add2(self.paned2)
+        self.hpaned.show()
+        
+        self.paned2.add1(self.listview_sw)
+        self.paned2.add2(self.editor_pane)
+
+
+    def load_preferences(self, app_pref):
+        self.paned2.set_position(app_pref.vsash_pos)
+        self.hpaned.set_position(app_pref.hsash_pos)
+
+        self.listview.set_date_formats(app_pref.timestamp_formats)
+        self.listview.set_rules_hint(app_pref.listview_rules)        
+        try:
+            # if this version of GTK doesn't have tree-lines, ignore it
+            self.treeview.set_property("enable-tree-lines",
+                                       app_pref.treeview_lines)
+        except:
+            pass
+        
+
+    def save_preferences(self, app_pref):
+        app_pref.vsash_pos = self.paned2.get_position()
+        app_pref.hsash_pos = self.hpaned.get_position()
+
+
+    def save(self):
+        self.editor.save()
+
+
+    def get_current_page(self):
+        return self._current_page
+
+
+    def get_selected_nodes(self, widget="focus"):
+        """
+        Returns (nodes, widget) where 'nodes' are a list of selected nodes
+        in widget 'widget'
+
+        Wiget can be
+           listview -- nodes selected in listview
+           treeview -- nodes selected in treeview
+           focus    -- nodes selected in widget with focus
+        """
+        
+        if widget == "focus":
+            if self.listview.is_focus():
+                widget = "listview"
+            elif self.treeview.is_focus():
+                widget = "treeview"
+            elif self.editor.is_focus():
+                widget = "listview"
+            else:
+                return ([], "")
+
+        if widget == "treeview":
+            nodes = self.treeview.get_selected_nodes()
+        elif widget == "listview":
+            nodes = self.listview.get_selected_nodes()
+        else:
+            raise Exception("unknown widget '%s'" % widget)
+
+        return (nodes, widget)
+
+
+    def _on_make_link(self, editor_menu):
+        self.link_editor.edit()
+
+        
+    def _on_tree_select(self, treeview, nodes):
+        """Callback for treeview selection change"""
+
+        # do nothing if selection is unchanged
+        if self._treeview_sel_nodes == nodes:
+            return
+
+        # remember which nodes are selected in the treeview
+        self._treeview_sel_nodes = nodes
+
+        # view the children of these nodes in the listview
+        self.listview.view_nodes(nodes)
+
+        # if nodes are queued for selection in listview (via goto parent)
+        # then select them here
+        if len(self._queue_list_select) > 0:
+            self.listview.select_nodes(self._queue_list_select)
+            self._queue_list_select = []
+        
+        # make sure nodes are also selected in listview
+        self.listview.select_nodes(nodes)
+
+    
+    def on_list_select(self, listview, pages):
+        """Callback for listview selection change"""
+
+        # TODO: will need to generalize to multiple pages
+
+        # remember the selected node
+        if len(pages) > 0:
+            self._current_page = pages[0]
+        else:
+            self._current_page = None
+        
+        try:
+            self.editor.view_pages(pages)
+        except RichTextError, e:
+            self.error("Could not load page '%s'" % pages[0].get_title(),
+                       e, sys.exc_info()[2])
+
+    def on_list_view_node(self, listview, node):
+        """Focus listview on a node"""
+        if node is None:
+            nodes = self.listview.get_selected_nodes()
+            if len(nodes) == 0:
+                return
+            node = nodes[0]
+        
+        self.treeview.select_nodes([node])
+
+
+    def on_list_view_parent_node(self, node=None):
+        """Focus listview on a node's parent"""
+
+        # get node
+        if node is None:
+            if len(self._treeview_sel_nodes) == 0:
+                return
+            if len(self._treeview_sel_nodes) > 1 or \
+               not self.listview.is_view_tree():
+                nodes = self.listview.get_selected_nodes()
+                if len(nodes) == 0:
+                    return
+                node = nodes[0]
+            else:
+                node = self._treeview_sel_nodes[0]
+
+        # get parent
+        parent = node.get_parent()
+        if parent is None:
+            return
+
+        # queue list select
+        nodes = self.listview.get_selected_nodes()
+        if len(nodes) > 0:
+            self._queue_list_select = nodes
+        else:
+            self._queue_list_select = [node]
+
+        # select parent
+        self.treeview.select_nodes([parent])
+
+
+    def _on_edit_title(self, widget, node, title):
+
+        # move cursor to editor after new page has been created
+        if self._new_page_occurred:
+            self._new_page_occurred = False
+
+            if node.get_attr("content_type") != notebooklib.CONTENT_TYPE_DIR:
+                self.goto_editor()
+
+
+    def new_node(self, kind, widget, pos):
+
+        if self._notebook is None:
+            return
+
+        nodes, widget = self.get_selected_nodes(widget)
+        
+        if len(nodes) == 1:
+            parent = nodes[0]
+        else:
+            parent = self._notebook.get_root_node()
+        
+        if pos == "sibling" and parent.get_parent() is not None:
+            index = parent.get_order() + 1
+            parent = parent.get_parent()
+        else:
+            index = None
+
+
+        if kind == notebooklib.CONTENT_TYPE_DIR:
+            node = parent.new_child(notebooklib.CONTENT_TYPE_DIR,
+                                    notebooklib.DEFAULT_DIR_NAME,
+                                    index)
+        else:
+            node = parent.new_child(notebooklib.CONTENT_TYPE_PAGE,
+                                    notebooklib.DEFAULT_PAGE_NAME,
+                                    index)
+        
+        self._new_page_occurred = True
+
+        if widget == "treeview":
+            self.treeview.expand_node(parent)
+            self.treeview.edit_node(node)
+        elif widget == "listview":
+            self.listview.expand_node(parent)
+            self.listview.edit_node(node)
+        elif widget == "":
+            pass
+        else:
+            raise Exception("unknown widget '%s'" % widget)
+
+
+    #============================================
+    # Search
+
+    def start_search_result(self):        
+        self.treeview.select_nodes([])
+        self.listview.view_nodes([], nested=False)
+
+    def add_search_result(self, node):
+        self.listview.append_node(node)
+
+
+    #=============================================
+    # Goto functions
+    
+    def goto_treeview(self):
+        """Switch focus to TreeView"""
+        self.treeview.grab_focus()
+        
+    def goto_listview(self):
+        """Switch focus to ListView"""
+        self.listview.grab_focus()
+        
+    def goto_editor(self):
+        """Switch focus to Editor"""
+        self.editor.get_textview().grab_focus()
+
+    def goto_link(self):
+        """Visit link under cursor"""
+        
+        tag, start, end = self.editor.get_textview().get_link()
+        if tag:
+            url = tag.get_href()            
+            try:
+                self._app.open_webpage(url)
+            except KeepNoteError, e:
+                self.emit("error", e, sys.exc_info()[2])
+
+
+
+gobject.type_register(ThreePaneViewer)
+gobject.signal_new("error", ThreePaneViewer, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (str, object,))
+
+

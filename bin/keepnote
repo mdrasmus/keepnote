@@ -9,6 +9,7 @@
 import sys, os, time, optparse, exceptions, traceback
 from os.path import basename, dirname, realpath, join, isdir
 
+
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
@@ -86,6 +87,11 @@ except ImportError:
 import keepnote.gui.main_window
 from keepnote.commands import get_command_executor
 from keepnote.teefile import TeeFileStream
+
+
+# locale
+keepnote.set_locale()
+
 
 #=============================================================================
 # options

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<notebook>
+<version>3</version>
+<default_font>Sans 10</default_font>
+<quick_pick_icons>
+<icon>folder.png</icon>
+<icon>folder-red.png</icon>
+<icon>folder-orange.png</icon>
+<icon>folder-yellow.png</icon>
+<icon>folder-green.png</icon>
+<icon>folder-blue.png</icon>
+<icon>folder-violet.png</icon>
+<icon>folder-grey.png</icon>
+<icon>note.png</icon>
+<icon>note-red.png</icon>
+<icon>note-orange.png</icon>
+<icon>note-yellow.png</icon>
+<icon>note-green.png</icon>
+<icon>note-blue.png</icon>
+<icon>note-violet.png</icon>
+<icon>note-grey.png</icon>
+<icon>star.png</icon>
+<icon>heart.png</icon>
+<icon>check.png</icon>
+<icon>x.png</icon>
+<icon>important.png</icon>
+<icon>question.png</icon>
+<icon>web.png</icon>
+<icon>note-unknown.png</icon>
+</quick_pick_icons>
+</notebook>
+

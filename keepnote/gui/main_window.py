@@ -7,6 +7,7 @@
 
 
 # python imports
+import gettext
 import os
 import re
 import shutil
@@ -16,6 +17,10 @@ import tempfile
 import threading
 import time
 import traceback
+
+_ = gettext.gettext
+
+
 
 
 # pygtk imports
@@ -300,7 +305,11 @@ class KeepNoteWindow (gtk.Window):
 
     def on_tray_icon_activate(self, icon):
         """Try icon has been clicked in system tray"""
-        self.restore_window()
+
+        if self._iconified:
+            self.restore_window()
+        else:
+            self.minimize_window()
 
     
     #==============================================
@@ -337,7 +346,7 @@ class KeepNoteWindow (gtk.Window):
     def on_new_notebook(self):
         """Launches New NoteBook dialog"""
         
-        dialog = gtk.FileChooserDialog("New Notebook", self, 
+        dialog = gtk.FileChooserDialog(_("New Notebook"), self, 
             action=gtk.FILE_CHOOSER_ACTION_SAVE, #CREATE_FOLDER,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "New", gtk.RESPONSE_OK))
