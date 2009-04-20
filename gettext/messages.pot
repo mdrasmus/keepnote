@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2009-04-20 11:15-0400\n"
+"POT-Creation-Date: 2009-04-20 11:29-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -18,4 +18,179 @@ msgstr ""
 
 #: keepnote/gui/main_window.py:349
 msgid "New Notebook"
+msgstr ""
+
+#: keepnote/gui/main_window.py:351 keepnote/gui/main_window.py:373
+#: keepnote/gui/main_window.py:888 keepnote/gui/main_window.py:1014
+msgid "Cancel"
+msgstr ""
+
+#: keepnote/gui/main_window.py:352
+msgid "New"
+msgstr ""
+
+#: keepnote/gui/main_window.py:371
+msgid "Open Notebook"
+msgstr ""
+
+#: keepnote/gui/main_window.py:374
+msgid "Open"
+msgstr ""
+
+#: keepnote/gui/main_window.py:390
+msgid "Notebook (*.nbk)"
+msgstr ""
+
+#: keepnote/gui/main_window.py:395
+msgid "All files (*.*)"
+msgstr ""
+
+#: keepnote/gui/main_window.py:434
+msgid "Notebook saved"
+msgstr ""
+
+#: keepnote/gui/main_window.py:440 keepnote/gui/main_window.py:557
+msgid "Could not save notebook"
+msgstr ""
+
+#: keepnote/gui/main_window.py:441
+msgid "Error saving notebook"
+msgstr ""
+
+#: keepnote/gui/main_window.py:453
+msgid "Reloading only works when a notebook is open"
+msgstr ""
+
+#: keepnote/gui/main_window.py:460
+msgid "Notebook reloaded"
+msgstr ""
+
+#: keepnote/gui/main_window.py:473
+#, python-format
+msgid "Created '%s'"
+msgstr ""
+
+#: keepnote/gui/main_window.py:475
+msgid "Could not create new notebook"
+msgstr ""
+
+#: keepnote/gui/main_window.py:497 keepnote/gui/main_window.py:523
+#, python-format
+msgid "Could not load notebook '%s'"
+msgstr ""
+
+#: keepnote/gui/main_window.py:502
+msgid "Cannot open notebook (version too old)"
+msgstr ""
+
+#: keepnote/gui/main_window.py:514
+#, python-format
+msgid ""
+"This version of %s cannot read this notebook.\n"
+"The notebook has version %d.  %s can only read %d"
+msgstr ""
+
+#: keepnote/gui/main_window.py:537
+#, python-format
+msgid "Loaded '%s'"
+msgstr ""
+
+#: keepnote/gui/main_window.py:562
+msgid "Notebook closed"
+msgstr ""
+
+#: keepnote/gui/main_window.py:570
+msgid "Error occurred"
+msgstr ""
+
+#: keepnote/gui/main_window.py:668
+msgid "Could not empty trash."
+msgstr ""
+
+#: keepnote/gui/main_window.py:708
+msgid "Searching notebook"
+msgstr ""
+
+#: keepnote/gui/main_window.py:708
+msgid "Searching..."
+msgstr ""
+
+#: keepnote/gui/main_window.py:822
+msgid "Notebook modified"
+msgstr ""
+
+#: keepnote/gui/main_window.py:854
+#, python-format
+msgid "Error importing screenshot '%s'"
+msgstr ""
+
+#: keepnote/gui/main_window.py:859
+#, python-format
+msgid ""
+"The screenshot program encountered an error:\n"
+" %s"
+msgstr ""
+
+#: keepnote/gui/main_window.py:868
+#, python-format
+msgid "%s was unable to remove temp file for screenshot"
+msgstr ""
+
+#: keepnote/gui/main_window.py:886
+msgid "Insert Image From File"
+msgstr ""
+
+#: keepnote/gui/main_window.py:889
+msgid "Insert"
+msgstr ""
+
+#: keepnote/gui/main_window.py:913
+#, python-format
+msgid "Could not insert image '%s'"
+msgstr ""
+
+#: keepnote/gui/main_window.py:959
+msgid "Could not open Image Viewer"
+msgstr ""
+
+#: keepnote/gui/main_window.py:962
+msgid "You must specify an Image Viewer in Application Options"
+msgstr ""
+
+#: keepnote/gui/main_window.py:982
+msgid "Could not open Image Editor"
+msgstr ""
+
+#: keepnote/gui/main_window.py:985
+msgid "You must specify an Image Editor in Application Options"
+msgstr ""
+
+#: keepnote/gui/main_window.py:1012
+msgid "Save Image As..."
+msgstr ""
+
+#: keepnote/gui/main_window.py:1015
+msgid "Save"
+msgstr ""
+
+#: keepnote/gui/main_window.py:1028
+msgid "Must specify a filename for the image."
+msgstr ""
+
+#: keepnote/gui/main_window.py:1033
+#, python-format
+msgid "Could not save image '%s'"
+msgstr ""
+
+#: keepnote/gui/main_window.py:1100
+msgid "No notes are selected."
+msgstr ""
+
+#: keepnote/gui/main_window.py:1105
+#, python-format
+msgid "Only pages can be viewed with %s."
+msgstr ""
+
+#: keepnote/gui/main_window.py:1132
+msgid "Could not open error log"
 msgstr ""

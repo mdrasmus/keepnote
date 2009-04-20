@@ -95,7 +95,9 @@ winclean:
 # gettext
 
 # make messages file, extracts all strings in _()
-gettext_extract: gettext/messages.pot
+gettext_extract:
+	xgettext --from-code=utf-8 -k_ -kN_ \
+	-o gettext/messages.pot $(PYTHON_FILES)
 
 # make a new translation
 gettext_new:
@@ -110,9 +112,6 @@ gettext_make:
 	mkdir -p locale/$(LANG)/LC_MESSAGES/
 	msgfmt gettext/$(LANG).po -o locale/$(LANG)/LC_MESSAGES/keepnote.mo
 
-gettext/messages.pot:
-	xgettext --from-code=utf-8 -k_ -kN_ \
-	-o gettext/messages.pot $(PYTHON_FILES)
 
 
 #=============================================================================

@@ -348,8 +348,8 @@ class KeepNoteWindow (gtk.Window):
         
         dialog = gtk.FileChooserDialog(_("New Notebook"), self, 
             action=gtk.FILE_CHOOSER_ACTION_SAVE, #CREATE_FOLDER,
-            buttons=("Cancel", gtk.RESPONSE_CANCEL,
-                     "New", gtk.RESPONSE_OK))
+            buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
+                     _("New"), gtk.RESPONSE_OK))
         if os.path.exists(self.app.pref.new_notebook_path):
             dialog.set_current_folder(self.app.pref.new_notebook_path)
         response = dialog.run()
@@ -368,10 +368,10 @@ class KeepNoteWindow (gtk.Window):
     def on_open_notebook(self):
         """Launches Open NoteBook dialog"""
         
-        dialog = gtk.FileChooserDialog("Open Notebook", self, 
+        dialog = gtk.FileChooserDialog(_("Open Notebook"), self, 
             action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, #gtk.FILE_CHOOSER_ACTION_OPEN,
-            buttons=("Cancel", gtk.RESPONSE_CANCEL,
-                     "Open", gtk.RESPONSE_OK))
+            buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
+                     _("Open"), gtk.RESPONSE_OK))
 
         def on_folder_changed(filechooser):
             folder = filechooser.get_current_folder()
@@ -387,12 +387,12 @@ class KeepNoteWindow (gtk.Window):
         
         file_filter = gtk.FileFilter()
         file_filter.add_pattern("*.nbk")
-        file_filter.set_name("Notebook (*.nbk)")
+        file_filter.set_name(_("Notebook (*.nbk)"))
         dialog.add_filter(file_filter)
         
         file_filter = gtk.FileFilter()
         file_filter.add_pattern("*")
-        file_filter.set_name("All files (*.*)")
+        file_filter.set_name(_("All files (*.*)"))
         dialog.add_filter(file_filter)
         
         response = dialog.run()
@@ -431,14 +431,14 @@ class KeepNoteWindow (gtk.Window):
             self.viewer.save()
             self.notebook.save()
 
-            self.set_status("Notebook saved")
+            self.set_status(_("Notebook saved"))
             
             self.set_notebook_modified(False)
             
         except Exception, e:
             if not silent:
-                self.error("Could not save notebook", e, sys.exc_info()[2])
-                self.set_status("Error saving notebook")
+                self.error(_("Could not save notebook"), e, sys.exc_info()[2])
+                self.set_status(_("Error saving notebook"))
                 return
 
             self.set_notebook_modified(False)
@@ -450,14 +450,14 @@ class KeepNoteWindow (gtk.Window):
         """Reload the current NoteBook"""
         
         if self.notebook is None:
-            self.error("Reloading only works when a notebook is open")
+            self.error(_("Reloading only works when a notebook is open"))
             return
         
         filename = self.notebook.get_path()
         self.close_notebook(False)
         self.open_notebook(filename)
         
-        self.set_status("Notebook reloaded")
+        self.set_status(_("Notebook reloaded"))
         
         
     
@@ -470,9 +470,9 @@ class KeepNoteWindow (gtk.Window):
         try:
             notebook = notebooklib.NoteBook(filename)
             notebook.create()
-            self.set_status("Created '%s'" % notebook.get_title())
+            self.set_status(_("Created '%s'") % notebook.get_title())
         except NoteBookError, e:
-            self.error("Could not create new notebook", e, sys.exc_info()[2])
+            self.error(_("Could not create new notebook"), e, sys.exc_info()[2])
             self.set_status("")
             return None
         
@@ -494,12 +494,12 @@ class KeepNoteWindow (gtk.Window):
             version = notebooklib.get_notebook_version(filename)
         except Exception, e:
             # give up opening notebook
-            self.error("Could not load notebook '%s'" % filename,
+            self.error(_("Could not load notebook '%s'") % filename,
                        e, sys.exc_info()[2])
         else:
             if version < notebooklib.NOTEBOOK_FORMAT_VERSION:
                 if not self.update_notebook(filename, version=version):
-                    self.error("Cannot open notebook (version too old)")
+                    self.error(_("Cannot open notebook (version too old)"))
                     return None
 
 
@@ -511,8 +511,8 @@ class KeepNoteWindow (gtk.Window):
         try:
             notebook.load(filename)
         except NoteBookVersionError, e:
-            self.error(("This version of %s cannot read this notebook.\n" +
-                        "The notebook has version %d.  %s can only read %d")
+            self.error(_("This version of %s cannot read this notebook.\n" 
+                         "The notebook has version %d.  %s can only read %d")
                        % (keepnote.PROGRAM_NAME,
                           e.notebook_version,
                           keepnote.PROGRAM_NAME,
@@ -520,7 +520,7 @@ class KeepNoteWindow (gtk.Window):
                        e, sys.exc_info()[2])
             return None
         except NoteBookError, e:            
-            self.error("Could not load notebook '%s'" % filename,
+            self.error(_("Could not load notebook '%s'") % filename,
                        e, sys.exc_info()[2])
             return None
 
@@ -534,7 +534,7 @@ class KeepNoteWindow (gtk.Window):
         self.set_notebook(notebook)
         
         if not new:
-            self.set_status("Loaded '%s'" % self.notebook.get_title())
+            self.set_status(_("Loaded '%s'") % self.notebook.get_title())
         
         self.set_notebook_modified(False)
 
@@ -554,12 +554,12 @@ class KeepNoteWindow (gtk.Window):
                     self.notebook.save()
                 except Exception, e:
                     # TODO: should ask question, like try again?
-                    self.error("Could not save notebook",
+                    self.error(_("Could not save notebook"),
                                e, sys.exc_info()[2])
 
             self.notebook.node_changed.remove(self.on_notebook_node_changed)
             self.set_notebook(None)
-            self.set_status("Notebook closed")
+            self.set_status(_("Notebook closed"))
 
 
     def update_notebook(self, filename, version=None):
@@ -567,7 +567,7 @@ class KeepNoteWindow (gtk.Window):
             dialog = dialog_update_notebook.UpdateNoteBookDialog(self)
             return dialog.show(filename, version=version)
         except Exception, e:
-            self.error("Error occurred", e, sys.exc_info()[2])
+            self.error(_("Error occurred"), e, sys.exc_info()[2])
             return False
         
 
@@ -665,7 +665,7 @@ class KeepNoteWindow (gtk.Window):
         try:
             self.notebook.empty_trash()
         except NoteBookError, e:
-            self.error("Could not empty trash.", e, sys.exc_info()[2])
+            self.error(_("Could not empty trash."), e, sys.exc_info()[2])
 
 
 
@@ -705,7 +705,7 @@ class KeepNoteWindow (gtk.Window):
             task.finish()
 
         # launch task
-        self.wait_dialog("Searching notebook", "Searching...",
+        self.wait_dialog(_("Searching notebook"), _("Searching..."),
                          tasklib.Task(search))
 
 
@@ -819,7 +819,7 @@ class KeepNoteWindow (gtk.Window):
         else:
             if modified:
                 self.set_title("* %s" % self.notebook.get_title())
-                self.set_status("Notebook modified")
+                self.set_status(_("Notebook modified"))
             else:
                 self.set_title("%s" % self.notebook.get_title())
     
@@ -851,12 +851,12 @@ class KeepNoteWindow (gtk.Window):
                 self.insert_image(imgfile, "screenshot.png")
             except Exception, e:
                 # TODO: make exception more specific
-                raise Exception("Error importing screenshot '%s'" % imgfile)
+                raise Exception(_("Error importing screenshot '%s'") % imgfile)
             
         except Exception, e:
             # catch exceptions for screenshot program
             self.restore_window()
-            self.error("The screenshot program encountered an error:\n %s"
+            self.error(_("The screenshot program encountered an error:\n %s")
                        % str(e), e, sys.exc_info()[2])
         
             
@@ -865,7 +865,7 @@ class KeepNoteWindow (gtk.Window):
             if os.path.exists(imgfile):
                 os.remove(imgfile)
         except OSError, e:
-            self.error("%s was unable to remove temp file for screenshot" %
+            self.error(_("%s was unable to remove temp file for screenshot") %
                        keepnote.PROGRAM_NAME, e, sys.exc_info()[2])
 
 
@@ -883,10 +883,10 @@ class KeepNoteWindow (gtk.Window):
         if current_page is None:
             return
                   
-        dialog = gtk.FileChooserDialog("Insert Image From File", self, 
+        dialog = gtk.FileChooserDialog(_("Insert Image From File"), self, 
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
-            buttons=("Cancel", gtk.RESPONSE_CANCEL,
-                     "Insert", gtk.RESPONSE_OK))
+            buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
+                     _("Insert"), gtk.RESPONSE_OK))
 
         if os.path.exists(self.app.pref.insert_image_path):
             dialog.set_current_folder(self.app.pref.insert_image_path)        
@@ -910,7 +910,7 @@ class KeepNoteWindow (gtk.Window):
                 self.insert_image(filename, imgname)
             except Exception, e:
                 # TODO: make exception more specific
-                self.error("Could not insert image '%s'" % filename, e,
+                self.error(_("Could not insert image '%s'") % filename, e,
                            sys.exc_info()[2])
             
         dialog.destroy()
@@ -956,9 +956,10 @@ class KeepNoteWindow (gtk.Window):
             try:
                 proc = subprocess.Popen([viewer.prog, image_path])
             except OSError, e:
-                self.error("Could not open Image Viewer", e, sys.exc_info()[2])
+                self.error(_("Could not open Image Viewer"), 
+                           e, sys.exc_info()[2])
         else:
-            self.error("You must specify an Image Viewer in Application Options""")
+            self.error(_("You must specify an Image Viewer in Application Options"))
 
 
     def on_edit_image(self, menuitem):
@@ -978,9 +979,10 @@ class KeepNoteWindow (gtk.Window):
             try:
                 proc = subprocess.Popen([editor.prog, image_path])
             except OSError, e:
-                self.error("Could not open Image Editor", e, sys.exc_info()[2])
+                self.error(_("Could not open Image Editor"), 
+                           e, sys.exc_info()[2])
         else:
-            self.error("You must specify an Image Editor in Application Options")
+            self.error(_("You must specify an Image Editor in Application Options"))
 
 
     def on_resize_image(self, menuitem):
@@ -1007,10 +1009,10 @@ class KeepNoteWindow (gtk.Window):
         image_filename = menuitem.get_parent().get_child().get_filename()
         image_path = os.path.join(current_page.get_path(), image_filename)
 
-        dialog = gtk.FileChooserDialog("Save Image As...", self, 
+        dialog = gtk.FileChooserDialog(_("Save Image As..."), self, 
             action=gtk.FILE_CHOOSER_ACTION_SAVE,
-            buttons=("Cancel", gtk.RESPONSE_CANCEL,
-                     "Save", gtk.RESPONSE_OK))
+            buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
+                     _("Save"), gtk.RESPONSE_OK))
         dialog.set_default_response(gtk.RESPONSE_OK)
 
         if os.path.exists(self.app.pref.save_image_path):
@@ -1023,12 +1025,12 @@ class KeepNoteWindow (gtk.Window):
             self.app.pref.save_image_path = dialog.get_current_folder()
             
             if dialog.get_filename() == "":
-                self.error("Must specify a filename for the image.")
+                self.error(_("Must specify a filename for the image."))
             else:
                 try:                
                     image.write(dialog.get_filename())
                 except Exception, e:
-                    self.error("Could not save image '%s'" %
+                    self.error(_("Could not save image '%s'") %
                                dialog.get_filename(), e, sys.exc_info()[2])
 
         dialog.destroy()
@@ -1095,12 +1097,12 @@ class KeepNoteWindow (gtk.Window):
         if node is None:
             nodes, widget = self.get_selected_nodes(widget)
             if len(nodes) == 0:
-                self.error("No notes are selected.")                
+                self.error(_("No notes are selected."))
                 return            
             node = nodes[0]
 
             if page_only and node.get_attr("content_type") != notebooklib.CONTENT_TYPE_PAGE:
-                self.error("Only pages can be viewed with %s." %
+                self.error(_("Only pages can be viewed with %s.") %
                            self.app.external_apps[app].title)
                 return
 
@@ -1127,7 +1129,7 @@ class KeepNoteWindow (gtk.Window):
             # use text editor to view error log
             self.app.run_external_app("text_editor", filename2)
         except Exception, e:
-            self.error("Could not open error log", e, sys.exc_info()[2])
+            self.error(_("Could not open error log"), e, sys.exc_info()[2])
 
 
 
