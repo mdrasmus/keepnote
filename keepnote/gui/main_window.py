@@ -81,8 +81,10 @@ class KeepNoteWindow (gtk.Window):
         self._maximized = False   # True if window is maximized
         self._iconified = False   # True if window is minimized
         self.tray_icon = None
-        
-        self.accel_group = gtk.AccelGroup()
+
+        self.uimanager = gtk.UIManager()
+        self.accel_group = self.uimanager.get_accel_group()
+        self.add_accel_group(self.accel_group)
         
         self._ignore_view_mode = False # prevent recursive view mode changes
 
@@ -1137,7 +1139,7 @@ class KeepNoteWindow (gtk.Window):
     #=======================================================
     # spellcheck
     
-    def on_spell_check_toggle(self, num, widget):
+    def on_spell_check_toggle(self, widget):
         """Toggle spell checker"""
         self.enable_spell_check(widget.get_active())
 
@@ -1246,194 +1248,239 @@ class KeepNoteWindow (gtk.Window):
     
     def make_menubar(self):
         """Initialize the menu bar"""
+
+        #===============================
+        # ui manager
+
+        self.actiongroup = gtk.ActionGroup('UIManagerExample')
+        info = self.actiongroup.add_actions([
+            ("File", None, "_File"),
+
+            ("New Notebook", gtk.STOCK_NEW, _("_New Notebook"),
+             "", _("Start a new notebook"),
+             lambda w,e: self.on_new_notebook()),
+
+            ("New Page", None, _("New _Page"),
+             "<control>N", _("Create a new page"),
+             lambda w: self.on_new_page()),
+
+            ("New Child Page", None, _("New _Child Page"),
+             "<control><shift>N", _("Create a new child page"),
+             lambda w: self.on_new_child_page()),
+
+            ("New Folder", None, _("New _Folder"),
+             "<control><shift>M", _("Create a new folder"),
+             lambda w: self.on_new_dir()),
+
+            ("Open Notebook", gtk.STOCK_OPEN, _("_Open Notebook"),
+             "<control>O", _("Open an existing notebook"),
+             lambda w: self.on_open_notebook()),
+            
+            ("Reload Notebook", gtk.STOCK_REVERT_TO_SAVED,
+             _("_Reload Notebook"),
+             "", _("Reload the current notebook"),
+             lambda w: self.reload_notebook()),
+            
+            ("Save Notebook", gtk.STOCK_SAVE, _("_Save Notebook"),             
+             "<control>S", _("Save the current notebook"),
+             lambda w: self.save_notebook()),
+            
+            ("Close Notebook", gtk.STOCK_CLOSE, _("_Close Notebook"),
+             "", _("Close the current notebook"),
+             lambda w: self.close_notebook()),
+            
+            ("Quit", gtk.STOCK_QUIT, _("_Quit"),
+             "<control>Q", _("Quit KeepNote"),
+             lambda w: self.on_quit()),
+
+            #=======================================
+            ("Edit", None, "_Edit"),
+            
+            ("Undo", gtk.STOCK_UNDO, None,
+             "<control>Z", None,
+             lambda w: self.editor.get_textview().undo()),
+            
+            ("Redo", gtk.STOCK_REDO, None,
+             "<control><shift>Z", None,
+             lambda w: self.editor.get_textview().redo()),
+            
+            ("Cut", gtk.STOCK_CUT, None,
+             "<control>X", None,
+             lambda w: self.on_cut()),
+
+            ("Copy", gtk.STOCK_COPY, None,
+             "<control>C", None,
+             lambda w: self.on_copy()),
+
+            ("Paste", gtk.STOCK_PASTE, None,
+             "<control>V", None,
+             lambda w: self.on_paste()),
+
+            ("Insert Horizontal Rule", None, _("Insert _Horizontal Rule"),
+             "<control>H", None,
+             lambda w: self.on_insert_hr()),
+            
+            ("Insert Image", None, _("Insert _Image"),
+             "", None,
+             lambda w: self.on_insert_image()),
+            
+            ("Insert Screenshot", None, _("Insert _Screenshot"),
+             "<control>Insert", None,
+             lambda w: self.on_screenshot()),
+
+            ("Empty Trash", gtk.STOCK_DELETE, _("Empty _Trash"),
+             "", None,
+             lambda w: self.on_empty_trash()),
+            
+            #========================================
+            ("Search", None, _("Search")),
+            
+            ("Search All Notes", gtk.STOCK_FIND, _("_Search All Notes"),
+             "<control>K", None,
+             lambda w: self.focus_on_search_box()),
+            
+            ("Find In Page", gtk.STOCK_FIND, _("_Find In Page"),
+             "<control>F", None,
+             lambda w: self.find_dialog.on_find(False)),
+            
+            ("Find Next In Page", gtk.STOCK_FIND, _("Find _Next In Page"),
+             "<control>G", None,
+             lambda w: self.find_dialog.on_find(False, forward=True)),
+                        
+            ("Find Previous In Page", gtk.STOCK_FIND,
+             _("Find Pre_vious In Page"),
+             "<control><shift>G", None,
+             lambda w: self.find_dialog.on_find(False, forward=False)),
+            
+            ("Replace In Page", gtk.STOCK_FIND, _("_Replace In Page"), 
+             "<control><shift>R", None,
+             lambda w: self.find_dialog.on_find(True)),
+
+            #========================================
+            ("View", None, _("_View")),
+             
+            ("View Note in File Explorer", None,
+             _("View Note in File Explorer"),
+             "", None,
+             lambda w: self.on_view_node_external_app("file_explorer")),
+            
+            ("View Note in Text Editor", None,
+             _("View Note in Text Editor"),
+             "", None,
+             lambda w: self.on_view_node_external_app("text_editor",
+                                                      page_only=True)),
+
+            ("View Note in Web Browser", None,
+             _("View Note in Web Browser"),
+             "", None,
+             lambda w: self.on_view_node_external_app("web_browser",
+                                                      page_only=True)),
+
+            #=======================================
+            ("Go", None, "_Go"),
+            
+            ("Go to Note", gtk.STOCK_GO_DOWN, _("Go to _Note"),
+             "", None,
+             lambda w: self.on_list_view_node(None, None)),
+            
+            ("Go to Parent Note", gtk.STOCK_GO_UP, _("Go to _Parent Note"),
+             "", None,
+             lambda w: self.on_list_view_parent_node()),
+
+            ("Go to Tree View", None, _("Go to _Tree View"),
+             "<control>T", None,
+             lambda w: self.on_goto_treeview()),
+            
+            ("Go to List View", None, _("Go to _List View"),
+             "<control>Y", None,
+             lambda w: self.on_goto_listview()),
+            
+            ("Go to Editor", None, _("Go to _Editor"),
+             "<control>D", None,
+             lambda w: self.on_goto_editor()),
+            
+            ("Go to Link", None, _("Go to Lin_k"),
+             "<control>space", None,
+             lambda w: self.on_goto_link()),
+
+            #=========================================
+            ("Options", None, "_Options"),
+            
+            ("KeepNote Options", gtk.STOCK_PREFERENCES, _("KeepNote _Options"),
+             "", None,
+             lambda w: self.app_options_dialog.on_app_options()),
+
+            #=========================================
+            ("Help", None, "_Help"),
+            
+            ("View Error Log...", None, _("View _Error Log..."),
+             "", None,
+             lambda w: self.view_error_log()),
+            
+            ("Drag and Drop Test...", None, _("Drag and Drop Test..."),
+             "", None,
+             lambda w: self.drag_test.on_drag_and_drop_test()),
+            
+            ("About", gtk.STOCK_ABOUT, _("_About"),
+             "", None,
+             lambda w: self.on_about())
+            ])
+
+        self.actiongroup.add_toggle_actions([
+            ("Spell Check", None, _("_Spell Check"), 
+             "", None,
+             self.on_spell_check_toggle),
+                
+            ("Horizontal Layout", None, _("_Horizontal Layout"),
+             "", None,
+             lambda w: self.set_view_mode("horizontal")),
+            
+            ("Vertical Layout", None, _("_Vertical Layout"),
+             "", None,
+             lambda w: self.set_view_mode("vertical"))])
+
+
+        self._editor_menus.add_actions(self.actiongroup)
+
+
+        self.uimanager.insert_action_group(self.actiongroup, 0)        
+        self.uimanager.add_ui_from_string(ui)
+        self.uimanager.add_ui_from_string(self._editor_menus.get_format_ui())
+        menubar = self.uimanager.get_widget('/main_menu_bar')
+
         
-        self.menu_items = [
-            ("/_File",               
-                None, None, 0, "<Branch>"),
-            ("/File/_New Notebook",
-                "", lambda w,e: self.on_new_notebook(), 0, 
-                "<StockItem>", gtk.STOCK_NEW),
-            ("/File/New _Page",      
-                "<control>N", lambda w,e: self.on_new_page(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("note-new.png")),
-            ("/File/New _Child Page",      
-                "<control><shift>N", lambda w,e: self.on_new_child_page(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("note-new.png")),
-            ("/File/New _Folder", 
-                "<control><shift>M", lambda w,e: self.on_new_dir(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("folder-new.png")),
+        self.set_menu_icon("/main_menu_bar/File/New Page", "note-new.png")
+        self.set_menu_icon("/main_menu_bar/File/New Child Page", "note-new.png")
+        self.set_menu_icon("/main_menu_bar/File/New Folder", "folder-new.png")
 
-            ("/File/sep2", 
-                None, None, 0, "<Separator>" ),
-            ("/File/_Open Notebook",          
-                "<control>O", lambda w,e: self.on_open_notebook(), 0,
-                "<StockItem>", gtk.STOCK_OPEN),             
-            ("/File/_Reload Notebook",          
-                None, lambda w,e: self.reload_notebook(), 0, 
-                "<StockItem>", gtk.STOCK_REVERT_TO_SAVED),
-            ("/File/_Save Notebook",     
-                "<control>S", lambda w,e: self.save_notebook(), 0,
-                "<StockItem>", gtk.STOCK_SAVE),
-            ("/File/_Close Notebook", 
-                None, lambda w, e: self.close_notebook(), 0, 
-                "<StockItem>", gtk.STOCK_CLOSE),
-
-            # NOTE: backup_tar extension installs backup/restore options here
-            
-            ("/File/sep4", 
-                None, None, 0, "<Separator>" ),
-            ("/File/Quit", 
-                "<control>Q", lambda w,e: self.on_quit(), 0, None),
-
-            ("/_Edit", 
-                None, None, 0, "<Branch>"),
-            ("/Edit/_Undo", 
-                "<control>Z", lambda w,e: self.editor.get_textview().undo(), 0, 
-                "<StockItem>", gtk.STOCK_UNDO),
-            ("/Edit/_Redo", 
-                "<control><shift>Z", lambda w,e: self.editor.get_textview().redo(), 0, 
-                "<StockItem>", gtk.STOCK_REDO),
-            ("/Edit/sep1", 
-                None, None, 0, "<Separator>"),
-            ("/Edit/Cu_t", 
-                "<control>X", lambda w,e: self.on_cut(), 0, 
-                "<StockItem>", gtk.STOCK_CUT), 
-            ("/Edit/_Copy",     
-                "<control>C", lambda w,e: self.on_copy(), 0, 
-                "<StockItem>", gtk.STOCK_COPY), 
-            ("/Edit/_Paste",     
-                "<control>V", lambda w,e: self.on_paste(), 0, 
-                "<StockItem>", gtk.STOCK_PASTE), 
-            
-            ("/Edit/sep4", 
-                None, None, 0, "<Separator>"),
-            ("/Edit/Insert _Horizontal Rule",
-                "<control>H", lambda w,e: self.on_insert_hr(), 0, None),
-            ("/Edit/Insert _Image",
-                None, lambda w,e: self.on_insert_image(), 0, None),
-            ("/Edit/Insert _Screenshot",
-                "<control>Insert", lambda w,e: self.on_screenshot(), 0, None),
-
-            ("/Edit/sep5", 
-                None, None, 0, "<Separator>"),
-            ("/Edit/Empty _Trash",
-             None, lambda w,e: self.on_empty_trash(), 0,
-             "<StockItem>", gtk.STOCK_DELETE),
-            
-            
-            ("/_Search", None, None, 0, "<Branch>"),
-            ("/Search/_Search All Notes",
-             "<control>K", lambda w,e: self.focus_on_search_box(), 0,
-             "<StockItem>", gtk.STOCK_FIND),
-            ("/Search/_Find In Page",     
-                "<control>F", lambda w,e: self.find_dialog.on_find(False), 0, 
-                "<StockItem>", gtk.STOCK_FIND), 
-            ("/Search/Find _Next In Page",     
-                "<control>G", lambda w,e: self.find_dialog.on_find(False, forward=True), 0, 
-                "<StockItem>", gtk.STOCK_FIND), 
-            ("/Search/Find Pre_vious In Page",     
-                "<control><shift>G", lambda w,e: self.find_dialog.on_find(False, forward=False), 0, 
-                "<StockItem>", gtk.STOCK_FIND),                 
-            ("/Search/_Replace In Page",     
-                "<control><shift>R", lambda w,e: self.find_dialog.on_find(True), 0, 
-                "<StockItem>", gtk.STOCK_FIND)
-            ] + \
-            self._editor_menus.get_format_menu() + \
-            [
-            ("/_View", None, None, 0, "<Branch>"),
-            ("/View/View Note in File Explorer",
-             None, lambda w,e:
-             self.on_view_node_external_app("file_explorer"), 0, 
-             "<ImageItem>",
-             get_resource_pixbuf("note.png")),
-            ("/View/View Note in Text Editor",
-             None, lambda w,e:
-             self.on_view_node_external_app("text_editor", page_only=True), 0, 
-             "<ImageItem>",
-             get_resource_pixbuf("note.png")),
-            ("/View/View Note in Web Browser",
-             None, lambda w,e:
-             self.on_view_node_external_app("web_browser", page_only=True), 0, 
-             "<ImageItem>",
-             get_resource_pixbuf("note.png")),
-            
-            
-            ("/_Go", None, None, 0, "<Branch>"),
-            ("/_Go/Go to _Note",
-                None, lambda w,e: self.on_list_view_node(None, None), 0,
-                "<StockItem>", gtk.STOCK_GO_DOWN),
-            ("/_Go/Go to _Parent Note",
-                None, lambda w,e: self.on_list_view_parent_node(), 0,
-                "<StockItem>", gtk.STOCK_GO_UP),            
-
-            ("/Go/sep1", None, None, 0, "<Separator>"),
-
-            ("/Go/Go to _Tree View",
-                "<control>T", lambda w,e: self.on_goto_treeview(), 0, None),
-            ("/Go/Go to _List View",
-                "<control>Y", lambda w,e: self.on_goto_listview(), 0, None),
-            ("/Go/Go to _Editor",
-                "<control>D", lambda w,e: self.on_goto_editor(), 0, None),
-            ("/Go/Go to Lin_k",
-                "<control>space", lambda w,e: self.on_goto_link(), 0, None),
-
-            
-            ("/_Options", None, None, 0, "<Branch>"),
-            ("/Options/_Spell check", 
-                None, self.on_spell_check_toggle, 0,
-                "<ToggleItem>"),
-                
-            ("/Options/sep1", None, None, 0, "<Separator>"),
-            ("/Options/_Horizontal Layout",
-                None, lambda w,e: self.set_view_mode("horizontal"), 0, 
-                "<ToggleItem>"),
-            ("/Options/_Vertical Layout",
-                None, lambda w,e: self.set_view_mode("vertical"), 0, 
-                "<ToggleItem>"),
-                
-            ("/Options/sep1", None, None, 0, "<Separator>"),
-            ("/Options/KeepNote _Options",
-                None, lambda w,e: self.app_options_dialog.on_app_options(), 0, 
-                "<StockItem>", gtk.STOCK_PREFERENCES),
-            
-            ("/_Help",       None, None, 0, "<Branch>" ),
-            ("/Help/View Error Log...",
-             None, lambda w,e: self.view_error_log(), 0, None),
-            ("/Help/Drag and Drop Test...",
-                None, lambda w,e: self.drag_test.on_drag_and_drop_test(),
-                0, None),
-            ("/Help/sep1", None, None, 0, "<Separator>"),
-            ("/Help/About", None, lambda w,e: self.on_about(), 0, None ),
-            ]
-                
-
-        # Create item factory
-        self.item_factory = gtk.ItemFactory(gtk.MenuBar, "<main>",
-                                            self.accel_group)
-        self.item_factory.create_items(self.menu_items)
-        self.add_accel_group(self.accel_group)
+        self._editor_menus.setup_menu(self.uimanager)
 
         # view mode
         self.view_mode_h_toggle = \
-            self.item_factory.get_widget("/Options/Horizontal Layout")
+            self.uimanager.get_widget("/main_menu_bar/Options/Horizontal Layout")
         self.view_mode_v_toggle = \
-            self.item_factory.get_widget("/Options/Vertical Layout")
+            self.uimanager.get_widget("/main_menu_bar/Options/Vertical Layout")
 
         # get spell check toggle
         self.spell_check_toggle = \
-            self.item_factory.get_widget("/Options/Spell check")
+            self.uimanager.get_widget("/main_menu_bar/Options/Spell Check")
         self.spell_check_toggle.set_sensitive(
             self.editor.get_textview().can_spell_check())
 
-
         self.menubar_file_extensions = \
-            self.item_factory.get_widget("/File/Close Notebook")
+            self.uimanager.get_widget("/main_menu_bar/File/Close Notebook")
         
-        return self.item_factory.get_widget("<main>")
+        return menubar
 
+        
+
+    
+    def set_menu_icon(self, path, filename):
+        item = self.uimanager.get_widget(path)
+        img = gtk.Image()
+        img.set_from_pixbuf(get_resource_pixbuf(filename))
+        item.set_image(img)        
+            
 
     
     def make_toolbar(self):
@@ -1722,3 +1769,74 @@ class KeepNoteWindow (gtk.Window):
         self.make_treeview_menu(viewer.treeview, viewer.treeview.menu)
         self.make_listview_menu(viewer.listview, viewer.listview.menu)
 
+
+
+ui = """
+<ui>
+<menubar name="main_menu_bar">
+  <menu action="File">
+     <menuitem action="New Notebook"/>
+     <menuitem action="New Page"/>
+     <menuitem action="New Child Page"/>
+     <menuitem action="New Folder"/>
+     <separator/>
+     <menuitem action="Open Notebook"/>
+     <menuitem action="Reload Notebook"/>
+     <menuitem action="Save Notebook"/>
+     <menuitem action="Close Notebook"/>
+     <separator/>
+     <menuitem action="Quit"/>
+  </menu>
+  <menu action="Edit">
+    <menuitem action="Undo"/>
+    <menuitem action="Redo"/>
+    <separator/>
+    <menuitem action="Cut"/>
+    <menuitem action="Copy"/>
+    <menuitem action="Paste"/>
+    <separator/>
+    <menuitem action="Insert Horizontal Rule"/>
+    <menuitem action="Insert Image"/>
+    <menuitem action="Insert Screenshot"/>
+    <separator/>
+    <menuitem action="Empty Trash"/>
+  </menu>
+  <menu action="Search">
+    <menuitem action="Search All Notes"/>
+    <menuitem action="Find In Page"/>
+    <menuitem action="Find Next In Page"/>
+    <menuitem action="Find Previous In Page"/>
+    <menuitem action="Replace In Page"/>
+  </menu>
+  <placeholder name="Format"/>
+  <menu action="View">
+    <menuitem action="View Note in File Explorer"/>
+    <menuitem action="View Note in Text Editor"/>
+    <menuitem action="View Note in Web Browser"/>
+  </menu>
+  <menu action="Go">
+    <menuitem action="Go to Note"/>
+    <menuitem action="Go to Parent Note"/>
+    <separator/>
+    <menuitem action="Go to Tree View"/>
+    <menuitem action="Go to List View"/>
+    <menuitem action="Go to Editor"/>
+    <menuitem action="Go to Link"/>
+  </menu>
+  <menu action="Options">
+    <menuitem action="Spell Check"/>
+    <separator/>
+    <menuitem action="Horizontal Layout"/>
+    <menuitem action="Vertical Layout"/>
+    <separator/>
+    <menuitem action="KeepNote Options"/>
+  </menu>
+  <menu action="Help">
+    <menuitem action="View Error Log..."/>
+    <menuitem action="Drag and Drop Test..."/>
+    <separator/>
+    <menuitem action="About"/>
+  </menu>
+</menubar>
+</ui>
+"""

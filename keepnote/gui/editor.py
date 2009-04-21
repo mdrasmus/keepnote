@@ -8,7 +8,12 @@
 
 
 # python imports
+import gettext
 import sys, os
+
+
+_ = gettext.gettext
+
 
 # pygtk imports
 import pygtk
@@ -551,7 +556,169 @@ class EditorMenus (gobject.GObject):
             "Bullet List", "bullet.png", None,
             lambda: self.on_bullet_list(),
             use_stock_icons)
+
+    def add_actions(self, actiongroup):
+
+        actiongroup.add_actions([
+            ("Format", None, _("Fo_rmat")),
+
+            ("Bold", None, _("_Bold"), 
+             "<control>B", None,
+             lambda w: self.on_mod("bold")),
+            
+            ("Italic", None, _("_Italic"), 
+             "<control>I", None,
+             lambda w: self.on_mod("italic")),
+            
+            ("Underline", None, "_Underline", 
+             "<control>U", None,
+             lambda w: self.on_mod("underline")),
+            
+            ("Strike", None, _("S_trike"),
+             "", None,
+             lambda w: self.on_mod("strike")),
+            
+            ("Monospace", None, _("_Monospace"),
+             "<control>M", None,
+             lambda w: self.on_mod("tt")),
+            
+            ("Link", None, _("Lin_k"),
+             "<control>L", None,
+             lambda w: self.on_toggle_link()),
+            
+            ("No Wrapping", None, _("No _Wrapping"),
+             "", None,
+             lambda w: self.on_mod("nowrap")),
+            
+            ("Left Align", None, _("_Left Align"), 
+             "<shift><control>L", None,
+             lambda w: self.on_justify("left")),
+            
+            ("Center Align", None, _("C_enter Align"), 
+             "<shift><control>E", None,
+             lambda w: self.on_justify("center")),
+            
+            ("Right Align", None, _("_Right Align"), 
+             "<shift><control>R", None,
+             lambda w: self.on_justify("right")),
+            
+            ("Justify Align", None, _("_Justify Align"), 
+             "<shift><control>J", None,
+             lambda w: self.on_justify("fill")),
+
+            ("Bullet List", None, _("_Bullet List"), 
+             "<control>asterisk", None,
+             lambda w: self.on_bullet_list()),
+            
+            ("Indent More", None, _("Indent M_ore"), 
+             "<control>parenright", None,
+             lambda w,e: self.on_indent()),
+            
+            ("Indent Less", None, _("Indent Le_ss"), 
+             "<control>parenleft", None,
+             lambda w: self.on_unindent()),
+            
+            ("Increase Font Size", None, _("Increase Font _Size"), 
+             "<control>equal", None,
+             lambda w: self.on_font_size_inc()),
+            
+            ("Decrease Font Size", None, _("_Decrease Font Size"),
+             "<control>minus", None,
+             lambda w: self.on_font_size_dec()),
+
+            ("Apply Text Color", None, _("_Apply Text Color"), 
+             "", None,
+             lambda w: self.on_color_set("fg")),
+            
+            ("Apply Background Color", None, _("A_pply Background Color"), 
+             "", None,
+             lambda w: self.on_color_set("bg")),
+                        
+            ("Choose Font", None, _("Choose _Font"), 
+             "<control><shift>F", None,
+             lambda w: self.on_choose_font())
+        ])
         
+
+    def get_format_ui(self):
+
+        return """
+        <ui>
+        <menubar name="main_menu_bar">
+          <placeholder name="Format">
+          <menu action="Format">
+            <menuitem action="Bold"/>
+            <menuitem action="Italic"/>
+            <menuitem action="Underline"/>
+            <menuitem action="Strike"/>
+            <menuitem action="Monospace"/>
+            <menuitem action="Link"/>
+            <menuitem action="No Wrapping"/>
+            <menuitem action="Left Align"/>
+            <menuitem action="Center Align"/>
+            <menuitem action="Right Align"/>
+            <menuitem action="Justify Align"/>
+            <menuitem action="Bullet List"/>
+            <menuitem action="Indent More"/>
+            <menuitem action="Indent Less"/>
+            <menuitem action="Increase Font Size"/>
+            <menuitem action="Decrease Font Size"/>
+            <menuitem action="Apply Text Color"/>
+            <menuitem action="Apply Background Color"/>
+            <menuitem action="Choose Font"/>
+          </menu>
+          </placeholder>
+        </menubar>
+        </ui>
+        """
+
+    def setup_menu(self, uimanager):
+
+        u = uimanager
+        
+        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Bold",
+                           get_resource("images", "bold.png"))
+        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Italic",
+                           get_resource("images", "italic.png"))
+        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Underline",
+                           get_resource("images", "underline.png"))
+        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Strike",
+                           get_resource("images", "strike.png"))
+        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Monospace",
+                           get_resource("images", "fixed-width.png"))
+        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Link",
+                           get_resource("images", "link.png"))
+        self.set_menu_icon(u, "/main_menu_bar/Format/Format/No Wrapping",
+                           get_resource("images", "no-wrap.png"))
+        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Left Align",
+                           get_resource("images", "alignleft.png"))
+        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Center Align",
+                           get_resource("images", "aligncenter.png"))
+        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Right Align",
+                           get_resource("images", "alignright.png"))
+        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Justify Align",
+                           get_resource("images", "alignjustify.png"))
+        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Bullet List",
+                           get_resource("images", "bullet.png"))
+        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Indent More",
+                           get_resource("images", "indent-more.png"))
+        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Indent Less",
+                           get_resource("images", "indent-less.png"))
+        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Increase Font Size",
+                           get_resource("images", "font-inc.png"))
+        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Decrease Font Size",
+                           get_resource("images", "font-dec.png"))
+        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Choose Font",
+                           get_resource("images", "font.png"))
+
+        
+    def set_menu_icon(self, uimanager, path, filename):
+        item = uimanager.get_widget(path)
+        img = gtk.Image()
+        img.set_from_pixbuf(get_resource_pixbuf(filename))
+        item.set_image(img)        
+            
+
         
     def get_format_menu(self):
 

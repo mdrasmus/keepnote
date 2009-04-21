@@ -48,15 +48,19 @@ class Extension (keepnote.Extension):
         menu = insert_point.get_parent()
         i = menu.get_children().index(insert_point)
         
-        menu.insert(gtk.SeparatorMenuItem(), i+1)
+        sep = gtk.SeparatorMenuItem()
+        sep.show()
+        menu.insert(sep, i+1)        
 
         item = gtk.MenuItem("_Backup Notebook")
         item.connect("activate", lambda w: self.on_archive_notebook(window,
                                                                     window.notebook))
+        item.show()
         menu.insert(item, i+2)
 
         item = gtk.MenuItem("_Restore Notebook")
         item.connect("activate", lambda w: self.on_restore_notebook(window))
+        item.show()
         menu.insert(item, i+3)
 
 
