@@ -671,11 +671,11 @@ class KeepNoteWindow (gtk.Window):
     def on_goto_prev_note(self):
         self.viewer.goto_prev_note()
 
-    def on_expand_note(self):
-        self.viewer.expand_note()
+    def on_expand_note(self, all=False):
+        self.viewer.expand_note(all)
 
-    def on_collapse_note(self):
-        self.viewer.collapse_note()
+    def on_collapse_note(self, all=False):
+        self.viewer.collapse_note(all)
 
 
     def on_empty_trash(self):
@@ -1427,12 +1427,20 @@ class KeepNoteWindow (gtk.Window):
              lambda w: self.on_goto_prev_note()),
 
             ("Expand Note", None, _("E_xpand Note"),
-             "<alt>Right", None,
+             "<shift>Right", None,
              lambda w: self.on_expand_note()),
 
             ("Collapse Note", None, _("_Collapse Note"),
-             "<alt>Left", None,
+             "<shift>Left", None,
              lambda w: self.on_collapse_note()),
+
+            ("Expand All Child Notes", None, _("Expand _All Child Notes"),
+             "<control><shift>Right", None,
+             lambda w: self.on_expand_note(True)),
+
+            ("Collapse All Child Notes", None, _("Collapse A_ll Child Notes"),
+             "<control><shift>Left", None,
+             lambda w: self.on_collapse_note(True)),
 
 
             #=========================================
@@ -1868,6 +1876,8 @@ ui = """
     <menuitem action="Go to Previous Note"/>
     <menuitem action="Expand Note"/>
     <menuitem action="Collapse Note"/>
+    <menuitem action="Expand All Child Notes"/>
+    <menuitem action="Collapse All Child Notes"/>
   </menu>
   <menu action="Options">
     <menuitem action="Spell Check"/>

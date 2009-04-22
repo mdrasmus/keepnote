@@ -70,6 +70,13 @@ class TreeModelColumn (object):
         self.get_value = get
 
 
+def iter_children(model, it):
+    """Iterate through the children of a row (it)"""
+
+    node = model.iter_children(it)
+    while node:
+        yield node
+        node = model.iter_next(node)
 
 
 

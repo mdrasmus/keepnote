@@ -36,6 +36,7 @@ from keepnote.gui.editor import KeepNoteEditor, EditorMenus
 from keepnote.gui.icon_menu import IconMenu
 from keepnote.gui.link_editor import LinkEditor
 from keepnote import notebook as notebooklib
+from keepnote.gui.treemodel import iter_children
 
 
 class Viewer (gtk.VBox):
@@ -438,21 +439,32 @@ class ThreePaneViewer (Viewer):
             path2 = path[:-1] + (path[-1] - 1,)
             widget.set_cursor(path2)
 
-    def expand_note(self):
+    def expand_note(self, all=False):
         
         widget = self.get_focused_widget(self.treeview)
         path, col = widget.get_cursor()
 
         if path:
-            widget.expand_row(path, False)
+            widget.expand_row(path, all)
 
-    def collapse_note(self):
+    def collapse_note(self, all):
         
         widget = self.get_focused_widget(self.treeview)
         path, col = widget.get_cursor()
 
         if path:
-            widget.collapse_row(path)
+            if all:
+                # recursively collapse all notes
+                model = widget.get_model()
+                it = model.get_iter(path)
+                def walk(it):
+                    for child in iter_children(model, it):
+                        walk(child)
+                    path2 = model.get_path(it)
+                    widget.collapse_row(path2)
+                walk(it)
+            else:
+                widget.collapse_row(path)
 
 
 
