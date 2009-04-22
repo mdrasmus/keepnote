@@ -41,7 +41,11 @@ from keepnote.gui.colortool import FgColorTool, BgColorTool
 from keepnote.gui.richtext.richtext_tags import color_tuple_to_string
 
 
-
+def set_menu_icon(uimanager, path, filename):
+    item = uimanager.get_widget(path)
+    img = gtk.Image()
+    img.set_from_pixbuf(get_resource_pixbuf(filename))
+    item.set_image(img)
 
 
 class KeepNoteEditor (gtk.VBox):
@@ -558,7 +562,7 @@ class EditorMenus (gobject.GObject):
             use_stock_icons)
 
     def add_actions(self, actiongroup):
-
+        
         actiongroup.add_actions([
             ("Format", None, _("Fo_rmat")),
 
@@ -645,7 +649,7 @@ class EditorMenus (gobject.GObject):
         return """
         <ui>
         <menubar name="main_menu_bar">
-          <placeholder name="Format">
+          <placeholder name="Editor">
           <menu action="Format">
             <menuitem action="Bold"/>
             <menuitem action="Italic"/>
@@ -676,40 +680,40 @@ class EditorMenus (gobject.GObject):
 
         u = uimanager
         
-        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Bold",
-                           get_resource("images", "bold.png"))
-        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Italic",
-                           get_resource("images", "italic.png"))
-        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Underline",
-                           get_resource("images", "underline.png"))
-        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Strike",
-                           get_resource("images", "strike.png"))
-        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Monospace",
-                           get_resource("images", "fixed-width.png"))
-        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Link",
-                           get_resource("images", "link.png"))
-        self.set_menu_icon(u, "/main_menu_bar/Format/Format/No Wrapping",
-                           get_resource("images", "no-wrap.png"))
-        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Left Align",
-                           get_resource("images", "alignleft.png"))
-        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Center Align",
-                           get_resource("images", "aligncenter.png"))
-        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Right Align",
-                           get_resource("images", "alignright.png"))
-        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Justify Align",
-                           get_resource("images", "alignjustify.png"))
-        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Bullet List",
-                           get_resource("images", "bullet.png"))
-        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Indent More",
-                           get_resource("images", "indent-more.png"))
-        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Indent Less",
-                           get_resource("images", "indent-less.png"))
-        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Increase Font Size",
-                           get_resource("images", "font-inc.png"))
-        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Decrease Font Size",
-                           get_resource("images", "font-dec.png"))
-        self.set_menu_icon(u, "/main_menu_bar/Format/Format/Choose Font",
-                           get_resource("images", "font.png"))
+        set_menu_icon(u, "/main_menu_bar/Editor/Format/Bold",
+                      get_resource("images", "bold.png"))
+        set_menu_icon(u, "/main_menu_bar/Editor/Format/Italic",
+                      get_resource("images", "italic.png"))
+        set_menu_icon(u, "/main_menu_bar/Editor/Format/Underline",
+                      get_resource("images", "underline.png"))
+        set_menu_icon(u, "/main_menu_bar/Editor/Format/Strike",
+                      get_resource("images", "strike.png"))
+        set_menu_icon(u, "/main_menu_bar/Editor/Format/Monospace",
+                      get_resource("images", "fixed-width.png"))
+        set_menu_icon(u, "/main_menu_bar/Editor/Format/Link",
+                      get_resource("images", "link.png"))
+        set_menu_icon(u, "/main_menu_bar/Editor/Format/No Wrapping",
+                      get_resource("images", "no-wrap.png"))
+        set_menu_icon(u, "/main_menu_bar/Editor/Format/Left Align",
+                      get_resource("images", "alignleft.png"))
+        set_menu_icon(u, "/main_menu_bar/Editor/Format/Center Align",
+                      get_resource("images", "aligncenter.png"))
+        set_menu_icon(u, "/main_menu_bar/Editor/Format/Right Align",
+                      get_resource("images", "alignright.png"))
+        set_menu_icon(u, "/main_menu_bar/Editor/Format/Justify Align",
+                      get_resource("images", "alignjustify.png"))
+        set_menu_icon(u, "/main_menu_bar/Editor/Format/Bullet List",
+                      get_resource("images", "bullet.png"))
+        set_menu_icon(u, "/main_menu_bar/Editor/Format/Indent More",
+                      get_resource("images", "indent-more.png"))
+        set_menu_icon(u, "/main_menu_bar/Editor/Format/Indent Less",
+                      get_resource("images", "indent-less.png"))
+        set_menu_icon(u, "/main_menu_bar/Editor/Format/Increase Font Size",
+                      get_resource("images", "font-inc.png"))
+        set_menu_icon(u, "/main_menu_bar/Editor/Format/Decrease Font Size",
+                      get_resource("images", "font-dec.png"))
+        set_menu_icon(u, "/main_menu_bar/Editor/Format/Choose Font",
+                      get_resource("images", "font.png"))
 
         
     def set_menu_icon(self, uimanager, path, filename):

@@ -44,24 +44,31 @@ class Extension (keepnote.Extension):
     def on_new_window(self, window):
         """Initialize extension for a particular window"""
 
-        insert_point = window.menubar_file_extensions
-        menu = insert_point.get_parent()
-        i = menu.get_children().index(insert_point)
+        # add menu options
+
+        window.actiongroup.add_actions([
+            ("Backup Notebook", None, "_Backup Notebook",
+             "", None,
+             lambda w: self.on_archive_notebook(window,
+                                                window.notebook)),
+            ("Restore Notebook", None, "R_estore Notebook",
+             "", None,
+             lambda w: self.on_restore_notebook(window))
+            ])
         
-        sep = gtk.SeparatorMenuItem()
-        sep.show()
-        menu.insert(sep, i+1)        
-
-        item = gtk.MenuItem("_Backup Notebook")
-        item.connect("activate", lambda w: self.on_archive_notebook(window,
-                                                                    window.notebook))
-        item.show()
-        menu.insert(item, i+2)
-
-        item = gtk.MenuItem("_Restore Notebook")
-        item.connect("activate", lambda w: self.on_restore_notebook(window))
-        item.show()
-        menu.insert(item, i+3)
+        window.uimanager.add_ui_from_string(
+            """
+            <ui>
+            <menubar name="main_menu_bar">
+               <menu action="File">
+                  <placeholder name="File Extensions">
+                     <menuitem action="Backup Notebook"/>
+                     <menuitem action="Restore Notebook"/>
+                  </placeholder>
+               </menu>
+            </menubar>
+            </ui>
+            """)
 
 
     def on_archive_notebook(self, window, notebook):

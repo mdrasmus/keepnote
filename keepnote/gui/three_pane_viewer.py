@@ -232,6 +232,15 @@ class ThreePaneViewer (Viewer):
     def get_current_page(self):
         return self._current_page
 
+    def get_focused_widget(self, default=None):
+        
+        if self.treeview.is_focus():
+            return self.treeview
+        if self.listview.is_focus():
+            return self.listview
+        else:
+            return default
+
 
     def get_selected_nodes(self, widget="focus"):
         """
@@ -401,6 +410,51 @@ class ThreePaneViewer (Viewer):
             pass
         else:
             raise Exception("unknown widget '%s'" % widget)
+
+
+    def goto_next_note(self):
+        widget = self.get_focused_widget(self.treeview)
+        path, col = widget.get_cursor()
+
+        if path:
+            path2 = path[:-1] + (path[-1] + 1,)
+            
+            if len(path) > 1:
+                it = widget.get_model().get_iter(path[:-1])
+                nchildren = widget.get_model().iter_n_children(it)
+            else:
+                nchildren = widget.get_model().iter_n_children(None)
+
+            if path2[-1] < nchildren:
+                widget.set_cursor(path2)
+            
+
+    def goto_prev_note(self):
+        
+        widget = self.get_focused_widget(self.treeview)
+        path, col = widget.get_cursor()
+
+        if path and path[-1] > 0:
+            path2 = path[:-1] + (path[-1] - 1,)
+            widget.set_cursor(path2)
+
+    def expand_note(self):
+        
+        widget = self.get_focused_widget(self.treeview)
+        path, col = widget.get_cursor()
+
+        if path:
+            widget.expand_row(path, False)
+
+    def collapse_note(self):
+        
+        widget = self.get_focused_widget(self.treeview)
+        path, col = widget.get_cursor()
+
+        if path:
+            widget.collapse_row(path)
+
+
 
 
     #============================================

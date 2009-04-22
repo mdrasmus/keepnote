@@ -67,6 +67,14 @@ from keepnote import tasklib
 CONTEXT_MENU_ACCEL_PATH = "<main>/context_menu"
 
 
+
+def set_menu_icon(uimanager, path, filename):
+    item = uimanager.get_widget(path)
+    img = gtk.Image()
+    img.set_from_pixbuf(get_resource_pixbuf(filename))
+    item.set_image(img) 
+
+
 class KeepNoteWindow (gtk.Window):
     """Main windows for KeepNote"""
 
@@ -657,6 +665,18 @@ class KeepNoteWindow (gtk.Window):
         self.on_new_node(notebooklib.CONTENT_TYPE_PAGE, widget, "child")
 
     
+    def on_goto_next_note(self):
+        self.viewer.goto_next_note()
+
+    def on_goto_prev_note(self):
+        self.viewer.goto_prev_note()
+
+    def on_expand_note(self):
+        self.viewer.expand_note()
+
+    def on_collapse_note(self):
+        self.viewer.collapse_note()
+
 
     def on_empty_trash(self):
         """Empty Trash folder in NoteBook"""
@@ -1245,15 +1265,10 @@ class KeepNoteWindow (gtk.Window):
     
     #================================================
     # Menus
-    
-    def make_menubar(self):
-        """Initialize the menu bar"""
 
-        #===============================
-        # ui manager
-
-        self.actiongroup = gtk.ActionGroup('UIManagerExample')
-        info = self.actiongroup.add_actions([
+    def add_actions(self, actiongroup):
+        
+        actiongroup.add_actions([
             ("File", None, "_File"),
 
             ("New Notebook", gtk.STOCK_NEW, _("_New Notebook"),
@@ -1403,6 +1418,23 @@ class KeepNoteWindow (gtk.Window):
              "<control>space", None,
              lambda w: self.on_goto_link()),
 
+            ("Go to Next Note", None, _("Go to Next N_ote"),
+             "<alt>Down", None,
+             lambda w: self.on_goto_next_note()),
+
+            ("Go to Previous Note", None, _("Go to _Previous Note"),
+             "<alt>Up", None,
+             lambda w: self.on_goto_prev_note()),
+
+            ("Expand Note", None, _("E_xpand Note"),
+             "<alt>Right", None,
+             lambda w: self.on_expand_note()),
+
+            ("Collapse Note", None, _("_Collapse Note"),
+             "<alt>Left", None,
+             lambda w: self.on_collapse_note()),
+
+
             #=========================================
             ("Options", None, "_Options"),
             
@@ -1426,7 +1458,7 @@ class KeepNoteWindow (gtk.Window):
              lambda w: self.on_about())
             ])
 
-        self.actiongroup.add_toggle_actions([
+        actiongroup.add_toggle_actions([
             ("Spell Check", None, _("_Spell Check"), 
              "", None,
              self.on_spell_check_toggle),
@@ -1440,20 +1472,30 @@ class KeepNoteWindow (gtk.Window):
              lambda w: self.set_view_mode("vertical"))])
 
 
-        self._editor_menus.add_actions(self.actiongroup)
-
-
-        self.uimanager.insert_action_group(self.actiongroup, 0)        
-        self.uimanager.add_ui_from_string(ui)
-        self.uimanager.add_ui_from_string(self._editor_menus.get_format_ui())
-        menubar = self.uimanager.get_widget('/main_menu_bar')
-
         
-        self.set_menu_icon("/main_menu_bar/File/New Page", "note-new.png")
-        self.set_menu_icon("/main_menu_bar/File/New Child Page", "note-new.png")
-        self.set_menu_icon("/main_menu_bar/File/New Folder", "folder-new.png")
 
-        self._editor_menus.setup_menu(self.uimanager)
+
+    
+    def make_menubar(self):
+        """Initialize the menu bar"""
+
+        #===============================
+        # ui manager
+
+        # get actions
+        self.actiongroup = gtk.ActionGroup('UIManagerExample')
+        self.add_actions(self.actiongroup)        
+        self.uimanager.insert_action_group(self.actiongroup, 0)
+
+        # get ui
+        self.uimanager.add_ui_from_string(ui)
+
+        # setup ui
+        u = self.uimanager
+        set_menu_icon(u, "/main_menu_bar/File/New Page", "note-new.png")
+        set_menu_icon(u, "/main_menu_bar/File/New Child Page", "note-new.png")
+        set_menu_icon(u, "/main_menu_bar/File/New Folder", "folder-new.png")
+
 
         # view mode
         self.view_mode_h_toggle = \
@@ -1466,20 +1508,17 @@ class KeepNoteWindow (gtk.Window):
             self.uimanager.get_widget("/main_menu_bar/Options/Spell Check")
         self.spell_check_toggle.set_sensitive(
             self.editor.get_textview().can_spell_check())
-
-        self.menubar_file_extensions = \
-            self.uimanager.get_widget("/main_menu_bar/File/Close Notebook")
         
+        
+        # add editor menu options
+        self._editor_menus.add_actions(self.actiongroup)
+        self.uimanager.add_ui_from_string(self._editor_menus.get_format_ui())
+        self._editor_menus.setup_menu(self.uimanager)
+
+        # return menu bar
+        menubar = self.uimanager.get_widget('/main_menu_bar')
         return menubar
-
-        
-
-    
-    def set_menu_icon(self, path, filename):
-        item = self.uimanager.get_widget(path)
-        img = gtk.Image()
-        img.set_from_pixbuf(get_resource_pixbuf(filename))
-        item.set_image(img)        
+       
             
 
     
@@ -1785,6 +1824,8 @@ ui = """
      <menuitem action="Save Notebook"/>
      <menuitem action="Close Notebook"/>
      <separator/>
+     <placeholder name="File Extensions"/>
+     <separator/>
      <menuitem action="Quit"/>
   </menu>
   <menu action="Edit">
@@ -1808,7 +1849,7 @@ ui = """
     <menuitem action="Find Previous In Page"/>
     <menuitem action="Replace In Page"/>
   </menu>
-  <placeholder name="Format"/>
+  <placeholder name="Editor"/>
   <menu action="View">
     <menuitem action="View Note in File Explorer"/>
     <menuitem action="View Note in Text Editor"/>
@@ -1822,6 +1863,11 @@ ui = """
     <menuitem action="Go to List View"/>
     <menuitem action="Go to Editor"/>
     <menuitem action="Go to Link"/>
+    <separator/>
+    <menuitem action="Go to Next Note"/>
+    <menuitem action="Go to Previous Note"/>
+    <menuitem action="Expand Note"/>
+    <menuitem action="Collapse Note"/>
   </menu>
   <menu action="Options">
     <menuitem action="Spell Check"/>
