@@ -193,7 +193,7 @@ class NodeIconDialog (object):
 
         # populate quick pick icons
         self.populate_iconlist(self.quick_iconlist,
-                               self.main_window.notebook.pref.quick_pick_icons)
+                               self.main_window.notebook.pref.get_quick_pick_icons())
         self.quick_iconview.set_model(self.quick_iconlist)
         self.quick_iconview.set_pixbuf_column(0)
 

@@ -63,6 +63,12 @@ class Viewer (gtk.VBox):
     def save(self):
         pass
 
+    def undo(self):
+        pass
+
+    def redo(self):
+        pass
+
     def get_current_page(self):
         return None
 
@@ -186,8 +192,8 @@ class ThreePaneViewer (Viewer):
         self.listview.set_notebook(notebook)
         self.treeview.set_notebook(notebook)
 
-        self.treeview.menu.iconmenu.setup_menu(notebook)
-        self.listview.menu.iconmenu.setup_menu(notebook)
+        self.treeview.menu.iconmenu.set_notebook(notebook)
+        self.listview.menu.iconmenu.set_notebook(notebook)
         
         self.treeview.grab_focus()
 
@@ -241,6 +247,11 @@ class ThreePaneViewer (Viewer):
     def save(self):
         self.editor.save()
 
+    def undo(self):
+        self.editor.get_textview().undo()
+
+    def redo(self):
+        self.editor.get_textview().redo()
 
     def get_current_page(self):
         return self._current_page

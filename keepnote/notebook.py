@@ -967,7 +967,19 @@ class NoteBookPreferences (object):
         
         self.version = NOTEBOOK_FORMAT_VERSION
         self.default_font = DEFAULT_FONT
-        self.quick_pick_icons = []
+        self._quick_pick_icons = []
+
+        self.quick_pick_icons_changed = Listeners()
+
+    def get_quick_pick_icons(self):
+        return self._quick_pick_icons
+
+    def set_quick_pick_icons(self, icons):
+        self._quick_pick_icons[:] = icons
+        self.quick_pick_icons_changed.notify()
+    
+    
+
 
 
 # file format for NoteBook preferences
@@ -979,10 +991,10 @@ g_notebook_pref_parser = xmlo.XmlObject(
             attr=("default_font", None, None)),
         xmlo.Tag("quick_pick_icons", tags=[
             xmlo.TagMany("icon",
-                iterfunc=lambda s: range(len(s.quick_pick_icons)),
+                iterfunc=lambda s: range(len(s._quick_pick_icons)),
                 get=lambda (s,i),x:
-                    s.quick_pick_icons.append(x),
-                set=lambda (s,i): s.quick_pick_icons[i])
+                    s._quick_pick_icons.append(x),
+                set=lambda (s,i): s._quick_pick_icons[i])
         ])
     ]))
 

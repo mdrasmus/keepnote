@@ -142,9 +142,6 @@ class KeepNoteWindow (gtk.Window):
         self.viewer = self.new_viewer()
 
         # temp back-compat TODO: refactor
-        self.treeview = self.viewer.treeview
-        self.listview = self.viewer.listview
-        self.editor = self.viewer.editor
         self._editor_menus = self.viewer.editor_menus
         
 
@@ -545,9 +542,9 @@ class KeepNoteWindow (gtk.Window):
             return None
 
         # check for icons
-        if len(notebook.pref.quick_pick_icons) == 0:
-            notebook.pref.quick_pick_icons = \
-                list(keepnote.gui.DEFAULT_QUICK_PICK_ICONS)
+        if len(notebook.pref.get_quick_pick_icons()) == 0:
+            notebook.pref.set_quick_pick_icons(
+                list(keepnote.gui.DEFAULT_QUICK_PICK_ICONS))
             notebook.write_preferences()
 
         # setup notebook
@@ -569,14 +566,8 @@ class KeepNoteWindow (gtk.Window):
         
         if self.notebook is not None:
             if save:
-                try:
-                    self.editor.save()
-                    self.notebook.save()
-                except Exception, e:
-                    # TODO: should ask question, like try again?
-                    self.error(_("Could not save notebook"),
-                               e, sys.exc_info()[2])
-
+                self.save_notebook()
+            
             self.notebook.node_changed.remove(self.on_notebook_node_changed)
             self.set_notebook(None)
             self.set_status(_("Notebook closed"))
@@ -619,14 +610,8 @@ class KeepNoteWindow (gtk.Window):
 
     #=============================================================
     # Treeview, listview, editor callbacks
+
     
-    def on_list_view_node(self, listview, node):
-        return self.viewer.on_list_view_node(listview, node)
-
-    def on_list_view_parent_node(self, node=None):
-        return self.viewer.on_list_view_parent_node(node)
-
-        
     def on_page_editor_modified(self, editor, page, modified):
         if modified:
             self.set_notebook_modified(modified)
@@ -636,8 +621,6 @@ class KeepNoteWindow (gtk.Window):
         if isinstance(child, richtext.RichTextImage):
             self.view_image(child.get_filename())
     
-    
-
     
     #===========================================================
     # page and folder actions
@@ -673,19 +656,6 @@ class KeepNoteWindow (gtk.Window):
 
     def on_new_child_page(self, widget="focus"):
         self.on_new_node(notebooklib.CONTENT_TYPE_PAGE, widget, "child")
-
-    
-    def on_goto_next_note(self):
-        self.viewer.goto_next_note()
-
-    def on_goto_prev_note(self):
-        self.viewer.goto_prev_note()
-
-    def on_expand_note(self, all=False):
-        self.viewer.expand_note(all)
-
-    def on_collapse_note(self, all=False):
-        self.viewer.collapse_note(all)
 
 
     def on_empty_trash(self):
@@ -810,14 +780,8 @@ class KeepNoteWindow (gtk.Window):
 
         # set quick picks if OK was pressed
         if icon_file is not None:
-            # TODO: rework preference writing in terms of callbacks
-            icons = self.node_icon_dialog.get_quick_pick_icons()
-            self.notebook.pref.quick_pick_icons = icons
-
-            # TODO: make iconmenu setup work via listeners on the notebook
-            self.treeview.menu.iconmenu.setup_menu(self.notebook)
-            self.listview.menu.iconmenu.setup_menu(self.notebook)
-
+            self.notebook.pref.set_quick_pick_icons(
+                self.node_icon_dialog.get_quick_pick_icons())
 
             # set notebook icons
             notebook_icons = self.notebook.get_icons()
@@ -906,7 +870,7 @@ class KeepNoteWindow (gtk.Window):
         if self.get_current_page() is None:
             return
         
-        self.editor.get_textview().insert_hr()
+        self.viewer.editor.get_textview().insert_hr()
 
         
     def on_insert_image(self):
@@ -959,7 +923,7 @@ class KeepNoteWindow (gtk.Window):
         pixbuf = gdk.pixbuf_new_from_file(filename)
         img = RichTextImage()
         img.set_from_pixbuf(pixbuf)
-        self.editor.get_textview().insert_image(img, savename)
+        self.viewer.editor.get_textview().insert_image(img, savename)
 
 
 
@@ -1066,33 +1030,7 @@ class KeepNoteWindow (gtk.Window):
                                dialog.get_filename(), e, sys.exc_info()[2])
 
         dialog.destroy()
-                            
-        
-        
-                
-    #=============================================
-    # Goto menu options
     
-    def on_goto_treeview(self):
-        """Switch focus to TreeView"""
-        self.viewer.goto_treeview()
-
-        
-    def on_goto_listview(self):
-        """Switch focus to ListView"""
-        self.viewer.goto_listview()
-
-        
-    def on_goto_editor(self):
-        """Switch focus to Editor"""
-        self.viewer.goto_editor()
-
-
-    def on_goto_link(self):
-        """Visit link under cursor"""
-        self.viewer.goto_link()
-        
-
     
     #=====================================================
     # Cut/copy/paste    
@@ -1116,6 +1054,15 @@ class KeepNoteWindow (gtk.Window):
         if gobject.signal_lookup("paste-clipboard", widget) != 0:
             widget.emit("paste-clipboard")
 
+
+    def on_undo(self):
+        """Undo callback"""
+        self.viewer.undo()
+
+    def on_redo(self):
+        """Redo callback"""
+        self.viewer.redo()
+    
     
     #=====================================================
     # External app viewers
@@ -1177,7 +1124,7 @@ class KeepNoteWindow (gtk.Window):
     def enable_spell_check(self, enabled):
         """Spell check"""
 
-        textview = self.editor.get_textview()
+        textview = self.viewer.editor.get_textview()
         if textview is not None:
             textview.enable_spell_check(enabled)
             
@@ -1324,11 +1271,11 @@ class KeepNoteWindow (gtk.Window):
             
             ("Undo", gtk.STOCK_UNDO, None,
              "<control>Z", None,
-             lambda w: self.editor.get_textview().undo()),
+             lambda w: self.on_undo()),
             
             ("Redo", gtk.STOCK_REDO, None,
              "<control><shift>Z", None,
-             lambda w: self.editor.get_textview().redo()),
+             lambda w: self.on_redo()),
             
             ("Cut", gtk.STOCK_CUT, None,
              "<control>X", None,
@@ -1342,6 +1289,7 @@ class KeepNoteWindow (gtk.Window):
              "<control>V", None,
              lambda w: self.on_paste()),
 
+            # TODO: move to editor actions
             ("Insert Horizontal Rule", None, _("Insert _Horizontal Rule"),
              "<control>H", None,
              lambda w: self.on_insert_hr()),
@@ -1364,7 +1312,8 @@ class KeepNoteWindow (gtk.Window):
             ("Search All Notes", gtk.STOCK_FIND, _("_Search All Notes"),
              "<control>K", None,
              lambda w: self.focus_on_search_box()),
-            
+
+            # TODO: move to editor actions
             ("Find In Page", gtk.STOCK_FIND, _("_Find In Page"),
              "<control>F", None,
              lambda w: self.find_dialog.on_find(False)),
@@ -1384,7 +1333,8 @@ class KeepNoteWindow (gtk.Window):
 
             #========================================
             ("View", None, _("_View")),
-             
+
+            
             ("View Note in File Explorer", None,
              _("View Note in File Explorer"),
              "", None,
@@ -1404,7 +1354,7 @@ class KeepNoteWindow (gtk.Window):
 
             #=======================================
             ("Go", None, "_Go"),            
-
+            
             #=========================================
             ("Options", None, "_Options"),
             
@@ -1431,7 +1381,8 @@ class KeepNoteWindow (gtk.Window):
             ("Spell Check", None, _("_Spell Check"), 
              "", None,
              self.on_spell_check_toggle),
-                
+
+            # TODO: move this to viewer actions
             ("Horizontal Layout", None, _("_Horizontal Layout"),
              "", None,
              lambda w: self.set_view_mode("horizontal")),
@@ -1442,6 +1393,80 @@ class KeepNoteWindow (gtk.Window):
 
         return actions
 
+    def setup_menus(self, uimanager):
+        u = uimanager
+        set_menu_icon(u, "/main_menu_bar/File/New Page", "note-new.png")
+        set_menu_icon(u, "/main_menu_bar/File/New Child Page", "note-new.png")
+        set_menu_icon(u, "/main_menu_bar/File/New Folder", "folder-new.png")
+
+
+    def get_ui(self):
+
+        return ["""
+<ui>
+<menubar name="main_menu_bar">
+  <menu action="File">
+     <menuitem action="New Notebook"/>
+     <menuitem action="New Page"/>
+     <menuitem action="New Child Page"/>
+     <menuitem action="New Folder"/>
+     <separator/>
+     <menuitem action="Open Notebook"/>
+     <menuitem action="Reload Notebook"/>
+     <menuitem action="Save Notebook"/>
+     <menuitem action="Close Notebook"/>
+     <separator/>
+     <placeholder name="File Extensions"/>
+     <separator/>
+     <menuitem action="Quit"/>
+  </menu>
+  <menu action="Edit">
+    <menuitem action="Undo"/>
+    <menuitem action="Redo"/>
+    <separator/>
+    <menuitem action="Cut"/>
+    <menuitem action="Copy"/>
+    <menuitem action="Paste"/>
+    <separator/>
+    <menuitem action="Insert Horizontal Rule"/>
+    <menuitem action="Insert Image"/>
+    <menuitem action="Insert Screenshot"/>
+    <separator/>
+    <menuitem action="Empty Trash"/>
+  </menu>
+  <menu action="Search">
+    <menuitem action="Search All Notes"/>
+    <menuitem action="Find In Page"/>
+    <menuitem action="Find Next In Page"/>
+    <menuitem action="Find Previous In Page"/>
+    <menuitem action="Replace In Page"/>
+  </menu>
+  <placeholder name="Editor"/>
+  <menu action="View">
+    <menuitem action="View Note in File Explorer"/>
+    <menuitem action="View Note in Text Editor"/>
+    <menuitem action="View Note in Web Browser"/>
+  </menu>
+  <menu action="Go">
+    <placeholder name="Viewer"/>
+  </menu>
+  <menu action="Options">
+    <menuitem action="Spell Check"/>
+    <separator/>
+    <menuitem action="Horizontal Layout"/>
+    <menuitem action="Vertical Layout"/>
+    <separator/>
+    <menuitem action="KeepNote Options"/>
+  </menu>
+  <menu action="Help">
+    <menuitem action="View Error Log..."/>
+    <menuitem action="Drag and Drop Test..."/>
+    <separator/>
+    <menuitem action="About"/>
+  </menu>
+</menubar>
+</ui>
+"""]
 
     
     def make_menubar(self):
@@ -1450,19 +1475,14 @@ class KeepNoteWindow (gtk.Window):
         #===============================
         # ui manager
 
-        # get actions
         self.actiongroup = gtk.ActionGroup('MainWindow')
-        add_actions(self.actiongroup, self.get_actions())
         self.uimanager.insert_action_group(self.actiongroup, 0)
 
-        # get ui
-        self.uimanager.add_ui_from_string(ui)
-
-        # setup ui
-        u = self.uimanager
-        set_menu_icon(u, "/main_menu_bar/File/New Page", "note-new.png")
-        set_menu_icon(u, "/main_menu_bar/File/New Child Page", "note-new.png")
-        set_menu_icon(u, "/main_menu_bar/File/New Folder", "folder-new.png")
+        # setup menus
+        add_actions(self.actiongroup, self.get_actions())
+        for s in self.get_ui():
+            self.uimanager.add_ui_from_string(s)
+        self.setup_menus(self.uimanager)
 
 
         # view mode
@@ -1475,7 +1495,7 @@ class KeepNoteWindow (gtk.Window):
         self.spell_check_toggle = \
             self.uimanager.get_widget("/main_menu_bar/Options/Spell Check")
         self.spell_check_toggle.set_sensitive(
-            self.editor.get_textview().can_spell_check())
+            self.viewer.editor.get_textview().can_spell_check())
 
 
         # return menu bar
@@ -1744,7 +1764,7 @@ class KeepNoteWindow (gtk.Window):
         #item.child.set_label("Go to _Note")
         item.child.set_markup_with_mnemonic("<b>Go to _Note</b>")
         item.connect("activate",
-                     lambda w: self.on_list_view_node(None, None))
+                     lambda w: self.viewer.on_list_view_node(None, None))
         menu.append(item)
         item.show()
 
@@ -1752,7 +1772,7 @@ class KeepNoteWindow (gtk.Window):
         item = gtk.ImageMenuItem(gtk.STOCK_GO_UP)
         item.child.set_label("Go to _Parent Note")
         item.connect("activate",
-                     lambda w: self.on_list_view_parent_node())
+                     lambda w: self.viewer.on_list_view_parent_node())
         menu.append(item)
         item.show()
 
@@ -1771,70 +1791,3 @@ class KeepNoteWindow (gtk.Window):
         self.make_treeview_menu(viewer.treeview, viewer.treeview.menu)
         self.make_listview_menu(viewer.listview, viewer.listview.menu)
 
-
-
-ui = """
-<ui>
-<menubar name="main_menu_bar">
-  <menu action="File">
-     <menuitem action="New Notebook"/>
-     <menuitem action="New Page"/>
-     <menuitem action="New Child Page"/>
-     <menuitem action="New Folder"/>
-     <separator/>
-     <menuitem action="Open Notebook"/>
-     <menuitem action="Reload Notebook"/>
-     <menuitem action="Save Notebook"/>
-     <menuitem action="Close Notebook"/>
-     <separator/>
-     <placeholder name="File Extensions"/>
-     <separator/>
-     <menuitem action="Quit"/>
-  </menu>
-  <menu action="Edit">
-    <menuitem action="Undo"/>
-    <menuitem action="Redo"/>
-    <separator/>
-    <menuitem action="Cut"/>
-    <menuitem action="Copy"/>
-    <menuitem action="Paste"/>
-    <separator/>
-    <menuitem action="Insert Horizontal Rule"/>
-    <menuitem action="Insert Image"/>
-    <menuitem action="Insert Screenshot"/>
-    <separator/>
-    <menuitem action="Empty Trash"/>
-  </menu>
-  <menu action="Search">
-    <menuitem action="Search All Notes"/>
-    <menuitem action="Find In Page"/>
-    <menuitem action="Find Next In Page"/>
-    <menuitem action="Find Previous In Page"/>
-    <menuitem action="Replace In Page"/>
-  </menu>
-  <placeholder name="Editor"/>
-  <menu action="View">
-    <menuitem action="View Note in File Explorer"/>
-    <menuitem action="View Note in Text Editor"/>
-    <menuitem action="View Note in Web Browser"/>
-  </menu>
-  <menu action="Go">
-    <placeholder name="Viewer"/>
-  </menu>
-  <menu action="Options">
-    <menuitem action="Spell Check"/>
-    <separator/>
-    <menuitem action="Horizontal Layout"/>
-    <menuitem action="Vertical Layout"/>
-    <separator/>
-    <menuitem action="KeepNote Options"/>
-  </menu>
-  <menu action="Help">
-    <menuitem action="View Error Log..."/>
-    <menuitem action="Drag and Drop Test..."/>
-    <separator/>
-    <menuitem action="About"/>
-  </menu>
-</menubar>
-</ui>
-"""

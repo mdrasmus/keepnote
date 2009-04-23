@@ -41,12 +41,8 @@ class IconMenu (gtk.Menu):
         self.posi = 0
         self.posj = 0
         
-        self.setup_menu(None)
+        self.setup_menu()
 
-
-    def set_notebook(self, notebook):
-        self._notebook = notebook
-        
 
     def clear(self):
         """clear menu"""
@@ -55,21 +51,32 @@ class IconMenu (gtk.Menu):
         self.posi = 0
         self.posj = 0
 
-    def set_notebook(self, notebook):
+    def set_notebook(self, notebook):        
+        """Set notebook for menu"""
+        
+        if self._notebook is not None:
+            # disconnect from old notebook
+            self._notebook.pref.quick_pick_icons_changed.remove(self.setup_menu)
+        
         self._notebook = notebook
         
+        if self._notebook is not None:
+            # listener to new notebook
+            self._notebook.pref.quick_pick_icons_changed.add(self.setup_menu)
+        
+        self.setup_menu()
+    
 
-    def setup_menu(self, notebook):
-
+    def setup_menu(self):
+        """Update menu to reflect notebook"""
+        
         self.clear()       
 
-        self.set_notebook(notebook)
-
-        if notebook is None:
+        if self._notebook is None:
             for iconfile in default_menu_icons:                    
                 self.add_icon(iconfile)
         else:
-            for iconfile in notebook.pref.quick_pick_icons:                
+            for iconfile in self._notebook.pref.get_quick_pick_icons():
                 self.add_icon(iconfile)
 
         # separator
