@@ -280,3 +280,28 @@ def get_accel_file():
     """Returns gtk accel file"""
 
     return os.path.join(keepnote.get_user_pref_dir(), ACCEL_FILE)
+
+
+class Action (gtk.Action):
+    def __init__(self, name, stockid, label=None,
+                 accel="", tooltip="", func=None):
+        gtk.Action.__init__(self, name, label, tooltip, stockid)
+        self.func = func
+        self.accel = accel
+
+        if func:
+            self.connect("activate", func)
+
+class ToggleAction (gtk.ToggleAction):
+    def __init__(self, name, stockid, label=None,
+                 accel="", tooltip="", func=None):
+        gtk.Action.__init__(self, name, label, tooltip, stockid)
+        self.func = func
+        self.accel = accel
+
+        if func:
+            self.connect("activate", func)
+
+def add_actions(actiongroup, actions):
+    for action in actions:
+        actiongroup.add_action_with_accel(action, action.accel)

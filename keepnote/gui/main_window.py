@@ -39,7 +39,10 @@ from keepnote.gui import \
      get_resource_image, \
      get_resource_pixbuf, \
      get_accel_file, \
-     lookup_icon_filename
+     lookup_icon_filename, \
+     Action, \
+     ToggleAction, \
+     add_actions
 from keepnote.notebook import \
      NoteBookError, \
      NoteBookVersionError
@@ -193,6 +196,13 @@ class KeepNoteWindow (gtk.Window):
         # stats bar
         self.stats_bar = gtk.Statusbar()
         status_hbox.pack_start(self.stats_bar, True, True, 0)
+
+        # add viewer menus
+        add_actions(self.actiongroup, self.viewer.get_actions())
+        for s in self.viewer.get_ui():
+            ui_id = self.uimanager.add_ui_from_string(s)
+        self.viewer.setup_menus(self.uimanager)
+
         
 
     def get_accel_group(self):
@@ -1266,14 +1276,15 @@ class KeepNoteWindow (gtk.Window):
     #================================================
     # Menus
 
-    def add_actions(self, actiongroup):
-        
-        actiongroup.add_actions([
+    def get_actions(self):
+
+        actions = map(lambda x: Action(*x),
+                      [
             ("File", None, "_File"),
 
             ("New Notebook", gtk.STOCK_NEW, _("_New Notebook"),
              "", _("Start a new notebook"),
-             lambda w,e: self.on_new_notebook()),
+             lambda w: self.on_new_notebook()),
 
             ("New Page", None, _("New _Page"),
              "<control>N", _("Create a new page"),
@@ -1392,56 +1403,7 @@ class KeepNoteWindow (gtk.Window):
                                                       page_only=True)),
 
             #=======================================
-            ("Go", None, "_Go"),
-            
-            ("Go to Note", gtk.STOCK_GO_DOWN, _("Go to _Note"),
-             "", None,
-             lambda w: self.on_list_view_node(None, None)),
-            
-            ("Go to Parent Note", gtk.STOCK_GO_UP, _("Go to _Parent Note"),
-             "", None,
-             lambda w: self.on_list_view_parent_node()),
-
-            ("Go to Tree View", None, _("Go to _Tree View"),
-             "<control>T", None,
-             lambda w: self.on_goto_treeview()),
-            
-            ("Go to List View", None, _("Go to _List View"),
-             "<control>Y", None,
-             lambda w: self.on_goto_listview()),
-            
-            ("Go to Editor", None, _("Go to _Editor"),
-             "<control>D", None,
-             lambda w: self.on_goto_editor()),
-            
-            ("Go to Link", None, _("Go to Lin_k"),
-             "<control>space", None,
-             lambda w: self.on_goto_link()),
-
-            ("Go to Next Note", None, _("Go to Next N_ote"),
-             "<alt>Down", None,
-             lambda w: self.on_goto_next_note()),
-
-            ("Go to Previous Note", None, _("Go to _Previous Note"),
-             "<alt>Up", None,
-             lambda w: self.on_goto_prev_note()),
-
-            ("Expand Note", None, _("E_xpand Note"),
-             "<shift>Right", None,
-             lambda w: self.on_expand_note()),
-
-            ("Collapse Note", None, _("_Collapse Note"),
-             "<shift>Left", None,
-             lambda w: self.on_collapse_note()),
-
-            ("Expand All Child Notes", None, _("Expand _All Child Notes"),
-             "<control><shift>Right", None,
-             lambda w: self.on_expand_note(True)),
-
-            ("Collapse All Child Notes", None, _("Collapse A_ll Child Notes"),
-             "<control><shift>Left", None,
-             lambda w: self.on_collapse_note(True)),
-
+            ("Go", None, "_Go"),            
 
             #=========================================
             ("Options", None, "_Options"),
@@ -1464,9 +1426,8 @@ class KeepNoteWindow (gtk.Window):
             ("About", gtk.STOCK_ABOUT, _("_About"),
              "", None,
              lambda w: self.on_about())
-            ])
-
-        actiongroup.add_toggle_actions([
+            ]) + \
+            map(lambda x: ToggleAction(*x), [
             ("Spell Check", None, _("_Spell Check"), 
              "", None,
              self.on_spell_check_toggle),
@@ -1479,8 +1440,7 @@ class KeepNoteWindow (gtk.Window):
              "", None,
              lambda w: self.set_view_mode("vertical"))])
 
-
-        
+        return actions
 
 
     
@@ -1491,8 +1451,8 @@ class KeepNoteWindow (gtk.Window):
         # ui manager
 
         # get actions
-        self.actiongroup = gtk.ActionGroup('UIManagerExample')
-        self.add_actions(self.actiongroup)        
+        self.actiongroup = gtk.ActionGroup('MainWindow')
+        add_actions(self.actiongroup, self.get_actions())
         self.uimanager.insert_action_group(self.actiongroup, 0)
 
         # get ui
@@ -1516,12 +1476,7 @@ class KeepNoteWindow (gtk.Window):
             self.uimanager.get_widget("/main_menu_bar/Options/Spell Check")
         self.spell_check_toggle.set_sensitive(
             self.editor.get_textview().can_spell_check())
-        
-        
-        # add editor menu options
-        self._editor_menus.add_actions(self.actiongroup)
-        self.uimanager.add_ui_from_string(self._editor_menus.get_format_ui())
-        self._editor_menus.setup_menu(self.uimanager)
+
 
         # return menu bar
         menubar = self.uimanager.get_widget('/main_menu_bar')
@@ -1574,22 +1529,22 @@ class KeepNoteWindow (gtk.Window):
 
 
         # goto note
-        button = gtk.ToolButton()
-        button.set_stock_id(gtk.STOCK_GO_DOWN)
-        tips.set_tip(button, "Go to Note")
-        button.connect("clicked", lambda w: self.on_list_view_node(None, None))
-        toolbar.insert(button, -1)        
+        #button = gtk.ToolButton()
+        #button.set_stock_id(gtk.STOCK_GO_DOWN)
+        #tips.set_tip(button, "Go to Note")
+        #button.connect("clicked", lambda w: self.on_list_view_node(None, None))
+        #toolbar.insert(button, -1)        
         
         # goto parent node
-        button = gtk.ToolButton()
-        button.set_stock_id(gtk.STOCK_GO_UP)
-        tips.set_tip(button, "Go to Parent Note")
-        button.connect("clicked", lambda w: self.on_list_view_parent_node())
-        toolbar.insert(button, -1)        
+        #button = gtk.ToolButton()
+        #button.set_stock_id(gtk.STOCK_GO_UP)
+        #tips.set_tip(button, "Go to Parent Note")
+        #button.connect("clicked", lambda w: self.on_list_view_parent_node())
+        #toolbar.insert(button, -1)        
 
 
         # separator
-        toolbar.insert(gtk.SeparatorToolItem(), -1)        
+        #toolbar.insert(gtk.SeparatorToolItem(), -1)        
 
         # insert editor toolbar
         self._editor_menus.make_toolbar(toolbar, tips,
@@ -1864,20 +1819,7 @@ ui = """
     <menuitem action="View Note in Web Browser"/>
   </menu>
   <menu action="Go">
-    <menuitem action="Go to Note"/>
-    <menuitem action="Go to Parent Note"/>
-    <separator/>
-    <menuitem action="Go to Tree View"/>
-    <menuitem action="Go to List View"/>
-    <menuitem action="Go to Editor"/>
-    <menuitem action="Go to Link"/>
-    <separator/>
-    <menuitem action="Go to Next Note"/>
-    <menuitem action="Go to Previous Note"/>
-    <menuitem action="Expand Note"/>
-    <menuitem action="Collapse Note"/>
-    <menuitem action="Expand All Child Notes"/>
-    <menuitem action="Collapse All Child Notes"/>
+    <placeholder name="Viewer"/>
   </menu>
   <menu action="Options">
     <menuitem action="Spell Check"/>

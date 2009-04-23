@@ -7,7 +7,9 @@
 
 
 # python imports
+import gettext
 import traceback
+_ = gettext.gettext
 
 
 # pygtk imports
@@ -26,7 +28,8 @@ from keepnote.gui import \
      get_resource_image, \
      get_resource_pixbuf, \
      get_accel_file, \
-     lookup_icon_filename
+     lookup_icon_filename, \
+     Action
 from keepnote import notebook as notebooklib
 from keepnote.gui import richtext
 from keepnote.gui.richtext import RichTextView, RichTextImage, RichTextError
@@ -74,6 +77,15 @@ class Viewer (gtk.VBox):
 
     def new_node(self, kind, widget, pos):
         # TODO: choose a more general interface (i.e. deal with widget param)
+        pass
+
+    def get_ui(self):
+        pass
+
+    def get_actions(self):
+        pass
+
+    def setup_menus(self, uimanager):
         pass
 
 
@@ -447,7 +459,7 @@ class ThreePaneViewer (Viewer):
         if path:
             widget.expand_row(path, all)
 
-    def collapse_note(self, all):
+    def collapse_note(self, all=False):
         
         widget = self.get_focused_widget(self.treeview)
         path, col = widget.get_cursor()
@@ -465,9 +477,6 @@ class ThreePaneViewer (Viewer):
                 walk(it)
             else:
                 widget.collapse_row(path)
-
-
-
 
     #============================================
     # Search
@@ -506,6 +515,92 @@ class ThreePaneViewer (Viewer):
             except KeepNoteError, e:
                 self.emit("error", e, sys.exc_info()[2])
 
+    #===========================================
+    # menus
+    
+    def get_ui(self):        
+        
+        return ["""
+        <ui>
+        <menubar name="main_menu_bar">
+          <menu action="Go">
+            <placeholder name="Viewer">
+              <menuitem action="Go to Note"/>
+              <menuitem action="Go to Parent Note"/>
+              <menuitem action="Go to Next Note"/>
+              <menuitem action="Go to Previous Note"/>
+              <menuitem action="Expand Note"/>
+              <menuitem action="Collapse Note"/>
+              <menuitem action="Expand All Child Notes"/>
+              <menuitem action="Collapse All Child Notes"/>
+              <separator/>
+              <menuitem action="Go to Tree View"/>
+              <menuitem action="Go to List View"/>
+              <menuitem action="Go to Editor"/>
+              <menuitem action="Go to Link"/>
+            </placeholder>
+          </menu>
+        </menubar>
+        </ui>
+        """] + self.editor_menus.get_ui()
+        
+
+    def get_actions(self):
+
+        return map(lambda x: Action(*x), [
+            ("Go to Note", gtk.STOCK_JUMP_TO, _("Go to _Note"),
+             "", None,
+             lambda w: self.on_list_view_node(None, None)),
+            
+            ("Go to Parent Note", gtk.STOCK_GO_BACK, _("Go to _Parent Note"),
+             "<alt>Left", None,
+             lambda w: self.on_list_view_parent_node()),
+
+            ("Go to Next Note", gtk.STOCK_GO_DOWN, _("Go to Next N_ote"),
+             "<alt>Down", None,
+             lambda w: self.goto_next_note()),
+
+            ("Go to Previous Note", gtk.STOCK_GO_UP, _("Go to _Previous Note"),
+             "<alt>Up", None,
+             lambda w: self.goto_prev_note()),
+
+            ("Expand Note", None, _("E_xpand Note"),
+             "<shift>Right", None,
+             lambda w: self.expand_note()),
+
+            ("Collapse Note", None, _("_Collapse Note"),
+             "<shift>Left", None,
+             lambda w: self.collapse_note()),
+
+            ("Expand All Child Notes", None, _("Expand _All Child Notes"),
+             "<control><shift>Right", None,
+             lambda w: self.expand_note(True)),
+
+            ("Collapse All Child Notes", None, _("Collapse A_ll Child Notes"),
+             "<control><shift>Left", None,
+             lambda w: self.collapse_note(True)),
+
+
+            ("Go to Tree View", None, _("Go to _Tree View"),
+             "<control>T", None,
+             lambda w: self.goto_treeview()),
+            
+            ("Go to List View", None, _("Go to _List View"),
+             "<control>Y", None,
+             lambda w: self.goto_listview()),
+            
+            ("Go to Editor", None, _("Go to _Editor"),
+             "<control>D", None,
+             lambda w: self.goto_editor()),
+            
+            ("Go to Link", None, _("Go to Lin_k"),
+             "<control>space", None,
+             lambda w: self.goto_link())
+            
+            ]) + self.editor_menus.get_actions()
+
+    def setup_menus(self, uimanager):
+        self.editor_menus.setup_menu(uimanager)
 
 
 gobject.type_register(ThreePaneViewer)

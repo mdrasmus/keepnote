@@ -35,7 +35,9 @@ from keepnote.gui.richtext import RichTextView, RichTextIO, RichTextError
 from keepnote.gui import \
      get_resource, \
      get_resource_image, \
-     get_resource_pixbuf
+     get_resource_pixbuf, \
+     Action, \
+     ToggleAction
 from keepnote.gui.font_selector import FontSelector
 from keepnote.gui.colortool import FgColorTool, BgColorTool
 from keepnote.gui.richtext.richtext_tags import color_tuple_to_string
@@ -561,9 +563,9 @@ class EditorMenus (gobject.GObject):
             lambda: self.on_bullet_list(),
             use_stock_icons)
 
-    def add_actions(self, actiongroup):
+    def get_actions(self):
         
-        actiongroup.add_actions([
+        return map(lambda x: Action(*x), [
             ("Format", None, _("Fo_rmat")),
 
             ("Bold", None, _("_Bold"), 
@@ -644,9 +646,9 @@ class EditorMenus (gobject.GObject):
         ])
         
 
-    def get_format_ui(self):
+    def get_ui(self):
 
-        return """
+        return ["""
         <ui>
         <menubar name="main_menu_bar">
           <placeholder name="Editor">
@@ -674,7 +676,7 @@ class EditorMenus (gobject.GObject):
           </placeholder>
         </menubar>
         </ui>
-        """
+        """]
 
     def setup_menu(self, uimanager):
 
@@ -723,7 +725,7 @@ class EditorMenus (gobject.GObject):
         item.set_image(img)        
             
 
-        
+    '''
     def get_format_menu(self):
 
         return [
@@ -820,6 +822,7 @@ class EditorMenus (gobject.GObject):
                 "<ImageItem>", 
                 get_resource_pixbuf("font.png"))
         ]
+    '''
 
 gobject.type_register(EditorMenus)
 gobject.signal_new("make-link", EditorMenus, gobject.SIGNAL_RUN_LAST,
