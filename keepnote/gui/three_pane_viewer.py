@@ -455,7 +455,7 @@ class ThreePaneViewer (Viewer):
 
     def goto_prev_note(self):
         
-        widget = self.get_focused_widget(self.treeview)
+        widget = self.get_focused_widget()
         path, col = widget.get_cursor()
 
         if path and path[-1] > 0:
@@ -564,7 +564,7 @@ class ThreePaneViewer (Viewer):
              lambda w: self.on_list_view_node(None, None)),
             
             ("Go to Parent Note", gtk.STOCK_GO_BACK, _("Go to _Parent Note"),
-             "<alt>Left", None,
+             "<shift><alt>Left", None,
              lambda w: self.on_list_view_parent_node()),
 
             ("Go to Next Note", gtk.STOCK_GO_DOWN, _("Go to Next N_ote"),
@@ -576,19 +576,19 @@ class ThreePaneViewer (Viewer):
              lambda w: self.goto_prev_note()),
 
             ("Expand Note", None, _("E_xpand Note"),
-             "<shift>Right", None,
+             "<alt>Right", None,
              lambda w: self.expand_note()),
 
             ("Collapse Note", None, _("_Collapse Note"),
-             "<shift>Left", None,
+             "<alt>Left", None,
              lambda w: self.collapse_note()),
 
             ("Expand All Child Notes", None, _("Expand _All Child Notes"),
-             "<control><shift>Right", None,
+             "<shift><alt>Right", None,
              lambda w: self.expand_note(True)),
 
             ("Collapse All Child Notes", None, _("Collapse A_ll Child Notes"),
-             "<control><shift>Left", None,
+             "<shift><alt>Left", None,
              lambda w: self.collapse_note(True)),
 
 

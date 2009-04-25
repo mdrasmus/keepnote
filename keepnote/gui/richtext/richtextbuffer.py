@@ -461,7 +461,7 @@ class RichTextImage (RichTextAnchor):
                 width, height, gtk.gdk.INTERP_BILINEAR)
 
             if set_widget:
-                for widget in self.get_all_widgets.itervalues():
+                for widget in self.get_all_widgets().itervalues():
                     widget.set_from_pixbuf(self._pixbuf)
 
         if self._buffer is not None:

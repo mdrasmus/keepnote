@@ -301,11 +301,6 @@ class KeepNoteWindow (gtk.Window):
         self._iconified = bool(event.new_window_state & 
                                gtk.gdk.WINDOW_STATE_ICONIFIED)
 
-        if self._iconified:
-            self.set_property("skip-taskbar-hint", self.app.pref.skip_taskbar)
-        else:
-            self.set_property("skip-taskbar-hint", False)
-
 
 
     def on_window_size(self, window, event):
@@ -339,6 +334,9 @@ class KeepNoteWindow (gtk.Window):
         self.viewer.load_preferences(self.app.pref)      
         self.enable_spell_check(self.app.pref.spell_check)
         self.setup_systray()
+
+        if self.app.pref.use_systray:
+            self.set_property("skip-taskbar-hint", self.app.pref.skip_taskbar)
 
         if self.app.pref.window_maximized:
             self.maximize()
@@ -804,7 +802,6 @@ class KeepNoteWindow (gtk.Window):
     def on_notebook_node_changed(self, nodes, recurse):
         """Callback for when the notebook changes"""
         self.set_notebook_modified(True)
-        #self._search_proc.cancel()
         
     
     def set_notebook_modified(self, modified):
