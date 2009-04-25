@@ -115,6 +115,7 @@ class KeepNoteWindow (gtk.Window):
         viewer.listview.on_status = self.set_status  # TODO: clean up
         viewer.editor.connect("modified", self.on_page_editor_modified)
         viewer.editor.connect("child-activated", self.on_child_activated)
+        viewer.editor.connect("window-request", self.on_window_request)
 
         # context menus
         self.make_context_menus(viewer)
@@ -323,6 +324,16 @@ class KeepNoteWindow (gtk.Window):
         else:
             self.minimize_window()
 
+
+    def on_window_request(self, widget, action):
+
+        if action == "minimize":
+            self.minimize_window()
+        elif action == "restore":
+            self.restore_window()
+        else:
+            raise Exception("unknown window request:" + str(action))
+    
     
     #==============================================
     # Application preferences     
@@ -818,112 +829,6 @@ class KeepNoteWindow (gtk.Window):
     
     
         
-    #==================================================
-    # Image/screenshot actions
-
-
-    def on_screenshot(self):
-        """Take and insert a screen shot image"""
-
-        # do nothing if no page is selected
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-
-        imgfile = ""
-
-        # Minimize window
-        self.minimize_window()
-        
-        try:
-            imgfile = self.app.take_screenshot("keepnote")
-            self.restore_window()
-            
-            # insert image
-            try:
-                self.insert_image(imgfile, "screenshot.png")
-            except Exception, e:
-                # TODO: make exception more specific
-                raise Exception(_("Error importing screenshot '%s'") % imgfile)
-            
-        except Exception, e:
-            # catch exceptions for screenshot program
-            self.restore_window()
-            self.error(_("The screenshot program encountered an error:\n %s")
-                       % str(e), e, sys.exc_info()[2])
-        
-            
-        # remove temp file
-        try:
-            if os.path.exists(imgfile):
-                os.remove(imgfile)
-        except OSError, e:
-            self.error(_("%s was unable to remove temp file for screenshot") %
-                       keepnote.PROGRAM_NAME, e, sys.exc_info()[2])
-
-
-    def on_insert_hr(self):
-        """Insert horizontal rule into editor"""
-        if self.get_current_page() is None:
-            return
-        
-        self.viewer.editor.get_textview().insert_hr()
-
-        
-    def on_insert_image(self):
-        """Displays the Insert Image Dialog"""
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-                  
-        dialog = gtk.FileChooserDialog(_("Insert Image From File"), self, 
-            action=gtk.FILE_CHOOSER_ACTION_OPEN,
-            buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
-                     _("Insert"), gtk.RESPONSE_OK))
-
-        if os.path.exists(self.app.pref.insert_image_path):
-            dialog.set_current_folder(self.app.pref.insert_image_path)        
-            
-            
-        # run dialog
-        response = dialog.run()
-
-        if response == gtk.RESPONSE_OK:
-            self.app.pref.insert_image_path = dialog.get_current_folder()
-            
-            filename = dialog.get_filename()
-                        
-            imgname, ext = os.path.splitext(os.path.basename(filename))
-            if ext.lower() in (".jpg", ".jpeg"):
-                imgname = imgname + ".jpg"
-            else:
-                imgname = imgname + ".png"
-            
-            try:
-                self.insert_image(filename, imgname)
-            except Exception, e:
-                # TODO: make exception more specific
-                self.error(_("Could not insert image '%s'") % filename, e,
-                           sys.exc_info()[2])
-            
-        dialog.destroy()
-        
-    
-    
-    def insert_image(self, filename, savename="image.png"):
-        """Inserts an image into the text editor"""
-
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-        
-        pixbuf = gdk.pixbuf_new_from_file(filename)
-        img = RichTextImage()
-        img.set_from_pixbuf(pixbuf)
-        self.viewer.editor.get_textview().insert_image(img, savename)
-
-
-
 
     #=================================================
     # Image context menu
@@ -1286,19 +1191,6 @@ class KeepNoteWindow (gtk.Window):
              "<control>V", None,
              lambda w: self.on_paste()),
 
-            # TODO: move to editor actions
-            ("Insert Horizontal Rule", None, _("Insert _Horizontal Rule"),
-             "<control>H", None,
-             lambda w: self.on_insert_hr()),
-            
-            ("Insert Image", None, _("Insert _Image"),
-             "", None,
-             lambda w: self.on_insert_image()),
-            
-            ("Insert Screenshot", None, _("Insert _Screenshot"),
-             "<control>Insert", None,
-             lambda w: self.on_screenshot()),
-
             ("Empty Trash", gtk.STOCK_DELETE, _("Empty _Trash"),
              "", None,
              lambda w: self.on_empty_trash()),
@@ -1425,9 +1317,7 @@ class KeepNoteWindow (gtk.Window):
     <menuitem action="Copy"/>
     <menuitem action="Paste"/>
     <separator/>
-    <menuitem action="Insert Horizontal Rule"/>
-    <menuitem action="Insert Image"/>
-    <menuitem action="Insert Screenshot"/>
+    <placeholder name="Editor"/>
     <separator/>
     <menuitem action="Empty Trash"/>
   </menu>

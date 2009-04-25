@@ -31,7 +31,8 @@ from keepnote.notebook import \
      NoteBookVersionError
 from keepnote import notebook as notebooklib
 from keepnote.gui import richtext
-from keepnote.gui.richtext import RichTextView, RichTextIO, RichTextError
+from keepnote.gui.richtext import \
+     RichTextView, RichTextIO, RichTextError, RichTextImage
 from keepnote.gui import \
      get_resource, \
      get_resource_image, \
@@ -218,6 +219,115 @@ class KeepNoteEditor (gtk.VBox):
         return self._textview.is_modified()
 
 
+    #==================================================
+    # Image/screenshot actions
+
+
+    def on_screenshot(self):
+        """Take and insert a screen shot image"""
+
+        # do nothing if no page is selected
+        if self._page is None:
+            return
+
+        imgfile = ""
+
+        # Minimize window
+        self.emit("window-request", "minimize")
+        #self.minimize_window()
+        
+        try:
+            imgfile = self._app.take_screenshot("keepnote")
+            #self.restore_window()
+            self.emit("window-request", "restore")
+            
+            # insert image
+            self.insert_image(imgfile, "screenshot.png")
+            
+        except Exception, e:
+            # catch exceptions for screenshot program
+            #self.restore_window()
+            self.emit("window-request", "restore")
+            self.emit("error",
+                      _("The screenshot program encountered an error:\n %s")
+                       % str(e), e)
+        
+            
+        # remove temp file
+        try:
+            if os.path.exists(imgfile):
+                os.remove(imgfile)
+        except OSError, e:
+            self.emit("error",
+                      _("%s was unable to remove temp file for screenshot") %
+                       keepnote.PROGRAM_NAME)
+
+
+    def on_insert_hr(self):
+        """Insert horizontal rule into editor"""
+        if self._page is None:
+            return
+        
+        self._textview.insert_hr()
+
+        
+    def on_insert_image(self):
+        """Displays the Insert Image Dialog"""
+        
+        if self._page is None:
+            return
+                  
+        dialog = gtk.FileChooserDialog(
+            _("Insert Image From File"), self.get_toplevel(), 
+            action=gtk.FILE_CHOOSER_ACTION_OPEN,
+            buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
+                     _("Insert"), gtk.RESPONSE_OK))
+
+        if os.path.exists(self._app.pref.insert_image_path):
+            dialog.set_current_folder(self._app.pref.insert_image_path)        
+            
+            
+        # run dialog
+        response = dialog.run()
+
+        if response == gtk.RESPONSE_OK:
+            self._app.pref.insert_image_path = dialog.get_current_folder()
+            
+            filename = dialog.get_filename()
+                        
+            imgname, ext = os.path.splitext(os.path.basename(filename))
+            if ext.lower() in (".jpg", ".jpeg"):
+                imgname = imgname + ".jpg"
+            else:
+                imgname = imgname + ".png"
+            
+            try:
+                self.insert_image(filename, imgname)
+            except Exception, e:
+                # TODO: make exception more specific
+                self.emit("error",
+                          _("Could not insert image '%s'") % filename, e)
+            
+        dialog.destroy()
+        
+    
+    
+    def insert_image(self, filename, savename="image.png"):
+        """Inserts an image into the text editor"""
+
+        if self._page is None:
+            return
+        
+        pixbuf = gdk.pixbuf_new_from_file(filename)
+        img = RichTextImage()
+        img.set_from_pixbuf(pixbuf)
+        self._textview.insert_image(img, savename)
+
+
+
+
+
+
 # add new signals to KeepNoteEditor
 gobject.type_register(KeepNoteEditor)
 gobject.signal_new("modified", KeepNoteEditor, gobject.SIGNAL_RUN_LAST, 
@@ -228,7 +338,8 @@ gobject.signal_new("error", KeepNoteEditor, gobject.SIGNAL_RUN_LAST,
     gobject.TYPE_NONE, (str, object))
 gobject.signal_new("child-activated", KeepNoteEditor, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object, object))
-
+gobject.signal_new("window-request", KeepNoteEditor, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (str,))
 
 
 
@@ -247,6 +358,7 @@ class EditorMenus (gobject.GObject):
         
         self._editor = editor
         self._font_ui_signals = []     # list of font ui widgets
+
 
 
     #=============================================================
@@ -566,6 +678,18 @@ class EditorMenus (gobject.GObject):
     def get_actions(self):
         
         return map(lambda x: Action(*x), [
+            ("Insert Horizontal Rule", None, _("Insert _Horizontal Rule"),
+             "<control>H", None,
+             lambda w: self._editor.on_insert_hr()),
+            
+            ("Insert Image", None, _("Insert _Image"),
+             "", None,
+             lambda w: self._editor.on_insert_image()),
+            
+            ("Insert Screenshot", None, _("Insert _Screenshot"),
+             "<control>Insert", None,
+             lambda w: self._editor.on_screenshot()),
+            
             ("Format", None, _("Fo_rmat")),
 
             ("Bold", None, _("_Bold"), 
@@ -651,6 +775,13 @@ class EditorMenus (gobject.GObject):
         return ["""
         <ui>
         <menubar name="main_menu_bar">
+          <menu action="Edit">
+            <placeholder name="Editor">
+              <menuitem action="Insert Horizontal Rule"/>
+              <menuitem action="Insert Image"/>
+              <menuitem action="Insert Screenshot"/>
+            </placeholder>
+          </menu>
           <placeholder name="Editor">
           <menu action="Format">
             <menuitem action="Bold"/>
