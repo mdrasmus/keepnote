@@ -80,6 +80,9 @@ class KeepNoteEditor (gtk.VBox):
         self.show_all()
 
 
+        self.find_dialog = dialog_find.KeepNoteFindDialog(self)
+
+
     def set_notebook(self, notebook):
         """Set notebook for editor"""
 
@@ -689,6 +692,27 @@ class EditorMenus (gobject.GObject):
             ("Insert Screenshot", None, _("Insert _Screenshot"),
              "<control>Insert", None,
              lambda w: self._editor.on_screenshot()),
+
+
+            # finding
+            ("Find In Page", gtk.STOCK_FIND, _("_Find In Page"),
+             "<control>F", None,
+             lambda w: self._editor.find_dialog.on_find(False)),
+            
+            ("Find Next In Page", gtk.STOCK_FIND, _("Find _Next In Page"),
+             "<control>G", None,
+             lambda w: self._editor.find_dialog.on_find(False, forward=True)),
+                        
+            ("Find Previous In Page", gtk.STOCK_FIND,
+             _("Find Pre_vious In Page"),
+             "<control><shift>G", None,
+             lambda w: self._editor.find_dialog.on_find(False, forward=False)),
+            
+            ("Replace In Page", gtk.STOCK_FIND, _("_Replace In Page"), 
+             "<control><shift>R", None,
+             lambda w: self._editor.find_dialog.on_find(True)),
+
+
             
             ("Format", None, _("Fo_rmat")),
 
@@ -780,6 +804,14 @@ class EditorMenus (gobject.GObject):
               <menuitem action="Insert Horizontal Rule"/>
               <menuitem action="Insert Image"/>
               <menuitem action="Insert Screenshot"/>
+            </placeholder>
+          </menu>
+          <menu action="Search">
+            <placeholder name="Editor">
+              <menuitem action="Find In Page"/>
+              <menuitem action="Find Next In Page"/>
+              <menuitem action="Find Previous In Page"/>
+              <menuitem action="Replace In Page"/>
             </placeholder>
           </menu>
           <placeholder name="Editor">

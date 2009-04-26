@@ -151,7 +151,6 @@ class KeepNoteWindow (gtk.Window):
         # Dialogs
         
         self.app_options_dialog = dialog_app_options.ApplicationOptionsDialog(self)
-        self.find_dialog = dialog_find.KeepNoteFindDialog(self)
         self.drag_test = dialog_drag_drop_test.DragDropTestDialog(self)
         self.image_resize_dialog = \
             dialog_image_resize.ImageResizeDialog(self, self.app.pref)
@@ -1202,23 +1201,6 @@ class KeepNoteWindow (gtk.Window):
              "<control>K", None,
              lambda w: self.focus_on_search_box()),
 
-            # TODO: move to editor actions
-            ("Find In Page", gtk.STOCK_FIND, _("_Find In Page"),
-             "<control>F", None,
-             lambda w: self.find_dialog.on_find(False)),
-            
-            ("Find Next In Page", gtk.STOCK_FIND, _("Find _Next In Page"),
-             "<control>G", None,
-             lambda w: self.find_dialog.on_find(False, forward=True)),
-                        
-            ("Find Previous In Page", gtk.STOCK_FIND,
-             _("Find Pre_vious In Page"),
-             "<control><shift>G", None,
-             lambda w: self.find_dialog.on_find(False, forward=False)),
-            
-            ("Replace In Page", gtk.STOCK_FIND, _("_Replace In Page"), 
-             "<control><shift>R", None,
-             lambda w: self.find_dialog.on_find(True)),
 
             #========================================
             ("View", None, _("_View")),
@@ -1323,10 +1305,7 @@ class KeepNoteWindow (gtk.Window):
   </menu>
   <menu action="Search">
     <menuitem action="Search All Notes"/>
-    <menuitem action="Find In Page"/>
-    <menuitem action="Find Next In Page"/>
-    <menuitem action="Find Previous In Page"/>
-    <menuitem action="Replace In Page"/>
+    <placeholder name="Editor"/>
   </menu>
   <placeholder name="Editor"/>
   <menu action="View">

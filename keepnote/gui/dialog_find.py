@@ -23,8 +23,8 @@ from keepnote import get_resource
 class KeepNoteFindDialog (object):
     """ Find dialog """
     
-    def __init__(self, main_window):
-        self.main_window = main_window
+    def __init__(self, editor):
+        self.editor = editor
         self.find_dialog = None
         self.find_text = None
         self.replace_text = None
@@ -88,7 +88,7 @@ class KeepNoteFindDialog (object):
         self.find_xml.get_widget("replace_all_button").set_sensitive(replace)
         
         self.find_dialog.show()
-        self.find_dialog.move(*self.main_window.get_position())
+        self.find_dialog.move(*self.editor.get_toplevel().get_position())
 
     
     def on_find_key_released(self, widget, event):
@@ -123,23 +123,23 @@ class KeepNoteFindDialog (object):
             self.find_dialog = None
             
         elif response == "find":
-            self.find_last_pos = self.main_window.editor.get_textview().find(find_text, case_sensitive, search_forward,
+            self.find_last_pos = self.editor.get_textview().find(find_text, case_sensitive, search_forward,
                                       next)
 
         elif response == "find_next":
             self.find_xml.get_widget("forward_button").set_active(True)
-            self.find_last_pos = self.main_window.editor.get_textview().find(find_text, case_sensitive, True)
+            self.find_last_pos = self.editor.get_textview().find(find_text, case_sensitive, True)
 
         elif response == "find_prev":
             self.find_xml.get_widget("backward_button").set_active(True)
-            self.find_last_pos = self.main_window.editor.get_textview().find(find_text, case_sensitive, False)
+            self.find_last_pos = self.editor.get_textview().find(find_text, case_sensitive, False)
         
         elif response == "replace":
-            self.find_last_pos = self.main_window.editor.get_textview().replace(find_text, replace_text,
+            self.find_last_pos = self.editor.get_textview().replace(find_text, replace_text,
                                          case_sensitive, search_forward)
             
         elif response == "replace_all":
-            self.main_window.editor.get_textview().replace_all(find_text, replace_text,
+            self.editor.get_textview().replace_all(find_text, replace_text,
                                              case_sensitive, search_forward)
     
     
