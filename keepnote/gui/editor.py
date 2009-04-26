@@ -42,7 +42,7 @@ from keepnote.gui import \
 from keepnote.gui.font_selector import FontSelector
 from keepnote.gui.colortool import FgColorTool, BgColorTool
 from keepnote.gui.richtext.richtext_tags import color_tuple_to_string
-
+from keepnote.gui import dialog_find
 
 def set_menu_icon(uimanager, path, filename):
     item = uimanager.get_widget(path)
