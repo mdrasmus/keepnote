@@ -349,6 +349,7 @@ class EnvError (StandardError):
 
 
 DEFAULT_EXTERNAL_APPS = [
+    ExternalApp("file_launcher", "File Launcher", ""),
     ExternalApp("web_browser", "Web Browser", ""),
     ExternalApp("file_explorer", "File Explorer", ""),
     ExternalApp("text_editor", "Text Editor", ""),
@@ -359,6 +360,7 @@ DEFAULT_EXTERNAL_APPS = [
 
 
 DEFAULT_EXTERNAL_APPS_WINDOWS = [
+    ExternalApp("file_launcher", "File Launcher", "start"),
     ExternalApp("web_browser", "Web Browser",
                 "C:\\Program Files\\Internet Explorer\\iexplore.exe"),
     ExternalApp("file_explorer", "File Explorer", "explorer.exe"),
@@ -372,6 +374,7 @@ DEFAULT_EXTERNAL_APPS_WINDOWS = [
 
 
 DEFAULT_EXTERNAL_APPS_LINUX = [
+    ExternalApp("file_launcher", "File Launcher", "xdg-open"),
     ExternalApp("web_browser", "Web Browser", ""),
     ExternalApp("file_explorer", "File Explorer", ""),
     ExternalApp("text_editor", "Text Editor", ""),

@@ -119,6 +119,7 @@ class ThreePaneViewer (Viewer):
         self.treeview.connect("select-nodes", self._on_tree_select)
         self.treeview.connect("error", lambda w,t,e: self.emit("error", t, e))
         self.treeview.connect("edit-title", self._on_edit_title)
+        self.treeview.connect("goto-node", self.on_list_view_node)
         
         # listview
         self.listview = KeepNoteListView()
@@ -343,14 +344,15 @@ class ThreePaneViewer (Viewer):
 
     def on_list_view_node(self, listview, node):
         """Focus listview on a node"""
-        if node is None:
-            nodes = self.listview.get_selected_nodes()
-            if len(nodes) == 0:
-                return
-            node = nodes[0]
         
-        self.treeview.select_nodes([node])
-
+        if node and node.has_attr("payload_filename"):
+            self._main_window.on_view_node_external_app("file_launcher",
+                                                        node,
+                                                        None,
+                                                        kind="file")
+        else:
+            self.goto_note(node)
+        
 
     def on_list_view_parent_node(self, node=None):
         """Focus listview on a node's parent"""
@@ -435,6 +437,15 @@ class ThreePaneViewer (Viewer):
         else:
             raise Exception("unknown widget '%s'" % widget)
 
+
+    def goto_note(self, node):
+        if node is None:
+            nodes = self.listview.get_selected_nodes()
+            if len(nodes) == 0:
+                return
+            node = nodes[0]
+        
+        self.treeview.select_nodes([node])
 
     def goto_next_note(self):
         widget = self.get_focused_widget(self.treeview)

@@ -108,6 +108,16 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
             # popup menu
             self.popup_menu(event.x, event.y, event.button, event.time)
             
+        if event.button == 1 and event.type == gtk.gdk._2BUTTON_PRESS:
+            model, paths = self.get_selection().get_selected_rows()
+            # double click --> goto node
+            if len(paths) > 0:
+                nodes = [self.model.get_value(self.model.get_iter(x),
+                                              self.rich_model.get_node_column())
+                         for x in paths]
+
+                # NOTE: can only view one node
+                self.emit("goto-node", nodes[0])
 
     
     #==============================================
@@ -141,5 +151,10 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
         self.set_cursor_on_cell(path, self.column, self.cell_text, 
                                          True)
         gobject.idle_add(lambda: self.scroll_to_cell(path))
+
+
+gobject.type_register(KeepNoteTreeView)
+gobject.signal_new("goto-node", KeepNoteTreeView, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (object,))
 
 

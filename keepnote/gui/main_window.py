@@ -8,6 +8,7 @@
 
 # python imports
 import gettext
+import mimetypes
 import os
 import re
 import shutil
@@ -826,11 +827,59 @@ class KeepNoteWindow (gtk.Window):
             else:
                 self.set_title("%s" % self.notebook.get_title())
     
-    
+    #=================================================
+
+    def on_include_file(self):
+
+        if self.notebook is None:
+            return
+        
+        dialog = gtk.FileChooserDialog(_("Include File..."), self, 
+            action=gtk.FILE_CHOOSER_ACTION_OPEN,
+            buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
+                     _("Include"), gtk.RESPONSE_OK))
+        dialog.set_default_response(gtk.RESPONSE_OK)
+
+        #if os.path.exists(self.app.pref.save_image_path):
+        #    dialog.set_current_folder(self.app.pref.save_image_path)
+        
+        response = dialog.run()
+
+        nodes, widget = self.get_selected_nodes()
+
+        if response == gtk.RESPONSE_OK:
+            #self.app.pref.save_image_path = dialog.get_current_folder()
+            
+            filename = dialog.get_filename()
+            content_type = mimetypes.guess_type(filename)[0]
+            if content_type is None:
+                content_type = "application/octet-stream"
+
+            new_filename = os.path.basename(filename)
+
+            try:
+                child = self.notebook.new_node(
+                    content_type, nodes[0].get_path(), nodes[0],
+                    {"payload_filename": new_filename,
+                     "title": new_filename})
+                child.create()
+                child.set_payload(filename, new_filename)
+                nodes[0].add_child(child)                
+                child.save(True)
+                
+            except Exception, e:
+                self.error(_("Error while including file '%s'" % filename),
+                             e, sys.exc_info()[2])
+                             
+
+        dialog.destroy()
+
         
 
     #=================================================
     # Image context menu
+
+    # TODO: look at what can be moved out of here
 
     def on_view_image(self, menuitem):
         """View image in Image Viewer"""
@@ -969,7 +1018,7 @@ class KeepNoteWindow (gtk.Window):
     # External app viewers
 
     def on_view_node_external_app(self, app, node=None, widget="focus",
-                                  page_only=False):
+                                  kind=None):
         """View a node with an external app"""
 
         self.save_notebook()
@@ -981,16 +1030,31 @@ class KeepNoteWindow (gtk.Window):
                 return            
             node = nodes[0]
 
-            if page_only and node.get_attr("content_type") != notebooklib.CONTENT_TYPE_PAGE:
+            if kind == "page" and \
+               node.get_attr("content_type") != notebooklib.CONTENT_TYPE_PAGE:
                 self.error(_("Only pages can be viewed with %s.") %
-                           self.app.external_apps[app].title)
+                           self.app.pref.get_external_app(app).title)
                 return
 
         try:
-            if page_only:
+            if kind == "page":
+                # get html file
                 filename = os.path.realpath(node.get_data_file())
+                
+            elif kind == "file":
+                # get payload file
+                if not node.has_attr("payload_filename"):
+                    self.error(_("Only pages can be viewed with %s.") %
+                               self.app.pref.get_external_app(app).title)
+                    return
+                filename = os.path.realpath(
+                    os.path.join(node.get_path(),
+                                 node.get_attr("payload_filename")))
+                
             else:
+                # get node dir
                 filename = os.path.realpath(node.get_path())
+            
             self.app.run_external_app(app, filename)
         except KeepNoteError, e:
             self.error(e.msg, e, sys.exc_info()[2])
@@ -1190,6 +1254,10 @@ class KeepNoteWindow (gtk.Window):
              "<control>V", None,
              lambda w: self.on_paste()),
 
+            ("Include File", None, _("Include File"),
+             "", _("Include a file into the notebook"),
+             lambda w: self.on_include_file()),
+
             ("Empty Trash", gtk.STOCK_DELETE, _("Empty _Trash"),
              "", None,
              lambda w: self.on_empty_trash()),
@@ -1215,13 +1283,19 @@ class KeepNoteWindow (gtk.Window):
              _("View Note in Text Editor"),
              "", None,
              lambda w: self.on_view_node_external_app("text_editor",
-                                                      page_only=True)),
+                                                      kind="page")),
 
             ("View Note in Web Browser", None,
              _("View Note in Web Browser"),
              "", None,
              lambda w: self.on_view_node_external_app("web_browser",
-                                                      page_only=True)),
+                                                      kind="page")),
+
+            ("Open Document", None,
+             _("_Open Document"),
+             "", None,
+             lambda w: self.on_view_node_external_app("file_launcher",
+                                                      kind="file")),
 
             #=======================================
             ("Go", None, "_Go"),            
@@ -1299,6 +1373,8 @@ class KeepNoteWindow (gtk.Window):
     <menuitem action="Copy"/>
     <menuitem action="Paste"/>
     <separator/>
+    <menuitem action="Include File"/>
+    <separator/>
     <placeholder name="Editor"/>
     <separator/>
     <menuitem action="Empty Trash"/>
@@ -1312,6 +1388,7 @@ class KeepNoteWindow (gtk.Window):
     <menuitem action="View Note in File Explorer"/>
     <menuitem action="View Note in Text Editor"/>
     <menuitem action="View Note in Web Browser"/>
+    <menuitem action="Open Document"/>
   </menu>
   <menu action="Go">
     <placeholder name="Viewer"/>
@@ -1594,7 +1671,7 @@ class KeepNoteWindow (gtk.Window):
                      lambda w: self.on_view_node_external_app("web_browser",
                                                               None,
                                                               control,
-                                                              page_only=True))
+                                                              kind="page"))
         menu.append(item)
         item.show()        
 
@@ -1604,10 +1681,19 @@ class KeepNoteWindow (gtk.Window):
                      lambda w: self.on_view_node_external_app("text_editor",
                                                               None,
                                                               control,
-                                                              page_only=True))
+                                                              kind="page"))
         menu.append(item)
         item.show()
-        
+
+        # treeview/Open document
+        item = gtk.MenuItem("Open _Document")
+        item.connect("activate",
+                     lambda w: self.on_view_node_external_app("file_launcher",
+                                                              None,
+                                                              control,
+                                                              kind="file"))
+        menu.append(item)
+        item.show()
         
 
     def make_treeview_menu(self, treeview, menu):

@@ -353,7 +353,8 @@ g_default_attrs = [
     NoteBookAttr("Folder Sort Direction", int, "info_sort_dir"),
     NoteBookAttr("Node ID", str, "nodeid", default=new_nodeid),
     NoteBookAttr("Icon", unicode, "icon"),
-    NoteBookAttr("Icon Open", unicode, "icon_open")
+    NoteBookAttr("Icon Open", unicode, "icon_open"),
+    NoteBookAttr("Filename", unicode, "payload_filename")
 ]
 
 
@@ -749,7 +750,11 @@ class NoteBookNode (object):
                 child._attr["order"] = i
                 child._set_dirty(True)
 
-            
+
+    def add_child(self, child, index=None):
+        self._add_child(child, index)
+        self.notify_change(True)
+        
 
     def _add_child(self, child, index=None):
         """Add a node as a child"""
@@ -934,6 +939,40 @@ class NoteBookDir (NoteBookNode):
                  parent=None, notebook=None):
         NoteBookNode.__init__(self, path, title, parent, notebook,
                               content_type=CONTENT_TYPE_DIR)
+
+
+class NoteBookGenericFile (NoteBookNode):
+    """Class that generic file in NoteBook"""
+    
+    def __init__(self, path, filename, title=None, content_type=None,
+                 parent=None, notebook=None):
+
+        if title is None:
+            title = os.path.basename(filename)
+
+        if content_type is None:
+            content_type = mimetypes.guess_type(filename)[0]
+        
+        NoteBookNode.__init__(self, path, title, parent, notebook,
+                              content_type=content_type)
+
+        self._attr["payload_filename"] = filename
+
+
+    def set_payload(self, filename, new_filename=None):
+        """Copy file into NoteBook directory"""
+
+        if new_filename is None:
+            new_filename = os.path.basename(filename)
+
+        try:
+            shutil.copy(filename, os.path.join(self.get_path(),
+                                               new_filename))
+        except IOError, e:
+            raise NoteBookError("Cannot copy file '%s'" % filename, e)
+
+        self._attr["payload_filename"] = new_filename
+        
 
 
 
@@ -1381,6 +1420,16 @@ class NoteBookNodeFactory (object):
             node = maker(path, parent, notebook, attr)
             node.set_meta_data(attr)
             return node
+        
+        elif "payload_filename" in attr:
+            # test for generic file
+            node = NoteBookGenericFile(path, filename=None,
+                                       title=attr.get("title", "New File"),
+                                       content_type=content_type,
+                                       parent=parent, notebook=notebook)
+            node.set_meta_data(attr)
+            return node
+        
         else:
             # TODO: return unknown node here
             return None
