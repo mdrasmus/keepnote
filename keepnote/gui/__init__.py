@@ -8,6 +8,7 @@
 
 
 # python imports
+import mimetypes
 import sys, os, tempfile, re, subprocess, shlex, shutil
 
 # pygtk imports
@@ -113,10 +114,77 @@ def get_resource_pixbuf(*path_list):
 #=============================================================================
 # node icons
 
+
+class MimeIcons:
+    
+    def __init__(self):
+        self._icons = set(gtk.icon_theme_get_default().list_icons())
+        self._cache = {}
+ 
+    def get_icon(self, filename, default=None):
+        """Try to find icon for mime type"""
+ 
+        # get mime type
+        mime_type = mimetypes.guess_type(filename).replace("/", "-")
+
+        return self.get_icon_mimetype(filename, default)
+
+
+    def get_icon_mimetype(self, mime_type, default=None):
+        """Try to find icon for mime type"""
+  
+        # search in the cache
+        if mime_type in self._cache:
+            return self._cache[mime_type]
+ 
+        # try gnome mime
+        items = mime_type.split('/')
+        for aux in xrange(len(items)-1):
+            icon_name = "gnome-mime-" + '-'.join(items[:len(items)-aux])
+            if icon_name in self._icons:
+                self._cache[mime_type] = icon_name                
+                return icon_name
+ 
+        # try simple mime
+        for aux in xrange(len(items)-1):
+            icon_name = '-'.join(items[:len(items)-aux])
+            if icon_name in self._icons:
+                self._cache[mime_type] = icon_name
+                return icon_name
+ 
+        # file icon
+        self._cache[mime_type] = default
+        return default
+
+
+    def get_icon_filename(self, name, default=None):
+
+        if name is None:
+            return default
+        
+        size = 16
+        info = gtk.icon_theme_get_default().lookup_icon(name, size, 0)
+        if info:
+            return info.get_filename()
+        else:
+            return default
+        
+        
+_g_mime_icons = MimeIcons()
+
+
 def get_default_icon_basenames(node):
     """Returns basesnames for default icons for a node"""
     content_type = node.get_attr("content_type")
-    return _g_default_node_icon_filenames.get(content_type, _g_unknown_icons)
+
+    default = _g_mime_icons.get_icon_mimetype(content_type, "note-unknown.png")
+    
+    basenames = _g_default_node_icon_filenames.get(content_type,
+                                                   (default, default))
+    return basenames
+
+    #if basenames is None:
+    #    return _g_unknown_icons
 
 
 def get_default_icon_filenames(node):
@@ -146,8 +214,10 @@ def lookup_icon_filename(notebook, basename):
     filename = get_resource(keepnote.NODE_ICON_DIR, basename)
     if os.path.exists(filename):
         return filename
-    else:
-        return None
+
+    # lookup mime types
+    return _g_mime_icons.get_icon_filename(basename)
+
 
 
 def get_all_icon_basenames(notebook):
@@ -255,7 +325,7 @@ def get_node_icon_filenames(node):
 
 
 def get_node_icon(node, expand=False):
-    """Returns cached pixbuf of NoteBookNode icon from resource path"""
+    """Returns pixbuf of NoteBookNode icon from resource path"""
 
     if not expand and node.has_attr("icon_load"):
         # return loaded icon
@@ -266,7 +336,7 @@ def get_node_icon(node, expand=False):
         return get_pixbuf(node.get_attr("icon_open_load"), (15, 15))
     
     else:
-        # load icons are return the one requested
+        # load icons and return the one requested
         filenames = get_node_icon_filenames(node)
         node.set_attr("icon_load", filenames[0])
         node.set_attr("icon_open_load", filenames[1])       

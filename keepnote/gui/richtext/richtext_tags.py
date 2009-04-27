@@ -374,6 +374,9 @@ class RichTextLinkTag (RichTextTag):
     def get_href(self):
         return self._href
 
+    def expires(self):
+        return True
+
     @classmethod
     def tag_name(cls, href):
         return "link " + href

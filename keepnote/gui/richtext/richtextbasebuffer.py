@@ -1,4 +1,6 @@
 
+import sys
+
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
@@ -242,7 +244,21 @@ class RichTextBaseBuffer (gtk.TextBuffer):
                     self.get_iter_at_offset(action.start_offset))
                 self.on_paragraph_merge(par_start, par_end)
 
-     
+    #==================================
+    # tag apply/remove
+
+    '''
+    def apply_tag(self, tag, start, end):
+        if isinstance(tag, RichTextTag):
+            tag.on_apply()
+        gtk.TextBuffer.apply_tag(self, tag, start, end)
+        
+        '''
+
+    def remove_tag(self, tag, start, end):        
+        gtk.TextBuffer.remove_tag(self, tag, start, end)
+
+
 
     #===========================================================
     # callbacks

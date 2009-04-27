@@ -1044,7 +1044,7 @@ class KeepNoteWindow (gtk.Window):
             elif kind == "file":
                 # get payload file
                 if not node.has_attr("payload_filename"):
-                    self.error(_("Only pages can be viewed with %s.") %
+                    self.error(_("Only documents can be viewed with %s.") %
                                self.app.pref.get_external_app(app).title)
                     return
                 filename = os.path.realpath(

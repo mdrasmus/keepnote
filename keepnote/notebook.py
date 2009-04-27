@@ -103,7 +103,7 @@ def get_unique_filename(path, filename, ext=u"", sep=u" ", number=2,
                         return_number=False, use_number=False):
     """Returns a unique version of a filename for a given directory"""
 
-    if path != "":
+    if path != u"":
         assert os.path.exists(path), path
     
     # try the given filename
@@ -118,7 +118,7 @@ def get_unique_filename(path, filename, ext=u"", sep=u" ", number=2,
     # try numbered suffixes
     i = number
     while True:
-        newname = os.path.join(path, filename + sep + str(i) + ext)
+        newname = os.path.join(path, filename + sep + unicode(i) + ext)
         if not os.path.exists(newname):
             if return_number:
                 return (newname, i)
@@ -145,7 +145,7 @@ def get_unique_filename_list(filenames, filename, ext=u"", sep=u" ", number=2):
     # try numbered suffixes
     i = number
     while True:
-        newname = filename + sep + str(i) + ext
+        newname = filename + sep + unicode(i) + ext
         if newname not in filenames:
             return newname
         i += 1
@@ -377,7 +377,7 @@ default_notebook_table = NoteBookTable("default", attrs=[title_attr,
 class NoteBookNode (object):
     """A general base class for all nodes in a NoteBook"""
 
-    def __init__(self, path, title="", parent=None, notebook=None,
+    def __init__(self, path, title=u"", parent=None, notebook=None,
                  content_type=CONTENT_TYPE_DIR):
         self._notebook = notebook
         self._parent = parent
@@ -964,6 +964,7 @@ class NoteBookGenericFile (NoteBookNode):
 
         if new_filename is None:
             new_filename = os.path.basename(filename)
+        new_filename = get_valid_unique_filename(self.get_path(), new_filename)
 
         try:
             shutil.copy(filename, os.path.join(self.get_path(),

@@ -25,7 +25,8 @@ class RichTextBaseTagTable (gtk.TextTagTable):
         gtk.TextTagTable.__init__(self)
 
         self._tag_classes = {}
-        self._tag2class = {}        
+        self._tag2class = {}
+        self._expiring_tags = set()
 
 
     def new_tag_class(self, class_name, class_type, exclusive=True):
@@ -71,11 +72,16 @@ class RichTextBaseTagTable (gtk.TextTagTable):
             if tag_class.class_type.is_name(name):
                 tag = tag_class.class_type.make_from_name(name)
                 self.tag_class_add(tag_class.name, tag)
+                
+                if tag.expires():
+                    self._expiring_tags.add(tag)
+
                 return tag
         
         
         raise Exception("unknown tag '%s'" % name)
 
+    
 
 
 class RichTextTagClass (object):
@@ -107,9 +113,13 @@ class RichTextTag (gtk.TextTag):
     """A TextTag in a RichTextBuffer"""
     def __init__(self, name, **kargs):
         gtk.TextTag.__init__(self, name)
-
+        self._count = 0
+        
         for key, val in kargs.iteritems():
             self.set_property(key.replace("_", "-"), val)
+
+    def expires(self):
+        return False
 
     def can_be_current(self):
         return True
