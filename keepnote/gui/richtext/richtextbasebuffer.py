@@ -101,6 +101,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
 
     def __init__(self, tag_table=RichTextBaseTagTable()):
         gtk.TextBuffer.__init__(self, tag_table)
+        tag_table.add_textbuffer(self)
 
         # undo handler
         self._undo_handler = UndoHandler(self)
@@ -255,7 +256,8 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         
         '''
 
-    def remove_tag(self, tag, start, end):        
+    def remove_tag(self, tag, start, end):
+        #assert self.get_tag_table().lookup(tag.get_property("name")) is not None, tag.get_property("name")
         gtk.TextBuffer.remove_tag(self, tag, start, end)
 
 

@@ -27,7 +27,27 @@ class RichTextBaseTagTable (gtk.TextTagTable):
         self._tag_classes = {}
         self._tag2class = {}
         self._expiring_tags = set()
+        self._buffers = set()
+        self._next_gc_size = 100
+        self._gc_size_step = 100
 
+    def add_textbuffer(self, buf):
+        self._buffers.add(buf)
+
+    def remove_textbuffer(self, buf):
+        if buf in self._buffers:
+            self._buffers.remove(buf)
+
+    def remove(self, tag):
+        gtk.TextTagTable.remove(self, tag)
+        if tag in self._expiring_tags:
+            self._expiring_tags.remove(tag)
+        cls = self._tag2class[tag]
+        del self._tag2class[tag]        
+        cls.tags.remove(tag)
+
+        
+            
 
     def new_tag_class(self, class_name, class_type, exclusive=True):
         """Create a new RichTextTag class for RichTextBaseTagTable"""
@@ -74,6 +94,7 @@ class RichTextBaseTagTable (gtk.TextTagTable):
                 self.tag_class_add(tag_class.name, tag)
                 
                 if tag.expires():
+                    self.gc()
                     self._expiring_tags.add(tag)
 
                 return tag
@@ -81,6 +102,49 @@ class RichTextBaseTagTable (gtk.TextTagTable):
         
         raise Exception("unknown tag '%s'" % name)
 
+
+    def gc(self):
+        """Garbage collect"""
+
+        if self.get_size() > self._next_gc_size:
+
+            #print "before", self.get_size()
+
+            saved = set()
+
+            # test to see if any expiring texttags have completely expired
+            for buf in self._buffers:
+
+                # scan buffer for all present tags
+                it = buf.get_start_iter()
+                o = it.get_offset()
+                while True:                    
+                    for tag in it.get_tags():
+                        if tag in self._expiring_tags:
+                            saved.add(tag)
+
+                    if (not it.forward_to_tag_toggle(None) or
+                        it.get_offset() == o):
+                        break
+                    o = it.get_offset()
+                    
+            
+            # remove expired tags
+            remove = []
+            print [x.get_property("name") for x in self._expiring_tags]
+            for tag in self._expiring_tags:
+                if tag not in saved:
+                    remove.append(tag)
+            for tag in remove:
+                self.remove(tag)
+
+            self._next_gc_size = self.get_size() + self._gc_size_step
+
+            #def func(x, data):
+            #    print "tab", x.get_property("name")
+            #self.foreach(func)
+
+            #print "after", self.get_size()
     
 
 
