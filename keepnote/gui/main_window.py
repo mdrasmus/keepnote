@@ -79,6 +79,38 @@ def set_menu_icon(uimanager, path, filename):
     item.set_image(img) 
 
 
+class FileChooserDialog (gtk.FileChooserDialog):
+    """File Chooser Dialog with a persistent path"""
+
+    def __init__(self, title=None, parent=None,
+                 action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                 buttons=None, backend=None,
+                 app=None,
+                 persistent_path=None):
+        gtk.FileChooserDialog.__init__(self, title, parent,
+                                       action, buttons, backend)
+
+        self._app = app
+        self._persistent_path = persistent_path
+        
+        if self._app and self._persistent_path:
+            path = getattr(self._app.pref, self._persistent_path)
+            if os.path.exists(path):
+                self.set_current_folder(path)
+
+
+    def run(self):
+        response = gtk.FileChooserDialog.run(self)
+
+        if (response == gtk.RESPONSE_OK and 
+            self._app and self._persistent_path):
+            setattr(self._app.pref, self._persistent_path,
+                     self.get_current_folder())
+            
+        return response
+
+
+
 class KeepNoteWindow (gtk.Window):
     """Main windows for KeepNote"""
 
@@ -372,19 +404,17 @@ class KeepNoteWindow (gtk.Window):
     def on_new_notebook(self):
         """Launches New NoteBook dialog"""
         
-        dialog = gtk.FileChooserDialog(_("New Notebook"), self, 
+        dialog = FileChooserDialog(
+            _("New Notebook"), self, 
             action=gtk.FILE_CHOOSER_ACTION_SAVE, #CREATE_FOLDER,
             buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
-                     _("New"), gtk.RESPONSE_OK))
-        if os.path.exists(self.app.pref.new_notebook_path):
-            dialog.set_current_folder(self.app.pref.new_notebook_path)
+                     _("New"), gtk.RESPONSE_OK),
+            app=self.app,
+            persistent_path="new_notebook_path")
         response = dialog.run()
         
         
         if response == gtk.RESPONSE_OK:
-            # remember new notebook directory
-            self.app.pref.new_notebook_path = dialog.get_current_folder()
-
             # create new notebook
             self.new_notebook(dialog.get_filename())
 
@@ -394,10 +424,13 @@ class KeepNoteWindow (gtk.Window):
     def on_open_notebook(self):
         """Launches Open NoteBook dialog"""
         
-        dialog = gtk.FileChooserDialog(_("Open Notebook"), self, 
+        dialog = FileChooserDialog(
+            _("Open Notebook"), self, 
             action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, #gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
-                     _("Open"), gtk.RESPONSE_OK))
+                     _("Open"), gtk.RESPONSE_OK),
+            app=self.app,
+            persistent_path="new_notebook_path")
 
         def on_folder_changed(filechooser):
             folder = filechooser.get_current_folder()
@@ -406,10 +439,6 @@ class KeepNoteWindow (gtk.Window):
                 filechooser.response(gtk.RESPONSE_OK)
                         
         dialog.connect("current-folder-changed", on_folder_changed)
-
-        if os.path.exists(self.app.pref.new_notebook_path):
-            dialog.set_current_folder(self.app.pref.new_notebook_path)
-
         
         file_filter = gtk.FileFilter()
         file_filter.add_pattern("*.nbk")
@@ -422,9 +451,9 @@ class KeepNoteWindow (gtk.Window):
         dialog.add_filter(file_filter)
         
         response = dialog.run()
-
-
+        
         if response == gtk.RESPONSE_OK:
+            # make sure start in parent directory
             self.app.pref.new_notebook_path = os.path.dirname(dialog.get_current_folder())
 
             notebook_file = dialog.get_filename()            
@@ -834,23 +863,20 @@ class KeepNoteWindow (gtk.Window):
         if self.notebook is None:
             return
         
-        dialog = gtk.FileChooserDialog(_("Include File..."), self, 
+        dialog = FileChooserDialog(
+            _("Include File..."), self, 
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
-                     _("Include"), gtk.RESPONSE_OK))
+                     _("Include"), gtk.RESPONSE_OK),
+            app=self.app,
+            persistent_path="include_file_path")
         dialog.set_default_response(gtk.RESPONSE_OK)
-
-        #if os.path.exists(self.app.pref.save_image_path):
-        #    dialog.set_current_folder(self.app.pref.save_image_path)
-        
         response = dialog.run()
 
-        nodes, widget = self.get_selected_nodes()
-
         if response == gtk.RESPONSE_OK:
-            #self.app.pref.save_image_path = dialog.get_current_folder()
-            
             filename = dialog.get_filename()
+            nodes, widget = self.get_selected_nodes()            
+            
             content_type = mimetypes.guess_type(filename)[0]
             if content_type is None:
                 content_type = "application/octet-stream"
@@ -955,21 +981,17 @@ class KeepNoteWindow (gtk.Window):
         image_filename = menuitem.get_parent().get_child().get_filename()
         image_path = os.path.join(current_page.get_path(), image_filename)
 
-        dialog = gtk.FileChooserDialog(_("Save Image As..."), self, 
+        dialog = FileChooserDialog(
+            _("Save Image As..."), self, 
             action=gtk.FILE_CHOOSER_ACTION_SAVE,
             buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
-                     _("Save"), gtk.RESPONSE_OK))
+                     _("Save"), gtk.RESPONSE_OK),
+            app=self.app,
+            persistent_path="save_image_path")
         dialog.set_default_response(gtk.RESPONSE_OK)
-
-        if os.path.exists(self.app.pref.save_image_path):
-            dialog.set_current_folder(self.app.pref.save_image_path)
-        
         response = dialog.run()
-
-
+        
         if response == gtk.RESPONSE_OK:
-            self.app.pref.save_image_path = dialog.get_current_folder()
-            
             if dialog.get_filename() == "":
                 self.error(_("Must specify a filename for the image."))
             else:

@@ -967,12 +967,11 @@ class NoteBookGenericFile (NoteBookNode):
         new_filename = get_valid_unique_filename(self.get_path(), new_filename)
 
         try:
-            shutil.copy(filename, os.path.join(self.get_path(),
-                                               new_filename))
+            shutil.copy(filename, new_filename)
         except IOError, e:
             raise NoteBookError("Cannot copy file '%s'" % filename, e)
 
-        self._attr["payload_filename"] = new_filename
+        self._attr["payload_filename"] = os.path.basename(new_filename)
         
 
 

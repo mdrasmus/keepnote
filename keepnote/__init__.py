@@ -434,6 +434,7 @@ class KeepNotePreferences (object):
         self.archive_notebook_path = get_user_documents()
         self.insert_image_path = get_user_documents()
         self.save_image_path = get_user_documents()
+        self.include_file_path = get_user_documents()
         
         # temp variables for parsing
         self._last_timestamp_name = ""
@@ -593,6 +594,8 @@ g_keepnote_pref_parser = xmlo.XmlObject(
                  attr=("insert_image_path", None, None)),
         xmlo.Tag("save_image_path",
                  attr=("save_image_path", None, None)),
+        xmlo.Tag("include_file_path",
+                 attr=("include_file_path", None, None)),
         
         xmlo.Tag("external_apps", tags=[
 
