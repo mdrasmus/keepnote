@@ -175,10 +175,6 @@ class KeepNoteWindow (gtk.Window):
         # viewer
         self.viewer = self.new_viewer()
 
-        # temp back-compat TODO: refactor
-        self._editor_menus = self.viewer.editor_menus
-        
-
 
         #====================================
         # Dialogs
@@ -858,18 +854,18 @@ class KeepNoteWindow (gtk.Window):
     
     #=================================================
 
-    def on_include_file(self):
+    def on_attach_file(self):
 
         if self.notebook is None:
             return
         
         dialog = FileChooserDialog(
-            _("Include File..."), self, 
+            _("Attach File..."), self, 
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
-                     _("Include"), gtk.RESPONSE_OK),
+                     _("Attach"), gtk.RESPONSE_OK),
             app=self.app,
-            persistent_path="include_file_path")
+            persistent_path="attach_file_path")
         dialog.set_default_response(gtk.RESPONSE_OK)
         response = dialog.run()
 
@@ -894,7 +890,7 @@ class KeepNoteWindow (gtk.Window):
                 child.save(True)
                 
             except Exception, e:
-                self.error(_("Error while including file '%s'" % filename),
+                self.error(_("Error while attaching file '%s'" % filename),
                              e, sys.exc_info()[2])
                              
 
@@ -1276,9 +1272,9 @@ class KeepNoteWindow (gtk.Window):
              "<control>V", None,
              lambda w: self.on_paste()),
 
-            ("Include File", None, _("Include File"),
-             "", _("Include a file into the notebook"),
-             lambda w: self.on_include_file()),
+            ("Attach File", None, _("_Attach File"),
+             "", _("Attach a file to the notebook"),
+             lambda w: self.on_attach_file()),
 
             ("Empty Trash", gtk.STOCK_DELETE, _("Empty _Trash"),
              "", None,
@@ -1395,7 +1391,7 @@ class KeepNoteWindow (gtk.Window):
     <menuitem action="Copy"/>
     <menuitem action="Paste"/>
     <separator/>
-    <menuitem action="Include File"/>
+    <menuitem action="Attach File"/>
     <separator/>
     <placeholder name="Editor"/>
     <separator/>
@@ -1532,8 +1528,7 @@ class KeepNoteWindow (gtk.Window):
         #toolbar.insert(gtk.SeparatorToolItem(), -1)        
 
         # insert editor toolbar
-        self._editor_menus.make_toolbar(toolbar, tips,
-                                        self.app.pref.use_stock_icons)
+        self.viewer.make_toolbar(toolbar, tips, self.app.pref.use_stock_icons)
 
         # separator
         spacer = gtk.SeparatorToolItem()

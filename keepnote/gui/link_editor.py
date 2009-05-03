@@ -1,10 +1,15 @@
+"""
+    KeepNote
+    Copyright Matt Rasmussen 2008-2009
+    
+    Link Editor Widget
+"""
 
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
 from gtk import gdk
-import gtk.glade
-import gobject
+import gtk, gobject
 
 
 

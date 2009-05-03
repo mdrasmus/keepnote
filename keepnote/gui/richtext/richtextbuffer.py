@@ -997,6 +997,8 @@ class RichTextBuffer (RichTextBaseBuffer):
         
         sel = self.get_selection_bounds()
         focus = None
+
+        # TODO: speed this up.  Don't process all children
         
         if len(sel) > 0:
             
@@ -1012,12 +1014,11 @@ class RichTextBuffer (RichTextBaseBuffer):
                     child.unhighlight()
 
                 for w in child.get_all_widgets().itervalues():
-                    if w:
-                        top = w.get_toplevel()
-                        if top:
-                            f = top.get_focus()
-                            if f:
-                                focus = f
+                    top = w.get_toplevel()
+                    if top:
+                        f = top.get_focus()
+                        if f:
+                            focus = f
             if focus:
                 focus.grab_focus()
         else:

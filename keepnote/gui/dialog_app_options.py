@@ -20,6 +20,8 @@ from keepnote.gui.font_selector import FontSelector
 from keepnote.gui import richtext
 
 
+
+
 class ApplicationOptionsDialog (object):
     """Application options"""
     
@@ -39,21 +41,28 @@ class ApplicationOptionsDialog (object):
         self.tabs = self.xml.get_widget("app_config_tabs")
         self.setup_overview_tree()
 
-        
+        #===================================
+        # step general tab
+        self.general_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
+                                 "general_frame")
+        frame = self.general_xml.get_widget("general_frame")
+        #frame.unparent()
+        self.tabs.insert_page(frame, tab_label=None, position=0)
 
+        
         # populate default notebook
-        self.xml.get_widget("default_notebook_entry").\
+        self.general_xml.get_widget("default_notebook_entry").\
             set_text(self.app.pref.default_notebook)
 
         # populate autosave
-        self.xml.get_widget("autosave_check").set_active(
+        self.general_xml.get_widget("autosave_check").set_active(
             self.app.pref.autosave)
-        self.xml.get_widget("autosave_entry").set_text(
+        self.general_xml.get_widget("autosave_entry").set_text(
             str(int(self.app.pref.autosave_time / 1000)))
 
-        self.xml.get_widget("autosave_entry").set_sensitive(
+        self.general_xml.get_widget("autosave_entry").set_sensitive(
             self.app.pref.autosave)
-        self.xml.get_widget("autosave_label").set_sensitive(
+        self.general_xml.get_widget("autosave_label").set_sensitive(
             self.app.pref.autosave)
         
 
@@ -62,30 +71,37 @@ class ApplicationOptionsDialog (object):
         #    set_font_name(self.app.pref.default_font)
 
         # use systray icon
-        self.xml.get_widget("systray_check").set_active(self.app.pref.use_systray)
-        self.xml.get_widget("skip_taskbar_check").set_active(self.app.pref.skip_taskbar)
-        self.xml.get_widget("skip_taskbar_check").set_sensitive(self.app.pref.use_systray)
-
+        self.general_xml.get_widget("systray_check").set_active(self.app.pref.use_systray)
+        self.general_xml.get_widget("skip_taskbar_check").set_active(self.app.pref.skip_taskbar)
+        self.general_xml.get_widget("skip_taskbar_check").set_sensitive(self.app.pref.use_systray)
+        
+        
+        #====================================
         # look and feel
-        self.treeview_lines_check = self.xml.get_widget("treeview_lines_check")
+        self.look_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
+                                 "look_frame")
+        frame = self.look_xml.get_widget("look_frame")
+        #frame.unparent()
+        self.tabs.insert_page(frame, tab_label=None, position=1)
+        self.treeview_lines_check = self.look_xml.get_widget("treeview_lines_check")
         self.treeview_lines_check.set_active(self.app.pref.treeview_lines)
-        self.listview_rules_check = self.xml.get_widget("listview_rules_check")
+        self.listview_rules_check = self.look_xml.get_widget("listview_rules_check")
         self.listview_rules_check.set_active(self.app.pref.listview_rules)
         self.use_stock_icons_check = \
-            self.xml.get_widget("use_stock_icons_check")
+            self.look_xml.get_widget("use_stock_icons_check")
         self.use_stock_icons_check.set_active(self.app.pref.use_stock_icons)
 
 
-        # populate dates
-        for name in ["same_day", "same_month", "same_year", "diff_year"]:
-            self.xml.get_widget("date_%s_entry" % name).\
-                set_text(self.app.pref.timestamp_formats[name])
-
-
+        #======================================
         # populate external apps
         self.entries = {}
-        apps_widget = self.xml.get_widget("external_apps_frame")
-        table = gtk.Table(len(self.app.pref.external_apps), 3)
+        self.apps_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
+                                 "helper_apps_frame")
+        frame = self.apps_xml.get_widget("helper_apps_frame")
+        #frame.unparent()
+        self.tabs.insert_page(frame, tab_label=None, position=2)
+        apps_widget = self.apps_xml.get_widget("external_apps_frame")
+        table = gtk.Table(len(self.app.pref.external_apps), 2)
         apps_widget.add_with_viewport(table)
         apps_widget.get_child().set_property("shadow-type", gtk.SHADOW_NONE)
         
@@ -130,15 +146,33 @@ class ApplicationOptionsDialog (object):
 
         table.show()
 
+        #=============================
+        # populate dates
+        self.date_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
+                                 "date_time_frame")
+        frame = self.date_xml.get_widget("date_time_frame")
+        #frame.unparent()
+        self.tabs.insert_page(frame, tab_label=None, position=3)
+        for name in ["same_day", "same_month", "same_year", "diff_year"]:
+            self.date_xml.get_widget("date_%s_entry" % name).\
+                set_text(self.app.pref.timestamp_formats[name])
 
+
+
+        #===============================
         # add notebook font widget
-        notebook_font_spot = self.xml.get_widget("notebook_font_spot")
+        self.notebook_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
+                                 "notebook_frame")
+        frame = self.notebook_xml.get_widget("notebook_frame")
+        #frame.unparent()
+        self.tabs.insert_page(frame, tab_label=None, position=4)
+        notebook_font_spot = self.notebook_xml.get_widget("notebook_font_spot")
         self.notebook_font_family = FontSelector()
         notebook_font_spot.add(self.notebook_font_family)
         self.notebook_font_family.show()        
 
         # populate notebook font
-        self.notebook_font_size = self.xml.get_widget("notebook_font_size")
+        self.notebook_font_size = self.notebook_xml.get_widget("notebook_font_size")
         self.notebook_font_size.set_value(10)
 
         if self.main_window.notebook is not None:
@@ -162,6 +196,7 @@ class ApplicationOptionsDialog (object):
         self.dialog.show()
 
 
+
     def setup_overview_tree(self):
 
         # setup treeview
@@ -182,17 +217,17 @@ class ApplicationOptionsDialog (object):
         app = overview_store.append(None, [keepnote.PROGRAM_NAME])
         overview_store.append(app, ["Look and Feel"])
         overview_store.append(app, ["Helper Applications"])
-        overview_store.append(app, ["Data and Time"])        
+        overview_store.append(app, ["Date and Time"])        
         note = overview_store.append(None, ["This Notebook"])
 
         self.overview.expand_all()
 
         self.tree2tab = {
             (0,): 0,
-            (0, 0,): 4,            
-            (0, 1,): 1,
-            (0, 2,): 2,
-            (1,): 3
+            (0, 0,): 1,            
+            (0, 1,): 2,
+            (0, 2,): 3,
+            (1,): 4
             }
         
 
@@ -206,15 +241,15 @@ class ApplicationOptionsDialog (object):
 
     def on_autosave_check_toggled(self, widget):
         """The autosave option controls sensitivity of autosave time"""
-        self.xml.get_widget("autosave_entry").set_sensitive(
+        self.general_xml.get_widget("autosave_entry").set_sensitive(
             widget.get_active())
-        self.xml.get_widget("autosave_label").set_sensitive(
+        self.general_xml.get_widget("autosave_label").set_sensitive(
             widget.get_active())
 
 
     def on_systray_check_toggled(self, widget):
         """Systray option controls sensitivity of skip taskbar"""
-        self.xml.get_widget("skip_taskbar_check").set_sensitive(
+        self.general_xml.get_widget("skip_taskbar_check").set_sensitive(
             widget.get_active())
         
     
@@ -238,7 +273,7 @@ class ApplicationOptionsDialog (object):
             filename = dialog.get_filename()
 
             if name == "default_notebook":
-                self.xml.get_widget("default_notebook_entry").\
+                self.general_xml.get_widget("default_notebook_entry").\
                     set_text(filename)
             else:
                 self.entries[name].set_text(filename)
@@ -249,7 +284,7 @@ class ApplicationOptionsDialog (object):
     def on_set_default_notebook_button_clicked(self, widget):
 
         if self.main_window.notebook:
-            self.xml.get_widget("default_notebook_entry").set_text(
+            self.general_xml.get_widget("default_notebook_entry").set_text(
                 self.main_window.notebook.get_path())
             
         
@@ -258,20 +293,20 @@ class ApplicationOptionsDialog (object):
         # TODO: add arguments
     
         self.app.pref.default_notebook = \
-            self.xml.get_widget("default_notebook_entry").get_text()
+            self.general_xml.get_widget("default_notebook_entry").get_text()
 
         # save autosave
         self.app.pref.autosave = \
-            self.xml.get_widget("autosave_check").get_active()
+            self.general_xml.get_widget("autosave_check").get_active()
         try:
             self.app.pref.autosave_time = \
-                int(self.xml.get_widget("autosave_entry").get_text()) * 1000
+                int(self.general_xml.get_widget("autosave_entry").get_text()) * 1000
         except:
             pass
 
         # use systray icon
-        self.app.pref.use_systray = self.xml.get_widget("systray_check").get_active()
-        self.app.pref.skip_taskbar = self.xml.get_widget("skip_taskbar_check").get_active()
+        self.app.pref.use_systray = self.general_xml.get_widget("systray_check").get_active()
+        self.app.pref.skip_taskbar = self.general_xml.get_widget("skip_taskbar_check").get_active()
 
         # look and feel
         self.app.pref.treeview_lines = self.treeview_lines_check.get_active()
@@ -282,7 +317,7 @@ class ApplicationOptionsDialog (object):
         # save date formatting
         for name in ["same_day", "same_month", "same_year", "diff_year"]:
             self.app.pref.timestamp_formats[name] = \
-                self.xml.get_widget("date_%s_entry" % name).get_text()
+                self.date_xml.get_widget("date_%s_entry" % name).get_text()
         
 
         # save external app options

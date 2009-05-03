@@ -94,6 +94,9 @@ class Viewer (gtk.VBox):
     def setup_menus(self, uimanager):
         pass
 
+    def make_toolbar(self, toolbar, tips, use_stock_icons):
+        pass
+
 
 class ThreePaneViewer (Viewer):
 
@@ -623,6 +626,11 @@ class ThreePaneViewer (Viewer):
 
     def setup_menus(self, uimanager):
         self.editor_menus.setup_menu(uimanager)
+
+        
+    def make_toolbar(self, toolbar, tips, use_stock_icons):
+        self.editor_menus.make_toolbar(toolbar, tips, use_stock_icons)
+
 
 
 gobject.type_register(ThreePaneViewer)
