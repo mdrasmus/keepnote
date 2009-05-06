@@ -20,6 +20,11 @@ from keepnote.gui.font_selector import FontSelector
 from keepnote.gui import richtext
 
 
+#class Binding (object):
+#    def __init__(self, set=lambda: None, get=lambda: None):
+#        self.set = set
+#        self.get = get
+
 
 
 class ApplicationOptionsDialog (object):
@@ -33,6 +38,9 @@ class ApplicationOptionsDialog (object):
     
     def on_app_options(self):
         """Display application options"""
+
+        self.bindings = []
+        
         
         self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                  "app_config_dialog")
@@ -40,17 +48,29 @@ class ApplicationOptionsDialog (object):
         self.dialog.set_transient_for(self.main_window)
         self.tabs = self.xml.get_widget("app_config_tabs")
         self.setup_overview_tree()
+        self.xml.signal_autoconnect(self)
+        self.xml.signal_autoconnect({
+            "on_cancel_button_clicked": 
+                lambda w: self.dialog.destroy(),
+                
+            "on_default_notebook_button_clicked": 
+                lambda w: self.on_browse(
+                    "default_notebook", 
+                    "Choose Default Notebook",
+                    self.app.pref.default_notebook),
+            })
+
 
         #===================================
-        # step general tab
+        # setup general tab
         self.general_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
-                                 "general_frame")
+                                         "general_frame")
+        self.general_xml.signal_autoconnect(self)
         frame = self.general_xml.get_widget("general_frame")
-        #frame.unparent()
         self.tabs.insert_page(frame, tab_label=None, position=0)
 
         
-        # populate default notebook
+        # populate default notebook        
         self.general_xml.get_widget("default_notebook_entry").\
             set_text(self.app.pref.default_notebook)
 
@@ -66,10 +86,6 @@ class ApplicationOptionsDialog (object):
             self.app.pref.autosave)
         
 
-        # populate default font
-        #self.xml.get_widget("default_font_button").\
-        #    set_font_name(self.app.pref.default_font)
-
         # use systray icon
         self.general_xml.get_widget("systray_check").set_active(self.app.pref.use_systray)
         self.general_xml.get_widget("skip_taskbar_check").set_active(self.app.pref.skip_taskbar)
@@ -80,8 +96,8 @@ class ApplicationOptionsDialog (object):
         # look and feel
         self.look_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                  "look_frame")
+        self.look_xml.signal_autoconnect(self)
         frame = self.look_xml.get_widget("look_frame")
-        #frame.unparent()
         self.tabs.insert_page(frame, tab_label=None, position=1)
         self.treeview_lines_check = self.look_xml.get_widget("treeview_lines_check")
         self.treeview_lines_check.set_active(self.app.pref.treeview_lines)
@@ -97,8 +113,8 @@ class ApplicationOptionsDialog (object):
         self.entries = {}
         self.apps_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                  "helper_apps_frame")
+        self.apps_xml.signal_autoconnect(self)
         frame = self.apps_xml.get_widget("helper_apps_frame")
-        #frame.unparent()
         self.tabs.insert_page(frame, tab_label=None, position=2)
         apps_widget = self.apps_xml.get_widget("external_apps_frame")
         table = gtk.Table(len(self.app.pref.external_apps), 2)
@@ -150,8 +166,8 @@ class ApplicationOptionsDialog (object):
         # populate dates
         self.date_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                  "date_time_frame")
+        self.date_xml.signal_autoconnect(self)
         frame = self.date_xml.get_widget("date_time_frame")
-        #frame.unparent()
         self.tabs.insert_page(frame, tab_label=None, position=3)
         for name in ["same_day", "same_month", "same_year", "diff_year"]:
             self.date_xml.get_widget("date_%s_entry" % name).\
@@ -163,8 +179,8 @@ class ApplicationOptionsDialog (object):
         # add notebook font widget
         self.notebook_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                  "notebook_frame")
+        self.notebook_xml.signal_autoconnect(self)
         frame = self.notebook_xml.get_widget("notebook_frame")
-        #frame.unparent()
         self.tabs.insert_page(frame, tab_label=None, position=4)
         notebook_font_spot = self.notebook_xml.get_widget("notebook_font_spot")
         self.notebook_font_family = FontSelector()
@@ -181,17 +197,6 @@ class ApplicationOptionsDialog (object):
             self.notebook_font_family.set_family(family)
             self.notebook_font_size.set_value(size)
 
-        self.xml.signal_autoconnect(self)
-        self.xml.signal_autoconnect({
-            "on_cancel_button_clicked": 
-                lambda w: self.dialog.destroy(),
-                
-            "on_default_notebook_button_clicked": 
-                lambda w: self.on_browse(
-                    "default_notebook", 
-                    "Choose Default Notebook",
-                    self.app.pref.default_notebook),
-            })
 
         self.dialog.show()
 
