@@ -422,6 +422,7 @@ class KeepNotePreferences (object):
         self.autosave_time = DEFAULT_AUTOSAVE_TIME
         
         self.default_notebook = ""
+        self.use_last_notebook = False
         self.timestamp_formats = dict(DEFAULT_TIMESTAMP_FORMATS)
         self.spell_check = True
         self.image_size_snap = True
@@ -538,6 +539,8 @@ g_keepnote_pref_parser = xmlo.XmlObject(
         xmlo.Tag("id", attr=("id", None, None)),
         xmlo.Tag("default_notebook",
                  attr=("default_notebook", None, None)),
+        xmlo.Tag("use_last_notebook",
+                 attr=("use_last_notebook", xmlo.str2bool, xmlo.bool2str)),
 
         # window presentation options
         xmlo.Tag("view_mode",

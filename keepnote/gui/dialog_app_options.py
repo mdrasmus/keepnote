@@ -71,10 +71,16 @@ class ApplicationOptionsDialog (object):
 
         
         # populate default notebook        
-        self.general_xml.get_widget("default_notebook_entry").\
-            set_text(self.app.pref.default_notebook)
-        if self.app.pref.default_notebook == "":
+        if self.app.pref.use_last_notebook == True:
+            self.general_xml.get_widget("last_notebook_radio").set_active(True)
+        elif self.app.pref.default_notebook == "":
             self.general_xml.get_widget("no_default_notebook_radio").set_active(True)
+        else:
+            self.general_xml.get_widget("default_notebook_radio").set_active(True)
+            self.general_xml.get_widget("default_notebook_entry").\
+                set_text(self.app.pref.default_notebook)
+            
+
 
         # populate autosave
         self.general_xml.get_widget("autosave_check").set_active(
@@ -313,8 +319,17 @@ class ApplicationOptionsDialog (object):
     def on_ok_button_clicked(self, widget):
         # TODO: add arguments
     
-        self.app.pref.default_notebook = \
-            self.general_xml.get_widget("default_notebook_entry").get_text()
+
+        if self.general_xml.get_widget("last_notebook_radio").get_active():
+            self.app.pref.use_last_notebook = True
+        elif self.general_xml.get_widget("default_notebook_radio").get_active():
+            self.app.pref.use_last_notebook = False
+            self.app.pref.default_notebook = \
+                self.general_xml.get_widget("default_notebook_entry").get_text()
+        else:
+            self.app.pref.use_last_notebook = False
+            self.app.pref.default_notebook = ""
+
 
         # save autosave
         self.app.pref.autosave = \
