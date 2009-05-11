@@ -43,10 +43,10 @@ class ApplicationOptionsDialog (object):
         
         
         self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
-                                 "app_config_dialog")
-        self.dialog = self.xml.get_widget("app_config_dialog")
+                                 "app_options_dialog")
+        self.dialog = self.xml.get_widget("app_options_dialog")
         self.dialog.set_transient_for(self.main_window)
-        self.tabs = self.xml.get_widget("app_config_tabs")
+        self.tabs = self.xml.get_widget("app_options_tabs")
         self.setup_overview_tree()
         self.xml.signal_autoconnect(self)
         self.xml.signal_autoconnect({
