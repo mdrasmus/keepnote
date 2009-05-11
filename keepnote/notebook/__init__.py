@@ -187,9 +187,9 @@ def get_trash_dir(nodepath):
 #=============================================================================
 # HTML functions
 
-TAG_PATTERN = re.compile("<[^>]*>")
+TAG_PATTERN = re.compile(u"<[^>]*>")
 def strip_tags(line):
-    return re.sub(TAG_PATTERN, "", line)
+    return re.sub(TAG_PATTERN, u"", line)
 
 def read_data_as_plain_text(infile):
     """Read a Note data file as plain text"""
@@ -1363,6 +1363,9 @@ class NoteBook (NoteBookDir):
                                        NOTEBOOK_FORMAT_VERSION)
 
 
+
+#=============================================================================
+# Meta Data Parsing
 
 #
 # TODO: perhaps factory and metadata reader should be combined?

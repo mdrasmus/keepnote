@@ -51,14 +51,7 @@ class ApplicationOptionsDialog (object):
         self.xml.signal_autoconnect(self)
         self.xml.signal_autoconnect({
             "on_cancel_button_clicked": 
-                lambda w: self.dialog.destroy(),
-                
-            "on_default_notebook_button_clicked": 
-                lambda w: self.on_browse(
-                    "default_notebook", 
-                    "Choose Default Notebook",
-                    self.app.pref.default_notebook),
-            })
+                lambda w: self.dialog.destroy()})
 
 
         #===================================
@@ -66,6 +59,13 @@ class ApplicationOptionsDialog (object):
         self.general_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                          "general_frame")
         self.general_xml.signal_autoconnect(self)
+        self.general_xml.signal_autoconnect({
+            "on_default_notebook_button_clicked":
+                lambda w: self.on_browse(
+                    "default_notebook", 
+                    "Choose Default Notebook",
+                    self.app.pref.default_notebook),
+            })
         frame = self.general_xml.get_widget("general_frame")
         self.tabs.insert_page(frame, tab_label=None, position=0)
 
@@ -73,6 +73,8 @@ class ApplicationOptionsDialog (object):
         # populate default notebook        
         self.general_xml.get_widget("default_notebook_entry").\
             set_text(self.app.pref.default_notebook)
+        if self.app.pref.default_notebook == "":
+            self.general_xml.get_widget("no_default_notebook_radio").set_active(True)
 
         # populate autosave
         self.general_xml.get_widget("autosave_check").set_active(
@@ -260,7 +262,8 @@ class ApplicationOptionsDialog (object):
     
     def on_browse(self, name, title, filename):
         """Callback for selecting file browser"""
-        
+    
+    
         dialog = gtk.FileChooserDialog(title, self.dialog, 
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
@@ -293,6 +296,19 @@ class ApplicationOptionsDialog (object):
                 self.main_window.notebook.get_path())
             
         
+
+    def on_default_notebook_radio_changed(self, radio):
+        """Default notebook radio changed"""
+
+        no_default = self.general_xml.get_widget("no_default_notebook_radio")
+        default = self.general_xml.get_widget("default_notebook_radio")
+        last = self.general_xml.get_widget("last_notebook_radio")
+
+        default_tab = self.general_xml.get_widget("default_notebook_table")
+        default_tab.set_sensitive(default.get_active())
+            
+
+
     
     def on_ok_button_clicked(self, widget):
         # TODO: add arguments

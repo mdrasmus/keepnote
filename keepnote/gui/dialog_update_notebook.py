@@ -19,7 +19,7 @@ import gobject
 import keepnote
 from keepnote.gui import dialog_wait
 from keepnote import tasklib
-from keepnote import notebook_update
+from keepnote.notebook import update
 from keepnote import notebook as notebooklib
 from keepnote.gui import get_resource
 
@@ -69,7 +69,7 @@ class UpdateNoteBookDialog (object):
 
             # do update
             def func(task):
-                notebook_update.update_notebook(
+                update.update_notebook(
                     notebook_filename,
                     notebooklib.NOTEBOOK_FORMAT_VERSION)
                     

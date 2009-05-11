@@ -189,7 +189,7 @@ class ImageResizeDialog (object):
             self.ignore_height_changed -= 1
             
 
-    def on_aspect_check_toggled(self):
+    def on_aspect_check_toggled(self, widget):
         """Callback when aspect checkbox is toggled"""
         self.aspect = self.aspect_check.get_active()
     
