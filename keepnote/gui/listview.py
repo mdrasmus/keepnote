@@ -357,13 +357,15 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             col = self.rich_model.get_column(info_sort)
 
         if col.attr:
-            node.set_info_sort(col.attr, sort_dir)
+            node.set_attr("info_sort", col.attr)
+            node.set_attr("info_sort_dir", sort_dir)
 
 
     def load_sorting(self, node, model):
         """Load sorting information from node"""
 
-        info_sort, sort_dir = node.get_info_sort()
+        info_sort = node.get_attr("info_sort")
+        sort_dir = node.get_attr("info_sort_dir")
             
         if sort_dir:
             sort_dir = gtk.SORT_ASCENDING

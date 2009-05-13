@@ -238,7 +238,9 @@ def get_notebook_version(filename):
 
 
 def new_nodeid():
+    """Generate a new node id"""
     return uuid.uuid4()
+
 
 #=============================================================================
 # classes
@@ -312,6 +314,8 @@ class NoteBookAttr (object):
         
 
 class UnknownAttr (object):
+    """A value that belongs to an unknown NoteBookAttr"""
+
     def __init__(self, value):
         self.value = value
 
@@ -394,31 +398,29 @@ class NoteBookNode (object):
         
         self._set_basename(path)
         
+    def is_valid(self):
+        """Returns True if node is valid (not deleted)"""
+        return self._valid
         
 
-    def create(self):
-        """Initializes the node on disk (create required files/directories)"""
-        path = self.get_path()
-        
-        try:
-            os.mkdir(path)
-        except OSError, e:
-            raise NoteBookError("Cannot create node", e)
-            
-        self._attr["created_time"] = get_timestamp()
-        self._attr["modified_time"] = get_timestamp()
-        self.write_meta_data()
-        self._set_dirty(False)
+    def get_version(self):
+        """Returns the format version of this node"""
+        return self._version
 
-        # TODO: move to NoteBookPage
-        if self._attr["content_type"] == CONTENT_TYPE_PAGE:
-            self.write_empty_data_file()
+    def get_notebook(self):
+        """Returns the notebook that owns this node"""
+        return self._notebook
 
 
+
+
+    #==============================================
+    # filesystem path functions
 
     def get_path(self):
         """Returns the directory path of the node"""
         
+        # TODO: think about multiple parents
         path_list = []
         ptr = self
         while ptr is not None:
@@ -432,6 +434,7 @@ class NoteBookNode (object):
     def get_name_path(self):
         """Returns list of basenames from root to node"""
 
+        # TODO: think about multiple parents
         path_list = []
         ptr = self
         while ptr is not None:
@@ -444,48 +447,20 @@ class NoteBookNode (object):
     
     def _set_basename(self, path):
         """Sets the basename directory of the node"""
+        
         if self._parent is None:
+            # the root node can take a multiple directory path
             self._basename = path
         elif path is None:
             self._basename = None
         else:
+            # non-root nodes can only take the last directory as a basename
             self._basename = os.path.basename(path)
-
-
-    def get_version(self):
-        """Returns the format version of this node"""
-        return self._version
-    
-    
-    def get_title(self):
-        """Returns the display title of a node"""
-        if self._attr["title"] is None:
-            self.read_meta_data()
-        return self._attr["title"]
-    
-    
-    def get_parent(self):
-        """Returns the parent of the node"""
-        return self._parent
-
-    def get_notebook(self):
-        """Returns the notebook that owns this node"""
-        return self._notebook
-
-    def get_order(self):
-        #assert self._parent is not None
-        #assert self._parent.get_children().index(self) == self._order
-        return self._attr["order"]
-    
-    def is_valid(self):
-        """Returns True if node is valid (not deleted)"""
-        return self._valid
-    
-    def allows_children(self):
-        """Returns True is this node allows children"""
-        return True #self._attr["content_type"] == CONTENT_TYPE_DIR
     
 
+    #=======================================
+    # attr functions
+    
     def clear_attr(self, title="", content_type=CONTENT_TYPE_DIR):
         """Clear attributes (set them to defaults)"""
 
@@ -521,11 +496,12 @@ class NoteBookNode (object):
             self._set_dirty(True)
 
     def has_attr(self, name):
+        """Returns True if node has the attribute"""
         return name in self._attr
 
 
     def del_attr(self, name):
-        """Delete an attribute"""
+        """Delete an attribute from the node"""
 
         # TODO: check against un-deletable attributes
         if name in self._attr:
@@ -533,7 +509,7 @@ class NoteBookNode (object):
         
 
     def iter_attr(self):
-        """Iterate through attributes"""
+        """Iterate through attributes of the node"""
         return self._attr.iteritems()
     
 
@@ -543,25 +519,41 @@ class NoteBookNode (object):
             timestamp = get_timestamp()
         self._attr[name] = timestamp
         self._set_dirty(True)
-            
-
-    def set_info_sort(self, info, sort_dir):
-        """Sets the sorting information of the node"""
-        self._attr["info_sort"] = info
-        self._attr["info_sort_dir"] = sort_dir
-        self._set_dirty(True)
-    
-    def get_info_sort(self):
-        """Gets the sorting information of the node"""
-        return (self._attr["info_sort"], self._attr["info_sort_dir"])
-
-    def _set_dirty(self, dirty):
-        """Sets the dirty bit to indicates whether node needs saving"""
-        self._notebook._set_dirty_node(self, dirty)
         
-    def _is_dirty(self):
-        """Returns True if node needs saving"""
-        return self._notebook._is_dirty_node(self)
+
+    def get_title(self):
+        """Returns the display title of a node"""
+        if self._attr["title"] is None:
+            self.read_meta_data()
+        return self._attr["title"]
+    
+    
+    def get_parent(self):
+        """Returns the parent of the node"""
+        return self._parent
+
+    
+
+    #=============================================
+    # filesystem methods
+
+    def create(self):
+        """Initializes the node on disk (create required files/directories)"""
+        path = self.get_path()
+        
+        try:
+            os.mkdir(path)
+        except OSError, e:
+            raise NoteBookError("Cannot create node", e)
+            
+        self._attr["created_time"] = get_timestamp()
+        self._attr["modified_time"] = get_timestamp()
+        self.write_meta_data()
+        self._set_dirty(False)
+
+        # TODO: move to NoteBookPage
+        if self._attr["content_type"] == CONTENT_TYPE_PAGE:
+            self.write_empty_data_file()
 
     
     def move(self, parent, index=None):
@@ -652,6 +644,8 @@ class NoteBookNode (object):
     def in_trash(self):
         """Determines if node is inside Trash folder"""
         
+        # TODO: become more complicated with general graph structure
+        # trace up through parents
         ptr = self._parent
         while ptr is not None:
             if ptr == self._notebook._trash:
@@ -790,32 +784,13 @@ class NoteBookNode (object):
         self._children.remove(child)
 
 
-    #===============================================
-    # listeners
+    def allows_children(self):
+        """Returns True is this node allows children"""
+        return True
     
-    def notify_change(self, recurse):
-        """Notify listeners that node has changed"""
-        if self._notebook:
-            self._notebook.node_changed.notify([self], recurse)
-
-    def notify_changes(self, nodes, recurse):
-        """Notify listeners that several nodes have changed"""
-        if self._notebook:
-            self._notebook.node_changed.notify(nodes, recurse)
-    
-    def suppress_change(self, listener=None):
-        """Suppress notification of listeners for node changes"""
-        if self._notebook:
-            self._notebook.node_changed.suppress(listener)
-
-    def resume_change(self, listener=None):
-        """Resume notification of listeners for node changes"""        
-        if self._notebook:
-            self._notebook.node_changed.resume(listener)
-
 
     #==============================================
-    # input/output
+    # low-level input/output
     
     def load(self):
         """Load a node from filesystem"""
@@ -889,7 +864,46 @@ class NoteBookNode (object):
         
         self._attr.update(attr)
 
+
+    #=============================================
+    # marking for save needed
+
+    def _set_dirty(self, dirty):
+        """Sets the dirty bit to indicates whether node needs saving"""
+        self._notebook._set_dirty_node(self, dirty)
         
+    def _is_dirty(self):
+        """Returns True if node needs saving"""
+        return self._notebook._is_dirty_node(self)
+        
+
+    #===============================================
+    # listeners
+    
+    def notify_change(self, recurse):
+        """Notify listeners that node has changed"""
+        if self._notebook:
+            self._notebook.node_changed.notify([self], recurse)
+
+    def notify_changes(self, nodes, recurse):
+        """Notify listeners that several nodes have changed"""
+        if self._notebook:
+            self._notebook.node_changed.notify(nodes, recurse)
+    
+    def suppress_change(self, listener=None):
+        """Suppress notification of listeners for node changes"""
+        if self._notebook:
+            self._notebook.node_changed.suppress(listener)
+
+    def resume_change(self, listener=None):
+        """Resume notification of listeners for node changes"""        
+        if self._notebook:
+            self._notebook.node_changed.resume(listener)
+
+
+#=============================================================================
+# NoteBookNode subclasses
+
 
 class NoteBookPage (NoteBookNode):
     """Class that represents a Page in the NoteBook"""
@@ -1018,7 +1032,8 @@ class NoteBookPreferences (object):
         self.quick_pick_icons_changed.notify()
     
     
-
+#=============================================================================
+# NoteBook type
 
 
 # file format for NoteBook preferences
@@ -1100,18 +1115,18 @@ class NoteBook (NoteBookDir):
             lambda path, parent, notebook, attr:
             NoteBookTrash(TRASH_NAME, notebook))
 
-    
-    def get_root_node(self):
-        """Returns the root node of the notebook"""
-        return self
 
     def get_children(self):
         """Returns all children of this node"""
+
+        # ensure trash folder exists
+
         if self._children is None:
             self._get_children()        
             self._init_trash()
         
         return self._children
+
 
     #===================================================
     # input/output
@@ -1248,13 +1263,14 @@ class NoteBook (NoteBookDir):
         else:
             return None
 
+
     def get_icons(self):
         """Returns list of icons in notebook icon store"""
-
         path = self.get_icon_dir()
         filenames = os.listdir(path)
         filenames.sort()
         return filenames
+
 
     def install_icon(self, filename):
         """Installs an icon into the notebook icon store"""
@@ -1304,9 +1320,9 @@ class NoteBook (NoteBookDir):
         return os.path.basename(newfilename), \
                os.path.basename(newfilename_open)
 
+
     def uninstall_icon(self, basename):
         """Removes an icon from the notebook icon store"""
-
         if len(basename) == 0:
             return
 

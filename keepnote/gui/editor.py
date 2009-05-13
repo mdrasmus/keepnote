@@ -421,6 +421,10 @@ class EditorMenus (gobject.GObject):
         tag, start, end = textview.get_link()
 
         if tag is not None:
+            if tag.get_href() == "":
+                # set default url to link text
+                url = start.get_text(end)
+                textview.set_link(url, start, end)
             self.emit("make-link")
     
 
@@ -888,104 +892,6 @@ class EditorMenus (gobject.GObject):
         item.set_image(img)        
             
 
-    '''
-    def get_format_menu(self):
-
-        return [
-            ("/Fo_rmat", 
-             None, None, 0, "<Branch>"),
-
-            ("/Format/_Bold", 
-             "<control>B", lambda w,e: self.on_mod("bold"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("bold.png")),
-            ("/Format/_Italic", 
-             "<control>I", lambda w,e: self.on_mod("italic"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("italic.png")),
-            ("/Format/_Underline", 
-             "<control>U", lambda w,e: self.on_mod("underline"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("underline.png")),
-            ("/Format/S_trike", 
-             "", lambda w,e: self.on_mod("strike"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("strike.png")),            
-            ("/Format/_Monospace",
-             "<control>M", lambda w,e: self.on_mod("tt"), 0,
-             "<ImageItem>",
-             get_resource_pixbuf("fixed-width.png")),
-            ("/Format/Lin_k",
-             "<control>L", lambda w, e: self.on_toggle_link(), 0,
-             "<ImageItem>",
-             get_resource_pixbuf("link.png")),
-            ("/Format/No _Wrapping",
-             None, lambda w, e: self.on_mod("nowrap"), 0,
-             "<ImageItem>",
-             get_resource_pixbuf("no-wrap.png")),
-            
-            ("/Format/sep1",
-             None, None, 0, "<Separator>" ),            
-            
-            ("/Format/_Left Align", 
-             "<shift><control>L", lambda w,e: self.on_justify("left"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("alignleft.png")),
-            ("/Format/C_enter Align", 
-             "<shift><control>E", lambda w,e: self.on_justify("center"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("aligncenter.png")),
-            ("/Format/_Right Align", 
-             "<shift><control>R", lambda w,e: self.on_justify("right"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("alignright.png")),
-            ("/Format/_Justify Align", 
-             "<shift><control>J", lambda w,e: self.on_justify("fill"), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("alignjustify.png")),
-            ("/Format/sep2",
-             None, None, 0, "<Separator>" ),
-
-            ("/Format/_Bullet List", 
-             "<control>asterisk", lambda w,e: self.on_bullet_list(), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("bullet.png")),
-            ("/Format/Indent M_ore", 
-             "<control>parenright", lambda w,e: self.on_indent(), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("indent-more.png")),     
-            ("/Format/Indent Le_ss", 
-             "<control>parenleft", lambda w,e: self.on_unindent(), 0, 
-             "<ImageItem>", 
-             get_resource_pixbuf("indent-less.png")),
-            
-            ("/Format/sep4", 
-                None, None, 0, "<Separator>" ),
-            ("/Format/Increase Font _Size", 
-                "<control>equal", lambda w, e: self.on_font_size_inc(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("font-inc.png")),
-            ("/Format/_Decrease Font Size", 
-                "<control>minus", lambda w, e: self.on_font_size_dec(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("font-dec.png")),
-
-            ("/Format/sep5", 
-                None, None, 0, "<Separator>" ),
-            ("/Format/_Apply Text Color", 
-                "", lambda w, e: self.on_color_set("fg"), 0),
-            ("/Format/A_pply Background Color", 
-                "", lambda w, e: self.on_color_set("bg"), 0),
-            
-            
-            ("/Format/sep6", 
-                None, None, 0, "<Separator>" ),
-            ("/Format/Choose _Font", 
-                "<control><shift>F", lambda w, e: self.on_choose_font(), 0, 
-                "<ImageItem>", 
-                get_resource_pixbuf("font.png"))
-        ]
-    '''
 
 gobject.type_register(EditorMenus)
 gobject.signal_new("make-link", EditorMenus, gobject.SIGNAL_RUN_LAST,
