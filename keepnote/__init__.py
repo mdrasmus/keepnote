@@ -12,8 +12,7 @@
 import gettext
 import locale
 import os, sys, shutil, time, re, imp, subprocess, tempfile
-import xml.dom.minidom as xmldom
-import xml.dom
+
 
 from keepnote.notebook import \
     DEFAULT_TIMESTAMP_FORMATS, \

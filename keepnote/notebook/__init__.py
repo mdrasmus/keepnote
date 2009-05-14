@@ -26,6 +26,7 @@ from keepnote.timestamp import \
      get_str_timestamp
 from keepnote import safefile
 from keepnote import uuid
+from keepnote.notebook import index as notebook_index
 
 
 # NOTE: the <?xml ?> header is left off to keep it compatiable with IE,
@@ -1139,6 +1140,10 @@ class NoteBook (NoteBookDir):
         os.mkdir(self.get_icon_dir())
         self.write_meta_data()
         self.write_preferences()
+
+        # init index database
+        self._index = notebook_index.NoteBookIndex(self)
+
 
     
     def load(self, filename=None):
