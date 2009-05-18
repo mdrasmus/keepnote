@@ -1,7 +1,11 @@
 
 import os
 
+from sqlite3 import dbapi2 as sqlite
+
 import keepnote
+
+
 
 INDEX_FILE = "index.sqlite"
 
@@ -26,7 +30,20 @@ class NoteBookIndex (object):
         index_file = get_index_file(self._notebook)
         if not os.path.exists(index_file):
             # create index
-            pass
+            con = sqlite.connect(index_file) #, isolation_level="DEFERRED")
+            cur = con.cursor()
+
+            # init NodeGraph table
+            query = """CREATE TABLE IF NOT EXISTS NodeGraph 
+                       (nodeid TEXT,
+                        parentid TEXT,
+                        basename TEXT);
+                    """
+            cur.execute(query)
+            con.commit()
+
+            
+            con.close()
 
 
     

@@ -1068,6 +1068,7 @@ class NoteBook (NoteBookDir):
             self._attr["title"] = None
         self._dirty = set()
         self._trash = None
+        self._index = None
         
         self._attr["order"] = 0
 
@@ -1160,6 +1161,9 @@ class NoteBook (NoteBookDir):
             self._trash_path = get_trash_dir(self.get_path())
         self.read_meta_data()
         self.read_preferences()
+
+        self._index = notebook_index.NoteBookIndex(self)
+
         self.notify_change(True)
     
     
