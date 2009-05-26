@@ -1,0 +1,44 @@
+subject: ANN: TakeNote 0.4.4 - Note taking and organization
+
+In this release:
+  * colored font
+  * XDG compliant configuration
+  * bug fixes
+
+TakeNote is a simple cross-platform note taking program implemented
+in Python.  I have been using it for my research and class notes, but it
+should be applicable to many note taking situations.  
+
+TakeNote is ideal for storing your class notes, TODO lists, research
+notes, journal entries, paper outlines, etc in a simple notebook
+hierarchy with rich-text formatting, images, and more. Using full-text
+search, you can retrieve any note for later reference.
+
+TakeNote is designed to be cross-platform (runs on Windows, Linux, and
+MacOS X, implemented in Python and PyGTK) and stores your notes in
+simple and easy to manipulate file formats (HTML and XML). Archiving
+and transferring your notes is as easy as zipping or copying a
+folder.  TakeNote is licensed under GPL.
+
+TakeNote 0.4.4 has the following features:
+
+    * Rich-text formatting
+      * Bullet point lists
+      * Colored font
+      * Inline images
+    * Hierarchical organization for notes
+    * Full-text search
+    * Integrated screenshot
+    * Extension framework
+    * Spell checking (via gtkspell)
+    * Auto-saving
+    * Built-in backup and restore (archive to zip files)
+    * Cross-platform (Linux, Windows, MacOS X)
+
+Web site and download:
+http://rasm.ods.org/takenote
+
+Documentation:
+http://rasm.ods.org/takenote/manual.shtml
+
+Matt Rasmussen

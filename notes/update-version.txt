@@ -1,0 +1,10 @@
+I have to change version in these files:
+
+Makefile
+takenote/__init__.py
+
+
+These files inherit from another file
+	setup.py (inherits from keepnote/__init__.py)
+	installer.iss
+

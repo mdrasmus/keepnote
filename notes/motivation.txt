@@ -1,0 +1,59 @@
+AFAIK, TomBoy has a lot features and is a very stable note-taking app,
+although I have never used it. I was a Basket (another good app) user
+for a year before writing TakeNote. The main features that I needed
+for my research note-taking was (1) Image support and (2) scaling to a
+large number of notes. So these are the most implemented features so
+far.
+
+TakeNote has inline images in notes. There are also minor features
+like image scaling and launching image viewers and editors. My
+favorite feature from Basket was integrated screenshot which I use to
+include things from web sites, figures from PDFs I'm reading, and
+plots that I generate in my work. This feature is also in TakeNote.
+
+I find the combination of the hierarchical treeview and the listview
+(see screenshot site http://rasm.ods.org/takenote) allows one to view
+a large number of notes at once. Think of interface just like a
+traditional email client. This is a feature I haven't seen
+elsewhere. I also do a lot of little things to help cope with large
+notebooks: the collapse state of the tree is saved and the sorting of
+the listview is saved per folder. So in my own notebook, I have a
+folder with reference tips on frequently used unix-commands sorted
+alphabetically and I have some folders that act like a journal with
+hundreds of notes sorted by creation date. In the journal example, the
+listview becomes very handy, because trying to represent a folder with
+a long list of notes in the treeview alone would be very cumbersome.
+
+I mainly made TakeNote to satisfy my own needs, but hopefully others
+will find it useful as well. I'm always curious to hear feedback on
+what others think of it.
+
+=============================================================================
+
+This last summer I implemented my own note-taking app in Python to
+help with my research note-taking.  The main features that I needed
+were (1) image support and (2) scaling to a large number of notes. So
+these are the most implemented features so far.
+
+TakeNote has inline images in notes. There are also minor features
+like image scaling and launching image viewers and editors. My
+favorite feature from Basket was integrated screenshot which I use to
+include things from web sites, figures from PDFs I'm reading, and
+plots that I generate in my work. This feature is also in TakeNote.
+
+I find the combination of the hierarchical treeview and the listview
+(see screenshot site http://rasm.ods.org/takenote) allows one to view
+a large number of notes at once. Think of interface just like a
+traditional email client. This is a feature I haven't seen
+elsewhere. I also do a lot of little things to help cope with large
+notebooks: the collapse state of the tree is saved and the sorting of
+the listview is saved per folder. So in my own notebook, I have a
+folder with reference tips on frequently used unix-commands sorted
+alphabetically and I have some folders that act like a journal with
+hundreds of notes sorted by creation date. In the journal example, the
+listview becomes very handy, because trying to represent a folder with
+a long list of notes in the treeview alone would be very cumbersome.
+
+I mainly made TakeNote to satisfy my own needs, but hopefully others
+will find it useful as well. I'm always curious to hear feedback on
+what others think of it.

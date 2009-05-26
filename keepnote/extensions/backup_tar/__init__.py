@@ -284,6 +284,11 @@ def archive_notebook(notebook, filename, task=None):
                    (percent, filename)
     """
 
+    if task is None:
+        # create dummy task if needed
+        task = tasklib.Task()
+
+
     if os.path.exists(filename):
         raise NoteBookError("File '%s' already exists" % filename)
 
@@ -292,6 +297,7 @@ def archive_notebook(notebook, filename, task=None):
         notebook.save()
     except Exception, e:
         raise NoteBookError("Could not save notebook before archiving", e)
+
 
     # perform archiving
     try:
@@ -359,6 +365,11 @@ def restore_notebook(filename, path, rename, task=None):
                 basedir of new notebook
     """
 
+    if task is None:
+        # create dummy task if needed
+        task = tasklib.Task()
+
+
     if path == "":
         raise NoteBookError("Must specify a path for restoring notebook")
 
@@ -366,6 +377,7 @@ def restore_notebook(filename, path, rename, task=None):
     path = re.sub("/+$", "", path)
 
     tar = tarfile.open(filename, "r:gz") # format=tarfile.PAX_FORMAT)
+
 
     # create new dirctory, if needed
     if rename:
