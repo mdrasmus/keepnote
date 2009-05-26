@@ -466,6 +466,10 @@ class KeepNoteWindow (gtk.Window):
         self.set_app_preferences()
         self.close_notebook()
         gtk.accel_map_save(get_accel_file())
+
+        if self.tray_icon:
+            self.tray_icon.set_property("visible", False)
+
         gtk.main_quit()
         return False
     
