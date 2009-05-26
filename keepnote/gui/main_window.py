@@ -522,6 +522,9 @@ class KeepNoteWindow (gtk.Window):
             self.close_notebook()
         
         try:
+            # make sure filename is unicode
+            if filename and not isinstance(filename, unicode):
+                filename = unicode(filename, "utf-8")
             notebook = notebooklib.NoteBook(filename)
             notebook.create()
             self.set_status(_("Created '%s'") % notebook.get_title())
@@ -539,7 +542,11 @@ class KeepNoteWindow (gtk.Window):
         
         if self.notebook is not None:
             self.close_notebook()
-
+        
+        # make sure filename is unicode
+        if filename and not isinstance(filename, unicode):
+            filename = unicode(filename, "utf-8")
+        
         if os.path.isfile(filename):
             filename = os.path.dirname(filename)
 

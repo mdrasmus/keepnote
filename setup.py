@@ -158,6 +158,7 @@ setup(
     packages=['keepnote',
               'keepnote.gui',
               'keepnote.gui.richtext',
+              'keepnote.notebook',
               'keepnote.compat'],
     scripts=['bin/keepnote'],
     data_files=data_files,
