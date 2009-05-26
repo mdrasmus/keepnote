@@ -6,12 +6,13 @@
 #
 
 import sys, os, re, shutil, time
-import tarfile
+
 
 import keepnote
 from keepnote.notebook import NoteBookError, get_valid_unique_filename
 from keepnote import notebook as notebooklib
 from keepnote import tasklib
+from keepnote import tarfile
 
 # pygtk imports
 try:
@@ -294,7 +295,7 @@ def archive_notebook(notebook, filename, task=None):
 
     # perform archiving
     try:
-        archive = tarfile.open(filename, "w:gz")
+        archive = tarfile.open(filename, "w:gz", format=tarfile.PAX_FORMAT)
         path = notebook.get_path()
 
         # first count # of files
@@ -364,7 +365,7 @@ def restore_notebook(filename, path, rename, task=None):
     # remove trailing "/"
     path = re.sub("/+$", "", path)
 
-    tar = tarfile.open(filename, "r:gz")
+    tar = tarfile.open(filename, "r:gz") # format=tarfile.PAX_FORMAT)
 
     # create new dirctory, if needed
     if rename:

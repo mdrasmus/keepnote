@@ -29,7 +29,7 @@ from keepnote.util import compose
 #=============================================================================
 # modules needed by builtin extensions
 # these are imported here, so that py2exe can auto-discover them
-import tarfile
+#from keepnote import tarfile
 
 #=============================================================================
 # globals / constants
