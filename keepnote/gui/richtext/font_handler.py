@@ -210,7 +210,7 @@ class FontHandler (gobject.GObject):
     def remove_tag_class_selected(self, tag, start=None, end=None):
         """Remove all tags of a class from selection or current tags"""
 
-        self.begin_user_action()
+        self._buf.begin_user_action()
 
         if start is None:
             it = self._buf.get_selection_bounds()

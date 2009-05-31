@@ -255,7 +255,7 @@ class ColorMenu (gtk.Menu):
 
     def add_color(self, i, j, r, g, b):                
         self.unrealize()
-
+        
         child = gtk.MenuItem("")
         child.remove(child.child)
         img = ColorTextImage(15, 15, False)                
