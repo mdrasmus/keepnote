@@ -134,7 +134,7 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
         else:
             self.set_sensitive(True)
             
-            root = self._notebook.get_root_node()
+            root = self._notebook
             model = self.model
             
             self.set_model(None)

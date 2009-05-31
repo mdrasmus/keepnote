@@ -8,7 +8,7 @@
 <attr key="expanded2">1</attr>
 <attr key="content_type">application/x-notebook-dir</attr>
 <attr key="created_time">1240229863</attr>
-<attr key="info_sort_dir">1</attr>
+<attr key="info_sort_dir">0</attr>
 <attr key="order">1</attr>
-<attr key="info_sort">order</attr>
+<attr key="info_sort">created_time</attr>
 </node>

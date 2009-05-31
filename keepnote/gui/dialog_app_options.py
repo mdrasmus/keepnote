@@ -43,22 +43,15 @@ class ApplicationOptionsDialog (object):
         
         
         self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
-                                 "app_config_dialog")
-        self.dialog = self.xml.get_widget("app_config_dialog")
+                                 "app_options_dialog")
+        self.dialog = self.xml.get_widget("app_options_dialog")
         self.dialog.set_transient_for(self.main_window)
-        self.tabs = self.xml.get_widget("app_config_tabs")
+        self.tabs = self.xml.get_widget("app_options_tabs")
         self.setup_overview_tree()
         self.xml.signal_autoconnect(self)
         self.xml.signal_autoconnect({
             "on_cancel_button_clicked": 
-                lambda w: self.dialog.destroy(),
-                
-            "on_default_notebook_button_clicked": 
-                lambda w: self.on_browse(
-                    "default_notebook", 
-                    "Choose Default Notebook",
-                    self.app.pref.default_notebook),
-            })
+                lambda w: self.dialog.destroy()})
 
 
         #===================================
@@ -66,13 +59,28 @@ class ApplicationOptionsDialog (object):
         self.general_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                          "general_frame")
         self.general_xml.signal_autoconnect(self)
+        self.general_xml.signal_autoconnect({
+            "on_default_notebook_button_clicked":
+                lambda w: self.on_browse(
+                    "default_notebook", 
+                    "Choose Default Notebook",
+                    self.app.pref.default_notebook),
+            })
         frame = self.general_xml.get_widget("general_frame")
         self.tabs.insert_page(frame, tab_label=None, position=0)
 
         
         # populate default notebook        
-        self.general_xml.get_widget("default_notebook_entry").\
-            set_text(self.app.pref.default_notebook)
+        if self.app.pref.use_last_notebook == True:
+            self.general_xml.get_widget("last_notebook_radio").set_active(True)
+        elif self.app.pref.default_notebook == "":
+            self.general_xml.get_widget("no_default_notebook_radio").set_active(True)
+        else:
+            self.general_xml.get_widget("default_notebook_radio").set_active(True)
+            self.general_xml.get_widget("default_notebook_entry").\
+                set_text(self.app.pref.default_notebook)
+            
+
 
         # populate autosave
         self.general_xml.get_widget("autosave_check").set_active(
@@ -260,7 +268,8 @@ class ApplicationOptionsDialog (object):
     
     def on_browse(self, name, title, filename):
         """Callback for selecting file browser"""
-        
+    
+    
         dialog = gtk.FileChooserDialog(title, self.dialog, 
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
@@ -293,12 +302,34 @@ class ApplicationOptionsDialog (object):
                 self.main_window.notebook.get_path())
             
         
+
+    def on_default_notebook_radio_changed(self, radio):
+        """Default notebook radio changed"""
+
+        no_default = self.general_xml.get_widget("no_default_notebook_radio")
+        default = self.general_xml.get_widget("default_notebook_radio")
+        last = self.general_xml.get_widget("last_notebook_radio")
+
+        default_tab = self.general_xml.get_widget("default_notebook_table")
+        default_tab.set_sensitive(default.get_active())
+            
+
+
     
     def on_ok_button_clicked(self, widget):
         # TODO: add arguments
     
-        self.app.pref.default_notebook = \
-            self.general_xml.get_widget("default_notebook_entry").get_text()
+
+        if self.general_xml.get_widget("last_notebook_radio").get_active():
+            self.app.pref.use_last_notebook = True
+        elif self.general_xml.get_widget("default_notebook_radio").get_active():
+            self.app.pref.use_last_notebook = False
+            self.app.pref.default_notebook = \
+                self.general_xml.get_widget("default_notebook_entry").get_text()
+        else:
+            self.app.pref.use_last_notebook = False
+            self.app.pref.default_notebook = ""
+
 
         # save autosave
         self.app.pref.autosave = \

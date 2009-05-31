@@ -8,33 +8,12 @@
 
 from keepnote.linked_list import LinkedList
 from keepnote.linked_tree import LinkedTreeNode
+from keepnote.util import PushIter
 
 
 # TextBuffer uses this char for anchors and pixbufs
 ANCHOR_CHAR = u'\ufffc'
 
-
-
-class PushIter (object):
-    """Wrap an iterator in another iterator that allows one to push new
-       items onto the front of the iteration stream"""
-    
-    def __init__(self, it):
-        self._it = iter(it)
-        self._queue = []
-
-    def __iter__(self):
-        return self
-        
-    def next(self):
-        if len(self._queue) > 0:
-            return self._queue.pop()
-        else:
-            return self._it.next()
-
-    def push(self, item):
-        """Push a new item onto the front of the iteration stream"""
-        self._queue.append(item)
 
 
 def iter_buffer_contents(textbuffer, start=None, end=None,

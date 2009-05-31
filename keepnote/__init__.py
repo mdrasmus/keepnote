@@ -12,8 +12,7 @@
 import gettext
 import locale
 import os, sys, shutil, time, re, imp, subprocess, tempfile
-import xml.dom.minidom as xmldom
-import xml.dom
+
 
 from keepnote.notebook import \
     DEFAULT_TIMESTAMP_FORMATS, \
@@ -24,6 +23,7 @@ from keepnote import xdg
 from keepnote import xmlobject as xmlo
 from keepnote.listening import Listeners
 from keepnote import safefile
+from keepnote.util import compose
 
 
 #=============================================================================
@@ -282,31 +282,6 @@ def iter_extensions(extensions_dir):
     for filename in os.listdir(extensions_dir):
         yield os.path.join(extensions_dir, filename)
 
-#=============================================================================
-# utilities
-
-def compose2(f, g):
-    """
-    Compose two functions into one
-
-    compose2(f, g)(x) <==> f(g(x))
-    """
-    return lambda *args, **kargs: f(g(*args, **kargs))
-    
-
-def compose(*funcs):
-    """Composes two or more functions into one function
-    
-       example:
-       compose(f,g)(x) <==> f(g(x))
-    """
-
-    funcs = reversed(funcs)
-    f = funcs.next()
-    for g in funcs:
-        f = compose2(g, f)
-    return f
-
 
 #=============================================================================
 # Preference data structures
@@ -422,6 +397,7 @@ class KeepNotePreferences (object):
         self.autosave_time = DEFAULT_AUTOSAVE_TIME
         
         self.default_notebook = ""
+        self.use_last_notebook = False
         self.timestamp_formats = dict(DEFAULT_TIMESTAMP_FORMATS)
         self.spell_check = True
         self.image_size_snap = True
@@ -538,6 +514,8 @@ g_keepnote_pref_parser = xmlo.XmlObject(
         xmlo.Tag("id", attr=("id", None, None)),
         xmlo.Tag("default_notebook",
                  attr=("default_notebook", None, None)),
+        xmlo.Tag("use_last_notebook",
+                 attr=("use_last_notebook", xmlo.str2bool, xmlo.bool2str)),
 
         # window presentation options
         xmlo.Tag("view_mode",
@@ -730,6 +708,7 @@ class KeepNote (object):
 
         # execute command
         try:
+            cmd = map(lambda x: unicode(x), cmd)
             proc = subprocess.Popen(cmd)
         except OSError, e:
             raise KeepNoteError(
@@ -755,13 +734,17 @@ class KeepNote (object):
         
     def take_screenshot(self, filename):
 
+        # make sure filename is unicode
+        if filename and not isinstance(filename, unicode):
+            filename = unicode(filename, "utf-8")
+
         if get_platform() == "windows":
             # use win32api to take screenshot
             # create temp file
-
+            
             import screenshot_win
             
-            f, imgfile = tempfile.mkstemp(".bmp", filename)
+            f, imgfile = tempfile.mkstemp(u".bmp", filename)
             os.close(f)
             screenshot_win.take_screenshot(imgfile)
         else:

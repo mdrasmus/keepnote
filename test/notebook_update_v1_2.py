@@ -2,7 +2,7 @@ import os, shutil, unittest, traceback, sys
 
 
 from keepnote import notebook as notebooklib
-from keepnote import notebook_update
+from keepnote.notebook import update
 
 
 
@@ -11,6 +11,8 @@ def mk_clean_dir(dirname):
         shutil.rmtree(dirname)
     os.makedirs(dirname)
     
+
+# TODO: make 2 --> 3 or 1 --> 3
 
 class TestCaseNoteBookUpdate (unittest.TestCase):
     
@@ -32,8 +34,8 @@ class TestCaseNoteBookUpdate (unittest.TestCase):
                         new_notebook_filename)
 
         # update (in place) the copy
-        notebook_update.update_notebook(new_notebook_filename, new_version,
-                                        verify=False)
+        update.update_notebook(new_notebook_filename, new_version,
+                               verify=False)
 
         def walk(node):
             attr = dict(list(node.iter_attr()))

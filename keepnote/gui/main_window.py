@@ -387,6 +387,9 @@ class KeepNoteWindow (gtk.Window):
         self.app.pref.window_maximized = self._maximized
         self.viewer.save_preferences(self.app.pref)
         self.app.pref.last_treeview_name_path = []
+
+        if self.app.pref.use_last_notebook and self.notebook:
+            self.app.pref.default_notebook = self.notebook.get_path()
         
         self.app.pref.write()
         
@@ -459,9 +462,9 @@ class KeepNoteWindow (gtk.Window):
 
     
     def on_quit(self):
-        """Close the window and quit"""        
-        self.close_notebook()
+        """Close the window and quit"""
         self.set_app_preferences()
+        self.close_notebook()
         gtk.accel_map_save(get_accel_file())
         gtk.main_quit()
         return False
@@ -519,6 +522,9 @@ class KeepNoteWindow (gtk.Window):
             self.close_notebook()
         
         try:
+            # make sure filename is unicode
+            if filename and not isinstance(filename, unicode):
+                filename = unicode(filename, "utf-8")
             notebook = notebooklib.NoteBook(filename)
             notebook.create()
             self.set_status(_("Created '%s'") % notebook.get_title())
@@ -536,7 +542,11 @@ class KeepNoteWindow (gtk.Window):
         
         if self.notebook is not None:
             self.close_notebook()
-
+        
+        # make sure filename is unicode
+        if filename and not isinstance(filename, unicode):
+            filename = unicode(filename, "utf-8")
+        
         if os.path.isfile(filename):
             filename = os.path.dirname(filename)
 

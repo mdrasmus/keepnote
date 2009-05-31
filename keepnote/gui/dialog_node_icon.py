@@ -25,7 +25,6 @@ from keepnote.gui import \
      builtin_icons, \
      get_all_icon_basenames
 from keepnote import tasklib
-from keepnote import notebook_update
 from keepnote import notebook as notebooklib
 from keepnote.gui import get_resource
 

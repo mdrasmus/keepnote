@@ -1071,7 +1071,7 @@ class RichTextView (gtk.TextView):
         if start is None or end is None:
             tagname = RichTextLinkTag.tag_name(url)
             self._apply_tag(tagname)
-            return self._textbuffer.tag_table.looku(tagname)
+            return self._textbuffer.tag_table.lookup(tagname)
         else:
             return self._textbuffer.set_link(url, start, end)
                 

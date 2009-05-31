@@ -409,10 +409,10 @@ class ThreePaneViewer (Viewer):
         if len(nodes) == 1:
             parent = nodes[0]
         else:
-            parent = self._notebook.get_root_node()
+            parent = self._notebook
         
         if pos == "sibling" and parent.get_parent() is not None:
-            index = parent.get_order() + 1
+            index = parent.get_attr("order") + 1
             parent = parent.get_parent()
         else:
             index = None

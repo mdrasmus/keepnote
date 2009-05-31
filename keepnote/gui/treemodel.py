@@ -132,7 +132,7 @@ class KeepNoteTreeModel (gtk.GenericTreeModel):
         self.append_column(
             TreeModelColumn("order", int,
                             attr="order",
-                            get=lambda node: node.get_order()))
+                            get=lambda node: node.get_attr("order")))
         self.append_column(TreeModelColumn("node", object,
                                            get=lambda node: node))
 
@@ -306,7 +306,7 @@ class KeepNoteTreeModel (gtk.GenericTreeModel):
         path = []
         node = rowref
         while node not in self._root_set:
-            path.append(node.get_order())
+            path.append(node.get_attr("order"))
             node = node.get_parent()
             if node is None:
                 raise Exception("treeiter is not part of model")
@@ -330,7 +330,7 @@ class KeepNoteTreeModel (gtk.GenericTreeModel):
                 return self._roots[n+1]
         
         children = parent.get_children()
-        order = rowref.get_order()
+        order = rowref.get_attr("order")
         assert 0 <= order < len(children)
         
         if order == len(children) - 1:
