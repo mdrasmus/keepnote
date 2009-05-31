@@ -1,7 +1,7 @@
 
 import os
 
-from sqlite3 import dbapi2 as sqlite
+#from sqlite3 import dbapi2 as sqlite
 
 import keepnote
 
@@ -22,7 +22,7 @@ class NoteBookIndex (object):
     def __init__(self, notebook):
         self._notebook = notebook
 
-        self.init_index()
+        #self.init_index()
 
 
     def init_index(self):
@@ -37,7 +37,8 @@ class NoteBookIndex (object):
             query = """CREATE TABLE IF NOT EXISTS NodeGraph 
                        (nodeid TEXT,
                         parentid TEXT,
-                        basename TEXT);
+                        basename TEXT,
+                        symlink BOOLEAN);
                     """
             cur.execute(query)
             con.commit()
