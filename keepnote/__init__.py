@@ -29,7 +29,7 @@ from keepnote.util import compose
 #=============================================================================
 # modules needed by builtin extensions
 # these are imported here, so that py2exe can auto-discover them
-#from keepnote import tarfile
+from keepnote import tarfile
 
 #=============================================================================
 # globals / constants
@@ -410,7 +410,7 @@ class KeepNotePreferences (object):
         self.archive_notebook_path = get_user_documents()
         self.insert_image_path = get_user_documents()
         self.save_image_path = get_user_documents()
-        self.include_file_path = get_user_documents()
+        self.attach_file_path = get_user_documents()
         
         # temp variables for parsing
         self._last_timestamp_name = ""
@@ -572,8 +572,8 @@ g_keepnote_pref_parser = xmlo.XmlObject(
                  attr=("insert_image_path", None, None)),
         xmlo.Tag("save_image_path",
                  attr=("save_image_path", None, None)),
-        xmlo.Tag("include_file_path",
-                 attr=("include_file_path", None, None)),
+        xmlo.Tag("attach_file_path",
+                 attr=("attach_file_path", None, None)),
         
         xmlo.Tag("external_apps", tags=[
 
@@ -742,7 +742,7 @@ class KeepNote (object):
             # use win32api to take screenshot
             # create temp file
             
-            import screenshot_win
+            from keepnote import screenshot_win
             
             f, imgfile = tempfile.mkstemp(u".bmp", filename)
             os.close(f)

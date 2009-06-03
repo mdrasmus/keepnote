@@ -142,7 +142,8 @@ class LinkEditor (gtk.Frame):
 
             if self.textview:
                 tag, start, end = self.textview.get_link()
-                self.textview.get_buffer().select_range(start, end)
+                if start:
+                    self.textview.get_buffer().select_range(start, end)
 
     def _on_activate(self, entry):
         self.dismiss(True)

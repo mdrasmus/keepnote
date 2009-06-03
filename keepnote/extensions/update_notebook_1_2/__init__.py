@@ -1,12 +1,9 @@
 #
 # Keepnote Extension 
-# backup_tar
-#
-# Tar file notebook backup
+# notebook update
 #
 
 import os, re, shutil, time
-import tarfile
 
 import keepnote
 from keepnote.notebook import NoteBookError, get_valid_unique_filename
