@@ -742,7 +742,7 @@ class KeepNote (object):
             # use win32api to take screenshot
             # create temp file
             
-            from keepnote import screenshot_win
+            from keepnote.gui import screenshot_win
             
             f, imgfile = tempfile.mkstemp(u".bmp", filename)
             os.close(f)
