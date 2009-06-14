@@ -123,6 +123,7 @@ class ThreePaneViewer (Viewer):
         self.treeview.connect("error", lambda w,t,e: self.emit("error", t, e))
         self.treeview.connect("edit-title", self._on_edit_title)
         self.treeview.connect("goto-node", self.on_list_view_node)
+        self.treeview.connect("drop-file", self._on_attach_file)
         
         # listview
         self.listview = KeepNoteListView()
@@ -132,7 +133,7 @@ class ThreePaneViewer (Viewer):
                               lambda w: self.on_list_view_parent_node())
         self.listview.connect("error", lambda w,t,e: self.emit("error", t, e))
         self.listview.connect("edit-title", self._on_edit_title)
-        
+        self.listview.connect("drop-file", self._on_attach_file)
         
         
         # editor
@@ -397,6 +398,13 @@ class ThreePaneViewer (Viewer):
 
             if node.get_attr("content_type") != notebooklib.CONTENT_TYPE_DIR:
                 self.goto_editor()
+
+
+    def _on_attach_file(self, widget, parent, index, uri):
+        """Attach page"""
+        #print parent, index, uri
+        
+        self._main_window.attach_file(uri, parent, index)
 
 
     def new_node(self, kind, widget, pos):

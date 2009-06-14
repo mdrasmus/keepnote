@@ -1,6 +1,6 @@
 """
     KeepNote
-    Copyright Matt Rasmussen 2008
+    Copyright Matt Rasmussen 2008-2009
     
     Graphical User Interface for KeepNote Application
 """
@@ -23,7 +23,6 @@ _ = gettext.gettext
 
 
 
-
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
@@ -35,6 +34,10 @@ import pango
 # keepnote imports
 import keepnote
 from keepnote import KeepNoteError
+from keepnote.notebook import \
+     NoteBookError, \
+     NoteBookVersionError
+from keepnote import notebook as notebooklib
 from keepnote.gui import \
      get_resource, \
      get_resource_image, \
@@ -44,15 +47,8 @@ from keepnote.gui import \
      Action, \
      ToggleAction, \
      add_actions
-from keepnote.notebook import \
-     NoteBookError, \
-     NoteBookVersionError
-from keepnote import notebook as notebooklib
 import keepnote.search
 from keepnote.gui import richtext
-from keepnote.gui.richtext import RichTextView, RichTextImage, RichTextError
-from keepnote.gui.treeview import KeepNoteTreeView
-from keepnote.gui.listview import KeepNoteListView
 from keepnote.gui import \
     dialog_app_options, \
     dialog_find, \
@@ -885,31 +881,38 @@ class KeepNoteWindow (gtk.Window):
 
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
-            nodes, widget = self.get_selected_nodes()            
-            
-            content_type = mimetypes.guess_type(filename)[0]
-            if content_type is None:
-                content_type = "application/octet-stream"
-
-            new_filename = os.path.basename(filename)
-
-            try:
-                child = self.notebook.new_node(
-                    content_type, nodes[0].get_path(), nodes[0],
-                    {"payload_filename": new_filename,
-                     "title": new_filename})
-                child.create()
-                child.set_payload(filename, new_filename)
-                nodes[0].add_child(child)                
-                child.save(True)
-                
-            except Exception, e:
-                self.error(_("Error while attaching file '%s'" % filename),
-                             e, sys.exc_info()[2])
-                             
+            self.attach(filename)
 
         dialog.destroy()
 
+
+    def attach_file(self, filename, node=None, index=None):
+        
+        if node is None:
+            nodes, widget = self.get_selected_nodes()
+            node = nodes[0]
+
+            
+        content_type = mimetypes.guess_type(filename)[0]
+        if content_type is None:
+            content_type = "application/octet-stream"
+
+        new_filename = os.path.basename(filename)
+
+        try:
+            child = self.notebook.new_node(
+                    content_type, node.get_path(), node,
+                    {"payload_filename": new_filename,
+                     "title": new_filename})
+            child.create()
+            child.set_payload(filename, new_filename)
+            node.add_child(child, index)
+            child.save(True)
+                
+        except Exception, e:
+            self.error(_("Error while attaching file '%s'" % filename),
+                       e, sys.exc_info()[2])
+                             
         
 
     #=================================================
@@ -1160,7 +1163,10 @@ class KeepNoteWindow (gtk.Window):
         about.show()
 
 
-        
+    #def on_python_prompt(self):
+
+    #    import idlelib
+        #idlelib.idle
         
 
     #===========================================
@@ -1349,6 +1355,10 @@ class KeepNoteWindow (gtk.Window):
             ("Drag and Drop Test...", None, _("Drag and Drop Test..."),
              "", None,
              lambda w: self.drag_test.on_drag_and_drop_test()),
+
+            #("Python Prompt...", None, _("Python Prompt..."),
+            # "", None,
+            # lambda w: self.on_python_prompt()),
             
             ("About", gtk.STOCK_ABOUT, _("_About"),
              "", None,
@@ -1505,7 +1515,7 @@ class KeepNoteWindow (gtk.Window):
             button.set_stock_id(gtk.STOCK_DIRECTORY)
         else:
             button.set_icon_widget(get_resource_image("folder-new.png"))
-        tips.set_tip(button, "New Folder")
+        tips.set_tip(button, _("New Folder"))
         button.connect("clicked", lambda w: self.on_new_dir())
         toolbar.insert(button, -1)
 
@@ -1515,7 +1525,7 @@ class KeepNoteWindow (gtk.Window):
             button.set_stock_id(gtk.STOCK_NEW)
         else:
             button.set_icon_widget(get_resource_image("note-new.png"))
-        tips.set_tip(button, "New Page")
+        tips.set_tip(button, _("New Page"))
         button.connect("clicked", lambda w: self.on_new_page())
         toolbar.insert(button, -1)
 
@@ -1563,7 +1573,7 @@ class KeepNoteWindow (gtk.Window):
         # search button
         self.search_button = gtk.ToolButton()
         self.search_button.set_stock_id(gtk.STOCK_FIND)
-        tips.set_tip(self.search_button, "Search Notes")
+        tips.set_tip(self.search_button, _("Search Notes"))
         self.search_button.connect("clicked",
                                    lambda w: self.on_search_nodes())
         toolbar.insert(self.search_button, -1)
@@ -1582,24 +1592,24 @@ class KeepNoteWindow (gtk.Window):
         menu.append(item)
             
         # image/edit
-        item = gtk.MenuItem("_View Image...")
+        item = gtk.MenuItem(_("_View Image..."))
         item.connect("activate", self.on_view_image)
-        item.child.set_markup_with_mnemonic("<b>_View Image...</b>")
+        item.child.set_markup_with_mnemonic(_("<b>_View Image...</b>"))
         item.show()
         menu.append(item)
         
-        item = gtk.MenuItem("_Edit Image...")
+        item = gtk.MenuItem(_("_Edit Image..."))
         item.connect("activate", self.on_edit_image)
         item.show()
         menu.append(item)
 
-        item = gtk.MenuItem("_Resize Image...")
+        item = gtk.MenuItem(_("_Resize Image..."))
         item.connect("activate", self.on_resize_image)
         item.show()
         menu.append(item)
 
         # image/save
-        item = gtk.ImageMenuItem("_Save Image As...")
+        item = gtk.ImageMenuItem(_("_Save Image As..."))
         item.connect("activate", self.on_save_image_as)
         item.show()
         menu.append(item)
@@ -1611,7 +1621,7 @@ class KeepNoteWindow (gtk.Window):
         # treeview/new page
         item = gtk.ImageMenuItem()
         item.set_image(get_resource_image("note-new.png"))        
-        label = gtk.Label("New _Page")
+        label = gtk.Label(_("New _Page"))
         label.set_use_underline(True)
         label.set_alignment(0.0, 0.5)
         label.show()
@@ -1624,7 +1634,7 @@ class KeepNoteWindow (gtk.Window):
         # treeview/new child page 
         item = gtk.ImageMenuItem()
         item.set_image(get_resource_image("note-new.png"))        
-        label = gtk.Label("New _Child Page")
+        label = gtk.Label(_("New _Child Page"))
         label.set_use_underline(True)
         label.set_alignment(0.0, 0.5)
         label.show()
@@ -1637,7 +1647,7 @@ class KeepNoteWindow (gtk.Window):
         # treeview/new folder
         item = gtk.ImageMenuItem()        
         item.set_image(get_resource_image("folder-new.png"))
-        label = gtk.Label("New _Folder")
+        label = gtk.Label(_("New _Folder"))
         label.set_use_underline(True)
         label.set_alignment(0.0, 0.5)
         label.show()
@@ -1654,7 +1664,7 @@ class KeepNoteWindow (gtk.Window):
         item.show()
 
         # rename node
-        item = gtk.MenuItem("_Rename")
+        item = gtk.MenuItem(_("_Rename"))
         item.connect("activate", lambda w:
                      widget.edit_node(widget.get_selected_nodes()[0]))
         menu.add(item)
@@ -1663,7 +1673,7 @@ class KeepNoteWindow (gtk.Window):
 
         # change icon
         item = gtk.ImageMenuItem()
-        label = gtk.Label("Change _Icon")
+        label = gtk.Label(_("Change _Icon"))
         label.set_use_underline(True)
         label.set_alignment(0.0, 0.5)
         label.show()
@@ -1688,7 +1698,7 @@ class KeepNoteWindow (gtk.Window):
 
 
         # treeview/file explorer
-        item = gtk.MenuItem("View in File _Explorer")
+        item = gtk.MenuItem(_("View in File _Explorer"))
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("file_explorer",
                                                               None,
@@ -1697,7 +1707,7 @@ class KeepNoteWindow (gtk.Window):
         item.show()        
 
         # treeview/web browser
-        item = gtk.MenuItem("View in _Web Browser")
+        item = gtk.MenuItem(_("View in _Web Browser"))
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("web_browser",
                                                               None,
@@ -1707,7 +1717,7 @@ class KeepNoteWindow (gtk.Window):
         item.show()        
 
         # treeview/text editor
-        item = gtk.MenuItem("View in _Text Editor")
+        item = gtk.MenuItem(_("View in _Text Editor"))
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("text_editor",
                                                               None,
@@ -1717,7 +1727,7 @@ class KeepNoteWindow (gtk.Window):
         item.show()
 
         # treeview/Open document
-        item = gtk.MenuItem("Open _Document")
+        item = gtk.MenuItem(_("Open _Document"))
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("file_launcher",
                                                               None,
@@ -1745,7 +1755,7 @@ class KeepNoteWindow (gtk.Window):
         # listview/view note
         item = gtk.ImageMenuItem(gtk.STOCK_GO_DOWN)
         #item.child.set_label("Go to _Note")
-        item.child.set_markup_with_mnemonic("<b>Go to _Note</b>")
+        item.child.set_markup_with_mnemonic(_("<b>Go to _Note</b>"))
         item.connect("activate",
                      lambda w: self.viewer.on_list_view_node(None, None))
         menu.append(item)
@@ -1753,7 +1763,7 @@ class KeepNoteWindow (gtk.Window):
 
         # listview/view note
         item = gtk.ImageMenuItem(gtk.STOCK_GO_UP)
-        item.child.set_label("Go to _Parent Note")
+        item.child.set_label(_("Go to _Parent Note"))
         item.connect("activate",
                      lambda w: self.viewer.on_list_view_parent_node())
         menu.append(item)

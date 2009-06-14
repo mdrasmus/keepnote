@@ -37,7 +37,7 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
         # treeview signals
         self.connect("key-release-event", self.on_key_released)
         self.connect("button-press-event", self.on_button_press)
-        
+
         
         # selection config
         #self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
@@ -119,7 +119,8 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
                 # NOTE: can only view one node
                 self.emit("goto-node", nodes[0])
 
-    
+
+
     #==============================================
     # actions
     

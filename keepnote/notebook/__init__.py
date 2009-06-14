@@ -7,7 +7,7 @@
 """
 
 # python imports
-import os, sys, shutil, time, re, traceback
+import os, sys, shutil, time, re, traceback, urlparse, urllib2
 
 # xml imports
 import xml.dom.minidom as xmldom
@@ -982,7 +982,19 @@ class NoteBookGenericFile (NoteBookNode):
         new_filename = get_valid_unique_filename(self.get_path(), new_filename)
 
         try:
-            shutil.copy(filename, new_filename)
+            parts = urlparse.urlparse(filename)
+            if parts[0] == "":
+                shutil.copy(filename, new_filename)
+            else:
+                out = open(new_filename, "w")
+                infile = urllib2.urlopen(filename)
+                while True:
+                    data = infile.read(1024)
+                    if data == "":
+                        break
+                    out.write(data)
+                infile.close()
+                out.close()
         except IOError, e:
             raise NoteBookError("Cannot copy file '%s'" % filename, e)
 

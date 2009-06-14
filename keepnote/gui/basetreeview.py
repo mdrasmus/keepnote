@@ -1,4 +1,8 @@
 
+# python imports
+import gettext
+
+_ = gettext.gettext
 
 
 # pygtk imports
@@ -6,6 +10,8 @@ import pygtk
 pygtk.require('2.0')
 import gtk, gobject, pango
 from gtk import gdk
+
+
 
 # keepnote imports
 from keepnote.notebook import NoteBookError, NoteBookTrash
@@ -15,6 +21,7 @@ from keepnote.gui.treemodel import \
 
 
 # treeview drag and drop config
+DROP_URI = ("text/uri-list", 0, 1)
 DROP_TREE_MOVE = ("drop_node", gtk.TARGET_SAME_APP, 0)
 #DROP_NO = ("drop_no", gtk.TARGET_SAME_WIDGET, 0)
 
@@ -24,6 +31,16 @@ REORDER_NONE = 0
 REORDER_FOLDER = 1
 REORDER_ALL = 2
 
+def parse_utf(text):
+
+    # TODO: lookup the standard way to do this
+    
+    if text[:2] in ('\xff\xfe', '\xfe\xff') or (
+        len(text) > 1 and text[1] == '\x00') or (
+        len(text) > 3 and text[3] == '\x00'):
+        return text.decode("utf16")
+    else:
+        return unicode(text, "utf8")
 
 def compute_new_path(model, target, drop_position):
     """Compute the new path of a tagret rowiter in a treemodel"""
@@ -97,11 +114,18 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             gtk.gdk.BUTTON1_MASK,
             [DROP_TREE_MOVE],
             gtk.gdk.ACTION_MOVE)
-        self.enable_model_drag_dest(
-            [DROP_TREE_MOVE], gtk.gdk.ACTION_MOVE)
+        self.enable_model_drag_dest([DROP_TREE_MOVE, DROP_URI],
+                                    gtk.gdk.ACTION_MOVE|
+                                    gtk.gdk.ACTION_COPY|
+                                    gtk.gdk.ACTION_LINK)
         self.drag_dest_set(gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_MOTION,
-            [DROP_TREE_MOVE],
-            gtk.gdk.ACTION_MOVE)
+                           [DROP_TREE_MOVE, DROP_URI],
+                           gtk.gdk.ACTION_DEFAULT|
+                           gtk.gdk.ACTION_MOVE|
+                           gtk.gdk.ACTION_COPY|
+                           gtk.gdk.ACTION_LINK|
+                           gtk.gdk.ACTION_PRIVATE|
+                           gtk.gdk.ACTION_ASK)
 
     
     def set_master_node(self, node):
@@ -363,15 +387,15 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         node = nodes[0]
         
         if isinstance(node, NoteBookTrash):
-            self.emit("error", "The Trash folder cannot be deleted.", None)
+            self.emit("error", _("The Trash folder cannot be deleted."), None)
             return
         elif node.get_parent() == None:
-            self.emit("error", "The top-level folder cannot be deleted.", None)
+            self.emit("error", _("The top-level folder cannot be deleted."), None)
             return
         elif len(node.get_children()) > 0:
-            message = "Do you want to delete this note and all of its children?"
+            message = _("Do you want to delete this note and all of its children?")
         else:
-            message = "Do you want to delete this note?"
+            message = _("Do you want to delete this note?")
         
         dialog = gtk.MessageDialog(self.get_toplevel(), 
             flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
@@ -402,13 +426,15 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                 self.emit("error", e.msg, e)
         else:
             # warn
-            self.emit("error", "Cannot delete notebook's toplevel directory", None)
+            self.emit("error", _("Cannot delete notebook's toplevel directory"), None)
         
 
 
     #============================================
     # editing titles
     
+
+
     def on_editing_started(self, cellrenderer, editable, path):
         """Callback for start of title editing"""
         # remember editing state
@@ -419,6 +445,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         """Callback for canceled of title editing"""
         # remember editing state
         self.editing = False
+
 
     def on_edit_title(self, cellrenderertext, path, new_text):
         """Callback for completion of title editing"""
@@ -570,12 +597,13 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # determine destination row   
         dest_row = treeview.get_dest_row_at_pos(x, y)
         
+
         if dest_row is not None:
             # get target info
             target_path, drop_position = dest_row
             target = self.model.get_iter(target_path)
             target_node = self.model.get_value(target, self._node_col)
-        
+            
             # process node drops
             if "drop_node" in drag_context.targets:
                 # get source
@@ -587,10 +615,13 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                 if self._drop_allowed(source_node, target_node, drop_position):
                     self.set_drag_dest_row(target_path, drop_position)
                     self._dest_row = target_path, drop_position
+                    drag_context.drag_status(gdk.ACTION_MOVE, eventtime)
 
-            # NOTE: other kinds of drops can be processed
-            # for example added external files to notebook           
-
+            elif "text/uri-list" in drag_context.targets:
+                if self._drop_allowed(None, target_node, drop_position):
+                    self.set_drag_dest_row(target_path, drop_position)
+                    self._dest_row = target_path, drop_position
+                    drag_context.drag_status(gdk.ACTION_COPY, eventtime)
 
 
 
@@ -608,7 +639,11 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             return False
 
         # cause get data event to occur
-        self.drag_get_data(drag_context, "drop_node")
+        if "drop_node" in drag_context.targets:
+            self.drag_get_data(drag_context, "drop_node")
+            
+        elif "text/uri-list" in drag_context.targets:
+            self.drag_get_data(drag_context, "text/uri-list")
 
         # accept drop
         return True
@@ -666,9 +701,33 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             # process node drops
             self._on_drag_node_received(treeview, drag_context, x, y,
                                         selection_data, info, eventtime)
+            
+        elif "text/uri-list" in drag_context.targets:
+            target_path, drop_position  = self._dest_row
+            target = self.model.get_iter(target_path)
+            target_node = self.model.get_value(target, self._node_col)
+            # TODO: use drop_position
+            if self._drop_allowed(None, target_node, drop_position):
+                new_path = compute_new_path(self.model, target, drop_position)
+                parent = self._get_node_from_path(new_path[:-1])
+                self.emit("drop-file", parent, new_path[-1],
+                          parse_utf(selection_data.data).rstrip())
+            drag_context.finish(True, False, eventtime)
+            
         else:
             # unknown drop type, reject
             drag_context.finish(False, False, eventtime)
+
+
+    def _get_node_from_path(self, path):        
+
+        if len(path) == 0:
+            # TODO: donot use master node (lookup parent instead)
+            assert self._master_node is not None
+            return self._master_node
+        else:
+            it = self.model.get_iter(path)
+            return self.model.get_value(it, self._node_col)
 
 
     def _on_drag_node_received(self, treeview, drag_context, x, y,
@@ -694,12 +753,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
         # determine new parent
         new_parent_path = new_path[:-1]
-        if len(new_parent_path) == 0:
-            new_parent = self._master_node
-            assert self._master_node is not None
-        else:
-            new_parent_it = self.model.get_iter(new_parent_path)
-            new_parent = self.model.get_value(new_parent_it, self._node_col)
+        new_parent = self._get_node_from_path(new_parent_path)
 
         
         # perform move in notebook model
@@ -744,7 +798,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
             # (3) if reorder == FOLDER, ensure drop is either INTO a node
             #     or new_parent == old_parent
-            not (self._reorder == REORDER_FOLDER and not drop_into and
+            not (source_node and 
+                 self._reorder == REORDER_FOLDER and not drop_into and
                  target_node.get_parent() == source_node.get_parent()))
                 #       or 
                 #not (self._reorder == REORDER_FOLDER and 
@@ -760,5 +815,8 @@ gobject.signal_new("select-nodes", KeepNoteBaseTreeView,
 gobject.signal_new("edit-title", KeepNoteBaseTreeView,
                    gobject.SIGNAL_RUN_LAST, 
                    gobject.TYPE_NONE, (object, str))
+gobject.signal_new("drop-file", KeepNoteBaseTreeView,
+                   gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, (object, int, str))
 gobject.signal_new("error", KeepNoteBaseTreeView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (str, object,))
