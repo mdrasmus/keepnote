@@ -70,7 +70,8 @@ class NodeIconDialog (object):
         self.node = node
 
         self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
-                                 "node_icon_dialog")
+                                 "node_icon_dialog",
+                                 keepnote.GETTEXT_DOMAIN)
         self.dialog = self.xml.get_widget("node_icon_dialog")
         self.xml.signal_autoconnect(self)
         self.dialog.connect("close", lambda w:

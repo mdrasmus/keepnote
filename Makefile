@@ -41,6 +41,12 @@ WWW=/var/www/dev/rasm/keepnote
 
 
 #=============================================================================
+# programs
+
+INTLTOOL_EXTRACT=$(shell which intltool || echo /usr/share/intltool-debian/intltool-extract)
+
+
+#=============================================================================
 # linux build
 
 all: $(UPLOAD_FILES)
@@ -96,8 +102,10 @@ winclean:
 
 # make messages file, extracts all strings in _()
 gettext_extract:
+	$(INTLTOOL_EXTRACT) --type=gettext/glade keepnote/rc/keepnote.glade
 	xgettext --from-code=utf-8 -k_ -kN_ \
-	-o gettext/messages.pot $(PYTHON_FILES)
+	-o gettext/messages.pot $(PYTHON_FILES) keepnote/rc/keepnote.glade.h
+
 
 # make a new translation
 gettext_new:

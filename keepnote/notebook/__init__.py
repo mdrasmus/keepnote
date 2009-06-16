@@ -979,8 +979,9 @@ class NoteBookGenericFile (NoteBookNode):
 
         if new_filename is None:
             new_filename = os.path.basename(filename)
-        new_filename = get_valid_unique_filename(self.get_path(), new_filename)
 
+        new_filename = get_valid_unique_filename(self.get_path(), new_filename)
+        
         try:
             parts = urlparse.urlparse(filename)
             if parts[0] == "":
@@ -1463,7 +1464,8 @@ class NoteBookNodeFactory (object):
         
         elif "payload_filename" in attr:
             # test for generic file
-            node = NoteBookGenericFile(path, filename=None,
+            node = NoteBookGenericFile(path, 
+                                       filename=attr["payload_filename"],
                                        title=attr.get("title", "New File"),
                                        content_type=content_type,
                                        parent=parent, notebook=notebook)

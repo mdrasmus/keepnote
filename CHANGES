@@ -1,8 +1,15 @@
 KeepNote Change Log
 -------------------
 
-keepnote-0.5.2
+keepnote-0.5.3
 --------------
+- fixes for unicode filenames
+- added file attachments
+- added more tree navigation shortcuts
+
+
+keepnote-0.5.2 (4/12/2009)
+--------------------------
 - customizable node icons
 - any node can have child nodes (e.g. "pages" can have childlren)
 - add minimize to tray option (hide from taskbar)
@@ -12,14 +19,13 @@ keepnote-0.5.2
 - fixed modified time bug
 
 
-
 keepnote-0.5.1 (2008/1/25)
---------------
+--------------------------
 - install fix
 
 
 keepnote-0.5.0 (2008/1/24)
---------------
+--------------------------
 - external web links
 - new metadata file format
 - changed name to KeepNote

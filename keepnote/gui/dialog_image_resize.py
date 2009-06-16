@@ -54,7 +54,8 @@ class ImageResizeDialog (object):
             self.main_window.error("Cannot resize image that is not properly loaded")
             return
         
-        self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"))    
+        self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
+                                 domain=keepnote.GETTEXT_DOMAIN)
         self.dialog = self.xml.get_widget("image_resize_dialog")
         self.dialog.set_transient_for(self.main_window)
         self.dialog.connect("response", lambda d, r: self.on_response(r))       

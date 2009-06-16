@@ -10,6 +10,8 @@ include keepnote/rc/keepnote.glade
 include keepnote/rc/*.png
 include keepnote/extensions/backup_tar/*.py
 include desktop/*
+recursive-include locale *
+recursive-include gettext *
 include post_py2exe.py
 include pywin.py
 include installer.iss

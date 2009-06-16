@@ -881,7 +881,9 @@ class KeepNoteWindow (gtk.Window):
 
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
-            self.attach(filename)
+            if not isinstance(filename, unicode):
+                filename = unicode(filename, "utf-8")
+            self.attach_file(filename)
 
         dialog.destroy()
 
@@ -892,16 +894,23 @@ class KeepNoteWindow (gtk.Window):
             nodes, widget = self.get_selected_nodes()
             node = nodes[0]
 
+        # cannot attach directories (yet)
+        if os.path.isdir(filename):
+            return
             
         content_type = mimetypes.guess_type(filename)[0]
         if content_type is None:
             content_type = "application/octet-stream"
-
+        
         new_filename = os.path.basename(filename)
-
+        
         try:
+            path = notebooklib.get_valid_unique_filename(node.get_path(), 
+                                                         new_filename)
             child = self.notebook.new_node(
-                    content_type, node.get_path(), node,
+                    content_type, 
+                    path,
+                    node,
                     {"payload_filename": new_filename,
                      "title": new_filename})
             child.create()

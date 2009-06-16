@@ -706,12 +706,20 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             target_path, drop_position  = self._dest_row
             target = self.model.get_iter(target_path)
             target_node = self.model.get_value(target, self._node_col)
-            # TODO: use drop_position
+            
             if self._drop_allowed(None, target_node, drop_position):
                 new_path = compute_new_path(self.model, target, drop_position)
                 parent = self._get_node_from_path(new_path[:-1])
-                self.emit("drop-file", parent, new_path[-1],
-                          parse_utf(selection_data.data).rstrip())
+
+                uris = parse_utf(selection_data.data)
+                uris = [x for x in (uri.strip()
+                                for uri in uris.split("\n"))
+                        if len(x) > 0 and x[0] != "#"]
+
+                for uri in reversed(uris):
+                    if uri.startswith("file://"):
+                        uri = uri[7:]
+                    self.emit("drop-file", parent, new_path[-1], uri)
             drag_context.finish(True, False, eventtime)
             
         else:

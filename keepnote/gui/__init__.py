@@ -11,12 +11,15 @@
 import mimetypes
 import sys, os, tempfile, re, subprocess, shlex, shutil
 
+
+
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
 from gtk import gdk
 import gtk.glade
 import gobject
+
 
 # keepnote imports
 import keepnote
@@ -25,6 +28,10 @@ from keepnote.notebook import \
      NoteBookError, \
      NoteBookTrash
 import keepnote.notebook as notebooklib
+
+# setup glade with gettext
+gtk.glade.bindtextdomain(keepnote.GETTEXT_DOMAIN, keepnote.get_locale_dir())
+
 
 
 ACCEL_FILE = "accel.txt"
@@ -139,15 +146,15 @@ class MimeIcons:
  
         # try gnome mime
         items = mime_type.split('/')
-        for aux in xrange(len(items)-1):
-            icon_name = "gnome-mime-" + '-'.join(items[:len(items)-aux])
+        for i in xrange(len(items), 0, -1):
+            icon_name = "gnome-mime-" + '-'.join(items[:i])
             if icon_name in self._icons:
                 self._cache[mime_type] = icon_name                
                 return icon_name
  
         # try simple mime
-        for aux in xrange(len(items)-1):
-            icon_name = '-'.join(items[:len(items)-aux])
+        for i in xrange(len(items), 0, -1):
+            icon_name = '-'.join(items[:i])
             if icon_name in self._icons:
                 self._cache[mime_type] = icon_name
                 return icon_name

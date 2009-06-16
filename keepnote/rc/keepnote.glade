@@ -1852,7 +1852,7 @@
                   <widget class="GtkLabel" id="label76">
                     <property name="visible">True</property>
                     <property name="xalign">0</property>
-                    <property name="label" translatable="yes">From here, you can customize the format of timestamps in the listview for 4 different scenarios (e.g. how to display a timstamp from today, this month, or this year)</property>
+                    <property name="label" translatable="yes">From here, you can customize the format of timestamps in the listview for 4 different scenarios (e.g. how to display a timestamp from today, this month, or this year)</property>
                     <property name="wrap">True</property>
                   </widget>
                   <packing>

@@ -43,7 +43,7 @@ class ApplicationOptionsDialog (object):
         
         
         self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
-                                 "app_options_dialog")
+                                 "app_options_dialog", keepnote.GETTEXT_DOMAIN)
         self.dialog = self.xml.get_widget("app_options_dialog")
         self.dialog.set_transient_for(self.main_window)
         self.tabs = self.xml.get_widget("app_options_tabs")
@@ -57,7 +57,7 @@ class ApplicationOptionsDialog (object):
         #===================================
         # setup general tab
         self.general_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
-                                         "general_frame")
+                                      "general_frame", keepnote.GETTEXT_DOMAIN)
         self.general_xml.signal_autoconnect(self)
         self.general_xml.signal_autoconnect({
             "on_default_notebook_button_clicked":
@@ -103,7 +103,7 @@ class ApplicationOptionsDialog (object):
         #====================================
         # look and feel
         self.look_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
-                                 "look_frame")
+                                 "look_frame", keepnote.GETTEXT_DOMAIN)
         self.look_xml.signal_autoconnect(self)
         frame = self.look_xml.get_widget("look_frame")
         self.tabs.insert_page(frame, tab_label=None, position=1)
@@ -120,7 +120,7 @@ class ApplicationOptionsDialog (object):
         # populate external apps
         self.entries = {}
         self.apps_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
-                                 "helper_apps_frame")
+                                 "helper_apps_frame", keepnote.GETTEXT_DOMAIN)
         self.apps_xml.signal_autoconnect(self)
         frame = self.apps_xml.get_widget("helper_apps_frame")
         self.tabs.insert_page(frame, tab_label=None, position=2)
@@ -173,7 +173,7 @@ class ApplicationOptionsDialog (object):
         #=============================
         # populate dates
         self.date_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
-                                 "date_time_frame")
+                                 "date_time_frame", keepnote.GETTEXT_DOMAIN)
         self.date_xml.signal_autoconnect(self)
         frame = self.date_xml.get_widget("date_time_frame")
         self.tabs.insert_page(frame, tab_label=None, position=3)
@@ -186,7 +186,7 @@ class ApplicationOptionsDialog (object):
         #===============================
         # add notebook font widget
         self.notebook_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
-                                 "notebook_frame")
+                                 "notebook_frame", keepnote.GETTEXT_DOMAIN)
         self.notebook_xml.signal_autoconnect(self)
         frame = self.notebook_xml.get_widget("notebook_frame")
         self.tabs.insert_page(frame, tab_label=None, position=4)

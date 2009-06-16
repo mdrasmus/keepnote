@@ -31,7 +31,7 @@ class WaitDialog (object):
     
     def show(self, title, message, task, cancel=True):
         self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
-                                 "wait_dialog")
+                                 "wait_dialog", keepnote.GETTEXT_DOMAIN)
         self.dialog = self.xml.get_widget("wait_dialog")
         self.xml.signal_autoconnect(self)
         self.dialog.connect("close", self._on_close)
