@@ -1,6 +1,6 @@
 
 # python imports
-import gettext
+import gettext, urllib
 
 _ = gettext.gettext
 
@@ -712,7 +712,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                 parent = self._get_node_from_path(new_path[:-1])
 
                 uris = parse_utf(selection_data.data)
-                uris = [x for x in (uri.strip()
+                uris = [x for x in (urllib.unquote(uri.strip())
                                 for uri in uris.split("\n"))
                         if len(x) > 0 and x[0] != "#"]
 

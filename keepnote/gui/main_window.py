@@ -915,8 +915,8 @@ class KeepNoteWindow (gtk.Window):
                     {"payload_filename": new_filename,
                      "title": new_filename})
             child.create()
-            child.set_payload(filename, new_filename)
             node.add_child(child, index)
+            child.set_payload(filename, new_filename)            
             child.save(True)
                 
         except Exception, e:
