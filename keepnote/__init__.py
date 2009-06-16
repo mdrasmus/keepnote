@@ -377,7 +377,7 @@ DEFAULT_EXTERNAL_APPS = [
 
 
 DEFAULT_EXTERNAL_APPS_WINDOWS = [
-    ExternalApp("file_launcher", "File Launcher", "start"),
+    ExternalApp("file_launcher", "File Launcher", "explorer.exe"),
     ExternalApp("web_browser", "Web Browser",
                 "C:\\Program Files\\Internet Explorer\\iexplore.exe"),
     ExternalApp("file_explorer", "File Explorer", "explorer.exe"),

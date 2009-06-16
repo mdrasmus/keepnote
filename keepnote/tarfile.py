@@ -868,13 +868,13 @@ class ExFileObject(object):
 
         return self.position
 
-    def seek(self, pos, whence=os.SEEK_SET):
+    def seek(self, pos, whence=0):
         """Seek to a position in the file.
         """
         if self.closed:
             raise ValueError("I/O operation on closed file")
 
-        if whence == os.SEEK_SET:
+        if whence == 0:
             self.position = min(max(pos, 0), self.size)
         elif whence == os.SEEK_CUR:
             if pos < 0:
@@ -958,6 +958,12 @@ class TarInfo(object):
     def get_info(self, encoding, errors):
         """Return the TarInfo's attributes as a dictionary.
         """
+
+        if self.linkname:
+            link = normpath(self.linkname)
+        else:
+            link = ""
+
         info = {
             "name":     normpath(self.name),
             "mode":     self.mode & 07777,
@@ -967,7 +973,7 @@ class TarInfo(object):
             "mtime":    self.mtime,
             "chksum":   self.chksum,
             "type":     self.type,
-            "linkname": normpath(self.linkname) if self.linkname else "",
+            "linkname": link,
             "uname":    self.uname,
             "gname":    self.gname,
             "devmajor": self.devmajor,
@@ -1524,7 +1530,10 @@ class TarFile(object):
             if hasattr(fileobj, "mode"):
                 self._mode = fileobj.mode
             self._extfileobj = True
-        self.name = os.path.abspath(name) if name else None
+        if name:
+            self.name = os.path.abspath(name)
+        else:
+            self.name = None
         self.fileobj = fileobj
 
         # Init attributes.
@@ -1917,7 +1926,10 @@ class TarFile(object):
                 print "%d-%02d-%02d %02d:%02d:%02d" \
                       % time.localtime(tarinfo.mtime)[:6],
 
-            print tarinfo.name + ("/" if tarinfo.isdir() else ""),
+            if tarinfo.isdir():
+                print tarinfo.name + "/"
+            else:
+                print tarinfo.name
 
             if verbose:
                 if tarinfo.issym():

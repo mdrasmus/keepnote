@@ -1015,7 +1015,7 @@ class RichTextBuffer (RichTextBaseBuffer):
 
                 for w in child.get_all_widgets().itervalues():
                     top = w.get_toplevel()
-                    if top and instance(gtk.Window):
+                    if top and isinstance(top, gtk.Window):
                         f = top.get_focus()
                         if f:
                             focus = f

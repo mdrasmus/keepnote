@@ -31,19 +31,9 @@ WINDIR=dist/$(PKG)-$(VERSION).win
 WINEXE=$(WINDIR)/$(PKG).exe
 WININSTALLER_SRC=installer.iss
 
-PYTHON_FILES=$(shell find keepnote -name '*.py')
-
-# gettext variables
-GETTEXT_MSGS=gettext/messages.pot
 
 # personal www paths
 WWW=/var/www/dev/rasm/keepnote
-
-
-#=============================================================================
-# programs
-
-INTLTOOL_EXTRACT=$(shell which intltool || echo /usr/share/intltool-debian/intltool-extract)
 
 
 #=============================================================================
@@ -96,29 +86,6 @@ $(WININSTALLER_SRC):
 
 winclean:
 	rm -rf $(WININSTALLER) $(WININSTALLER_SRC) $(WINDIR)
-
-#=============================================================================
-# gettext
-
-# make messages file, extracts all strings in _()
-gettext_extract:
-	$(INTLTOOL_EXTRACT) --type=gettext/glade keepnote/rc/keepnote.glade
-	xgettext --from-code=utf-8 -k_ -kN_ \
-	-o gettext/messages.pot $(PYTHON_FILES) keepnote/rc/keepnote.glade.h
-
-
-# make a new translation
-gettext_new:
-	msginit -l $(LANG) -o gettext/$(LANG).po --input gettext/messages.pot
-
-# update language file with new strings
-gettext_update:
-	msgmerge -U gettext/$(LANG).po gettext/messages.pot
-
-# make translations for application
-gettext_make:
-	mkdir -p locale/$(LANG)/LC_MESSAGES/
-	msgfmt gettext/$(LANG).po -o locale/$(LANG)/LC_MESSAGES/keepnote.mo
 
 
 

@@ -984,7 +984,8 @@ class NoteBookGenericFile (NoteBookNode):
         
         try:
             parts = urlparse.urlparse(filename)
-            if parts[0] == "":
+            
+            if os.path.exists(filename) or parts[0] == "":
                 shutil.copy(filename, new_filename)
             else:
                 out = open(new_filename, "w")

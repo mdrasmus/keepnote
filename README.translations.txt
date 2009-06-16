@@ -9,6 +9,7 @@ a translation for KeepNote.
 1. File layout
 --------------
 
+Makefile.gettext		     Makefile with gettext commands
 gettext/messages.pot                 all strings extracted from KeepNote source
 gettext/$LANG.po                     language-specific translations
 locale/$LANG/LC_MESSAGES/keepnote.mo compiled translations for KeepNote
@@ -22,7 +23,7 @@ KeepNote Makefile.  If strings are changed in the source code, they need to
 be extracted into the 'gettext/messages.pot' file by using the following
 command:
 
-    make gettext_extract
+    make -f Makefile.gettext extract
 
 
 3. Create a new translation
@@ -31,7 +32,7 @@ command:
 If your language is not already present (should be 'gettext/$LANG.po'), then
 use this command to create a blank translation file:
 
-    make gettext_new LANG=de_DE.UTF8
+    make -f Makefile.gettext new LANG=de_DE.UTF8
 
 In this example, a new translation for de_DE.UTF8 (German) is created.  You
 can now edit the file 'gettext/de_DE.UTF8.po'
@@ -45,7 +46,7 @@ again (see step 2) and merged into the existing translations within
 'gettext/$LANG.po'.  If you were working on th German translation the 
 command is:
 
-    make gettext_update LANG=de_DE.UTF8
+    make -f Makefile.gettext update LANG=de_DE.UTF8
 
 
 5. Compiling translations
@@ -54,7 +55,7 @@ command is:
 Once translations are written in 'gettext/$LANG.po' they must be compiled into
 a file named 'locale/$LANG/LC_MESSAGES/keepnote.mo'.  Use this command,
 
-    make gettext_make LANG=de_DE.UTF8
+    make -f Makefile.gettext make LANG=de_DE.UTF8
 
 
 6. Testing/Using a translation

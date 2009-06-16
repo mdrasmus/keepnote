@@ -1163,7 +1163,7 @@ class KeepNoteWindow (gtk.Window):
         about = gtk.AboutDialog()
         about.set_name(keepnote.PROGRAM_NAME)
         about.set_version(keepnote.PROGRAM_VERSION_TEXT)
-        about.set_copyright("Copyright Matt Rasmussen 2009")
+        about.set_copyright("Copyright Matt Rasmussen 2009.")
         about.set_logo(get_resource_pixbuf("keepnote-icon.png"))
         about.set_website(keepnote.WEBSITE)
         about.set_transient_for(self)
