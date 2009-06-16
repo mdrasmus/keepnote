@@ -903,7 +903,8 @@ class KeepNoteWindow (gtk.Window):
             content_type = "application/octet-stream"
         
         new_filename = os.path.basename(filename)
-        
+        child = None
+
         try:
             path = notebooklib.get_valid_unique_filename(node.get_path(), 
                                                          new_filename)
@@ -919,6 +920,11 @@ class KeepNoteWindow (gtk.Window):
             child.save(True)
                 
         except Exception, e:
+
+            # remove child
+            if child:
+                child.delete()
+
             self.error(_("Error while attaching file '%s'" % filename),
                        e, sys.exc_info()[2])
                              

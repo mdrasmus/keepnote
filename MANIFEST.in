@@ -3,6 +3,7 @@ include COPYING
 include LICENSE
 include INSTALL
 include README
+include README.translations.txt
 include Makefile.gettext
 include keepnote/images/*.png
 include keepnote/images/*.ico
