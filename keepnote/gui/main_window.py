@@ -864,7 +864,7 @@ class KeepNoteWindow (gtk.Window):
     
     #=================================================
 
-    def on_attach_file(self):
+    def on_attach_file(self, widget=None):
 
         if self.notebook is None:
             return
@@ -883,15 +883,15 @@ class KeepNoteWindow (gtk.Window):
             filename = dialog.get_filename()
             if not isinstance(filename, unicode):
                 filename = unicode(filename, "utf-8")
-            self.attach_file(filename)
+            self.attach_file(filename, widget=widget)
 
         dialog.destroy()
 
 
-    def attach_file(self, filename, node=None, index=None):
+    def attach_file(self, filename, node=None, index=None, widget=None):
         
         if node is None:
-            nodes, widget = self.get_selected_nodes()
+            nodes, widget = self.get_selected_nodes(widget)
             node = nodes[0]
 
         # cannot attach directories (yet)
@@ -1307,7 +1307,7 @@ class KeepNoteWindow (gtk.Window):
              "<control>V", None,
              lambda w: self.on_paste()),
 
-            ("Attach File", None, _("_Attach File"),
+            ("Attach File", gtk.STOCK_ADD, _("_Attach File"),
              "", _("Attach a file to the notebook"),
              lambda w: self.on_attach_file()),
 
@@ -1316,7 +1316,7 @@ class KeepNoteWindow (gtk.Window):
              lambda w: self.on_empty_trash()),
             
             #========================================
-            ("Search", None, _("Search")),
+            ("Search", None, _("_Search")),
             
             ("Search All Notes", gtk.STOCK_FIND, _("_Search All Notes"),
              "<control>K", None,
@@ -1327,24 +1327,24 @@ class KeepNoteWindow (gtk.Window):
             ("View", None, _("_View")),
 
             
-            ("View Note in File Explorer", None,
+            ("View Note in File Explorer", gtk.STOCK_OPEN,
              _("View Note in File Explorer"),
              "", None,
              lambda w: self.on_view_node_external_app("file_explorer")),
             
-            ("View Note in Text Editor", None,
+            ("View Note in Text Editor", gtk.STOCK_OPEN,
              _("View Note in Text Editor"),
              "", None,
              lambda w: self.on_view_node_external_app("text_editor",
                                                       kind="page")),
 
-            ("View Note in Web Browser", None,
+            ("View Note in Web Browser", gtk.STOCK_OPEN,
              _("View Note in Web Browser"),
              "", None,
              lambda w: self.on_view_node_external_app("web_browser",
                                                       kind="page")),
 
-            ("Open Document", None,
+            ("Open Document", gtk.STOCK_OPEN,
              _("_Open Document"),
              "", None,
              lambda w: self.on_view_node_external_app("file_launcher",
@@ -1363,7 +1363,7 @@ class KeepNoteWindow (gtk.Window):
             #=========================================
             ("Help", None, "_Help"),
             
-            ("View Error Log...", None, _("View _Error Log..."),
+            ("View Error Log...", gtk.STOCK_DIALOG_ERROR, _("View _Error Log..."),
              "", None,
              lambda w: self.view_error_log()),
             
@@ -1588,7 +1588,7 @@ class KeepNoteWindow (gtk.Window):
         # search button
         self.search_button = gtk.ToolButton()
         self.search_button.set_stock_id(gtk.STOCK_FIND)
-        tips.set_tip(self.search_button, _("Search Notes"))
+        tips.set_tip(self.search_button, _("Search All Notes"))
         self.search_button.connect("clicked",
                                    lambda w: self.on_search_nodes())
         toolbar.insert(self.search_button, -1)
@@ -1633,7 +1633,7 @@ class KeepNoteWindow (gtk.Window):
     def make_node_menu(self, widget, menu, control):
         """make list of menu options for nodes"""
 
-        # treeview/new page
+        # new page
         item = gtk.ImageMenuItem()
         item.set_image(get_resource_image("note-new.png"))        
         label = gtk.Label(_("New _Page"))
@@ -1646,7 +1646,7 @@ class KeepNoteWindow (gtk.Window):
         item.show()
 
 
-        # treeview/new child page 
+        # new child page 
         item = gtk.ImageMenuItem()
         item.set_image(get_resource_image("note-new.png"))        
         label = gtk.Label(_("New _Child Page"))
@@ -1659,7 +1659,7 @@ class KeepNoteWindow (gtk.Window):
         item.show()
 
         
-        # treeview/new folder
+        # new folder
         item = gtk.ImageMenuItem()        
         item.set_image(get_resource_image("folder-new.png"))
         label = gtk.Label(_("New _Folder"))
@@ -1672,6 +1672,18 @@ class KeepNoteWindow (gtk.Window):
         item.show()
         
 
+        # attach file
+        item = gtk.ImageMenuItem(gtk.STOCK_ADD)
+        item.child.set_label(_("_Attach File"))
+        item.connect("activate", lambda w: self.on_attach_file(control))
+        menu.append(item)
+        item.show()
+
+        #=============================================================
+        item = gtk.SeparatorMenuItem()
+        menu.append(item)
+        item.show()
+
         # treeview/delete node
         item = gtk.ImageMenuItem(gtk.STOCK_DELETE)
         item.connect("activate", lambda w: widget.on_delete_node())
@@ -1679,7 +1691,8 @@ class KeepNoteWindow (gtk.Window):
         item.show()
 
         # rename node
-        item = gtk.MenuItem(_("_Rename"))
+        item = gtk.ImageMenuItem(gtk.STOCK_EDIT)
+        item.child.set_label(_("_Rename"))
         item.connect("activate", lambda w:
                      widget.edit_node(widget.get_selected_nodes()[0]))
         menu.add(item)
@@ -1713,7 +1726,8 @@ class KeepNoteWindow (gtk.Window):
 
 
         # treeview/file explorer
-        item = gtk.MenuItem(_("View in File _Explorer"))
+        item = gtk.ImageMenuItem(gtk.STOCK_OPEN)
+        item.child.set_label(_("View in File _Explorer"))
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("file_explorer",
                                                               None,
@@ -1722,7 +1736,8 @@ class KeepNoteWindow (gtk.Window):
         item.show()        
 
         # treeview/web browser
-        item = gtk.MenuItem(_("View in _Web Browser"))
+        item = gtk.ImageMenuItem(gtk.STOCK_OPEN)
+        item.child.set_label(_("View in _Web Browser"))
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("web_browser",
                                                               None,
@@ -1732,7 +1747,8 @@ class KeepNoteWindow (gtk.Window):
         item.show()        
 
         # treeview/text editor
-        item = gtk.MenuItem(_("View in _Text Editor"))
+        item = gtk.ImageMenuItem(gtk.STOCK_OPEN)
+        item.child.set_label(_("View in _Text Editor"))
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("text_editor",
                                                               None,
@@ -1742,7 +1758,8 @@ class KeepNoteWindow (gtk.Window):
         item.show()
 
         # treeview/Open document
-        item = gtk.MenuItem(_("Open _Document"))
+        item = gtk.ImageMenuItem(gtk.STOCK_OPEN)
+        item.child.set_label(_("Open _Document"))
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("file_launcher",
                                                               None,

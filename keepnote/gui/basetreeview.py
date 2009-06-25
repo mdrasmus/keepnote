@@ -426,7 +426,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                 self.emit("error", e.msg, e)
         else:
             # warn
-            self.emit("error", _("Cannot delete notebook's toplevel directory"), None)
+            self.emit("error", _("The top-level folder cannot be deleted"), None)
         
 
 

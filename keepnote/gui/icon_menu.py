@@ -33,7 +33,7 @@ class IconMenu (gtk.Menu):
         self.default_icon.show()
 
         # new icon
-        self.new_icon = gtk.MenuItem("_New Icon...")
+        self.new_icon = gtk.MenuItem("_More Icons...")
         self.new_icon.show()
 
 

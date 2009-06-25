@@ -597,19 +597,19 @@ class ThreePaneViewer (Viewer):
              "<alt>Up", None,
              lambda w: self.goto_prev_note()),
 
-            ("Expand Note", None, _("E_xpand Note"),
+            ("Expand Note", gtk.STOCK_ADD, _("E_xpand Note"),
              "<alt>Right", None,
              lambda w: self.expand_note()),
 
-            ("Collapse Note", None, _("_Collapse Note"),
+            ("Collapse Note", gtk.STOCK_REMOVE, _("_Collapse Note"),
              "<alt>Left", None,
              lambda w: self.collapse_note()),
 
-            ("Expand All Child Notes", None, _("Expand _All Child Notes"),
+            ("Expand All Child Notes", gtk.STOCK_ADD, _("Expand _All Child Notes"),
              "<shift><alt>Right", None,
              lambda w: self.expand_note(True)),
 
-            ("Collapse All Child Notes", None, _("Collapse A_ll Child Notes"),
+            ("Collapse All Child Notes", gtk.STOCK_REMOVE, _("Collapse A_ll Child Notes"),
              "<shift><alt>Left", None,
              lambda w: self.collapse_note(True)),
 

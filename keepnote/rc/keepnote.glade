@@ -875,7 +875,7 @@
                           <widget class="GtkLabel" id="label81">
                             <property name="visible">True</property>
                             <property name="xalign">1</property>
-                            <property name="label" translatable="yes">open icon:</property>
+                            <property name="label" translatable="yes">open-icon:</property>
                             <property name="justify">GTK_JUSTIFY_RIGHT</property>
                           </widget>
                           <packing>
@@ -1162,7 +1162,7 @@
                                         <child>
                                           <widget class="GtkLabel" id="label86">
                                             <property name="visible">True</property>
-                                            <property name="label" translatable="yes">set open icon</property>
+                                            <property name="label" translatable="yes">set open-icon</property>
                                           </widget>
                                           <packing>
                                             <property name="expand">False</property>
@@ -1638,7 +1638,7 @@
                               <widget class="GtkRadioButton" id="no_default_notebook_radio">
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="label" translatable="yes">No Deault Notebook</property>
+                                <property name="label" translatable="yes">No Default Notebook</property>
                                 <property name="xalign">0</property>
                                 <property name="yalign">0</property>
                                 <property name="response_id">0</property>

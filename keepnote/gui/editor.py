@@ -712,7 +712,8 @@ class EditorMenus (gobject.GObject):
              "<control><shift>G", None,
              lambda w: self._editor.find_dialog.on_find(False, forward=False)),
             
-            ("Replace In Page", gtk.STOCK_FIND, _("_Replace In Page"), 
+            ("Replace In Page", gtk.STOCK_FIND_AND_REPLACE, 
+             _("_Replace In Page"), 
              "<control><shift>R", None,
              lambda w: self._editor.find_dialog.on_find(True)),
 
@@ -770,7 +771,7 @@ class EditorMenus (gobject.GObject):
             
             ("Indent More", None, _("Indent M_ore"), 
              "<control>parenright", None,
-             lambda w,e: self.on_indent()),
+             lambda w: self.on_indent()),
             
             ("Indent Less", None, _("Indent Le_ss"), 
              "<control>parenleft", None,

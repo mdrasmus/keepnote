@@ -991,7 +991,7 @@ class NoteBookGenericFile (NoteBookNode):
                 out = open(new_filename, "w")
                 infile = urllib2.urlopen(filename)
                 while True:
-                    data = infile.read(1024)
+                    data = infile.read(1024*4)
                     if data == "":
                         break
                     out.write(data)

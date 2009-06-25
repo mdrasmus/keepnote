@@ -3,9 +3,18 @@ KeepNote Change Log
 
 keepnote-0.5.3
 --------------
+- setup for translations
+   - translations are welcomed! see README.translations.txt
 - fixes for unicode filenames
+  - unicode support within tarfile backups
 - added file attachments
 - added more tree navigation shortcuts
+- open dialog updated (no needed to click on notebook.nbk)
+- task icon minimizes and un-minimizes
+- updated image resize dialog
+- links are created with default targets (selected text)
+- more options for default notebook
+- Bug fix: horizontal rules now auto-resize
 
 
 keepnote-0.5.2 (4/12/2009)
