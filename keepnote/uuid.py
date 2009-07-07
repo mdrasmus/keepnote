@@ -1,5 +1,9 @@
 r"""
 
+Copyright (c) Python Software Foundation
+License Python 2.5 PSF
+
+
     The following code is from the python2.5 standard library
     Its copyright belongs to "Python Software Foundation" and its
     license is PSF.

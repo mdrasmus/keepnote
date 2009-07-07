@@ -4,6 +4,7 @@ KeepNote Change Log
 keepnote-0.5.3
 --------------
 - setup for translations
+   - initial French translation included
    - translations are welcomed! see README.translations.txt
 - fixes for unicode filenames
   - unicode support within tarfile backups
