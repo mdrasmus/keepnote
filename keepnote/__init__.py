@@ -747,18 +747,22 @@ class KeepNote (object):
             for i in xrange(len(cmd)):
                 if cmd[i] == "%s":
                     cmd[i] = filename
-
+        
+        # create proper encoding
+        cmd = map(lambda x: unicode(x), cmd)
+        if get_platform() == "windows":
+            cmd = [x.encode('mbcs') for x in cmd]
+        
         # execute command
         try:
-            cmd = map(lambda x: unicode(x), cmd)
             proc = subprocess.Popen(cmd)
         except OSError, e:
             raise KeepNoteError(
-                ("Error occurred while opening file with %s.\n\n" 
-                 "program: %s\n\n"
-                 "file: %s\n\n"
-                 "error: %s")
-                % (app.title, app.prog, filename, str(e)), e)
+                (u"Error occurred while opening file with %s.\n\n" 
+                 u"program: %s\n\n"
+                 u"file: %s\n\n"
+                 u"error: %s")
+                % (app.title, app.prog, filename, unicode(e)), e)
 
         # wait for process to return
         # TODO: perform waiting in gtk loop

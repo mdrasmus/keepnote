@@ -376,7 +376,7 @@ def restore_notebook(filename, path, rename, task=None):
     # remove trailing "/"
     path = re.sub("/+$", "", path)
 
-    tar = tarfile.open(filename, "r:gz") # format=tarfile.PAX_FORMAT)
+    tar = tarfile.open(filename, "r:gz", format=tarfile.PAX_FORMAT)
 
 
     # create new dirctory, if needed
@@ -396,6 +396,11 @@ def restore_notebook(filename, path, rename, task=None):
                                   len(members)))
 
             for i, member in enumerate(members):
+                # FIX: tarfile does not seem to keep unicode and str straight
+                # make sure member.name is unicode
+                if 'path' in member.pax_headers:
+                    member.name = member.pax_headers['path']
+
                 if task:
                     if task.aborted():
                         raise NoteBookError("Restore canceled")
