@@ -382,3 +382,21 @@ class ToggleAction (gtk.ToggleAction):
 def add_actions(actiongroup, actions):
     for action in actions:
         actiongroup.add_action_with_accel(action, action.accel)
+
+
+
+#=============================================================================
+# image preview
+
+def update_file_preview(file_chooser, preview):
+    """Preview widget for file choosers"""
+        
+    filename = file_chooser.get_preview_filename()
+    try:
+        pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(filename, 128, 128)
+        preview.set_from_pixbuf(pixbuf)
+        have_preview = True
+    except:
+        have_preview = False
+    file_chooser.set_preview_widget_active(have_preview)
+        

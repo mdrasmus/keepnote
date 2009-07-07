@@ -56,7 +56,8 @@ from keepnote.gui import \
     dialog_image_resize, \
     dialog_wait, \
     dialog_update_notebook, \
-    dialog_node_icon
+    dialog_node_icon, \
+    update_file_preview
 from keepnote.gui.editor import KeepNoteEditor, EditorMenus
 from keepnote.gui.icon_menu import IconMenu
 from keepnote.gui.three_pane_viewer import ThreePaneViewer
@@ -864,7 +865,7 @@ class KeepNoteWindow (gtk.Window):
     
     #=================================================
 
-    def on_attach_file(self, widget=None):
+    def on_attach_file(self, widget="focus"):
 
         if self.notebook is None:
             return
@@ -877,6 +878,12 @@ class KeepNoteWindow (gtk.Window):
             app=self.app,
             persistent_path="attach_file_path")
         dialog.set_default_response(gtk.RESPONSE_OK)
+
+        # setup preview
+        preview = gtk.Image()
+        dialog.set_preview_widget(preview)
+        dialog.connect("update-preview", update_file_preview, preview)
+
         response = dialog.run()
 
         if response == gtk.RESPONSE_OK:
@@ -888,7 +895,7 @@ class KeepNoteWindow (gtk.Window):
         dialog.destroy()
 
 
-    def attach_file(self, filename, node=None, index=None, widget=None):
+    def attach_file(self, filename, node=None, index=None, widget="focus"):
         
         if node is None:
             nodes, widget = self.get_selected_nodes(widget)

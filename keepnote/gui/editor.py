@@ -38,7 +38,8 @@ from keepnote.gui import \
      get_resource_image, \
      get_resource_pixbuf, \
      Action, \
-     ToggleAction
+     ToggleAction, \
+     update_file_preview
 from keepnote.gui.font_selector import FontSelector
 from keepnote.gui.colortool import FgColorTool, BgColorTool
 from keepnote.gui.richtext.richtext_tags import color_tuple_to_string
@@ -279,12 +280,18 @@ class KeepNoteEditor (gtk.VBox):
         
         if self._page is None:
             return
-                  
+                
+  
         dialog = gtk.FileChooserDialog(
             _("Insert Image From File"), self.get_toplevel(), 
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
                      _("Insert"), gtk.RESPONSE_OK))
+
+        # setup preview
+        preview = gtk.Image()
+        dialog.set_preview_widget(preview)
+        dialog.connect("update-preview", update_file_preview, preview)
 
         if os.path.exists(self._app.pref.insert_image_path):
             dialog.set_current_folder(self._app.pref.insert_image_path)        
@@ -313,7 +320,8 @@ class KeepNoteEditor (gtk.VBox):
             
         dialog.destroy()
         
-    
+
+
     
     def insert_image(self, filename, savename="image.png"):
         """Inserts an image into the text editor"""
