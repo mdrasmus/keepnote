@@ -1198,8 +1198,14 @@ class KeepNoteWindow (gtk.Window):
         about.set_copyright("Copyright Matt Rasmussen 2009.")
         about.set_logo(get_resource_pixbuf("keepnote-icon.png"))
         about.set_website(keepnote.WEBSITE)
+        about.set_license("GPL version 2")
 
-        about.set_authors(["Matt Rasmussen <rasmus@mit.edu>"])
+        license_file = keepnote.get_basedir() + "/../COPYING"
+        if os.path.exists(license_file):
+            about.set_license(open(license_file).read())
+
+        #about.set_authors(["Matt Rasmussen <rasmus@mit.edu>"])
+        
 
         about.set_transient_for(self)
         about.set_position(gtk.WIN_POS_CENTER_ON_PARENT)

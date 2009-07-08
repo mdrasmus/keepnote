@@ -85,7 +85,8 @@ CONTENT_TYPE_UNKNOWN = u"application/x-notebook-unknown"
 
 NULL = object()
 
-
+# the node id of the implied root of all nodes everywhere
+UNIVERSAL_ROOT = "b810760f-f246-4e42-aebb-50ce51c3d1ed"
 
 
 #=============================================================================
@@ -478,6 +479,12 @@ class NoteBookNode (object):
             self._basename = os.path.basename(path)
     
 
+    def get_basename(self):
+        """Returns the basename of the node"""
+
+        return self._basename
+
+
     #=======================================
     # attr functions
     
@@ -591,6 +598,7 @@ class NoteBookNode (object):
             
             try:
                 os.rename(path, path2)
+                self._notebook._index.add_node(self)
             except OSError, e:
                 raise NoteBookError("Do not have permission for move", e)
         
@@ -634,6 +642,8 @@ class NoteBookNode (object):
         # make sure to recursively invalidate
         def walk(node):
             """Uncache children list"""
+
+            self._notebook._index.remove_node(self)
 
             if node._children is not None:
                 for child in node._children:
@@ -701,6 +711,8 @@ class NoteBookNode (object):
         except (OSError, NoteBookError), e:
             raise NoteBookError("Cannot rename '%s' to '%s'" % (path, path2), e)
         
+        self._notebook._index.add_node(self)
+
         self.notify_change(False)
 
 
@@ -743,6 +755,10 @@ class NoteBookNode (object):
                 node = self._notebook.read_node(self, path2)
                 if node:
                     self._children.append(node)
+                    
+                    # notify index
+                    self._notebook._index.add_node(node)
+
                 
             except NoteBookError, e:
                 print >>sys.stderr, "error reading", path2
@@ -793,6 +809,9 @@ class NoteBookNode (object):
             # append child at end of list
             child._attr["order"] = len(self._children)
             self._children.append(child)
+
+        # notify index
+        self._notebook._index.add_node(child)
 
         child._set_dirty(True)
     
@@ -1206,7 +1225,9 @@ class NoteBook (NoteBookDir):
         if force or self in self._dirty:
             self.write_meta_data()
             self.write_preferences()
-        
+
+        self._index.save()
+
         self._set_dirty(False)
 
         if force:
@@ -1373,6 +1394,10 @@ class NoteBook (NoteBookDir):
             os.remove(filename)
     
     
+    def get_universal_root_id(self):
+        return UNIVERSAL_ROOT
+
+
     #===============================================
     # preferences
     
