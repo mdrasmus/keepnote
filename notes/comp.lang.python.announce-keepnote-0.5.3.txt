@@ -1,0 +1,41 @@
+subject: ANN: KeepNote 0.5.3 - Note taking and organization
+
+KeepNote is a simple cross-platform note taking program implemented
+in Python.  I have been using it for my research and class notes, but it
+should be applicable to many note taking situations.  
+
+KeepNote is ideal for storing your class notes, TODO lists, research
+notes, journal entries, paper outlines, etc in a simple notebook
+hierarchy with rich-text formatting, images, and more. Using full-text
+search, you can retrieve any note for later reference.
+
+KeepNote is designed to be cross-platform (runs on Windows, Linux, and
+MacOS X, implemented in Python and PyGTK) and stores your notes in
+simple and easy to manipulate file formats (HTML and XML). Archiving
+and transferring your notes is as easy as zipping or copying a
+folder.  KeepNote is licensed under GPL.
+
+KeepNote 0.5.3 has the following features:
+
+    * Rich-text formatting
+      * Bullet point lists
+      * Colored font
+      * Inline images
+      * hyperlinks
+    * Hierarchical organization for notes
+    * File attachments
+    * Full-text search
+    * Integrated screenshot
+    * Extension framework
+    * Spell checking (via gtkspell)
+    * Auto-saving
+    * Built-in backup and restore (archive to zip files)
+    * Cross-platform (Linux, Windows, MacOS X)
+
+Web site and download:
+http://rasm.ods.org/keepnote
+
+Documentation:
+http://rasm.ods.org/keepnote/manual.shtml
+
+Matt Rasmussen
