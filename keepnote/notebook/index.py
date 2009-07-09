@@ -26,6 +26,7 @@
 
 # python imports
 import os
+from thread import get_ident
 from sqlite3 import dbapi2 as sqlite
 
 # keepnote imports
@@ -48,32 +49,54 @@ class NoteBookIndex (object):
 
     def __init__(self, notebook):
         self._notebook = notebook
-        self._unirootid = notebook.get_universal_root_id()
+        self._uniroot = notebook.get_universal_root_id()
 
         self.con = None
-        self.cur = None
         self.open()
+
+        self.add_node(notebook)
 
 
     def open(self):
         """Open connection to index"""
-        index_file = get_index_file(self._notebook)
-        self.con = sqlite.connect(index_file, isolation_level="DEFERRED")
-        self.cur = self.con.cursor()
+
+        if self.con is None:
+            self.con = {}
+
+            index_file = get_index_file(self._notebook)
+        con = sqlite.connect(index_file, isolation_level="EXCLUSIVE")
+        self.con[get_ident()] = (con, con.cursor())
+
 
         self.init_index()
+
+    def get_con(self):
+        """Get connection for thread"""
+
+        ident = get_ident()
+        if ident not in self.con:
+            index_file = get_index_file(self._notebook)
+            con = sqlite.connect(index_file, isolation_level="EXCLUSIVE")
+            self.con[ident] = (con, con.cursor())
+            
+        return self.con[ident]
 
 
     def close(self):
         """Close connection to index"""
         
-        self.con.close()
-        self.con = None
-        self.cur = None
+        if self.con is not None:
+
+            for con, cur in self.con.itervalues():
+                con.close()
+
+            self.con = None
 
 
     def init_index(self):
         """Initialize the tables in the index if they do not exist"""
+
+        con, cur = self.get_con()
 
         # init NodeGraph table
         query = """CREATE TABLE IF NOT EXISTS NodeGraph 
@@ -82,8 +105,10 @@ class NoteBookIndex (object):
                         basename TEXT,
                         symlink BOOLEAN);
                     """
-        self.cur.execute(query)
-        self.con.commit()
+        cur.execute(query)
+        con.commit()
+
+
 
             
     def add_node(self, node):
@@ -91,6 +116,7 @@ class NoteBookIndex (object):
         
         if self.con is None:
             return
+        con, cur = self.get_con()
 
         # get info
         nodeid = str(node.get_attr("nodeid"))
@@ -99,13 +125,13 @@ class NoteBookIndex (object):
             parentid = str(parent.get_attr("nodeid"))
             basename = node.get_basename()
         else:
-            parentid = self._unirootid
+            parentid = self._uniroot
             basename = ""
         symlink = False
         
 
         # update
-        ret = self.cur.execute(
+        ret = cur.execute(
             """UPDATE NodeGraph SET 
                    nodeid=?,
                    parentid=?,
@@ -113,10 +139,10 @@ class NoteBookIndex (object):
                    symlink=?
                    WHERE nodeid = ?""",
             (nodeid, parentid, basename, symlink, nodeid))
-
+        
         # insert if new
         if ret.rowcount == 0:
-            self.cur.execute("""
+            cur.execute("""
                 INSERT INTO NodeGraph VALUES 
                    (?, ?, ?, ?)""",
             (nodeid,
@@ -125,24 +151,58 @@ class NoteBookIndex (object):
              symlink,
              ))
 
+        #con.commit()
+
 
     def remove_node(self, node):
-        
+        """Remove node from index"""
+
         if self.con is None:
             return
+        con, cur = self.get_con()
 
         # get info
         nodeid = str(node.get_attr("nodeid"))        
-        
+
         # delete node
-        ret = self.cur.execute(
+        ret = cur.execute(
             "DELETE FROM NodeGraph WHERE nodeid=?", (nodeid,))
+        #con.commit()
+        
+
+        
+    def get_node_path(self, nodeid):
+        """Get node path for a nodeid"""
+        
+        # TODO: handle multiple parents
+
+        con, cur = self.get_con()
+
+        def walk(nodeid):
+            cur.execute("""SELECT nodeid, parentid, basename
+                                FROM NodeGraph
+                                WHERE nodeid=?""", (nodeid,))
+            row = cur.fetchone()
+
+            if row:
+                nodeid, parentid, basename = row
+                if parentid != self._uniroot:
+                    path = self.get_node_path(parentid)
+                    if path is not None:
+                        path.append(basename)
+                        return path
+                    else:
+                        return None
+                else:
+                    return [basename]
+        return walk(nodeid)
 
 
     def save(self):
         """Save index"""
-        
-        if self.con:
-            self.con.commit()
+
+        if self.con is not None:
+            con, cur = self.get_con()
+            con.commit()
 
 

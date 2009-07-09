@@ -1396,6 +1396,43 @@ class NoteBook (NoteBookDir):
     
     def get_universal_root_id(self):
         return UNIVERSAL_ROOT
+    
+    
+    def get_node_path_by_id(self, nodeid):
+        """Lookup node by nodeid"""
+
+        path = self._index.get_node_path(nodeid)
+        if path is None:
+            return None
+        
+        def walk(node, path):
+            if len(path) == 0:
+                return node
+
+            # search children
+            basename = path[0]
+            for child in node.get_children():
+                if child.get_basename() == basename:
+                    return walk(child, path[1:])
+            
+            # node not found
+            return None
+        return walk(self, path[1:])
+    
+    
+    def get_node_path_by_id(self, nodeid):
+        """Lookup node by nodeid"""
+        
+        path = self._index.get_node_path(nodeid)
+        if path is None:
+            return None
+        
+        return os.path.join(self.get_path(), *path[1:])
+
+    def close(self):
+        """Close notebook"""
+        
+        self._index.close()
 
 
     #===============================================

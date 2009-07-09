@@ -58,9 +58,10 @@ def update_notebook(filename, desired_version, warn=lambda w: False,
     # upgrade 1 --> 2
     if notebook.pref.version == 1:
         notebook_update_v1_2.update_notebook(filename, 2, warn=warn,
-                                             verify=verify) 
+                                             verify=verify)
         notebook = notebooklib.NoteBook()
         notebook.load(filename)
+
         
 
     # upgrade 2 --> 3
@@ -88,6 +89,7 @@ def update_notebook(filename, desired_version, warn=lambda w: False,
             for child in node.get_children():
                 walk(child)
         walk(notebook)
+
 
     # verify notebook updated successfully
     if verify:
