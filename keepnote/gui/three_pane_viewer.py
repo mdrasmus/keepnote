@@ -116,6 +116,9 @@ class Viewer (gtk.VBox):
     def make_toolbar(self, toolbar, tips, use_stock_icons):
         pass
 
+    def goto_node(self, node):
+        pass
+
 
 class ThreePaneViewer (Viewer):
 
@@ -374,7 +377,7 @@ class ThreePaneViewer (Viewer):
                                                         None,
                                                         kind="file")
         else:
-            self.goto_note(node)
+            self.goto_node(node)
         
 
     def on_list_view_parent_node(self, node=None):
@@ -410,6 +413,7 @@ class ThreePaneViewer (Viewer):
 
 
     def _on_edit_title(self, widget, node, title):
+        """Callback for title edit finishing"""
 
         # move cursor to editor after new page has been created
         if self._new_page_occurred:
@@ -420,9 +424,7 @@ class ThreePaneViewer (Viewer):
 
 
     def _on_attach_file(self, widget, parent, index, uri):
-        """Attach page"""
-        #print parent, index, uri
-        
+        """Attach document"""
         self._main_window.attach_file(uri, parent, index)
 
 
@@ -468,7 +470,7 @@ class ThreePaneViewer (Viewer):
             raise Exception("unknown widget '%s'" % widget)
 
 
-    def goto_note(self, node):
+    def goto_node(self, node):
         if node is None:
             nodes = self.listview.get_selected_nodes()
             if len(nodes) == 0:
@@ -557,15 +559,9 @@ class ThreePaneViewer (Viewer):
         self.editor.get_textview().grab_focus()
 
     def goto_link(self):
-        """Visit link under cursor"""
-        
-        tag, start, end = self.editor.get_textview().get_link()
-        if tag:
-            url = tag.get_href()            
-            try:
-                self._app.open_webpage(url)
-            except KeepNoteError, e:
-                self.emit("error", e, sys.exc_info()[2])
+        """Visit link under cursor"""        
+        self.editor.get_textview().click_iter()
+
 
     #===========================================
     # menus

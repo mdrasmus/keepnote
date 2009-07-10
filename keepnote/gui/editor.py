@@ -135,11 +135,18 @@ class KeepNoteEditor (gtk.VBox):
 
 
     def _on_visit_url(self, textview, url):
+        
+        if url.startswith("nbk:///"):
+            nodeid = url[7:]
+            node = self._notebook.get_node_by_id(nodeid)
+            if node:
+                self.emit("visit-node", node)
 
-        try:
-            self._app.open_webpage(url)
-        except KeepNoteError, e:
-            self.emit("error", e.msg, e)
+        else:
+            try:
+                self._app.open_webpage(url)
+            except KeepNoteError, e:
+                self.emit("error", e.msg, e)
                             
     
     def get_textview(self):
@@ -360,6 +367,8 @@ class KeepNoteEditor (gtk.VBox):
 
 # add new signals to KeepNoteEditor
 gobject.type_register(KeepNoteEditor)
+gobject.signal_new("visit-node", KeepNoteEditor, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (object,))
 gobject.signal_new("modified", KeepNoteEditor, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object, bool))
 gobject.signal_new("font-change", KeepNoteEditor, gobject.SIGNAL_RUN_LAST, 

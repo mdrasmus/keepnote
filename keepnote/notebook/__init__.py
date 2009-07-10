@@ -1398,7 +1398,7 @@ class NoteBook (NoteBookDir):
         return UNIVERSAL_ROOT
     
     
-    def get_node_path_by_id(self, nodeid):
+    def get_node_by_id(self, nodeid):
         """Lookup node by nodeid"""
 
         path = self._index.get_node_path(nodeid)

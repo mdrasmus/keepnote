@@ -498,11 +498,14 @@ class RichTextView (gtk.TextView):
                 self.stop_emission("button-press-event")
             
 
-    def click_iter(self, it):
+    def click_iter(self, it=None):
         """Perfrom click action at TextIter it"""
 
         if not self._textbuffer:
             return
+
+        if it is None:            
+            it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
 
         for tag in it.get_tags():
             if isinstance(tag, RichTextLinkTag):

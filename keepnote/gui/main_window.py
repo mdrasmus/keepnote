@@ -165,6 +165,7 @@ class KeepNoteWindow (gtk.Window):
         viewer.editor.connect("modified", self.on_page_editor_modified)
         viewer.editor.connect("child-activated", self.on_child_activated)
         viewer.editor.connect("window-request", self.on_window_request)
+        viewer.editor.connect("visit-node", self.on_visit_node)
 
         # context menus
         self.make_context_menus(viewer)
@@ -685,6 +686,11 @@ class KeepNoteWindow (gtk.Window):
         if isinstance(child, richtext.RichTextImage):
             self.view_image(child.get_filename())
     
+            
+    def on_visit_node(self, widget, node):
+        """Callback for action to visit a node"""        
+        self.viewer.goto_node(node)
+
     
     #===========================================================
     # page and folder actions
