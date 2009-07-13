@@ -416,19 +416,13 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         if not self.undo_stack.is_in_progress() and \
            not self._user_action_ending:
             self._user_action_ending = True
-            self.on_ending_user_action()
+            self.emit("ending-user-action")
             self._user_action_ending = False
         self.undo_stack.end_action()
 
 
-    def on_ending_user_action(self):
-        """
-        Callback for when user action is about to end
-        Convenient for implementing extra actions that should be included
-        in current user action
-        """
-        pass
-
-
-
+gobject.type_register(RichTextBaseBuffer)
+gobject.signal_new("ending-user-action", RichTextBaseBuffer, 
+                   gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, ())
 

@@ -51,6 +51,18 @@ class TestCaseNotebookIndex (unittest.TestCase):
         book2.save()
 
 
+    def test_notebook_title(self):
+
+        nodeid = "0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"
+        path = "test/data/notebook-v3/stress tests"
+        
+        book = notebook.NoteBook()
+        book.load("test/data/notebook-v3")
+
+        print book._index.search_titles("STRESS")
+        print book._index.search_titles("aaa")
+        
+
     def test_notebook_threads(self):
 
         test = self

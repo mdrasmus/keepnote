@@ -1286,7 +1286,7 @@ class KeepNoteWindow (gtk.Window):
 
         actions = map(lambda x: Action(*x),
                       [
-            ("File", None, "_File"),
+            ("File", None, _("_File")),
 
             ("New Notebook", gtk.STOCK_NEW, _("_New Notebook"),
              "", _("Start a new notebook"),
@@ -1326,7 +1326,7 @@ class KeepNoteWindow (gtk.Window):
              lambda w: self.on_quit()),
 
             #=======================================
-            ("Edit", None, "_Edit"),
+            ("Edit", None, _("_Edit")),
             
             ("Undo", gtk.STOCK_UNDO, None,
              "<control>Z", None,
@@ -1392,17 +1392,17 @@ class KeepNoteWindow (gtk.Window):
                                                       kind="file")),
 
             #=======================================
-            ("Go", None, "_Go"),            
+            ("Go", None, _("_Go")),
             
             #=========================================
-            ("Options", None, "_Options"),
+            ("Options", None, _("_Options")),
             
             ("KeepNote Options", gtk.STOCK_PREFERENCES, _("KeepNote _Options"),
              "", None,
              lambda w: self.app_options_dialog.on_app_options()),
 
             #=========================================
-            ("Help", None, "_Help"),
+            ("Help", None, _("_Help")),
             
             ("View Error Log...", gtk.STOCK_DIALOG_ERROR, _("View _Error Log..."),
              "", None,

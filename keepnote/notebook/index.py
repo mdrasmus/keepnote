@@ -99,13 +99,19 @@ class NoteBookIndex (object):
         con, cur = self.get_con()
 
         # init NodeGraph table
-        query = """CREATE TABLE IF NOT EXISTS NodeGraph 
+        con.execute("""CREATE TABLE IF NOT EXISTS NodeGraph 
                        (nodeid TEXT,
                         parentid TEXT,
                         basename TEXT,
                         symlink BOOLEAN);
-                    """
-        cur.execute(query)
+                    """)
+
+        # init Nodes table
+        con.execute("""CREATE TABLE IF NOT EXISTS Nodes
+                       (nodeid TEXT,
+                        title TEXT);
+                    """)
+
         con.commit()
 
 
@@ -129,8 +135,8 @@ class NoteBookIndex (object):
             basename = ""
         symlink = False
         
-
-        # update
+        # NodeGraph
+        # update, insert if new
         ret = cur.execute(
             """UPDATE NodeGraph SET 
                    nodeid=?,
@@ -139,8 +145,6 @@ class NoteBookIndex (object):
                    symlink=?
                    WHERE nodeid = ?""",
             (nodeid, parentid, basename, symlink, nodeid))
-        
-        # insert if new
         if ret.rowcount == 0:
             cur.execute("""
                 INSERT INTO NodeGraph VALUES 
@@ -150,6 +154,22 @@ class NoteBookIndex (object):
              basename,
              symlink,
              ))
+
+        #Nodes
+        # update
+        ret = cur.execute(
+            """UPDATE Nodes SET 
+                   nodeid=?,
+                   title=?
+                   WHERE nodeid = ?""",
+            (nodeid, node.get_title(), nodeid))
+        
+        # insert if new
+        if ret.rowcount == 0:
+            cur.execute("""
+                INSERT INTO Nodes VALUES 
+                   (?, ?)""",
+            (nodeid, node.get_title()))
 
         #con.commit()
 
@@ -165,8 +185,10 @@ class NoteBookIndex (object):
         nodeid = str(node.get_attr("nodeid"))        
 
         # delete node
-        ret = cur.execute(
+        cur.execute(
             "DELETE FROM NodeGraph WHERE nodeid=?", (nodeid,))
+        cur.execute(
+            "DELETE FROM Nodes WHERE nodeid=?", (nodeid,))
         #con.commit()
         
 
@@ -196,6 +218,18 @@ class NoteBookIndex (object):
                 else:
                     return [basename]
         return walk(nodeid)
+
+
+    def search_titles(self, query):
+        """Return nodeids of nodes with matching titles"""
+
+        con, cur = self.get_con()
+
+        cur.execute("""SELECT nodeid, title FROM Nodes WHERE title LIKE ?""",
+                    ("%" + query + "%",))
+        return cur.fetchall()
+
+        
 
 
     def save(self):

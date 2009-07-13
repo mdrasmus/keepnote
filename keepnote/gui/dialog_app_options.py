@@ -25,7 +25,9 @@
 #
 
 # python imports
-import os, sys
+import os
+import sys
+import gettext
 
 # pygtk imports
 import pygtk
@@ -37,6 +39,8 @@ import keepnote
 from keepnote import get_resource
 from keepnote.gui.font_selector import FontSelector
 from keepnote.gui import richtext
+
+_ = gettext.gettext
 
 
 #class Binding (object):
@@ -175,9 +179,9 @@ class ApplicationOptionsDialog (object):
             def button_clicked(key, title, prog):
                 return lambda w: \
                     self.on_browse(key,
-                                   "Choose %s" % title,
+                                   _("Choose %s") % title,
                                    prog)
-            button = gtk.Button("Browse...")
+            button = gtk.Button(_("Browse..."))
             button.set_image(
                 gtk.image_new_from_stock(gtk.STOCK_OPEN,
                                          gtk.ICON_SIZE_SMALL_TOOLBAR))
@@ -247,10 +251,10 @@ class ApplicationOptionsDialog (object):
 
         # populate treestore
         app = overview_store.append(None, [keepnote.PROGRAM_NAME])
-        overview_store.append(app, ["Look and Feel"])
-        overview_store.append(app, ["Helper Applications"])
-        overview_store.append(app, ["Date and Time"])        
-        note = overview_store.append(None, ["This Notebook"])
+        overview_store.append(app, [_("Look and Feel")])
+        overview_store.append(app, [_("Helper Applications")])
+        overview_store.append(app, [_("Date and Time")])
+        note = overview_store.append(None, [_("This Notebook")])
 
         self.overview.expand_all()
 
@@ -291,8 +295,8 @@ class ApplicationOptionsDialog (object):
     
         dialog = gtk.FileChooserDialog(title, self.dialog, 
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
-            buttons=("Cancel", gtk.RESPONSE_CANCEL,
-                     "Open", gtk.RESPONSE_OK))
+            buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
+                     _("Open"), gtk.RESPONSE_OK))
         dialog.set_transient_for(self.dialog)
         dialog.set_modal(True)
                 

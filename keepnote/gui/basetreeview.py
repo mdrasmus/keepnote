@@ -42,8 +42,9 @@ from gtk import gdk
 from keepnote.notebook import NoteBookError, NoteBookTrash
 from keepnote.gui.treemodel import \
      get_path_from_node
-     
 
+CLIPBOARD_NAME = "CLIPBOARD"     
+MIME_NODE = "application/x-keepnote-node"
 
 # treeview drag and drop config
 DROP_URI = ("text/uri-list", 0, 1)
@@ -122,6 +123,9 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # the treeview widget, where drag scrolling will occur
         self._drag_scroll_region = 30
 
+
+        # clipboard
+        self.connect("copy-clipboard", self._on_copy_node)
 
         # drop and drop events
         self.connect("drag-begin", self._on_drag_begin)
@@ -509,6 +513,53 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
         self.emit("edit-title", node, new_text)
         
+
+
+    #=============================================
+    # copy and paste
+
+    def _on_copy_node(self, widget):
+        """Copy a node onto the clipboard"""
+        
+        nodes = widget.get_selected_nodes()
+        if len(nodes) > 0:
+            clipboard = self.get_clipboard(selection=CLIPBOARD_NAME)
+            
+            targets = [(MIME_NODE, gtk.TARGET_SAME_APP, -1),
+                       ("text/html", 0, -1),
+                       ("text/plain", 0, -1)]
+            
+            clipboard.set_with_data(targets, self._get_selection_data, 
+                                    self._clear_selection_data,
+                                    nodes)
+
+
+    def _get_selection_data(self, clipboard, selection_data, info, nodes):
+        """Callback for when Clipboard needs selection data"""        
+
+        if MIME_NODE in selection_data.target:
+            # set nodes
+            selection_data.set(MIME_NODE, 8, 
+                               ";".join([node.get_attr("nodeid") 
+                                         for node in nodes]))
+            
+        elif "text/html" in selection_data.target:
+            # set html            
+            selection_data.set("text/html", 8, 
+                               " ".join(["<a href='nbk:///%s'>%s</a>" % 
+                                         (node.get_attr("nodeid"), 
+                                          node.get_title())
+                                         for node in nodes]))
+
+        else:
+            # set plain text
+            selection_data.set_text(" ".join(["nbk:///%s" % node.get_title()
+                                              for node in nodes]))
+
+    
+    def _clear_selection_data(self, clipboard, data):
+        """Callback for when Clipboard contents are reset"""
+        pass
     
 
     
@@ -842,6 +893,15 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
 
 gobject.type_register(KeepNoteBaseTreeView)
+gobject.signal_new("copy-clipboard", KeepNoteBaseTreeView,
+                   gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, ())
+gobject.signal_new("cut-clipboard", KeepNoteBaseTreeView,
+                   gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, ())
+gobject.signal_new("paste-clipboard", KeepNoteBaseTreeView,
+                   gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, ())
 gobject.signal_new("select-nodes", KeepNoteBaseTreeView,
                    gobject.SIGNAL_RUN_LAST, 
                    gobject.TYPE_NONE, (object,))

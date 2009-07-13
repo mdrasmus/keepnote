@@ -638,14 +638,15 @@ class RichTextBuffer (RichTextBaseBuffer):
 
         # indentation handler
         self._indent = IndentHandler(self)
+        self.connect("ending-user-action", 
+                     lambda w: self._indent.update_indentation())
 
         # font handler
         self.font_handler = FontHandler(self)
         self.font_handler.set_font_class(RichTextFont)
         self.font_handler.connect("font-change",
             lambda w, font: self.emit("font-change", font))
-
-
+        
         # set of all anchors in buffer
         self._anchors = set()
         #self._child_uninit = set()
@@ -705,15 +706,6 @@ class RichTextBuffer (RichTextBaseBuffer):
         """Callback for when selection changes"""
         self.highlight_children()
 
-    def on_ending_user_action(self):
-        """
-        Callback for when user action is about to end
-        Convenient for implementing extra actions that should be included
-        in current user action
-        """
-
-        # perfrom queued indentation updates
-        self._indent.update_indentation()
 
     def on_paragraph_split(self, start, end):
         """Callback for when paragraphs split"""

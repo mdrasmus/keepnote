@@ -121,6 +121,7 @@ class Viewer (gtk.VBox):
 
 
 class ThreePaneViewer (Viewer):
+    """A viewer with a treeview, listview, and editor"""
 
     def __init__(self, app, main_window):
         Viewer.__init__(self)
@@ -132,7 +133,7 @@ class ThreePaneViewer (Viewer):
         # node selections        
         self._current_page = None     # current page in editor
         self._treeview_sel_nodes = [] # current selected nodes in treeview
-        self._queue_list_select = []   # nodes to select in listview after treeview change
+        self._queue_list_select = []  # nodes to select in listview after treeview change
         self._new_page_occurred = False
 
 
@@ -156,7 +157,6 @@ class ThreePaneViewer (Viewer):
         self.listview.connect("error", lambda w,t,e: self.emit("error", t, e))
         self.listview.connect("edit-title", self._on_edit_title)
         self.listview.connect("drop-file", self._on_attach_file)
-        
         
         # editor
         self.editor = KeepNoteEditor(self._app)
@@ -426,6 +426,7 @@ class ThreePaneViewer (Viewer):
     def _on_attach_file(self, widget, parent, index, uri):
         """Attach document"""
         self._main_window.attach_file(uri, parent, index)
+
 
 
     def new_node(self, kind, widget, pos):

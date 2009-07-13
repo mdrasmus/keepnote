@@ -147,8 +147,9 @@ class KeepNoteEditor (gtk.VBox):
                 self._app.open_webpage(url)
             except KeepNoteError, e:
                 self.emit("error", e.msg, e)
-                            
-    
+        
+
+
     def get_textview(self):
         return self._textview
     
