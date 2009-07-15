@@ -31,12 +31,15 @@ pygtk.require('2.0')
 from gtk import gdk
 import gtk, gobject
 
-
+# keepnote imports
+from keepnote import is_url
 
 
 # TODO: make more checks for start, end not None
 
 class LinkEditor (gtk.Frame):
+    """Widget for editing KeepNote links"""
+
     def __init__(self):
         gtk.Frame.__init__(self, "Link editor")
 
@@ -44,6 +47,7 @@ class LinkEditor (gtk.Frame):
         self.current_url = None
         self.active = False
         self.textview = None
+        self.search_nodes = None
 
         self.layout()
 
@@ -79,7 +83,18 @@ class LinkEditor (gtk.Frame):
         self.url_text.connect("key-press-event", self._on_key_press_event)
         self.url_text.connect("focus-in-event", self._on_url_text_start)
         self.url_text.connect("focus-out-event", self._on_url_text_done)
+        self.url_text.connect("changed", self._on_url_text_changed)
         self.url_text.connect("activate", self._on_activate)
+
+        self._liststore = gtk.ListStore(gobject.TYPE_STRING, 
+                                        gobject.TYPE_STRING)
+        self.completion = gtk.EntryCompletion()
+        self.completion.connect("match-selected", self._on_completion_match)
+        self.completion.set_match_func(self._match_func)
+        self.completion.set_model(self._liststore)
+        self.completion.set_text_column(0)
+        self.url_text.set_completion(self.completion)
+        self._ignore_text = False
 
         #self.use_text_check = gtk.CheckButton("_use text as url")
         #vbox.pack_start(self.use_text_check, False, False, 0)
@@ -88,7 +103,41 @@ class LinkEditor (gtk.Frame):
 
         if not self.active:
             self.hide()
+            
 
+    def set_search_nodes(self, search):
+        self.search_nodes = search
+
+
+    def _match_func(self, completion, key_string, iter):
+        return True
+
+    def _on_url_text_changed(self, url_text):
+
+        if not self._ignore_text:
+            self.update_completion()
+
+
+    def update_completion(self):
+
+        text = self.url_text.get_text()
+        
+        self._liststore.clear()
+        if self.search_nodes and len(text) > 0:
+            results = self.search_nodes(text)[:10]
+            for nodeid, title in results:
+                self._liststore.append([title, nodeid])
+        
+        
+
+    def _on_completion_match(self, completion, model, iter):
+        
+        url = "nbk:///%s" % model[iter][1]
+        
+        self._ignore_text = True
+        self.url_text.set_text(url)
+        self._ignore_text = False
+        self.dismiss(True)
 
 
     def _on_use_text_toggled(self, check):
@@ -103,7 +152,6 @@ class LinkEditor (gtk.Frame):
     
     def _on_url_text_done(self, widget, event):
         self.set_url()
-        #pass
 
     def _on_url_text_start(self, widget, event):
 
@@ -111,6 +159,7 @@ class LinkEditor (gtk.Frame):
             tag, start, end = self.textview.get_link()
             if tag:
                 self.textview.get_buffer().select_range(start, end)
+                self.update_completion()
             else:
                 self.dismiss(False)
                 
@@ -122,7 +171,7 @@ class LinkEditor (gtk.Frame):
         
         url = self.url_text.get_text()
         tag, start, end = self.textview.get_link()
-        #print "set", url, start, end
+        
         if start is not None:
             if url == "":
                 self.textview.set_link(None, start, end)
@@ -139,7 +188,9 @@ class LinkEditor (gtk.Frame):
             self.show()
             self.align.show_all()
             self.current_url = font.link.get_href()
+            self._ignore_text = True
             self.url_text.set_text(self.current_url)
+            self._ignore_text = False
 
             if self.textview:
                 gobject.idle_add(lambda :
@@ -185,4 +236,9 @@ class LinkEditor (gtk.Frame):
             if set_url:
                 self.set_url()
             #self.textview.get_buffer().place_cursor(end)
-            self.textview.grab_focus()
+        else:
+            # DEBUG
+            #print "NO LINK"
+            pass
+
+        self.textview.grab_focus()

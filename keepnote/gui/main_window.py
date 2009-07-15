@@ -689,7 +689,7 @@ class KeepNoteWindow (gtk.Window):
             
     def on_visit_node(self, widget, node):
         """Callback for action to visit a node"""        
-        self.viewer.goto_node(node)
+        self.viewer.goto_node(node, False)
 
     
     #===========================================================

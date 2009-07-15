@@ -44,7 +44,7 @@ import gobject
 # keepnote imports
 import keepnote
 from keepnote import \
-     KeepNoteError
+     KeepNoteError, is_url
 from keepnote.notebook import \
      NoteBookError, \
      NoteBookVersionError
@@ -52,6 +52,8 @@ from keepnote import notebook as notebooklib
 from keepnote.gui import richtext
 from keepnote.gui.richtext import \
      RichTextView, RichTextIO, RichTextError, RichTextImage
+from keepnote.gui.richtext.richtext_tags import \
+    RichTextLinkTag
 from keepnote.gui import \
      get_resource, \
      get_resource_image, \
@@ -71,6 +73,186 @@ def set_menu_icon(uimanager, path, filename):
     item.set_image(img)
 
 
+
+
+class PopupWindow (gtk.Window):
+
+    def __init__(self, parent):
+        gtk.Window.__init__(self, gtk.WINDOW_POPUP)
+        self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_MENU)
+        self.set_transient_for(parent.get_toplevel())
+        self.set_flags(gtk.CAN_FOCUS)
+        self.add_events(gtk.gdk.KEY_PRESS_MASK | 
+                        gtk.gdk.KEY_RELEASE_MASK)
+
+
+        self._parent = parent
+        self._down = True
+        self._parent.get_toplevel().connect("configure-event", self._on_configure_event)
+        self._x = 0
+        self._y = 0
+        self._y2 = 0
+
+
+    def _on_configure_event(self, widget, event):
+        self.move_on_parent(self._x, self._y, self._y2)
+
+    def move_on_parent(self, x, y, y2):
+        """Move popup relative to parent widget"""
+
+        self._x = x
+        self._y = y
+        self._y2 = y2
+
+        screenw = gtk.gdk.screen_width()
+        screenh = gtk.gdk.screen_height()
+
+        # account for window
+        wx, wy = self._parent.get_parent_window().get_origin()
+        x3 = wx
+        y3 = wy
+
+        # account for widget
+        rect = self._parent.get_allocation()
+        x3 += rect.x
+        y3 += rect.y 
+
+        # size of popup
+        w, h = self.child.size_request()
+        self.resize(w, h)
+        #w, h = self.get_size()
+
+        if y + y3 + h < screenh:
+            # drop down
+            self.move(x + x3, y + y3)
+        else:
+            # drop up
+            self.move(x + x3, y2 + y3 - h)
+
+    
+
+class LinkPicker (gtk.TreeView):
+
+    def __init__(self):
+        gtk.TreeView.__init__(self)
+
+        self.set_headers_visible(False)
+
+        self.column = gtk.TreeViewColumn()
+        #self.column.set_clickable(False)
+        self.append_column(self.column)
+
+        # create a cell renderers
+        #self.cell_icon = gtk.CellRendererPixbuf()
+        self.cell_text = gtk.CellRendererText()
+        #self.cell_text.connect("editing-started", self.on_editing_started)
+        #self.cell_text.connect("editing-canceled", self.on_editing_canceled)
+        #self.cell_text.connect("edited", self.on_edit_title)
+        #self.cell_text.set_property("editable", True)        
+
+        # add the cells to column
+        #self.column.pack_start(self.cell_icon, False)
+        self.column.pack_start(self.cell_text, True)
+
+        # map cells to columns in treestore
+        #self.column.add_attribute(self.cell_icon, 'pixbuf',
+        #                          self.model.get_column_by_name("icon").pos)
+        #self.column.add_attribute(self.cell_icon, 'pixbuf-expander-open',
+        #                          self.model.get_column_by_name("icon_open").pos)
+        self.column.add_attribute(self.cell_text, 'text', 0)
+
+        self.list = gtk.ListStore(str, str)
+        self.set_model(self.list)
+
+        self.shown = False
+
+
+    def set_links(self, urls):
+        
+        self.list.clear()
+        for nodeid, url in urls[:10]:
+            self.list.append([url, nodeid])            
+
+        
+
+class LinkPickerPopup (PopupWindow):
+
+    def __init__(self, parent):
+        PopupWindow.__init__(self, parent)
+        self._link_picker = LinkPicker()
+        self._link_picker.show()
+
+        self._shown = False
+
+        frame = gtk.Frame()
+        frame.set_shadow_type(gtk.SHADOW_ETCHED_IN)
+        frame.add(self._link_picker)
+        frame.show()
+
+        self.add(frame)
+        
+        #self._link_picker.unset_flags(gtk.CAN_FOCUS)        
+
+
+
+    def set_links(self, urls):
+        self._link_picker.set_links(urls)
+
+        if len(urls) == 0:
+            self.hide()
+            self._shown = False
+        else:
+            self.show()
+            self._shown = True
+
+    def shown(self):
+        return self._shown
+
+
+    def on_key_press_event(self, widget, event):
+
+        model, sel = self._link_picker.get_selection().get_selected()
+
+        
+        if event.keyval == gtk.gdk.keyval_from_name("Down"):
+            
+            if sel is None:
+                self._link_picker.set_cursor((0,))
+            else:
+                i = model.get_path(sel)[0]
+                n = model.iter_n_children(None)
+                if i < n - 1:
+                    self._link_picker.set_cursor((i+1,))
+
+            return True
+
+        elif event.keyval == gtk.gdk.keyval_from_name("Up"):
+
+            if sel is None:
+                n = model.iter_n_children(None)
+                self._link_picker.set_cursor((n-1,))
+            else:
+                i = model.get_path(sel)[0]
+                if i > 0:
+                    self._link_picker.set_cursor((i-1,))
+
+            return True
+
+        elif event.keyval == gtk.gdk.keyval_from_name("Return"):
+            
+            if sel:
+                title, nodeid = model[sel]
+                self.emit("pick-link", title, nodeid)
+                return True
+
+        return False
+
+gobject.type_register(LinkPickerPopup)
+gobject.signal_new("pick-link", LinkPickerPopup, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, (str, str))
+
+
+
 class KeepNoteEditor (gtk.VBox):
 
     def __init__(self, app):
@@ -78,13 +260,16 @@ class KeepNoteEditor (gtk.VBox):
         self._app = app
         self._notebook = None
         
+        self._link_list = None
+                
+
         # state
         self._textview = RichTextView()    # textview
         self._page = None                  # current NoteBookPage
         self._page_scrolls = {}            # remember scroll in each page
         self._page_cursors = {}
         self._textview_io = RichTextIO()
-
+        
         
         self._sw = gtk.ScrolledWindow()
         self._sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
@@ -96,9 +281,11 @@ class KeepNoteEditor (gtk.VBox):
         self._textview.connect("modified", self._on_modified_callback)
         self._textview.connect("child-activated", self._on_child_activated)
         self._textview.connect("visit-url", self._on_visit_url)
+        self._textview.get_buffer().connect("ending-user-action",
+                                            self._on_text_changed)
+        self._textview.connect("key-press-event", self._on_key_press_event)
         self._textview.disable()
-        self.show_all()
-
+        self.show_all()        
 
         self.find_dialog = dialog_find.KeepNoteFindDialog(self)
 
@@ -126,12 +313,18 @@ class KeepNoteEditor (gtk.VBox):
     
     def _on_font_callback(self, textview, font):
         self.emit("font-change", font)
+        self.check_link(False)
     
     def _on_modified_callback(self, textview, modified):
         self.emit("modified", self._page, modified)
 
     def _on_child_activated(self, textview, child):
         self.emit("child-activated", textview, child)
+
+    def _on_text_changed(self, textview):
+        """Callback for text change"""
+
+        self.check_link()
 
 
     def _on_visit_url(self, textview, url):
@@ -147,6 +340,80 @@ class KeepNoteEditor (gtk.VBox):
                 self._app.open_webpage(url)
             except KeepNoteError, e:
                 self.emit("error", e.msg, e)
+        
+
+    def get_link(self):
+        tag, start, end = self._textview.get_link()
+        if tag is None:
+            mark = self._textview.get_buffer().get_insert()
+            it = self._textview.get_buffer().get_iter_at_mark(mark)
+            it.backward_chars(1)
+            tag, start, end = self._textview.get_link(it)
+        return tag, start, end
+            
+
+    def check_link(self, popup=True):
+        
+        # get link
+        tag, start, end = self.get_link()
+
+        if tag is not None and popup:
+            text = start.get_text(end)
+            results = self._notebook._index.search_titles(text)
+
+            if self._link_list is None:
+                self._link_list = LinkPickerPopup(self._textview)
+                self._link_list.connect("pick-link", self._on_pick_link)
+            
+            self._link_list.set_links(results)
+
+            if len(results) > 0:
+                rect = self._textview.get_iter_location(start)
+                x, y = self._textview.buffer_to_window_coords(
+                    gtk.TEXT_WINDOW_WIDGET, rect.x, rect.y)
+                rect = self._textview.get_iter_location(end)
+                _, y = self._textview.buffer_to_window_coords(
+                    gtk.TEXT_WINDOW_WIDGET, rect.x, rect.y)
+
+                self._link_list.move_on_parent(x, y + rect.height, y)
+                
+            
+
+        elif self._link_list:
+            self._link_list.set_links([])
+        
+        
+    def _on_pick_link(self, widget, title, nodeid):
+        
+        tag, start, end = self.get_link()
+        url = "nbk:///" + nodeid
+        tagname = RichTextLinkTag.tag_name(url)        
+        tag = self._textview.get_buffer().tag_table.lookup(tagname)
+        offset = start.get_offset()
+        
+        self._textview.get_buffer().delete(start, end)        
+        it = self._textview.get_buffer().get_iter_at_offset(offset)
+        
+        self._textview.get_buffer().place_cursor(it)
+        self._textview.get_buffer().insert_at_cursor(title)
+
+        mark = self._textview.get_buffer().get_insert()
+        end = self._textview.get_buffer().get_iter_at_mark(mark)
+        start = self._textview.get_buffer().get_iter_at_offset(offset)
+
+        self._textview.set_link(url, start, end)
+        
+        self._textview.get_buffer().font_handler.clear_current_tag_class(tag)
+
+
+    def _on_key_press_event(self, textview, event):
+        
+        if ((event.keyval == gtk.gdk.keyval_from_name("Down") or 
+             event.keyval == gtk.gdk.keyval_from_name("Up") or 
+             event.keyval == gtk.gdk.keyval_from_name("Return")) and
+            self._link_list and self._link_list.shown()):
+            
+            return self._link_list.on_key_press_event(textview, event)
         
 
 
@@ -458,9 +725,9 @@ class EditorMenus (gobject.GObject):
         tag, start, end = textview.get_link()
 
         if tag is not None:
-            if tag.get_href() == "":
+            url = start.get_text(end)
+            if tag.get_href() == "" and is_url(url):
                 # set default url to link text
-                url = start.get_text(end)
                 textview.set_link(url, start, end)
             self.emit("make-link")
     

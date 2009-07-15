@@ -116,7 +116,7 @@ class Viewer (gtk.VBox):
     def make_toolbar(self, toolbar, tips, use_stock_icons):
         pass
 
-    def goto_node(self, node):
+    def goto_node(self, node, direct=True):
         pass
 
 
@@ -173,6 +173,7 @@ class ThreePaneViewer (Viewer):
         self.link_editor.set_textview(self.editor.get_textview())
         self.editor.connect("font-change", self.link_editor.on_font_change)
         self.editor_pane.pack_start(self.link_editor, False, True, 0)
+        self.link_editor.set_search_nodes(self.search_nodes)
 
 
         #=====================================
@@ -327,6 +328,22 @@ class ThreePaneViewer (Viewer):
     def _on_make_link(self, editor_menu):
         self.link_editor.edit()
 
+
+    def search_nodes(self, text):
+        
+        # TODO: make proper interface
+
+        # don't show current page in results list
+        if self._current_page:
+            current_nodeid = self._current_page.get_attr("nodeid")
+        else:
+            current_nodeid = None
+            
+        nodes = [(nodeid, title) 
+                for nodeid, title in self._notebook._index.search_titles(text)
+                if nodeid != current_nodeid]
+        return nodes
+
         
     def _on_tree_select(self, treeview, nodes):
         """Callback for treeview selection change"""
@@ -368,7 +385,7 @@ class ThreePaneViewer (Viewer):
             self.error("Could not load page '%s'" % pages[0].get_title(),
                        e, sys.exc_info()[2])
 
-    def on_list_view_node(self, listview, node):
+    def on_list_view_node(self, listview, node, direct=False):
         """Focus listview on a node"""
         
         if node and node.has_attr("payload_filename"):
@@ -377,7 +394,7 @@ class ThreePaneViewer (Viewer):
                                                         None,
                                                         kind="file")
         else:
-            self.goto_node(node)
+            self.goto_node(node, direct)
         
 
     def on_list_view_parent_node(self, node=None):
@@ -471,14 +488,33 @@ class ThreePaneViewer (Viewer):
             raise Exception("unknown widget '%s'" % widget)
 
 
-    def goto_node(self, node):
+    def goto_node(self, node, direct=True):
         if node is None:
             nodes = self.listview.get_selected_nodes()
             if len(nodes) == 0:
                 return
             node = nodes[0]
         
-        self.treeview.select_nodes([node])
+        if direct:
+            self.treeview.select_nodes([node])
+        else:
+            # get path to root
+            path = []
+            ptr = node
+            while ptr:
+                path.append(ptr)
+                ptr = ptr.get_parent()
+            
+            # find first node that is collapsed
+            for node2 in reversed(path):
+                if not self.treeview.is_node_expanded(node2):
+                    break
+            
+            # make selections
+            self.treeview.select_nodes([node2])
+            self.listview.select_nodes([node])
+                    
+
 
     def goto_next_note(self):
         widget = self.get_focused_widget(self.treeview)

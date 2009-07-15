@@ -227,7 +227,7 @@ class NoteBookIndex (object):
 
         cur.execute("""SELECT nodeid, title FROM Nodes WHERE title LIKE ?""",
                     ("%" + query + "%",))
-        return cur.fetchall()
+        return list(cur.fetchall())
 
         
 

@@ -28,15 +28,21 @@
 
 # python imports
 import gettext
+import imp
 import locale
-import os, sys, shutil, time, re, imp, subprocess, tempfile
+import os
+import shutil
+import sys
+import time
+import re
+import subprocess
+import tempfile
 
-
+# keepnote imports
 from keepnote.notebook import \
     DEFAULT_TIMESTAMP_FORMATS, \
     NoteBookError, \
     get_unique_filename_list
-
 from keepnote import xdg
 from keepnote import xmlobject as xmlo
 from keepnote.listening import Listeners
@@ -106,6 +112,7 @@ def get_resource(*path_list):
 #=============================================================================
 
 def get_platform():
+    """Returns a string for the current platform"""
     global PLATFORM
     
     if PLATFORM is None:    
@@ -120,7 +127,9 @@ def get_platform():
     return PLATFORM
 
 
-
+def is_url(text):
+    """Returns True is text is a url"""
+    return re.match("^[^:]+://", text) is not None
 
 
 #=============================================================================
