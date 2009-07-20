@@ -6,8 +6,8 @@ import gtk
 import gobject
 
 # keepnote imports
+from keepnote.gui import get_node_icon
 from keepnote.gui.popupwindow import PopupWindow
-
     
 
 class LinkPicker (gtk.TreeView):
@@ -30,10 +30,10 @@ class LinkPicker (gtk.TreeView):
         self.column.pack_start(self.cell_text, True)
 
         # map cells to columns in treestore
-        #self.column.add_attribute(self.cell_icon, 'pixbuf', 0)
-        self.column.add_attribute(self.cell_text, 'text', 0)
+        self.column.add_attribute(self.cell_icon, 'pixbuf', 0)
+        self.column.add_attribute(self.cell_text, 'text', 1)
 
-        self.list = gtk.ListStore(str, str)
+        self.list = gtk.ListStore(gtk.gdk.Pixbuf, str, object)
         self.set_model(self.list)
         
         self.maxlinks = 10
@@ -42,8 +42,9 @@ class LinkPicker (gtk.TreeView):
     def set_links(self, urls):
         
         self.list.clear()
-        for nodeid, url in urls[:self.maxlinks]:
-            self.list.append([url, nodeid])            
+        for node, url in urls[:self.maxlinks]:
+            icon = get_node_icon(node, False)
+            self.list.append([icon, url, node])
 
         
 
@@ -64,8 +65,6 @@ class LinkPickerPopup (PopupWindow):
 
         self.add(frame)
        
-
-
 
     def set_links(self, urls):
         self._link_picker.set_links(urls)
@@ -115,8 +114,8 @@ class LinkPickerPopup (PopupWindow):
             # accept selection
 
             if sel:
-                title, nodeid = model[sel]
-                self.emit("pick-link", title, nodeid)
+                icon, title, node = model[sel]
+                self.emit("pick-link", title, node)
                 return True
 
 
@@ -127,6 +126,6 @@ class LinkPickerPopup (PopupWindow):
 
 gobject.type_register(LinkPickerPopup)
 gobject.signal_new("pick-link", LinkPickerPopup, gobject.SIGNAL_RUN_LAST,
-                   gobject.TYPE_NONE, (str, str))
+                   gobject.TYPE_NONE, (str, object))
 
 

@@ -156,7 +156,6 @@ class RichTextBaseTagTable (gtk.TextTagTable):
             
             # remove expired tags
             remove = []
-            print [x.get_property("name") for x in self._expiring_tags]
             for tag in self._expiring_tags:
                 if tag not in saved:
                     remove.append(tag)

@@ -152,8 +152,8 @@ class KeepNoteWindow (gtk.Window):
         self.init_layout()
         self.setup_systray()
 
-        # load preferences
-        self.get_app_preferences()
+        # load preferences for the first time
+        self.load_preferences(True)
         self.set_view_mode(self.app.pref.view_mode)
         
 
@@ -358,7 +358,7 @@ class KeepNoteWindow (gtk.Window):
 
 
     def on_app_options_changed(self):
-        self.get_app_preferences()
+        self.load_preferences()
 
 
     def on_tray_icon_activate(self, icon):
@@ -383,22 +383,26 @@ class KeepNoteWindow (gtk.Window):
     #==============================================
     # Application preferences     
     
-    def get_app_preferences(self):
+    def load_preferences(self, first_open=False):
         """Load preferences"""
         
-        self.resize(*self.app.pref.window_size)
-        self.viewer.load_preferences(self.app.pref)      
+        if first_open:
+            self.resize(*self.app.pref.window_size)
+            if self.app.pref.window_maximized:
+                self.maximize()
+
         self.enable_spell_check(self.app.pref.spell_check)
         self.setup_systray()
 
         if self.app.pref.use_systray:
             self.set_property("skip-taskbar-hint", self.app.pref.skip_taskbar)
+        
+        self.set_recent_notebooks_menu(self.app.pref.recent_notebooks)
 
-        if self.app.pref.window_maximized:
-            self.maximize()
+        self.viewer.load_preferences(self.app.pref, first_open)
     
 
-    def set_app_preferences(self):
+    def save_preferences(self):
         """Save preferences"""
 
         self.app.pref.window_maximized = self._maximized
@@ -411,7 +415,38 @@ class KeepNoteWindow (gtk.Window):
         self.app.pref.write()
         
         
-    
+    def set_recent_notebooks_menu(self, recent_notebooks):
+        """Set the recent notebooks in the file menu"""
+
+        menu = self.uimanager.get_widget("/main_menu_bar/File/Open Recent Notebook")
+
+        # init menu
+        if menu.get_submenu() is None:
+            submenu = gtk.Menu()
+            submenu.show()
+            menu.set_submenu(submenu)
+        menu = menu.get_submenu()
+
+        # clear menu
+        menu.foreach(lambda x: menu.remove(x))
+
+        def make_filename(filename):
+            if len(filename) > 30:
+                base = os.path.basename(filename)
+                pre = min(15 - len(base), 5)
+                return os.path.join(filename[:pre] + "...", base)
+            else:
+                return filename
+
+        def make_func(filename):
+            return lambda w: self.open_notebook(filename)
+
+        # populate menu
+        for i, notebook in enumerate(recent_notebooks):
+            item = gtk.MenuItem(u"%d. %s" % (i+1, make_filename(notebook)))
+            item.connect("activate", make_func(notebook))
+            item.show()
+            menu.append(item)
 
            
     #=============================================
@@ -480,7 +515,7 @@ class KeepNoteWindow (gtk.Window):
     
     def on_quit(self):
         """Close the window and quit"""
-        self.set_app_preferences()
+        self.save_preferences()
         self.close_notebook()
         gtk.accel_map_save(get_accel_file())
 
@@ -568,6 +603,8 @@ class KeepNoteWindow (gtk.Window):
         if filename and not isinstance(filename, unicode):
             filename = unicode(filename, "utf-8")
         
+        # TODO: should this be moved deeper?
+        # convert filenames to their directories
         if os.path.isfile(filename):
             filename = os.path.dirname(filename)
 
@@ -606,6 +643,7 @@ class KeepNoteWindow (gtk.Window):
                        e, sys.exc_info()[2])
             return None
 
+        # TODO: make a gui/app open_notebook function that does this
         # check for icons
         if len(notebook.pref.get_quick_pick_icons()) == 0:
             notebook.pref.set_quick_pick_icons(
@@ -623,6 +661,9 @@ class KeepNoteWindow (gtk.Window):
         # setup auto-saving
         self.begin_auto_save()
         
+        # save notebook to recent notebooks
+        self.add_recent_notebook(filename)
+
         return self.notebook
         
         
@@ -672,6 +713,18 @@ class KeepNoteWindow (gtk.Window):
         
         self.notebook = notebook
         self.viewer.set_notebook(notebook)
+
+
+    def add_recent_notebook(self, filename):
+        """Add recent notebook"""
+        
+        if filename in self.app.pref.recent_notebooks:
+            self.app.pref.recent_notebooks.remove(filename)
+        
+        self.app.pref.recent_notebooks = \
+            [filename] + self.app.pref.recent_notebooks[:keepnote.gui.MAX_RECENT_NOTEBOOKS]
+
+        self.app.pref.changed.notify()
 
     #=============================================================
     # Treeview, listview, editor callbacks
@@ -782,6 +835,7 @@ class KeepNoteWindow (gtk.Window):
 
 
     def focus_on_search_box(self):
+        """Place cursor in search box"""
         self.search_box.grab_focus()
 
 
@@ -1308,6 +1362,9 @@ class KeepNoteWindow (gtk.Window):
              "<control>O", _("Open an existing notebook"),
              lambda w: self.on_open_notebook()),
             
+            ("Open Recent Notebook", gtk.STOCK_OPEN, 
+             _("Open R_ecent Notebook")),
+
             ("Reload Notebook", gtk.STOCK_REVERT_TO_SAVED,
              _("_Reload Notebook"),
              "", _("Reload the current notebook"),
@@ -1434,6 +1491,12 @@ class KeepNoteWindow (gtk.Window):
              "", None,
              lambda w: self.set_view_mode("vertical"))])
 
+
+        # make sure recent notebooks is always visible
+        recent = [x for x in actions 
+                  if x.get_property("name") == "Open Recent Notebook"][0]
+        recent.set_property("is-important", True)
+
         return actions
 
     def setup_menus(self, uimanager):
@@ -1455,6 +1518,7 @@ class KeepNoteWindow (gtk.Window):
      <menuitem action="New Folder"/>
      <separator/>
      <menuitem action="Open Notebook"/>
+     <menuitem action="Open Recent Notebook"/>
      <menuitem action="Reload Notebook"/>
      <menuitem action="Save Notebook"/>
      <menuitem action="Close Notebook"/>
@@ -1621,10 +1685,22 @@ class KeepNoteWindow (gtk.Window):
         item = gtk.ToolItem()
         self.search_box = gtk.Entry()
         #self.search_box.set_max_chars(30)
+        self.search_box.connect("changed", self._on_search_box_text_changed)
         self.search_box.connect("activate",
                                 lambda w: self.on_search_nodes())
         item.add(self.search_box)
         toolbar.insert(item, -1)
+
+        self.search_box_list = gtk.ListStore(gobject.TYPE_STRING, 
+                                             gobject.TYPE_STRING)
+        self.search_box_completion = gtk.EntryCompletion()
+        self.search_box_completion.connect("match-selected", 
+                                           self._on_search_box_completion_match)
+        self.search_box_completion.set_match_func(lambda c, k, i: True)
+        self.search_box_completion.set_model(self.search_box_list)
+        self.search_box_completion.set_text_column(0)
+        self.search_box.set_completion(self.search_box_completion)
+        self._ignore_text = False
 
         # search button
         self.search_button = gtk.ToolButton()
@@ -1636,6 +1712,30 @@ class KeepNoteWindow (gtk.Window):
         
                 
         return toolbar
+
+
+    def _on_search_box_text_changed(self, url_text):
+
+        if not self._ignore_text:
+            self.search_box_update_completion()
+
+    def search_box_update_completion(self):
+
+        text = self.search_box.get_text()
+        
+        self.search_box_list.clear()
+        if len(text) > 0:
+            results = self.notebook.search_node_titles(text)[:10]
+            for nodeid, title in results:
+                self.search_box_list.append([title, nodeid])
+
+    def _on_search_box_completion_match(self, completion, model, iter):
+        
+        nodeid = model[iter][1]
+
+        node = self.notebook.get_node_by_id(nodeid)
+        if node:
+            self.viewer.goto_node(node, False)
 
 
     def make_image_menu(self, menu):

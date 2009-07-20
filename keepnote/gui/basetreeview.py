@@ -546,14 +546,14 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         elif "text/html" in selection_data.target:
             # set html            
             selection_data.set("text/html", 8, 
-                               " ".join(["<a href='nbk:///%s'>%s</a>" % 
-                                         (node.get_attr("nodeid"), 
+                               " ".join(["<a href='%s'>%s</a>" % 
+                                         (node.get_url(), 
                                           node.get_title())
                                          for node in nodes]))
 
         else:
             # set plain text
-            selection_data.set_text(" ".join(["nbk:///%s" % node.get_title()
+            selection_data.set_text(" ".join([node.get_url()
                                               for node in nodes]))
 
     

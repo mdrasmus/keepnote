@@ -33,6 +33,8 @@ import gtk, gobject
 
 # keepnote imports
 from keepnote import is_url
+from keepnote.notebook import get_node_url
+
 
 
 # TODO: make more checks for start, end not None
@@ -132,7 +134,7 @@ class LinkEditor (gtk.Frame):
 
     def _on_completion_match(self, completion, model, iter):
         
-        url = "nbk:///%s" % model[iter][1]
+        url = get_node_url(model[iter][1])
         
         self._ignore_text = True
         self.url_text.set_text(url)

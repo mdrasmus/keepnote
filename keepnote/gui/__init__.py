@@ -52,6 +52,8 @@ import keepnote.notebook as notebooklib
 gtk.glade.bindtextdomain(keepnote.GETTEXT_DOMAIN, keepnote.get_locale_dir())
 
 
+MAX_RECENT_NOTEBOOKS = 10
+
 
 ACCEL_FILE = "accel.txt"
 

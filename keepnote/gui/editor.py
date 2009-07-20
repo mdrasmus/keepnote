@@ -47,7 +47,9 @@ from keepnote import \
      KeepNoteError, is_url
 from keepnote.notebook import \
      NoteBookError, \
-     NoteBookVersionError
+     NoteBookVersionError, \
+     parse_node_url, \
+     is_node_url
 from keepnote import notebook as notebooklib
 from keepnote.gui import richtext
 from keepnote.gui.richtext import \
@@ -85,22 +87,19 @@ class KeepNoteEditor (gtk.VBox):
         self._notebook = None
         
         self._link_picker = None
+        self._maxlinks = 10 # maximum number of links to show in link picker
                 
 
         # state
-        self._textview = RichTextView()    # textview
         self._page = None                  # current NoteBookPage
         self._page_scrolls = {}            # remember scroll in each page
         self._page_cursors = {}
         self._textview_io = RichTextIO()
         
         
-        self._sw = gtk.ScrolledWindow()
-        self._sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        self._sw.set_shadow_type(gtk.SHADOW_IN)       
-        self._sw.add(self._textview)
-        self.pack_start(self._sw)
-        
+        # textview and its callbacks
+        self._textview = RichTextView()    # textview
+        self._textview.disable()        
         self._textview.connect("font-change", self._on_font_callback)
         self._textview.connect("modified", self._on_modified_callback)
         self._textview.connect("child-activated", self._on_child_activated)
@@ -108,10 +107,18 @@ class KeepNoteEditor (gtk.VBox):
         self._textview.get_buffer().connect("ending-user-action",
                                             self._on_text_changed)
         self._textview.connect("key-press-event", self._on_key_press_event)
-        self._textview.disable()
-        self.show_all()        
 
+        # scrollbars
+        self._sw = gtk.ScrolledWindow()
+        self._sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self._sw.set_shadow_type(gtk.SHADOW_IN)       
+        self._sw.add(self._textview)
+        self.pack_start(self._sw)
+        
+        # find dialog
         self.find_dialog = dialog_find.KeepNoteFindDialog(self)
+
+        self.show_all()
 
 
     def set_notebook(self, notebook):
@@ -275,8 +282,8 @@ class KeepNoteEditor (gtk.VBox):
     def _on_visit_url(self, textview, url):
         """Callback for textview visiting a URL"""
 
-        if url.startswith("nbk:///"):
-            nodeid = url[7:]
+        if is_node_url(url):
+            host, nodeid = parse_node_url(url)
             node = self._notebook.get_node_by_id(nodeid)
             if node:
                 self.emit("visit-node", node)
@@ -300,7 +307,10 @@ class KeepNoteEditor (gtk.VBox):
         if tag is not None and popup:
             # perform node search
             text = start.get_text(end)
-            results = self._notebook._index.search_titles(text)
+            results = self._notebook.search_node_titles(text)[:self._maxlinks]
+            results = [[self._notebook.get_node_by_id(nodeid), title]
+                       for nodeid, title in results]
+                
 
             # ensure link picker is initialized
             if self._link_picker is None:
@@ -326,14 +336,14 @@ class KeepNoteEditor (gtk.VBox):
             self._link_picker.set_links([])
         
         
-    def _on_pick_link(self, widget, title, nodeid):
+    def _on_pick_link(self, widget, title, node):
         """Callback for when link autocomplete has choosen a link"""
         
         # get current link
         tag, start, end = self.get_link()
 
         # make new link tag
-        url = "nbk:///" + nodeid
+        url = node.get_url()
         tagname = RichTextLinkTag.tag_name(url)
         tag = self._textview.get_buffer().tag_table.lookup(tagname)
 

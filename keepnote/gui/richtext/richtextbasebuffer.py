@@ -406,8 +406,6 @@ class RichTextBaseBuffer (gtk.TextBuffer):
     
     def _on_begin_user_action(self, textbuffer):
         """Begin a composite undo/redo action"""
-
-        #self._user_action = True
         self.undo_stack.begin_action()
 
     def _on_end_user_action(self, textbuffer):

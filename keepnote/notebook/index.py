@@ -27,6 +27,7 @@
 # python imports
 import os
 from thread import get_ident
+
 from sqlite3 import dbapi2 as sqlite
 
 # keepnote imports
@@ -41,6 +42,49 @@ INDEX_FILE = "index.sqlite"
 def get_index_file(notebook):
     """Get the index filename for a notebook"""
     return os.path.join(notebook.get_pref_dir(), INDEX_FILE)
+
+
+class NoteBookIndexDummy (object):
+    """Index for a NoteBook"""
+
+    def __init__(self, notebook):
+        pass
+
+    def open(self):
+        """Open connection to index"""
+        pass
+
+    def get_con(self):
+        """Get connection for thread"""
+        pass
+
+    def close(self):
+        """Close connection to index"""
+        pass
+
+    def init_index(self):
+        """Initialize the tables in the index if they do not exist"""
+        pass
+            
+    def add_node(self, node):
+        """Add a node to the index"""
+        pass
+
+    def remove_node(self, node):
+        """Remove node from index"""
+        pass
+        
+    def get_node_path(self, nodeid):
+        """Get node path for a nodeid"""
+        return None
+
+    def search_titles(self, query):
+        """Return nodeids of nodes with matching titles"""
+        return []
+
+    def save(self):
+        """Save index"""
+        pass
 
 
 
@@ -63,12 +107,12 @@ class NoteBookIndex (object):
         if self.con is None:
             self.con = {}
 
-            index_file = get_index_file(self._notebook)
-        con = sqlite.connect(index_file, isolation_level="EXCLUSIVE")
+        index_file = get_index_file(self._notebook)
+        con = sqlite.connect(index_file, isolation_level="DEFERRED")
         self.con[get_ident()] = (con, con.cursor())
 
-
         self.init_index()
+
 
     def get_con(self):
         """Get connection for thread"""
@@ -76,7 +120,7 @@ class NoteBookIndex (object):
         ident = get_ident()
         if ident not in self.con:
             index_file = get_index_file(self._notebook)
-            con = sqlite.connect(index_file, isolation_level="EXCLUSIVE")
+            con = sqlite.connect(index_file, isolation_level="DEFERRED")
             self.con[ident] = (con, con.cursor())
             
         return self.con[ident]
@@ -106,11 +150,20 @@ class NoteBookIndex (object):
                         symlink BOOLEAN);
                     """)
 
+        con.execute("""CREATE INDEX IF NOT EXISTS IdxNodeGraphNodeid 
+                       ON NodeGraph (nodeid);""")
+        con.execute("""CREATE INDEX IF NOT EXISTS IdxNodeGraphParentid 
+                       ON NodeGraph (parentid);""")
+
+
         # init Nodes table
         con.execute("""CREATE TABLE IF NOT EXISTS Nodes
                        (nodeid TEXT,
                         title TEXT);
                     """)
+
+        con.execute("""CREATE INDEX IF NOT EXISTS IdxNodesTitle 
+                       ON Nodes (Title);""")
 
         con.commit()
 
@@ -225,8 +278,11 @@ class NoteBookIndex (object):
 
         con, cur = self.get_con()
 
-        cur.execute("""SELECT nodeid, title FROM Nodes WHERE title LIKE ?""",
-                    ("%" + query + "%",))
+        # order titles by exact matches and then alphabetically
+        cur.execute("""SELECT nodeid, title FROM Nodes WHERE title LIKE ?
+                       ORDER BY title != ?, title """,
+                    ("%" + query + "%", query))
+        
         return list(cur.fetchall())
 
         
@@ -240,3 +296,6 @@ class NoteBookIndex (object):
             con.commit()
 
 
+
+
+#NoteBookIndex = NoteBookIndexDummy

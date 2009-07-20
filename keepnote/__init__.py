@@ -251,7 +251,7 @@ def get_user_extensions_dir(pref_dir=None, home=None):
 
 def get_system_extensions_dir():
     """Returns system-wdie extensions directory"""
-    return os.path.join(BASEDIR, "extensions")
+    return os.path.join(BASEDIR, u"extensions")
 
 
 def get_user_documents(home=None):
@@ -266,7 +266,7 @@ def get_user_documents(home=None):
         home = os.getenv("USERPROFILE")
 
         # TODO can I find a way to find "My Documents"?
-        return os.path.join(home, "My Documents")
+        return os.path.join(home, u"My Documents")
     
     else:
         return ""
@@ -453,8 +453,6 @@ class KeepNotePreferences (object):
         self.vsash_pos = DEFAULT_VSASH_POS
         self.hsash_pos = DEFAULT_HSASH_POS        
         self.view_mode = DEFAULT_VIEW_MODE
-
-        self.last_treeview_node_path = []
         
         self.treeview_lines = True
         self.listview_rules = True
@@ -481,6 +479,8 @@ class KeepNotePreferences (object):
         self.save_image_path = get_user_documents()
         self.attach_file_path = get_user_documents()
         
+        self.recent_notebooks = []
+
         # temp variables for parsing
         self._last_timestamp_name = ""
         self._last_timestamp_format = ""
@@ -600,10 +600,6 @@ g_keepnote_pref_parser = xmlo.XmlObject(
         xmlo.Tag("hsash_pos",
                  attr=("hsash_pos", int, compose(str, int))),
 
-        #xmlo.Tag("last_treeview_node_path",
-        #         getobj=("last_treeview_node_path",
-        #                 lambda x: x.split("/")),
-        #         set=lambda s: "/".join(s.last_tree_view_node_path)),
         
         xmlo.Tag("treeview_lines",
                  attr=("treeview_lines", xmlo.str2bool, xmlo.bool2str)),
@@ -644,6 +640,17 @@ g_keepnote_pref_parser = xmlo.XmlObject(
         xmlo.Tag("attach_file_path",
                  attr=("attach_file_path", None, None)),
         
+
+        # recent notebooks
+        xmlo.Tag("recent_notebooks", tags=[
+           xmlo.TagMany("notebook",
+                iterfunc=lambda s: range(len(s.recent_notebooks)),
+                get=lambda (s, i), x: s.recent_notebooks.append(x),
+                set=lambda (s, i): s.recent_notebooks[i]
+                        )
+           ]),
+
+
         xmlo.Tag("external_apps", tags=[
 
            xmlo.TagMany("app",

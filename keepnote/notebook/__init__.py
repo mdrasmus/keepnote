@@ -236,9 +236,9 @@ def read_data_as_plain_text(infile):
         yield strip_tags(line)
 
 
+
 #=============================================================================
 # functions
-
 
 def get_notebook_version(filename):
     """Read the version of a notebook from its preference file"""
@@ -260,7 +260,24 @@ def get_notebook_version(filename):
 
 def new_nodeid():
     """Generate a new node id"""
-    return uuid.uuid4()
+    return str(uuid.uuid4())
+
+
+def get_node_url(nodeid, host=""):
+    """Get URL for a nodeid"""
+    return "nbk://%s/%s" % (host, nodeid)
+
+
+def is_node_url(url):
+    return url.startswith("nbk://")
+
+def parse_node_url(url):
+    match = re.match("nbk://([^/]*)/(.*)", url)
+    if match:
+        return match.groups()
+    else:
+        raise Exception("bad node URL")
+    
 
 
 #=============================================================================
@@ -483,6 +500,11 @@ class NoteBookNode (object):
         """Returns the basename of the node"""
 
         return self._basename
+
+
+    def get_url(self, host=""):
+        """Returns URL for node"""
+        return get_node_url(self._attr["nodeid"], host)
 
 
     #=======================================
@@ -1102,7 +1124,7 @@ g_notebook_pref_parser = xmlo.XmlObject(
                 get=lambda (s,i),x:
                     s._quick_pick_icons.append(x),
                 set=lambda (s,i): s._quick_pick_icons[i])
-        ])
+        ]),
     ]))
 
 
@@ -1196,7 +1218,6 @@ class NoteBook (NoteBookDir):
 
         # init index database
         self._index = notebook_index.NoteBookIndex(self)
-
 
     
     def load(self, filename=None):
@@ -1398,6 +1419,9 @@ class NoteBook (NoteBookDir):
         return UNIVERSAL_ROOT
     
     
+    #================================================
+    # search
+
     def get_node_by_id(self, nodeid):
         """Lookup node by nodeid"""
 
@@ -1428,6 +1452,12 @@ class NoteBook (NoteBookDir):
             return None
         
         return os.path.join(self.get_path(), *path[1:])
+
+
+    def search_node_titles(self, text):
+        """Search nodes by title"""
+        return self._index.search_titles(text)
+
 
     def close(self):
         """Close notebook"""
