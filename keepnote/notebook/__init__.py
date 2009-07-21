@@ -1092,9 +1092,12 @@ class NoteBookTrash (NoteBookDir):
 class NoteBookPreferences (object):
     """Preference data structure for a NoteBook"""
     def __init__(self):
-        
+
         self.version = NOTEBOOK_FORMAT_VERSION
         self.default_font = DEFAULT_FONT
+        self.selected_treeview_nodes = []
+        self.selected_listview_nodes = []
+
         self._quick_pick_icons = []
 
         self.quick_pick_icons_changed = Listeners()
@@ -1118,6 +1121,16 @@ g_notebook_pref_parser = xmlo.XmlObject(
             attr=("version", int, str)),
         xmlo.Tag("default_font",
             attr=("default_font", None, None)),
+
+        xmlo.Tag("selected_treeview_nodes",
+                 attr=("selected_treeview_nodes", 
+                       lambda x: x.split(","), 
+                       lambda x: ",".join(x))),
+        xmlo.Tag("selected_listview_nodes",
+                 attr=("selected_listview_nodes",
+                       lambda x: x.split(","), 
+                       lambda x: ",".join(x))),
+
         xmlo.Tag("quick_pick_icons", tags=[
             xmlo.TagMany("icon",
                 iterfunc=lambda s: range(len(s._quick_pick_icons)),
@@ -1480,6 +1493,11 @@ class NoteBook (NoteBookDir):
         """Gets the NoteBook's icon directory"""
         return get_icon_dir(self.get_path())
     
+
+    def set_preferences_dirty(self):
+        """Notifies notebook that preferences need saving"""
+        self._set_dirty(True)
+
     
     def write_preferences(self):
         """Writes the NoteBooks preferences to the file-system"""

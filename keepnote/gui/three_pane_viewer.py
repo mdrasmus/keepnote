@@ -221,8 +221,22 @@ class ThreePaneViewer (Viewer):
         self.treeview.set_notebook(notebook)
 
         self.treeview.menu.iconmenu.set_notebook(notebook)
-        self.listview.menu.iconmenu.set_notebook(notebook)
-        
+        self.listview.menu.iconmenu.set_notebook(notebook)            
+
+        # restore selections
+        if self._notebook:
+            nodes = [node for node in (
+                    self._notebook.get_node_by_id(i)
+                    for i in self._notebook.pref.selected_treeview_nodes)
+                     if node is not None]
+            self.treeview.select_nodes(nodes)
+            nodes = [node for node in (
+                    self._notebook.get_node_by_id(i)
+                    for i in self._notebook.pref.selected_listview_nodes)
+                     if node is not None]
+            self.listview.select_nodes(nodes)
+
+
         self.treeview.grab_focus()
 
 
@@ -256,29 +270,6 @@ class ThreePaneViewer (Viewer):
     def load_preferences(self, app_pref, first_open=False):
         """Load application preferences"""
 
-        '''
-        xmlo.Tag("selected_treeview_nodes",
-                 attr=("selected_treeview_nodes", 
-                       lambda x: x.split(","), 
-                       lambda x: ",".join(x))),
-        xmlo.Tag("selected_listview_nodes",
-                 attr=("selected_listview_nodes",
-                       lambda x: x.split(","), 
-                       lambda x: ",".join(x))),
-
-        if first_open:
-            nodes = [node 
-                     for node in (self._notebook.get_node_by_id(i)
-                                  for i in app_pref.selected_treeview_nodes)
-                     if node is not None]
-            self.treeview.select_nodes(nodes)
-            nodes = [node 
-                     for node in (self._notebook.get_node_by_id(i)
-                                  for i in app_pref.selected_listview_nodes)
-                     if node is not None]
-            self.listview.select_nodes(nodes)
-            '''
-
         self.paned2.set_position(app_pref.vsash_pos)
         self.hpaned.set_position(app_pref.hsash_pos)
 
@@ -298,18 +289,21 @@ class ThreePaneViewer (Viewer):
         app_pref.vsash_pos = self.paned2.get_position()
         app_pref.hsash_pos = self.hpaned.get_position()
         
-        '''
-        app_pref.selected_treeview_nodes = [
-            node.get_attr("nodeid")
-            for node in self.treeview.get_selected_nodes]
-        app_pref.selected_listview_nodes = [
-            node.get_attr("nodeid")
-            for node in self.listview.get_selected_nodes]
-        '''
+
 
 
     def save(self):
         self.editor.save()
+
+        # save selections
+        self._notebook.pref.selected_treeview_nodes = [
+            node.get_attr("nodeid")
+            for node in self.treeview.get_selected_nodes()]
+        self._notebook.pref.selected_listview_nodes = [
+            node.get_attr("nodeid")
+            for node in self.listview.get_selected_nodes()]
+        self._notebook.set_preferences_dirty()
+
 
     def undo(self):
         self.editor.get_textview().undo()

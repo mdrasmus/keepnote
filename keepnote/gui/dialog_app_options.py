@@ -391,6 +391,7 @@ class ApplicationOptionsDialog (object):
                 self.notebook_font_family.get_family(),
                 self.notebook_font_size.get_value())
 
+            # TODO: move this out.  Use signals to envoke save
             self.main_window.notebook.write_preferences()
             self.main_window.notebook.notify_change(False)
             

@@ -60,8 +60,8 @@ from keepnote import tarfile
 
 PROGRAM_NAME = "KeepNote"
 PROGRAM_VERSION_MAJOR = 0
-PROGRAM_VERSION_MINOR = 5
-PROGRAM_VERSION_RELEASE = 3
+PROGRAM_VERSION_MINOR = 6
+PROGRAM_VERSION_RELEASE = 0
 
 if PROGRAM_VERSION_RELEASE != 0:
     PROGRAM_VERSION_TEXT = "%d.%d.%d" % (PROGRAM_VERSION_MAJOR,
@@ -110,6 +110,7 @@ def get_resource(*path_list):
 
 
 #=============================================================================
+# common functions
 
 def get_platform():
     """Returns a string for the current platform"""
@@ -130,6 +131,13 @@ def get_platform():
 def is_url(text):
     """Returns True is text is a url"""
     return re.match("^[^:]+://", text) is not None
+
+
+def ensure_unicode(text, encoding="utf8"):
+    """Ensures a string is unicode"""
+    if not isinstance(text, unicode):
+        return unicode(text, encoding)
+    return text
 
 
 #=============================================================================
@@ -815,8 +823,7 @@ class KeepNote (object):
     def take_screenshot(self, filename):
 
         # make sure filename is unicode
-        if filename and not isinstance(filename, unicode):
-            filename = unicode(filename, "utf-8")
+        filename = ensure_unicode(filename, "utf-8")
 
         if get_platform() == "windows":
             # use win32api to take screenshot
