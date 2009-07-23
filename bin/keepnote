@@ -237,18 +237,23 @@ def main(argv):
         cmd_exec.set_app(app)
 
         
-
         # start KeepNote
         if len(args) > 0:
             # open specified notebook
-            app.open_notebook(args[0].rstrip("/"))
+            win = app.new_window()
+            win.open_notebook(args[0].rstrip("/"))
+
+            #app.open_notebook(args[0].rstrip("/"))
 
         elif options.default_notebook and app.pref.default_notebook != "":
             # open default notebook
-            app.open_notebook(app.pref.default_notebook)
+            win = app.new_window()
+            win.open_notebook(app.pref.default_notebook)
+
+            #app.open_notebook(app.pref.default_notebook)
 
         else:
-            app.show_main_window()
+            app.new_window()
 
         gtk.main()
         

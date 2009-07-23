@@ -48,6 +48,7 @@ from keepnote import \
 from keepnote.notebook import \
      NoteBookError, \
      NoteBookVersionError, \
+     get_node_url, \
      parse_node_url, \
      is_node_url
 from keepnote import notebook as notebooklib
@@ -62,7 +63,10 @@ from keepnote.gui import \
      get_resource_pixbuf, \
      Action, \
      ToggleAction, \
-     update_file_preview
+     get_node_icon, \
+     update_file_preview, \
+     lookup_icon_filename, \
+     get_pixbuf
 from keepnote.gui.font_selector import FontSelector
 from keepnote.gui.colortool import FgColorTool, BgColorTool
 from keepnote.gui.richtext.richtext_tags import color_tuple_to_string
@@ -307,10 +311,10 @@ class KeepNoteEditor (gtk.VBox):
         if tag is not None and popup:
             # perform node search
             text = start.get_text(end)
-            results = self._notebook.search_node_titles(text)[:self._maxlinks]
-            results = [[self._notebook.get_node_by_id(nodeid), title]
-                       for nodeid, title in results]
-                
+            results = [[nodeid, title, 
+                        get_node_icon(self._notebook.get_node_by_id(nodeid))] 
+                       for nodeid, title in 
+                       self._notebook.search_node_titles(text)[:self._maxlinks]]
 
             # ensure link picker is initialized
             if self._link_picker is None:
@@ -335,15 +339,24 @@ class KeepNoteEditor (gtk.VBox):
         elif self._link_picker:
             self._link_picker.set_links([])
         
+    def _icon_lookup(self, basename):
         
-    def _on_pick_link(self, widget, title, node):
+        if basename is None or basename == "":
+            basename = "note.png"
+        filename = lookup_icon_filename(self._notebook, basename)
+
+        # TODO: remove hardcoded icon size
+        return get_pixbuf(filename, (15, 15))
+
+        
+    def _on_pick_link(self, widget, title, nodeid):
         """Callback for when link autocomplete has choosen a link"""
         
         # get current link
         tag, start, end = self.get_link()
 
         # make new link tag
-        url = node.get_url()
+        url = get_node_url(nodeid) #node.get_url()
         tagname = RichTextLinkTag.tag_name(url)
         tag = self._textview.get_buffer().tag_table.lookup(tagname)
 
@@ -851,31 +864,31 @@ class EditorMenus (gobject.GObject):
              "<control>H", None,
              lambda w: self._editor.on_insert_hr()),
             
-            ("Insert Image", None, _("Insert _Image"),
+            ("Insert Image", None, _("Insert _Image..."),
              "", None,
              lambda w: self._editor.on_insert_image()),
             
-            ("Insert Screenshot", None, _("Insert _Screenshot"),
+            ("Insert Screenshot", None, _("Insert _Screenshot..."),
              "<control>Insert", None,
              lambda w: self._editor.on_screenshot()),
 
 
             # finding
-            ("Find In Page", gtk.STOCK_FIND, _("_Find In Page"),
+            ("Find In Page", gtk.STOCK_FIND, _("_Find In Page..."),
              "<control>F", None,
              lambda w: self._editor.find_dialog.on_find(False)),
             
-            ("Find Next In Page", gtk.STOCK_FIND, _("Find _Next In Page"),
+            ("Find Next In Page", gtk.STOCK_FIND, _("Find _Next In Page..."),
              "<control>G", None,
              lambda w: self._editor.find_dialog.on_find(False, forward=True)),
                         
             ("Find Previous In Page", gtk.STOCK_FIND,
-             _("Find Pre_vious In Page"),
+             _("Find Pre_vious In Page..."),
              "<control><shift>G", None,
              lambda w: self._editor.find_dialog.on_find(False, forward=False)),
             
             ("Replace In Page", gtk.STOCK_FIND_AND_REPLACE, 
-             _("_Replace In Page"), 
+             _("_Replace In Page..."), 
              "<control><shift>R", None,
              lambda w: self._editor.find_dialog.on_find(True)),
 

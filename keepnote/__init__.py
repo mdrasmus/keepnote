@@ -43,6 +43,7 @@ from keepnote.notebook import \
     DEFAULT_TIMESTAMP_FORMATS, \
     NoteBookError, \
     get_unique_filename_list
+import keepnote.notebook as notebooklib
 from keepnote import xdg
 from keepnote import xmlobject as xmlo
 from keepnote.listening import Listeners
@@ -742,6 +743,7 @@ class KeepNote (object):
 
         # list of application windows
         self._windows = []
+        self._notebooks = {}
         
         # get extensions list
         self._extensions = {}
@@ -750,9 +752,35 @@ class KeepNote (object):
         self.init_extensions()
 
         
+    def open_notebook(self, filename, window=None):
+        """Open notebook"""
 
-    def show_main_window(self):
-        """show main window"""
+        # TODO: think about error dialogs without main window
+        
+        from keepnote.gui import dialog_update_notebook
+
+        version = notebooklib.get_notebook_version(filename)
+            
+        if version < notebooklib.NOTEBOOK_FORMAT_VERSION:
+            dialog = dialog_update_notebook.UpdateNoteBookDialog(self.app, window)
+            if not dialog.show(filename, version=version):
+                raise NoteBookError(_("Cannot open notebook (version too old)"))
+
+        notebook = notebooklib.NoteBook()
+        notebook.load(filename)
+
+
+        if len(notebook.pref.get_quick_pick_icons()) == 0:
+            notebook.pref.set_quick_pick_icons(
+                list(keepnote.gui.DEFAULT_QUICK_PICK_ICONS))
+            notebook.write_preferences()
+
+        return notebook
+
+
+    def new_window(self):
+        """Create a new main window"""
+
         from keepnote.gui import main_window
 
         window = main_window.KeepNoteWindow(self)        
@@ -762,16 +790,19 @@ class KeepNote (object):
         window.show_all()
 
         return window
+    
 
+    def get_notebook(self, filename, window=None):
         
-    def open_notebook(self, filename, window=None):
-        """Open notebook in window"""
-        if len(self._windows) == 0:
-            window = self.show_main_window()
-        if window is None:
-            window = self._windows[-1]
-        window.open_notebook(filename)
+        filename = os.path.realpath(filename)
+        if filename not in self._notebooks:
+            self._notebooks[filename] = self.open_notebook(filename, window)
 
+        return self._notebooks[filename]
+            
+
+    #==================================
+    # actions
 
     def run_external_app(self, app_key, filename, wait=False):
         """Runs a registered external application on a file"""
@@ -924,7 +955,7 @@ class Extension (object):
 
     version = "1.0"
     name = "untitled"
-    description = "extension"
+    description = "base extension"
 
 
     def __init__(self, app):

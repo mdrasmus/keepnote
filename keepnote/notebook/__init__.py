@@ -1467,14 +1467,17 @@ class NoteBook (NoteBookDir):
         return os.path.join(self.get_path(), *path[1:])
 
 
-    def search_node_titles(self, text):
+    def search_node_titles(self, text, cols=[]):
         """Search nodes by title"""
-        return self._index.search_titles(text)
+        return self._index.search_titles(text, cols)
 
 
-    def close(self):
+    def close(self, save=True):
         """Close notebook"""
-        
+
+        if save:
+            self.save()
+
         self._index.close()
 
 

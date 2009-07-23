@@ -606,27 +606,14 @@ class KeepNoteWindow (gtk.Window):
         if os.path.isfile(filename):
             filename = os.path.dirname(filename)
 
+        win = self
+
         # check version
         try:
-            version = notebooklib.get_notebook_version(filename)
-        except Exception, e:
-            # give up opening notebook
-            self.error(_("Could not load notebook '%s'") % filename,
-                       e, sys.exc_info()[2])
-        else:
-            if version < notebooklib.NOTEBOOK_FORMAT_VERSION:
-                if not self.update_notebook(filename, version=version):
-                    self.error(_("Cannot open notebook (version too old)"))
-                    return None
+            #notebook = self.app.get_notebook(filename, self)
+            notebook = self.app.open_notebook(filename, self)
+            notebook.node_changed.add(self.on_notebook_node_changed)
 
-
-        
-        notebook = notebooklib.NoteBook()
-        notebook.node_changed.add(self.on_notebook_node_changed)
-
-        
-        try:
-            notebook.load(filename)
         except NoteBookVersionError, e:
             self.error(_("This version of %s cannot read this notebook.\n" 
                          "The notebook has version %d.  %s can only read %d")
@@ -636,17 +623,19 @@ class KeepNoteWindow (gtk.Window):
                           e.readable_version),
                        e, sys.exc_info()[2])
             return None
+
         except NoteBookError, e:            
             self.error(_("Could not load notebook '%s'") % filename,
                        e, sys.exc_info()[2])
             return None
 
-        # TODO: make a gui/app open_notebook function that does this
-        # check for icons
-        if len(notebook.pref.get_quick_pick_icons()) == 0:
-            notebook.pref.set_quick_pick_icons(
-                list(keepnote.gui.DEFAULT_QUICK_PICK_ICONS))
-            notebook.write_preferences()
+        except Exception, e:
+            # give up opening notebook
+            self.error(_("Could not load notebook '%s'") % filename,
+                       e, sys.exc_info()[2])
+            return None
+
+
 
         # setup notebook
         self.set_notebook(notebook)
@@ -673,10 +662,11 @@ class KeepNoteWindow (gtk.Window):
                 self.save_notebook()
             
             self.notebook.node_changed.remove(self.on_notebook_node_changed)
+            self.notebook.close()
             self.set_notebook(None)
             self.set_status(_("Notebook closed"))
 
-
+    '''
     def update_notebook(self, filename, version=None):
         try:
             dialog = dialog_update_notebook.UpdateNoteBookDialog(self)
@@ -684,7 +674,7 @@ class KeepNoteWindow (gtk.Window):
         except Exception, e:
             self.error(_("Error occurred"), e, sys.exc_info()[2])
             return False
-        
+    '''    
 
 
     def begin_auto_save(self):
@@ -1339,7 +1329,7 @@ class KeepNoteWindow (gtk.Window):
                       [
             ("File", None, _("_File")),
 
-            ("New Notebook", gtk.STOCK_NEW, _("_New Notebook"),
+            ("New Notebook", gtk.STOCK_NEW, _("_New Notebook..."),
              "", _("Start a new notebook"),
              lambda w: self.on_new_notebook()),
 
@@ -1355,7 +1345,7 @@ class KeepNoteWindow (gtk.Window):
              "<control><shift>M", _("Create a new folder"),
              lambda w: self.on_new_dir()),
 
-            ("Open Notebook", gtk.STOCK_OPEN, _("_Open Notebook"),
+            ("Open Notebook", gtk.STOCK_OPEN, _("_Open Notebook..."),
              "<control>O", _("Open an existing notebook"),
              lambda w: self.on_open_notebook()),
             
@@ -1402,7 +1392,7 @@ class KeepNoteWindow (gtk.Window):
              "<control>V", None,
              lambda w: self.on_paste()),
 
-            ("Attach File", gtk.STOCK_ADD, _("_Attach File"),
+            ("Attach File", gtk.STOCK_ADD, _("_Attach File..."),
              "", _("Attach a file to the notebook"),
              lambda w: self.on_attach_file()),
 

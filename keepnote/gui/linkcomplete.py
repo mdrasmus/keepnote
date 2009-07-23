@@ -6,7 +6,9 @@ import gtk
 import gobject
 
 # keepnote imports
-from keepnote.gui import get_node_icon
+from keepnote.gui import \
+    get_node_icon, \
+    lookup_icon_filename
 from keepnote.gui.popupwindow import PopupWindow
     
 
@@ -42,9 +44,8 @@ class LinkPicker (gtk.TreeView):
     def set_links(self, urls):
         
         self.list.clear()
-        for node, url in urls[:self.maxlinks]:
-            icon = get_node_icon(node, False)
-            self.list.append([icon, url, node])
+        for nodeid, url, icon in urls[:self.maxlinks]:
+            self.list.append([icon, url, nodeid])
 
         
 
@@ -76,6 +77,7 @@ class LinkPickerPopup (PopupWindow):
             self.show()
             self._shown = True
 
+            
     def shown(self):
         return self._shown
 
@@ -114,8 +116,8 @@ class LinkPickerPopup (PopupWindow):
             # accept selection
 
             if sel:
-                icon, title, node = model[sel]
-                self.emit("pick-link", title, node)
+                icon, title, nodeid = model[sel]
+                self.emit("pick-link", title, nodeid)
                 return True
 
 

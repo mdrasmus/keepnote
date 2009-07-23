@@ -36,7 +36,7 @@ import keepnote
 
 # index filename
 INDEX_FILE = "index.sqlite"
-
+INDEX_VERSION = 1
 
 
 def get_index_file(notebook):
@@ -142,6 +142,23 @@ class NoteBookIndex (object):
 
         con, cur = self.get_con()
 
+        # check database version
+        con.execute("""CREATE TABLE IF NOT EXISTS Version 
+                        (version INTEGER, update_date DATE);""")
+        version = con.execute("SELECT MAX(version) FROM Version").fetchone()
+        
+        if version is None or version[0] != INDEX_VERSION:
+            # version does not exist, drop all tables
+            con.execute("DROP TABLE IF EXISTS NodeGraph")
+            con.execute("DROP INDEX IF EXISTS IdxNodeGraphNodeid")
+            con.execute("DROP INDEX IF EXISTS IdxNodeGraphParentid")
+            con.execute("DROP TABLE IF EXISTS Nodes")
+            con.execute("DROP TABLE IF EXISTS IdxNodesTitle")
+
+            # update version
+            con.execute("INSERT INTO Version VALUES (?, datetime('now'));", (INDEX_VERSION,))
+        
+
         # init NodeGraph table
         con.execute("""CREATE TABLE IF NOT EXISTS NodeGraph 
                        (nodeid TEXT,
@@ -159,7 +176,8 @@ class NoteBookIndex (object):
         # init Nodes table
         con.execute("""CREATE TABLE IF NOT EXISTS Nodes
                        (nodeid TEXT,
-                        title TEXT);
+                        title TEXT,
+                        icon TEXT);
                     """)
 
         con.execute("""CREATE INDEX IF NOT EXISTS IdxNodesTitle 
@@ -213,16 +231,17 @@ class NoteBookIndex (object):
         ret = cur.execute(
             """UPDATE Nodes SET 
                    nodeid=?,
-                   title=?
+                   title=?,
+                   icon=?
                    WHERE nodeid = ?""",
-            (nodeid, node.get_title(), nodeid))
+            (nodeid, node.get_title(), node.get_attr("icon_load"), nodeid))
         
         # insert if new
         if ret.rowcount == 0:
             cur.execute("""
                 INSERT INTO Nodes VALUES 
-                   (?, ?)""",
-            (nodeid, node.get_title()))
+                   (?, ?, ?)""",
+            (nodeid, node.get_title(), node.get_attr("icon_load")))
 
         #con.commit()
 
@@ -273,14 +292,19 @@ class NoteBookIndex (object):
         return walk(nodeid)
 
 
-    def search_titles(self, query):
+    def search_titles(self, query, cols=[]):
         """Return nodeids of nodes with matching titles"""
 
         con, cur = self.get_con()
 
+        if cols:
+            sql = "," + ",".join(cols)
+        else:
+            sql = ""
+
         # order titles by exact matches and then alphabetically
-        cur.execute("""SELECT nodeid, title FROM Nodes WHERE title LIKE ?
-                       ORDER BY title != ?, title """,
+        cur.execute("""SELECT nodeid, title %s FROM Nodes WHERE title LIKE ?
+                       ORDER BY title != ?, title """ % sql,
                     ("%" + query + "%", query))
         
         return list(cur.fetchall())
