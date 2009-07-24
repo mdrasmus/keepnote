@@ -171,8 +171,7 @@ class KeepNoteEditor (gtk.VBox):
         self.save()
 
         if self._page is not None:
-            mark = self._textview.get_buffer().get_insert()
-            it = self._textview.get_buffer().get_iter_at_mark(mark)
+            it = self._textview.get_buffer().get_insert_iter()
             self._page_cursors[self._page] = it.get_offset()
             
             x, y = self._textview.window_to_buffer_coords(gtk.TEXT_WINDOW_TEXT, 0, 0)
@@ -219,6 +218,9 @@ class KeepNoteEditor (gtk.VBox):
             except Exception, e:
                 self.clear_view()
                 self.emit("error", "Unknown error", e)
+
+        if len(pages) > 0:
+            self.emit("view-node", pages[0])
                 
     
     def save(self):
@@ -339,15 +341,6 @@ class KeepNoteEditor (gtk.VBox):
         elif self._link_picker:
             self._link_picker.set_links([])
         
-    def _icon_lookup(self, basename):
-        
-        if basename is None or basename == "":
-            basename = "note.png"
-        filename = lookup_icon_filename(self._notebook, basename)
-
-        # TODO: remove hardcoded icon size
-        return get_pixbuf(filename, (15, 15))
-
         
     def _on_pick_link(self, widget, title, nodeid):
         """Callback for when link autocomplete has choosen a link"""
@@ -370,8 +363,7 @@ class KeepNoteEditor (gtk.VBox):
         self._textview.get_buffer().insert_at_cursor(title)
 
         # get new start and end iters
-        mark = self._textview.get_buffer().get_insert()
-        end = self._textview.get_buffer().get_iter_at_mark(mark)
+        end = self._textview.get_buffer().get_insert_iter()
         start = self._textview.get_buffer().get_iter_at_offset(offset)
 
         # set link tag
@@ -387,8 +379,7 @@ class KeepNoteEditor (gtk.VBox):
 
         tag, start, end = self._textview.get_link()
         if tag is None:
-            mark = self._textview.get_buffer().get_insert()
-            it = self._textview.get_buffer().get_iter_at_mark(mark)
+            it = self._textview.get_buffer().get_insert_iter()
             it.backward_chars(1)
             tag, start, end = self._textview.get_link(it)
         return tag, start, end            
@@ -506,6 +497,8 @@ class KeepNoteEditor (gtk.VBox):
 
 # add new signals to KeepNoteEditor
 gobject.type_register(KeepNoteEditor)
+gobject.signal_new("view-node", KeepNoteEditor, gobject.SIGNAL_RUN_LAST,
+    gobject.TYPE_NONE, (object,))
 gobject.signal_new("visit-node", KeepNoteEditor, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object,))
 gobject.signal_new("modified", KeepNoteEditor, gobject.SIGNAL_RUN_LAST, 
@@ -693,6 +686,8 @@ class EditorMenus (gobject.GObject):
 
         dialog.destroy()
 
+    #=====================================================
+    # toolbar and menus
 
     def _make_toggle_button(self, toolbar, tips, tip_text, icon, 
                             stock_id=None, 
@@ -1060,12 +1055,6 @@ class EditorMenus (gobject.GObject):
         set_menu_icon(u, "/main_menu_bar/Editor/Format/Choose Font",
                       get_resource("images", "font.png"))
 
-        
-    def set_menu_icon(self, uimanager, path, filename):
-        item = uimanager.get_widget(path)
-        img = gtk.Image()
-        img.set_from_pixbuf(get_resource_pixbuf(filename))
-        item.set_image(img)        
             
 
 

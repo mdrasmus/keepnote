@@ -201,6 +201,12 @@ class RichTextBaseBuffer (gtk.TextBuffer):
             self.undo_stack.resume()
             self.undo_stack.reset()
 
+
+    def get_insert_iter(self):
+        """Return TextIter for insert point"""
+        return self.get_iter_at_mark(self.get_insert())
+
+
     #==========================================================
     # restrict cursor and insert
 

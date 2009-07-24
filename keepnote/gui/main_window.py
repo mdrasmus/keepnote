@@ -166,6 +166,7 @@ class KeepNoteWindow (gtk.Window):
         viewer.editor.connect("child-activated", self.on_child_activated)
         viewer.editor.connect("window-request", self.on_window_request)
         viewer.editor.connect("visit-node", self.on_visit_node)
+        viewer.connect("history-changed", self.on_history_changed)
 
         # context menus
         self.make_context_menus(viewer)
@@ -715,7 +716,7 @@ class KeepNoteWindow (gtk.Window):
         self.app.pref.changed.notify()
 
     #=============================================================
-    # Treeview, listview, editor callbacks
+    # viewer callbacks
 
     
     def on_page_editor_modified(self, editor, page, modified):
@@ -731,6 +732,12 @@ class KeepNoteWindow (gtk.Window):
     def on_visit_node(self, widget, node):
         """Callback for action to visit a node"""        
         self.viewer.goto_node(node, False)
+
+    def on_history_changed(self, viewer, history):
+        """Callback for when node browse history changes"""
+        
+        self.back_button.set_sensitive(history.has_back())
+        self.forward_button.set_sensitive(history.has_forward())
 
     
     #===========================================================
@@ -780,6 +787,11 @@ class KeepNoteWindow (gtk.Window):
         except NoteBookError, e:
             self.error(_("Could not empty trash."), e, sys.exc_info()[2])
 
+
+    def on_history(self, offset):
+        """Move forward or backward in history"""
+        self.viewer.visit_history(offset)
+        
 
 
     def on_search_nodes(self):
@@ -931,6 +943,7 @@ class KeepNoteWindow (gtk.Window):
                 self.set_title("%s" % self.notebook.get_title())
     
     #=================================================
+    # file attachments
 
     def on_attach_file(self, widget="focus"):
 
@@ -1437,6 +1450,12 @@ class KeepNoteWindow (gtk.Window):
 
             #=======================================
             ("Go", None, _("_Go")),
+
+            ("Back", gtk.STOCK_GO_BACK, _("_Back"), "", None,
+             lambda w: self.on_history(-1)),
+
+            ("Forward", gtk.STOCK_GO_FORWARD, _("_Forward"), "", None,
+             lambda w: self.on_history(1)),
             
             #=========================================
             ("Options", None, _("_Options")),
@@ -1540,6 +1559,9 @@ class KeepNoteWindow (gtk.Window):
     <menuitem action="Open File"/>
   </menu>
   <menu action="Go">
+    <menuitem action="Back"/>
+    <menuitem action="Forward"/>
+    <separator/>
     <placeholder name="Viewer"/>
   </menu>
   <menu action="Options">
@@ -1637,27 +1659,28 @@ class KeepNoteWindow (gtk.Window):
         toolbar.insert(button, -1)
 
         # separator
-        toolbar.insert(gtk.SeparatorToolItem(), -1)        
+        toolbar.insert(gtk.SeparatorToolItem(), -1)
 
-
-        # goto note
-        #button = gtk.ToolButton()
-        #button.set_stock_id(gtk.STOCK_GO_DOWN)
-        #tips.set_tip(button, "Go to Note")
-        #button.connect("clicked", lambda w: self.on_list_view_node(None, None))
-        #toolbar.insert(button, -1)        
+        # back in history
+        self.back_button = gtk.ToolButton()
+        self.back_button.set_stock_id(gtk.STOCK_GO_BACK)
+        tips.set_tip(self.back_button, "Back")
+        self.back_button.connect("clicked", 
+                                        lambda w: self.on_history(-1))
+        toolbar.insert(self.back_button, -1)
         
-        # goto parent node
-        #button = gtk.ToolButton()
-        #button.set_stock_id(gtk.STOCK_GO_UP)
-        #tips.set_tip(button, "Go to Parent Note")
-        #button.connect("clicked", lambda w: self.on_list_view_parent_node())
-        #toolbar.insert(button, -1)        
+        # forward in history
+        self.forward_button = gtk.ToolButton()
+        self.forward_button.set_stock_id(gtk.STOCK_GO_FORWARD)
+        tips.set_tip(self.forward_button, "Forward")
+        self.forward_button.connect("clicked", lambda w: self.on_history(1))
+        toolbar.insert(self.forward_button, -1)
 
 
         # separator
-        #toolbar.insert(gtk.SeparatorToolItem(), -1)        
+        toolbar.insert(gtk.SeparatorToolItem(), -1)
 
+        
         # insert editor toolbar
         self.viewer.make_toolbar(toolbar, tips, self.app.pref.use_stock_icons)
 

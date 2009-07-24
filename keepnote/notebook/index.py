@@ -100,6 +100,7 @@ class NoteBookIndex (object):
         self._uniroot = notebook.get_universal_root_id()
 
         self.con = None
+        self.cur = None
         self.open()
 
         self.add_node(notebook)
@@ -108,51 +109,29 @@ class NoteBookIndex (object):
     def open(self):
         """Open connection to index"""
 
-        if self.con is None:
-            self.con = {}
-
         index_file = get_index_file(self._notebook)
         con = sqlite.connect(index_file, isolation_level="DEFERRED",
                              check_same_thread=False)
-        self.con[get_ident()] = (con, con.cursor())
+        self.con = con
+        self.cur = con.cursor()
         con.execute("PRAGMA read_uncommitted = true;")
 
         self.init_index()
-
-
-    def get_con(self):
-        """Get connection for thread"""
-
-        if self.con:
-            return self.con.values()[0]
-        
-        """
-        ident = get_ident()
-        if ident not in self.con:
-            index_file = get_index_file(self._notebook)
-            con = sqlite.connect(index_file, isolation_level="DEFERRED")
-            self.con[ident] = (con, con.cursor())
-            
-        return self.con[ident]
-        """
-
 
 
     def close(self):
         """Close connection to index"""
         
         if self.con is not None:
-
-            for con, cur in self.con.itervalues():
-                con.close()
-
+            self.con.close()
             self.con = None
+            self.cur = None
 
 
     def init_index(self):
         """Initialize the tables in the index if they do not exist"""
 
-        con, cur = self.get_con()
+        con = self.con
 
         # check database version
         con.execute("""CREATE TABLE IF NOT EXISTS Version 
@@ -205,7 +184,7 @@ class NoteBookIndex (object):
         
         if self.con is None:
             return
-        con, cur = self.get_con()
+        con, cur = self.con, self.cur
 
         # TODO: remove single parent assumption
 
@@ -280,7 +259,7 @@ class NoteBookIndex (object):
 
         if self.con is None:
             return
-        con, cur = self.get_con()
+        con, cur = self.con, self.cur
 
         # get info
         nodeid = str(node.get_attr("nodeid"))        
@@ -299,7 +278,7 @@ class NoteBookIndex (object):
         
         # TODO: handle multiple parents
 
-        con, cur = self.get_con()
+        con, cur = self.con, self.cur
 
         def walk(nodeid):
             cur.execute("""SELECT nodeid, parentid, basename
@@ -324,7 +303,7 @@ class NoteBookIndex (object):
     def search_titles(self, query, cols=[]):
         """Return nodeids of nodes with matching titles"""
 
-        con, cur = self.get_con()
+        con, cur = self.con, self.cur
 
         if cols:
             sql = "," + ",".join(cols)
@@ -345,8 +324,7 @@ class NoteBookIndex (object):
         """Save index"""
 
         if self.con is not None:
-            con, cur = self.get_con()
-            con.commit()
+            self.con.commit()
 
 
 

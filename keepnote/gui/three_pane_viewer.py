@@ -88,6 +88,9 @@ class Viewer (gtk.VBox):
     def redo(self):
         pass
 
+    def visit_history(self, offset):
+        pass
+
     def get_current_page(self):
         return None
 
@@ -120,6 +123,65 @@ class Viewer (gtk.VBox):
         pass
 
 
+gobject.type_register(Viewer)
+gobject.signal_new("error", Viewer, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (str, object,))
+gobject.signal_new("history-changed", Viewer, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (object,))
+
+
+
+class NodeHistory (object):
+
+    def __init__(self):
+        self._list = []
+        self._pos = 0
+        self._suspend = 0
+        self._maxsize = 40
+        
+
+    def add(self, nodeid):
+        if self._suspend == 0:
+            # truncate list to current position
+            if self._list:
+                self._list = self._list[:self._pos+1]
+            
+            # add page to history
+            self._list.append(nodeid)
+            self._pos = len(self._list) - 1
+
+            # keep history to max size
+            if len(self._list) > self._maxsize:
+                self._list = self._list[-self._maxsize:]
+                self._pos = len(self._list) - 1
+
+    def move(self, offset):
+        self._pos += offset
+        if self._pos < 0:
+            self._pos = 0
+        if self._pos >= len(self._list):
+            self._pos = len(self._list) - 1
+        
+        if self._list:
+            return self._list[self._pos]
+        else:
+            return None
+
+    def begin_suspend(self):
+        self._suspend += 1
+
+    def end_suspend(self):
+        self._suspend -=1
+        assert self._suspend >= 0
+
+    def has_back(self):
+        return self._pos > 0
+
+    def has_forward(self):
+        return self._pos < len(self._list) - 1
+        
+
+
 class ThreePaneViewer (Viewer):
     """A viewer with a treeview, listview, and editor"""
 
@@ -129,6 +191,7 @@ class ThreePaneViewer (Viewer):
         self._app = app
         self._main_window = main_window
         self._notebook = None
+        self._history = NodeHistory()
 
         # node selections        
         self._current_page = None     # current page in editor
@@ -150,7 +213,7 @@ class ThreePaneViewer (Viewer):
         
         # listview
         self.listview = KeepNoteListView()
-        self.listview.connect("select-nodes", self.on_list_select)
+        self.listview.connect("select-nodes", self._on_list_select)
         self.listview.connect("goto-node", self.on_list_view_node)
         self.listview.connect("goto-parent-node",
                               lambda w: self.on_list_view_parent_node())
@@ -172,6 +235,7 @@ class ThreePaneViewer (Viewer):
         self.link_editor = LinkEditor()
         self.link_editor.set_textview(self.editor.get_textview())
         self.editor.connect("font-change", self.link_editor.on_font_change)
+        self.editor.connect("view-node", self._on_editor_view_node)
         self.editor_pane.pack_start(self.link_editor, False, True, 0)
         self.link_editor.set_search_nodes(self.search_nodes)
 
@@ -305,6 +369,20 @@ class ThreePaneViewer (Viewer):
         self._notebook.set_preferences_dirty()
 
 
+    def visit_history(self, offset):
+        """Visit a node in the viewer's history"""
+        
+        nodeid = self._history.move(offset)
+        if nodeid is None:
+            return
+        node = self._notebook.get_node_by_id(nodeid)
+        if node:
+            self._history.begin_suspend()
+            self.goto_node(node, False)
+            self._history.end_suspend()
+            
+        
+
     def undo(self):
         self.editor.get_textview().undo()
 
@@ -357,6 +435,12 @@ class ThreePaneViewer (Viewer):
 
     def _on_make_link(self, editor_menu):
         self.link_editor.edit()
+    
+    
+    def _on_editor_view_node(self, editor, node):
+        """Callback for when editor views a node"""
+        self._history.add(node.get_attr("nodeid"))
+        self.emit("history-changed", self._history)
 
 
     def search_nodes(self, text):
@@ -398,7 +482,7 @@ class ThreePaneViewer (Viewer):
         self.listview.select_nodes(nodes)
 
     
-    def on_list_select(self, listview, pages):
+    def _on_list_select(self, listview, pages):
         """Callback for listview selection change"""
 
         # TODO: will need to generalize to multiple pages
@@ -546,7 +630,7 @@ class ThreePaneViewer (Viewer):
                     
 
 
-    def goto_next_note(self):
+    def goto_next_node(self):
         widget = self.get_focused_widget(self.treeview)
         path, col = widget.get_cursor()
 
@@ -563,7 +647,7 @@ class ThreePaneViewer (Viewer):
                 widget.set_cursor(path2)
             
 
-    def goto_prev_note(self):
+    def goto_prev_node(self):
         
         widget = self.get_focused_widget()
         path, col = widget.get_cursor()
@@ -572,7 +656,7 @@ class ThreePaneViewer (Viewer):
             path2 = path[:-1] + (path[-1] - 1,)
             widget.set_cursor(path2)
 
-    def expand_note(self, all=False):
+    def expand_node(self, all=False):
         
         widget = self.get_focused_widget(self.treeview)
         path, col = widget.get_cursor()
@@ -580,7 +664,7 @@ class ThreePaneViewer (Viewer):
         if path:
             widget.expand_row(path, all)
 
-    def collapse_note(self, all=False):
+    def collapse_node(self, all=False):
         
         widget = self.get_focused_widget(self.treeview)
         path, col = widget.get_cursor()
@@ -673,27 +757,27 @@ class ThreePaneViewer (Viewer):
 
             ("Go to Next Note", gtk.STOCK_GO_DOWN, _("Go to Next N_ote"),
              "<alt>Down", None,
-             lambda w: self.goto_next_note()),
+             lambda w: self.goto_next_node()),
 
             ("Go to Previous Note", gtk.STOCK_GO_UP, _("Go to _Previous Note"),
              "<alt>Up", None,
-             lambda w: self.goto_prev_note()),
+             lambda w: self.goto_prev_node()),
 
             ("Expand Note", gtk.STOCK_ADD, _("E_xpand Note"),
              "<alt>Right", None,
-             lambda w: self.expand_note()),
+             lambda w: self.expand_node()),
 
             ("Collapse Note", gtk.STOCK_REMOVE, _("_Collapse Note"),
              "<alt>Left", None,
-             lambda w: self.collapse_note()),
+             lambda w: self.collapse_node()),
 
             ("Expand All Child Notes", gtk.STOCK_ADD, _("Expand _All Child Notes"),
              "<shift><alt>Right", None,
-             lambda w: self.expand_note(True)),
+             lambda w: self.expand_node(True)),
 
             ("Collapse All Child Notes", gtk.STOCK_REMOVE, _("Collapse A_ll Child Notes"),
              "<shift><alt>Left", None,
-             lambda w: self.collapse_note(True)),
+             lambda w: self.collapse_node(True)),
 
 
             ("Go to Tree View", None, _("Go to _Tree View"),
@@ -723,8 +807,5 @@ class ThreePaneViewer (Viewer):
 
 
 
-gobject.type_register(ThreePaneViewer)
-gobject.signal_new("error", ThreePaneViewer, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (str, object,))
 
 
