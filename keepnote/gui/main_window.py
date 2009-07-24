@@ -1429,8 +1429,8 @@ class KeepNoteWindow (gtk.Window):
              lambda w: self.on_view_node_external_app("web_browser",
                                                       kind="page")),
 
-            ("Open Document", gtk.STOCK_OPEN,
-             _("_Open Document"),
+            ("Open File", gtk.STOCK_OPEN,
+             _("_Open File"),
              "", None,
              lambda w: self.on_view_node_external_app("file_launcher",
                                                       kind="file")),
@@ -1537,7 +1537,7 @@ class KeepNoteWindow (gtk.Window):
     <menuitem action="View Note in File Explorer"/>
     <menuitem action="View Note in Text Editor"/>
     <menuitem action="View Note in Web Browser"/>
-    <menuitem action="Open Document"/>
+    <menuitem action="Open File"/>
   </menu>
   <menu action="Go">
     <placeholder name="Viewer"/>

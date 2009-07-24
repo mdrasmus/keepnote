@@ -24,11 +24,15 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
+
 # python imports
 import os
 from thread import get_ident
+import sqlite3  as sqlite
 
-from sqlite3 import dbapi2 as sqlite
+sqlite.enable_shared_cache(True)
+#sqlite.check_same_thread(False)
+#sqlite.threadsafety = 0
 
 # keepnote imports
 import keepnote
@@ -78,7 +82,7 @@ class NoteBookIndexDummy (object):
         """Get node path for a nodeid"""
         return None
 
-    def search_titles(self, query):
+    def search_titles(self, query, cols=[]):
         """Return nodeids of nodes with matching titles"""
         return []
 
@@ -108,8 +112,10 @@ class NoteBookIndex (object):
             self.con = {}
 
         index_file = get_index_file(self._notebook)
-        con = sqlite.connect(index_file, isolation_level="DEFERRED")
+        con = sqlite.connect(index_file, isolation_level="DEFERRED",
+                             check_same_thread=False)
         self.con[get_ident()] = (con, con.cursor())
+        con.execute("PRAGMA read_uncommitted = true;")
 
         self.init_index()
 
@@ -117,6 +123,10 @@ class NoteBookIndex (object):
     def get_con(self):
         """Get connection for thread"""
 
+        if self.con:
+            return self.con.values()[0]
+        
+        """
         ident = get_ident()
         if ident not in self.con:
             index_file = get_index_file(self._notebook)
@@ -124,6 +134,8 @@ class NoteBookIndex (object):
             self.con[ident] = (con, con.cursor())
             
         return self.con[ident]
+        """
+
 
 
     def close(self):
@@ -195,6 +207,8 @@ class NoteBookIndex (object):
             return
         con, cur = self.get_con()
 
+        # TODO: remove single parent assumption
+
         # get info
         nodeid = str(node.get_attr("nodeid"))
         parent = node.get_parent()
@@ -205,18 +219,27 @@ class NoteBookIndex (object):
             parentid = self._uniroot
             basename = ""
         symlink = False
+        title = node.get_title()
         
+        #------------------
         # NodeGraph
-        # update, insert if new
-        ret = cur.execute(
-            """UPDATE NodeGraph SET 
-                   nodeid=?,
-                   parentid=?,
-                   basename=?,
-                   symlink=?
-                   WHERE nodeid = ?""",
-            (nodeid, parentid, basename, symlink, nodeid))
-        if ret.rowcount == 0:
+        rows = list(cur.execute("SELECT parentid, basename "
+                                "FROM NodeGraph "
+                                "WHERE nodeid = ?", (nodeid,)))
+        if rows:
+            row = rows[0]
+            if row[0] != parentid or row[1] != basename:
+                # record update
+                ret = cur.execute("UPDATE NodeGraph SET "
+                                  "nodeid=?, "
+                                  "parentid=?, "
+                                  "basename=?, "
+                                  "symlink=? "
+                                  "WHERE nodeid = ?",
+                                  (nodeid, parentid, basename, 
+                                   symlink, nodeid))
+        else:
+            # insert new row
             cur.execute("""
                 INSERT INTO NodeGraph VALUES 
                    (?, ?, ?, ?)""",
@@ -226,22 +249,28 @@ class NoteBookIndex (object):
              symlink,
              ))
 
-        #Nodes
-        # update
-        ret = cur.execute(
-            """UPDATE Nodes SET 
-                   nodeid=?,
-                   title=?,
-                   icon=?
-                   WHERE nodeid = ?""",
-            (nodeid, node.get_title(), node.get_attr("icon_load"), nodeid))
-        
-        # insert if new
-        if ret.rowcount == 0:
+        #-----------------
+        # Nodes
+        rows = list(cur.execute("SELECT title "
+                                "FROM Nodes "
+                                "WHERE nodeid = ?", (nodeid,)))
+        if rows:
+            row = rows[0]
+            if row[0] != title:
+                # record update
+                ret = cur.execute("UPDATE Nodes SET "
+                                  "nodeid=?, "
+                                  "title=?, "
+                                  "icon=? "
+                                  "WHERE nodeid = ?",
+                                  (nodeid, title, 
+                                   node.get_attr("icon_load"), nodeid))
+        else:
+            # insert new row
             cur.execute("""
                 INSERT INTO Nodes VALUES 
                    (?, ?, ?)""",
-            (nodeid, node.get_title(), node.get_attr("icon_load")))
+            (nodeid, title, node.get_attr("icon_load")))
 
         #con.commit()
 

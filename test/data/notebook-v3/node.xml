@@ -10,5 +10,5 @@
 <attr key="created_time">1207865247</attr>
 <attr key="info_sort_dir">1</attr>
 <attr key="order">1</attr>
-<attr key="info_sort">1</attr>
+<attr key="info_sort">order</attr>
 </node>

@@ -2,6 +2,8 @@
 <notebook>
 <version>3</version>
 <default_font>Sans 10</default_font>
+<selected_treeview_nodes></selected_treeview_nodes>
+<selected_listview_nodes></selected_listview_nodes>
 <quick_pick_icons>
 <icon>folder.png</icon>
 <icon>folder-red.png</icon>
