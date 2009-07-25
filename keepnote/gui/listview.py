@@ -211,19 +211,19 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         if self.editing:
             return
 
-        if event.keyval == gdk.keyval_from_name("Delete"):
+        if event.keyval == gtk.keysyms.Delete:
             # capture node deletes
             self.stop_emission("key-release-event")            
             self.on_delete_node()
             
-        elif event.keyval == gdk.keyval_from_name("BackSpace") and \
+        elif event.keyval == gtk.keysyms.BackSpace and \
              event.state & gdk.CONTROL_MASK:
             # capture goto parent node
             self.stop_emission("key-release-event")
             self.emit("goto-parent-node")
 
 
-        elif event.keyval == gdk.keyval_from_name("Return") and \
+        elif event.keyval == gtk.keysyms.Return and \
              event.state & gdk.CONTROL_MASK:
             # capture goto node
             self.stop_emission("key-release-event")

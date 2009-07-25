@@ -144,14 +144,17 @@ class KeepNoteEditor (gtk.VBox):
             self.clear_view()
 
     def _on_notebook_changed(self, node, recurse):
+        """Reconfigure based on notebook preference changes"""
         self._textview.set_default_font(self._notebook.pref.default_font)
     
 
     def get_textview(self):
+        """Return the textview"""
         return self._textview
     
         
     def is_focus(self):
+        """Return True if text editor has focus"""
         return self._textview.is_focus()
 
 
@@ -162,7 +165,7 @@ class KeepNoteEditor (gtk.VBox):
     
     
     def view_pages(self, pages):
-        """View a page"""
+        """View a page in the editor"""
         
         # TODO: generalize to multiple pages
         assert len(pages) <= 1
@@ -231,20 +234,22 @@ class KeepNoteEditor (gtk.VBox):
            self._textview.is_modified():
 
             try:
+                # save text data
                 self._textview_io.save(self._textview.get_buffer(),
                                        self._page.get_data_file(),
                                        self._page.get_title())
                 
+                # save meta data            
+                self._page.set_attr_timestamp("modified_time")
+                self._page.save()
+
             except RichTextError, e:
                 self.emit("error", e.msg, e)
-                return
-            
-            self._page.set_attr_timestamp("modified_time")
-            
-            try:
-                self._page.save()
+
             except NoteBookError, e:
                 self.emit("error", e.msg, e)
+
+            
     
 
     def save_needed(self):
@@ -275,12 +280,12 @@ class KeepNoteEditor (gtk.VBox):
 
     def _on_key_press_event(self, textview, event):
         """Callback for keypress in textview"""
-
+        
         # decide if keypress should be forwarded to link picker
         if (self._link_picker and self._link_picker.shown() and
-            (event.keyval == gtk.gdk.keyval_from_name("Down") or 
-             event.keyval == gtk.gdk.keyval_from_name("Up") or 
-             event.keyval == gtk.gdk.keyval_from_name("Return"))):
+            (event.keyval == gtk.keysyms.Down or 
+             event.keyval == gtk.keysyms.Up or 
+             event.keyval == gtk.keysyms.Return)):
             
             return self._link_picker.on_key_press_event(textview, event)
 
@@ -313,8 +318,8 @@ class KeepNoteEditor (gtk.VBox):
         if tag is not None and popup:
             # perform node search
             text = start.get_text(end)
-            results = [[nodeid, title, 
-                        get_node_icon(self._notebook.get_node_by_id(nodeid))] 
+            results = [(nodeid, title, 
+                        get_node_icon(self._notebook.get_node_by_id(nodeid)))
                        for nodeid, title in 
                        self._notebook.search_node_titles(text)[:self._maxlinks]]
 
@@ -457,12 +462,14 @@ class KeepNoteEditor (gtk.VBox):
             
         # run dialog
         response = dialog.run()
+        dialog.destroy()
 
         if response == gtk.RESPONSE_OK:
             self._app.pref.insert_image_path = dialog.get_current_folder()
             
             filename = dialog.get_filename()
                         
+            # TODO: do I need this?
             imgname, ext = os.path.splitext(os.path.basename(filename))
             if ext.lower() in (".jpg", ".jpeg"):
                 imgname = imgname + ".jpg"
@@ -476,7 +483,7 @@ class KeepNoteEditor (gtk.VBox):
                 self.emit("error",
                           _("Could not insert image '%s'") % filename, e)
             
-        dialog.destroy()
+
         
 
 
@@ -487,9 +494,8 @@ class KeepNoteEditor (gtk.VBox):
         if self._page is None:
             return
         
-        pixbuf = gdk.pixbuf_new_from_file(filename)
         img = RichTextImage()
-        img.set_from_pixbuf(pixbuf)
+        img.set_from_pixbuf(gdk.pixbuf_new_from_file(filename))
         self._textview.insert_image(img, savename)
 
 
@@ -576,13 +582,9 @@ class EditorMenus (gobject.GObject):
         """Toggle a font modification"""
         self._editor.get_textview().toggle_font_mod(mod)
 
-        #font = self._editor.get_textview().get_font()        
-        #mod_button.handler_block(mod_id)
-        #mod_button.set_active(font.mods[mod])
-        #mod_button.handler_unblock(mod_id)
-
 
     def on_toggle_link(self):
+        """Link mode has been toggled"""
 
         textview = self._editor.get_textview()
         textview.toggle_link()
@@ -676,7 +678,7 @@ class EditorMenus (gobject.GObject):
         
         font = self._editor.get_textview().get_font()
 
-        dialog = gtk.FontSelectionDialog("Choose Font")
+        dialog = gtk.FontSelectionDialog(_("Choose Font"))
         dialog.set_font_name("%s %d" % (font.family, font.size))
         response = dialog.run()
 
@@ -714,49 +716,49 @@ class EditorMenus (gobject.GObject):
         # bold tool
         self.bold = self._make_toggle_button(
             toolbar, tips,
-            "Bold", "bold.png", gtk.STOCK_BOLD,
+            _("Bold"), "bold.png", gtk.STOCK_BOLD,
             lambda: self._editor.get_textview().toggle_font_mod("bold"),
             use_stock_icons)
         
         # italic tool
         self.italic = self._make_toggle_button(
             toolbar, tips,
-            "Italic", "italic.png", gtk.STOCK_ITALIC,
+            _("Italic"), "italic.png", gtk.STOCK_ITALIC,
             lambda: self._editor.get_textview().toggle_font_mod("italic"),
             use_stock_icons)
 
         # underline tool
         self.underline = self._make_toggle_button(
             toolbar, tips,
-            "Underline", "underline.png", gtk.STOCK_UNDERLINE,
+            _("Underline"), "underline.png", gtk.STOCK_UNDERLINE,
             lambda: self._editor.get_textview().toggle_font_mod("underline"),
             use_stock_icons)
 
         # strikethrough
         self.strike = self._make_toggle_button(
             toolbar, tips,
-            "Strike", "strike.png", gtk.STOCK_STRIKETHROUGH,
+            _("Strike"), "strike.png", gtk.STOCK_STRIKETHROUGH,
             lambda: self._editor.get_textview().toggle_font_mod("strike"),
             use_stock_icons)
         
         # fixed-width tool
         self.fixed_width = self._make_toggle_button(
             toolbar, tips,
-            "Monospace", "fixed-width.png", None,
+            _("Monospace"), "fixed-width.png", None,
             lambda: self._editor.get_textview().toggle_font_mod("tt"),
             use_stock_icons)
 
         # link
         self.link = self._make_toggle_button(
             toolbar, tips,
-            "Make Link", "link.png", None,
+            _("Make Link"), "link.png", None,
             self.on_toggle_link,
             use_stock_icons)
 
         # no wrap tool
         self.no_wrap = self._make_toggle_button(
             toolbar, tips,
-            "No Wrapping", "no-wrap.png", None,
+            _("No Wrapping"), "no-wrap.png", None,
             lambda: self._editor.get_textview().toggle_font_mod("nowrap"),
             use_stock_icons)
 
@@ -767,7 +769,7 @@ class EditorMenus (gobject.GObject):
         self.font_family_combo.set_size_request(150, 25)
         item = gtk.ToolItem()
         item.add(self.font_family_combo)
-        tips.set_tip(item, "Font Family")
+        tips.set_tip(item, _("Font Family"))
         toolbar.insert(item, -1)
         self.font_family_id = self.font_family_combo.connect("changed",
             lambda w: self.on_family_set())
@@ -785,7 +787,7 @@ class EditorMenus (gobject.GObject):
         self.font_size_button.set_editable(False)
         item = gtk.ToolItem()
         item.add(self.font_size_button)
-        tips.set_tip(item, "Font Size")
+        tips.set_tip(item, _("Font Size"))
         toolbar.insert(item, -1)
         self.font_size_id = self.font_size_button.connect("value-changed",
             lambda w: 
@@ -799,7 +801,7 @@ class EditorMenus (gobject.GObject):
         self.fg_color_button = FgColorTool(14, 15, (0, 0, 0))
         self.fg_color_button.connect("set-color",
             lambda w, color: self.on_color_set("fg", color))
-        tips.set_tip(self.fg_color_button, "Set Text Color")
+        tips.set_tip(self.fg_color_button, _("Set Text Color"))
         toolbar.insert(self.fg_color_button, -1)
         
 
@@ -807,7 +809,7 @@ class EditorMenus (gobject.GObject):
         self.bg_color_button = BgColorTool(14, 15, (65535, 65535, 65535))
         self.bg_color_button.connect("set-color",
             lambda w, color: self.on_color_set("bg", color))
-        tips.set_tip(self.bg_color_button, "Set Background Color")
+        tips.set_tip(self.bg_color_button, _("Set Background Color"))
         toolbar.insert(self.bg_color_button, -1)
 
                 
@@ -826,21 +828,21 @@ class EditorMenus (gobject.GObject):
         # center tool
         self.center_align = self._make_toggle_button(
             toolbar, tips,
-            "Center Align", "aligncenter.png", gtk.STOCK_JUSTIFY_CENTER,
+            _("Center Align"), "aligncenter.png", gtk.STOCK_JUSTIFY_CENTER,
             lambda: self.on_justify("center"),
             use_stock_icons)
 
         # right tool
         self.right_align = self._make_toggle_button(
             toolbar, tips,
-            "Right Align", "alignright.png", gtk.STOCK_JUSTIFY_RIGHT,
+            _("Right Align"), "alignright.png", gtk.STOCK_JUSTIFY_RIGHT,
             lambda: self.on_justify("right"),
             use_stock_icons)
 
         # justify tool
         self.fill_align = self._make_toggle_button(
             toolbar, tips,
-            "Justify Align", "alignjustify.png", gtk.STOCK_JUSTIFY_FILL,
+            _("Justify Align"), "alignjustify.png", gtk.STOCK_JUSTIFY_FILL,
             lambda: self.on_justify("fill"),
             use_stock_icons)
         
@@ -848,7 +850,7 @@ class EditorMenus (gobject.GObject):
         # bullet list tool
         self.bullet = self._make_toggle_button(
             toolbar, tips,
-            "Bullet List", "bullet.png", None,
+            _("Bullet List"), "bullet.png", None,
             lambda: self.on_bullet_list(),
             use_stock_icons)
 

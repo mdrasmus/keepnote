@@ -87,7 +87,7 @@ class LinkPickerPopup (PopupWindow):
         model, sel = self._link_picker.get_selection().get_selected()
 
         
-        if event.keyval == gtk.gdk.keyval_from_name("Down"):
+        if event.keyval == gtk.keysyms.Down:
             # move selection down
             if sel is None:
                 self._link_picker.set_cursor((0,))
@@ -99,7 +99,7 @@ class LinkPickerPopup (PopupWindow):
 
             return True
 
-        elif event.keyval == gtk.gdk.keyval_from_name("Up"):
+        elif event.keyval == gtk.keysyms.Up:
             # move selection up
             
             if sel is None:
@@ -112,7 +112,7 @@ class LinkPickerPopup (PopupWindow):
 
             return True
 
-        elif event.keyval == gtk.gdk.keyval_from_name("Return"):
+        elif event.keyval == gtk.keysyms.Return:
             # accept selection
 
             if sel:

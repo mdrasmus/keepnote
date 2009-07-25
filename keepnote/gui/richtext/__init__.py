@@ -421,7 +421,7 @@ class RichTextView (gtk.TextView):
         if self._textbuffer is None:
             return
 
-        if event.keyval == gtk.gdk.keyval_from_name("ISO_Left_Tab"):
+        if event.keyval == gtk.keysyms.ISO_Left_Tab:
             # shift+tab is pressed
 
             it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
@@ -432,7 +432,7 @@ class RichTextView (gtk.TextView):
                 self.unindent()
                 return True
 
-        if event.keyval == gtk.gdk.keyval_from_name("Tab"):
+        if event.keyval == gtk.keysyms.Tab:
             # tab is pressed
             
             it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
@@ -445,7 +445,7 @@ class RichTextView (gtk.TextView):
                 return True
 
 
-        if event.keyval == gtk.gdk.keyval_from_name("Delete"):
+        if event.keyval == gtk.keysyms.Delete:
             # delete key pressed
 
             # TODO: make sure selection with delete does not fracture

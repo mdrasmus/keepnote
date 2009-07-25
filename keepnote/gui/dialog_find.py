@@ -114,13 +114,13 @@ class KeepNoteFindDialog (object):
     
     def on_find_key_released(self, widget, event):
         
-        if event.keyval == gdk.keyval_from_name("G") and \
+        if event.keyval == gtk.keysyms.G and \
            event.state & gtk.gdk.SHIFT_MASK and \
            event.state & gtk.gdk.CONTROL_MASK:
             self.on_find_response("find_prev")
             widget.stop_emission("key-release-event")
         
-        elif event.keyval == gdk.keyval_from_name("g") and \
+        elif event.keyval == gtk.keysyms.g and \
            event.state & gtk.gdk.CONTROL_MASK:
             self.on_find_response("find_next")
             widget.stop_emission("key-release-event")

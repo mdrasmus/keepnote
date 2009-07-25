@@ -224,7 +224,7 @@ class LinkEditor (gtk.Frame):
 
     def _on_key_press_event(self, widget, event):
 
-        if event.keyval == gtk.gdk.keyval_from_name("Escape"):
+        if event.keyval == gtk.keysyms.Escape:
             self.dismiss(False)
             
 
