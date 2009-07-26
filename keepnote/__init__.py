@@ -82,6 +82,7 @@ PLATFORM = None
 
 USER_PREF_DIR = u"takenote"
 USER_PREF_FILE = u"takenote.xml"
+USER_LOCK_FILE = u"lockfile"
 USER_ERROR_LOG = u"error-log.txt"
 USER_EXTENSIONS_DIR = u"extensions"
 XDG_USER_EXTENSIONS_DIR = u"takenote/extensions"
@@ -287,6 +288,13 @@ def get_user_pref_file(pref_dir=None, home=None):
     if pref_dir is None:
         pref_dir = get_user_pref_dir(home)
     return os.path.join(pref_dir, USER_PREF_FILE)
+
+
+def get_user_lock_file(pref_dir=None, home=None):
+    """Returns the filename of the application lock file"""
+    if pref_dir is None:
+        pref_dir = get_user_pref_dir(home)
+    return os.path.join(pref_dir, USER_LOCK_FILE)
 
 
 def get_user_error_log(pref_dir=None, home=None):

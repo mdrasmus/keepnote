@@ -20,7 +20,7 @@
 
 
 # python imports
-import sys, os, time, optparse, exceptions, traceback
+import errno, sys, os, time, optparse, exceptions, thread, traceback, socket, random
 from os.path import basename, dirname, realpath, join, isdir
 
 
@@ -187,8 +187,8 @@ def execute_command(app, argv):
     options, args = parse_argv(argv)
     
     if options.focus:
-        if app.window:
-            app.window.restore_window()
+        if app._windows[0]:
+            app._windows[0].restore_window()
 
 
 def contains_command(options, args):
@@ -196,34 +196,22 @@ def contains_command(options, args):
     return options.focus
 
 
+
 def main(argv):
     """Main execution"""
 
     options, args = parse_argv(argv)
 
-    # setup command executor
-    if options.listen:
-        # start a new listening process
-        main_proc, cmd_exec = get_command_executor(True, execute_command)
-        if not main_proc:
-            # quit, already listening
-            print >>sys.stderr, "Cannot listen application already running"
-            sys.exit(1)
-
-    elif contains_command(options, args):
-        # process command
-        main_proc, cmd_exec = get_command_executor(True, execute_command)
-
-    else:
-        # create trivial command executor 
-        main_proc, cmd_exec = get_command_executor(False, execute_command)
+    # setup threading environment
+    setup_threading()
     
+    main_proc, cmd_exec = get_command_executor(
+        lambda app, argv: gobject.timeout_add(
+            0, lambda: execute_command(app, argv)))
 
+    
     if main_proc:
         # initiate main process
-
-        # setup threading environment
-        setup_threading()
 
         # init preference dir
         if not os.path.exists(keepnote.get_user_pref_dir()):

@@ -14,7 +14,7 @@ class TestCaseNotebookIndex (unittest.TestCase):
     def test_notebook_lookup_node(self):
 
         nodeid = "0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"
-        path = "test/data/notebook-v3/stress tests"
+        path = os.path.join("test/data/notebook-v3", "stress tests")
         
         book = notebook.NoteBook()
         book.load("test/data/notebook-v3")
@@ -33,15 +33,15 @@ class TestCaseNotebookIndex (unittest.TestCase):
 
     def test_notebook_lookup_node2(self):
 
-        nodeid = "0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"
-        path = "test/data/notebook-v3/stress tests"
+        nodeid = "0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"   
+        path = os.path.join("test/data/notebook-v3", "stress tests")
         
         book = notebook.NoteBook()
         book.load("test/data/notebook-v3")
 
         path2 = book.get_node_path_by_id(nodeid)
         self.assertEqual(path, path2)
-        book.save()
+        #book.save()
 
         book2 = notebook.NoteBook()
         book2.load("test/data/notebook-v3")
@@ -53,8 +53,8 @@ class TestCaseNotebookIndex (unittest.TestCase):
 
     def test_notebook_title(self):
 
-        nodeid = "0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"
-        path = "test/data/notebook-v3/stress tests"
+        nodeid = "0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"        
+        path = os.path.join("test/data/notebook-v3", "stress tests")
         
         book = notebook.NoteBook()
         book.load("test/data/notebook-v3")
@@ -81,9 +81,9 @@ class TestCaseNotebookIndex (unittest.TestCase):
                     nodeid = "0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"
                     path = book.get_node_path_by_id(nodeid)
                     print "path:", path
-                    test.assertEqual(path, 
-                              "test/data/notebook-v3/stress tests")
-                    book.save()
+                    test.assertEqual(path,
+                              os.path.join("test/data/notebook-v3", "stress tests"))
+                    #book.save()
 
                 except Exception, e:
                     print "ERROR:"

@@ -372,7 +372,7 @@ class KeepNoteWindow (gtk.Window):
 
 
     def on_window_request(self, widget, action):
-
+        
         if action == "minimize":
             self.minimize_window()
         elif action == "restore":
