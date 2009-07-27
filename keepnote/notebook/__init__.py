@@ -608,6 +608,10 @@ class NoteBookNode (object):
     def move(self, parent, index=None):
         """Move this node to be the child of another node 'parent'"""
         
+        # TODO: if parent is in another notebook, index updates need to be
+        # done for whole subtree.  Also accessory data like icons might need
+        # to be transferred.
+
         assert self != parent
         path = self.get_path()
         old_parent = self._parent
