@@ -42,7 +42,7 @@ import gobject
 
 # keepnote imports
 import keepnote
-from keepnote import get_resource, ensure_unicode
+from keepnote import get_resource, ensure_unicode, get_platform
 from keepnote.notebook import \
      NoteBookError, \
      NoteBookTrash
