@@ -185,6 +185,7 @@ class CommandExecutor (object):
                 try:
                     port, passwd = read_lock_file(fd)
                     os.close(fd)
+                    fd = None
 
                     # use port number to connect
                     s = socket.socket(socket.AF_INET)
@@ -212,7 +213,8 @@ class CommandExecutor (object):
                 except Exception, e:
                     # lockfile does not contain proper port number
                     # remove lock file and attempt to acquire again
-                    os.close(fd)
+                    if fd:
+                        os.close(fd)
                     os.remove(keepnote.get_user_lock_file())
 
         raise Exception("cannot get lock")

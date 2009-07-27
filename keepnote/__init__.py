@@ -750,7 +750,6 @@ class KeepNote (object):
         self.pref.read()
 
         # list of application windows
-        self._windows = []
         self._notebooks = {}
         
         # get extensions list
@@ -762,52 +761,12 @@ class KeepNote (object):
         
     def open_notebook(self, filename, window=None):
         """Open notebook"""
-
-        # TODO: think about error dialogs without main window
         
-        from keepnote.gui import dialog_update_notebook
-
-        version = notebooklib.get_notebook_version(filename)
-            
-        if version < notebooklib.NOTEBOOK_FORMAT_VERSION:
-            dialog = dialog_update_notebook.UpdateNoteBookDialog(self.app, window)
-            if not dialog.show(filename, version=version):
-                raise NoteBookError(_("Cannot open notebook (version too old)"))
-
         notebook = notebooklib.NoteBook()
         notebook.load(filename)
-
-
-        if len(notebook.pref.get_quick_pick_icons()) == 0:
-            notebook.pref.set_quick_pick_icons(
-                list(keepnote.gui.DEFAULT_QUICK_PICK_ICONS))
-            notebook.write_preferences()
-
         return notebook
 
 
-    def new_window(self):
-        """Create a new main window"""
-
-        from keepnote.gui import main_window
-
-        window = main_window.KeepNoteWindow(self)        
-        self._windows.append(window)
-        
-        self.init_extensions_window(window)
-        window.show_all()
-
-        return window
-    
-
-    def get_notebook(self, filename, window=None):
-        
-        filename = os.path.realpath(filename)
-        if filename not in self._notebooks:
-            self._notebooks[filename] = self.open_notebook(filename, window)
-
-        return self._notebooks[filename]
-            
 
     #==================================
     # actions
@@ -857,41 +816,7 @@ class KeepNote (object):
 
         if url:
             self.run_external_app("web_browser", url)
-
-        
-    def take_screenshot(self, filename):
-
-        # make sure filename is unicode
-        filename = ensure_unicode(filename, "utf-8")
-
-        if get_platform() == "windows":
-            # use win32api to take screenshot
-            # create temp file
-            
-            from keepnote.gui import screenshot_win
-            
-            f, imgfile = tempfile.mkstemp(u".bmp", filename)
-            os.close(f)
-            screenshot_win.take_screenshot(imgfile)
-        else:
-            # use external app for screen shot
-            screenshot = self.pref.get_external_app("screen_shot")
-            if screenshot is None or screenshot.prog == "":
-                raise Exception("You must specify a Screen Shot program in Application Options")
-
-            # create temp file
-            f, imgfile = tempfile.mkstemp(".png", filename)
-            os.close(f)
-
-            proc = subprocess.Popen([screenshot.prog, imgfile])
-            if proc.wait() != 0:
-                raise OSError("Exited with error")
-
-        if not os.path.exists(imgfile):
-            # catch error if image is not created
-            raise Exception("The screenshot program did not create the necessary image file '%s'" % imgfile)
-
-        return imgfile            
+          
 
 
     #================================

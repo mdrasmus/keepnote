@@ -518,12 +518,9 @@ class KeepNoteWindow (gtk.Window):
         """Close the window and quit"""
         self.save_preferences()
         self.close_notebook()
-        gtk.accel_map_save(get_accel_file())
-
         if self.tray_icon:
             self.tray_icon.set_property("visible", False)
-
-        gtk.main_quit()
+            
         return False
     
 

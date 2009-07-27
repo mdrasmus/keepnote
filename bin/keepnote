@@ -98,13 +98,17 @@ except ImportError:
 
 
 # keepnote imports
+import keepnote.gui
 import keepnote.gui.main_window
-from keepnote.commands import get_command_executor
+from keepnote.commands import get_command_executor, CommandExecutor
 from keepnote.teefile import TeeFileStream
 
 
 # locale
 keepnote.set_locale()
+
+import gettext
+_ = gettext.gettext
 
 
 #=============================================================================
@@ -122,12 +126,12 @@ o.add_option("--no-show-errors", dest="show_errors",
 o.add_option("--no-default", dest="default_notebook",
              action="store_false",
              help="do not open default notebook")
-o.add_option("--listen", dest="listen",
+o.add_option("-c", "--cmd", dest="cmd",
              action="store_true",
-             help="listen for commands")
-o.add_option("--focus", dest="focus",
+             help="treat remaining arguments as a command")
+o.add_option("", "--newproc", dest="newproc",
              action="store_true",
-             help="unminimize and focus an existing window")
+             help="startKeepNote in a new process")
 
 
 #=============================================================================
@@ -186,14 +190,29 @@ def execute_command(app, argv):
     
     options, args = parse_argv(argv)
     
-    if options.focus:
-        if app._windows[0]:
-            app._windows[0].restore_window()
+    if options.cmd:
+        if len(args) == 0:
+            raise Exception(_("Expected command"))
 
+        elif args[0] == "focus":
+            if len(app._windows) > 0:
+                app._windows[0].restore_window()
 
-def contains_command(options, args):
-    """Returns True if options contains a command"""
-    return options.focus
+        else:
+            raise Exception(_("Unknown command '%s'") % args[0])
+            
+    elif len(args) > 0:
+        # open specified notebook
+        win = app.new_window()
+        win.open_notebook(args[0].rstrip("/"))
+
+    elif options.default_notebook and app.pref.default_notebook != "":
+        # open default notebook
+        win = app.new_window()
+        win.open_notebook(app.pref.default_notebook)
+            
+    else:
+        app.new_window()
 
 
 
@@ -205,9 +224,14 @@ def main(argv):
     # setup threading environment
     setup_threading()
     
-    main_proc, cmd_exec = get_command_executor(
-        lambda app, argv: gobject.timeout_add(
-            0, lambda: execute_command(app, argv)))
+    # get command executor
+    if options.newproc:
+        main_proc = True
+        cmd_exec = CommandExecutor()
+    else:
+        main_proc, cmd_exec = get_command_executor(
+            lambda app, argv: gobject.timeout_add(
+                0, lambda: execute_command(app, argv)))
 
     
     if main_proc:
@@ -221,27 +245,9 @@ def main(argv):
         start_error_log(options.show_errors)
 
         # read preferences
-        app = keepnote.KeepNote(basedir)
+        app = keepnote.gui.KeepNote(basedir)
         cmd_exec.set_app(app)
-
-        
-        # start KeepNote
-        if len(args) > 0:
-            # open specified notebook
-            win = app.new_window()
-            win.open_notebook(args[0].rstrip("/"))
-
-            #app.open_notebook(args[0].rstrip("/"))
-
-        elif options.default_notebook and app.pref.default_notebook != "":
-            # open default notebook
-            win = app.new_window()
-            win.open_notebook(app.pref.default_notebook)
-
-            #app.open_notebook(app.pref.default_notebook)
-
-        else:
-            app.new_window()
+        execute_command(app, argv)
 
         gtk.main()
         
@@ -262,4 +268,6 @@ except Exception, e:
     
     # flush final errors
     sys.stderr.flush()
-    
+
+
+
