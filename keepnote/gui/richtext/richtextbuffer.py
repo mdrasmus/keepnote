@@ -633,8 +633,8 @@ class RichTextBuffer (RichTextBaseBuffer):
 
     """
     
-    def __init__(self):
-        RichTextBaseBuffer.__init__(self, RichTextTagTable())
+    def __init__(self, table=RichTextTagTable()):
+        RichTextBaseBuffer.__init__(self, table)
 
         # indentation handler
         self._indent = IndentHandler(self)

@@ -1360,7 +1360,7 @@ class KeepNoteWindow (gtk.Window):
              lambda w: self.on_open_notebook()),
             
             ("Open Recent Notebook", gtk.STOCK_OPEN, 
-             _("Open R_ecent Notebook")),
+             _("_Open Recent Notebook")),
 
             ("Reload Notebook", gtk.STOCK_REVERT_TO_SAVED,
              _("_Reload Notebook"),

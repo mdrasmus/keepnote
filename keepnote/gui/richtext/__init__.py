@@ -26,7 +26,7 @@
 
 
 # python imports
-import sys, os, tempfile, re
+import sys, os, tempfile, re, random
 import urllib2, StringIO
 
 # pygtk imports
@@ -81,7 +81,8 @@ RICHTEXT_ID = -3    # application defined integer for the clipboard
 
 
 # mime types
-MIME_KEEPNOTE = "application/x-keepnote"
+# keepnote mime type is process specific
+MIME_KEEPNOTE = "application/x-keepnote" + str(random.randint(1, 100000))
 MIME_IMAGES = ["image/png",
                "image/bmp",
                "image/jpeg",
@@ -95,6 +96,11 @@ MIME_TEXT = ["text/plain",
              "STRING",
              "COMPOUND_TEXT",
              "TEXT"]
+
+
+# globals
+_g_clipboard_contents = None
+
 
 
 def parse_font(fontstr):
@@ -298,7 +304,6 @@ class RichTextView (gtk.TextView):
         
         self._textbuffer = None
         self._buffer_callbacks = []
-        self._clipboard_contents = None
         self._blank_buffer = RichTextBuffer()
         self._popup_menu = None
         self._html_buffer = HtmlBuffer()
@@ -732,7 +737,7 @@ class RichTextView (gtk.TextView):
             text = start.get_text(end)
             clipboard.set_with_data(targets, self._get_selection_data, 
                                     self._clear_selection_data,
-                                    (contents, text))
+                                    (contents, text))        
 
 
     def cut_clipboard(self, clipboard, default_editable):
@@ -846,13 +851,13 @@ class RichTextView (gtk.TextView):
     def _do_paste_object(self, clipboard, selection_data, data):
         """Paste a program-specific object into buffer"""
         
-        if self._clipboard_contents is None:
+        if _g_clipboard_contents is None:
             # do nothing
             return
 
         self._textbuffer.begin_user_action()
         self._textbuffer.delete_selection(False, True)
-        self._textbuffer.insert_contents(self._clipboard_contents)
+        self._textbuffer.insert_contents(_g_clipboard_contents)
         self._textbuffer.end_user_action()
         self.scroll_mark_onscreen(self._textbuffer.get_insert())        
     
@@ -860,9 +865,11 @@ class RichTextView (gtk.TextView):
     def _get_selection_data(self, clipboard, selection_data, info, data):
         """Callback for when Clipboard needs selection data"""
 
+        global _g_clipboard_contents
+
         contents, text = data
         
-        self._clipboard_contents = contents
+        _g_clipboard_contents = contents
 
         
         if MIME_KEEPNOTE in selection_data.target:
@@ -892,7 +899,8 @@ class RichTextView (gtk.TextView):
     
     def _clear_selection_data(self, clipboard, data):
         """Callback for when Clipboard contents are reset"""
-        self._clipboard_contents = None
+        global _g_clipboard_contents
+        _g_clipboard_contents = None
                     
 
     #=============================================

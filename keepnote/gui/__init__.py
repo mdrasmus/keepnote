@@ -42,6 +42,7 @@ import gobject
 
 # keepnote imports
 import keepnote
+import keepnote.gui.richtext.richtext_tags
 from keepnote import get_resource, ensure_unicode, get_platform
 from keepnote.notebook import \
      NoteBookError, \
@@ -372,12 +373,29 @@ def get_node_icon(node, expand=False):
 
 
 #=============================================================================
-# accel file
+# misc. gui functions
   
 def get_accel_file():
     """Returns gtk accel file"""
 
     return os.path.join(keepnote.get_user_pref_dir(), ACCEL_FILE)
+
+
+def update_file_preview(file_chooser, preview):
+    """Preview widget for file choosers"""
+        
+    filename = file_chooser.get_preview_filename()
+    try:
+        pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(filename, 128, 128)
+        preview.set_from_pixbuf(pixbuf)
+        have_preview = True
+    except:
+        have_preview = False
+    file_chooser.set_preview_widget_active(have_preview)
+
+
+#=============================================================================
+# menu actions
 
 
 class Action (gtk.Action):
@@ -407,22 +425,6 @@ def add_actions(actiongroup, actions):
 
 
 #=============================================================================
-# image preview
-
-def update_file_preview(file_chooser, preview):
-    """Preview widget for file choosers"""
-        
-    filename = file_chooser.get_preview_filename()
-    try:
-        pixbuf = gtk.gdk.pixbuf_new_from_file_at_size(filename, 128, 128)
-        preview.set_from_pixbuf(pixbuf)
-        have_preview = True
-    except:
-        have_preview = False
-    file_chooser.set_preview_widget_active(have_preview)
-        
-
-#=============================================================================
 # Application for GUI
 
 
@@ -430,6 +432,8 @@ class KeepNote (keepnote.KeepNote):
 
     def __init__(self, basedir=""):
         keepnote.KeepNote.__init__(self, basedir)
+
+        self._tag_table = keepnote.gui.richtext.richtext_tags.RichTextTagTable()
 
         self._windows = []
 
@@ -518,6 +522,9 @@ class KeepNote (keepnote.KeepNote):
 
         return imgfile  
 
+
+    def get_richtext_tag_table(self):
+        return self._tag_table
 
     #===================================
     # callbacks

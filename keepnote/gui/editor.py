@@ -54,9 +54,10 @@ from keepnote.notebook import \
 from keepnote import notebook as notebooklib
 from keepnote.gui import richtext
 from keepnote.gui.richtext import \
-     RichTextView, RichTextIO, RichTextError, RichTextImage
+     RichTextView, RichTextBuffer, \
+     RichTextIO, RichTextError, RichTextImage
 from keepnote.gui.richtext.richtext_tags import \
-    RichTextLinkTag
+    RichTextTagTable, RichTextLinkTag
 from keepnote.gui import \
      get_resource, \
      get_resource_image, \
@@ -102,7 +103,8 @@ class KeepNoteEditor (gtk.VBox):
         
         
         # textview and its callbacks
-        self._textview = RichTextView()    # textview
+        self._textview = RichTextView(RichTextBuffer(
+                self._app.get_richtext_tag_table()))    # textview
         self._textview.disable()        
         self._textview.connect("font-change", self._on_font_callback)
         self._textview.connect("modified", self._on_modified_callback)
