@@ -523,6 +523,13 @@ class KeepNote (keepnote.KeepNote):
         return imgfile  
 
 
+    def focus_windows(self):
+        """Focus all open windows on desktop"""
+
+        for window in self._windows:
+            window.restore_window()
+
+
     def get_richtext_tag_table(self):
         return self._tag_table
 

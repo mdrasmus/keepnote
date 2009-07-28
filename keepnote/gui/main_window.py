@@ -516,6 +516,7 @@ class KeepNoteWindow (gtk.Window):
     
     def on_quit(self):
         """Close the window and quit"""
+        
         self.save_preferences()
         self.close_notebook()
         if self.tray_icon:

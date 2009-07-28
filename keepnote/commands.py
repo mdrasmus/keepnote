@@ -84,7 +84,6 @@ def open_socket(start_port=4000, end_port=10000, tries=10):
 
     return s, port
     
-
 def process_connection(conn, addr, passwd, execfunc):
     """Process a connection"""
 
@@ -105,7 +104,7 @@ def process_connection(conn, addr, passwd, execfunc):
             return
         
         # TODO: parse command
-        execfunc(command.split(" "))
+        execfunc(parse_command(command))
 
         connfile.close()
         conn.close()
@@ -142,6 +141,50 @@ def read_lock_file(fd):
 def make_passwd():
     """Generate a random password"""
     return str(random.randint(0, 1000000))
+
+
+def unescape(text):
+    
+    text2 = []
+    i = 0
+    while i < len(text):
+        if text[i] == "\\" and i + 1 < len(text):
+            if text[i+1] == "n":
+                # newline
+                text2.append("\n")
+            else:
+                # literal
+                text2.append(text[i+1])
+            i += 1
+        else:
+            text2.append(text[i])
+            
+        i += 1
+        
+    return "".join(text2)
+
+def escape(text):
+    
+    text2 = []
+    for c in text:
+        if c == "\n":
+            text2.append("\\n")
+        elif c == " ":
+            text2.append("\\ ")
+        elif c == "\\":
+            text2.append("\\\\")
+        else:
+            text2.append(c)
+    
+    return "".join(text2)
+
+
+def parse_command(text):
+    return [unescape(x) for x in text.split(" ")]
+
+def format_command(argv):
+    return " ".join(escape(x) for x in argv)
+
 
 
 class CommandExecutor (object):
@@ -202,7 +245,7 @@ class CommandExecutor (object):
                     def execute(app, argv):
                         # send command
                         # TODO: format correctly
-                        connfile.write(" ".join(argv))
+                        connfile.write(format_command(argv))
 
                         connfile.close()
                         s.close()

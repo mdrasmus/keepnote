@@ -195,8 +195,7 @@ def execute_command(app, argv):
             raise Exception(_("Expected command"))
 
         elif args[0] == "focus":
-            if len(app._windows) > 0:
-                app._windows[0].restore_window()
+            app.focus_windows()
 
         else:
             raise Exception(_("Unknown command '%s'") % args[0])
