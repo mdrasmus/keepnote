@@ -25,27 +25,34 @@
 #
 
 # python imports
-import os, sys, threading, time, traceback, shutil
+import gettext
+import os
+
+_ = gettext.gettext
 
 
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
+import gtk
 import gtk.glade
-import gobject
 
 
 # keepnote imports
 import keepnote
-from keepnote.gui import \
-     guess_open_icon_filename, \
-     lookup_icon_filename, \
-     get_pixbuf, \
-     builtin_icons, \
-     get_all_icon_basenames
 from keepnote import tasklib
 from keepnote import notebook as notebooklib
-from keepnote.gui import get_resource
+from keepnote.gui import \
+     get_pixbuf, \
+     get_resource
+import keepnote.gui
+from keepnote.gui.icons import \
+     guess_open_icon_filename, \
+     lookup_icon_filename, \
+     builtin_icons, \
+     get_all_icon_basenames, \
+     get_node_icon_filenames
+
 
 
 def browse_file(parent, title, filename=None):
@@ -53,8 +60,8 @@ def browse_file(parent, title, filename=None):
 
     dialog = gtk.FileChooserDialog(title, parent, 
         action=gtk.FILE_CHOOSER_ACTION_OPEN,
-        buttons=("Cancel", gtk.RESPONSE_CANCEL,
-                 "Open", gtk.RESPONSE_OK))
+        buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
+                 _("Open"), gtk.RESPONSE_OK))
     dialog.set_transient_for(parent)
     dialog.set_modal(True)
 
@@ -197,8 +204,7 @@ class NodeIconDialog (object):
 
 
         # populate standard
-        self.populate_iconlist(self.standard_iconlist,
-                               keepnote.gui.builtin_icons)
+        self.populate_iconlist(self.standard_iconlist, builtin_icons)
         self.standard_iconview.set_model(self.standard_iconlist)
         self.standard_iconview.set_pixbuf_column(0)
 
@@ -275,7 +281,7 @@ class NodeIconDialog (object):
             self.icon_open_entry.set_text(filename)
 
         if filename == "":
-            filenames = keepnote.gui.get_node_icon_filenames(self.node)
+            filenames = get_node_icon_filenames(self.node)
             filename = filenames[{"icon": 0, "icon_open": 1}[kind]]
 
         self.set_preview(kind, filename)
@@ -316,7 +322,7 @@ class NodeIconDialog (object):
         """Callback for browse icon file"""
 
         filename = self.icon_entry.get_text()
-        filename = browse_file(self.dialog, "Choose Icon", filename)
+        filename = browse_file(self.dialog, _("Choose Icon"), filename)
         
         if filename:
             # set filename and preview
@@ -327,7 +333,7 @@ class NodeIconDialog (object):
         """Callback for browse open icon file"""
     
         filename = self.icon_open_entry.get_text()
-        filename = browse_file(self.dialog, "Choose Open Icon", filename)
+        filename = browse_file(self.dialog, _("Choose Open Icon"), filename)
         if filename:
             # set filename and preview
             self.set_icon("icon_open", filename)

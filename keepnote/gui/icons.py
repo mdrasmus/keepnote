@@ -140,7 +140,8 @@ class MimeIcons:
         else:
             return default
         
-        
+
+# singleton
 _g_mime_icons = MimeIcons()
 
 

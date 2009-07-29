@@ -6,9 +6,6 @@ import gtk
 import gobject
 
 # keepnote imports
-from keepnote.gui import \
-    get_node_icon, \
-    lookup_icon_filename
 from keepnote.gui.popupwindow import PopupWindow
     
 

@@ -47,7 +47,6 @@ from keepnote.gui import \
      get_resource_image, \
      get_resource_pixbuf, \
      get_accel_file, \
-     lookup_icon_filename, \
      Action
 from keepnote import notebook as notebooklib
 from keepnote.gui import richtext

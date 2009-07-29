@@ -48,16 +48,7 @@ from keepnote.notebook import \
      NoteBookError
 import keepnote.notebook as notebooklib
 from keepnote.gui.icons import \
-    DEFAULT_QUICK_PICK_ICONS, \
-    builtin_icons, \
-    get_default_icon_basenames, \
-    get_default_icon_filenames, \
-    lookup_icon_filename, \
-    get_all_icon_basenames, \
-    guess_open_icon_filename, \
-    get_node_icon_basenames, \
-    get_node_icon_filenames, \
-    get_node_icon
+    DEFAULT_QUICK_PICK_ICONS
     
 
 # setup glade with gettext

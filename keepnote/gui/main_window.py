@@ -29,17 +29,13 @@
 import gettext
 import mimetypes
 import os
-import re
 import shutil
 import subprocess
 import sys
 import tempfile
-import threading
-import time
 import traceback
 
 _ = gettext.gettext
-
 
 
 # pygtk imports
@@ -57,15 +53,17 @@ from keepnote.notebook import \
      NoteBookError, \
      NoteBookVersionError
 from keepnote import notebook as notebooklib
+from keepnote import tasklib
 from keepnote.gui import \
      get_resource, \
      get_resource_image, \
      get_resource_pixbuf, \
      get_accel_file, \
-     lookup_icon_filename, \
      Action, \
      ToggleAction, \
      add_actions
+from keepnote.gui.icons import \
+     lookup_icon_filename
 import keepnote.search
 from keepnote.gui import richtext
 from keepnote.gui import \
@@ -80,8 +78,6 @@ from keepnote.gui import \
 from keepnote.gui.editor import KeepNoteEditor, EditorMenus
 from keepnote.gui.icon_menu import IconMenu
 from keepnote.gui.three_pane_viewer import ThreePaneViewer
-
-from keepnote import tasklib
 
 
 CONTEXT_MENU_ACCEL_PATH = "<main>/context_menu"

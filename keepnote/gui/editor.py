@@ -59,15 +59,15 @@ from keepnote.gui.richtext import \
 from keepnote.gui.richtext.richtext_tags import \
     RichTextTagTable, RichTextLinkTag
 from keepnote.gui import \
+     get_pixbuf, \
      get_resource, \
      get_resource_image, \
      get_resource_pixbuf, \
      Action, \
      ToggleAction, \
-     get_node_icon, \
-     update_file_preview, \
-     lookup_icon_filename, \
-     get_pixbuf
+     update_file_preview
+from keepnote.gui.icons import \
+    get_node_icon
 from keepnote.gui.font_selector import FontSelector
 from keepnote.gui.colortool import FgColorTool, BgColorTool
 from keepnote.gui.richtext.richtext_tags import color_tuple_to_string

@@ -30,9 +30,11 @@ pygtk.require('2.0')
 import gobject
 import gtk
 
-import keepnote.gui
+import keepnote.gui.icons
+from keepnote.gui.icons import \
+    lookup_icon_filename
 
-default_menu_icons = [x for x in keepnote.gui.builtin_icons
+default_menu_icons = [x for x in keepnote.gui.icons.builtin_icons
                       if "-open." not in x][:20]
 
 
@@ -136,7 +138,7 @@ class IconMenu (gtk.Menu):
         child = gtk.MenuItem("")
         child.remove(child.child)
         img = gtk.Image()
-        iconfile2 = keepnote.gui.lookup_icon_filename(self._notebook, iconfile)
+        iconfile2 = lookup_icon_filename(self._notebook, iconfile)
         img.set_from_file(iconfile2)
         child.add(img)
         child.child.show()
