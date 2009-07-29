@@ -317,6 +317,9 @@ class KeepNoteBaseTreeView (gtk.TreeView):
     def set_node_expanded(self, node, expand):
         # save expansion in node
         node.set_attr("expanded", expand)
+
+        # TODO: do I notify listeners of expand change
+        # Will this interfere with on_node_changed callbacks
         
 
     def _on_row_expanded(self, treeview, it, path):
