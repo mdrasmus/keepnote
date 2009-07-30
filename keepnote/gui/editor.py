@@ -287,7 +287,8 @@ class KeepNoteEditor (gtk.VBox):
         if (self._link_picker and self._link_picker.shown() and
             (event.keyval == gtk.keysyms.Down or 
              event.keyval == gtk.keysyms.Up or 
-             event.keyval == gtk.keysyms.Return)):
+             event.keyval == gtk.keysyms.Return or
+             event.keyval == gtk.keysyms.Escape)):
             
             return self._link_picker.on_key_press_event(textview, event)
 
@@ -320,10 +321,16 @@ class KeepNoteEditor (gtk.VBox):
         if tag is not None and popup:
             # perform node search
             text = start.get_text(end)
-            results = [(nodeid, title, 
+            results = [(get_node_url(nodeid), title, 
                         get_node_icon(self._notebook.get_node_by_id(nodeid)))
                        for nodeid, title in 
                        self._notebook.search_node_titles(text)[:self._maxlinks]]
+
+            # offer url match
+            if is_url(text):
+                results = [(text, text,
+                            get_resource_pixbuf("node_icons", 
+                                                "web.png"))] + results
 
             # ensure link picker is initialized
             if self._link_picker is None:
@@ -349,14 +356,13 @@ class KeepNoteEditor (gtk.VBox):
             self._link_picker.set_links([])
         
         
-    def _on_pick_link(self, widget, title, nodeid):
+    def _on_pick_link(self, widget, title, url):
         """Callback for when link autocomplete has choosen a link"""
         
         # get current link
         tag, start, end = self.get_link()
 
         # make new link tag
-        url = get_node_url(nodeid) #node.get_url()
         tagname = RichTextLinkTag.tag_name(url)
         tag = self._textview.get_buffer().tag_table.lookup(tagname)
 
@@ -520,6 +526,9 @@ gobject.signal_new("child-activated", KeepNoteEditor, gobject.SIGNAL_RUN_LAST,
 gobject.signal_new("window-request", KeepNoteEditor, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (str,))
 
+
+#=============================================================================
+# menu classes functions
 
 
 class FontUI (object):

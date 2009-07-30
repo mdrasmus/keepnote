@@ -1,7 +1,7 @@
 """
 
     KeepNote
-    Graphical User Interface for KeepNote Application
+    Module for managing node icons in KeepNote
 
 """
 

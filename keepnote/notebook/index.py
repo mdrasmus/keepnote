@@ -48,6 +48,19 @@ def get_index_file(notebook):
     return os.path.join(notebook.get_pref_dir(), INDEX_FILE)
 
 
+def preorder(node):
+    """Iterate through nodes in pre-order traversal"""
+
+    queue = [node]
+
+    while len(queue) > 0:
+        node = queue.pop()
+        yield node
+
+        for child in node.iter_temp_children():
+            queue.append(child)
+
+
 class NoteBookIndexDummy (object):
     """Index for a NoteBook"""
 
@@ -98,7 +111,8 @@ class NoteBookIndex (object):
     def __init__(self, notebook):
         self._notebook = notebook
         self._uniroot = notebook.get_universal_root_id()
-
+        self._need_index = False
+        
         self.con = None
         self.cur = None
         self.open()
@@ -107,7 +121,9 @@ class NoteBookIndex (object):
 
 
     def open(self):
-        """Open connection to index"""
+        """
+        Open connection to index
+        """
 
         index_file = get_index_file(self._notebook)
         con = sqlite.connect(index_file, isolation_level="DEFERRED",
@@ -131,6 +147,8 @@ class NoteBookIndex (object):
     def init_index(self):
         """Initialize the tables in the index if they do not exist"""
 
+        self._need_index = False
+
         con = self.con
 
         # check database version
@@ -148,6 +166,8 @@ class NoteBookIndex (object):
 
             # update version
             con.execute("INSERT INTO Version VALUES (?, datetime('now'));", (INDEX_VERSION,))
+
+            self._need_index = True
         
 
         # init NodeGraph table
@@ -176,7 +196,44 @@ class NoteBookIndex (object):
 
         con.commit()
 
+    
+    def index_needed(self):
+        return self._need_index
 
+
+    def index_all(self, root=None):
+        
+        if root is None:
+            root = self._notebook
+        
+        visit = set()
+        queue = []
+
+        def changed_callback(nodes, recurse):
+            for node in nodes:
+                if node not in visit:
+                    queue.append(node)
+
+        self._notebook.node_changed.add(changed_callback)
+
+        for node in preorder(root):
+            self.add_node(node)
+            visit.add(node)
+            yield node
+
+        # walk through nodes missed in original pass
+        while len(queue) > 0:
+            node = queue.pop()
+            if node not in visit:
+                for node2 in preorder(node):
+                    self.add_node(node)
+                    visit.add(node)
+                    yield node
+
+        self._notebook.node_changed.remove(changed_callback)
+
+        # record index complete
+        self._need_index = False
 
             
     def add_node(self, node):

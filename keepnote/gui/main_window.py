@@ -136,7 +136,7 @@ class KeepNoteWindow (gtk.Window):
         # window state
         self._maximized = False   # True if window is maximized
         self._iconified = False   # True if window is minimized
-        self.tray_icon = None
+        self._tray_icon = None
 
         self.uimanager = gtk.UIManager()
         self.accel_group = self.uimanager.get_accel_group()
@@ -180,7 +180,7 @@ class KeepNoteWindow (gtk.Window):
 
 
         # main window signals
-        self.connect("delete-event", lambda w,e: self.on_quit())
+        self.connect("delete-event", lambda w,e: self.on_close())
         self.connect("window-state-event", self.on_window_state)
         self.connect("size-allocate", self.on_window_size)
         self.app.pref.changed.add(self.on_app_options_changed)
@@ -263,16 +263,16 @@ class KeepNoteWindow (gtk.Window):
     
         # system tray icon
         if gtk.gtk_version > (2, 10):
-            if not self.tray_icon:
-                self.tray_icon = gtk.StatusIcon()
-                self.tray_icon.set_from_pixbuf(get_resource_pixbuf("keepnote-32x32.png"))
-                self.tray_icon.set_tooltip(keepnote.PROGRAM_NAME)
-                self.tray_icon.connect("activate", self.on_tray_icon_activate)
+            if not self._tray_icon:
+                self._tray_icon = gtk.StatusIcon()
+                self._tray_icon.set_from_pixbuf(get_resource_pixbuf("keepnote-32x32.png"))
+                self._tray_icon.set_tooltip(keepnote.PROGRAM_NAME)
+                self._tray_icon.connect("activate", self.on_tray_icon_activate)
 
-            self.tray_icon.set_property("visible", self.app.pref.use_systray)
+            self._tray_icon.set_property("visible", self.app.pref.use_systray)
             
         else:
-            self.tray_icon = None
+            self._tray_icon = None
 
 
     def get_current_page(self):
@@ -510,16 +510,21 @@ class KeepNoteWindow (gtk.Window):
         dialog.destroy()
 
     
-    def on_quit(self):
-        """Close the window and quit"""
+    def on_close(self):
+        """Callback for window close"""
         
         self.save_preferences()
         self.close_notebook()
-        if self.tray_icon:
-            self.tray_icon.set_property("visible", False)
+        if self._tray_icon:
+            self._tray_icon.set_property("visible", False)
             
         return False
     
+
+    def close(self):
+        """Close the window"""
+
+        self.destroy()
 
     
     #===============================================
@@ -605,7 +610,6 @@ class KeepNoteWindow (gtk.Window):
 
         # check version
         try:
-            #notebook = self.app.get_notebook(filename, self)
             notebook = self.app.open_notebook(filename, self)
             notebook.node_changed.add(self.on_notebook_node_changed)
 
@@ -646,6 +650,10 @@ class KeepNoteWindow (gtk.Window):
         # save notebook to recent notebooks
         self.add_recent_notebook(filename)
 
+
+        if self.notebook._index.index_needed():
+            self.update_index()
+
         return self.notebook
         
         
@@ -660,16 +668,6 @@ class KeepNoteWindow (gtk.Window):
             self.notebook.close()
             self.set_notebook(None)
             self.set_status(_("Notebook closed"))
-
-    '''
-    def update_notebook(self, filename, version=None):
-        try:
-            dialog = dialog_update_notebook.UpdateNoteBookDialog(self)
-            return dialog.show(filename, version=version)
-        except Exception, e:
-            self.error(_("Error occurred"), e, sys.exc_info()[2])
-            return False
-    '''    
 
 
     def begin_auto_save(self):
@@ -708,6 +706,27 @@ class KeepNoteWindow (gtk.Window):
             [filename] + self.app.pref.recent_notebooks[:keepnote.gui.MAX_RECENT_NOTEBOOKS]
 
         self.app.pref.changed.notify()
+
+
+    def update_index(self):
+        """Update notebook index"""
+
+        if not self.notebook:
+            return
+
+        def update(task):
+            # do search in another thread
+
+            for node in self.notebook._index.index_all():
+                # terminate if search is canceled
+                if task.aborted():
+                    break
+            task.finish()
+
+        # launch task
+        self.wait_dialog(_("Indexing notebook"), _("Indexing..."),
+                         tasklib.Task(update))
+
 
     #=============================================================
     # viewer callbacks
@@ -1374,7 +1393,7 @@ class KeepNoteWindow (gtk.Window):
             
             ("Quit", gtk.STOCK_QUIT, _("_Quit"),
              "<control>Q", _("Quit KeepNote"),
-             lambda w: self.on_quit()),
+             lambda w: self.close()),
 
             #=======================================
             ("Edit", None, _("_Edit")),
@@ -1453,6 +1472,10 @@ class KeepNoteWindow (gtk.Window):
             
             #=========================================
             ("Options", None, _("_Options")),
+
+            ("Update Notebook Index", None, _("_Update Notebook Index"),
+             "", None,
+             lambda w: self.update_index()),
             
             ("KeepNote Options", gtk.STOCK_PREFERENCES, _("KeepNote _Options"),
              "", None,
@@ -1563,6 +1586,8 @@ class KeepNoteWindow (gtk.Window):
     <separator/>
     <menuitem action="Horizontal Layout"/>
     <menuitem action="Vertical Layout"/>
+    <separator/>
+    <menuitem action="Update Notebook Index"/>
     <separator/>
     <menuitem action="KeepNote Options"/>
   </menu>
@@ -1779,39 +1804,24 @@ class KeepNoteWindow (gtk.Window):
         """make list of menu options for nodes"""
 
         # new page
-        item = gtk.ImageMenuItem()
+        item = gtk.ImageMenuItem(_("New _Page"))
         item.set_image(get_resource_image("note-new.png"))        
-        label = gtk.Label(_("New _Page"))
-        label.set_use_underline(True)
-        label.set_alignment(0.0, 0.5)
-        label.show()
-        item.add(label)        
         item.connect("activate", lambda w: self.on_new_page(control))
         menu.append(item)
         item.show()
 
 
         # new child page 
-        item = gtk.ImageMenuItem()
-        item.set_image(get_resource_image("note-new.png"))        
-        label = gtk.Label(_("New _Child Page"))
-        label.set_use_underline(True)
-        label.set_alignment(0.0, 0.5)
-        label.show()
-        item.add(label)        
+        item = gtk.ImageMenuItem(_("New _Child Page"))
+        item.set_image(get_resource_image("note-new.png"))
         item.connect("activate", lambda w: self.on_new_child_page(control))
         menu.append(item)
         item.show()
 
         
         # new folder
-        item = gtk.ImageMenuItem()        
+        item = gtk.ImageMenuItem(_("New _Folder"))
         item.set_image(get_resource_image("folder-new.png"))
-        label = gtk.Label(_("New _Folder"))
-        label.set_use_underline(True)
-        label.set_alignment(0.0, 0.5)
-        label.show()
-        item.add(label)
         item.connect("activate", lambda w: self.on_new_dir(control))
         menu.append(item)
         item.show()
@@ -1845,12 +1855,7 @@ class KeepNoteWindow (gtk.Window):
         
 
         # change icon
-        item = gtk.ImageMenuItem()
-        label = gtk.Label(_("Change _Icon"))
-        label.set_use_underline(True)
-        label.set_alignment(0.0, 0.5)
-        label.show()
-        item.add(label)
+        item = gtk.ImageMenuItem(_("Change _Icon"))
         img = gtk.Image()
         img.set_from_file(lookup_icon_filename(None, "folder-red.png"))
         item.set_image(img)

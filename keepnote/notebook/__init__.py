@@ -26,7 +26,16 @@
 
 
 # python imports
-import os, sys, shutil, time, re, traceback, urlparse, urllib2
+import gettext
+import os
+import sys
+import shutil
+import re
+import traceback
+import urlparse
+import urllib2
+
+_ = gettext.gettext
 
 # xml imports
 import xml.dom.minidom as xmldom
@@ -767,12 +776,28 @@ class NoteBookNode (object):
     def _get_children(self):
         """Load children list from filesystem"""
         self._children = []
+
+        for node in self.iter_temp_children():
+            self._children.append(node)                    
+            # notify index
+            self._notebook._index.add_node(node)
+
+        # assign orders
+        self._children.sort(key=lambda x: x._attr["order"])
+        self._set_child_order()
+
+
+    def iter_temp_children(self):
+        """Iterate through children
+           Returns temporary node objects
+        """
+
         path = self.get_path()
         
         try:
             files = os.listdir(path)
         except OSError, e:
-            raise NoteBookError("Do not have permission to read folder contents", e)
+            raise NoteBookError(_("Do not have permission to read folder contents"), e)
         
         for filename in files:
             path2 = os.path.join(path, filename)
@@ -780,11 +805,7 @@ class NoteBookNode (object):
             try:
                 node = self._notebook.read_node(self, path2)
                 if node:
-                    self._children.append(node)
-                    
-                    # notify index
-                    self._notebook._index.add_node(node)
-
+                    yield node
                 
             except NoteBookError, e:
                 print >>sys.stderr, "error reading", path2
@@ -792,11 +813,6 @@ class NoteBookNode (object):
                 continue                
                 # TODO: raise warning, not all children read
                             
-        
-        # assign orders
-        self._children.sort(key=lambda x: x._attr["order"])
-        self._set_child_order()
-
     
     def _set_child_order(self):
         """Ensures that child know their order in the children list"""

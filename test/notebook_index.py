@@ -11,7 +11,7 @@ class TestCaseNotebookIndex (unittest.TestCase):
         pass
 
 
-    def test_notebook_lookup_node(self):
+    def test_notebook_lookup_node(self):        
 
         nodeid = "0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"
         path = os.path.join("test/data/notebook-v3", "stress tests")
@@ -19,6 +19,9 @@ class TestCaseNotebookIndex (unittest.TestCase):
         book = notebook.NoteBook()
         book.load("test/data/notebook-v3")
         
+        print "indexing..."
+        for node in book._index.index_all(): pass
+
         path2 = book.get_node_path_by_id(nodeid)
         self.assertEqual(path, path2)
         book.close()

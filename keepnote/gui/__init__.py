@@ -27,11 +27,14 @@
 
 
 # python imports
+import gettext
 import mimetypes
 import os
 import subprocess
 import sys
 import tempfile
+
+_ = gettext.gettext
 
 # pygtk imports
 import pygtk
@@ -55,9 +58,8 @@ from keepnote.gui.icons import \
 gtk.glade.bindtextdomain(keepnote.GETTEXT_DOMAIN, keepnote.get_locale_dir())
 
 
+# constants
 MAX_RECENT_NOTEBOOKS = 10
-
-
 ACCEL_FILE = "accel.txt"
 
 
@@ -165,6 +167,7 @@ def add_actions(actiongroup, actions):
 
 
 class KeepNote (keepnote.KeepNote):
+    """GUI version of the KeepNote application instance"""
 
     def __init__(self, basedir=""):
         keepnote.KeepNote.__init__(self, basedir)
@@ -190,7 +193,8 @@ class KeepNote (keepnote.KeepNote):
     
 
     def get_notebook(self, filename, window=None):
-        
+        """Returns a an opened notebook at filename"""
+
         filename = os.path.realpath(filename)
         if filename not in self._notebooks:
             self._notebooks[filename] = self.open_notebook(filename, window)
@@ -225,6 +229,7 @@ class KeepNote (keepnote.KeepNote):
 
 
     def take_screenshot(self, filename):
+        """Take a screenshot and save it to 'filename'"""
 
         # make sure filename is unicode
         filename = ensure_unicode(filename, "utf-8")
@@ -267,6 +272,7 @@ class KeepNote (keepnote.KeepNote):
 
 
     def get_richtext_tag_table(self):
+        """Returns the application-wide richtext tag table"""
         return self._tag_table
 
     #===================================
@@ -274,14 +280,18 @@ class KeepNote (keepnote.KeepNote):
 
 
     def _on_window_close(self, window, event):
-        
+        """Callback for window close event"""
+
+        # remove window from window list
         self._windows.remove(window)
 
+        # quit app if last window closes
         if len(self._windows) == 0:
             self.quit()
 
 
     def quit(self):
+        """Quit the gtk event loop"""
         
         gtk.accel_map_save(get_accel_file())
         gtk.main_quit()

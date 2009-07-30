@@ -56,15 +56,16 @@ class LinkPickerPopup (PopupWindow):
 
         self._shown = False
 
+        # use frame for border
         frame = gtk.Frame()
         frame.set_shadow_type(gtk.SHADOW_ETCHED_IN)
         frame.add(self._link_picker)
         frame.show()
-
         self.add(frame)
        
 
     def set_links(self, urls):
+        """Set links in popup"""
         self._link_picker.set_links(urls)
 
         if len(urls) == 0:
@@ -76,10 +77,12 @@ class LinkPickerPopup (PopupWindow):
 
             
     def shown(self):
+        """Return True if popup is visible"""
         return self._shown
 
 
     def on_key_press_event(self, widget, event):
+        """Callback for key press events"""
 
         model, sel = self._link_picker.get_selection().get_selected()
 
@@ -97,8 +100,7 @@ class LinkPickerPopup (PopupWindow):
             return True
 
         elif event.keyval == gtk.keysyms.Up:
-            # move selection up
-            
+            # move selection up            
             if sel is None:
                 n = model.iter_n_children(None)
                 self._link_picker.set_cursor((n-1,))
@@ -111,14 +113,15 @@ class LinkPickerPopup (PopupWindow):
 
         elif event.keyval == gtk.keysyms.Return:
             # accept selection
-
             if sel:
                 icon, title, nodeid = model[sel]
                 self.emit("pick-link", title, nodeid)
                 return True
 
+        elif event.keyval == gtk.keysyms.Escape:
+            # discard popup
+            self.set_links([])
 
-        # TODO: add escape
 
         return False
 
