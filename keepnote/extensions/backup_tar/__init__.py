@@ -70,7 +70,7 @@ class Extension (keepnote.Extension):
             ("Backup Notebook", None, "_Backup Notebook...",
              "", None,
              lambda w: self.on_archive_notebook(window,
-                                                window.notebook)),
+                                                window.get_notebook())),
             ("Restore Notebook", None, "R_estore Notebook...",
              "", None,
              lambda w: self.on_restore_notebook(window))

@@ -279,6 +279,9 @@ class KeepNoteWindow (gtk.Window):
         return self.viewer.get_current_page()
         
 
+    def get_notebook(self):
+        return self.notebook
+
     #=================================================
     # view config
         
@@ -1391,6 +1394,10 @@ class KeepNoteWindow (gtk.Window):
              "", _("Close the current notebook"),
              lambda w: self.close_notebook()),
             
+            ("Export", None, _("_Export")),
+
+            ("Import", None, _("_Import")),
+
             ("Quit", gtk.STOCK_QUIT, _("_Quit"),
              "<control>Q", _("Quit KeepNote"),
              lambda w: self.close()),
@@ -1545,6 +1552,11 @@ class KeepNoteWindow (gtk.Window):
      <menuitem action="Reload Notebook"/>
      <menuitem action="Save Notebook"/>
      <menuitem action="Close Notebook"/>
+     <separator/>
+     <menu action="Export">
+     </menu>
+     <menu action="Import">
+     </menu>
      <separator/>
      <placeholder name="File Extensions"/>
      <separator/>
