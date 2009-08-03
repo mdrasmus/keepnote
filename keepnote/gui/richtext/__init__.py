@@ -64,7 +64,8 @@ from keepnote.gui.richtext.richtext_tags import \
      RichTextBGColorTag, \
      RichTextIndentTag, \
      RichTextBulletTag, \
-     RichTextLinkTag
+     RichTextLinkTag, \
+     get_text_scale
 
 # richtext io
 from keepnote.gui.richtext.richtext_html import HtmlBuffer, HtmlError
@@ -301,7 +302,7 @@ class RichTextView (gtk.TextView):
 
     def __init__(self, textbuffer=None):
         gtk.TextView.__init__(self, textbuffer)
-        
+
         self._textbuffer = None
         self._buffer_callbacks = []
         self._blank_buffer = RichTextBuffer()
@@ -1364,6 +1365,7 @@ class RichTextView (gtk.TextView):
         """Sets the default font of the textview"""
         try:
             f = pango.FontDescription(font)
+            f.set_size(f.get_size() * get_text_scale())
             self.modify_font(f)
         except:
             # TODO: think about how to handle this error
