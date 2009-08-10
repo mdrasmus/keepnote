@@ -82,8 +82,8 @@ def get_text_scale():
     """Returns current text scale"""
     global _text_scale
     if _text_scale is None:
-        _text_scale = 0.458 * (float(gtk.gdk.screen_height()) / 
-                               gtk.gdk.screen_height_mm())
+        _text_scale = (float(gtk.gdk.screen_height()) / 
+                       gtk.gdk.screen_height_mm()) / 2.95566
 
     return _text_scale
 
@@ -224,7 +224,7 @@ def get_attr_size(attr):
     #return int(attr.font_scale * 10.0)
     #print font.get_style()
     PIXELS_PER_PANGO_UNIT = 1024
-    return attr.font.get_size() / get_text_scale() // PIXELS_PER_PANGO_UNIT
+    return attr.font.get_size() // int(get_text_scale() * PIXELS_PER_PANGO_UNIT)
 
 
 class RichTextSizeTag (RichTextTag):
@@ -233,7 +233,7 @@ class RichTextSizeTag (RichTextTag):
     def __init__(self, size, scale=1.0):
         #scale = size / 10.0
         RichTextTag.__init__(self, "size %d" % size, 
-                             size_points=size * get_text_scale())
+                             size_points=int(size * get_text_scale()))
 
     def get_size(self):
         #return int(self.get_property("scale") * 10.0) 

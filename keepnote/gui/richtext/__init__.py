@@ -1365,7 +1365,7 @@ class RichTextView (gtk.TextView):
         """Sets the default font of the textview"""
         try:
             f = pango.FontDescription(font)
-            f.set_size(f.get_size() * get_text_scale())
+            f.set_size(int(f.get_size() * get_text_scale()))
             self.modify_font(f)
         except:
             # TODO: think about how to handle this error
