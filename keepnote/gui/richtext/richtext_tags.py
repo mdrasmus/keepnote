@@ -79,6 +79,7 @@ def color_tuple_to_string(color):
 
 _text_scale = None
 def get_text_scale():
+    """Returns current text scale"""
     global _text_scale
     if _text_scale is None:
         _text_scale = 0.458 * (float(gtk.gdk.screen_height()) / 

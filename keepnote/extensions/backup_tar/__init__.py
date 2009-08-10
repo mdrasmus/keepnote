@@ -24,8 +24,14 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
-import sys, os, re, shutil, time
+import gettext
+import os
+import re
+import shutil
+import sys
+import time
 
+#_ = gettext.gettext
 
 import keepnote
 from keepnote.notebook import NoteBookError, get_valid_unique_filename
@@ -49,7 +55,7 @@ except ImportError:
 
 class Extension (keepnote.Extension):
     
-    version = "1.0"
+    version = (1, 0)
     name = "TAR Backup"
     description = "Backups a notebook to a gzip tar file (*.tar.gz)"
 
@@ -102,7 +108,7 @@ class Extension (keepnote.Extension):
 
         filename = notebooklib.get_unique_filename(
             self.app.pref.archive_notebook_path,
-            time.strftime(os.path.basename(window.notebook.get_path()) +
+            time.strftime(os.path.basename(notebook.get_path()) +
                           "-%Y-%m-%d"),
             ".tar.gz",
             ".")
@@ -133,7 +139,7 @@ class Extension (keepnote.Extension):
                 filename += ".tar.gz"
 
             window.set_status("Archiving...")
-            return self.archive_notebook(window, filename)
+            return self.archive_notebook(notebook, filename, window)
             
 
         elif response == gtk.RESPONSE_CANCEL:
@@ -209,23 +215,23 @@ class Extension (keepnote.Extension):
             dialog.destroy()
 
             window.set_status("Restoring...")
-            self.restore_notebook(window, archive_filename,
-                                  notebook_filename)
+            self.restore_notebook(archive_filename,
+                                  notebook_filename, window)
 
         elif response == gtk.RESPONSE_CANCEL:
             dialog.destroy()
 
 
 
-    def archive_notebook(self, window, filename):
+    def archive_notebook(self, notebook, filename, window):
         """Archive a notebook"""
 
-        if window.notebook is None:
+        if notebook is None:
             return
 
 
         task = tasklib.Task(lambda task:
-            archive_notebook(window.notebook, filename, task))
+            archive_notebook(notebook, filename, task))
 
         window.wait_dialog("Creating archive '%s'..." %
                            os.path.basename(filename),
@@ -252,9 +258,8 @@ class Extension (keepnote.Extension):
             return False
 
         
-
-
-    def restore_notebook(self, window, archive_filename, notebook_filename):
+    def restore_notebook(self, archive_filename, notebook_filename,
+                         window):
         """Restore notebook"""
 
         # make sure current notebook is closed
@@ -299,8 +304,6 @@ def archive_notebook(notebook, filename, task=None):
     """Archive notebook as *.tar.gz
 
        filename -- filename of archive to create
-       progress -- callback function that takes arguments
-                   (percent, filename)
     """
 
     if task is None:
