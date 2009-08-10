@@ -295,3 +295,6 @@ class KeepNote (keepnote.KeepNote):
         
         gtk.accel_map_save(get_accel_file())
         gtk.main_quit()
+
+
+
