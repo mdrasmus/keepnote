@@ -223,7 +223,7 @@ class Extension (keepnote.Extension):
 
 
 
-    def archive_notebook(self, notebook, filename, window):
+    def archive_notebook(self, notebook, filename, window=None):
         """Archive a notebook"""
 
         if notebook is None:
@@ -233,65 +233,77 @@ class Extension (keepnote.Extension):
         task = tasklib.Task(lambda task:
             archive_notebook(notebook, filename, task))
 
-        window.wait_dialog("Creating archive '%s'..." %
-                           os.path.basename(filename),
-                           "Beginning archive...",
-                           task)
 
-        # check exceptions
-        try:
-            ty, error, tracebk = task.exc_info()
-            if error:
-                raise error
-            window.set_status("Notebook archived")
-            return True
+        if window:
 
-        except NoteBookError, e:
-            window.set_status("")
-            window.error("Error while archiving notebook:\n%s" % e.msg, e,
-                         tracebk)
-            return False
+            window.wait_dialog("Creating archive '%s'..." %
+                               os.path.basename(filename),
+                               "Beginning archive...",
+                               task)
 
-        except Exception, e:
-            window.set_status("")
-            window.error("unknown error", e, tracebk)
-            return False
+            # check exceptions
+            try:
+                ty, error, tracebk = task.exc_info()
+                if error:
+                    raise error
+                window.set_status("Notebook archived")
+                return True
+
+            except NoteBookError, e:
+                window.set_status("")
+                window.error("Error while archiving notebook:\n%s" % e.msg, e,
+                             tracebk)
+                return False
+
+            except Exception, e:
+                window.set_status("")
+                window.error("unknown error", e, tracebk)
+                return False
+
+        else:
+            
+            archive_notebook(notebook, filename, None)
 
         
     def restore_notebook(self, archive_filename, notebook_filename,
-                         window):
+                         window=None):
         """Restore notebook"""
 
-        # make sure current notebook is closed
-        window.close_notebook()
+        if window:
 
-        task = tasklib.Task(lambda task:
-            restore_notebook(archive_filename, notebook_filename, True, task))
-        
-        window.wait_dialog("Restoring notebook from '%s'..." %
-                           os.path.basename(archive_filename),
-                           "Opening archive...",
-                           task)
+            # make sure current notebook is closed
+            window.close_notebook()
 
-        # check exceptions
-        try:
-            ty, error, tracebk = task.exc_info()
-            if error:
-                raise error
-            window.set_status("Notebook restored")
+            task = tasklib.Task(lambda task:
+                restore_notebook(archive_filename, notebook_filename, True, task))
 
-        except NoteBookError, e:
-            window.set_status("")
-            window.error("Error restoring notebook:\n%s" % e.msg, e, tracebk)
-            return
+            window.wait_dialog("Restoring notebook from '%s'..." %
+                               os.path.basename(archive_filename),
+                               "Opening archive...",
+                               task)
 
-        except Exception, e:
-            window.set_status("")
-            window.error("unknown error", e, trackbk)
-            return
+            # check exceptions
+            try:
+                ty, error, tracebk = task.exc_info()
+                if error:
+                    raise error
+                window.set_status("Notebook restored")
 
-        # open new notebook
-        window.open_notebook(notebook_filename)
+            except NoteBookError, e:
+                window.set_status("")
+                window.error("Error restoring notebook:\n%s" % e.msg, e, tracebk)
+                return
+
+            except Exception, e:
+                window.set_status("")
+                window.error("unknown error", e, trackbk)
+                return
+
+            # open new notebook
+            window.open_notebook(notebook_filename)
+
+        else:
+            restore_notebook(archive_filename, notebook_filename, True, None)
 
 
 def truncate_filename(filename, maxsize=100):
@@ -322,57 +334,52 @@ def archive_notebook(notebook, filename, task=None):
 
 
     # perform archiving
-    try:
-        archive = tarfile.open(filename, "w:gz", format=tarfile.PAX_FORMAT)
-        path = notebook.get_path()
+    archive = tarfile.open(filename, "w:gz", format=tarfile.PAX_FORMAT)
+    path = notebook.get_path()
 
-        # first count # of files
-        nfiles = 0
-        for root, dirs, files in os.walk(path):
-            nfiles += len(files)
+    # first count # of files
+    nfiles = 0
+    for root, dirs, files in os.walk(path):
+        nfiles += len(files)
 
-        task.set_message(("text", "Archiving %d files..." % nfiles))
+    task.set_message(("text", "Archiving %d files..." % nfiles))
 
-        nfiles2 = [0]
-        def walk(path, arcname):
-            # add to archive
-            archive.add(path, arcname, False)
-            
-            # report progresss
-            if os.path.isfile(path):
-                nfiles2[0] += 1
-                if task:
-                    task.set_message(("detail", truncate_filename(path)))
-                    task.set_percent(nfiles2[0] / float(nfiles))
+    nfiles2 = [0]
+    def walk(path, arcname):
+        # add to archive
+        archive.add(path, arcname, False)
+
+        # report progresss
+        if os.path.isfile(path):
+            nfiles2[0] += 1
+            if task:
+                task.set_message(("detail", truncate_filename(path)))
+                task.set_percent(nfiles2[0] / float(nfiles))
 
 
-            # recurse
-            if os.path.isdir(path):
-                for f in os.listdir(path):
+        # recurse
+        if os.path.isdir(path):
+            for f in os.listdir(path):
 
-                    # abort archive
-                    if task.aborted():
-                        archive.close()
-                        os.remove(filename)
-                        raise NoteBookError("Backup canceled")
-                    
-                    if not os.path.islink(f):
-                        walk(os.path.join(path, f),
-                             os.path.join(arcname, f))
-                        
-        walk(path, os.path.basename(path))
+                # abort archive
+                if task.aborted():
+                    archive.close()
+                    os.remove(filename)
+                    raise NoteBookError("Backup canceled")
 
-        task.set_message(("text", "Closing archive..."))
-        task.set_message(("detail", ""))
+                if not os.path.islink(f):
+                    walk(os.path.join(path, f),
+                         os.path.join(arcname, f))
 
-        archive.close()
+    walk(path, os.path.basename(path))
 
-        if task:
-            task.finish()
-            
-        
-    except Exception, e:
-        raise e
+    task.set_message(("text", "Closing archive..."))
+    task.set_message(("detail", ""))
+
+    archive.close()
+
+    if task:
+        task.finish()
 
 
 

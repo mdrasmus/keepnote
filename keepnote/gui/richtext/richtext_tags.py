@@ -48,6 +48,8 @@ BULLET_FONT_SIZE = 10
 
 
 def color_to_string(color):
+    """Converts a gtk.Color to a RGB string (#rrrrggggbbbb)"""
+    
     redstr = hex(color.red)[2:]
     greenstr = hex(color.green)[2:]
     bluestr = hex(color.blue)[2:]
@@ -63,6 +65,7 @@ def color_to_string(color):
 
 
 def color_tuple_to_string(color):
+    """Converts a color tuple (r,g,b) to a RGB string (#rrrrggggbbbb)"""
     redstr = hex(color[0])[2:]
     greenstr = hex(color[1])[2:]
     bluestr = hex(color[2])[2:]

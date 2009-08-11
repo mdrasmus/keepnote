@@ -29,6 +29,11 @@
 import gettext
 import os
 import sys
+import time
+import shutil
+from xml.dom import minidom
+import xml.dom
+
 
 _ = gettext.gettext
 
@@ -113,7 +118,7 @@ class Extension (keepnote.Extension):
         dialog = gtk.FileChooserDialog("Export Notebook", window, 
             action=gtk.FILE_CHOOSER_ACTION_SAVE,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
-                     "Backup", gtk.RESPONSE_OK))
+                     "Export", gtk.RESPONSE_OK))
 
 
         filename = notebooklib.get_unique_filename(
@@ -153,32 +158,88 @@ class Extension (keepnote.Extension):
         if notebook is None:
             return
 
-        task = tasklib.Task(lambda task:
-            export_notebook(notebook, filename, task))
+        if window:
 
-        window.wait_dialog("Exporting to '%s'..." %
-                           os.path.basename(filename),
-                           "Beginning export...",
-                           task)
+            task = tasklib.Task(lambda task:
+                                export_notebook(notebook, filename, task))
 
-        # check exceptions
-        try:
-            ty, error, tracebk = task.exc_info()
-            if error:
-                raise error
-            window.set_status("Notebook exported")
-            return True
+            window.wait_dialog("Exporting to '%s'..." %
+                               os.path.basename(filename),
+                               "Beginning export...",
+                               task)
 
-        except NoteBookError, e:
-            window.set_status("")
-            window.error("Error while exporting notebook:\n%s" % e.msg, e,
-                         tracebk)
-            return False
+            # check exceptions
+            try:
+                ty, error, tracebk = task.exc_info()
+                if error:
+                    raise error
+                window.set_status("Notebook exported")
+                return True
 
-        except Exception, e:
-            window.set_status("")
-            window.error("unknown error", e, tracebk)
-            return False
+            except NoteBookError, e:
+                window.set_status("")
+                window.error("Error while exporting notebook:\n%s" % e.msg, e,
+                             tracebk)
+                return False
+
+            except Exception, e:
+                window.set_status("")
+                window.error("unknown error", e, tracebk)
+                return False
+
+        else:
+            
+            export_notebook(notebook, filename, None)
+
+
+def truncate_filename(filename, maxsize=100):
+    if len(filename) > maxsize:
+        filename = "..." + filename[-(maxsize-3):]
+    return filename
+
+
+def relpath(path, start):
+    head, tail = path, None
+    head2, tail2 = start, None
+
+    rel = []
+    rel2 = []
+
+    while head != head2 and (tail != "" or tail2 != ""):
+        if len(head) > len(head2):
+            head, tail = os.path.split(head)
+            rel.append(tail)
+        else:
+            head2, tail2 = os.path.split(head2)
+            rel2.append(u"..")
+
+    rel2.extend(reversed(rel))
+    return u"/".join(rel2)
+        
+
+
+
+def translate_links(notebook, path, node):
+
+    def walk(node):
+
+        if node.nodeType == node.ELEMENT_NODE and node.tagName == "a":
+            url = node.getAttribute("href")
+            if notebooklib.is_node_url(url):
+                host, nodeid = notebooklib.parse_node_url(url)
+                note = notebook.get_node_by_id(nodeid)
+                if note:
+                    newpath = u"/".join((relpath(note.get_path(), path), 
+                                         "page.html"))
+                    # TODO: url encode
+                    node.setAttribute("href", newpath)
+
+        
+        # recurse
+        for child in node.childNodes:
+            walk(child)
+
+    walk(node)
 
 
 def export_notebook(notebook, filename, task):
@@ -191,7 +252,6 @@ def export_notebook(notebook, filename, task):
         # create dummy task if needed
         task = tasklib.Task()
 
-
     if os.path.exists(filename):
         raise NoteBookError("File '%s' already exists" % filename)
 
@@ -202,56 +262,105 @@ def export_notebook(notebook, filename, task):
         raise NoteBookError("Could not save notebook before archiving", e)
 
 
-    # perform export
-    try:
-        # first count # of files
-        nfiles = 0
-        for root, dirs, files in os.walk(path):
-            nfiles += len(files)
+    # first count # of files
+    nnodes = [0]
+    def walk(node):
+        nnodes[0] += 1
+        for child in node.get_children():
+            walk(child)
+    walk(notebook)
 
-        task.set_message(("text", "Exporting %d files..." % nfiles))
+    task.set_message(("text", "Exporting %d notes..." % nnodes[0]))
+    nnodes2 = [0]
 
-        nfiles2 = [0]
-        def walk(path, arcname):
-            # add to export
-            #archive.add(path, arcname, False)
+
+    def export_page(node, path, arcname):
+
+        filename = os.path.join(path, "page.html")
+        filename2 = os.path.join(arcname, "page.html")
+        
+        try:
+            dom = minidom.parse(filename)
+                        
+        except Exception, e:
+            # error parsing file, use simple file export
+            export_files(filename, filename2)
             
-            # report progresss
-            if os.path.isfile(path):
-                nfiles2[0] += 1
-                if task:
-                    task.set_message(("detail", truncate_filename(path)))
-                    task.set_percent(nfiles2[0] / float(nfiles))
+        else:
+            translate_links(notebook, path, dom.documentElement)
 
+            # TODO: ensure encoding issues handled
+
+            # avoid writing <?xml> header 
+            # (provides compatiability with browsers)
+            out = open(filename2, "wb")
+            dom.doctype.writexml(out)
+            dom.documentElement.writexml(out)
+            out.close()
+
+
+
+    def export_node(node, path, arcname):
+
+        # look for aborted export
+        if task.aborted():
+            raise NoteBookError("Backup canceled")
+
+        # report progresss
+        nnodes2[0] += 1
+        task.set_message(("detail", truncate_filename(path)))
+        task.set_percent(nnodes2[0] / float(nnodes[0]))
+
+        skipfiles = set(child.get_basename()
+                        for child in node.get_children())
+
+        # make node directory
+        os.mkdir(arcname)
+
+        if node.get_attr("content_type") == "text/xhtml+xml":
+            skipfiles.add("page.html")
+            # export xhtml
+            export_page(node, path, arcname)
+
+        # recurse files
+        for f in os.listdir(path):
+            if not os.path.islink(f) and f not in skipfiles:
+                export_files(os.path.join(path, f),
+                             os.path.join(arcname, f))
+
+        # recurse nodes
+        for child in node.get_children():
+            f = child.get_basename()
+            export_node(child,
+                        os.path.join(path, f),
+                        os.path.join(arcname, f))
+
+    def export_files(path, arcname):
+        # look for aborted export
+        if task.aborted():
+            raise NoteBookError("Backup canceled")
+        
+        if os.path.isfile(path):
+            # copy files            
+            shutil.copy(path, arcname)
+
+        if os.path.isdir(path):            
+            # export directory
+            os.mkdir(arcname)
 
             # recurse
-            if os.path.isdir(path):
-                for f in os.listdir(path):
+            for f in os.listdir(path):
+                if not os.path.islink(f):
+                    export_files(os.path.join(path, f),
+                                 os.path.join(arcname, f))
+    
+    export_node(notebook, notebook.get_path(), filename)
 
-                    # abort archive
-                    if task.aborted():
-                        #archive.close()
-                        #os.remove(filename)
-                        raise NoteBookError("Backup canceled")
-                    
-                    if not os.path.islink(f):
-                        walk(os.path.join(path, f),
-                             os.path.join(arcname, f))
-                        
-        walk(path, os.path.basename(path))
-
-        task.set_message(("text", "Closing export..."))
-        task.set_message(("detail", ""))
-
-        #archive.close()
-
-        if task:
-            task.finish()
-            
-        
-    except Exception, e:
-        raise e
-
+    task.set_message(("text", "Closing export..."))
+    task.set_message(("detail", ""))
+    
+    if task:
+        task.finish()
 
 
 

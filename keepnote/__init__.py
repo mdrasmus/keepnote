@@ -55,6 +55,7 @@ from keepnote.util import compose
 # modules needed by builtin extensions
 # these are imported here, so that py2exe can auto-discover them
 from keepnote import tarfile
+import xml.dom.minidom
 
 #=============================================================================
 # globals / constants
@@ -63,6 +64,9 @@ PROGRAM_NAME = "KeepNote"
 PROGRAM_VERSION_MAJOR = 0
 PROGRAM_VERSION_MINOR = 6
 PROGRAM_VERSION_RELEASE = 0
+PROGRAN_VERSION = (PROGRAM_VERSION_MAJOR,
+                   PROGRAM_VERSION_MINOR,
+                   PROGRAM_VERSION_RELEASE)
 
 if PROGRAM_VERSION_RELEASE != 0:
     PROGRAM_VERSION_TEXT = "%d.%d.%d" % (PROGRAM_VERSION_MAJOR,
@@ -75,7 +79,7 @@ else:
 WEBSITE = u"http://rasm.ods.org/keepnote"
 
 
-BASEDIR = u""
+BASEDIR = unicode(os.path.dirname(__file__))
 IMAGE_DIR = u"images"
 NODE_ICON_DIR = os.path.join(IMAGE_DIR, u"node_icons")
 PLATFORM = None
@@ -739,11 +743,12 @@ class KeepNote (object):
     """KeepNote application class"""
 
     
-    def __init__(self, basedir=""):
+    def __init__(self, basedir=None):
 
         # base directory of keepnote library
-        set_basedir(basedir)
-        self._basedir = basedir
+        if basedir is not None:
+            set_basedir(basedir)
+        self._basedir = BASEDIR
         
         # load application preferences
         self.pref = KeepNotePreferences()
@@ -886,7 +891,7 @@ class KeepNote (object):
 class Extension (object):
     """KeepNote Extension"""
 
-    version = "1.0"
+    version = (1, 0)
     name = "untitled"
     description = "base extension"
 
