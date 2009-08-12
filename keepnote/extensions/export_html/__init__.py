@@ -1,7 +1,7 @@
 """
 
     KeepNote
-    Graphical User Interface for KeepNote Application
+    Export HTML Extension
 
 """
 
@@ -228,11 +228,16 @@ def translate_links(notebook, path, node):
 def write_index(node, filename):
     
     out = file(filename, "wb")
-    out.write(u"<html>")
-
-    
-
-    out.write(u"</html>")
+    out.write((u"""<html>
+<head><title>%s</title></head>
+<body>
+<frameset rows="75%, *" cols="*, 40%">
+  <frame src="tree.html">
+  <frame src="">
+</frameset>
+</body>
+</html>
+""") % node.get_title())
     out.close()
 
 
