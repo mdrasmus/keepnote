@@ -228,42 +228,6 @@ class KeepNote (keepnote.KeepNote):
         return notebook
 
 
-    def take_screenshot(self, filename):
-        """Take a screenshot and save it to 'filename'"""
-
-        # make sure filename is unicode
-        filename = ensure_unicode(filename, "utf-8")
-
-        if get_platform() == "windows":
-            # use win32api to take screenshot
-            # create temp file
-            
-            from keepnote.gui import screenshot_win
-            
-            f, imgfile = tempfile.mkstemp(u".bmp", filename)
-            os.close(f)
-            screenshot_win.take_screenshot(imgfile)
-        else:
-            # use external app for screen shot
-            screenshot = self.pref.get_external_app("screen_shot")
-            if screenshot is None or screenshot.prog == "":
-                raise Exception("You must specify a Screen Shot program in Application Options")
-
-            # create temp file
-            f, imgfile = tempfile.mkstemp(".png", filename)
-            os.close(f)
-
-            proc = subprocess.Popen([screenshot.prog, imgfile])
-            if proc.wait() != 0:
-                raise OSError("Exited with error")
-
-        if not os.path.exists(imgfile):
-            # catch error if image is not created
-            raise Exception("The screenshot program did not create the necessary image file '%s'" % imgfile)
-
-        return imgfile  
-
-
     def focus_windows(self):
         """Focus all open windows on desktop"""
 

@@ -348,6 +348,9 @@ def init_error_log(pref_dir=None, home=None):
             os.makedirs(error_dir)
         open(error_log, "a").close()
 
+#=============================================================================
+# extension functions
+
 
 def init_user_extensions(pref_dir=None, home=None):
     """Ensure users extensions are initialized
@@ -367,6 +370,25 @@ def iter_extensions(extensions_dir):
 
     for filename in os.listdir(extensions_dir):
         yield os.path.join(extensions_dir, filename)
+
+
+
+def import_extension(app, name, filename):
+    
+    filename2 = os.path.join(filename, "__init__.py")
+    infile = open(filename2)
+    #name = os.path.basename(filename)
+
+    try:
+        mod = imp.load_module(name, infile, filename2,
+                              (".py", "rb", imp.PY_SOURCE))
+        return mod.Extension(app)
+                
+    except Exception, e:
+        infile.close()
+        raise KeepNotePreferenceError("cannot load extension '%s'" %
+                                      filename, e)            
+    infile.close()
 
 
 #=============================================================================
@@ -488,15 +510,17 @@ class KeepNotePreferences (object):
         self.image_size_snap_amount = 50
         self.use_systray = True
         self.skip_taskbar = False
+        self.recent_notebooks = []
 
         # dialog chooser paths
-        self.new_notebook_path = get_user_documents()
-        self.archive_notebook_path = get_user_documents()
-        self.insert_image_path = get_user_documents()
-        self.save_image_path = get_user_documents()
-        self.attach_file_path = get_user_documents()
+        docs = get_user_documents()
+        self.new_notebook_path = docs
+        self.archive_notebook_path = docs
+        self.insert_image_path = docs
+        self.save_image_path = docs
+        self.attach_file_path = docs
         
-        self.recent_notebooks = []
+        
 
         # temp variables for parsing
         self._last_timestamp_name = ""
@@ -749,16 +773,19 @@ class KeepNote (object):
         self.pref = KeepNotePreferences()
         self.pref.read()
 
-        # list of application windows
+        # list of application notebooks
         self._notebooks = {}
         
-        # get extensions list
+        # find extensions
         self._extensions = {}
         self.scan_extensions_dir(get_system_extensions_dir())
         self.scan_extensions_dir(get_user_extensions_dir())
         self.init_extensions()
-
         
+
+    #==================================
+    # actions
+
     def open_notebook(self, filename, window=None):
         """Open notebook"""
         
@@ -766,10 +793,6 @@ class KeepNote (object):
         notebook.load(filename)
         return notebook
 
-
-
-    #==================================
-    # actions
 
     def run_external_app(self, app_key, filename, wait=False):
         """Runs a registered external application on a file"""
@@ -818,6 +841,42 @@ class KeepNote (object):
             self.run_external_app("web_browser", url)
           
 
+    def take_screenshot(self, filename):
+        """Take a screenshot and save it to 'filename'"""
+
+        # make sure filename is unicode
+        filename = ensure_unicode(filename, "utf-8")
+
+        if get_platform() == "windows":
+            # use win32api to take screenshot
+            # create temp file
+            
+            from keepnote import screenshot_win
+            
+            f, imgfile = tempfile.mkstemp(u".bmp", filename)
+            os.close(f)
+            screenshot_win.take_screenshot(imgfile)
+        else:
+            # use external app for screen shot
+            screenshot = self.pref.get_external_app("screen_shot")
+            if screenshot is None or screenshot.prog == "":
+                raise Exception("You must specify a Screen Shot program in Application Options")
+
+            # create temp file
+            f, imgfile = tempfile.mkstemp(".png", filename)
+            os.close(f)
+
+            proc = subprocess.Popen([screenshot.prog, imgfile])
+            if proc.wait() != 0:
+                raise OSError("Exited with error")
+
+        if not os.path.exists(imgfile):
+            # catch error if image is not created
+            raise Exception("The screenshot program did not create the necessary image file '%s'" % imgfile)
+
+        return imgfile  
+
+
 
     #================================
     # extensions
@@ -864,23 +923,13 @@ class KeepNote (object):
 
         # load if first use
         if ext is None:
-            filename2 = os.path.join(filename, "__init__.py")
-            infile = open(filename2)
-            name = os.path.basename(filename)
-
-            try:
-                mod = imp.load_module(name, infile, filename2,
-                                      (".py", "rb", imp.PY_SOURCE))
-                ext = mod.Extension(self)
-                self._extensions[name] = (filename, ext)
-                
-            except Exception, e:
-                infile.close()
-                raise KeepNotePreferenceError("cannot load extension '%s'" %
-                                              filename, e)            
-            infile.close()
+            ext = import_extension(self, name, filename)
+            self._extensions[name] = (filename, ext)
                 
         return ext
+
+
+    
         
 
 class Extension (object):
