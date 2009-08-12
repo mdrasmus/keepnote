@@ -29,6 +29,7 @@
 import re
 from HTMLParser import HTMLParser
 from xml.sax.saxutils import escape
+import urllib
 
 # keepnote imports
 from keepnote.gui.richtext.textbuffer_tools import \
@@ -483,7 +484,7 @@ class HtmlTagLinkWriter (HtmlTagWriter):
 
     def write_tag_begin(self, out, dom, xhtml):
         tag = dom.tag
-        out.write('<a href="%s">' % escape(tag.get_href()))
+        out.write('<a href="%s">' % urllib.quote(tag.get_href()))
 
     def write_tag_end(self, out, dom, xhtml):
         out.write("</a>")

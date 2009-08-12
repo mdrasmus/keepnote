@@ -31,9 +31,9 @@ import os
 import sys
 import time
 import shutil
-from xml.dom import minidom
+import urllib
 import xml.dom
-
+from xml.dom import minidom
 
 _ = gettext.gettext
 
@@ -46,12 +46,6 @@ import gtk.glade
 import gobject
 
 # keepnote imports
-import keepnote
-
-
-
-
-
 import keepnote
 from keepnote.notebook import NoteBookError, get_valid_unique_filename
 from keepnote import notebook as notebooklib
@@ -74,7 +68,7 @@ except ImportError:
 
 class Extension (keepnote.Extension):
     
-    version = "1.0"
+    version = (1, 0)
     name = "Export HTML"
     description = "Exports a notebook to HTML format"
 
@@ -129,17 +123,7 @@ class Extension (keepnote.Extension):
             ".")
         dialog.set_current_name(os.path.basename(filename))
         dialog.set_current_folder(self.app.pref.archive_notebook_path)
-
-        #file_filter = gtk.FileFilter()
-        #file_filter.add_pattern("*.tar.gz")
-        #file_filter.set_name("Archives (*.tar.gz)")
-        #dialog.add_filter(file_filter)
-
-        #file_filter = gtk.FileFilter()
-        #file_filter.add_pattern("*")
-        #file_filter.set_name("All files (*.*)")
-        #dialog.add_filter(file_filter)
-
+        
         response = dialog.run()
 
         self.app.pref.archive_notebook_path = dialog.get_current_folder()
@@ -230,9 +214,8 @@ def translate_links(notebook, path, node):
                 note = notebook.get_node_by_id(nodeid)
                 if note:
                     newpath = u"/".join((relpath(note.get_path(), path), 
-                                         "page.html"))
-                    # TODO: url encode
-                    node.setAttribute("href", newpath)
+                                         u"page.html"))
+                    node.setAttribute("href", urllib.quote(newpath))
 
         
         # recurse
@@ -240,6 +223,17 @@ def translate_links(notebook, path, node):
             walk(child)
 
     walk(node)
+
+
+def write_index(node, filename):
+    
+    out = file(filename, "wb")
+    out.write(u"<html>")
+
+    
+
+    out.write(u"</html>")
+    out.close()
 
 
 def export_notebook(notebook, filename, task):
@@ -300,7 +294,7 @@ def export_notebook(notebook, filename, task):
 
 
 
-    def export_node(node, path, arcname):
+    def export_node(node, path, arcname, index=False):
 
         # look for aborted export
         if task.aborted():
@@ -316,6 +310,10 @@ def export_notebook(notebook, filename, task):
 
         # make node directory
         os.mkdir(arcname)
+
+        if index:
+            write_index(node, os.path.join(arcname, "index.html"))
+
 
         if node.get_attr("content_type") == "text/xhtml+xml":
             skipfiles.add("page.html")
@@ -354,7 +352,7 @@ def export_notebook(notebook, filename, task):
                     export_files(os.path.join(path, f),
                                  os.path.join(arcname, f))
     
-    export_node(notebook, notebook.get_path(), filename)
+    export_node(notebook, notebook.get_path(), filename, True)
 
     task.set_message(("text", "Closing export..."))
     task.set_message(("detail", ""))

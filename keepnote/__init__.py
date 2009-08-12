@@ -56,6 +56,7 @@ from keepnote.util import compose
 # these are imported here, so that py2exe can auto-discover them
 from keepnote import tarfile
 import xml.dom.minidom
+import xml.sax.saxutils
 
 #=============================================================================
 # globals / constants
