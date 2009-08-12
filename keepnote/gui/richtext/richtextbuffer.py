@@ -74,7 +74,8 @@ from keepnote.gui.richtext.richtext_tags import \
     RichTextIndentTag, \
     RichTextBulletTag, \
     RichTextLinkTag, \
-    color_to_string
+    color_to_string, \
+    get_attr_size
 
 
 # these tags will not be enumerated by iter_buffer_contents
@@ -560,8 +561,9 @@ class RichTextFont (RichTextBaseFont):
             self.family = font.get_family()
 
             # get size in points (get_size() returns pango units)
-            PIXELS_PER_PANGO_UNIT = 1024
-            self.size = font.get_size() // PIXELS_PER_PANGO_UNIT
+            #PIXELS_PER_PANGO_UNIT = 1024
+            #self.size = font.get_size() // PIXELS_PER_PANGO_UNIT
+            self.size = get_attr_size(attr)
 
             weight = font.get_weight()
             style = font.get_style()

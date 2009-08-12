@@ -48,6 +48,8 @@ BULLET_FONT_SIZE = 10
 
 
 def color_to_string(color):
+    """Converts a gtk.Color to a RGB string (#rrrrggggbbbb)"""
+    
     redstr = hex(color.red)[2:]
     greenstr = hex(color.green)[2:]
     bluestr = hex(color.blue)[2:]
@@ -63,6 +65,7 @@ def color_to_string(color):
 
 
 def color_tuple_to_string(color):
+    """Converts a color tuple (r,g,b) to a RGB string (#rrrrggggbbbb)"""
     redstr = hex(color[0])[2:]
     greenstr = hex(color[1])[2:]
     bluestr = hex(color[2])[2:]
@@ -77,12 +80,21 @@ def color_tuple_to_string(color):
     return "#%s%s%s" % (redstr, greenstr, bluestr)
 
 
+_text_scale = None
+def get_text_scale():
+    """Returns current text scale"""
+    global _text_scale
+    if _text_scale is None:
+        _text_scale = (float(gtk.gdk.screen_height()) / 
+                       gtk.gdk.screen_height_mm()) / 2.95566
+
+    return _text_scale
+
 
 class RichTextTagTable (RichTextBaseTagTable):
     """A tag table for a RichTextBuffer"""
 
 
-    
     def __init__(self):
         RichTextBaseTagTable.__init__(self)
 
@@ -211,14 +223,23 @@ class RichTextFamilyTag (RichTextTag):
         return tag_name.startswith("family ")
 
 
+def get_attr_size(attr):
+    #return int(attr.font_scale * 10.0)
+    #print font.get_style()
+    PIXELS_PER_PANGO_UNIT = 1024
+    return attr.font.get_size() // int(get_text_scale() * PIXELS_PER_PANGO_UNIT)
+
 
 class RichTextSizeTag (RichTextTag):
     """A tag that represents a font size"""
     
-    def __init__(self, size):
-        RichTextTag.__init__(self, "size %d" % size, size_points=size)
+    def __init__(self, size, scale=1.0):
+        #scale = size / 10.0
+        RichTextTag.__init__(self, "size %d" % size, 
+                             size_points=int(size * get_text_scale()))
 
     def get_size(self):
+        #return int(self.get_property("scale") * 10.0) 
         return int(self.get_property("size-points"))
 
     @classmethod

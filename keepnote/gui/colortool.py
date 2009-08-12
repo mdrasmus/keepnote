@@ -284,6 +284,9 @@ class ColorMenu (gtk.Menu):
 
         self.realize()
 
+
+
+
 gobject.type_register(ColorMenu)
 gobject.signal_new("set-color", ColorMenu, gobject.SIGNAL_RUN_LAST, 
                    gobject.TYPE_NONE, (object,))
