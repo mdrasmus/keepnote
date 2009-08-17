@@ -34,6 +34,8 @@ import shutil
 import urllib
 import xml.dom
 from xml.dom import minidom
+from xml.sax.saxutils import escape
+
 
 _ = gettext.gettext
 
@@ -201,6 +203,15 @@ def relpath(path, start):
     return u"/".join(rel2)
         
 
+def nodeid2html_link(notebook, path, nodeid):
+    note = notebook.get_node_by_id(nodeid)
+    if note:
+        newpath = relpath(note.get_path(), path)
+        if note.get_attr("content_type") == "text/xhtml+xml":
+            newpath = u"/".join((newpath, u"page.html"))
+        return urllib.quote(newpath)
+    else:
+        return ""
 
 
 def translate_links(notebook, path, node):
@@ -211,11 +222,9 @@ def translate_links(notebook, path, node):
             url = node.getAttribute("href")
             if notebooklib.is_node_url(url):
                 host, nodeid = notebooklib.parse_node_url(url)
-                note = notebook.get_node_by_id(nodeid)
-                if note:
-                    newpath = u"/".join((relpath(note.get_path(), path), 
-                                         u"page.html"))
-                    node.setAttribute("href", urllib.quote(newpath))
+                url2 = nodeid2html_link(notebook, path, nodeid)
+                if url2 != "":
+                    node.setAttribute("href", url2)
 
         
         # recurse
@@ -225,20 +234,150 @@ def translate_links(notebook, path, node):
     walk(node)
 
 
-def write_index(node, filename):
-    
-    out = file(filename, "wb")
+def write_index(notebook, node, path):
+
+    rootpath = node.get_path()
+    index_file = os.path.join(path, "index.html")
+    tree_file = os.path.join(path, "tree.html")
+
+    out = file(index_file, "wb")
     out.write((u"""<html>
 <head><title>%s</title></head>
-<body>
-<frameset rows="75%, *" cols="*, 40%">
+<frameset cols="20%%, *">
   <frame src="tree.html">
-  <frame src="">
+  <frame name="viewer" src="">
 </frameset>
-</body>
 </html>
-""") % node.get_title())
+""") % escape(node.get_title()))
     out.close()
+
+
+    # write tree file
+    out = file(tree_file, "wb")
+    out.write("""<html><body>
+<style>
+.node
+{
+    padding-left: 20px;
+    display: block;
+}
+
+.node_collapsed
+{
+    padding-left: 20px;
+    display: block;
+
+    height: 0px;
+    visibility: hidden;
+    display: none;
+}
+
+
+
+a:active
+{
+text-decoration:none;
+color: #0000FF;
+font-weight: bold;
+}
+
+a:visited
+{
+text-decoration:none;
+color: #000;
+font-weight: bold;
+}
+
+a:link
+{
+text-decoration:none;
+color: #000;
+font-weight: bold;
+}
+
+a:hover
+{
+text-decoration: underline;
+color: #500;
+font-weight: bold;
+}
+
+</style>
+
+
+<script language="javascript">
+  
+    var displayStates = [];
+
+    function showDiv(div)
+    {    
+        div.style.height     = "";
+        div.style.display    = "block";
+        div.style.visibility = "visible";
+    }
+
+    function hideDiv(div)
+    {
+        div.style.height     = "0px";
+        div.style.display    = "none";      
+        div.style.visibility = "hidden";
+    }
+
+    function toggleDiv(div, defaultState)
+    {
+
+        // set default on first use
+        if (displayStates[div] == undefined)
+            displayStates[div] = defaultState;
+
+        // toggle state
+        displayStates[div] = !displayStates[div];       
+
+        // hide / show
+        if (displayStates[div])
+            showDiv(div);
+        else
+            hideDiv(div);
+    }
+
+    function toggleDivName(divname, defaultState)
+    {
+        toggleDiv(document.getElementById(divname), defaultState);
+    }
+
+</script>
+
+""")
+
+    def walk(node):
+
+        nodeid = node.get_attr("nodeid")
+        expand = node.get_attr("expanded", False)
+
+        if len(node.get_children()) > 0:
+            out.write("""<a href='javascript: toggleDivName("%s", %s)'>+</a>&nbsp;""" %
+                      (nodeid, ["false", "true"][int(expand)]))
+
+        if node.get_attr("content_type") == notebooklib.CONTENT_TYPE_DIR:
+            out.write("%s</br>\n" % escape(node.get_title()))
+        else:
+            out.write("<a href='%s' target='viewer'>%s</a></br>\n" 
+                      % (nodeid2html_link(notebook, rootpath, nodeid),
+                         escape(node.get_title())))
+
+        if len(node.get_children()) > 0:
+            out.write("<div id='%s' class='node%s'>" % 
+                      (nodeid, ["_collapsed", ""][int(expand)]))
+
+            for child in node.get_children():
+                walk(child)
+
+            out.write("</div>\n")
+    walk(node)
+
+    out.write("""</body></html>""")
+    out.close()
+
 
 
 def export_notebook(notebook, filename, task):
@@ -317,7 +456,7 @@ def export_notebook(notebook, filename, task):
         os.mkdir(arcname)
 
         if index:
-            write_index(node, os.path.join(arcname, "index.html"))
+            write_index(notebook, node, arcname)
 
 
         if node.get_attr("content_type") == "text/xhtml+xml":

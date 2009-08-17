@@ -484,7 +484,7 @@ class HtmlTagLinkWriter (HtmlTagWriter):
 
     def write_tag_begin(self, out, dom, xhtml):
         tag = dom.tag
-        out.write('<a href="%s">' % urllib.quote(tag.get_href()))
+        out.write('<a href="%s">' % tag.get_href())
 
     def write_tag_end(self, out, dom, xhtml):
         out.write("</a>")
