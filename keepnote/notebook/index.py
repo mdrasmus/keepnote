@@ -39,13 +39,19 @@ import keepnote
 
 
 # index filename
-INDEX_FILE = "index.sqlite"
+INDEX_FILE = u"index.sqlite"
 INDEX_VERSION = 1
 
 
 def get_index_file(notebook):
     """Get the index filename for a notebook"""
-    return os.path.join(notebook.get_pref_dir(), INDEX_FILE)
+
+    if notebook.pref.index_dir and os.path.exists(notebook.pref.index_dir):
+        index_dir = notebook.pref.index_dir
+    else:
+        index_dir = notebook.get_pref_dir()
+
+    return os.path.join(index_dir, INDEX_FILE)
 
 
 def preorder(node):

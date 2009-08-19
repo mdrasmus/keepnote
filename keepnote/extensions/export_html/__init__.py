@@ -26,6 +26,7 @@
 
 
 # python imports
+import codecs
 import gettext
 import os
 import sys
@@ -209,6 +210,10 @@ def nodeid2html_link(notebook, path, nodeid):
         newpath = relpath(note.get_path(), path)
         if note.get_attr("content_type") == "text/xhtml+xml":
             newpath = u"/".join((newpath, u"page.html"))
+
+        elif note.has_attr("payload_filename"):
+            newpath = u"/".join((newpath, note.get_attr("payload_filename")))
+
         return urllib.quote(newpath)
     else:
         return ""
@@ -265,9 +270,9 @@ def write_index(notebook, node, path):
 .node_collapsed
 {
     padding-left: 20px;
-    display: block;
+    display: none;
 
-    height: 0px;
+    
     visibility: hidden;
     display: none;
 }
@@ -336,8 +341,9 @@ font-weight: bold;
         // hide / show
         if (displayStates[div])
             showDiv(div);
-        else
+        else {
             hideDiv(div);
+        }
     }
 
     function toggleDivName(divname, defaultState)
@@ -355,13 +361,16 @@ font-weight: bold;
         expand = node.get_attr("expanded", False)
 
         if len(node.get_children()) > 0:
-            out.write("""<a href='javascript: toggleDivName("%s", %s)'>+</a>&nbsp;""" %
+            out.write("""<nobr><tt><a href='javascript: toggleDivName("%s", %s)'>+</a>&nbsp;</tt>""" %
                       (nodeid, ["false", "true"][int(expand)]))
+        else:
+            out.write("<nobr><tt>&nbsp;&nbsp;</tt>")
+
 
         if node.get_attr("content_type") == notebooklib.CONTENT_TYPE_DIR:
-            out.write("%s</br>\n" % escape(node.get_title()))
+            out.write("%s</nobr><br/>\n" % escape(node.get_title()))
         else:
-            out.write("<a href='%s' target='viewer'>%s</a></br>\n" 
+            out.write("<a href='%s' target='viewer'>%s</a></nobr><br/>\n" 
                       % (nodeid2html_link(notebook, rootpath, nodeid),
                          escape(node.get_title())))
 
@@ -426,12 +435,10 @@ def export_notebook(notebook, filename, task):
             
         else:
             translate_links(notebook, path, dom.documentElement)
-
-            # TODO: ensure encoding issues handled
-
+            
             # avoid writing <?xml> header 
             # (provides compatiability with browsers)
-            out = open(filename2, "wb")
+            out = codecs.open(filename2, "wb", "utf-8")
             dom.doctype.writexml(out)
             dom.documentElement.writexml(out)
             out.close()

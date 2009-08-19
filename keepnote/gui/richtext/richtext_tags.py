@@ -80,7 +80,7 @@ def color_tuple_to_string(color):
     return "#%s%s%s" % (redstr, greenstr, bluestr)
 
 
-_text_scale = None
+_text_scale = 1.0
 def get_text_scale():
     """Returns current text scale"""
     global _text_scale

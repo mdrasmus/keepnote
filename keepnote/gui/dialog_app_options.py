@@ -221,12 +221,22 @@ class ApplicationOptionsDialog (object):
         # populate notebook font
         self.notebook_font_size = self.notebook_xml.get_widget("notebook_font_size")
         self.notebook_font_size.set_value(10)
+        self.notebook_index_dir = self.notebook_xml.get_widget("index_dir_entry")
+        self.entries["index_dir"] = self.notebook_index_dir
+        self.notebook_xml.get_widget("index_dir_browse").connect(
+            "clicked",
+            lambda w: self.on_browse(
+                "index_dir",
+                _("Choose alternative notebook index directory"),
+                "", action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER))
 
         if self.main_window.notebook is not None:
             font = self.main_window.notebook.pref.default_font
             family, mods, size = richtext.parse_font(font)
             self.notebook_font_family.set_family(family)
             self.notebook_font_size.set_value(size)
+
+            self.notebook_index_dir.set_text(self.main_window.notebook.pref.index_dir)
 
 
         self.dialog.show()
@@ -289,12 +299,13 @@ class ApplicationOptionsDialog (object):
             widget.get_active())
         
     
-    def on_browse(self, name, title, filename):
+    def on_browse(self, name, title, filename, 
+                  action=gtk.FILE_CHOOSER_ACTION_OPEN):
         """Callback for selecting file browser"""
     
     
         dialog = gtk.FileChooserDialog(title, self.dialog, 
-            action=gtk.FILE_CHOOSER_ACTION_OPEN,
+            action=action,
             buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
                      _("Open"), gtk.RESPONSE_OK))
         dialog.set_transient_for(self.dialog)
@@ -381,8 +392,9 @@ class ApplicationOptionsDialog (object):
 
         # save external app options
         for key, entry in self.entries.iteritems():
-            self.app.pref._external_apps_lookup[key].prog = \
-                self.entries[key].get_text()
+            if key in self.app.pref._external_apps_lookup:
+                self.app.pref._external_apps_lookup[key].prog = \
+                    self.entries[key].get_text()
 
         # save notebook font        
         if self.main_window.notebook is not None:
@@ -390,6 +402,10 @@ class ApplicationOptionsDialog (object):
             pref.default_font = "%s %d" % (
                 self.notebook_font_family.get_family(),
                 self.notebook_font_size.get_value())
+
+            self.main_window.notebook.pref.index_dir = \
+                self.notebook_index_dir.get_text()
+
 
             # TODO: move this out.  Use signals to envoke save
             self.main_window.notebook.write_preferences()

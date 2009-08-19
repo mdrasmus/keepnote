@@ -260,9 +260,9 @@ def get_notebook_version(filename):
     try:
         g_notebook_pref_parser.read(pref, filename)
     except IOError, e:
-        raise NoteBookError("Cannot read notebook preferences", e)
+        raise NoteBookError(_("Cannot read notebook preferences"), e)
     except xmlo.XmlError, e:
-        raise NoteBookError("Notebook preference data is corrupt", e)
+        raise NoteBookError(_("Notebook preference data is corrupt"), e)
 
     return pref.version
 
@@ -602,7 +602,7 @@ class NoteBookNode (object):
         try:
             os.mkdir(path)
         except OSError, e:
-            raise NoteBookError("Cannot create node", e)
+            raise NoteBookError(_("Cannot create node"), e)
             
         self._attr["created_time"] = get_timestamp()
         self._attr["modified_time"] = get_timestamp()
@@ -635,7 +635,7 @@ class NoteBookNode (object):
                 os.rename(path, path2)
                 self._notebook._index.add_node(self)
             except OSError, e:
-                raise NoteBookError("Do not have permission for move", e)
+                raise NoteBookError(_("Do not have permission for move"), e)
         
             self._set_basename(path2)
 
@@ -667,7 +667,7 @@ class NoteBookNode (object):
         try:      
             shutil.rmtree(path)
         except OSError, e:
-            raise NoteBookError("Do not have permission to delete", e)
+            raise NoteBookError(_("Do not have permission to delete"), e)
         
         self._parent._remove_child(self)
         self._parent._set_child_order()
@@ -694,7 +694,7 @@ class NoteBookNode (object):
         """Places node in the notebook's trash folder"""
 
         if self._notebook is None:
-            raise NoteBookError("This node is not part of any notebook")
+            raise NoteBookError(_("This node is not part of any notebook"))
         
         if self.in_trash():
             # delete if in trash folder already
@@ -744,7 +744,7 @@ class NoteBookNode (object):
             self._set_basename(path2)
             self.save(True)
         except (OSError, NoteBookError), e:
-            raise NoteBookError("Cannot rename '%s' to '%s'" % (path, path2), e)
+            raise NoteBookError(_("Cannot rename '%s' to '%s'" % (path, path2)), e)
         
         self._notebook._index.add_node(self)
 
@@ -911,7 +911,7 @@ class NoteBookNode (object):
             out.write(BLANK_NOTE)
             out.close()
         except IOError, e:
-            raise NoteBookError("Cannot initialize richtext file '%s'" % datafile, e)
+            raise NoteBookError(_("Cannot initialize richtext file '%s'" % datafile), e)
         
         
     def get_meta_file(self):
@@ -1024,7 +1024,7 @@ class NoteBookPlainText (NoteBookNode):
             out = safefile.open(datafile, "w", codec="utf-8")
             out.close()
         except IOError, e:
-            raise NoteBookError("Cannot initialize richtext file '%s'" % datafile, e)
+            raise NoteBookError(_("Cannot initialize richtext file '%s'" % datafile), e)
 
 
 class NoteBookDir (NoteBookNode):
@@ -1078,7 +1078,7 @@ class NoteBookGenericFile (NoteBookNode):
                 infile.close()
                 out.close()
         except IOError, e:
-            raise NoteBookError("Cannot copy file '%s'" % filename, e)
+            raise NoteBookError(_("Cannot copy file '%s'" % filename), e)
 
         self._attr["payload_filename"] = os.path.basename(new_filename)
         
@@ -1101,12 +1101,12 @@ class NoteBookTrash (NoteBookDir):
             assert parent == self._parent
             NoteBookDir.move(self, parent, index)
         else:
-            raise NoteBookError("The Trash folder must be a top-level folder.")
+            raise NoteBookError(_("The Trash folder must be a top-level folder."))
     
     def delete(self):
         """Trash folder cannot be deleted"""
         
-        raise NoteBookError("The Trash folder cannot be deleted.")
+        raise NoteBookError(_("The Trash folder cannot be deleted."))
 
 
 class NoteBookPreferences (object):
@@ -1115,6 +1115,8 @@ class NoteBookPreferences (object):
 
         self.version = NOTEBOOK_FORMAT_VERSION
         self.default_font = DEFAULT_FONT
+        self.index_dir = u""
+        
         self.selected_treeview_nodes = []
         self.selected_listview_nodes = []
 
@@ -1141,6 +1143,8 @@ g_notebook_pref_parser = xmlo.XmlObject(
             attr=("version", int, str)),
         xmlo.Tag("default_font",
             attr=("default_font", None, None)),
+        xmlo.Tag("index_dir",
+            attr=("index_dir", None, None)),
 
         xmlo.Tag("selected_treeview_nodes",
                  attr=("selected_treeview_nodes", 
@@ -1262,7 +1266,7 @@ class NoteBook (NoteBookDir):
                 filename = os.path.dirname(filename)
                 self._set_basename(filename)
             else:
-                raise NoteBookError("Cannot find notebook '%s'" % filename)
+                raise NoteBookError(_("Cannot find notebook '%s'" % filename))
             
             self._trash_path = get_trash_dir(self.get_path())
         self.read_meta_data()
@@ -1350,7 +1354,7 @@ class NoteBook (NoteBookDir):
                 self._trash.create()
                 self._add_child(self._trash)
             except NoteBookError, e:
-                raise NoteBookError("Cannot create Trash folder", e)
+                raise NoteBookError(_("Cannot create Trash folder"), e)
 
 
     
@@ -1535,9 +1539,9 @@ class NoteBook (NoteBookDir):
 
             g_notebook_pref_parser.write(self.pref, self.get_pref_file())
         except (IOError, OSError), e:
-            raise NoteBookError("Cannot save notebook preferences", e)
+            raise NoteBookError(_("Cannot save notebook preferences"), e)
         except xmlo.XmlError, e:
-            raise NoteBookError("File format error", e)
+            raise NoteBookError(_("File format error"), e)
 
     
     def read_preferences(self):
@@ -1545,9 +1549,9 @@ class NoteBook (NoteBookDir):
         try:
             g_notebook_pref_parser.read(self.pref, self.get_pref_file())
         except IOError, e:
-            raise NoteBookError("Cannot read notebook preferences", e)
+            raise NoteBookError(_("Cannot read notebook preferences"), e)
         except xmlo.XmlError, e:
-            raise NoteBookError("Notebook preference data is corrupt", e)
+            raise NoteBookError(_("Notebook preference data is corrupt"), e)
         
         if self.pref.version > NOTEBOOK_FORMAT_VERSION:
             raise NoteBookVersionError(self.pref.version,
@@ -1674,7 +1678,7 @@ class NoteBookNodeMetaData (object):
             out.close()
         except Exception, e:
             print e
-            raise NoteBookError("Cannot write meta data", e)
+            raise NoteBookError(_("Cannot write meta data"), e)
 
 
     def read(self, filename, notebook_attrs):
@@ -1698,10 +1702,10 @@ class NoteBookNodeMetaData (object):
             infile.close()
             
         except xml.parsers.expat.ExpatError, e:
-            raise NoteBookError("Cannot read meta data", e)
+            raise NoteBookError(_("Cannot read meta data"), e)
         
         except Exception, e:
-            raise NoteBookError("Cannot read meta data", e)
+            raise NoteBookError(_("Cannot read meta data"), e)
 
 
 

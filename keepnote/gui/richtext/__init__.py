@@ -26,8 +26,14 @@
 
 
 # python imports
-import sys, os, tempfile, re, random
-import urllib2, StringIO
+import codecs
+import sys
+import os
+import tempfile
+import re
+import random
+import urllib2
+import StringIO
 
 # pygtk imports
 import pygtk
@@ -121,7 +127,7 @@ def parse_utf(text):
 
     # TODO: lookup the standard way to do this
     
-    if text[:2] in ('\xff\xfe', '\xfe\xff') or (
+    if text[:2] in (codecs.BOM_UTF16_BE, codecs.BOM_UTF16_LE) or (
         len(text) > 1 and text[1] == '\x00') or (
         len(text) > 3 and text[3] == '\x00'):
         return text.decode("utf16")
