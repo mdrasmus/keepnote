@@ -900,11 +900,13 @@ class KeepNote (object):
         for name in self._extensions:
             try:
                 ext = self.get_extension(name)
-            except KeepNotePreferenceError, e:
-                errors.append(e)
+            except KeepNotePreferenceError, e:                
+                sys.stderr.write("\n")
+                traceback.print_exception(type(e), e, None)
+                #errors.append(e)
 
-        if len(errors) > 0:
-            raise KeepNotePreferenceError("\n".join(str(e) for e in errors))
+        #if len(errors) > 0:
+        #    raise KeepNotePreferenceError("\n".join(str(e) for e in errors))
 
 
     def init_extensions_window(self, window):
@@ -915,8 +917,10 @@ class KeepNote (object):
                 ext = self.get_extension(name)
                 ext.on_new_window(window)
                 
-            except KeepNotePreferenceError,e :
+            except KeepNotePreferenceError, e:
                 errors.append(e)
+
+            # TODO: display errors
     
             
     def get_extension(self, name):
