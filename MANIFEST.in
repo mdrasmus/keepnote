@@ -10,7 +10,7 @@ include keepnote/images/*.ico
 include keepnote/images/node_icons/*
 include keepnote/rc/keepnote.glade
 include keepnote/rc/*.png
-include keepnote/extensions/backup_tar/*.py
+recursive-include keepnote/extensions *
 include desktop/*
 recursive-include locale *
 recursive-include gettext *

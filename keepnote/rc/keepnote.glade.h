@@ -35,6 +35,7 @@ char *s = N_("<b>Startup</b>");
 char *s = N_("<b>This Notebook</b>");
 char *s = N_("<i>note: backup and upgrade may take a while for larger notebooks.</i>");
 char *s = N_("A literal \"%\" character");
+char *s = N_("Alternative index location:");
 char *s = N_("Autosave:");
 char *s = N_("Browse...");
 char *s = N_("Case _Sensitive");
