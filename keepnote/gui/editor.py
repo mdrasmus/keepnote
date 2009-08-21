@@ -329,8 +329,8 @@ class KeepNoteEditor (gtk.VBox):
             # offer url match
             if is_url(text):
                 results = [(text, text,
-                            get_resource_pixbuf("node_icons", 
-                                                "web.png"))] + results
+                            get_resource_pixbuf(u"node_icons", 
+                                                u"web.png"))] + results
 
             # ensure link picker is initialized
             if self._link_picker is None:

@@ -2,6 +2,9 @@
 <notebook>
 <version>3</version>
 <default_font>Sans 10</default_font>
+<index_dir></index_dir>
+<selected_treeview_nodes>ec653a9e-5d44-4400-a4de-ba376c3b4921</selected_treeview_nodes>
+<selected_listview_nodes>ec653a9e-5d44-4400-a4de-ba376c3b4921</selected_listview_nodes>
 <quick_pick_icons>
 <icon>folder.png</icon>
 <icon>folder-red.png</icon>

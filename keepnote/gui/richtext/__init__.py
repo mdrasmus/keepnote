@@ -40,6 +40,7 @@ import pygtk
 pygtk.require('2.0')
 import gtk, gobject, pango
 from gtk import gdk
+import gtk.keysyms   # this is necessary for py2exe discovery
 
 # try to import spell check
 try:
@@ -338,6 +339,7 @@ class RichTextView (gtk.TextView):
         # drag and drop
         self.connect("drag-data-received", self.on_drag_data_received)
         self.connect("drag-motion", self.on_drag_motion)
+        self.connect("drag-data-get", self.on_drag_data_get)
         self.drag_dest_add_image_targets()
 
         # clipboard
@@ -635,9 +637,38 @@ class RichTextView (gtk.TextView):
             # process text drop
 
             #self._textbuffer.begin_user_action()
+            print "drop", repr(selection_data.get_text())
             self._textbuffer.insert_at_cursor(selection_data.get_text())
             #self._textbuffer.end_user_action()
             
+
+    def on_drag_data_get(self, widget, drag_context, selection_data,
+                             info, timestamp):
+        """
+        Callback for when data is requested by drag_get_data
+        """
+
+        return
+
+        '''
+        # override gtk's data get code
+        self.stop_emission("drag-data-get")
+
+        sel = self._textbuffer.get_selection_bounds()
+
+        # do nothing if nothing is selected
+        if not sel:
+            text = ""
+        else:
+            start, end = sel
+            text = start.get_text(end)
+        print "get", repr(text)
+        selection_data.set_text(text.encode("utf8"), -1)
+        
+        #self.emit("cut-clipboard")
+        '''
+
+
 
     def drop_pdf(self, data):
         """Drop a PDF into the TextView"""

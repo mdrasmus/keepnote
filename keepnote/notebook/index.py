@@ -136,7 +136,7 @@ class NoteBookIndex (object):
                              check_same_thread=False)
         self.con = con
         self.cur = con.cursor()
-        con.execute("PRAGMA read_uncommitted = true;")
+        con.execute(u"PRAGMA read_uncommitted = true;")
 
         self.init_index()
 
@@ -158,46 +158,46 @@ class NoteBookIndex (object):
         con = self.con
 
         # check database version
-        con.execute("""CREATE TABLE IF NOT EXISTS Version 
+        con.execute(u"""CREATE TABLE IF NOT EXISTS Version 
                         (version INTEGER, update_date DATE);""")
-        version = con.execute("SELECT MAX(version) FROM Version").fetchone()
+        version = con.execute(u"SELECT MAX(version) FROM Version").fetchone()
         
         if version is None or version[0] != INDEX_VERSION:
             # version does not exist, drop all tables
-            con.execute("DROP TABLE IF EXISTS NodeGraph")
-            con.execute("DROP INDEX IF EXISTS IdxNodeGraphNodeid")
-            con.execute("DROP INDEX IF EXISTS IdxNodeGraphParentid")
-            con.execute("DROP TABLE IF EXISTS Nodes")
-            con.execute("DROP TABLE IF EXISTS IdxNodesTitle")
+            con.execute(u"DROP TABLE IF EXISTS NodeGraph")
+            con.execute(u"DROP INDEX IF EXISTS IdxNodeGraphNodeid")
+            con.execute(u"DROP INDEX IF EXISTS IdxNodeGraphParentid")
+            con.execute(u"DROP TABLE IF EXISTS Nodes")
+            con.execute(u"DROP TABLE IF EXISTS IdxNodesTitle")
 
             # update version
-            con.execute("INSERT INTO Version VALUES (?, datetime('now'));", (INDEX_VERSION,))
+            con.execute(u"INSERT INTO Version VALUES (?, datetime('now'));", (INDEX_VERSION,))
 
             self._need_index = True
         
 
         # init NodeGraph table
-        con.execute("""CREATE TABLE IF NOT EXISTS NodeGraph 
+        con.execute(u"""CREATE TABLE IF NOT EXISTS NodeGraph 
                        (nodeid TEXT,
                         parentid TEXT,
                         basename TEXT,
                         symlink BOOLEAN);
                     """)
 
-        con.execute("""CREATE INDEX IF NOT EXISTS IdxNodeGraphNodeid 
+        con.execute(u"""CREATE INDEX IF NOT EXISTS IdxNodeGraphNodeid 
                        ON NodeGraph (nodeid);""")
-        con.execute("""CREATE INDEX IF NOT EXISTS IdxNodeGraphParentid 
+        con.execute(u"""CREATE INDEX IF NOT EXISTS IdxNodeGraphParentid 
                        ON NodeGraph (parentid);""")
 
 
         # init Nodes table
-        con.execute("""CREATE TABLE IF NOT EXISTS Nodes
+        con.execute(u"""CREATE TABLE IF NOT EXISTS Nodes
                        (nodeid TEXT,
                         title TEXT,
                         icon TEXT);
                     """)
 
-        con.execute("""CREATE INDEX IF NOT EXISTS IdxNodesTitle 
+        con.execute(u"""CREATE INDEX IF NOT EXISTS IdxNodesTitle 
                        ON Nodes (Title);""")
 
         con.commit()
@@ -265,24 +265,24 @@ class NoteBookIndex (object):
         
         #------------------
         # NodeGraph
-        rows = list(cur.execute("SELECT parentid, basename "
-                                "FROM NodeGraph "
-                                "WHERE nodeid = ?", (nodeid,)))
+        rows = list(cur.execute(u"SELECT parentid, basename "
+                                u"FROM NodeGraph "
+                                u"WHERE nodeid = ?", (nodeid,)))
         if rows:
             row = rows[0]
             if row[0] != parentid or row[1] != basename:
                 # record update
-                ret = cur.execute("UPDATE NodeGraph SET "
-                                  "nodeid=?, "
-                                  "parentid=?, "
-                                  "basename=?, "
-                                  "symlink=? "
-                                  "WHERE nodeid = ?",
+                ret = cur.execute(u"UPDATE NodeGraph SET "
+                                  u"nodeid=?, "
+                                  u"parentid=?, "
+                                  u"basename=?, "
+                                  u"symlink=? "
+                                  u"WHERE nodeid = ?",
                                   (nodeid, parentid, basename, 
                                    symlink, nodeid))
         else:
             # insert new row
-            cur.execute("""
+            cur.execute(u"""
                 INSERT INTO NodeGraph VALUES 
                    (?, ?, ?, ?)""",
             (nodeid,
@@ -293,23 +293,23 @@ class NoteBookIndex (object):
 
         #-----------------
         # Nodes
-        rows = list(cur.execute("SELECT title "
-                                "FROM Nodes "
-                                "WHERE nodeid = ?", (nodeid,)))
+        rows = list(cur.execute(u"SELECT title "
+                                u"FROM Nodes "
+                                u"WHERE nodeid = ?", (nodeid,)))
         if rows:
             row = rows[0]
             if row[0] != title:
                 # record update
-                ret = cur.execute("UPDATE Nodes SET "
-                                  "nodeid=?, "
-                                  "title=?, "
-                                  "icon=? "
-                                  "WHERE nodeid = ?",
+                ret = cur.execute(u"UPDATE Nodes SET "
+                                  u"nodeid=?, "
+                                  u"title=?, "
+                                  u"icon=? "
+                                  u"WHERE nodeid = ?",
                                   (nodeid, title, 
                                    node.get_attr("icon_load"), nodeid))
         else:
             # insert new row
-            cur.execute("""
+            cur.execute(u"""
                 INSERT INTO Nodes VALUES 
                    (?, ?, ?)""",
             (nodeid, title, node.get_attr("icon_load")))
@@ -329,9 +329,9 @@ class NoteBookIndex (object):
 
         # delete node
         cur.execute(
-            "DELETE FROM NodeGraph WHERE nodeid=?", (nodeid,))
+            u"DELETE FROM NodeGraph WHERE nodeid=?", (nodeid,))
         cur.execute(
-            "DELETE FROM Nodes WHERE nodeid=?", (nodeid,))
+            u"DELETE FROM Nodes WHERE nodeid=?", (nodeid,))
         #con.commit()
         
 
@@ -344,9 +344,9 @@ class NoteBookIndex (object):
         con, cur = self.con, self.cur
 
         def walk(nodeid):
-            cur.execute("""SELECT nodeid, parentid, basename
-                                FROM NodeGraph
-                                WHERE nodeid=?""", (nodeid,))
+            cur.execute(u"""SELECT nodeid, parentid, basename
+                            FROM NodeGraph
+                            WHERE nodeid=?""", (nodeid,))
             row = cur.fetchone()
 
             if row:
@@ -369,14 +369,14 @@ class NoteBookIndex (object):
         con, cur = self.con, self.cur
 
         if cols:
-            sql = "," + ",".join(cols)
+            sql = u"," + u",".join(cols)
         else:
-            sql = ""
+            sql = u""
 
         # order titles by exact matches and then alphabetically
-        cur.execute("""SELECT nodeid, title %s FROM Nodes WHERE title LIKE ?
+        cur.execute(u"""SELECT nodeid, title %s FROM Nodes WHERE title LIKE ?
                        ORDER BY title != ?, title """ % sql,
-                    ("%" + query + "%", query))
+                    (u"%" + query + u"%", query))
         
         return list(cur.fetchall())
 

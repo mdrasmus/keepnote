@@ -564,6 +564,9 @@ class NoteBookNode (object):
         # TODO: check against un-deletable attributes
         if name in self._attr:
             del self._attr[name]
+
+        if name in self._notebook.notebook_attrs:
+            self._set_dirty(True)
         
 
     def iter_attr(self):
