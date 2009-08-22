@@ -72,9 +72,7 @@ clean:
 
 winebuild: $(WINEXE)
 $(WINEXE):
-	./wine.sh python setup.py py2exe
-	./wine.sh python setup.py py2exe
-	python pkg/win/fix_pe.py
+	pkg/win/build.sh
 
 
 wineinstaller: $(WININSTALLER)

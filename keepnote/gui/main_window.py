@@ -1923,7 +1923,7 @@ class KeepNoteWindow (gtk.Window):
 
         # treeview/Open document
         item = gtk.ImageMenuItem(gtk.STOCK_OPEN)
-        item.child.set_label(_("Open _Document"))
+        item.child.set_label(_("Open _File"))
         item.connect("activate",
                      lambda w: self.on_view_node_external_app("file_launcher",
                                                               None,
