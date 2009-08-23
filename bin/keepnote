@@ -223,6 +223,10 @@ def main(argv):
     # setup threading environment
     setup_threading()
     
+    # init preference dir
+    if not os.path.exists(keepnote.get_user_pref_dir()):
+        keepnote.init_user_pref_dir()
+
     # get command executor
     if options.newproc:
         main_proc = True
@@ -235,11 +239,7 @@ def main(argv):
     
     if main_proc:
         # initiate main process
-
-        # init preference dir
-        if not os.path.exists(keepnote.get_user_pref_dir()):
-            keepnote.init_user_pref_dir()
-
+        
         # start error log
         start_error_log(options.show_errors)
 

@@ -48,14 +48,17 @@ class TestCaseInstall (unittest.TestCase):
             0)
         
         self.assertEquals(
-            os.system("/usr/bin/python2.4 %s/%s/setup.py install --home=%s" %
+            os.system("/usr/bin/python %s/%s/setup.py install --home=%s" %
                       (install_dir, pkg, install_dir)),
             0)
 
-        self.assertEquals(
-            os.system("HOME=%s; PYTHONPATH=%s/lib/python; %s/bin/keepnote --no-default" %
-                      (home_dir, install_dir, install_dir)),
-            0)
+        os.system("cp ~/.Xauthority %s" % home_dir)
+
+        cmd = "HOME=%s; PYTHONPATH=%s/lib/python; %s/bin/keepnote --no-default" % (home_dir, install_dir, install_dir)
+
+        print
+        print cmd
+        self.assertEquals(os.system(cmd), 0)
 
         
 suite = unittest.defaultTestLoader.loadTestsFromTestCase(

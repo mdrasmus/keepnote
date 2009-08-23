@@ -89,7 +89,12 @@ DEFAULT_QUICK_PICK_ICONS = ["folder" + c + ".png" for c in _colors] + \
 class MimeIcons:
     
     def __init__(self):
-        self._icons = set(gtk.icon_theme_get_default().list_icons())
+        theme = gtk.icon_theme_get_default()
+        if theme is None:
+            icons = []
+        else:
+            icons = theme.list_icons()
+        self._icons = set(icons)
         self._cache = {}
  
     def get_icon(self, filename, default=None):
