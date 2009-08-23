@@ -49,6 +49,7 @@ from keepnote import xmlobject as xmlo
 from keepnote.listening import Listeners
 from keepnote import safefile
 from keepnote.util import compose
+from keepnote import mswin
 
 
 #=============================================================================
@@ -84,6 +85,11 @@ BASEDIR = unicode(os.path.dirname(__file__))
 IMAGE_DIR = u"images"
 NODE_ICON_DIR = os.path.join(IMAGE_DIR, u"node_icons")
 PLATFORM = None
+
+# backward compatiable files
+USER_PREF_DIR_OLD = u"takenote"
+USER_PREF_FILE_OLD = u"takenote.xml"
+XDG_USER_EXTENSIONS_DIR_OLD = u"takenote/extensions"
 
 USER_PREF_DIR = u"takenote"
 USER_PREF_FILE = u"takenote.xml"
@@ -139,42 +145,23 @@ def is_url(text):
     """Returns True is text is a url"""
     return re.match("^[^:]+://", text) is not None
 
-
+FS_ENCODING = object()
 def ensure_unicode(text, encoding="utf8"):
     """Ensures a string is unicode"""
+
+    if text is None:
+        return None
+
     if not isinstance(text, unicode):
-        return unicode(text, encoding)
+        if encoding == FS_ENCODING:
+            return unicode(text, sys.getfilesystemencoding())
+        else:
+            return unicode(text, encoding)
     return text
 
 
 #=============================================================================
-# filenaming scheme
-
-
-def use_xdg(home=None):
-    """
-    Returns True if configuration is stored in XDG
-
-    Only returns True if platform is unix and old config $HOME/.keepnote 
-    does not exist.
-    """
-
-    if get_platform() == "unix":
-        if home is None:
-            home = os.getenv("HOME")
-            if home is None:
-                raise EnvError("HOME environment variable must be specified")
-        old_dir = os.path.join(home, "." + USER_PREF_DIR)
-
-        return not os.path.exists(old_dir)
-    
-    else:
-        return False
-
-
-def get_locale_dir():
-    """Returns KeepNote's locale directory"""
-    return os.path.join(BASEDIR, "locale")
+# locale functions
 
 
 def set_locale():
@@ -226,6 +213,39 @@ _ = self.lang.gettext
 
 
 
+#=============================================================================
+# filenaming scheme
+
+
+def use_xdg(home=None):
+    """
+    Returns True if configuration is stored in XDG
+
+    Only returns True if platform is unix and old config $HOME/.keepnote 
+    does not exist.
+    """
+
+    if get_platform() == "unix":
+        if home is None:
+            home = ensure_unicode(os.getenv("HOME"), FS_ENCODING)
+            if home is None:
+                raise EnvError("HOME environment variable must be specified")
+        old_dir = os.path.join(home, "." + USER_PREF_DIR)
+
+        return not os.path.exists(old_dir)
+    
+    else:
+        return False
+
+
+def get_locale_dir():
+    """Returns KeepNote's locale directory"""
+    return os.path.join(BASEDIR, u"locale")
+
+
+#def get_nonxdg_user_pref_dir(home=None):
+    
+
 def get_user_pref_dir(home=None):
     """Returns the directory of the application preference file"""
     
@@ -233,10 +253,11 @@ def get_user_pref_dir(home=None):
     if p == "unix" or p == "darwin":
         
         if home is None:
-            home = os.getenv("HOME")
+            home = ensure_unicode(os.getenv(u"HOME"), FS_ENCODING)
+                                  
             if home is None:
                 raise EnvError("HOME environment variable must be specified")
-        old_dir = os.path.join(home, "." + USER_PREF_DIR)
+        old_dir = os.path.join(home, u"." + USER_PREF_DIR)
 
         if os.path.exists(old_dir):
             return old_dir
@@ -244,7 +265,7 @@ def get_user_pref_dir(home=None):
             return xdg.get_config_file(USER_PREF_DIR, default=True)
 
     elif p == "windows":
-        appdata = os.getenv("APPDATA")
+        appdata = ensure_unicode(os.getenv(u"APPDATA"), FS_ENCODING)
         if appdata is None:
             raise EnvError("APPDATA environment variable must be specified")
         return os.path.join(appdata, USER_PREF_DIR)
@@ -274,17 +295,19 @@ def get_user_documents(home=None):
     p = get_platform()
     if p == "unix" or p == "darwin":
         if home is None:
-            home = os.getenv("HOME")
+            home = ensure_unicode(os.getenv(u"HOME"), FS_ENCODING)
         return home
     
     elif p == "windows":
-        home = os.getenv("USERPROFILE")
-
+        return mswin.get_my_documents()
+        #home = ensure_unicode(os.getenv(u"USERPROFILE"), FS_ENCODING)
+        #return ensure_unicode(os.getenv(u"CSIDL_DEFAULT_MYDOCUMENTS"),
+        #                      FS_ENCODING)
         # TODO can I find a way to find "My Documents"?
-        return os.path.join(home, u"My Documents")
+        #return os.path.join(home, u"My Documents")
     
     else:
-        return ""
+        return u""
         #raise Exception("unknown platform '%s'" % p)
     
 
@@ -857,11 +880,9 @@ class KeepNote (object):
             # use win32api to take screenshot
             # create temp file
             
-            from keepnote import screenshot_win
-            
             f, imgfile = tempfile.mkstemp(u".bmp", filename)
             os.close(f)
-            screenshot_win.take_screenshot(imgfile)
+            mswin.screenshot.take_screenshot(imgfile)
         else:
             # use external app for screen shot
             screenshot = self.pref.get_external_app("screen_shot")

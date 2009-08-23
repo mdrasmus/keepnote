@@ -25,19 +25,21 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
+# python imports
 import os
+import sys
 
 
+# constants
+ENV_CONFIG = u"XDG_CONFIG_HOME"
+ENV_CONFIG_DIRS = u"XDG_CONFIG_DIRS"
+ENV_DATA = u"XDG_DATA_HOME"
+ENV_DATA_DIRS = u"XDG_DATA_DIRS"
 
-ENV_CONFIG = "XDG_CONFIG_HOME"
-ENV_CONFIG_DIRS = "XDG_CONFIG_DIRS"
-ENV_DATA = "XDG_DATA_HOME"
-ENV_DATA_DIRS = "XDG_DATA_DIRS"
-
-DEFAULT_CONFIG_DIR = ".config"
-DEFAULT_CONFIG_DIRS = "/etc/xdg"
-DEFAULT_DATA_DIR = ".local/share"
-DEFAULT_DATA_DIRS = "/usr/local/share/:/usr/share/"
+DEFAULT_CONFIG_DIR = u".config"
+DEFAULT_CONFIG_DIRS = u"/etc/xdg"
+DEFAULT_DATA_DIR = u".local/share"
+DEFAULT_DATA_DIRS = u"/usr/local/share/:/usr/share/"
 
 # global cache
 g_config_dirs = None
@@ -47,6 +49,21 @@ g_data_dirs = None
 class XdgError (StandardError):
     pass
     
+
+FS_ENCODING = object()
+def ensure_unicode(text, encoding="utf8"):
+    """Ensures a string is unicode"""
+
+    if text is None:
+        return None
+
+    if not isinstance(text, unicode):
+        if encoding == FS_ENCODING:
+            return unicode(text, sys.getfilesystemencoding())
+        else:
+            return unicode(text, encoding)
+    return text
+
 
 
 def get_config_dirs(home=None, cache=True):
@@ -64,21 +81,24 @@ def get_config_dirs(home=None, cache=True):
         return g_config_dirs
 
     # get user config dir
-    config = os.getenv(ENV_CONFIG)
+    config = ensure_unicode(os.getenv(ENV_CONFIG), FS_ENCODING)
     if config is None:
         if home is None:
-            home = os.getenv("HOME")
+            home = ensure_unicode(os.getenv("HOME"), FS_ENCODING)
             if home is None:
                 raise EnvError("HOME environment variable must be specified")
         config = os.path.join(home, DEFAULT_CONFIG_DIR)
 
     # get alternate user config dirs
-    config_dirs = os.getenv(ENV_CONFIG_DIRS, DEFAULT_CONFIG_DIRS)
+    config_dirs = ensure_unicode(os.getenv(ENV_CONFIG_DIRS, 
+                                           DEFAULT_CONFIG_DIRS),
+                                 FS_ENCODING)
+
     if config_dirs == "":
         config_dirs = DEFAULT_CONFIG_DIRS
 
     # make config path
-    config_dirs = [config] + config_dirs.split(":")
+    config_dirs = [config] + config_dirs.split(u":")
 
     if cache:
         g_config_dirs = config_dirs
@@ -102,21 +122,22 @@ def get_data_dirs(home=None, cache=True):
         return g_data_dirs
 
     # get user config dir
-    data = os.getenv(ENV_DATA)
+    data = ensure_unicode(os.getenv(ENV_DATA), FS_ENCODING)
     if data is None:
         if home is None:
-            home = os.getenv("HOME")
+            home = ensure_unicode(os.getenv("HOME"), FS_ENCODING)
             if home is None:
                 raise EnvError("HOME environment variable must be specified")
         data = os.path.join(home, DEFAULT_DATA_DIR)
 
     # get alternate user config dirs
-    data_dirs = os.getenv(ENV_DATA_DIRS, DEFAULT_DATA_DIRS)
+    data_dirs = ensure_unicode(os.getenv(ENV_DATA_DIRS, DEFAULT_DATA_DIRS),
+                               FS_ENCODING)
     if data_dirs == "":
         data_dirs = DEFAULT_DATA_DIRS
 
     # make data path
-    data_dirs = [data] + data_dirs.split(":")
+    data_dirs = [data] + data_dirs.split(u":")
 
     if cache:
         g_data_dirs = data_dirs
