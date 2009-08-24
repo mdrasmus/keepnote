@@ -1011,11 +1011,13 @@ class EditorMenus (gobject.GObject):
             <menuitem action="Monospace"/>
             <menuitem action="Link"/>
             <menuitem action="No Wrapping"/>
+            <separator/>
             <menuitem action="Left Align"/>
             <menuitem action="Center Align"/>
             <menuitem action="Right Align"/>
             <menuitem action="Justify Align"/>
             <menuitem action="Bullet List"/>
+            <separator/>
             <menuitem action="Indent More"/>
             <menuitem action="Indent Less"/>
             <menuitem action="Increase Font Size"/>
