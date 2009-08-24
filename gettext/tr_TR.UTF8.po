@@ -102,14 +102,12 @@ msgid "Notebook closed"
 msgstr "Defter kapatıldı"
 
 #: keepnote/gui/main_window.py:732
-#, fuzzy
 msgid "Indexing notebook"
-msgstr "Defterde aranıyor"
+msgstr ""
 
 #: keepnote/gui/main_window.py:732
-#, fuzzy
 msgid "Indexing..."
-msgstr "Aranıyor..."
+msgstr ""
 
 #: keepnote/gui/main_window.py:806
 msgid "Could not empty trash."
@@ -192,12 +190,10 @@ msgid "Could not open error log"
 msgstr "Hata kaydı açılamadı"
 
 #: keepnote/gui/main_window.py:1361
-#, fuzzy
 msgid "_File"
-msgstr "_Göster"
+msgstr "_Dosya"
 
 #: keepnote/gui/main_window.py:1363
-#, fuzzy
 msgid "_New Notebook..."
 msgstr "_Yeni Defter"
 
@@ -230,18 +226,16 @@ msgid "Create a new folder"
 msgstr "Yeni bir klasör yarat"
 
 #: keepnote/gui/main_window.py:1379
-#, fuzzy
 msgid "_Open Notebook..."
-msgstr "Defter _Aç"
+msgstr "Defter _Aç..."
 
 #: keepnote/gui/main_window.py:1380
 msgid "Open an existing notebook"
 msgstr "Varolan bir defteri aç"
 
 #: keepnote/gui/main_window.py:1384
-#, fuzzy
 msgid "Open Re_cent Notebook"
-msgstr "Defter _Aç"
+msgstr ""
 
 #: keepnote/gui/main_window.py:1387
 msgid "_Reload Notebook"
@@ -284,12 +278,10 @@ msgid "Quit KeepNote"
 msgstr "KeepNote uygulamasından çık"
 
 #: keepnote/gui/main_window.py:1408
-#, fuzzy
 msgid "_Edit"
-msgstr "_Çıkış"
+msgstr ""
 
 #: keepnote/gui/main_window.py:1430
-#, fuzzy
 msgid "_Attach File..."
 msgstr "Dosya Ekle..."
 
@@ -302,9 +294,8 @@ msgid "Empty _Trash"
 msgstr "Çöpü _Boşalt"
 
 #: keepnote/gui/main_window.py:1439
-#, fuzzy
 msgid "_Search"
-msgstr "Ara"
+msgstr "_Aramak"
 
 #: keepnote/gui/main_window.py:1441
 msgid "_Search All Notes"
@@ -327,9 +318,8 @@ msgid "View Note in Web Browser"
 msgstr "Notu Web Tarayıcısında Göster"
 
 #: keepnote/gui/main_window.py:1468
-#, fuzzy
 msgid "_Open File"
-msgstr "_Göster"
+msgstr "_Belge Aç"
 
 #: keepnote/gui/main_window.py:1474
 msgid "_Go"
@@ -340,19 +330,16 @@ msgid "_Back"
 msgstr ""
 
 #: keepnote/gui/main_window.py:1479
-#, fuzzy
 msgid "_Forward"
-msgstr "_İleriye Doğru Ara"
+msgstr ""
 
 #: keepnote/gui/main_window.py:1483
-#, fuzzy
 msgid "_Options"
-msgstr "KeepNote _Seçenekleri"
+msgstr "_Seçenekleri"
 
 #: keepnote/gui/main_window.py:1485
-#, fuzzy
 msgid "_Update Notebook Index"
-msgstr "Defter _Aç"
+msgstr ""
 
 #: keepnote/gui/main_window.py:1489
 msgid "KeepNote _Options"
@@ -395,7 +382,6 @@ msgid "New Page"
 msgstr "Yeni Sayfa"
 
 #: keepnote/gui/main_window.py:1751
-#, fuzzy
 msgid "Search All Notes"
 msgstr "_Tüm notları ara"
 
@@ -444,9 +430,8 @@ msgid "View in _Text Editor"
 msgstr "_Metin Düzenleyicide Göster"
 
 #: keepnote/gui/main_window.py:1926
-#, fuzzy
 msgid "Open _File"
-msgstr "_Göster"
+msgstr "_Belge Aç"
 
 #: keepnote/gui/main_window.py:1954
 msgid "<b>Go to _Note</b>"
@@ -457,38 +442,33 @@ msgid "Go to _Parent Note"
 msgstr "_Ana Nota git"
 
 #: keepnote/gui/dialog_app_options.py:182
-#, fuzzy, python-format
+#, python-format
 msgid "Choose %s"
-msgstr "_Font Seç"
+msgstr ""
 
 #: keepnote/gui/dialog_app_options.py:184 keepnote/rc/keepnote.glade.h:40
 msgid "Browse..."
 msgstr "Gözat..."
 
 #: keepnote/gui/dialog_app_options.py:230
-#, fuzzy
 msgid "Choose alternative notebook index directory"
-msgstr "Defterin en üst seviye dizini silinemiyor"
+msgstr ""
 
 #: keepnote/gui/dialog_app_options.py:264
-#, fuzzy
 msgid "Look and Feel"
-msgstr "<b>Görünüm</b>"
+msgstr "Görünüm"
 
 #: keepnote/gui/dialog_app_options.py:265
-#, fuzzy
 msgid "Helper Applications"
-msgstr "<b>Yardımcı Uygulamalar</b>"
+msgstr "Yardımcı Uygulamalar"
 
 #: keepnote/gui/dialog_app_options.py:266
-#, fuzzy
 msgid "Date and Time"
 msgstr "Tarih ve Zaman"
 
 #: keepnote/gui/dialog_app_options.py:267
-#, fuzzy
 msgid "This Notebook"
-msgstr "<b>Bu Defter</b>"
+msgstr "Bu Defter"
 
 #: keepnote/gui/__init__.py:217
 msgid "Cannot open notebook (version too old)"
@@ -522,17 +502,14 @@ msgid "Could not insert image '%s'"
 msgstr "'%s' resmi eklenemedi"
 
 #: keepnote/gui/editor.py:692
-#, fuzzy
 msgid "Choose Font"
 msgstr "_Font Seç"
 
 #: keepnote/gui/editor.py:730
-#, fuzzy
 msgid "Bold"
 msgstr "_Kalın"
 
 #: keepnote/gui/editor.py:737
-#, fuzzy
 msgid "Italic"
 msgstr "_İtalik"
 
@@ -541,12 +518,10 @@ msgid "Underline"
 msgstr ""
 
 #: keepnote/gui/editor.py:751
-#, fuzzy
 msgid "Strike"
 msgstr "Üstü _Çizili"
 
 #: keepnote/gui/editor.py:758
-#, fuzzy
 msgid "Monospace"
 msgstr "Sabit _Aralıklı"
 
@@ -555,7 +530,6 @@ msgid "Make Link"
 msgstr ""
 
 #: keepnote/gui/editor.py:772
-#, fuzzy
 msgid "No Wrapping"
 msgstr "_Sözcük Kaydırma Yok"
 
@@ -564,37 +538,30 @@ msgid "Font Family"
 msgstr ""
 
 #: keepnote/gui/editor.py:801
-#, fuzzy
 msgid "Font Size"
-msgstr "Yazı Tipinin Büyüklüğünü A_rtır"
+msgstr ""
 
 #: keepnote/gui/editor.py:815
-#, fuzzy
 msgid "Set Text Color"
 msgstr "Metin Rengi _Uygula"
 
 #: keepnote/gui/editor.py:823
-#, fuzzy
 msgid "Set Background Color"
 msgstr "Arkaplan _Rengini Uygula"
 
 #: keepnote/gui/editor.py:842
-#, fuzzy
 msgid "Center Align"
 msgstr "_Ortala"
 
 #: keepnote/gui/editor.py:849
-#, fuzzy
 msgid "Right Align"
 msgstr "S_ağa Yasla"
 
 #: keepnote/gui/editor.py:856
-#, fuzzy
 msgid "Justify Align"
 msgstr "_İki Yana Yasla"
 
 #: keepnote/gui/editor.py:864
-#, fuzzy
 msgid "Bullet List"
 msgstr "Liste"
 
@@ -603,34 +570,28 @@ msgid "Insert _Horizontal Rule"
 msgstr "_Yatay Çizgi Ekle"
 
 #: keepnote/gui/editor.py:875
-#, fuzzy
 msgid "Insert _Image..."
-msgstr "_Resim Ekle"
+msgstr "_Resim Ekle..."
 
 #: keepnote/gui/editor.py:879
-#, fuzzy
 msgid "Insert _Screenshot..."
-msgstr "_Ekran Görüntüsü Ekle"
+msgstr "_Ekran Görüntüsü Ekle..."
 
 #: keepnote/gui/editor.py:885
-#, fuzzy
 msgid "_Find In Page..."
-msgstr "Sayfada _Bul"
+msgstr "Sayfada _Bul..."
 
 #: keepnote/gui/editor.py:889
-#, fuzzy
 msgid "Find _Next In Page..."
-msgstr "_Sonraki Sayfada Bul"
+msgstr "_Sonraki Sayfada Bul..."
 
 #: keepnote/gui/editor.py:894
-#, fuzzy
 msgid "Find Pre_vious In Page..."
-msgstr "_Önceki Sayfada Bul"
+msgstr "_Önceki Sayfada Bul..."
 
 #: keepnote/gui/editor.py:899
-#, fuzzy
 msgid "_Replace In Page..."
-msgstr "Sayfada _Değiştir"
+msgstr "Sayfada _Değiştir..."
 
 #: keepnote/gui/editor.py:905
 msgid "Fo_rmat"
@@ -709,62 +670,53 @@ msgid "Choose _Font"
 msgstr "_Font Seç"
 
 #: keepnote/gui/dialog_update_notebook.py:49
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "This notebook has format version %d and must be updated to version %d before "
 "opening."
 msgstr ""
-"Bu defter sürüm 1 biçiminde ve açılmadan önce sürüm 2'ye güncellenmesi "
+"Bu defter sürüm %d biçiminde ve açılmadan önce sürüm %d'ye güncellenmesi "
 "gerekiyor."
 
 #: keepnote/gui/dialog_update_notebook.py:101
-#, fuzzy
 msgid "Updating Notebook"
-msgstr "Defter Aç"
+msgstr ""
 
 #: keepnote/gui/dialog_update_notebook.py:102
-#, fuzzy
 msgid "Updating notebook..."
-msgstr "Defterde aranıyor"
+msgstr ""
 
 #: keepnote/gui/dialog_update_notebook.py:108
-#, fuzzy
 msgid "Error while updating"
-msgstr "'%s' dosyasını eklerken hata oluştu"
+msgstr ""
 
 #: keepnote/gui/dialog_update_notebook.py:118
-#, fuzzy
 msgid "Notebook updated successfully"
-msgstr "Defter Güncellemesi"
+msgstr ""
 
 #: keepnote/gui/dialog_update_notebook.py:119
-#, fuzzy
 msgid "Notebook Update Complete"
-msgstr "Defter Güncellemesi"
+msgstr ""
 
 #: keepnote/gui/dialog_update_notebook.py:129
-#, fuzzy
 msgid "Choose Backup Notebook Name"
-msgstr "Defteri K_apat"
+msgstr ""
 
 #: keepnote/gui/dialog_update_notebook.py:133
 msgid "Backup"
 msgstr ""
 
 #: keepnote/gui/dialog_update_notebook.py:153
-#, fuzzy
 msgid "Backing Up Notebook"
-msgstr "Defterde aranıyor"
+msgstr ""
 
 #: keepnote/gui/dialog_update_notebook.py:154
-#, fuzzy
 msgid "Backing up old notebook..."
-msgstr "Defterde aranıyor"
+msgstr ""
 
 #: keepnote/gui/dialog_update_notebook.py:161
-#, fuzzy
 msgid "Error occurred during backup"
-msgstr "Hata oluştu"
+msgstr ""
 
 #: keepnote/gui/dialog_update_notebook.py:164
 msgid "Backup canceled"
@@ -787,19 +739,16 @@ msgid "Do you want to delete this note?"
 msgstr "Bu notu silmek mi istiyorsunuz"
 
 #: keepnote/gui/basetreeview.py:461
-#, fuzzy
 msgid "The top-level folder cannot be deleted"
 msgstr "En üst seviye klasör silinemez."
 
 #: keepnote/gui/dialog_node_icon.py:325
-#, fuzzy
 msgid "Choose Icon"
-msgstr "_Font Seç"
+msgstr ""
 
 #: keepnote/gui/dialog_node_icon.py:336
-#, fuzzy
 msgid "Choose Open Icon"
-msgstr "_Font Seç"
+msgstr ""
 
 #: keepnote/gui/three_pane_viewer.py:749
 msgid "Go to _Note"
@@ -846,18 +795,16 @@ msgid "Go to Lin_k"
 msgstr "_Bağlantıya Git"
 
 #: keepnote/notebook/__init__.py:263 keepnote/notebook/__init__.py:1555
-#, fuzzy
 msgid "Cannot read notebook preferences"
-msgstr "Defterin en üst seviye dizini silinemiyor"
+msgstr ""
 
 #: keepnote/notebook/__init__.py:265 keepnote/notebook/__init__.py:1557
 msgid "Notebook preference data is corrupt"
 msgstr ""
 
 #: keepnote/notebook/__init__.py:608
-#, fuzzy
 msgid "Cannot create node"
-msgstr "Yeni defter yaratılamadı"
+msgstr ""
 
 #: keepnote/notebook/__init__.py:641
 msgid "Do not have permission for move"
@@ -868,9 +815,8 @@ msgid "Do not have permission to delete"
 msgstr ""
 
 #: keepnote/notebook/__init__.py:700
-#, fuzzy
 msgid "This node is not part of any notebook"
-msgstr "Yeni defter yaratılamadı"
+msgstr ""
 
 #: keepnote/notebook/__init__.py:750
 #, python-format
@@ -892,24 +838,21 @@ msgid "Cannot copy file '%s'"
 msgstr ""
 
 #: keepnote/notebook/__init__.py:1107
-#, fuzzy
 msgid "The Trash folder must be a top-level folder."
-msgstr "Çöp klasörü silinemez."
+msgstr ""
 
 #: keepnote/notebook/__init__.py:1272
-#, fuzzy, python-format
+#, python-format
 msgid "Cannot find notebook '%s'"
-msgstr "Defter '%s' yüklenemedi"
+msgstr ""
 
 #: keepnote/notebook/__init__.py:1360
-#, fuzzy
 msgid "Cannot create Trash folder"
-msgstr "Yeni bir klasör yarat"
+msgstr ""
 
 #: keepnote/notebook/__init__.py:1545
-#, fuzzy
 msgid "Cannot save notebook preferences"
-msgstr "Defter kaydedilemedi"
+msgstr ""
 
 #: keepnote/notebook/__init__.py:1547
 msgid "File format error"
@@ -1197,9 +1140,8 @@ msgid "New Icon"
 msgstr "Yeni Simge"
 
 #: keepnote/rc/keepnote.glade.h:66
-#, fuzzy
 msgid "No Default Notebook"
-msgstr "Varsayılan Defter Yok"
+msgstr ""
 
 #: keepnote/rc/keepnote.glade.h:67
 msgid "Notebook Update"
@@ -1354,7 +1296,6 @@ msgid "icon:"
 msgstr "simge:"
 
 #: keepnote/rc/keepnote.glade.h:105
-#, fuzzy
 msgid "open-icon:"
 msgstr "simgeyi aç:"
 
@@ -1371,7 +1312,6 @@ msgid "set icon"
 msgstr "simgeyi seç"
 
 #: keepnote/rc/keepnote.glade.h:109
-#, fuzzy
 msgid "set open-icon"
 msgstr "açık simgesini seç"
 
