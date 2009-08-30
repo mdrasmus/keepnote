@@ -37,6 +37,7 @@ import time
 import re
 import subprocess
 import tempfile
+import traceback
 
 # keepnote imports
 from keepnote.notebook import \
@@ -404,8 +405,13 @@ def iter_extensions(extensions_dir):
 def import_extension(app, name, filename):
     
     filename2 = os.path.join(filename, "__init__.py")
-    infile = open(filename2)
-    #name = os.path.basename(filename)
+
+    try:
+        infile = open(filename2)
+        #name = os.path.basename(filename)
+    except Exception, e:
+        raise KeepNotePreferenceError("cannot load extension '%s'" %
+                                      filename, e)
 
     try:
         mod = imp.load_module(name, infile, filename2,
