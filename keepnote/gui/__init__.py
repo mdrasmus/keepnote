@@ -59,7 +59,7 @@ gtk.glade.bindtextdomain(keepnote.GETTEXT_DOMAIN, keepnote.get_locale_dir())
 
 
 # constants
-MAX_RECENT_NOTEBOOKS = 10
+MAX_RECENT_NOTEBOOKS = 20
 ACCEL_FILE = "accel.txt"
 
 

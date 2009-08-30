@@ -518,7 +518,7 @@ class KeepNotePreferences (object):
         self.window_size = DEFAULT_WINDOW_SIZE
         self.window_maximized = True
         self.vsash_pos = DEFAULT_VSASH_POS
-        self.hsash_pos = DEFAULT_HSASH_POS        
+        self.hsash_pos = DEFAULT_HSASH_POS
         self.view_mode = DEFAULT_VIEW_MODE
         
         self.treeview_lines = True
@@ -531,7 +531,7 @@ class KeepNotePreferences (object):
         self.autosave_time = DEFAULT_AUTOSAVE_TIME
         
         self.default_notebook = ""
-        self.use_last_notebook = False
+        self.use_last_notebook = True
         self.timestamp_formats = dict(DEFAULT_TIMESTAMP_FORMATS)
         self.spell_check = True
         self.image_size_snap = True

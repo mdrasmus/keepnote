@@ -214,7 +214,7 @@ def nodeid2html_link(notebook, path, nodeid):
         elif note.has_attr("payload_filename"):
             newpath = u"/".join((newpath, note.get_attr("payload_filename")))
 
-        return urllib.quote(newpath)
+        return urllib.quote(newpath.encode("utf8"))
     else:
         return ""
 
@@ -245,9 +245,13 @@ def write_index(notebook, node, path):
     index_file = os.path.join(path, "index.html")
     tree_file = os.path.join(path, "tree.html")
 
-    out = file(index_file, "wb")
+    out = codecs.open(index_file, "wb", "utf-8")
+    #out = open(index_file, "wb")
     out.write((u"""<html>
-<head><title>%s</title></head>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>%s</title>
+</head>
 <frameset cols="20%%, *">
   <frame src="tree.html">
   <frame name="viewer" src="">
@@ -257,9 +261,13 @@ def write_index(notebook, node, path):
     out.close()
 
 
-    # write tree file
-    out = file(tree_file, "wb")
-    out.write("""<html><body>
+    # write tree file    
+    out = codecs.open(tree_file, "wb", "utf-8")
+    out.write(u"""<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+</head>
+<body>
 <style>
 .node
 {
@@ -361,30 +369,30 @@ font-weight: bold;
         expand = node.get_attr("expanded", False)
 
         if len(node.get_children()) > 0:
-            out.write("""<nobr><tt><a href='javascript: toggleDivName("%s", %s)'>+</a>&nbsp;</tt>""" %
-                      (nodeid, ["false", "true"][int(expand)]))
+            out.write(u"""<nobr><tt><a href='javascript: toggleDivName("%s", %s)'>+</a>&nbsp;</tt>""" %
+                      (nodeid, [u"false", u"true"][int(expand)]))
         else:
-            out.write("<nobr><tt>&nbsp;&nbsp;</tt>")
+            out.write(u"<nobr><tt>&nbsp;&nbsp;</tt>")
 
 
         if node.get_attr("content_type") == notebooklib.CONTENT_TYPE_DIR:
-            out.write("%s</nobr><br/>\n" % escape(node.get_title()))
+            out.write(u"%s</nobr><br/>\n" % escape(node.get_title()))
         else:
-            out.write("<a href='%s' target='viewer'>%s</a></nobr><br/>\n" 
+            out.write(u"<a href='%s' target='viewer'>%s</a></nobr><br/>\n" 
                       % (nodeid2html_link(notebook, rootpath, nodeid),
                          escape(node.get_title())))
 
         if len(node.get_children()) > 0:
-            out.write("<div id='%s' class='node%s'>" % 
-                      (nodeid, ["_collapsed", ""][int(expand)]))
+            out.write(u"<div id='%s' class='node%s'>" % 
+                      (nodeid, [u"_collapsed", ""][int(expand)]))
 
             for child in node.get_children():
                 walk(child)
 
-            out.write("</div>\n")
+            out.write(u"</div>\n")
     walk(node)
 
-    out.write("""</body></html>""")
+    out.write(u"""</body></html>""")
     out.close()
 
 
@@ -439,7 +447,8 @@ def export_notebook(notebook, filename, task):
             # avoid writing <?xml> header 
             # (provides compatiability with browsers)
             out = codecs.open(filename2, "wb", "utf-8")
-            dom.doctype.writexml(out)
+            if dom.doctype:
+                dom.doctype.writexml(out)        
             dom.documentElement.writexml(out)
             out.close()
 

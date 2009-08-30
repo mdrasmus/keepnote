@@ -580,8 +580,7 @@ class RichTextView (gtk.TextView):
         
         img_target = self.drag_dest_find_target(drag_context, 
                                                 [(x, 0, 0)
-                                                 for x in MIME_IMAGES])
-
+                                                 for x in MIME_IMAGES])        
              
         if img_target not in (None, "NONE"):
             # process image drop

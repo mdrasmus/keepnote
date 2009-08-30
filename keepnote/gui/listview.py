@@ -24,6 +24,9 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
+import gettext
+
+_ = gettext.gettext
 
 # pygtk imports
 import pygtk
@@ -323,9 +326,9 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             npages = self.count_pages(self.get_root_nodes())
 
         if npages != 1:
-            self.set_status("%d pages" % npages, "stats")
+            self.set_status(_("%d pages") % npages, "stats")
         else:
-            self.set_status("1 page", "stats")
+            self.set_status(_("1 page"), "stats")
 
 
     def count_pages(self, roots):

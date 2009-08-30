@@ -252,14 +252,14 @@ class NoteBookIndex (object):
         # TODO: remove single parent assumption
 
         # get info
-        nodeid = str(node.get_attr("nodeid"))
+        nodeid = node.get_attr("nodeid")
         parent = node.get_parent()
         if parent:
-            parentid = str(parent.get_attr("nodeid"))
+            parentid = parent.get_attr("nodeid")
             basename = node.get_basename()
         else:
             parentid = self._uniroot
-            basename = ""
+            basename = u""
         symlink = False
         title = node.get_title()
         
@@ -297,7 +297,8 @@ class NoteBookIndex (object):
                                 u"FROM Nodes "
                                 u"WHERE nodeid = ?", (nodeid,)))
         if rows:
-            row = rows[0]
+            row = rows[0]     
+
             if row[0] != title:
                 # record update
                 ret = cur.execute(u"UPDATE Nodes SET "
@@ -305,14 +306,13 @@ class NoteBookIndex (object):
                                   u"title=?, "
                                   u"icon=? "
                                   u"WHERE nodeid = ?",
-                                  (nodeid, title, 
-                                   node.get_attr("icon_load"), nodeid))
+                                  (nodeid, title, u"", nodeid))
         else:
             # insert new row
             cur.execute(u"""
                 INSERT INTO Nodes VALUES 
                    (?, ?, ?)""",
-            (nodeid, title, node.get_attr("icon_load")))
+            (nodeid, title, u""))
 
         #con.commit()
 
@@ -325,7 +325,7 @@ class NoteBookIndex (object):
         con, cur = self.con, self.cur
 
         # get info
-        nodeid = str(node.get_attr("nodeid"))        
+        nodeid = node.get_attr("nodeid")
 
         # delete node
         cur.execute(

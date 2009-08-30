@@ -48,7 +48,7 @@ import pango
 
 # keepnote imports
 import keepnote
-from keepnote import KeepNoteError, ensure_unicode
+from keepnote import KeepNoteError, ensure_unicode, FS_ENCODING
 from keepnote.notebook import \
      NoteBookError, \
      NoteBookVersionError
@@ -434,7 +434,7 @@ class KeepNoteWindow (gtk.Window):
             if len(filename) > 30:
                 base = os.path.basename(filename)
                 pre = min(15 - len(base), 5)
-                return os.path.join(filename[:pre] + "...", base)
+                return os.path.join(filename[:pre] + u"...", base)
             else:
                 return filename
 
@@ -583,7 +583,7 @@ class KeepNoteWindow (gtk.Window):
         
         try:
             # make sure filename is unicode
-            filename = ensure_unicode(filename, "utf8")
+            filename = ensure_unicode(filename, FS_ENCODING)
             notebook = notebooklib.NoteBook(filename)
             notebook.create()
             notebook.close()
@@ -604,7 +604,7 @@ class KeepNoteWindow (gtk.Window):
             self.close_notebook()
         
         # make sure filename is unicode
-        filename = ensure_unicode(filename, "utf8")
+        filename = ensure_unicode(filename, FS_ENCODING)
         
         # TODO: should this be moved deeper?
         # convert filenames to their directories
@@ -986,7 +986,7 @@ class KeepNoteWindow (gtk.Window):
 
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
-            filename = ensure_unicode(filename, "utf8")
+            filename = ensure_unicode(filename, FS_ENCODING)
             self.attach_file(filename, widget=widget)
 
         dialog.destroy()

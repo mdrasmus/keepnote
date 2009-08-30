@@ -53,8 +53,6 @@ def capture_screen(filename, x, y, x2, y2):
     screen_dc = win32ui.CreateDCFromHandle(screen_handle)
     shot_dc = screen_dc.CreateCompatibleDC()
     
-    print 
-
     shot_bitmap = win32ui.CreateBitmap()
     shot_bitmap.CreateCompatibleBitmap(screen_dc, w, h)
 

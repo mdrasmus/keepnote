@@ -11,6 +11,21 @@ class TestCaseNotebookIndex (unittest.TestCase):
         pass
 
 
+    def test_node_url(self):
+
+        urls = ["nbk://bad_url",
+                "nbk:///0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"]
+        
+        for url in urls:
+            print url
+            if notebook.is_node_url(url):
+                host, nodeid = notebook.parse_node_url(url)                
+                print host, nodeid
+            else:
+                print "not a node url"
+            print 
+
+
     def test_notebook_lookup_node(self):        
 
         nodeid = "0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"
@@ -34,24 +49,31 @@ class TestCaseNotebookIndex (unittest.TestCase):
         book2.close()
 
 
-    def test_notebook_lookup_node2(self):
+    def test_notebook_move_deja_vu(self):
 
-        nodeid = "0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"   
-        path = os.path.join("test/data/notebook-v3", "stress tests")
-        
         book = notebook.NoteBook()
         book.load("test/data/notebook-v3")
+        #book._index.index_all()
 
-        path2 = book.get_node_path_by_id(nodeid)
-        self.assertEqual(path, path2)
-        #book.save()
+        # get the page u"Deja vu")
+        nodeids = book._index.search_titles(u"vu")
+        print nodeids
+        nodea = book.get_node_by_id(nodeids[0][0])
 
-        book2 = notebook.NoteBook()
-        book2.load("test/data/notebook-v3")
+        nodeids = book._index.search_titles("e")
+        nodeb = book.get_node_by_id(nodeids[0][0])
 
-        path2 = book2.get_node_path_by_id(nodeid)
-        self.assertEqual(path, path2)
-        book2.save()
+        print
+        print nodea.get_path()
+        print nodeb.get_path()
+        parenta = nodea.get_parent()
+        
+        nodea.move(nodeb)
+
+        print "new path:", nodea.get_path()
+        nodea.move(parenta)
+        print "back path:", nodea.get_path()
+
 
 
     def test_notebook_title(self):

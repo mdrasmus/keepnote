@@ -45,40 +45,40 @@ import keepnote.notebook as notebooklib
 
 
 _g_default_node_icon_filenames = {
-    notebooklib.CONTENT_TYPE_TRASH: ("trash.png", "trash.png"),
-    notebooklib.CONTENT_TYPE_DIR: ("folder.png", "folder-open.png"),
-    notebooklib.CONTENT_TYPE_PAGE: ("note.png", "note.png")
+    notebooklib.CONTENT_TYPE_TRASH: (u"trash.png", u"trash.png"),
+    notebooklib.CONTENT_TYPE_DIR: (u"folder.png", u"folder-open.png"),
+    notebooklib.CONTENT_TYPE_PAGE: (u"note.png", u"note.png")
 }
 _g_unknown_icons = ("note-unknown.png", "note-unknown.png")
 
 
-_colors = ["", "-red", "-orange", "-yellow",
-           "-green", "-blue", "-violet", "-grey"]
+_colors = [u"", u"-red", u"-orange", u"-yellow",
+           u"-green", u"-blue", u"-violet", u"-grey"]
            
-builtin_icons = ["folder" + c + ".png" for c in _colors] + \
-                ["folder" + c + "-open.png" for c in _colors] + \
-                ["note" + c + ".png" for c in _colors] + \
-                ["star.png",
-                 "heart.png",
-                 "check.png",
-                 "x.png",
+builtin_icons = [u"folder" + c + u".png" for c in _colors] + \
+                [u"folder" + c + u"-open.png" for c in _colors] + \
+                [u"note" + c + u".png" for c in _colors] + \
+                [u"star.png",
+                 u"heart.png",
+                 u"check.png",
+                 u"x.png",
 
-                 "important.png",
-                 "question.png",
-                 "web.png",
-                 "note-unknown.png"]
+                 u"important.png",
+                 u"question.png",
+                 u"web.png",
+                 u"note-unknown.png"]
 
-DEFAULT_QUICK_PICK_ICONS = ["folder" + c + ".png" for c in _colors] + \
-                           ["note" + c + ".png" for c in _colors] + \
-                           ["star.png",
-                            "heart.png",
-                            "check.png",
-                            "x.png",
+DEFAULT_QUICK_PICK_ICONS = [u"folder" + c + u".png" for c in _colors] + \
+                           [u"note" + c + u".png" for c in _colors] + \
+                           [u"star.png",
+                            u"heart.png",
+                            u"check.png",
+                            u"x.png",
 
-                            "important.png",
-                            "question.png",
-                            "web.png",
-                            "note-unknown.png"]
+                            u"important.png",
+                            u"question.png",
+                            u"web.png",
+                            u"note-unknown.png"]
 
 
 
@@ -101,7 +101,7 @@ class MimeIcons:
         """Try to find icon for mime type"""
  
         # get mime type
-        mime_type = mimetypes.guess_type(filename).replace("/", "-")
+        mime_type = mimetypes.guess_type(filename).replace(u"/", u"-")
 
         return self.get_icon_mimetype(filename, default)
 
@@ -141,7 +141,7 @@ class MimeIcons:
         size = 16
         info = gtk.icon_theme_get_default().lookup_icon(name, size, 0)
         if info:
-            return info.get_filename()
+            return unicode(info.get_filename())
         else:
             return default
         
@@ -154,7 +154,7 @@ def get_default_icon_basenames(node):
     """Returns basesnames for default icons for a node"""
     content_type = node.get_attr("content_type")
 
-    default = _g_mime_icons.get_icon_mimetype(content_type, "note-unknown.png")
+    default = _g_mime_icons.get_icon_mimetype(content_type, u"note-unknown.png")
     
     basenames = _g_default_node_icon_filenames.get(content_type,
                                                    (default, default))
@@ -280,7 +280,7 @@ def get_node_icon_filenames(node):
     if node.has_attr("icon_open"):
         # use attr
         filename = lookup_icon_filename(notebook,
-                                      node.get_attr("icon_open"))
+                                        node.get_attr("icon_open"))
         if filename:
             filenames[1] = filename
     else:

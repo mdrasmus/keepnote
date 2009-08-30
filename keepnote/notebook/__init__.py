@@ -55,6 +55,7 @@ from keepnote.timestamp import \
 from keepnote import safefile
 from keepnote import uuid
 from keepnote.notebook import index as notebook_index
+import keepnote
 
 
 # NOTE: the <?xml ?> header is left off to keep it compatiable with IE,
@@ -95,7 +96,7 @@ CONTENT_TYPE_UNKNOWN = u"application/x-notebook-unknown"
 NULL = object()
 
 # the node id of the implied root of all nodes everywhere
-UNIVERSAL_ROOT = "b810760f-f246-4e42-aebb-50ce51c3d1ed"
+UNIVERSAL_ROOT = u"b810760f-f246-4e42-aebb-50ce51c3d1ed"
 
 
 #=============================================================================
@@ -269,19 +270,20 @@ def get_notebook_version(filename):
 
 def new_nodeid():
     """Generate a new node id"""
-    return str(uuid.uuid4())
+    return unicode(uuid.uuid4())
 
 
-def get_node_url(nodeid, host=""):
+def get_node_url(nodeid, host=u""):
     """Get URL for a nodeid"""
-    return "nbk://%s/%s" % (host, nodeid)
+    return u"nbk://%s/%s" % (host, nodeid)
 
 
 def is_node_url(url):
-    return url.startswith("nbk://")
+    return re.match(u"nbk://[^/]*/.*", url) != None
+    #return url.startswith(u"nbk://")
 
 def parse_node_url(url):
-    match = re.match("nbk://([^/]*)/(.*)", url)
+    match = re.match(u"nbk://([^/]*)/(.*)", url)
     if match:
         return match.groups()
     else:
@@ -400,9 +402,9 @@ g_default_attrs = [
     modified_time_attr,
     NoteBookAttr("Expaned", bool, "expanded", default=True),
     NoteBookAttr("Expanded2", bool, "expanded2", default=True),
-    NoteBookAttr("Folder Sort", str, "info_sort", read=read_info_sort),
+    NoteBookAttr("Folder Sort", unicode, "info_sort", read=read_info_sort),
     NoteBookAttr("Folder Sort Direction", int, "info_sort_dir"),
-    NoteBookAttr("Node ID", str, "nodeid", default=new_nodeid),
+    NoteBookAttr("Node ID", unicode, "nodeid", default=new_nodeid),
     NoteBookAttr("Icon", unicode, "icon"),
     NoteBookAttr("Icon Open", unicode, "icon_open"),
     NoteBookAttr("Filename", unicode, "payload_filename")
@@ -1174,6 +1176,8 @@ class NoteBook (NoteBookDir):
     def __init__(self, rootdir=None):
         """rootdir -- Root directory of notebook"""
         
+        rootdir = keepnote.ensure_unicode(rootdir, keepnote.FS_ENCODING)
+
         NoteBookDir.__init__(self, rootdir, notebook=self)
         self.pref = NoteBookPreferences()
         if rootdir is not None:
@@ -1262,6 +1266,9 @@ class NoteBook (NoteBookDir):
     
     def load(self, filename=None):
         """Load the NoteBook from the file-system"""
+
+        filename = keepnote.ensure_unicode(filename, keepnote.FS_ENCODING)
+
         if filename is not None:
             if os.path.isdir(filename):
                 self._set_basename(filename)

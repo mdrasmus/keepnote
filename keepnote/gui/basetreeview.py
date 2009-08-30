@@ -39,6 +39,7 @@ from gtk import gdk
 
 
 # keepnote imports
+from keepnote import ensure_unicode
 from keepnote.notebook import NoteBookError, NoteBookTrash
 from keepnote.gui.treemodel import \
      get_path_from_node
@@ -485,6 +486,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # remember editing state
         self.editing = False
 
+        new_text = ensure_unicode(new_text, "utf8")
+
         # get node being edited
         node = self.model.get_value(self.model.get_iter(path), self._node_col)
         if node is None:
@@ -497,7 +500,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # set new title and catch errors
         if new_text != node.get_title():
             try:
-                node.rename(new_text)            
+                node.rename(new_text)
             except NoteBookError, e:
                 self.emit("error", e.msg, e)
 

@@ -194,7 +194,7 @@ setup(
     options = {
         'py2exe' : {
             'packages': 'encodings',
-            'includes': 'cairo,pango,pangocairo,atk,gobject',
+            'includes': 'cairo,pango,pangocairo,atk,gobject,win32com.shell',
             'dist_dir': 'dist/keepnote-%s.win' % KEEPNOTE_VERSION
         },
         #'sdist': {
