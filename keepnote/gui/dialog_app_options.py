@@ -36,6 +36,7 @@ import gtk.glade
 
 # keepnote imports
 import keepnote
+from keepnote import unicode_gtk
 from keepnote import get_resource
 from keepnote.gui.font_selector import FontSelector
 from keepnote.gui import richtext
@@ -359,7 +360,7 @@ class ApplicationOptionsDialog (object):
         elif self.general_xml.get_widget("default_notebook_radio").get_active():
             self.app.pref.use_last_notebook = False
             self.app.pref.default_notebook = \
-                self.general_xml.get_widget("default_notebook_entry").get_text()
+                unicode_gtk(self.general_xml.get_widget("default_notebook_entry").get_text())
         else:
             self.app.pref.use_last_notebook = False
             self.app.pref.default_notebook = ""
@@ -386,15 +387,15 @@ class ApplicationOptionsDialog (object):
         
         # save date formatting
         for name in ["same_day", "same_month", "same_year", "diff_year"]:
-            self.app.pref.timestamp_formats[name] = \
-                self.date_xml.get_widget("date_%s_entry" % name).get_text()
+            self.app.pref.timestamp_formats[name] = unicode_gtk(
+                self.date_xml.get_widget("date_%s_entry" % name).get_text())
         
 
         # save external app options
         for key, entry in self.entries.iteritems():
             if key in self.app.pref._external_apps_lookup:
-                self.app.pref._external_apps_lookup[key].prog = \
-                    self.entries[key].get_text()
+                self.app.pref._external_apps_lookup[key].prog = unicode_gtk(
+                    self.entries[key].get_text())
 
         # save notebook font        
         if self.main_window.notebook is not None:
