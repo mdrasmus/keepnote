@@ -125,16 +125,18 @@ class Extension (keepnote.Extension):
             "",
             ".")
         dialog.set_current_name(os.path.basename(filename))
-        dialog.set_current_folder(self.app.pref.archive_notebook_path)
+        if os.path.exists(self.app.pref.archive_notebook_path):
+            dialog.set_current_folder(self.app.pref.archive_notebook_path)
         
         response = dialog.run()
 
-        self.app.pref.archive_notebook_path = dialog.get_current_folder()
+        self.app.pref.archive_notebook_path = \
+            keepnote.unicode_gtk(dialog.get_current_folder())
         self.app.pref.changed.notify()
 
 
         if response == gtk.RESPONSE_OK:
-            filename = dialog.get_filename()
+            filename = unicode_gtk(dialog.get_filename())
             dialog.destroy()
 
             self.export_notebook(notebook, filename, window=window)

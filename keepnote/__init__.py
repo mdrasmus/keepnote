@@ -160,6 +160,22 @@ def ensure_unicode(text, encoding="utf8"):
             return unicode(text, encoding)
     return text
 
+def unicode_fs(text):
+    """Converts a string from the filesystem to unicode"""
+
+    if text is None:
+        return None
+
+    if not isinstance(text, unicode):
+        if encoding == FS_ENCODING:
+            return unicode(text, sys.getfilesystemencoding())
+    
+    return text
+
+def unicode_gtk(text):
+    """Converts a string from gtk (utf8) to unicode"""
+    return unicode(text, "utf8")
+
 
 #=============================================================================
 # locale functions

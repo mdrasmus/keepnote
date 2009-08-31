@@ -37,6 +37,7 @@ import gtk
 
 # keepnote imports
 import keepnote
+from keepnote import unicode_gtk
 import keepnote.gui
 from keepnote import get_resource
 import keepnote.notebook as notebooklib
@@ -98,12 +99,11 @@ class MimeIcons:
         self._cache = {}
  
     def get_icon(self, filename, default=None):
-        """Try to find icon for mime type"""
+        """Try to find icon for filename"""
  
         # get mime type
-        mime_type = mimetypes.guess_type(filename).replace(u"/", u"-")
-
-        return self.get_icon_mimetype(filename, default)
+        mime_type = mimetypes.guess_type(filename)[0].replace("/", "-")
+        return self.get_icon_mimetype(mime_type, default)
 
 
     def get_icon_mimetype(self, mime_type, default=None):
@@ -116,14 +116,14 @@ class MimeIcons:
         # try gnome mime
         items = mime_type.split('/')
         for i in xrange(len(items), 0, -1):
-            icon_name = "gnome-mime-" + '-'.join(items[:i])
+            icon_name = u"gnome-mime-" + '-'.join(items[:i])
             if icon_name in self._icons:
                 self._cache[mime_type] = icon_name                
-                return icon_name
+                return unicode(icon_name)
  
         # try simple mime
         for i in xrange(len(items), 0, -1):
-            icon_name = '-'.join(items[:i])
+            icon_name = u'-'.join(items[:i])
             if icon_name in self._icons:
                 self._cache[mime_type] = icon_name
                 return icon_name
@@ -141,7 +141,7 @@ class MimeIcons:
         size = 16
         info = gtk.icon_theme_get_default().lookup_icon(name, size, 0)
         if info:
-            return unicode(info.get_filename())
+            return unicode_gtk(info.get_filename())
         else:
             return default
         
@@ -189,7 +189,7 @@ def lookup_icon_filename(notebook, basename):
 
     # lookup in builtins
     filename = get_resource(keepnote.NODE_ICON_DIR, basename)
-    if os.path.exists(filename):
+    if os.path.isfile(filename):
         return filename
 
     # lookup mime types
@@ -267,7 +267,7 @@ def get_node_icon_filenames(node):
 
     # get default filenames
     filenames = get_default_icon_filenames(node)
-
+    
     # load icon    
     if node.has_attr("icon"):
         # use attr
@@ -288,13 +288,14 @@ def get_node_icon_filenames(node):
 
             # use icon to guess open icon
             filename = lookup_icon_filename(notebook,
-                guess_open_icon_filename(node.get_attr("icon")))
+                guess_open_icon_filename(node.get_attr("icon")))            
+
             if filename:
                 filenames[1] = filename
             else:
                 # use icon as-is for open icon if it is specified
                 filename = lookup_icon_filename(notebook,
-                                              node.get_attr("icon"))
+                                                node.get_attr("icon"))
                 if filename:
                     filenames[1] = filename    
     
@@ -316,7 +317,7 @@ def get_node_icon(node, expand=False):
         # load icons and return the one requested
         filenames = get_node_icon_filenames(node)
         node.set_attr("icon_load", filenames[0])
-        node.set_attr("icon_open_load", filenames[1])       
+        node.set_attr("icon_open_load", filenames[1])
         return keepnote.gui.get_pixbuf(filenames[int(expand)], (15, 15))
 
 

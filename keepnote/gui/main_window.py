@@ -48,7 +48,11 @@ import pango
 
 # keepnote imports
 import keepnote
-from keepnote import KeepNoteError, ensure_unicode, FS_ENCODING
+from keepnote import \
+    KeepNoteError, \
+    ensure_unicode, \
+    unicode_gtk, \
+    FS_ENCODING
 from keepnote.notebook import \
      NoteBookError, \
      NoteBookVersionError
@@ -117,7 +121,7 @@ class FileChooserDialog (gtk.FileChooserDialog):
         if (response == gtk.RESPONSE_OK and 
             self._app and self._persistent_path):
             setattr(self._app.pref, self._persistent_path,
-                     self.get_current_folder())
+                    unicode_gtk(self.get_current_folder()))
             
         return response
 
@@ -467,7 +471,7 @@ class KeepNoteWindow (gtk.Window):
         
         if response == gtk.RESPONSE_OK:
             # create new notebook
-            self.new_notebook(dialog.get_filename())
+            self.new_notebook(unicode_gtk(dialog.get_filename()))
 
         dialog.destroy()
     
@@ -477,14 +481,14 @@ class KeepNoteWindow (gtk.Window):
         
         dialog = FileChooserDialog(
             _("Open Notebook"), self, 
-            action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, #gtk.FILE_CHOOSER_ACTION_OPEN,
+            action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, 
             buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
                      _("Open"), gtk.RESPONSE_OK),
             app=self.app,
             persistent_path="new_notebook_path")
 
         def on_folder_changed(filechooser):
-            folder = filechooser.get_current_folder()
+            folder = unicode_gtk(filechooser.get_current_folder())
             
             if os.path.exists(os.path.join(folder, notebooklib.PREF_FILE)):
                 filechooser.response(gtk.RESPONSE_OK)
@@ -505,9 +509,10 @@ class KeepNoteWindow (gtk.Window):
         
         if response == gtk.RESPONSE_OK:
             # make sure start in parent directory
-            self.app.pref.new_notebook_path = os.path.dirname(dialog.get_current_folder())
+            self.app.pref.new_notebook_path = \
+                os.path.dirname(unicode_gtk(dialog.get_current_folder()))
 
-            notebook_file = dialog.get_filename()            
+            notebook_file = unicode_gtk(dialog.get_filename())
             self.open_notebook(notebook_file)
 
         dialog.destroy()
@@ -821,7 +826,7 @@ class KeepNoteWindow (gtk.Window):
 
         # get words
         words = [x.lower() for x in
-                 self.search_box.get_text().strip().split()]
+                 unicode_gtk(self.search_box.get_text()).strip().split()]
         
         # prepare search iterator
         nodes = keepnote.search.search_manual(self.notebook, words)
@@ -873,12 +878,12 @@ class KeepNoteWindow (gtk.Window):
 
         for node in nodes:
 
-            if icon_file is "":
+            if icon_file == u"":
                 node.del_attr("icon")
             elif icon_file is not None:
                 node.set_attr("icon", icon_file)
 
-            if icon_open_file is "":
+            if icon_open_file == u"":
                 node.del_attr("icon_open")
             elif icon_open_file is not None:
                 node.set_attr("icon_open", icon_open_file)
@@ -900,6 +905,8 @@ class KeepNoteWindow (gtk.Window):
         node = nodes[0]
 
         icon_file, icon_open_file = self.node_icon_dialog.show(node)
+
+        print icon_file, icon_open_file
 
         newly_installed = set()
 
@@ -986,7 +993,7 @@ class KeepNoteWindow (gtk.Window):
 
         if response == gtk.RESPONSE_OK:
             filename = dialog.get_filename()
-            filename = ensure_unicode(filename, FS_ENCODING)
+            filename = unicode_gtk(filename)#, FS_ENCODING)
             self.attach_file(filename, widget=widget)
 
         dialog.destroy()
@@ -1122,16 +1129,18 @@ class KeepNoteWindow (gtk.Window):
             persistent_path="save_image_path")
         dialog.set_default_response(gtk.RESPONSE_OK)
         response = dialog.run()
-        
+
+        filename = unicode_gtk(dialog.get_filename())
+
         if response == gtk.RESPONSE_OK:
-            if dialog.get_filename() == "":
+            if filename == "":
                 self.error(_("Must specify a filename for the image."))
             else:
                 try:                
-                    image.write(dialog.get_filename())
+                    image.write(filename)
                 except Exception, e:
                     self.error(_("Could not save image '%s'") %
-                               dialog.get_filename(), e, sys.exc_info()[2])
+                               filename, e, sys.exc_info()[2])
 
         dialog.destroy()
     
@@ -1764,7 +1773,7 @@ class KeepNoteWindow (gtk.Window):
 
     def search_box_update_completion(self):
 
-        text = self.search_box.get_text()
+        text = unicode_gtk(self.search_box.get_text())
         
         self.search_box_list.clear()
         if len(text) > 0:
@@ -1871,12 +1880,12 @@ class KeepNoteWindow (gtk.Window):
         # change icon
         item = gtk.ImageMenuItem(_("Change _Icon"))
         img = gtk.Image()
-        img.set_from_file(lookup_icon_filename(None, "folder-red.png"))
+        img.set_from_file(lookup_icon_filename(None, u"folder-red.png"))
         item.set_image(img)
         menu.append(item)
         menu.iconmenu = IconMenu()
         menu.iconmenu.connect("set-icon",
-                              lambda w, i: self.on_set_icon(i, "", control))
+                              lambda w, i: self.on_set_icon(i, u"", control))
         menu.iconmenu.new_icon.connect("activate",
                                        lambda w: self.on_new_icon(control))
         item.set_submenu(menu.iconmenu)

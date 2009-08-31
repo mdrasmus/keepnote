@@ -1389,7 +1389,7 @@ class NoteBook (NoteBookDir):
     def get_icon_file(self, basename):
         """Lookup icon filename in notebook icon store"""
         filename = os.path.join(self.get_icon_dir(), basename)
-        if os.path.exists(filename):
+        if os.path.isfile(filename):
             return filename
         else:
             return None
