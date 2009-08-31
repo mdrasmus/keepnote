@@ -6,6 +6,7 @@ import gtk
 import gobject
 
 # keepnote imports
+from keepnote import unicode_gtk
 from keepnote.gui.popupwindow import PopupWindow
     
 
@@ -115,7 +116,7 @@ class LinkPickerPopup (PopupWindow):
             # accept selection
             if sel:
                 icon, title, nodeid = model[sel]
-                self.emit("pick-link", title, nodeid)
+                self.emit("pick-link", unicode_gtk(title), nodeid)
                 return True
 
         elif event.keyval == gtk.keysyms.Escape:

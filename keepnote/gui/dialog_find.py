@@ -36,7 +36,7 @@ import gtk.glade
 
 # keepnote imports
 import keepnote
-from keepnote import get_resource
+from keepnote import get_resource, unicode_gtk
 
 
 
@@ -129,8 +129,8 @@ class KeepNoteFindDialog (object):
     def on_find_response(self, response):
         
         # get find options
-        find_text = self.find_xml.get_widget("text_entry").get_text()
-        replace_text = self.find_xml.get_widget("replace_entry").get_text()
+        find_text = unicode_gtk(self.find_xml.get_widget("text_entry").get_text())
+        replace_text = unicode_gtk(self.find_xml.get_widget("replace_entry").get_text())
         case_sensitive = self.find_xml.get_widget("case_sensitive_button").get_active()
         search_forward = self.find_xml.get_widget("forward_button").get_active()
         
@@ -144,8 +144,7 @@ class KeepNoteFindDialog (object):
             self.find_dialog = None
             
         elif response == "find":
-            self.find_last_pos = self.editor.get_textview().find(find_text, case_sensitive, search_forward,
-                                      next)
+            self.find_last_pos = self.editor.get_textview().find(find_text, case_sensitive, search_forward, next)
 
         elif response == "find_next":
             self.find_xml.get_widget("forward_button").set_active(True)

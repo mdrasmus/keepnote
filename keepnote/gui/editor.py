@@ -44,7 +44,7 @@ import gobject
 # keepnote imports
 import keepnote
 from keepnote import \
-     KeepNoteError, is_url
+     KeepNoteError, is_url, unicode_gtk
 from keepnote.notebook import \
      NoteBookError, \
      NoteBookVersionError, \
@@ -473,16 +473,16 @@ class KeepNoteEditor (gtk.VBox):
         dialog.destroy()
 
         if response == gtk.RESPONSE_OK:
-            self._app.pref.insert_image_path = dialog.get_current_folder()
+            self._app.pref.insert_image_path = unicode_gtk(dialog.get_current_folder())
             
-            filename = dialog.get_filename()
+            filename = unicode_gtk(dialog.get_filename())
                         
             # TODO: do I need this?
             imgname, ext = os.path.splitext(os.path.basename(filename))
-            if ext.lower() in (".jpg", ".jpeg"):
-                imgname = imgname + ".jpg"
+            if ext.lower() in (u".jpg", u".jpeg"):
+                imgname = imgname + u".jpg"
             else:
-                imgname = imgname + ".png"
+                imgname = imgname + u".png"
             
             try:
                 self.insert_image(filename, imgname)
@@ -491,12 +491,8 @@ class KeepNoteEditor (gtk.VBox):
                 self.emit("error",
                           _("Could not insert image '%s'") % filename, e)
             
-
-        
-
-
     
-    def insert_image(self, filename, savename="image.png"):
+    def insert_image(self, filename, savename=u"image.png"):
         """Inserts an image into the text editor"""
 
         if self._page is None:

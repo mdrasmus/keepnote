@@ -39,7 +39,7 @@ from gtk import gdk
 
 
 # keepnote imports
-from keepnote import ensure_unicode
+from keepnote import unicode_gtk
 from keepnote.notebook import NoteBookError, NoteBookTrash
 from keepnote.gui.treemodel import \
      get_path_from_node
@@ -68,6 +68,7 @@ def parse_utf(text):
         return text.decode("utf16")
     else:
         return unicode(text, "utf8")
+
 
 def compute_new_path(model, target, drop_position):
     """Compute the new path of a tagret rowiter in a treemodel"""
@@ -486,7 +487,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # remember editing state
         self.editing = False
 
-        new_text = ensure_unicode(new_text, "utf8")
+        new_text = unicode_gtk(new_text)
 
         # get node being edited
         node = self.model.get_value(self.model.get_iter(path), self._node_col)

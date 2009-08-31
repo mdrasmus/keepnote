@@ -32,7 +32,7 @@ from gtk import gdk
 import gtk, gobject
 
 # keepnote imports
-from keepnote import is_url, ensure_unicode
+from keepnote import is_url, unicode_gtk
 from keepnote.notebook import get_node_url
 
 
@@ -122,7 +122,7 @@ class LinkEditor (gtk.Frame):
 
     def update_completion(self):
 
-        text = ensure_unicode(self.url_text.get_text(), "utf8")
+        text = unicode_gtk(self.url_text.get_text())
 
         self._liststore.clear()
         if self.search_nodes and len(text) > 0:
@@ -171,7 +171,7 @@ class LinkEditor (gtk.Frame):
         if self.textview is None:
             return
         
-        url = ensure_unicode(self.url_text.get_text(), "utf8")
+        url = unicode_gtk(self.url_text.get_text())
         tag, start, end = self.textview.get_link()
         
         if start is not None:
