@@ -50,6 +50,7 @@ import gobject
 
 # keepnote imports
 import keepnote
+from keepnote import unicode_gtk
 from keepnote.notebook import NoteBookError, get_valid_unique_filename
 from keepnote import notebook as notebooklib
 from keepnote import tasklib
@@ -112,18 +113,24 @@ class Extension (keepnote.Extension):
     def on_export_notebook(self, window, notebook):
         """Callback from gui for exporting a notebook"""
         
+        if notebook is None:
+            return
+
         dialog = gtk.FileChooserDialog("Export Notebook", window, 
             action=gtk.FILE_CHOOSER_ACTION_SAVE,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "Export", gtk.RESPONSE_OK))
 
 
-        filename = notebooklib.get_unique_filename(
-            self.app.pref.archive_notebook_path,
-            time.strftime(os.path.basename(window.notebook.get_path()) +
-                          "-%Y-%m-%d"),
-            "",
-            ".")
+        basename = time.strftime(os.path.basename(window.notebook.get_path()) +
+                                 "-%Y-%m-%d")
+
+        if os.path.exists(self.app.pref.archive_notebook_path):            
+            filename = notebooklib.get_unique_filename(
+                self.app.pref.archive_notebook_path,
+                basename, "", ".")
+        else:
+            filename = basename
         dialog.set_current_name(os.path.basename(filename))
         if os.path.exists(self.app.pref.archive_notebook_path):
             dialog.set_current_folder(self.app.pref.archive_notebook_path)
