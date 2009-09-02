@@ -706,7 +706,8 @@ class EditorMenus (gobject.GObject):
     def _make_toggle_button(self, toolbar, tips, tip_text, icon, 
                             stock_id=None, 
                             func=lambda: None,
-                            use_stock_icons=False):
+                            use_stock_icons=False,
+                            use_minitoolbar=False):
 
         button = gtk.ToggleToolButton()
         if use_stock_icons and stock_id:
@@ -716,14 +717,15 @@ class EditorMenus (gobject.GObject):
         signal = button.connect("toggled", lambda w: func())
         font_ui = FontUI(button, signal)
         self._font_ui_signals.append(font_ui)
-        
-        toolbar.insert(button, -1)
-        tips.set_tip(button, tip_text)
 
+        if not use_minitoolbar:        
+            toolbar.insert(button, -1)
+        tips.set_tip(button, tip_text)
+        
         return font_ui
 
 
-    def make_toolbar(self, toolbar, tips, use_stock_icons):
+    def make_toolbar(self, toolbar, tips, use_stock_icons, use_minitoolbar):
         
         # bold tool
         self.bold = self._make_toggle_button(
@@ -751,14 +753,14 @@ class EditorMenus (gobject.GObject):
             toolbar, tips,
             _("Strike"), "strike.png", gtk.STOCK_STRIKETHROUGH,
             lambda: self._editor.get_textview().toggle_font_mod("strike"),
-            use_stock_icons)
+            use_stock_icons, use_minitoolbar)
         
         # fixed-width tool
         self.fixed_width = self._make_toggle_button(
             toolbar, tips,
             _("Monospace"), "fixed-width.png", None,
             lambda: self._editor.get_textview().toggle_font_mod("tt"),
-            use_stock_icons)
+            use_stock_icons, use_minitoolbar)
 
         # link
         self.link = self._make_toggle_button(
@@ -772,7 +774,7 @@ class EditorMenus (gobject.GObject):
             toolbar, tips,
             _("No Wrapping"), "no-wrap.png", None,
             lambda: self._editor.get_textview().toggle_font_mod("nowrap"),
-            use_stock_icons)
+            use_stock_icons, use_minitoolbar)
 
         
 
@@ -835,28 +837,28 @@ class EditorMenus (gobject.GObject):
             toolbar, tips,
             "Left Align", "alignleft.png", gtk.STOCK_JUSTIFY_LEFT,
             lambda: self.on_justify("left"),
-            use_stock_icons)
+            use_stock_icons, use_minitoolbar)
 
         # center tool
         self.center_align = self._make_toggle_button(
             toolbar, tips,
             _("Center Align"), "aligncenter.png", gtk.STOCK_JUSTIFY_CENTER,
             lambda: self.on_justify("center"),
-            use_stock_icons)
+            use_stock_icons, use_minitoolbar)
 
         # right tool
         self.right_align = self._make_toggle_button(
             toolbar, tips,
             _("Right Align"), "alignright.png", gtk.STOCK_JUSTIFY_RIGHT,
             lambda: self.on_justify("right"),
-            use_stock_icons)
+            use_stock_icons, use_minitoolbar)
 
         # justify tool
         self.fill_align = self._make_toggle_button(
             toolbar, tips,
             _("Justify Align"), "alignjustify.png", gtk.STOCK_JUSTIFY_FILL,
             lambda: self.on_justify("fill"),
-            use_stock_icons)
+            use_stock_icons, use_minitoolbar)
         
         
         # bullet list tool

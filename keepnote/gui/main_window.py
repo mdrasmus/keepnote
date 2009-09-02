@@ -1727,7 +1727,9 @@ class KeepNoteWindow (gtk.Window):
 
         
         # insert editor toolbar
-        self.viewer.make_toolbar(toolbar, tips, self.app.pref.use_stock_icons)
+        self.viewer.make_toolbar(toolbar, tips, 
+                                 self.app.pref.use_stock_icons,
+                                 self.app.pref.use_minitoolbar)
 
         # separator
         spacer = gtk.SeparatorToolItem()

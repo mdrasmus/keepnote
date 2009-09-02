@@ -546,7 +546,7 @@ class KeepNotePreferences (object):
         self.treeview_lines = True
         self.listview_rules = True
         self.use_stock_icons = False
-        
+        self.use_minitoolbar = False
 
         # autosave
         self.autosave = True
@@ -698,6 +698,9 @@ g_keepnote_pref_parser = xmlo.XmlObject(
                  attr=("listview_rules", xmlo.str2bool, xmlo.bool2str)),
         xmlo.Tag("use_stock_icons",
                  attr=("use_stock_icons", xmlo.str2bool, xmlo.bool2str)),
+        xmlo.Tag("use_minitoolbar",
+                 attr=("use_minitoolbar", xmlo.str2bool, xmlo.bool2str)),
+
 
         # image resize
         xmlo.Tag("image_size_snap",

@@ -801,8 +801,11 @@ class ThreePaneViewer (Viewer):
         self.editor_menus.setup_menu(uimanager)
 
         
-    def make_toolbar(self, toolbar, tips, use_stock_icons):
-        self.editor_menus.make_toolbar(toolbar, tips, use_stock_icons)
+    def make_toolbar(self, toolbar, tips, use_stock_icons,
+                     use_minitoolbar):
+        self.editor_menus.make_toolbar(toolbar, tips, 
+                                       use_stock_icons,
+                                       use_minitoolbar)
 
 
 
