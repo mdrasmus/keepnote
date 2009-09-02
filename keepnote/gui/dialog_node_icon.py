@@ -72,7 +72,7 @@ def browse_file(parent, title, filename=None):
 
     response = dialog.run()
 
-    if response == gtk.RESPONSE_OK:
+    if response == gtk.RESPONSE_OK and dialog.get_filename():
         filename = unicode_gtk(dialog.get_filename())
     else:
         filename = None

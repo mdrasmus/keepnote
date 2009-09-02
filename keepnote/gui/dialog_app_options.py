@@ -318,9 +318,9 @@ class ApplicationOptionsDialog (object):
         
         response = dialog.run()
         
-        if response == gtk.RESPONSE_OK:
+        if response == gtk.RESPONSE_OK and dialog.get_filename():
             filename = dialog.get_filename()
-
+            
             if name == "default_notebook":
                 self.general_xml.get_widget("default_notebook_entry").\
                     set_text(filename)

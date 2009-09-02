@@ -130,16 +130,18 @@ class Extension (keepnote.Extension):
 
         response = dialog.run()
 
-        self.app.pref.archive_notebook_path = unicode_gtk(dialog.get_current_folder())
-        self.app.pref.changed.notify()
-
-
-        if response == gtk.RESPONSE_OK:
+        if response == gtk.RESPONSE_OK and dialog.get_filename():
             filename = unicode_gtk(dialog.get_filename())
+
+            if dialog.get_current_folder():
+                self.app.pref.archive_notebook_path = \
+                    unicode_gtk(dialog.get_current_folder())
+                self.app.pref.changed.notify()
+
             dialog.destroy()
 
-            if "." not in filename:
-                filename += ".tar.gz"
+            if u"." not in filename:
+                filename += u".tar.gz"
 
             window.set_status("Archiving...")
             return self.archive_notebook(notebook, filename, window)
@@ -174,12 +176,16 @@ class Extension (keepnote.Extension):
         dialog.add_filter(file_filter)
 
         response = dialog.run()
+        
 
-        self.app.pref.archive_notebook_path = unicode_gtk(dialog.get_current_folder())
-        self.app.pref.changed.notify()
-
-        if response == gtk.RESPONSE_OK:
+        if response == gtk.RESPONSE_OK and dialog.get_filename():
             archive_filename = unicode_gtk(dialog.get_filename())
+
+            if dialog.get_current_folder():
+                self.app.pref.archive_notebook_path = \
+                    unicode_gtk(dialog.get_current_folder())
+                self.app.pref.changed.notify()
+
             dialog.destroy()
 
         elif response == gtk.RESPONSE_CANCEL:
@@ -212,12 +218,14 @@ class Extension (keepnote.Extension):
 
         response = dialog.run()
 
-        self.app.pref.new_notebook_path = \
-            os.path.dirname(unicode_gtk(dialog.get_current_folder()))
-        self.app.pref.changed.notify()
-
-        if response == gtk.RESPONSE_OK:
+        if response == gtk.RESPONSE_OK and dialog.get_filename():
             notebook_filename = unicode_gtk(dialog.get_filename())
+
+            if dialog.get_current_folder():
+                self.app.pref.new_notebook_path = \
+                    os.path.dirname(unicode_gtk(dialog.get_current_folder()))
+                self.app.pref.changed.notify()
+
             dialog.destroy()
 
             window.set_status("Restoring...")

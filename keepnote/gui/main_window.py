@@ -471,7 +471,8 @@ class KeepNoteWindow (gtk.Window):
         
         if response == gtk.RESPONSE_OK:
             # create new notebook
-            self.new_notebook(unicode_gtk(dialog.get_filename()))
+            if dialog.get_filename():
+                self.new_notebook(unicode_gtk(dialog.get_filename()))
 
         dialog.destroy()
     
@@ -509,10 +510,12 @@ class KeepNoteWindow (gtk.Window):
         
         if response == gtk.RESPONSE_OK:
             # make sure start in parent directory
-            self.app.pref.new_notebook_path = \
-                os.path.dirname(unicode_gtk(dialog.get_current_folder()))
+            if dialog.get_current_folder():
+                self.app.pref.new_notebook_path = \
+                    os.path.dirname(unicode_gtk(dialog.get_current_folder()))
 
-            notebook_file = unicode_gtk(dialog.get_filename())
+            if dialog.get_filename():
+                notebook_file = unicode_gtk(dialog.get_filename())
             self.open_notebook(notebook_file)
 
         dialog.destroy()
@@ -992,9 +995,9 @@ class KeepNoteWindow (gtk.Window):
         response = dialog.run()
 
         if response == gtk.RESPONSE_OK:
-            filename = dialog.get_filename()
-            filename = unicode_gtk(filename)#, FS_ENCODING)
-            self.attach_file(filename, widget=widget)
+            if dialog.get_filename():
+                self.attach_file(unicode_gtk(dialog.get_filename()), 
+                                 widget=widget)
 
         dialog.destroy()
 
@@ -1128,14 +1131,14 @@ class KeepNoteWindow (gtk.Window):
             app=self.app,
             persistent_path="save_image_path")
         dialog.set_default_response(gtk.RESPONSE_OK)
-        response = dialog.run()
-
-        filename = unicode_gtk(dialog.get_filename())
+        response = dialog.run()        
 
         if response == gtk.RESPONSE_OK:
-            if filename == "":
+
+            if not dialog.get_filename():
                 self.error(_("Must specify a filename for the image."))
             else:
+                filename = unicode_gtk(dialog.get_filename())
                 try:                
                     image.write(filename)
                 except Exception, e:

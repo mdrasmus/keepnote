@@ -473,9 +473,14 @@ class KeepNoteEditor (gtk.VBox):
         dialog.destroy()
 
         if response == gtk.RESPONSE_OK:
-            self._app.pref.insert_image_path = unicode_gtk(dialog.get_current_folder())
+            folder = dialog.get_current_folder()
+            if folder:
+                self._app.pref.insert_image_path = unicode_gtk(folder)
             
-            filename = unicode_gtk(dialog.get_filename())
+            filename = dialog.get_filename()
+            if filename is None:
+                return 
+            filename = unicode_gtk(filename)
                         
             # TODO: do I need this?
             imgname, ext = os.path.splitext(os.path.basename(filename))

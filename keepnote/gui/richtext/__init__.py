@@ -1151,7 +1151,6 @@ class RichTextView (gtk.TextView):
         """Finds next occurrence of 'text' searching forwards"""
         
         it = it.copy()
-        text = unicode(text, "utf8")
         if not case_sensitive:
             text = text.lower()
         
@@ -1176,7 +1175,6 @@ class RichTextView (gtk.TextView):
         
         it = it.copy()
         it.backward_char()
-        text = unicode(text, "utf8")
         if not case_sensitive:
             text = text.lower()
         
