@@ -1220,7 +1220,7 @@ class RichTextView (gtk.TextView):
         
         
     def replace(self, text, replace_text, 
-                case_sensitive=False, forward=True, next=True):
+                case_sensitive=False, forward=True, next=False):
         """Replaces next occurrence of 'text' with 'replace_text'"""
 
         if not self._textbuffer:
