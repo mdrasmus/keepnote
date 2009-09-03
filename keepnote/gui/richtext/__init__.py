@@ -1147,7 +1147,7 @@ class RichTextView (gtk.TextView):
 
     # TODO: add wrapping to search
     
-    def forward_search(self, it, text, case_sensitive):
+    def forward_search(self, it, text, case_sensitive, wrap=True):
         """Finds next occurrence of 'text' searching forwards"""
         
         it = it.copy()
@@ -1167,10 +1167,14 @@ class RichTextView (gtk.TextView):
             if text2 == text:
                 return it, end
             if not it.forward_char():
-                return None
+                if wrap:
+                    return self.forward_search(self._textbuffer.get_start_iter(),
+                                               text, case_sensitive, False)
+                else:
+                    return None
     
     
-    def backward_search(self, it, text, case_sensitive):
+    def backward_search(self, it, text, case_sensitive, wrap=True):
         """Finds next occurrence of 'text' searching backwards"""
         
         it = it.copy()
@@ -1191,7 +1195,11 @@ class RichTextView (gtk.TextView):
             if text2 == text:
                 return it, end
             if not it.backward_char():
-                return None
+                if wrap:
+                    return self.backward_search(self._textbuffer.get_end_iter(),
+                                                text, case_sensitive, False)
+                else:
+                    return None
 
         
     
