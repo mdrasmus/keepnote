@@ -900,7 +900,7 @@ class EditorMenus (gobject.GObject):
             
             ("Replace In Page", gtk.STOCK_FIND_AND_REPLACE, 
              _("_Replace In Page..."), 
-             "<control><shift>R", None,
+             "<control>R", None,
              lambda w: self._editor.find_dialog.on_find(True)),
 
 
