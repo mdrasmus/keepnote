@@ -288,13 +288,16 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # if nodes still exist, and expanded, try to reselect them
         if len(self.__sel_nodes2) > 0:
             # TODO: only reselects one node
-            path2 = get_path_from_node(self.model, self.__sel_nodes2[0],
-                                       self.rich_model.get_node_column())
-            if path2 is not None and \
-               (len(path2) <= 1 or self.row_expanded(path2[:-1])):
-                # reselect and scroll to node    
-                self.set_cursor(path2)
-                gobject.idle_add(lambda: self.scroll_to_cell(path2))
+            node = self.__sel_nodes2[0]
+
+            if node.is_valid():
+                path2 = get_path_from_node(self.model, node,
+                                           self.rich_model.get_node_column())
+                if path2 is not None and \
+                   (len(path2) <= 1 or self.row_expanded(path2[:-1])):
+                    # reselect and scroll to node    
+                    self.set_cursor(path2)
+                    gobject.idle_add(lambda: self.scroll_to_cell(path2))
 
         # resume emitting selection changes
         self.__suppress_sel = False
@@ -460,7 +463,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                 self.emit("error", e.msg, e)
         else:
             # warn
-            self.emit("error", _("The top-level folder cannot be deleted"), None)
+            self.emit("error", _("The top-level folder cannot be deleted."), None)
         
 
 

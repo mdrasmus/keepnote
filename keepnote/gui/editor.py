@@ -144,9 +144,15 @@ class KeepNoteEditor (gtk.VBox):
         else:
             # no new notebook, clear the view
             self.clear_view()
+    
 
     def _on_notebook_changed(self, node, recurse):
         """Reconfigure based on notebook preference changes"""
+
+        # clear view if current page has been deleted
+        if self._page and not self._page.is_valid():
+            self.clear_view()
+
         self._textview.set_default_font(self._notebook.pref.default_font)
     
 
@@ -1020,9 +1026,9 @@ class EditorMenus (gobject.GObject):
             <menuitem action="Right Align"/>
             <menuitem action="Justify Align"/>
             <menuitem action="Bullet List"/>
-            <separator/>
             <menuitem action="Indent More"/>
             <menuitem action="Indent Less"/>
+            <separator/>
             <menuitem action="Increase Font Size"/>
             <menuitem action="Decrease Font Size"/>
             <menuitem action="Apply Text Color"/>

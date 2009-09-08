@@ -23,7 +23,7 @@ new:
 
 # update language file with new strings
 update:
-	msgmerge -U gettext/$(LANG).po gettext/messages.pot
+	msgmerge -N -U gettext/$(LANG).po gettext/messages.pot
 
 # make translations for application
 make:

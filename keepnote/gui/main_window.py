@@ -1210,7 +1210,7 @@ class KeepNoteWindow (gtk.Window):
             elif kind == "file":
                 # get payload file
                 if not node.has_attr("payload_filename"):
-                    self.error(_("Only documents can be viewed with %s.") %
+                    self.error(_("Only files can be viewed with %s.") %
                                self.app.pref.get_external_app(app).title)
                     return
                 filename = os.path.realpath(
@@ -1408,9 +1408,9 @@ class KeepNoteWindow (gtk.Window):
              "", _("Close the current notebook"),
              lambda w: self.close_notebook()),
             
-            ("Export", None, _("_Export")),
+            ("Export", None, _("_Export Notebook")),
 
-            ("Import", None, _("_Import")),
+            ("Import", None, _("_Import Notebook")),
 
             ("Quit", gtk.STOCK_QUIT, _("_Quit"),
              "<control>Q", _("Quit KeepNote"),
@@ -1935,7 +1935,7 @@ class KeepNoteWindow (gtk.Window):
         menu.append(item)
         item.show()
 
-        # treeview/Open document
+        # treeview/Open File
         item = gtk.ImageMenuItem(gtk.STOCK_OPEN)
         item.child.set_label(_("Open _File"))
         item.connect("activate",

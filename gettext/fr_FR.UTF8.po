@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: keepnote 0.5.3\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2009-09-07 12:25-0400\n"
+"POT-Creation-Date: 2009-09-07 12:49-0400\n"
 "PO-Revision-Date: 2009-06-17 02:22+0200\n"
 "Last-Translator: tb <thibaut.bethune@gmail.com>\n"
 "Language-Team: French\n"
@@ -183,7 +183,7 @@ msgstr "Seules les pages peuvent être ouvertes avec %s."
 
 #: keepnote/gui/main_window.py:1213
 #, python-format
-msgid "Only documents can be viewed with %s."
+msgid "Only files can be viewed with %s."
 msgstr "Seuls les fichiers joints peuvent être ouverts avec %s."
 
 #: keepnote/gui/main_window.py:1242
@@ -263,11 +263,11 @@ msgid "Close the current notebook"
 msgstr "Fermer le carnet courant"
 
 #: keepnote/gui/main_window.py:1411
-msgid "_Export"
+msgid "_Export Notebook"
 msgstr "_Exporter"
 
 #: keepnote/gui/main_window.py:1413
-msgid "_Import"
+msgid "_Import Notebook"
 msgstr "_Importer"
 
 #: keepnote/gui/main_window.py:1415
@@ -736,7 +736,7 @@ msgstr "Sauvegarde annulée"
 msgid "The Trash folder cannot be deleted."
 msgstr "La corbeille ne peut être supprimée."
 
-#: keepnote/gui/basetreeview.py:427
+#: keepnote/gui/basetreeview.py:427 keepnote/gui/basetreeview.py:463
 msgid "The top-level folder cannot be deleted."
 msgstr "Le premier dossier ne peut être supprimé."
 
@@ -747,10 +747,6 @@ msgstr "Voulez-vous supprimer cette note et toutes celles affiliées ?"
 #: keepnote/gui/basetreeview.py:432
 msgid "Do you want to delete this note?"
 msgstr "Voulez-vous supprimer cette note ?"
-
-#: keepnote/gui/basetreeview.py:463
-msgid "The top-level folder cannot be deleted"
-msgstr "Le premier dossier ne peut être supprimé."
 
 #: keepnote/gui/dialog_node_icon.py:326
 msgid "Choose Icon"
@@ -1332,10 +1328,8 @@ msgstr ""
 "requis)"
 
 #: keepnote/rc/keepnote.glade.h:112
-#, fuzzy
 msgid "use minimal toolbar (requires restart)"
 msgstr ""
-""
 
 #: keepnote/rc/keepnote.glade.h:113
 msgid "use ruler hints in listview"
@@ -1344,6 +1338,18 @@ msgstr "teinter les lignes en alternance dans la liste des notes"
 #: keepnote/rc/keepnote.glade.h:114
 msgid "width:"
 msgstr "largeur"
+
+#~ msgid "The top-level folder cannot be deleted"
+#~ msgstr "Le premier dossier ne peut être supprimé."
+
+#~ msgid "Only documents can be viewed with %s."
+#~ msgstr "Seuls les fichiers joints peuvent être ouverts avec %s."
+
+#~ msgid "_Export"
+#~ msgstr "_Exporter"
+
+#~ msgid "_Import"
+#~ msgstr "_Importer"
 
 #~ msgid "Open _Document"
 #~ msgstr "Ouvrir le _document"

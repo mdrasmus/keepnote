@@ -15,7 +15,17 @@ for L in $LANGS; do
 
     FUZZY=$(egrep "^#.*fuzzy" gettext/$L.po | wc -l)
     if [ $FUZZY -gt 0 ]; then
-	echo "warning: $FUZZY strings need checking (fuzzy match)"
+	echo "warning: $FUZZY strings have a fuzzy match"
+    fi
+
+    EMPTY=$(egrep 'msgstr ""' gettext/$L.po | wc -l)
+    if [ $EMPTY -gt 0 ]; then
+	echo "warning: $EMPTY strings are empty"
+    fi
+
+    DEL=$(egrep '^#~' gettext/$L.po | wc -l)
+    if [ $DEL -gt 0 ]; then
+	echo "warning: $DEL deleted strings"
     fi
 
     echo -e "\n"
