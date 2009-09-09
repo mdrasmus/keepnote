@@ -39,12 +39,9 @@ def update_notebook(filename, desired_version, warn=lambda w: False,
 
     # try to open notebook (may raise exceptions)
     try:
-        notebook = notebooklib.NoteBook()
-        notebook.load(filename)
-
-        if notebook.pref.version >= desired_version:
-            notebook.close()
-            return
+        version = notebooklib.get_notebook_version(filename)
+        if version > desired_version:
+            return        
     except:
         # try old notebook version load()
         # NOTE: preference is completely backwards compat so far
@@ -57,21 +54,17 @@ def update_notebook(filename, desired_version, warn=lambda w: False,
     assert desired_version == 3
 
     # upgrade 1 --> 2
-    if notebook.pref.version == 1:
-        notebook.close()
+    if version == 1:
         notebook_update_v1_2.update_notebook(filename, 2, warn=warn,
                                              verify=verify)
-        notebook = notebooklib.NoteBook()
-        notebook.load(filename)
-
+        version = 2
         
 
     # upgrade 2 --> 3
-    if notebook.pref.version == 2:
+    if version == 2:
         from keepnote.compat import notebook_v2 as old_notebooklib
 
         # try to load old notebook (may raise exceptions)
-        notebook.close()
         notebook = old_notebooklib.NoteBook()
         notebook.load(filename)
 
@@ -92,6 +85,9 @@ def update_notebook(filename, desired_version, warn=lambda w: False,
             for child in node.get_children():
                 walk(child)
         walk(notebook)
+
+        version = notebook.pref.version
+
 
 
     # verify notebook updated successfully

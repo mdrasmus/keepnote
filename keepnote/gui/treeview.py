@@ -139,6 +139,7 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
 
 
 
+
     #==============================================
     # actions
     
@@ -167,13 +168,9 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
     def edit_node(self, node):
         path = treemodel.get_path_from_node(self.model, node,
                                             self.rich_model.get_node_column())
-        self.set_cursor_on_cell(path, self.column, self.cell_text, 
-                                         True)
-        gobject.idle_add(lambda: self.scroll_to_cell(path))
+        gobject.idle_add(lambda: self.set_cursor_on_cell(path, self.column, self.cell_text, True))
+        #gobject.idle_add(lambda: self.scroll_to_cell(path))
 
 
-gobject.type_register(KeepNoteTreeView)
-gobject.signal_new("goto-node", KeepNoteTreeView, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object,))
-
-
+    def cancel_editing(self):
+        self.cell_text.stop_editing(True)

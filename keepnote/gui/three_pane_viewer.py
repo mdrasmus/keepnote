@@ -565,6 +565,7 @@ class ThreePaneViewer (Viewer):
             return
 
         nodes, widget = self.get_selected_nodes(widget)
+        #print "nodes", nodes
         
         if len(nodes) == 1:
             parent = nodes[0]
@@ -590,6 +591,7 @@ class ThreePaneViewer (Viewer):
         self._new_page_occurred = True
 
         if widget == "treeview":
+            #self.treeview.cancel_editing()
             self.treeview.expand_node(parent)
             self.treeview.edit_node(node)
         elif widget == "listview":
