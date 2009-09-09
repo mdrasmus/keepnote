@@ -1289,6 +1289,9 @@ class KeepNoteWindow (gtk.Window):
         about.set_logo(get_resource_pixbuf("keepnote-icon.png"))
         about.set_website(keepnote.WEBSITE)
         about.set_license("GPL version 2")
+        about.set_translator_credits(
+            "French: tb <thibaut.bethune@gmail.com>\n"
+            "Turkish: Yuce Tekol <yucetekol@gmail.com>\n")
 
         license_file = keepnote.get_basedir() + "/../COPYING"
         if os.path.exists(license_file):

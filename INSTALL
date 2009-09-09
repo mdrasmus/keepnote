@@ -10,56 +10,57 @@ Windows Install
 
 Linux Install
 
-  Debian 
+  Debian (or compatible distribution like Ubuntu)
     If you run the Debian distribution, I have created a *.deb package for
-    keepnote available from the KeepNote website.  This package will 
-    automatically install any dependencies.  Once you download a package
-    keepnote_X.Y.Z-1_all.deb you can install it with the command
+    keepnote available from the KeepNote website.  Before installing 
+    keepnote ensure you have installed any required libraries with this
+    command:
 
-    $ dpkg -i keepnote_X.Y.Z-1_all.deb
-    
+      $ apt-get install python python-gtk2 python-glade2 libgtk2.0-dev
+
     You most likely need root permissions for this command.
+    There are also optional libraries (for enabling spell checking, etc)
 
-  
+      $ apt-get install python-gnome2-extras
+
+    Once you download the package keepnote_X.Y.Z-1_all.deb you can install it 
+    with the command
+
+      $ dpkg -i keepnote_X.Y.Z-1_all.deb
+      
   Other Linux distributions:
 
-  Required libraries  
-    For example, if you use Debian or something compatible...
+    You need to install these libraries (these are the names they have in 
+    Debian but they should have similar names in other distributions).
 
-    $ apt-get install python python-gtk2 python-glade2 libgtk2.0-dev
+      required: python python-gtk2 python-glade2 libgtk2.0-dev
+      optional: python-gnome2-extras
 
-    You most likely need root permissions for this command.
+    Once third-party libraries are installed, you can download and
+    extract the .tar.gz file using the command (if you haven't already
+    done so):
 
-  Optional libraries
+      $ tar zxvf keepnote-X.Y.Z.tar.gz
 
-    To use spell checking you will need:
+    Where X.Y.Z is the version of KeepNote you have downloaded.  One of
+    the easiest ways to run keepnote, is directly from its source
+    directory using the command
 
-    $ apt-get install python-gnome2-extras
+      $ YOUR_DOWNLOAD_PATH/keepnote-X.Y.Z/bin/keepnote
 
-  Once third-party libraries are installed, you can extract the .tar.gz file
-  using the command (if you haven't already done so):
+    or you can install with python distutils
 
-    $ tar zxvf keepnote-X.Y.Z.tar.gz
+      $ python setup.py install
 
-  Where X.Y.Z is the version of KeepNote you have downloaded.  One of
-  the easiest ways to run keepnote, is directly from its source
-  directory using the command
+    To install KeepNote as user you can do 
 
-    $ YOUR_DOWNLOAD_PATH/keepnote-X.Y.Z/bin/keepnote
+      $ python setup.py install --prefix=YOUR_INSTALL_LOCATION
 
-  or you can install with python distutils
+    Lastly, KeepNote can be installed using Python's easy_install system
 
-    $ python setup.py install
+      $ easy_install keepnote
 
-  To install KeepNote as user you can do 
-
-    $ python setup.py install --prefix=YOUR_INSTALL_LOCATION
-
-  Lastly, KeepNote can be installed using Python's easy_install system
-
-    $ easy_install keepnote
-
-  This will download and install KeepNote to your default path.
+    This will download and install KeepNote to your default path.
 
 
 MacOS X Install

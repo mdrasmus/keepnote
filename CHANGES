@@ -3,13 +3,14 @@ KeepNote Change Log
 
 keepnote-0.6
 ------------
+- added HTML export
 - added note-to-note links
   - autocomplete for making links
   - entry completion for note titles in search box
 - added note browsing history (back and forward buttons)
 - remember note selections between closing and opening a notebook
 - added recently used notebooks listed in file open menu
-
+- many bug fixes
 
 
 keepnote-0.5.3 (2009/7/8)
