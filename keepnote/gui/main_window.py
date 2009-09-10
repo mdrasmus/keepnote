@@ -1294,7 +1294,7 @@ class KeepNoteWindow (gtk.Window):
             "French: tb <thibaut.bethune@gmail.com>\n"
             "Turkish: Yuce Tekol <yucetekol@gmail.com>\n")
 
-        license_file = keepnote.get_basedir() + "/../COPYING"
+        license_file = keepnote.get_resource(u"rc", u"COPYING")
         if os.path.exists(license_file):
             about.set_license(open(license_file).read())
 

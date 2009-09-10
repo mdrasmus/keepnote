@@ -258,7 +258,8 @@ def use_xdg(home=None):
 
 def get_locale_dir():
     """Returns KeepNote's locale directory"""
-    return os.path.join(BASEDIR, u"..", u"locale")
+    #return os.path.join(BASEDIR, u"..", u"locale")
+    return get_resource(u"rc", u"locale")
 
 
 #def get_nonxdg_user_pref_dir(home=None):

@@ -3,9 +3,9 @@
 #
 
 
-PYTHON_FILES=$(shell find keepnote -name '*.py')
-INTLTOOL_EXTRACT=$(shell which intltool || echo /usr/share/intltool-debian/intltool-extract)
-
+PYTHON_FILES:=$(shell find keepnote -name '*.py')
+INTLTOOL_EXTRACT:=$(shell which intltool || echo /usr/share/intltool-debian/intltool-extract)
+LOCALE_DIR=keepnote/rc/locale
 
 #=============================================================================
 # rules
@@ -27,6 +27,6 @@ update:
 
 # make translations for application
 make:
-	mkdir -p locale/$(LANG)/LC_MESSAGES/
-	msgfmt gettext/$(LANG).po -o locale/$(LANG)/LC_MESSAGES/keepnote.mo
+	mkdir -p $(LOCAL_DIR)/$(LANG)/LC_MESSAGES/
+	msgfmt gettext/$(LANG).po -o $(LOCAL_DIR)/$(LANG)/LC_MESSAGES/keepnote.mo
 
