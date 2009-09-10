@@ -367,21 +367,22 @@ class KeepNoteWindow (gtk.Window):
 
     def on_tray_icon_activate(self, icon):
         """Try icon has been clicked in system tray"""
-
-        if self._iconified:
-            self.restore_window()
-        else:
+        
+        if self.is_active():
             self.minimize_window()
+        else:
+            self.restore_window()
 
 
     def on_window_request(self, widget, action):
+        """Callback for requesting an action from the main window"""
         
         if action == "minimize":
             self.minimize_window()
         elif action == "restore":
             self.restore_window()
         else:
-            raise Exception("unknown window request:" + str(action))
+            raise Exception("unknown window request: " + str(action))
     
     
     #==============================================

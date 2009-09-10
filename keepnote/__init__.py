@@ -130,7 +130,7 @@ def get_platform():
     """Returns a string for the current platform"""
     global PLATFORM
     
-    if PLATFORM is None:    
+    if PLATFORM is None:
         p = sys.platform    
         if p == 'darwin':
             PLATFORM = 'darwin'
@@ -185,6 +185,7 @@ def set_locale():
     locale.setlocale(locale.LC_ALL, '')
     gettext.bindtextdomain(GETTEXT_DOMAIN, get_locale_dir())
     gettext.textdomain(GETTEXT_DOMAIN)
+    print get_locale_dir()
 
 
 def translate(message):
@@ -257,7 +258,7 @@ def use_xdg(home=None):
 
 def get_locale_dir():
     """Returns KeepNote's locale directory"""
-    return os.path.join(BASEDIR, u"locale")
+    return os.path.join(BASEDIR, u"..", u"locale")
 
 
 #def get_nonxdg_user_pref_dir(home=None):
