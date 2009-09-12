@@ -90,6 +90,18 @@ def get_text_scale():
 
     return _text_scale
 
+def set_text_scale(scale):
+    global _text_scale
+    _text_scale = scale
+
+
+def get_attr_size(attr):
+    #return int(attr.font_scale * 10.0)
+    #print font.get_style()
+    PIXELS_PER_PANGO_UNIT = 1024
+    return attr.font.get_size() // int(get_text_scale() * PIXELS_PER_PANGO_UNIT)
+
+
 
 class RichTextTagTable (RichTextBaseTagTable):
     """A tag table for a RichTextBuffer"""
@@ -223,12 +235,6 @@ class RichTextFamilyTag (RichTextTag):
         return tag_name.startswith("family ")
 
 
-def get_attr_size(attr):
-    #return int(attr.font_scale * 10.0)
-    #print font.get_style()
-    PIXELS_PER_PANGO_UNIT = 1024
-    return attr.font.get_size() // int(get_text_scale() * PIXELS_PER_PANGO_UNIT)
-
 
 class RichTextSizeTag (RichTextTag):
     """A tag that represents a font size"""
@@ -240,7 +246,7 @@ class RichTextSizeTag (RichTextTag):
 
     def get_size(self):
         #return int(self.get_property("scale") * 10.0) 
-        return int(self.get_property("size-points"))
+        return int(self.get_property("size-points") / get_text_scale())
 
     @classmethod
     def tag_name(cls, size):
