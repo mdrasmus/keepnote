@@ -327,10 +327,12 @@ class KeepNoteEditor (gtk.VBox):
         if tag is not None and popup:
             # perform node search
             text = start.get_text(end)
-            results = [(get_node_url(nodeid), title, 
-                        get_node_icon(self._notebook.get_node_by_id(nodeid)))
-                       for nodeid, title in 
-                       self._notebook.search_node_titles(text)[:self._maxlinks]]
+            results = []
+            for nodeid, title in self._notebook.search_node_titles(text)[:self._maxlinks]:
+                node = self._notebook.get_node_by_id(nodeid)
+                if node is not None:
+                    results.append((get_node_url(nodeid), title, 
+                                    get_node_icon(node)))
 
             # offer url match
             if is_url(text):
