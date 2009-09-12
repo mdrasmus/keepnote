@@ -1149,11 +1149,10 @@ class RichTextView (gtk.TextView):
 
     # TODO: add wrapping to search
     
-    def forward_search(self, it, text, case_sensitive):
+    def forward_search(self, it, text, case_sensitive, wrap=True):
         """Finds next occurrence of 'text' searching forwards"""
         
         it = it.copy()
-        text = unicode(text, "utf8")
         if not case_sensitive:
             text = text.lower()
         
@@ -1170,15 +1169,18 @@ class RichTextView (gtk.TextView):
             if text2 == text:
                 return it, end
             if not it.forward_char():
-                return None
+                if wrap:
+                    return self.forward_search(self._textbuffer.get_start_iter(),
+                                               text, case_sensitive, False)
+                else:
+                    return None
     
     
-    def backward_search(self, it, text, case_sensitive):
+    def backward_search(self, it, text, case_sensitive, wrap=True):
         """Finds next occurrence of 'text' searching backwards"""
         
         it = it.copy()
         it.backward_char()
-        text = unicode(text, "utf8")
         if not case_sensitive:
             text = text.lower()
         
@@ -1195,7 +1197,11 @@ class RichTextView (gtk.TextView):
             if text2 == text:
                 return it, end
             if not it.backward_char():
-                return None
+                if wrap:
+                    return self.backward_search(self._textbuffer.get_end_iter(),
+                                                text, case_sensitive, False)
+                else:
+                    return None
 
         
     
@@ -1224,7 +1230,7 @@ class RichTextView (gtk.TextView):
         
         
     def replace(self, text, replace_text, 
-                case_sensitive=False, forward=True, next=True):
+                case_sensitive=False, forward=True, next=False):
         """Replaces next occurrence of 'text' with 'replace_text'"""
 
         if not self._textbuffer:

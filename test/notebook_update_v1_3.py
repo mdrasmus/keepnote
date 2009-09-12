@@ -1,6 +1,7 @@
 import os, shutil, unittest, traceback, sys
 
 
+import keepnote.compat.notebook_v1 as oldnotebooklib
 from keepnote import notebook as notebooklib
 from keepnote.notebook import update
 
@@ -33,6 +34,11 @@ class TestCaseNoteBookUpdate (unittest.TestCase):
         shutil.copytree(old_notebook_filename,
                         new_notebook_filename)
 
+        # test copy
+        notebook = oldnotebooklib.NoteBook()
+        notebook.load(new_notebook_filename)
+        print notebook._attr
+
         # update (in place) the copy
         update.update_notebook(new_notebook_filename, new_version,
                                verify=False)
@@ -56,6 +62,8 @@ class TestCaseNoteBookUpdate (unittest.TestCase):
         notebook = notebooklib.NoteBook()
         notebook.load(new_notebook_filename)
         walk(notebook)
+
+        self.assert_(notebook._attr["title"] != "None")
 
 
     def test_gui(self):

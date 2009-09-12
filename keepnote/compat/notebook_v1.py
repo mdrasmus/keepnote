@@ -804,7 +804,7 @@ class NoteBookNode (object):
         """Read meta data from file-system"""
         self._attr["created_time"] = None
         self._attr["modified_time"] = None    
-    
+
         try:
             self._meta_parser.read(self, self.get_meta_file())
         except IOError, e:
@@ -812,6 +812,9 @@ class NoteBookNode (object):
         except xmlo.XmlError, e:
             raise NoteBookError("Node meta data is corrupt for note '%s'" %
                                 self.get_path(),  e)
+
+        #if self.get_parent() == None:
+        #    print "HERE", self._attr
 
         # set defaults
         if self._attr["created_time"] is None:

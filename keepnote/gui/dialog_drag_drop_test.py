@@ -39,6 +39,17 @@ import keepnote
 from keepnote import get_resource
 
 
+def parse_utf(text):
+
+    # TODO: lookup the standard way to do this
+    
+    if text[:2] in ('\xff\xfe', '\xfe\xff') or (
+        len(text) > 1 and text[1] == '\x00') or (
+        len(text) > 3 and text[3] == '\x00'):
+        return text.decode("utf16")
+    else:
+        return unicode(text, "utf8")
+
 
 
 class DragDropTestDialog (object):
@@ -89,7 +100,7 @@ class DragDropTestDialog (object):
         buf.insert_at_cursor("type(sel.data) = " + 
             str(type(selection_data.data)) + "\n")
         buf.insert_at_cursor("sel.data = " +
-            str(selection_data.data)[:1000] + "\n")
+            repr(selection_data.data)[:1000] + "\n")
         drag_context.finish(False, False, eventtime)            
 
         
@@ -111,5 +122,5 @@ class DragDropTestDialog (object):
         data = selection_data.data
         buf.insert_at_cursor("sel.targets = " + repr(selection_data.get_targets()) + "\n")
         buf.insert_at_cursor("type(sel.data) = " + str(type(data))+"\n")        
-        print "sel.data = " + str(data)[:1000]+"\n"
-        buf.insert_at_cursor("sel.data = " + str(data)[:1000]+"\n")
+        print "sel.data = " + repr(data)[:1000]+"\n"
+        buf.insert_at_cursor("sel.data = " + repr(data)[:1000]+"\n")

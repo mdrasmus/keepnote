@@ -130,7 +130,7 @@ def get_platform():
     """Returns a string for the current platform"""
     global PLATFORM
     
-    if PLATFORM is None:    
+    if PLATFORM is None:
         p = sys.platform    
         if p == 'darwin':
             PLATFORM = 'darwin'
@@ -185,6 +185,7 @@ def set_locale():
     locale.setlocale(locale.LC_ALL, '')
     gettext.bindtextdomain(GETTEXT_DOMAIN, get_locale_dir())
     gettext.textdomain(GETTEXT_DOMAIN)
+    print get_locale_dir()
 
 
 def translate(message):
@@ -257,7 +258,8 @@ def use_xdg(home=None):
 
 def get_locale_dir():
     """Returns KeepNote's locale directory"""
-    return os.path.join(BASEDIR, u"locale")
+    #return os.path.join(BASEDIR, u"..", u"locale")
+    return get_resource(u"rc", u"locale")
 
 
 #def get_nonxdg_user_pref_dir(home=None):
@@ -392,6 +394,14 @@ def init_error_log(pref_dir=None, home=None):
         if not os.path.exists(error_dir):
             os.makedirs(error_dir)
         open(error_log, "a").close()
+
+
+def log_error(error, tracebk=None, out=sys.stderr):
+    """Write an exception error to the error log"""
+    
+    out.write("\n")
+    traceback.print_exception(type(error), error, tracebk, file=out)
+
 
 #=============================================================================
 # extension functions
@@ -546,7 +556,7 @@ class KeepNotePreferences (object):
         self.treeview_lines = True
         self.listview_rules = True
         self.use_stock_icons = False
-        
+        self.use_minitoolbar = False
 
         # autosave
         self.autosave = True
@@ -698,6 +708,9 @@ g_keepnote_pref_parser = xmlo.XmlObject(
                  attr=("listview_rules", xmlo.str2bool, xmlo.bool2str)),
         xmlo.Tag("use_stock_icons",
                  attr=("use_stock_icons", xmlo.str2bool, xmlo.bool2str)),
+        xmlo.Tag("use_minitoolbar",
+                 attr=("use_minitoolbar", xmlo.str2bool, xmlo.bool2str)),
+
 
         # image resize
         xmlo.Tag("image_size_snap",

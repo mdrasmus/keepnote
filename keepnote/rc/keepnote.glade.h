@@ -109,5 +109,6 @@ char *s = N_("set icon");
 char *s = N_("set open-icon");
 char *s = N_("show lines in treeview");
 char *s = N_("use GTK stock icons in toolbar (requires restart)");
+char *s = N_("use minimal toolbar (requires restart)");
 char *s = N_("use ruler hints in listview");
 char *s = N_("width:");

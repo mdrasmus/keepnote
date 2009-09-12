@@ -427,9 +427,3 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         self.display_page_count()
 
 
-# register new gtk signals
-gobject.type_register(KeepNoteListView)
-gobject.signal_new("goto-node", KeepNoteListView, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object,))
-gobject.signal_new("goto-parent-node", KeepNoteListView,
-    gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())

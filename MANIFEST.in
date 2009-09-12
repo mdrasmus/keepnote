@@ -10,6 +10,7 @@ include keepnote/images/*.ico
 include keepnote/images/node_icons/*
 include keepnote/rc/keepnote.glade
 include keepnote/rc/*.png
+recursive-include keepnote/rc/locale *
 recursive-include keepnote/extensions *
 include desktop/*
 recursive-include locale *

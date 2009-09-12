@@ -37,6 +37,7 @@ import gobject
 
 # keepnote imports
 import keepnote
+from keepnote import unicode_gtk
 from keepnote.gui import dialog_wait
 from keepnote import tasklib
 from keepnote.notebook import update
@@ -131,7 +132,9 @@ class UpdateNoteBookDialog (object):
             action=gtk.FILE_CHOOSER_ACTION_SAVE, #CREATE_FOLDER,
             buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
                      _("Backup"), gtk.RESPONSE_OK))
-        dialog.set_current_folder(self.app.pref.new_notebook_path)
+
+        if os.path.exists(self.app.pref.new_notebook_path):
+            dialog.set_current_folder(self.app.pref.new_notebook_path)
         
         response = dialog.run()
         
@@ -139,7 +142,9 @@ class UpdateNoteBookDialog (object):
         dialog.destroy()
 
         
-        if response == gtk.RESPONSE_OK:
+        if response == gtk.RESPONSE_OK and new_filename:
+            new_filename = unicode_gtk(new_filename)
+            
             def func(task):
                 try:
                     shutil.copytree(notebook_filename, new_filename)

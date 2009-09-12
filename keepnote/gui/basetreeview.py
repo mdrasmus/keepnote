@@ -257,6 +257,10 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # suppress selection changes while nodes are changing
         self.__suppress_sel = True
 
+        # cancel any existing editing
+        #self.cancel_editing()
+
+
 
     def _on_node_changed_end(self, model, nodes):
 
@@ -288,13 +292,16 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # if nodes still exist, and expanded, try to reselect them
         if len(self.__sel_nodes2) > 0:
             # TODO: only reselects one node
-            path2 = get_path_from_node(self.model, self.__sel_nodes2[0],
-                                       self.rich_model.get_node_column())
-            if path2 is not None and \
-               (len(path2) <= 1 or self.row_expanded(path2[:-1])):
-                # reselect and scroll to node    
-                self.set_cursor(path2)
-                gobject.idle_add(lambda: self.scroll_to_cell(path2))
+            node = self.__sel_nodes2[0]
+
+            if node.is_valid():
+                path2 = get_path_from_node(self.model, node,
+                                           self.rich_model.get_node_column())
+                if path2 is not None and \
+                   (len(path2) <= 1 or self.row_expanded(path2[:-1])):
+                    # reselect and scroll to node    
+                    self.set_cursor(path2)
+                    gobject.idle_add(lambda: self.scroll_to_cell(path2))
 
         # resume emitting selection changes
         self.__suppress_sel = False
@@ -358,6 +365,9 @@ class KeepNoteBaseTreeView (gtk.TreeView):
     def on_row_has_child_toggled(self, model, path, it):
         pass
 
+    def cancel_editing(self):
+        pass
+
     #===========================================
     # actions
 
@@ -402,6 +412,11 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         """Returns a list of currently selected nodes"""
         model, it = self.get_selection().get_selected()        
         if it is None:
+            #print "edit", self.editing
+            if self.editing:
+                node = self._get_node_from_path(self.editing)
+                if node:
+                    return [node]
             return []
         return [self.model.get_value(it, self._node_col)]
 
@@ -460,32 +475,31 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                 self.emit("error", e.msg, e)
         else:
             # warn
-            self.emit("error", _("The top-level folder cannot be deleted"), None)
+            self.emit("error", _("The top-level folder cannot be deleted."), None)
         
 
 
     #============================================
     # editing titles
-    
 
 
     def on_editing_started(self, cellrenderer, editable, path):
         """Callback for start of title editing"""
         # remember editing state
-        self.editing = True
+        self.editing = path
         gobject.idle_add(lambda: self.scroll_to_cell(path))
     
     def on_editing_canceled(self, cellrenderer):
         """Callback for canceled of title editing"""
         # remember editing state
-        self.editing = False
+        self.editing = None
 
 
     def on_edit_title(self, cellrenderertext, path, new_text):
         """Callback for completion of title editing"""
 
         # remember editing state
-        self.editing = False
+        self.editing = None
 
         new_text = unicode_gtk(new_text)
 
@@ -900,6 +914,10 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
 
 gobject.type_register(KeepNoteBaseTreeView)
+gobject.signal_new("goto-node", KeepNoteBaseTreeView, gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, (object,))
+gobject.signal_new("goto-parent-node", KeepNoteBaseTreeView,
+                   gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())
 gobject.signal_new("copy-clipboard", KeepNoteBaseTreeView,
                    gobject.SIGNAL_RUN_LAST, 
                    gobject.TYPE_NONE, ())

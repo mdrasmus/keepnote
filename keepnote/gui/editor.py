@@ -144,9 +144,15 @@ class KeepNoteEditor (gtk.VBox):
         else:
             # no new notebook, clear the view
             self.clear_view()
+    
 
     def _on_notebook_changed(self, node, recurse):
         """Reconfigure based on notebook preference changes"""
+
+        # clear view if current page has been deleted
+        if self._page and not self._page.is_valid():
+            self.clear_view()
+
         self._textview.set_default_font(self._notebook.pref.default_font)
     
 
@@ -473,9 +479,14 @@ class KeepNoteEditor (gtk.VBox):
         dialog.destroy()
 
         if response == gtk.RESPONSE_OK:
-            self._app.pref.insert_image_path = unicode_gtk(dialog.get_current_folder())
+            folder = dialog.get_current_folder()
+            if folder:
+                self._app.pref.insert_image_path = unicode_gtk(folder)
             
-            filename = unicode_gtk(dialog.get_filename())
+            filename = dialog.get_filename()
+            if filename is None:
+                return 
+            filename = unicode_gtk(filename)
                         
             # TODO: do I need this?
             imgname, ext = os.path.splitext(os.path.basename(filename))
@@ -701,7 +712,8 @@ class EditorMenus (gobject.GObject):
     def _make_toggle_button(self, toolbar, tips, tip_text, icon, 
                             stock_id=None, 
                             func=lambda: None,
-                            use_stock_icons=False):
+                            use_stock_icons=False,
+                            use_minitoolbar=False):
 
         button = gtk.ToggleToolButton()
         if use_stock_icons and stock_id:
@@ -711,14 +723,15 @@ class EditorMenus (gobject.GObject):
         signal = button.connect("toggled", lambda w: func())
         font_ui = FontUI(button, signal)
         self._font_ui_signals.append(font_ui)
-        
-        toolbar.insert(button, -1)
-        tips.set_tip(button, tip_text)
 
+        if not use_minitoolbar:        
+            toolbar.insert(button, -1)
+        tips.set_tip(button, tip_text)
+        
         return font_ui
 
 
-    def make_toolbar(self, toolbar, tips, use_stock_icons):
+    def make_toolbar(self, toolbar, tips, use_stock_icons, use_minitoolbar):
         
         # bold tool
         self.bold = self._make_toggle_button(
@@ -746,14 +759,14 @@ class EditorMenus (gobject.GObject):
             toolbar, tips,
             _("Strike"), "strike.png", gtk.STOCK_STRIKETHROUGH,
             lambda: self._editor.get_textview().toggle_font_mod("strike"),
-            use_stock_icons)
+            use_stock_icons, use_minitoolbar)
         
         # fixed-width tool
         self.fixed_width = self._make_toggle_button(
             toolbar, tips,
             _("Monospace"), "fixed-width.png", None,
             lambda: self._editor.get_textview().toggle_font_mod("tt"),
-            use_stock_icons)
+            use_stock_icons, use_minitoolbar)
 
         # link
         self.link = self._make_toggle_button(
@@ -767,7 +780,7 @@ class EditorMenus (gobject.GObject):
             toolbar, tips,
             _("No Wrapping"), "no-wrap.png", None,
             lambda: self._editor.get_textview().toggle_font_mod("nowrap"),
-            use_stock_icons)
+            use_stock_icons, use_minitoolbar)
 
         
 
@@ -830,28 +843,28 @@ class EditorMenus (gobject.GObject):
             toolbar, tips,
             "Left Align", "alignleft.png", gtk.STOCK_JUSTIFY_LEFT,
             lambda: self.on_justify("left"),
-            use_stock_icons)
+            use_stock_icons, use_minitoolbar)
 
         # center tool
         self.center_align = self._make_toggle_button(
             toolbar, tips,
             _("Center Align"), "aligncenter.png", gtk.STOCK_JUSTIFY_CENTER,
             lambda: self.on_justify("center"),
-            use_stock_icons)
+            use_stock_icons, use_minitoolbar)
 
         # right tool
         self.right_align = self._make_toggle_button(
             toolbar, tips,
             _("Right Align"), "alignright.png", gtk.STOCK_JUSTIFY_RIGHT,
             lambda: self.on_justify("right"),
-            use_stock_icons)
+            use_stock_icons, use_minitoolbar)
 
         # justify tool
         self.fill_align = self._make_toggle_button(
             toolbar, tips,
             _("Justify Align"), "alignjustify.png", gtk.STOCK_JUSTIFY_FILL,
             lambda: self.on_justify("fill"),
-            use_stock_icons)
+            use_stock_icons, use_minitoolbar)
         
         
         # bullet list tool
@@ -893,7 +906,7 @@ class EditorMenus (gobject.GObject):
             
             ("Replace In Page", gtk.STOCK_FIND_AND_REPLACE, 
              _("_Replace In Page..."), 
-             "<control><shift>R", None,
+             "<control>R", None,
              lambda w: self._editor.find_dialog.on_find(True)),
 
 
@@ -1013,9 +1026,9 @@ class EditorMenus (gobject.GObject):
             <menuitem action="Right Align"/>
             <menuitem action="Justify Align"/>
             <menuitem action="Bullet List"/>
-            <separator/>
             <menuitem action="Indent More"/>
             <menuitem action="Indent Less"/>
+            <separator/>
             <menuitem action="Increase Font Size"/>
             <menuitem action="Decrease Font Size"/>
             <menuitem action="Apply Text Color"/>

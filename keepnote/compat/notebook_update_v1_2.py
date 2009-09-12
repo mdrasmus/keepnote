@@ -32,16 +32,16 @@ from keepnote.compat import notebook_v2 as notebooklib
 from keepnote import safefile
 
 
+
+
 def update_notebook(filename, desired_version, warn=lambda w: False,
                     verify=True):
     """Updates a notebook to the desired version (downgrading not implemented)"""
 
     # try to open notebook (may raise exceptions)
     try:
-        notebook = notebooklib.NoteBook()
-        notebook.load(filename)
-
-        if notebook.pref.version >= desired_version:
+        version = notebooklib.get_notebook_version(filename)
+        if version > desired_version:
             return
     except:
         # can't read notebook
@@ -54,13 +54,13 @@ def update_notebook(filename, desired_version, warn=lambda w: False,
 
     assert desired_version == 2
 
-    if notebook.pref.version == 1:
+    if version == 1:
         from keepnote.compat import notebook_v1 as old_notebooklib
 
         # try to load old notebook (may raise exceptions)
         notebook = old_notebooklib.NoteBook()
         notebook.load(filename)
-
+        
         # write new notebook preference file
         notebook.pref.version = 2
         notebook.write_preferences()

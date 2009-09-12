@@ -138,6 +138,9 @@ class ApplicationOptionsDialog (object):
         self.use_stock_icons_check = \
             self.look_xml.get_widget("use_stock_icons_check")
         self.use_stock_icons_check.set_active(self.app.pref.use_stock_icons)
+        self.use_minitoolbar = \
+            self.look_xml.get_widget("use_minitoolbar")
+        self.use_minitoolbar.set_active(self.app.pref.use_minitoolbar)
 
 
         #======================================
@@ -318,9 +321,9 @@ class ApplicationOptionsDialog (object):
         
         response = dialog.run()
         
-        if response == gtk.RESPONSE_OK:
+        if response == gtk.RESPONSE_OK and dialog.get_filename():
             filename = dialog.get_filename()
-
+            
             if name == "default_notebook":
                 self.general_xml.get_widget("default_notebook_entry").\
                     set_text(filename)
@@ -383,7 +386,7 @@ class ApplicationOptionsDialog (object):
         self.app.pref.treeview_lines = self.treeview_lines_check.get_active()
         self.app.pref.listview_rules = self.listview_rules_check.get_active()
         self.app.pref.use_stock_icons = self.use_stock_icons_check.get_active()
-        
+        self.app.pref.use_minitoolbar = self.use_minitoolbar.get_active()
         
         # save date formatting
         for name in ["same_day", "same_month", "same_year", "diff_year"]:

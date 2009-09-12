@@ -34,6 +34,7 @@ import time
 #_ = gettext.gettext
 
 import keepnote
+from keepnote import unicode_gtk
 from keepnote.notebook import NoteBookError, get_valid_unique_filename
 from keepnote import notebook as notebooklib
 from keepnote import tasklib
@@ -113,7 +114,9 @@ class Extension (keepnote.Extension):
             ".tar.gz",
             ".")
         dialog.set_current_name(os.path.basename(filename))
-        dialog.set_current_folder(self.app.pref.archive_notebook_path)
+
+        if os.path.exists(self.app.pref.archive_notebook_path):
+            dialog.set_current_folder(self.app.pref.archive_notebook_path)
 
         file_filter = gtk.FileFilter()
         file_filter.add_pattern("*.tar.gz")
@@ -127,16 +130,18 @@ class Extension (keepnote.Extension):
 
         response = dialog.run()
 
-        self.app.pref.archive_notebook_path = dialog.get_current_folder()
-        self.app.pref.changed.notify()
+        if response == gtk.RESPONSE_OK and dialog.get_filename():
+            filename = unicode_gtk(dialog.get_filename())
 
+            if dialog.get_current_folder():
+                self.app.pref.archive_notebook_path = \
+                    unicode_gtk(dialog.get_current_folder())
+                self.app.pref.changed.notify()
 
-        if response == gtk.RESPONSE_OK:
-            filename = dialog.get_filename()
             dialog.destroy()
 
-            if "." not in filename:
-                filename += ".tar.gz"
+            if u"." not in filename:
+                filename += u".tar.gz"
 
             window.set_status("Archiving...")
             return self.archive_notebook(notebook, filename, window)
@@ -155,7 +160,9 @@ class Extension (keepnote.Extension):
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "Restore", gtk.RESPONSE_OK))
-        dialog.set_current_folder(self.app.pref.archive_notebook_path)        
+
+        if os.path.exists(self.app.pref.archive_notebook_path):
+            dialog.set_current_folder(self.app.pref.archive_notebook_path)
 
 
         file_filter = gtk.FileFilter()
@@ -169,12 +176,16 @@ class Extension (keepnote.Extension):
         dialog.add_filter(file_filter)
 
         response = dialog.run()
+        
 
-        self.app.pref.archive_notebook_path = dialog.get_current_folder()
-        self.app.pref.changed.notify()
+        if response == gtk.RESPONSE_OK and dialog.get_filename():
+            archive_filename = unicode_gtk(dialog.get_filename())
 
-        if response == gtk.RESPONSE_OK:
-            archive_filename = dialog.get_filename()
+            if dialog.get_current_folder():
+                self.app.pref.archive_notebook_path = \
+                    unicode_gtk(dialog.get_current_folder())
+                self.app.pref.changed.notify()
+
             dialog.destroy()
 
         elif response == gtk.RESPONSE_CANCEL:
@@ -187,7 +198,8 @@ class Extension (keepnote.Extension):
             action=gtk.FILE_CHOOSER_ACTION_SAVE,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "New", gtk.RESPONSE_OK))
-        dialog.set_current_folder(self.app.pref.new_notebook_path)
+        if os.path.exists(self.app.pref.new_notebook_path):
+            dialog.set_current_folder(self.app.pref.new_notebook_path)
 
         file_filter = gtk.FileFilter()
         file_filter.add_pattern("*.nbk")
@@ -206,12 +218,14 @@ class Extension (keepnote.Extension):
 
         response = dialog.run()
 
-        self.app.pref.new_notebook_path = \
-            os.path.dirname(dialog.get_current_folder())
-        self.app.pref.changed.notify()
+        if response == gtk.RESPONSE_OK and dialog.get_filename():
+            notebook_filename = unicode_gtk(dialog.get_filename())
 
-        if response == gtk.RESPONSE_OK:
-            notebook_filename = dialog.get_filename()
+            if dialog.get_current_folder():
+                self.app.pref.new_notebook_path = \
+                    os.path.dirname(unicode_gtk(dialog.get_current_folder()))
+                self.app.pref.changed.notify()
+
             dialog.destroy()
 
             window.set_status("Restoring...")

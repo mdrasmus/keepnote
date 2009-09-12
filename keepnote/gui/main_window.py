@@ -367,21 +367,22 @@ class KeepNoteWindow (gtk.Window):
 
     def on_tray_icon_activate(self, icon):
         """Try icon has been clicked in system tray"""
-
-        if self._iconified:
-            self.restore_window()
-        else:
+        
+        if self.is_active():
             self.minimize_window()
+        else:
+            self.restore_window()
 
 
     def on_window_request(self, widget, action):
+        """Callback for requesting an action from the main window"""
         
         if action == "minimize":
             self.minimize_window()
         elif action == "restore":
             self.restore_window()
         else:
-            raise Exception("unknown window request:" + str(action))
+            raise Exception("unknown window request: " + str(action))
     
     
     #==============================================
@@ -471,7 +472,8 @@ class KeepNoteWindow (gtk.Window):
         
         if response == gtk.RESPONSE_OK:
             # create new notebook
-            self.new_notebook(unicode_gtk(dialog.get_filename()))
+            if dialog.get_filename():
+                self.new_notebook(unicode_gtk(dialog.get_filename()))
 
         dialog.destroy()
     
@@ -509,10 +511,12 @@ class KeepNoteWindow (gtk.Window):
         
         if response == gtk.RESPONSE_OK:
             # make sure start in parent directory
-            self.app.pref.new_notebook_path = \
-                os.path.dirname(unicode_gtk(dialog.get_current_folder()))
+            if dialog.get_current_folder():
+                self.app.pref.new_notebook_path = \
+                    os.path.dirname(unicode_gtk(dialog.get_current_folder()))
 
-            notebook_file = unicode_gtk(dialog.get_filename())
+            if dialog.get_filename():
+                notebook_file = unicode_gtk(dialog.get_filename())
             self.open_notebook(notebook_file)
 
         dialog.destroy()
@@ -726,6 +730,11 @@ class KeepNoteWindow (gtk.Window):
 
         def update(task):
             # do search in another thread
+
+            # erase database first
+            # NOTE: I do this right now so that corrupt databases can be
+            # cleared out of the way.
+            self.notebook._index.clear()
 
             for node in self.notebook._index.index_all():
                 # terminate if search is canceled
@@ -992,9 +1001,9 @@ class KeepNoteWindow (gtk.Window):
         response = dialog.run()
 
         if response == gtk.RESPONSE_OK:
-            filename = dialog.get_filename()
-            filename = unicode_gtk(filename)#, FS_ENCODING)
-            self.attach_file(filename, widget=widget)
+            if dialog.get_filename():
+                self.attach_file(unicode_gtk(dialog.get_filename()), 
+                                 widget=widget)
 
         dialog.destroy()
 
@@ -1128,14 +1137,14 @@ class KeepNoteWindow (gtk.Window):
             app=self.app,
             persistent_path="save_image_path")
         dialog.set_default_response(gtk.RESPONSE_OK)
-        response = dialog.run()
-
-        filename = unicode_gtk(dialog.get_filename())
+        response = dialog.run()        
 
         if response == gtk.RESPONSE_OK:
-            if filename == "":
+
+            if not dialog.get_filename():
                 self.error(_("Must specify a filename for the image."))
             else:
+                filename = unicode_gtk(dialog.get_filename())
                 try:                
                     image.write(filename)
                 except Exception, e:
@@ -1207,7 +1216,7 @@ class KeepNoteWindow (gtk.Window):
             elif kind == "file":
                 # get payload file
                 if not node.has_attr("payload_filename"):
-                    self.error(_("Only documents can be viewed with %s.") %
+                    self.error(_("Only files can be viewed with %s.") %
                                self.app.pref.get_external_app(app).title)
                     return
                 filename = os.path.realpath(
@@ -1286,8 +1295,11 @@ class KeepNoteWindow (gtk.Window):
         about.set_logo(get_resource_pixbuf("keepnote-icon.png"))
         about.set_website(keepnote.WEBSITE)
         about.set_license("GPL version 2")
+        about.set_translator_credits(
+            "French: tb <thibaut.bethune@gmail.com>\n"
+            "Turkish: Yuce Tekol <yucetekol@gmail.com>\n")
 
-        license_file = keepnote.get_basedir() + "/../COPYING"
+        license_file = keepnote.get_resource(u"rc", u"COPYING")
         if os.path.exists(license_file):
             about.set_license(open(license_file).read())
 
@@ -1329,13 +1341,12 @@ class KeepNoteWindow (gtk.Window):
             buttons=gtk.BUTTONS_OK, 
             message_format=text)
         dialog.connect("response", lambda d,r: d.destroy())
-        dialog.set_title("Error")
+        dialog.set_title(_("Error"))
         dialog.show()
         
         # add message to error log
         if error is not None:
-            sys.stderr.write("\n")
-            traceback.print_exception(type(error), error, tracebk)
+            keepnote.log_error(error, tracebk)
 
 
     def wait_dialog(self, title, text, task):
@@ -1405,9 +1416,9 @@ class KeepNoteWindow (gtk.Window):
              "", _("Close the current notebook"),
              lambda w: self.close_notebook()),
             
-            ("Export", None, _("_Export")),
+            ("Export", None, _("_Export Notebook")),
 
-            ("Import", None, _("_Import")),
+            ("Import", None, _("_Import Notebook")),
 
             ("Quit", gtk.STOCK_QUIT, _("_Quit"),
              "<control>Q", _("Quit KeepNote"),
@@ -1724,7 +1735,9 @@ class KeepNoteWindow (gtk.Window):
 
         
         # insert editor toolbar
-        self.viewer.make_toolbar(toolbar, tips, self.app.pref.use_stock_icons)
+        self.viewer.make_toolbar(toolbar, tips, 
+                                 self.app.pref.use_stock_icons,
+                                 self.app.pref.use_minitoolbar)
 
         # separator
         spacer = gtk.SeparatorToolItem()
@@ -1930,7 +1943,7 @@ class KeepNoteWindow (gtk.Window):
         menu.append(item)
         item.show()
 
-        # treeview/Open document
+        # treeview/Open File
         item = gtk.ImageMenuItem(gtk.STOCK_OPEN)
         item.child.set_label(_("Open _File"))
         item.connect("activate",

@@ -212,7 +212,7 @@ class KeepNote (keepnote.KeepNote):
         version = notebooklib.get_notebook_version(filename)
             
         if version < notebooklib.NOTEBOOK_FORMAT_VERSION:
-            dialog = dialog_update_notebook.UpdateNoteBookDialog(self.app, window)
+            dialog = dialog_update_notebook.UpdateNoteBookDialog(self, window)
             if not dialog.show(filename, version=version):
                 raise NoteBookError(_("Cannot open notebook (version too old)"))
 
