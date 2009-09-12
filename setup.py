@@ -38,7 +38,7 @@ KEEPNOTE_VERSION = keepnote.PROGRAM_VERSION_TEXT
 
 #=============================================================================
 # python and distutils imports
-import os, sys, shutil
+import os, sys, shutil, itertools
 #from ez_setup import use_setuptools
 #use_setuptools()
 #from setuptools import setup, find_packages
@@ -54,36 +54,64 @@ except ImportError:
 #=============================================================================
 # helper functions
 
-# get extensions
-def get_extension_files():
-    efiles = {}
-    def walk(path, path2):
+def split_path(path):
+    """Splits a path into all of its directories"""
+
+    pathlist = []
+    while path != "":
+        path, tail = os.path.split(path)
+        pathlist.append(tail)
+    pathlist.reverse()
+    return pathlist
+    
+
+
+def get_files(path, exclude=lambda f: False):
+    """Recursively get files from a directory"""
+    files = []
+
+    if isinstance(exclude, list):
+        exclude_list = exclude
+        def exclude(filename):
+            for ext in exclude_list:
+                if filename.endswith(ext):
+                    return True
+            return False
+
+    def walk(path):
         for f in os.listdir(path):
             filename = os.path.join(path, f)
-            filename2 = os.path.join(path2, f)
-            if filename.endswith(".pyc"):
-                # ignore .pyc files
+            if exclude(filename):
+                # exclude certain files
                 continue
             elif os.path.isdir(filename):
-                # recurse directories
-                
-                walk(filename, filename2)
+                # recurse directories                
+                walk(filename)
             else:
                 # record all other files
-                efiles.setdefault(path2, []).append(filename)
-    walk("keepnote/extensions", "extensions")
-    return efiles
+                files.append(filename)
+    walk(path)
 
+    return files
 
-def get_image_files(image_dir):
-    return [y for y in (os.path.join(image_dir, x)
-                        for x in os.listdir(image_dir))
-            if os.path.isfile(y)]
+def get_file_lookup(files, prefix_old, prefix_new, 
+                    exclude=lambda f: False):
+    """Create a dictionary lookup of files"""
 
-def get_resource_files(rc_dir):
-    return [os.path.join(rc_dir, y) 
-            for y in os.listdir(rc_dir)
-            if y.endswith(".glade") or y.endswith(".png")]
+    if files is None:
+        files = get_files(prefix_old, exclude=exclude)
+
+    prefix_old = split_path(prefix_old)
+    prefix_new = split_path(prefix_new)
+    lookup = {}    
+
+    for f in files:        
+        path = prefix_new + split_path(f)[len(prefix_old):]
+        dirpath = os.path.join(*path[:-1])
+        lookup.setdefault(dirpath, []).append(f)
+
+    return lookup
+
 
 def remove_package_dir(filename):
     i = filename.index("/")
@@ -94,10 +122,10 @@ def remove_package_dir(filename):
 # resource files/data
 
 # get resources
-resource_files = get_resource_files("keepnote/rc")
-image_files = get_image_files("keepnote/images")
-node_icons = get_image_files("keepnote/images/node_icons")
-efiles = get_extension_files()
+rc_files = get_file_lookup(None, "keepnote/rc", "rc")
+image_files = get_file_lookup(None, "keepnote/images", "images")
+efiles = get_file_lookup(None, "keepnote/extensions", "extensions",
+                         exclude=[".pyc"])
 freedesktop_files = [
     # application icon
     ("share/icons/hicolor/48x48/apps",
@@ -110,25 +138,16 @@ freedesktop_files = [
 
 # get data files
 if "py2exe" in sys.argv:
-    data_files = [
-        ('images', image_files),
-        ('images/node_icons', node_icons),
-        ('rc', resource_files)
-    ] + efiles.items()
+    data_files = rc_files.items() + efiles.items() + image_files.items()
     package_data = {}
     
 else:
     data_files = freedesktop_files
-    package_data = {'keepnote':
-                    map(remove_package_dir,
-                        image_files +
-                        node_icons +
-                        resource_files)
-                    }
-    for v in efiles.values():
+    package_data = {'keepnote': []}
+    for v in itertools.chain(rc_files.values(),
+                             image_files.values(),
+                             efiles.values()):
         package_data['keepnote'].extend(map(remove_package_dir, v))
-
-
 
 
 #=============================================================================
@@ -154,6 +173,7 @@ setup(
         - integrated screenshot
         - spell checking (via gtkspell)
         - backup and restore
+        - HTML export
     """,
     author='Matt Rasmussen',
     author_email='rasmus@mit.edu',

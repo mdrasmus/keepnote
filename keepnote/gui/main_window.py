@@ -731,6 +731,11 @@ class KeepNoteWindow (gtk.Window):
         def update(task):
             # do search in another thread
 
+            # erase database first
+            # NOTE: I do this right now so that corrupt databases can be
+            # cleared out of the way.
+            self.notebook._index.clear()
+
             for node in self.notebook._index.index_all():
                 # terminate if search is canceled
                 if task.aborted():
@@ -1336,13 +1341,12 @@ class KeepNoteWindow (gtk.Window):
             buttons=gtk.BUTTONS_OK, 
             message_format=text)
         dialog.connect("response", lambda d,r: d.destroy())
-        dialog.set_title("Error")
+        dialog.set_title(_("Error"))
         dialog.show()
         
         # add message to error log
         if error is not None:
-            sys.stderr.write("\n")
-            traceback.print_exception(type(error), error, tracebk)
+            keepnote.log_error(error, tracebk)
 
 
     def wait_dialog(self, title, text, task):

@@ -395,6 +395,14 @@ def init_error_log(pref_dir=None, home=None):
             os.makedirs(error_dir)
         open(error_log, "a").close()
 
+
+def log_error(error, tracebk=None, out=sys.stderr):
+    """Write an exception error to the error log"""
+    
+    out.write("\n")
+    traceback.print_exception(type(error), error, tracebk, file=out)
+
+
 #=============================================================================
 # extension functions
 
