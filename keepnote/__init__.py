@@ -52,6 +52,12 @@ from keepnote import safefile
 from keepnote.util import compose
 from keepnote import mswin
 
+# import screenshot so that py2exe discovers it
+try:
+    import mswin.screenshot
+except ImportError:
+    pass
+
 
 #=============================================================================
 # modules needed by builtin extensions

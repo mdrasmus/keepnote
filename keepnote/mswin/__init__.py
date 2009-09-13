@@ -8,7 +8,7 @@ try:
     import win32com
     for p in win32com.__path__[1:]:
         modulefinder.AddPackagePath("win32com", p)
-    for extra in ["win32com.shell","win32com.mapi"]:
+    for extra in ["win32com.shell"]:
         __import__(extra)
         m = sys.modules[extra]
         for p in m.__path__[1:]:
@@ -20,6 +20,10 @@ except ImportError:
 
 try:
     from win32com.shell import shell
+    import win32api
+    import win32gui
+    import win32con
+    import win32ui
 except:
     pass
 

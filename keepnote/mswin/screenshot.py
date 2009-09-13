@@ -25,7 +25,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
-import sys, os
+import sys, os, traceback
 
 # win32api imports
 try:
@@ -33,11 +33,12 @@ try:
     import win32gui
     import win32con
     import win32ui
-except ImportError:
+except ImportError, e:
     pass
 
 _g_class_num = 0
- 
+
+
 
 def capture_screen(filename, x, y, x2, y2):
     """Captures a screenshot from a region of the screen"""

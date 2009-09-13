@@ -6,7 +6,7 @@
 
 PKG=keepnote
 #VERSION=0.6
-VERSION=$(shell python -c 'import keepnote; print keepnote.PROGRAM_VERSION_TEXT')
+VERSION:=$(shell python -c 'import keepnote; print keepnote.PROGRAM_VERSION_TEXT')
 
 # release filenames
 SDIST_FILE=$(PKG)-$(VERSION).tar.gz
