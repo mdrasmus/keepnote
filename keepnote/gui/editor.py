@@ -478,7 +478,6 @@ class KeepNoteEditor (gtk.VBox):
             
         # run dialog
         response = dialog.run()
-        dialog.destroy()
 
         if response == gtk.RESPONSE_OK:
             folder = dialog.get_current_folder()
@@ -486,6 +485,8 @@ class KeepNoteEditor (gtk.VBox):
                 self._app.pref.insert_image_path = unicode_gtk(folder)
             
             filename = dialog.get_filename()
+            dialog.destroy()
+
             if filename is None:
                 return 
             filename = unicode_gtk(filename)
@@ -503,7 +504,9 @@ class KeepNoteEditor (gtk.VBox):
                 # TODO: make exception more specific
                 self.emit("error",
                           _("Could not insert image '%s'") % filename, e)
-            
+        else:
+            dialog.destroy()
+
     
     def insert_image(self, filename, savename=u"image.png"):
         """Inserts an image into the text editor"""
