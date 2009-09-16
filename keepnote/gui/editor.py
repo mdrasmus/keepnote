@@ -926,7 +926,7 @@ class EditorMenus (gobject.GObject):
              "<control>I", None,
              lambda w: self.on_mod("italic")),
             
-            ("Underline", None, "_Underline", 
+            ("Underline", None, _("_Underline"), 
              "<control>U", None,
              lambda w: self.on_mod("underline")),
             

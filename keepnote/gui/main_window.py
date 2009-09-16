@@ -438,7 +438,7 @@ class KeepNoteWindow (gtk.Window):
         def make_filename(filename):
             if len(filename) > 30:
                 base = os.path.basename(filename)
-                pre = min(15 - len(base), 5)
+                pre = max(30 - len(base), 10)
                 return os.path.join(filename[:pre] + u"...", base)
             else:
                 return filename
