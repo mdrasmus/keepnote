@@ -1047,6 +1047,10 @@ class RichTextView (gtk.TextView):
         """Returns the image popup menu"""
         return self._image_menu
 
+    def get_popup_menu(self):
+        """Returns the popup menu"""
+        return self._popup_menu
+
 
     #==========================================
     # child events

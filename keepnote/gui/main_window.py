@@ -65,7 +65,9 @@ from keepnote.gui import \
      get_accel_file, \
      Action, \
      ToggleAction, \
-     add_actions
+     add_actions, \
+     CONTEXT_MENU_ACCEL_PATH
+
 from keepnote.gui.icons import \
      lookup_icon_filename
 import keepnote.search
@@ -84,7 +86,6 @@ from keepnote.gui.icon_menu import IconMenu
 from keepnote.gui.three_pane_viewer import ThreePaneViewer
 
 
-CONTEXT_MENU_ACCEL_PATH = "<main>/context_menu"
 
 
 
@@ -1998,7 +1999,12 @@ class KeepNoteWindow (gtk.Window):
     def make_context_menus(self, viewer):
         """Initialize context menus"""        
 
-        self.make_image_menu(viewer.editor.get_textview().get_image_menu())       
+        self.make_image_menu(viewer.editor.get_textview().get_image_menu())
+        
+        #menu = viewer.editor.get_textview().get_popup_menu()
+        #menu.set_accel_group(self.accel_group)
+        #menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
+
         self.make_treeview_menu(viewer.treeview, viewer.treeview.menu)
         self.make_listview_menu(viewer.listview, viewer.listview.menu)
 
