@@ -196,16 +196,25 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             
 
     def _sort_column_changed(self, sortmodel):
-        col, sort_dir = self.model.get_sort_column_id()
+        self._update_reorder()
+        
 
-        if col is None or col < 0:
+    def _update_reorder(self):
+        col_id, sort_dir = self.model.get_sort_column_id()
+
+        if col_id is None or col_id < 0:
+            col = None
+        else:
+            col = self.rich_model.get_column(col_id)
+        
+        if col is None or col.attr == "order":
             self.model.set_sort_column_id(
                 self.rich_model.get_column_by_name("order").pos,
                 gtk.SORT_ASCENDING)
             self.set_reorder(basetreeview.REORDER_ALL)
         else:
-            self.set_reorder(basetreeview.REORDER_FOLDER)
-        
+            self.set_reorder(basetreeview.REORDER_FOLDER)        
+
     
     def on_key_released(self, widget, event):
         """Callback for key release events"""
@@ -400,6 +409,8 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         for col in self.rich_model.get_columns():
             if info_sort == col.attr:
                 model.set_sort_column_id(col.pos, sort_dir)
+
+        self._update_reorder()
 
     
     def set_status(self, text, bar="status"):
