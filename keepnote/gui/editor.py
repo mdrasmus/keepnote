@@ -425,10 +425,11 @@ class KeepNoteEditor (gtk.VBox):
         try:
             imgfile = self._app.take_screenshot("keepnote")
             self.emit("window-request", "restore")
-            
+
             # insert image
             self.insert_image(imgfile, "screenshot.png")
             
+
         except Exception, e:
             # catch exceptions for screenshot program
             self.emit("window-request", "restore")

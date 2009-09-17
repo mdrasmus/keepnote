@@ -251,6 +251,7 @@ class KeepNoteWindow (gtk.Window):
         
 
     def get_accel_group(self):
+        """Returns the accel group for the window"""
         return self.accel_group()
 
 
@@ -265,7 +266,8 @@ class KeepNoteWindow (gtk.Window):
 
 
     def setup_systray(self):
-    
+        """Setup systray for window"""
+
         # system tray icon
         if gtk.gtk_version > (2, 10):
             if not self._tray_icon:
@@ -281,10 +283,17 @@ class KeepNoteWindow (gtk.Window):
 
 
     def get_current_page(self):
+        """Return the currently selected page"""
         return self.viewer.get_current_page()
         
 
+    def get_viewer(self):
+        """Return window's viewer"""
+        return self.viewer
+    
+
     def get_notebook(self):
+        """Return the currently loaded notebook"""
         return self.notebook
 
     #=================================================
@@ -325,6 +334,9 @@ class KeepNoteWindow (gtk.Window):
     def minimize_window(self):
         """Minimize the window (block until window is minimized"""
         
+        if self._iconified:
+            return
+
         # TODO: add timer in case minimize fails
         def on_window_state(window, event):            
             if event.new_window_state & gtk.gdk.WINDOW_STATE_ICONIFIED:
@@ -333,6 +345,7 @@ class KeepNoteWindow (gtk.Window):
         self.iconify()
         gtk.main()
         self.disconnect(sig)
+
 
     def restore_window(self):
         """Restore the window from minimization"""

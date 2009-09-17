@@ -20,8 +20,14 @@
 
 
 # python imports
-import errno, sys, os, time, optparse, exceptions, thread, traceback, socket, random
+import exceptions
+import sys
+import os
 from os.path import basename, dirname, realpath, join, isdir
+import time
+import optparse
+import thread
+import traceback
 
 
 # pygtk imports
@@ -196,6 +202,12 @@ def execute_command(app, argv):
 
         elif args[0] == "focus":
             app.focus_windows()
+            
+        elif args[0] == "screenshot":
+            # TODO: may need to generalize for different type of viewers
+            window = app.get_current_window()
+            if window:
+                window.get_viewer().editor.on_screenshot()
 
         else:
             raise Exception(_("Unknown command '%s'") % args[0])
@@ -214,9 +226,20 @@ def execute_command(app, argv):
         app.new_window()
 
 
+def gui_exec(function, *args, **kw):
+    """Execute a function in the GUI thread"""
+    def idle_func():
+        gtk.gdk.threads_enter()
+        try:
+            function(*args, **kw)
+            return False
+        finally:
+            gtk.gdk.threads_leave()
+    gobject.idle_add(idle_func)
+
 
 def main(argv):
-    """Main execution"""
+    """Main execution"""    
 
     options, args = parse_argv(argv)
 
@@ -233,8 +256,8 @@ def main(argv):
         cmd_exec = CommandExecutor()
     else:
         main_proc, cmd_exec = get_command_executor(
-            lambda app, argv: gobject.timeout_add(
-                0, lambda: execute_command(app, argv)))
+            lambda app, argv: gui_exec(
+                lambda: execute_command(app, argv)))
 
     
     if main_proc:
@@ -267,6 +290,5 @@ except Exception, e:
     
     # flush final errors
     sys.stderr.flush()
-
 
 

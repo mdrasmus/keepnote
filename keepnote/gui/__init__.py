@@ -174,7 +174,8 @@ class KeepNote (keepnote.KeepNote):
         keepnote.KeepNote.__init__(self, basedir)
 
         self._tag_table = keepnote.gui.richtext.richtext_tags.RichTextTagTable()
-
+        
+        self._current_window = None
         self._windows = []
 
 
@@ -185,12 +186,18 @@ class KeepNote (keepnote.KeepNote):
 
         window = main_window.KeepNoteWindow(self)
         window.connect("delete-event", self._on_window_close)
+        #window.connect("window-state-event", self._on_window_state)
+        window.connect("focus-in-event", self._on_focus)
         self._windows.append(window)
         
         self.init_extensions_window(window)
         window.show_all()
 
         return window
+
+    def get_current_window(self):
+        """Returns the currenly active window"""
+        return self._current_window
     
 
     def get_notebook(self, filename, window=None):
@@ -250,9 +257,17 @@ class KeepNote (keepnote.KeepNote):
         # remove window from window list
         self._windows.remove(window)
 
+        if window == self._current_window:
+            self._current_window = None
+
         # quit app if last window closes
         if len(self._windows) == 0:
             self.quit()
+
+
+    def _on_focus(self, window, event):
+        """Callback for when a window gains focus"""
+        self._current_window = window
 
 
     def quit(self):

@@ -24,11 +24,19 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
-import errno, os, random, socket, sys, thread
+# python libs
+import errno
+import os
+import random
+import socket
+import sys
+import thread
 
+# keepnote libs
 import keepnote
 
 
+# constants
 KEEPNOTE_HEADER = "keepnote\n"
 
 # TODO: ensure commands are executed in order, but don't allow malicious
@@ -199,6 +207,7 @@ class CommandExecutor (object):
 
 
     def setup(self, execfunc):        
+        """Returns True if this is the main process, False otherwise"""
 
         tries = 2
 
@@ -241,7 +250,7 @@ class CommandExecutor (object):
 
                     # send password
                     connfile.write("%s\n" % passwd)
-
+                    
                     def execute(app, argv):
                         # send command
                         # TODO: format correctly

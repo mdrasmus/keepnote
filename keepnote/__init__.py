@@ -191,7 +191,6 @@ def set_locale():
     locale.setlocale(locale.LC_ALL, '')
     gettext.bindtextdomain(GETTEXT_DOMAIN, get_locale_dir())
     gettext.textdomain(GETTEXT_DOMAIN)
-    print get_locale_dir()
 
 
 def translate(message):
@@ -325,15 +324,9 @@ def get_user_documents(home=None):
     
     elif p == "windows":
         return mswin.get_my_documents()
-        #home = ensure_unicode(os.getenv(u"USERPROFILE"), FS_ENCODING)
-        #return ensure_unicode(os.getenv(u"CSIDL_DEFAULT_MYDOCUMENTS"),
-        #                      FS_ENCODING)
-        # TODO can I find a way to find "My Documents"?
-        #return os.path.join(home, u"My Documents")
     
     else:
         return u""
-        #raise Exception("unknown platform '%s'" % p)
     
 
 def get_user_pref_file(pref_dir=None, home=None):

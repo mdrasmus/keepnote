@@ -131,6 +131,7 @@ gobject.signal_new("history-changed", Viewer, gobject.SIGNAL_RUN_LAST,
 
 
 class NodeHistory (object):
+    """Data structure of node history"""
 
     def __init__(self):
         self._list = []
