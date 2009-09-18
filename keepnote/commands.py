@@ -72,36 +72,38 @@ def get_lock_file():
     return aquire, fd
     
 
-def open_socket(start_port=4000, end_port=10000, tries=10):
+def open_socket(port=None, start_port=4000, end_port=10000, tries=10):
+    """Open a new socket for listen"""
     s = socket.socket(socket.AF_INET)
 
     for i in range(tries):
-        port = random.randint(start_port, end_port)
+        # choose port
+        if port is None:
+            port2 = random.randint(start_port, end_port)
+        else:
+            port2 = port
+
         try:
-            s.bind(("localhost", port))
+            s.bind(("localhost", port2))
             s.listen(1)
             break
-        except socket.error:
-            port = None
+        except socket.error, e:
+            print >>sys.stderr, "could not open socket:", str(e)
+            port2 = None
 
-    if port is None:
+    if port2 is None:
         s.close()
         s = None
 
-    # print "open port", port
-
-    return s, port
+    return s, port2
     
 def process_connection(conn, addr, passwd, execfunc):
     """Process a connection"""
 
     try:
-        #print "accept", addr
         connfile = conn.makefile("rw")
-        #print "writing..."
         connfile.write(KEEPNOTE_HEADER)
         connfile.flush()
-        #print "reading..."
         passwd2 = connfile.readline().rstrip("\n")
         command = connfile.readline()
 
@@ -111,7 +113,7 @@ def process_connection(conn, addr, passwd, execfunc):
             conn.close()
             return
         
-        # TODO: parse command
+        # parse command and execute
         execfunc(parse_command(command))
 
         connfile.close()
@@ -136,10 +138,12 @@ def listen_commands(sock, passwd, execfunc):
 
 
 def write_lock_file(fd, port, passwd):
+    """Write a lock file"""
     os.write(fd, "%d:%s" % (port, passwd))
 
 
 def read_lock_file(fd):
+    """Parse a lock file"""
     text = os.read(fd, 1000)
     port, passwd = text.split(":")
     port = int(port)
@@ -152,7 +156,7 @@ def make_passwd():
 
 
 def unescape(text):
-    
+    """Unescape a string from the socket"""
     text2 = []
     i = 0
     while i < len(text):
@@ -172,7 +176,7 @@ def unescape(text):
     return "".join(text2)
 
 def escape(text):
-    
+    """Escape a string for sending over the socket"""
     text2 = []
     for c in text:
         if c == "\n":
@@ -188,9 +192,11 @@ def escape(text):
 
 
 def parse_command(text):
+    """Parse a command from the socket"""
     return [unescape(x) for x in text.split(" ")]
 
 def format_command(argv):
+    """Format a command from the socket"""
     return " ".join(escape(x) for x in argv)
 
 
@@ -200,10 +206,17 @@ class CommandExecutor (object):
     def __init__(self):
         self._execfunc = None
         self._app = None
+        self._port = None
 
 
     def set_app(self, app):
+        """Set the app for the CommandExecutor"""
         self._app = app
+
+
+    def set_port(self, port):
+        """Set the socket port for the CommandExecutor"""
+        self._port = port
 
 
     def setup(self, execfunc):        
@@ -218,7 +231,7 @@ class CommandExecutor (object):
             if aquire:
                 # open socket and record port number in lock file
                 passwd = make_passwd()
-                sock, port = open_socket()
+                sock, port = open_socket(self._port)
                 if port is None:
                     raise Exception("Could not open socket")
                 write_lock_file(fd, port, passwd)
@@ -276,9 +289,12 @@ class CommandExecutor (object):
         self._execfunc(self._app, argv)
 
 
-def get_command_executor(execfunc):
+def get_command_executor(func, port=None):
+    """Make a CommandExecutor object that wraps the given function"""
+
     cmd_exec = CommandExecutor()
-    main_proc = cmd_exec.setup(execfunc)
+    cmd_exec.set_port(port)
+    main_proc = cmd_exec.setup(func)
     return main_proc, cmd_exec
 
 

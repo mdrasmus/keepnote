@@ -137,7 +137,11 @@ o.add_option("-c", "--cmd", dest="cmd",
              help="treat remaining arguments as a command")
 o.add_option("", "--newproc", dest="newproc",
              action="store_true",
-             help="startKeepNote in a new process")
+             help="start KeepNote in a new process")
+o.add_option("-p", "--port", dest="port",
+             default=None,
+             type="int",
+             help="use a specified port for listening to commands")
 
 
 #=============================================================================
@@ -257,7 +261,8 @@ def main(argv):
     else:
         main_proc, cmd_exec = get_command_executor(
             lambda app, argv: gui_exec(
-                lambda: execute_command(app, argv)))
+                lambda: execute_command(app, argv)),
+            port=options.port)
 
     
     if main_proc:
