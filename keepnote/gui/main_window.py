@@ -66,7 +66,8 @@ from keepnote.gui import \
      Action, \
      ToggleAction, \
      add_actions, \
-     CONTEXT_MENU_ACCEL_PATH
+     CONTEXT_MENU_ACCEL_PATH, \
+     FileChooserDialog
 
 from keepnote.gui.icons import \
      lookup_icon_filename
@@ -76,7 +77,6 @@ from keepnote.gui import \
     dialog_app_options, \
     dialog_find, \
     dialog_drag_drop_test, \
-    dialog_image_resize, \
     dialog_wait, \
     dialog_update_notebook, \
     dialog_node_icon, \
@@ -94,37 +94,6 @@ def set_menu_icon(uimanager, path, filename):
     img = gtk.Image()
     img.set_from_pixbuf(get_resource_pixbuf(filename))
     item.set_image(img) 
-
-
-class FileChooserDialog (gtk.FileChooserDialog):
-    """File Chooser Dialog with a persistent path"""
-
-    def __init__(self, title=None, parent=None,
-                 action=gtk.FILE_CHOOSER_ACTION_OPEN,
-                 buttons=None, backend=None,
-                 app=None,
-                 persistent_path=None):
-        gtk.FileChooserDialog.__init__(self, title, parent,
-                                       action, buttons, backend)
-
-        self._app = app
-        self._persistent_path = persistent_path
-        
-        if self._app and self._persistent_path:
-            path = getattr(self._app.pref, self._persistent_path)
-            if os.path.exists(path):
-                self.set_current_folder(path)
-
-
-    def run(self):
-        response = gtk.FileChooserDialog.run(self)
-
-        if (response == gtk.RESPONSE_OK and 
-            self._app and self._persistent_path):
-            setattr(self._app.pref, self._persistent_path,
-                    unicode_gtk(self.get_current_folder()))
-            
-        return response
 
 
 
@@ -181,8 +150,6 @@ class KeepNoteWindow (gtk.Window):
         
         self.app_options_dialog = dialog_app_options.ApplicationOptionsDialog(self)
         self.drag_test = dialog_drag_drop_test.DragDropTestDialog(self)
-        self.image_resize_dialog = \
-            dialog_image_resize.ImageResizeDialog(self, self.app.pref)
         self.node_icon_dialog = dialog_node_icon.NodeIconDialog(self)
         
         
@@ -1070,108 +1037,6 @@ class KeepNoteWindow (gtk.Window):
                              
         
 
-    #=================================================
-    # Image context menu
-
-    # TODO: look at what can be moved out of here
-
-    def on_view_image(self, menuitem):
-        """View image in Image Viewer"""
-        
-        # get image filename
-        image_filename = menuitem.get_parent().get_child().get_filename()
-        self.view_image(image_filename)
-        
-
-    def view_image(self, image_filename):
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-
-        image_path = os.path.join(current_page.get_path(), image_filename)
-        viewer = self.app.pref.get_external_app("image_viewer")
-        
-        if viewer is not None:
-            try:
-                proc = subprocess.Popen([viewer.prog, image_path])
-            except OSError, e:
-                self.error(_("Could not open Image Viewer"), 
-                           e, sys.exc_info()[2])
-        else:
-            self.error(_("You must specify an Image Viewer in Application Options"))
-
-
-    def on_edit_image(self, menuitem):
-        """Edit image in Image Editor"""
-
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-        
-        # get image filename
-        image_filename = menuitem.get_parent().get_child().get_filename()
-
-        image_path = os.path.join(current_page.get_path(), image_filename)
-        editor = self.app.pref.get_external_app("image_editor")
-    
-        if editor is not None:
-            try:
-                proc = subprocess.Popen([editor.prog, image_path])
-            except OSError, e:
-                self.error(_("Could not open Image Editor"), 
-                           e, sys.exc_info()[2])
-        else:
-            self.error(_("You must specify an Image Editor in Application Options"))
-
-
-    def on_resize_image(self, menuitem):
-        """Resize image"""
-
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-        
-        image = menuitem.get_parent().get_child()
-        self.image_resize_dialog.on_resize(image)
-        
-
-
-    def on_save_image_as(self, menuitem):
-        """Save image as a new file"""
-
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-        
-        # get image filename
-        image = menuitem.get_parent().get_child()
-        image_filename = menuitem.get_parent().get_child().get_filename()
-        image_path = os.path.join(current_page.get_path(), image_filename)
-
-        dialog = FileChooserDialog(
-            _("Save Image As..."), self, 
-            action=gtk.FILE_CHOOSER_ACTION_SAVE,
-            buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
-                     _("Save"), gtk.RESPONSE_OK),
-            app=self.app,
-            persistent_path="save_image_path")
-        dialog.set_default_response(gtk.RESPONSE_OK)
-        response = dialog.run()        
-
-        if response == gtk.RESPONSE_OK:
-
-            if not dialog.get_filename():
-                self.error(_("Must specify a filename for the image."))
-            else:
-                filename = unicode_gtk(dialog.get_filename())
-                try:                
-                    image.write(filename)
-                except Exception, e:
-                    self.error(_("Could not save image '%s'") %
-                               filename, e, sys.exc_info()[2])
-
-        dialog.destroy()
-    
     
     #=====================================================
     # Cut/copy/paste    
@@ -1822,37 +1687,6 @@ class KeepNoteWindow (gtk.Window):
             self.viewer.goto_node(node, False)
 
 
-    def make_image_menu(self, menu):
-        """image context menu"""
-
-        menu.set_accel_group(self.accel_group)
-        menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
-        item = gtk.SeparatorMenuItem()
-        item.show()
-        menu.append(item)
-            
-        # image/edit
-        item = gtk.MenuItem(_("_View Image..."))
-        item.connect("activate", self.on_view_image)
-        item.child.set_markup_with_mnemonic(_("<b>_View Image...</b>"))
-        item.show()
-        menu.append(item)
-        
-        item = gtk.MenuItem(_("_Edit Image..."))
-        item.connect("activate", self.on_edit_image)
-        item.show()
-        menu.append(item)
-
-        item = gtk.MenuItem(_("_Resize Image..."))
-        item.connect("activate", self.on_resize_image)
-        item.show()
-        menu.append(item)
-
-        # image/save
-        item = gtk.ImageMenuItem(_("_Save Image As..."))
-        item.connect("activate", self.on_save_image_as)
-        item.show()
-        menu.append(item)
 
 
     def make_node_menu(self, widget, menu, control):
@@ -2016,8 +1850,6 @@ class KeepNoteWindow (gtk.Window):
 
     def make_context_menus(self, viewer):
         """Initialize context menus"""        
-
-        self.make_image_menu(viewer.editor.get_textview().get_image_menu())
         
         #menu = viewer.editor.get_textview().get_popup_menu()
         #menu.set_accel_group(self.accel_group)

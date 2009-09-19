@@ -133,6 +133,39 @@ def update_file_preview(file_chooser, preview):
     file_chooser.set_preview_widget_active(have_preview)
 
 
+
+class FileChooserDialog (gtk.FileChooserDialog):
+    """File Chooser Dialog with a persistent path"""
+
+    def __init__(self, title=None, parent=None,
+                 action=gtk.FILE_CHOOSER_ACTION_OPEN,
+                 buttons=None, backend=None,
+                 app=None,
+                 persistent_path=None):
+        gtk.FileChooserDialog.__init__(self, title, parent,
+                                       action, buttons, backend)
+
+        self._app = app
+        self._persistent_path = persistent_path
+        
+        if self._app and self._persistent_path:
+            path = getattr(self._app.pref, self._persistent_path)
+            if os.path.exists(path):
+                self.set_current_folder(path)
+
+
+    def run(self):
+        response = gtk.FileChooserDialog.run(self)
+
+        if (response == gtk.RESPONSE_OK and 
+            self._app and self._persistent_path):
+            setattr(self._app.pref, self._persistent_path,
+                    unicode_gtk(self.get_current_folder()))
+            
+        return response
+
+
+
 #=============================================================================
 # menu actions
 
