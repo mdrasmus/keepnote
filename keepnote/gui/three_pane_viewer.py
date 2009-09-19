@@ -69,6 +69,9 @@ class Viewer (gtk.VBox):
     def set_notebook(self, notebook):
         pass
 
+    def get_notebook(self):
+        return None
+
     def set_view_mode(self, mode):
         pass
 
@@ -303,6 +306,10 @@ class ThreePaneViewer (Viewer):
 
         self.treeview.grab_focus()
 
+
+    def get_notebook(self):
+        """Return the current notebook for the view"""
+        return self._notebook
 
 
     def set_view_mode(self, mode):

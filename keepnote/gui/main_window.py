@@ -134,9 +134,7 @@ class KeepNoteWindow (gtk.Window):
     def __init__(self, app):
         gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
         
-        self.app = app           # application object
-        self.notebook = None     # opened notebook
-
+        self.app = app # application object
 
         # window state
         self._maximized = False   # True if window is maximized
@@ -157,23 +155,6 @@ class KeepNoteWindow (gtk.Window):
         self.load_preferences(True)
         self.set_view_mode(self.app.pref.view_mode)
         
-
-    def new_viewer(self):
-
-        viewer = ThreePaneViewer(self.app, self)
-        viewer.connect("error", lambda w,t,e: self.error(t, e))
-        viewer.listview.on_status = self.set_status  # TODO: clean up
-        viewer.editor.connect("modified", self.on_page_editor_modified)
-        viewer.editor.connect("child-activated", self.on_child_activated)
-        viewer.editor.connect("window-request", self.on_window_request)
-        viewer.editor.connect("visit-node", self.on_visit_node)
-        viewer.connect("history-changed", self.on_history_changed)
-
-        # context menus
-        self.make_context_menus(viewer)
-
-        return viewer
-
 
     def init_layout(self):
         # init main window
@@ -282,10 +263,30 @@ class KeepNoteWindow (gtk.Window):
             self._tray_icon = None
 
 
-    def get_current_page(self):
-        """Return the currently selected page"""
-        return self.viewer.get_current_page()
-        
+    def new_viewer(self):
+
+        viewer = ThreePaneViewer(self.app, self)
+        viewer.connect("error", lambda w,t,e: self.error(t, e))
+        viewer.listview.on_status = self.set_status  # TODO: clean up
+        viewer.editor.connect("modified", self.on_page_editor_modified)
+        viewer.editor.connect("child-activated", self.on_child_activated)
+        viewer.editor.connect("window-request", self.on_window_request)
+        viewer.editor.connect("visit-node", self.on_visit_node)
+        viewer.connect("history-changed", self.on_history_changed)
+
+        # context menus
+        self.make_context_menus(viewer)
+
+        return viewer
+
+
+    #===============================================
+    # accessors
+
+    def get_app(self):
+        """Return application object"""
+        return self.app
+
 
     def get_viewer(self):
         """Return window's viewer"""
@@ -294,7 +295,13 @@ class KeepNoteWindow (gtk.Window):
 
     def get_notebook(self):
         """Return the currently loaded notebook"""
-        return self.notebook
+        return self.viewer.get_notebook()
+
+    
+    def get_current_page(self):
+        """Return the currently selected page"""
+        return self.viewer.get_current_page()
+        
 
     #=================================================
     # view config
@@ -325,7 +332,6 @@ class KeepNoteWindow (gtk.Window):
         self.app.pref.write()
         
         
-    
                 
 
     #=================================================
@@ -360,11 +366,13 @@ class KeepNoteWindow (gtk.Window):
         """Callback for window state"""
 
         # keep track of maximized and minimized state
-        self._maximized = bool(event.new_window_state & 
-                               gtk.gdk.WINDOW_STATE_MAXIMIZED)
         self._iconified = bool(event.new_window_state & 
                                gtk.gdk.WINDOW_STATE_ICONIFIED)
 
+        # TODO: add call to maximize window to help MS windows
+
+        self._maximized = bool(event.new_window_state & 
+                               gtk.gdk.WINDOW_STATE_MAXIMIZED)
 
 
     def on_window_size(self, window, event):
@@ -428,8 +436,8 @@ class KeepNoteWindow (gtk.Window):
         self.viewer.save_preferences(self.app.pref)
         self.app.pref.last_treeview_name_path = []
 
-        if self.app.pref.use_last_notebook and self.notebook:
-            self.app.pref.default_notebook = self.notebook.get_path()
+        if self.app.pref.use_last_notebook and self.viewer.get_notebook():
+            self.app.pref.default_notebook = self.viewer.get_notebook().get_path()
         
         self.app.pref.write()
         
@@ -560,13 +568,13 @@ class KeepNoteWindow (gtk.Window):
     def save_notebook(self, silent=False):
         """Saves the current notebook"""
 
-        if self.notebook is None:
+        if self.viewer.get_notebook() is None:
             return
         
         try:
             # TODO: should this be outside exception
             self.viewer.save()
-            self.notebook.save()
+            self.viewer.get_notebook().save()
 
             self.set_status(_("Notebook saved"))
             
@@ -586,11 +594,11 @@ class KeepNoteWindow (gtk.Window):
     def reload_notebook(self):
         """Reload the current NoteBook"""
         
-        if self.notebook is None:
+        if self.viewer.get_notebook() is None:
             self.error(_("Reloading only works when a notebook is open"))
             return
         
-        filename = self.notebook.get_path()
+        filename = self.viewer.get_notebook().get_path()
         self.close_notebook(False)
         self.open_notebook(filename)
         
@@ -601,7 +609,7 @@ class KeepNoteWindow (gtk.Window):
     def new_notebook(self, filename):
         """Creates and opens a new NoteBook"""
         
-        if self.notebook is not None:
+        if self.viewer.get_notebook() is not None:
             self.close_notebook()
         
         try:
@@ -623,7 +631,7 @@ class KeepNoteWindow (gtk.Window):
     def open_notebook(self, filename, new=False):
         """Opens a new notebook"""
         
-        if self.notebook is not None:
+        if self.viewer.get_notebook() is not None:
             self.close_notebook()
         
         # make sure filename is unicode
@@ -668,7 +676,7 @@ class KeepNoteWindow (gtk.Window):
         self.set_notebook(notebook)
         
         if not new:
-            self.set_status(_("Loaded '%s'") % self.notebook.get_title())
+            self.set_status(_("Loaded '%s'") % self.viewer.get_notebook().get_title())
         
         self.set_notebook_modified(False)
 
@@ -679,21 +687,21 @@ class KeepNoteWindow (gtk.Window):
         self.add_recent_notebook(filename)
 
 
-        if self.notebook._index.index_needed():
+        if self.viewer.get_notebook()._index.index_needed():
             self.update_index()
 
-        return self.notebook
+        return self.viewer.get_notebook()
         
         
     def close_notebook(self, save=True):
         """Close the NoteBook"""
         
-        if self.notebook is not None:
+        if self.viewer.get_notebook() is not None:
             if save:
                 self.save_notebook()
             
-            self.notebook.node_changed.remove(self.on_notebook_node_changed)
-            self.notebook.close()
+            self.viewer.get_notebook().node_changed.remove(self.on_notebook_node_changed)
+            self.viewer.get_notebook().close()
             self.set_notebook(None)
             self.set_status(_("Notebook closed"))
 
@@ -710,7 +718,7 @@ class KeepNoteWindow (gtk.Window):
 
         # NOTE: return True to activate next timeout callback
         
-        if self.notebook is not None:
+        if self.viewer.get_notebook() is not None:
             self.save_notebook(True)
             return self.app.pref.autosave
         else:
@@ -720,7 +728,6 @@ class KeepNoteWindow (gtk.Window):
     def set_notebook(self, notebook):
         """Set the NoteBook for the window"""
         
-        self.notebook = notebook
         self.viewer.set_notebook(notebook)
 
 
@@ -739,7 +746,7 @@ class KeepNoteWindow (gtk.Window):
     def update_index(self):
         """Update notebook index"""
 
-        if not self.notebook:
+        if not self.viewer.get_notebook():
             return
 
         def update(task):
@@ -748,9 +755,9 @@ class KeepNoteWindow (gtk.Window):
             # erase database first
             # NOTE: I do this right now so that corrupt databases can be
             # cleared out of the way.
-            self.notebook._index.clear()
+            self.viewer.get_notebook()._index.clear()
 
-            for node in self.notebook._index.index_all():
+            for node in self.viewer.get_notebook()._index.index_all():
                 # terminate if search is canceled
                 if task.aborted():
                     break
@@ -825,11 +832,11 @@ class KeepNoteWindow (gtk.Window):
     def on_empty_trash(self):
         """Empty Trash folder in NoteBook"""
         
-        if self.notebook is None:
+        if self.viewer.get_notebook() is None:
             return
 
         try:
-            self.notebook.empty_trash()
+            self.viewer.get_notebook().empty_trash()
         except NoteBookError, e:
             self.error(_("Could not empty trash."), e, sys.exc_info()[2])
 
@@ -844,7 +851,7 @@ class KeepNoteWindow (gtk.Window):
         """Search nodes"""
 
         # do nothing if notebook is not defined
-        if not self.notebook:
+        if not self.viewer.get_notebook():
             return
 
         # get words
@@ -852,7 +859,7 @@ class KeepNoteWindow (gtk.Window):
                  unicode_gtk(self.search_box.get_text()).strip().split()]
         
         # prepare search iterator
-        nodes = keepnote.search.search_manual(self.notebook, words)
+        nodes = keepnote.search.search_manual(self.viewer.get_notebook(), words)
 
         # clear listview        
         self.viewer.start_search_result()
@@ -894,7 +901,7 @@ class KeepNoteWindow (gtk.Window):
             use None to leave icon setting unchanged
         """
 
-        if self.notebook is None:
+        if self.viewer.get_notebook() is None:
             return
 
         nodes, widget = self.get_selected_nodes(widget)
@@ -919,7 +926,7 @@ class KeepNoteWindow (gtk.Window):
     def on_new_icon(self, widget="focus"):
         """Change the icon for a node"""
 
-        if self.notebook is None:
+        if self.viewer.get_notebook() is None:
             return
 
         nodes, widget = self.get_selected_nodes(widget)
@@ -936,34 +943,34 @@ class KeepNoteWindow (gtk.Window):
         # NOTE: files may be filename or basename, use isabs to distinguish
         if icon_file and os.path.isabs(icon_file) and \
            icon_open_file and os.path.isabs(icon_open_file):
-            icon_file, icon_open_file = self.notebook.install_icons(
+            icon_file, icon_open_file = self.viewer.get_notebook().install_icons(
                 icon_file, icon_open_file)
             newly_installed.add(os.path.basename(icon_file))
             newly_installed.add(os.path.basename(icon_open_file))
             
         else:
             if icon_file and os.path.isabs(icon_file):
-                icon_file = self.notebook.install_icon(icon_file)
+                icon_file = self.viewer.get_notebook().install_icon(icon_file)
                 newly_installed.add(os.path.basename(icon_file))
 
             if icon_open_file and os.path.isabs(icon_open_file):
-                icon_open_file = self.notebook.install_icon(icon_open_file)
+                icon_open_file = self.viewer.get_notebook().install_icon(icon_open_file)
                 newly_installed.add(os.path.basename(icon_open_file))
 
         # set quick picks if OK was pressed
         if icon_file is not None:
-            self.notebook.pref.set_quick_pick_icons(
+            self.viewer.get_notebook().pref.set_quick_pick_icons(
                 self.node_icon_dialog.get_quick_pick_icons())
 
             # set notebook icons
-            notebook_icons = self.notebook.get_icons()
+            notebook_icons = self.viewer.get_notebook().get_icons()
             keep_set = set(self.node_icon_dialog.get_notebook_icons()) | \
                        newly_installed
             for icon in notebook_icons:
                 if icon not in keep_set:
-                    self.notebook.uninstall_icon(icon)
+                    self.viewer.get_notebook().uninstall_icon(icon)
             
-            self.notebook.write_preferences()
+            self.viewer.get_notebook().write_preferences()
 
         self.on_set_icon(icon_file, icon_open_file)
 
@@ -981,21 +988,21 @@ class KeepNoteWindow (gtk.Window):
     def set_notebook_modified(self, modified):
         """Set the modification state of the notebook"""
         
-        if self.notebook is None:
+        if self.viewer.get_notebook() is None:
             self.set_title(keepnote.PROGRAM_NAME)
         else:
             if modified:
-                self.set_title("* %s" % self.notebook.get_title())
+                self.set_title("* %s" % self.viewer.get_notebook().get_title())
                 self.set_status(_("Notebook modified"))
             else:
-                self.set_title("%s" % self.notebook.get_title())
+                self.set_title("%s" % self.viewer.get_notebook().get_title())
     
     #=================================================
     # file attachments
 
     def on_attach_file(self, widget="focus"):
 
-        if self.notebook is None:
+        if self.viewer.get_notebook() is None:
             return
         
         dialog = FileChooserDialog(
@@ -1042,7 +1049,7 @@ class KeepNoteWindow (gtk.Window):
         try:
             path = notebooklib.get_valid_unique_filename(node.get_path(), 
                                                          new_filename)
-            child = self.notebook.new_node(
+            child = self.viewer.get_notebook().new_node(
                     content_type, 
                     path,
                     node,
@@ -1804,7 +1811,7 @@ class KeepNoteWindow (gtk.Window):
         
         self.search_box_list.clear()
         if len(text) > 0:
-            results = self.notebook.search_node_titles(text)[:10]
+            results = self.viewer.get_notebook().search_node_titles(text)[:10]
             for nodeid, title in results:
                 self.search_box_list.append([title, nodeid])
 
@@ -1812,7 +1819,7 @@ class KeepNoteWindow (gtk.Window):
         
         nodeid = model[iter][1]
 
-        node = self.notebook.get_node_by_id(nodeid)
+        node = self.viewer.get_notebook().get_node_by_id(nodeid)
         if node:
             self.viewer.goto_node(node, False)
 
