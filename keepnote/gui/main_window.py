@@ -113,8 +113,6 @@ class KeepNoteWindow (gtk.Window):
         self.uimanager = gtk.UIManager()
         self.accel_group = self.uimanager.get_accel_group()
         self.add_accel_group(self.accel_group)
-        
-        self._ignore_view_mode = False # prevent recursive view mode changes
 
         self.init_key_shortcuts()
         self.init_layout()
@@ -122,7 +120,6 @@ class KeepNoteWindow (gtk.Window):
 
         # load preferences for the first time
         self.load_preferences(True)
-        self.set_view_mode(self.app.pref.view_mode)
         
 
     def init_layout(self):
@@ -233,7 +230,7 @@ class KeepNoteWindow (gtk.Window):
     def new_viewer(self):
 
         viewer = ThreePaneViewer(self.app, self)
-        viewer.connect("error", lambda w,t,e: self.error(t, e))
+        viewer.connect("error", lambda w,m,e: self.error(m, e))
         viewer.listview.on_status = self.set_status  # TODO: clean up
         viewer.editor.connect("modified", self._on_page_editor_modified)
         viewer.editor.connect("child-activated", self.on_child_activated)
@@ -268,35 +265,6 @@ class KeepNoteWindow (gtk.Window):
     def get_current_page(self):
         """Return the currently selected page"""
         return self.viewer.get_current_page()
-        
-
-    #=================================================
-    # view config
-        
-    def set_view_mode(self, mode):
-        """Sets the view mode of the window
-        
-        modes:
-            "vertical"
-            "horizontal"
-        """
-        
-        if self._ignore_view_mode:
-            return
-
-
-        # update menu
-        self._ignore_view_mode = True
-        self.view_mode_h_toggle.set_active(mode == "horizontal")
-        self.view_mode_v_toggle.set_active(mode == "vertical")
-        self._ignore_view_mode = False
-        
-        # set viewer
-        self.viewer.set_view_mode(mode)
-
-        # record preference
-        self.app.pref.view_mode = mode        
-        self.app.pref.write()
         
         
                 
@@ -1073,6 +1041,8 @@ class KeepNoteWindow (gtk.Window):
     #=====================================================
     # External app viewers
 
+    # TODO: may be move this to viewer
+        
     def on_view_node_external_app(self, app, node=None, widget="focus",
                                   kind=None):
         """View a node with an external app"""
@@ -1416,16 +1386,7 @@ class KeepNoteWindow (gtk.Window):
             map(lambda x: ToggleAction(*x), [
             ("Spell Check", None, _("_Spell Check"), 
              "", None,
-             self.on_spell_check_toggle),
-
-            # TODO: move this to viewer actions
-            ("Horizontal Layout", None, _("_Horizontal Layout"),
-             "", None,
-             lambda w: self.set_view_mode("horizontal")),
-            
-            ("Vertical Layout", None, _("_Vertical Layout"),
-             "", None,
-             lambda w: self.set_view_mode("vertical"))])
+             self.on_spell_check_toggle)])
 
 
         # make sure recent notebooks is always visible
@@ -1502,8 +1463,7 @@ class KeepNoteWindow (gtk.Window):
   <menu action="Options">
     <menuitem action="Spell Check"/>
     <separator/>
-    <menuitem action="Horizontal Layout"/>
-    <menuitem action="Vertical Layout"/>
+    <placeholder name="Viewer"/>
     <separator/>
     <menuitem action="Update Notebook Index"/>
     <separator/>
@@ -1535,12 +1495,6 @@ class KeepNoteWindow (gtk.Window):
             self.uimanager.add_ui_from_string(s)
         self.setup_menus(self.uimanager)
 
-
-        # view mode
-        self.view_mode_h_toggle = \
-            self.uimanager.get_widget("/main_menu_bar/Options/Horizontal Layout")
-        self.view_mode_v_toggle = \
-            self.uimanager.get_widget("/main_menu_bar/Options/Vertical Layout")
 
         # get spell check toggle
         self.spell_check_toggle = \

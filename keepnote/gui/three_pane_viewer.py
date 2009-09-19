@@ -46,13 +46,15 @@ import keepnote
 from keepnote import unicode_gtk
 from keepnote import KeepNoteError
 from keepnote.gui import \
+     dialog_image_resize, \
      get_resource, \
      get_resource_image, \
      get_resource_pixbuf, \
      get_accel_file, \
      Action, \
+     ToggleAction, \
      FileChooserDialog, \
-     dialog_image_resize
+     CONTEXT_MENU_ACCEL_PATH
 from keepnote.history import NodeHistory
 from keepnote import notebook as notebooklib
 from keepnote.gui import richtext
@@ -64,239 +66,8 @@ from keepnote.gui.icon_menu import IconMenu
 from keepnote.gui.link_editor import LinkEditor
 from keepnote import notebook as notebooklib
 from keepnote.gui.treemodel import iter_children
+from keepnote.gui.viewer import Viewer
 
-
-
-
-class Viewer (gtk.VBox):
-
-    def __init__(self, app, parent):
-        gtk.VBox.__init__(self, False, 0)
-        self._app = app
-        self._main_window = parent
-        
-        self._notebook = None
-        self._history = NodeHistory()
-
-        self.image_resize_dialog = \
-            dialog_image_resize.ImageResizeDialog(parent, self._app.pref)
-
-
-
-    def set_notebook(self, notebook):
-        self._notebook = notebook
-
-    def get_notebook(self):
-        return self._notebook
-
-    def set_view_mode(self, mode):
-        # TODO: is this too specific?
-        pass
-
-    def load_preferences(self, app_pref):
-        pass
-
-    def save_preferences(self, app_pref):
-        pass
-
-    def save(self):
-        pass
-
-    def undo(self):
-        pass
-
-    def redo(self):
-        pass
-
-        
-    def visit_history(self, offset):
-        """Visit a node in the viewer's history"""
-        
-        nodeid = self._history.move(offset)
-        if nodeid is None:
-            return
-        node = self._notebook.get_node_by_id(nodeid)
-        if node:
-            self._history.begin_suspend()
-            self.goto_node(node, False)
-            self._history.end_suspend()
-
-
-    def get_current_page(self):
-        return None
-
-    def get_selected_nodes(self, widget="focus"):
-        pass
-
-    def start_search_result(self):        
-        pass
-
-    def add_search_result(self, node):
-        pass
-
-    def new_node(self, kind, widget, pos):
-        # TODO: choose a more general interface (i.e. deal with widget param)
-        pass
-
-    def get_ui(self):
-        pass
-
-    def get_actions(self):
-        pass
-
-    def setup_menus(self, uimanager):
-        pass
-
-    def make_toolbar(self, toolbar, tips, use_stock_icons):
-        pass
-
-    def goto_node(self, node, direct=True):
-        pass
-
-
-
-    #=================================================
-    # Image context menu
-
-
-    def on_view_image(self, menuitem):
-        """View image in Image Viewer"""
-        
-        # get image filename
-        image_filename = menuitem.get_parent().get_child().get_filename()
-        self.view_image(image_filename)
-        
-
-    def view_image(self, image_filename):
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-
-        image_path = os.path.join(current_page.get_path(), image_filename)
-        viewer = self._app.pref.get_external_app("image_viewer")
-        
-        if viewer is not None:
-            try:
-                proc = subprocess.Popen([viewer.prog, image_path])
-            except OSError, e:
-                self.emit("error", _("Could not open Image Viewer"), 
-                           e, sys.exc_info()[2])
-        else:
-            self.emit("error", _("You must specify an Image Viewer in Application Options"))
-
-
-    def on_edit_image(self, menuitem):
-        """Edit image in Image Editor"""
-
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-        
-        # get image filename
-        image_filename = menuitem.get_parent().get_child().get_filename()
-
-        image_path = os.path.join(current_page.get_path(), image_filename)
-        editor = self._app.pref.get_external_app("image_editor")
-    
-        if editor is not None:
-            try:
-                proc = subprocess.Popen([editor.prog, image_path])
-            except OSError, e:
-                self.emit("error", _("Could not open Image Editor"), 
-                           e, sys.exc_info()[2])
-        else:
-            self.emit("error", _("You must specify an Image Editor in Application Options"))
-
-
-    def on_resize_image(self, menuitem):
-        """Resize image"""
-
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-        
-        image = menuitem.get_parent().get_child()
-        self.image_resize_dialog.on_resize(image)
-        
-
-
-    def on_save_image_as(self, menuitem):
-        """Save image as a new file"""
-
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-        
-        # get image filename
-        image = menuitem.get_parent().get_child()
-        image_filename = menuitem.get_parent().get_child().get_filename()
-        image_path = os.path.join(current_page.get_path(), image_filename)
-
-        dialog = FileChooserDialog(
-            _("Save Image As..."), self, 
-            action=gtk.FILE_CHOOSER_ACTION_SAVE,
-            buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
-                     _("Save"), gtk.RESPONSE_OK),
-            app=self._app,
-            persistent_path="save_image_path")
-        dialog.set_default_response(gtk.RESPONSE_OK)
-        response = dialog.run()        
-
-        if response == gtk.RESPONSE_OK:
-
-            if not dialog.get_filename():
-                self.emit("error", _("Must specify a filename for the image."))
-            else:
-                filename = unicode_gtk(dialog.get_filename())
-                try:                
-                    image.write(filename)
-                except Exception, e:
-                    self.emit("error", _("Could not save image '%s'") %
-                               filename, e, sys.exc_info()[2])
-
-        dialog.destroy()
-    
-
-    def make_image_menu(self, menu):
-        """image context menu"""
-
-        # TODO: add back
-        #menu.set_accel_group(self.accel_group)
-        #menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
-        item = gtk.SeparatorMenuItem()
-        item.show()
-        menu.append(item)
-            
-        # image/edit
-        item = gtk.MenuItem(_("_View Image..."))
-        item.connect("activate", self.on_view_image)
-        item.child.set_markup_with_mnemonic(_("<b>_View Image...</b>"))
-        item.show()
-        menu.append(item)
-        
-        item = gtk.MenuItem(_("_Edit Image..."))
-        item.connect("activate", self.on_edit_image)
-        item.show()
-        menu.append(item)
-
-        item = gtk.MenuItem(_("_Resize Image..."))
-        item.connect("activate", self.on_resize_image)
-        item.show()
-        menu.append(item)
-
-        # image/save
-        item = gtk.ImageMenuItem(_("_Save Image As..."))
-        item.connect("activate", self.on_save_image_as)
-        item.show()
-        menu.append(item)
-
-
-
-gobject.type_register(Viewer)
-gobject.signal_new("error", Viewer, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (str, object,))
-gobject.signal_new("history-changed", Viewer, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object,))
 
 
 
@@ -314,6 +85,8 @@ class ThreePaneViewer (Viewer):
         self._queue_list_select = []  # nodes to select in listview after treeview change
         self._new_page_occurred = False
 
+
+        self._ignore_view_mode = False # prevent recursive view mode changes
 
         #=========================================
         # widgets
@@ -425,8 +198,25 @@ class ThreePaneViewer (Viewer):
         return self._notebook
 
 
+
     def set_view_mode(self, mode):
-        """Sets view mode for ThreePaneViewer"""
+        """
+        Sets view mode for ThreePaneViewer
+
+        modes:
+            "vertical"
+            "horizontal"
+        """
+
+        # update menu
+        if self._ignore_view_mode:
+            return
+        self._ignore_view_mode = True
+        self.view_mode_h_toggle.set_active(mode == "horizontal")
+        self.view_mode_v_toggle.set_active(mode == "vertical")
+        self._ignore_view_mode = False
+
+
 
         # detach widgets
         self.paned2.remove(self.listview_sw)
@@ -450,10 +240,16 @@ class ThreePaneViewer (Viewer):
         self.paned2.add1(self.listview_sw)
         self.paned2.add2(self.editor_pane)
 
+        # record preference
+        self._app.pref.view_mode = mode        
+        self._app.pref.write()
+
+
 
     def load_preferences(self, app_pref, first_open=False):
         """Load application preferences"""
 
+        self.set_view_mode(app_pref.view_mode)
         self.paned2.set_position(app_pref.vsash_pos)
         self.hpaned.set_position(app_pref.hsash_pos)
 
@@ -847,6 +643,12 @@ class ThreePaneViewer (Viewer):
               <menuitem action="Go to Link"/>
             </placeholder>
           </menu>
+          <menu action="Options">
+            <placeholder name="Viewer">
+              <menuitem action="Horizontal Layout"/>
+              <menuitem action="Vertical Layout"/>
+            </placeholder>
+          </menu>
         </menubar>
         </ui>
         """] + self.editor_menus.get_ui()
@@ -902,12 +704,27 @@ class ThreePaneViewer (Viewer):
             
             ("Go to Link", None, _("Go to Lin_k"),
              "<control>space", None,
-             lambda w: self.goto_link())
+             lambda w: self.goto_link())]) + \
+            map(lambda x: ToggleAction(*x), [
+            ("Horizontal Layout", None, _("_Horizontal Layout"),
+             "", None,
+             lambda w: self.set_view_mode("horizontal")),
             
+            ("Vertical Layout", None, _("_Vertical Layout"),
+             "", None,
+             lambda w: self.set_view_mode("vertical")),
+
             ]) + self.editor_menus.get_actions()
 
     def setup_menus(self, uimanager):
         self.editor_menus.setup_menu(uimanager)
+
+        # view mode
+        self.view_mode_h_toggle = \
+            uimanager.get_widget("/main_menu_bar/Options/Viewer/Horizontal Layout")
+        self.view_mode_v_toggle = \
+            uimanager.get_widget("/main_menu_bar/Options/Viewer/Vertical Layout")
+
 
         
     def make_toolbar(self, toolbar, tips, use_stock_icons,
