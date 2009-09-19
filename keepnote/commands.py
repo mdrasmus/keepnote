@@ -39,17 +39,27 @@ import keepnote
 # constants
 KEEPNOTE_HEADER = "keepnote\n"
 
+# TODO: add unicode support
+
 # TODO: ensure commands are executed in order, but don't allow malicious
-# process to DOS main process
+# process to DOS main process (may be minor issue)
 
 
-def get_lock_file():
-    lockfile = keepnote.get_user_lock_file()
+def get_lock_file(lockfile):
+    """
+    Try to acquire a lock file
+    Returns (aquire, fd) where 'aquire' is True if the lock is aquired and
+    'fd' is the file descriptor of the lock file.
+    """
+
     aquire = False
 
     while True:
         try:
+            # try to create file with exclusive access
             fd = os.open(lockfile, os.O_CREAT|os.O_EXCL|os.O_RDWR, 0600)
+            
+            # creation succeeded, we have the lock
             aquire = True
             break
 
@@ -59,6 +69,8 @@ def get_lock_file():
                 raise
 
             try:
+                # lock already exists (i.e. held by someone else)
+                # try to open it in read only mode
                 fd = os.open(lockfile, os.O_RDONLY)
                 aquire = False
                 break
@@ -67,13 +79,20 @@ def get_lock_file():
                 if e.errno != errno.ENOENT:
                     # unknown error, re-raise
                     raise
-            
 
+                # The lock file disapeared between the two open attempts.
+                # Loop and try again.
+            
     return aquire, fd
     
 
 def open_socket(port=None, start_port=4000, end_port=10000, tries=10):
-    """Open a new socket for listen"""
+    """
+    Open a new socket to listen for new connections.
+    This function make multiple attempts and can possibly try random 
+    port numbers.
+    """
+    
     s = socket.socket(socket.AF_INET)
 
     for i in range(tries):
@@ -96,9 +115,35 @@ def open_socket(port=None, start_port=4000, end_port=10000, tries=10):
         s = None
 
     return s, port2
-    
+
+
+def listen_commands(sock, connfunc, args):
+    """
+    Listen for new connections and handle them with new threads
+
+    sock     -- socket to listen on
+    connfunc -- function to call in new thread
+                must take arguments (conn, addr, *args)
+    args     -- tuple of arguments to pass to connfunc
+    """
+
+    while True:
+        try:
+            conn, addr = sock.accept()
+        except socket.error:
+            continue
+
+        thread.start_new_thread(connfunc, (conn, addr) + args)
+
+
 def process_connection(conn, addr, passwd, execfunc):
-    """Process a connection"""
+    """
+    Process a connection
+    conn     -- connection to other process
+    addr     -- address of other process
+    passwd   -- password required to accept connect
+    execfunc -- function to call with command
+    """
 
     try:
         connfile = conn.makefile("rw")
@@ -116,25 +161,16 @@ def process_connection(conn, addr, passwd, execfunc):
         # parse command and execute
         execfunc(parse_command(command))
 
+        # close connection
         connfile.close()
         conn.close()
 
     except socket.error, e:
+        # socket error, close connection
         print >>sys.stderr, e, ": error with connection"
         conn.close()
 
 
-def listen_commands(sock, passwd, execfunc):
-    """Listen for new connections and process their commands"""
-
-    while True:
-        try:
-            conn, addr = sock.accept()
-        except socket.error:
-            continue
-
-        thread.start_new_thread(process_connection, 
-                                (conn, addr, passwd, execfunc))
 
 
 def write_lock_file(fd, port, passwd):
@@ -219,60 +255,71 @@ class CommandExecutor (object):
         self._port = port
 
 
+    def _listen(self, fd, execfunc):
+        """Listen for other processes to send commands"""
+        
+        # open socket and record port number in lock file
+        passwd = make_passwd()
+        sock, port = open_socket(self._port)
+        if port is None:
+            raise Exception("Could not open socket")
+        write_lock_file(fd, port, passwd)
+
+        self._execfunc = execfunc
+
+        # start listening to socket for remote commands
+        thread.start_new_thread(listen_commands, 
+                                (sock, process_connection, (passwd, 
+                                                            self.execute)))
+
+    def _connect(self, fd):
+        """Connect to the main process"""
+        
+        port, passwd = read_lock_file(fd)
+        os.close(fd)
+        fd = None
+
+        # use port number to connect
+        s = socket.socket(socket.AF_INET)
+        s.connect(("localhost", port))
+        connfile = s.makefile()
+                    
+        # ensure header matches
+        header = connfile.readline()
+        assert header == KEEPNOTE_HEADER
+
+        # send password
+        connfile.write("%s\n" % passwd)
+                    
+        def execute(app, argv):
+            # send command
+            connfile.write(format_command(argv))
+            connfile.close()
+            s.close()
+        self._execfunc = execute
+
+
     def setup(self, execfunc):        
-        """Returns True if this is the main process, False otherwise"""
+        """
+        Returns True if this is the main process, False otherwise
+        execfunc  -- a function to call with arguments if this is the 
+                     main process
+        """
 
         tries = 2
+        lock_file = keepnote.get_user_lock_file()
 
         for i in range(tries):
-            aquire, fd = get_lock_file()
-
+            aquire, fd = get_lock_file(lock_file)
 
             if aquire:
-                # open socket and record port number in lock file
-                passwd = make_passwd()
-                sock, port = open_socket(self._port)
-                if port is None:
-                    raise Exception("Could not open socket")
-                write_lock_file(fd, port, passwd)
-
-                self._execfunc = execfunc
-
-                # start listening to socket for remote commands
-                thread.start_new_thread(listen_commands, (sock, passwd, 
-                                                          self.execute))
-
-                self._execfunc = execfunc
+                self._listen(fd, execfunc)
                 return True
 
             else:
                 # connect to main process through socket
                 try:
-                    port, passwd = read_lock_file(fd)
-                    os.close(fd)
-                    fd = None
-
-                    # use port number to connect
-                    s = socket.socket(socket.AF_INET)
-                    s.connect(("localhost", port))
-                    connfile = s.makefile()
-                    
-                    # ensure header matches
-                    header = connfile.readline()
-                    assert header == KEEPNOTE_HEADER
-
-                    # send password
-                    connfile.write("%s\n" % passwd)
-                    
-                    def execute(app, argv):
-                        # send command
-                        # TODO: format correctly
-                        connfile.write(format_command(argv))
-
-                        connfile.close()
-                        s.close()
-                    self._execfunc = execute
-
+                    self._connect(fd)
                     return False
 
                 except Exception, e:
@@ -280,12 +327,13 @@ class CommandExecutor (object):
                     # remove lock file and attempt to acquire again
                     if fd:
                         os.close(fd)
-                    os.remove(keepnote.get_user_lock_file())
+                    os.remove(lock_file)
 
         raise Exception("cannot get lock")
     
     
     def execute(self, argv):
+        """Send a command to the main thread"""
         self._execfunc(self._app, argv)
 
 
