@@ -166,10 +166,10 @@ class KeepNoteWindow (gtk.Window):
 
 
         # main window signals
-        self.connect("delete-event", lambda w,e: self.on_close())
-        self.connect("window-state-event", self.on_window_state)
-        self.connect("size-allocate", self.on_window_size)
-        self.app.pref.changed.add(self.on_app_options_changed)
+        self.connect("delete-event", lambda w,e: self._on_close())
+        self.connect("window-state-event", self._on_window_state)
+        self.connect("size-allocate", self._on_window_size)
+        self.app.pref.changed.add(self._on_app_options_changed)
         
 
         # viewer
@@ -255,7 +255,7 @@ class KeepNoteWindow (gtk.Window):
                 self._tray_icon = gtk.StatusIcon()
                 self._tray_icon.set_from_pixbuf(get_resource_pixbuf("keepnote-32x32.png"))
                 self._tray_icon.set_tooltip(keepnote.PROGRAM_NAME)
-                self._tray_icon.connect("activate", self.on_tray_icon_activate)
+                self._tray_icon.connect("activate", self._on_tray_icon_activate)
 
             self._tray_icon.set_property("visible", self.app.pref.use_systray)
             
@@ -268,11 +268,11 @@ class KeepNoteWindow (gtk.Window):
         viewer = ThreePaneViewer(self.app, self)
         viewer.connect("error", lambda w,t,e: self.error(t, e))
         viewer.listview.on_status = self.set_status  # TODO: clean up
-        viewer.editor.connect("modified", self.on_page_editor_modified)
+        viewer.editor.connect("modified", self._on_page_editor_modified)
         viewer.editor.connect("child-activated", self.on_child_activated)
-        viewer.editor.connect("window-request", self.on_window_request)
+        viewer.editor.connect("window-request", self._on_window_request)
         viewer.editor.connect("visit-node", self.on_visit_node)
-        viewer.connect("history-changed", self.on_history_changed)
+        viewer.connect("history-changed", self._on_history_changed)
 
         # context menus
         self.make_context_menus(viewer)
@@ -362,7 +362,7 @@ class KeepNoteWindow (gtk.Window):
     #=========================================================
     # main window gui callbacks
 
-    def on_window_state(self, window, event):
+    def _on_window_state(self, window, event):
         """Callback for window state"""
 
         # keep track of maximized and minimized state
@@ -375,7 +375,7 @@ class KeepNoteWindow (gtk.Window):
                                gtk.gdk.WINDOW_STATE_MAXIMIZED)
 
 
-    def on_window_size(self, window, event):
+    def _on_window_size(self, window, event):
         """Callback for resize events"""
 
         # record window size if it is not maximized or minimized
@@ -383,11 +383,11 @@ class KeepNoteWindow (gtk.Window):
             self.app.pref.window_size = self.get_size()
 
 
-    def on_app_options_changed(self):
+    def _on_app_options_changed(self):
         self.load_preferences()
 
 
-    def on_tray_icon_activate(self, icon):
+    def _on_tray_icon_activate(self, icon):
         """Try icon has been clicked in system tray"""
         
         if self.is_active():
@@ -395,17 +395,6 @@ class KeepNoteWindow (gtk.Window):
         else:
             self.restore_window()
 
-
-    def on_window_request(self, widget, action):
-        """Callback for requesting an action from the main window"""
-        
-        if action == "minimize":
-            self.minimize_window()
-        elif action == "restore":
-            self.restore_window()
-        else:
-            raise Exception("unknown window request: " + str(action))
-    
     
     #==============================================
     # Application preferences     
@@ -544,7 +533,7 @@ class KeepNoteWindow (gtk.Window):
         dialog.destroy()
 
     
-    def on_close(self):
+    def _on_close(self):
         """Callback for window close"""
         
         self.save_preferences()
@@ -771,8 +760,18 @@ class KeepNoteWindow (gtk.Window):
     #=============================================================
     # viewer callbacks
 
+
+    def _on_window_request(self, widget, action):
+        """Callback for requesting an action from the main window"""
+        
+        if action == "minimize":
+            self.minimize_window()
+        elif action == "restore":
+            self.restore_window()
+        else:
+            raise Exception("unknown window request: " + str(action))
     
-    def on_page_editor_modified(self, editor, page, modified):
+    def _on_page_editor_modified(self, editor, page, modified):
         if modified:
             self.set_notebook_modified(modified)
 
@@ -786,7 +785,7 @@ class KeepNoteWindow (gtk.Window):
         """Callback for action to visit a node"""        
         self.viewer.goto_node(node, False)
 
-    def on_history_changed(self, viewer, history):
+    def _on_history_changed(self, viewer, history):
         """Callback for when node browse history changes"""
         
         self.back_button.set_sensitive(history.has_back())
@@ -841,7 +840,7 @@ class KeepNoteWindow (gtk.Window):
             self.error(_("Could not empty trash."), e, sys.exc_info()[2])
 
 
-    def on_history(self, offset):
+    def _on_history(self, offset):
         """Move forward or backward in history"""
         self.viewer.visit_history(offset)
         
@@ -1078,10 +1077,6 @@ class KeepNoteWindow (gtk.Window):
 
     def on_view_image(self, menuitem):
         """View image in Image Viewer"""
-
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
         
         # get image filename
         image_filename = menuitem.get_parent().get_child().get_filename()
@@ -1090,6 +1085,9 @@ class KeepNoteWindow (gtk.Window):
 
     def view_image(self, image_filename):
         current_page = self.get_current_page()
+        if current_page is None:
+            return
+
         image_path = os.path.join(current_page.get_path(), image_filename)
         viewer = self.app.pref.get_external_app("image_viewer")
         
@@ -1515,10 +1513,10 @@ class KeepNoteWindow (gtk.Window):
             ("Go", None, _("_Go")),
 
             ("Back", gtk.STOCK_GO_BACK, _("_Back"), "", None,
-             lambda w: self.on_history(-1)),
+             lambda w: self._on_history(-1)),
 
             ("Forward", gtk.STOCK_GO_FORWARD, _("_Forward"), "", None,
-             lambda w: self.on_history(1)),
+             lambda w: self._on_history(1)),
             
             #=========================================
             ("Options", None, _("_Options")),
@@ -1740,14 +1738,14 @@ class KeepNoteWindow (gtk.Window):
         self.back_button.set_stock_id(gtk.STOCK_GO_BACK)
         tips.set_tip(self.back_button, "Back")
         self.back_button.connect("clicked", 
-                                        lambda w: self.on_history(-1))
+                                        lambda w: self._on_history(-1))
         toolbar.insert(self.back_button, -1)
         
         # forward in history
         self.forward_button = gtk.ToolButton()
         self.forward_button.set_stock_id(gtk.STOCK_GO_FORWARD)
         tips.set_tip(self.forward_button, "Forward")
-        self.forward_button.connect("clicked", lambda w: self.on_history(1))
+        self.forward_button.connect("clicked", lambda w: self._on_history(1))
         toolbar.insert(self.forward_button, -1)
 
 
