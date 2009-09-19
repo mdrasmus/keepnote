@@ -108,15 +108,20 @@ class ThreePaneViewer (Viewer):
         self.listview.connect("error", lambda w,t,e: self.emit("error", t, e))
         self.listview.connect("edit-title", self._on_edit_title)
         self.listview.connect("drop-file", self._on_attach_file)
+        self.listview.on_status = self.set_status  # TODO: clean up
         
         # editor
         self.editor = KeepNoteEditor(self._app)
         self.editor_menus = EditorMenus(self.editor)
         self.editor_menus.connect("make-link", self._on_make_link)
+        self.editor.connect("child-activated", self._on_child_activated)
+        self.editor.connect("visit-node", lambda w, n: self.goto_node(n, False))
         self.editor.connect("font-change", self.editor_menus.on_font_change)
         self.editor.connect("error", lambda w,t,e: self.emit("error", t, e))
+        self.editor.connect("window-request", lambda w,t: 
+                            self.emit("window-request", t))
         self.editor.view_pages([])
-
+        
         self.editor_pane = gtk.VBox(False, 5)
         self.editor_pane.pack_start(self.editor, True, True, 0)
 
@@ -334,6 +339,9 @@ class ThreePaneViewer (Viewer):
 
         return (nodes, widget)
 
+    def set_status(self, text, bar="status"):
+        self.emit("status", text, bar)
+
 
     def _on_make_link(self, editor_menu):
         self.link_editor.edit()
@@ -359,6 +367,13 @@ class ThreePaneViewer (Viewer):
                 for nodeid, title in self._notebook._index.search_titles(text)
                 if nodeid != current_nodeid]
         return nodes
+
+
+    def _on_child_activated(self, editor, textview, child):
+        """Callback for when child widget in editor is activated"""
+        
+        if isinstance(child, richtext.RichTextImage):
+            self.view_image(child.get_filename())
 
         
     def _on_tree_select(self, treeview, nodes):

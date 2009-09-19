@@ -296,7 +296,11 @@ class Viewer (gtk.VBox):
 
 gobject.type_register(Viewer)
 gobject.signal_new("error", Viewer, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (str, object,))
+    gobject.TYPE_NONE, (str, object))
+gobject.signal_new("status", Viewer, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (str, str))
 gobject.signal_new("history-changed", Viewer, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (object,))
+gobject.signal_new("window-request", Viewer, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (str,))
 

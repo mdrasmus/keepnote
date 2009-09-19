@@ -75,13 +75,11 @@ import keepnote.search
 from keepnote.gui import richtext
 from keepnote.gui import \
     dialog_app_options, \
-    dialog_find, \
     dialog_drag_drop_test, \
     dialog_wait, \
     dialog_update_notebook, \
     dialog_node_icon, \
     update_file_preview
-from keepnote.gui.editor import KeepNoteEditor, EditorMenus
 from keepnote.gui.icon_menu import IconMenu
 from keepnote.gui.three_pane_viewer import ThreePaneViewer
 
@@ -231,11 +229,8 @@ class KeepNoteWindow (gtk.Window):
 
         viewer = ThreePaneViewer(self.app, self)
         viewer.connect("error", lambda w,m,e: self.error(m, e))
-        viewer.listview.on_status = self.set_status  # TODO: clean up
-        viewer.editor.connect("modified", self._on_page_editor_modified)
-        viewer.editor.connect("child-activated", self.on_child_activated)
-        viewer.editor.connect("window-request", self._on_window_request)
-        viewer.editor.connect("visit-node", self.on_visit_node)
+        viewer.connect("status", lambda w,m,b: self.set_status(m, b))
+        viewer.connect("window-request", self._on_window_request)
         viewer.connect("history-changed", self._on_history_changed)
 
         # context menus
@@ -696,7 +691,7 @@ class KeepNoteWindow (gtk.Window):
     # viewer callbacks
 
 
-    def _on_window_request(self, widget, action):
+    def _on_window_request(self, viewer, action):
         """Callback for requesting an action from the main window"""
         
         if action == "minimize":
@@ -706,20 +701,7 @@ class KeepNoteWindow (gtk.Window):
         else:
             raise Exception("unknown window request: " + str(action))
     
-    def _on_page_editor_modified(self, editor, page, modified):
-        if modified:
-            self.set_notebook_modified(modified)
-
-
-    def on_child_activated(self, editor, textview, child):
-        if isinstance(child, richtext.RichTextImage):
-            self.view_image(child.get_filename())
-    
             
-    def on_visit_node(self, widget, node):
-        """Callback for action to visit a node"""        
-        self.viewer.goto_node(node, False)
-
     def _on_history_changed(self, viewer, history):
         """Callback for when node browse history changes"""
         
