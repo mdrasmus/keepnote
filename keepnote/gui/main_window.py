@@ -191,12 +191,6 @@ class KeepNoteWindow (gtk.Window):
             ui_id = self.uimanager.add_ui_from_string(s)
         self.viewer.setup_menus(self.uimanager)
 
-        
-
-    def get_accel_group(self):
-        """Returns the accel group for the window"""
-        return self.accel_group()
-
 
     def init_key_shortcuts(self):
         """Setup key shortcuts for the window"""
@@ -226,6 +220,7 @@ class KeepNoteWindow (gtk.Window):
 
 
     def new_viewer(self):
+        """Creates a new viewer for this window"""
 
         viewer = ThreePaneViewer(self.app, self)
         viewer.connect("error", lambda w,m,e: self.error(m, e))
@@ -250,7 +245,12 @@ class KeepNoteWindow (gtk.Window):
     def get_viewer(self):
         """Return window's viewer"""
         return self.viewer
-    
+            
+
+    def get_accel_group(self):
+        """Returns the accel group for the window"""
+        return self.accel_group()
+
 
     def get_notebook(self):
         """Return the currently loaded notebook"""
@@ -262,32 +262,6 @@ class KeepNoteWindow (gtk.Window):
         return self.viewer.get_current_page()
         
         
-                
-
-    #=================================================
-    # Window manipulation
-
-    def minimize_window(self):
-        """Minimize the window (block until window is minimized"""
-        
-        if self._iconified:
-            return
-
-        # TODO: add timer in case minimize fails
-        def on_window_state(window, event):            
-            if event.new_window_state & gtk.gdk.WINDOW_STATE_ICONIFIED:
-                gtk.main_quit()
-        sig = self.connect("window-state-event", on_window_state)
-        self.iconify()
-        gtk.main()
-        self.disconnect(sig)
-
-
-    def restore_window(self):
-        """Restore the window from minimization"""
-        self.deiconify()
-        self.present()
-
 
     #=========================================================
     # main window gui callbacks
@@ -324,6 +298,55 @@ class KeepNoteWindow (gtk.Window):
             self.minimize_window()
         else:
             self.restore_window()
+
+
+    #=============================================================
+    # viewer callbacks
+
+
+    def _on_window_request(self, viewer, action):
+        """Callback for requesting an action from the main window"""
+        
+        if action == "minimize":
+            self.minimize_window()
+        elif action == "restore":
+            self.restore_window()
+        else:
+            raise Exception("unknown window request: " + str(action))
+    
+            
+    def _on_history_changed(self, viewer, history):
+        """Callback for when node browse history changes"""
+        
+        self.back_button.set_sensitive(history.has_back())
+        self.forward_button.set_sensitive(history.has_forward())
+
+    
+
+
+    #=================================================
+    # Window manipulation
+
+    def minimize_window(self):
+        """Minimize the window (block until window is minimized"""
+        
+        if self._iconified:
+            return
+
+        # TODO: add timer in case minimize fails
+        def on_window_state(window, event):            
+            if event.new_window_state & gtk.gdk.WINDOW_STATE_ICONIFIED:
+                gtk.main_quit()
+        sig = self.connect("window-state-event", on_window_state)
+        self.iconify()
+        gtk.main()
+        self.disconnect(sig)
+
+
+    def restore_window(self):
+        """Restore the window from minimization"""
+        self.deiconify()
+        self.present()
 
     
     #==============================================
@@ -687,28 +710,7 @@ class KeepNoteWindow (gtk.Window):
                          tasklib.Task(update))
 
 
-    #=============================================================
-    # viewer callbacks
 
-
-    def _on_window_request(self, viewer, action):
-        """Callback for requesting an action from the main window"""
-        
-        if action == "minimize":
-            self.minimize_window()
-        elif action == "restore":
-            self.restore_window()
-        else:
-            raise Exception("unknown window request: " + str(action))
-    
-            
-    def _on_history_changed(self, viewer, history):
-        """Callback for when node browse history changes"""
-        
-        self.back_button.set_sensitive(history.has_back())
-        self.forward_button.set_sensitive(history.has_forward())
-
-    
     #===========================================================
     # page and folder actions
 
@@ -1075,7 +1077,7 @@ class KeepNoteWindow (gtk.Window):
         # therefore we should copy error log before viewing it
         try:
             filename = os.path.realpath(keepnote.get_user_error_log())
-            filename2 = filename + ".bak"
+            filename2 = filename + u".bak"
             shutil.copy(filename, filename2)        
 
             # use text editor to view error log
@@ -1158,6 +1160,8 @@ class KeepNoteWindow (gtk.Window):
     # Messages, warnings, errors UI/dialogs
     
     def set_status(self, text, bar="status"):
+        """Sets a status message in the status bar"""
+        
         if bar == "status":
             self.status_bar.pop(0)
             self.status_bar.push(0, text)
@@ -1189,21 +1193,7 @@ class KeepNoteWindow (gtk.Window):
         """Display a wait dialog"""
 
         dialog = dialog_wait.WaitDialog(self)
-        dialog.show(title, text, task)
-
-
-    def wait_dialog_test_task(self):
-        # create dummy testing task
-        
-        def func(task):
-            complete = 0.0
-            while task.is_running():
-                print complete
-                complete = 1.0 - (1.0 - complete) * .9999
-                task.set_percent(complete)
-            task.finish()
-        return tasklib.Task(func)
-        
+        dialog.show(title, text, task)       
 
         
     
@@ -1787,6 +1777,7 @@ class KeepNoteWindow (gtk.Window):
     def make_context_menus(self, viewer):
         """Initialize context menus"""        
         
+        # TODO: Try to add accellerator to popup menu
         #menu = viewer.editor.get_textview().get_popup_menu()
         #menu.set_accel_group(self.accel_group)
         #menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
