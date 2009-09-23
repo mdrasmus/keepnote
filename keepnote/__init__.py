@@ -491,39 +491,45 @@ class EnvError (StandardError):
 
 
 DEFAULT_EXTERNAL_APPS = [
-    ExternalApp("file_launcher", "File Launcher", ""),
-    ExternalApp("web_browser", "Web Browser", ""),
-    ExternalApp("file_explorer", "File Explorer", ""),
-    ExternalApp("text_editor", "Text Editor", ""),
-    ExternalApp("image_editor", "Image Editor", ""),
-    ExternalApp("image_viewer", "Image Viewer", ""),
-    ExternalApp("screen_shot", "Screen Shot", "")
-]
+            ExternalApp("file_launcher", "File Launcher", u""),
+            ExternalApp("web_browser", "Web Browser", u""),
+            ExternalApp("file_explorer", "File Explorer", u""),
+            ExternalApp("text_editor", "Text Editor", u""),
+            ExternalApp("image_editor", "Image Editor", u""),
+            ExternalApp("image_viewer", "Image Viewer", u""),
+            ExternalApp("screen_shot", "Screen Shot", u"")
+            ]
 
+def get_external_app_defaults():
+    if get_platform() == "windows":
+        files = os.environ.get("PROGRAMFILES", u"C:\\Program Files")
 
-DEFAULT_EXTERNAL_APPS_WINDOWS = [
-    ExternalApp("file_launcher", "File Launcher", "explorer.exe"),
-    ExternalApp("web_browser", "Web Browser",
-                "C:\\Program Files\\Internet Explorer\\iexplore.exe"),
-    ExternalApp("file_explorer", "File Explorer", "explorer.exe"),
-    ExternalApp("text_editor", "Text Editor",
-                "C:\Program Files\\Windows NT\\Accessories\\wordpad.exe"),
-    ExternalApp("image_editor", "Image Editor", "mspaint.exe"),
-    ExternalApp("image_viewer", "Image Viewer",
-                "C:\\Program Files\\Internet Explorer\\iexplore.exe"),
-    ExternalApp("screen_shot", "Screen Shot", "")
-]
+        return [
+            ExternalApp("file_launcher", "File Launcher", "explorer.exe"),
+            ExternalApp("web_browser", "Web Browser",
+                        files + u"\\Internet Explorer\\iexplore.exe"),
+            ExternalApp("file_explorer", "File Explorer", "explorer.exe"),
+            ExternalApp("text_editor", "Text Editor",
+                        files + u"\\Windows NT\\Accessories\\wordpad.exe"),
+            ExternalApp("image_editor", "Image Editor", "mspaint.exe"),
+            ExternalApp("image_viewer", "Image Viewer",
+                        files + u"\\Internet Explorer\\iexplore.exe"),
+            ExternalApp("screen_shot", "Screen Shot", "")
+            ]
 
-
-DEFAULT_EXTERNAL_APPS_LINUX = [
-    ExternalApp("file_launcher", "File Launcher", "xdg-open"),
-    ExternalApp("web_browser", "Web Browser", ""),
-    ExternalApp("file_explorer", "File Explorer", ""),
-    ExternalApp("text_editor", "Text Editor", ""),
-    ExternalApp("image_editor", "Image Editor", ""),
-    ExternalApp("image_viewer", "Image Viewer", "display"),
-    ExternalApp("screen_shot", "Screen Shot", "import")
-]
+    elif get_platform() == "unix":
+        return [
+            ExternalApp("file_launcher", "File Launcher", u"xdg-open"),
+            ExternalApp("web_browser", "Web Browser", u""),
+            ExternalApp("file_explorer", "File Explorer", u""),
+            ExternalApp("text_editor", "Text Editor", u""),
+            ExternalApp("image_editor", "Image Editor", u""),
+            ExternalApp("image_viewer", "Image Viewer", u"display"),
+            ExternalApp("screen_shot", "Screen Shot", u"import")
+            ]
+    else:
+        return DEFAULT_EXTERNAL_APPS
+        
 
 
 # TODO: maybe merge with app class?
@@ -598,6 +604,7 @@ class KeepNotePreferences (object):
     def _on_changed(self):
         """Listener for preference changes"""
         self.write()
+        
 
 
     def read(self):
@@ -633,12 +640,7 @@ class KeepNotePreferences (object):
             self._external_apps_lookup[app.key] = app
 
         # add default programs
-        if get_platform() == "windows":
-            lst = DEFAULT_EXTERNAL_APPS_WINDOWS
-        elif get_platform() == "unix":
-            lst = DEFAULT_EXTERNAL_APPS_LINUX
-        else:
-            lst = DEFAULT_EXTERNAL_APPS
+        lst = get_external_app_defaults()
         for defapp in lst:
             if defapp.key not in self._external_apps_lookup:
                 self.external_apps.append(defapp)
