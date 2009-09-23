@@ -495,11 +495,11 @@ class ApplicationOptionsDialog (object):
                 return section
 
             
-    def get_section_path(self, section):
+    def get_section_path(self, key):
         """Returns the TreeModel path for a section"""
 
         for row in self.overview_store:
-            if row[1] == section:
+            if row[1].key == key:
                 return row.path
 
         return None
@@ -507,22 +507,18 @@ class ApplicationOptionsDialog (object):
 
     def add_default_sections(self):
         
-        general_tab = GeneralTab("general", self.dialog, self.app)
-        self.add_section(general_tab, keepnote.PROGRAM_NAME)
-
-        look_tab = LookAndFeelTab("look_and_feel", self.dialog, self.app)
-        self.add_section(look_tab, _("Look and Feel"), general_tab)
-
-        
-        helper_tab = HelperAppsTab("helper_apps", self.dialog, self.app)
-        self.add_section(helper_tab, _("Helper Applications"), general_tab)
-
-        dates_tab = DatesTab("date_and_time", self.dialog, self.app)
-        self.add_section(dates_tab, _("Date and Time"), general_tab)
-
-        notebook_tab = NoteBookTab("notebook", self.dialog, self.app, 
-                                        self.main_window.get_notebook())
-        self.add_section(notebook_tab, _("This Notebook"))
+        self.add_section(GeneralTab("general", self.dialog, self.app), 
+                         keepnote.PROGRAM_NAME)
+        self.add_section(LookAndFeelTab("look_and_feel", self.dialog, 
+                                        self.app), 
+                         _("Look and Feel"), "general")
+        self.add_section(HelperAppsTab("helper_apps", self.dialog, self.app), 
+                         _("Helper Applications"), "general")
+        self.add_section(DatesTab("date_and_time", self.dialog, self.app), 
+                         _("Date and Time"), "general")
+        self.add_section(NoteBookTab("notebook", self.dialog, self.app, 
+                                        self.main_window.get_notebook()), 
+                         _("This Notebook"))
 
 
 
