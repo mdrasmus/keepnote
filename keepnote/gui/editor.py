@@ -459,7 +459,7 @@ class KeepNoteEditor (gtk.VBox):
             return
         self._textview.insert_hr()
 
-        
+
     def on_insert_image(self):
         """Displays the Insert Image Dialog"""
         
@@ -472,6 +472,25 @@ class KeepNoteEditor (gtk.VBox):
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
                      _("Insert"), gtk.RESPONSE_OK))
+
+        # add image filters
+        filter = gtk.FileFilter()
+        filter.set_name("Images")
+        filter.add_mime_type("image/png")
+        filter.add_mime_type("image/jpeg")
+        filter.add_mime_type("image/gif")
+        filter.add_pattern("*.png")
+        filter.add_pattern("*.jpg")
+        filter.add_pattern("*.gif")
+        filter.add_pattern("*.tif")
+        filter.add_pattern("*.xpm")
+        dialog.add_filter(filter)
+        
+        filter = gtk.FileFilter()
+        filter.set_name("All files")
+        filter.add_pattern("*")
+        dialog.add_filter(filter)
+
 
         # setup preview
         preview = gtk.Image()

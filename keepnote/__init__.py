@@ -72,7 +72,7 @@ import xml.sax.saxutils
 PROGRAM_NAME = "KeepNote"
 PROGRAM_VERSION_MAJOR = 0
 PROGRAM_VERSION_MINOR = 6
-PROGRAM_VERSION_RELEASE = 0
+PROGRAM_VERSION_RELEASE = 1
 PROGRAN_VERSION = (PROGRAM_VERSION_MAJOR,
                    PROGRAM_VERSION_MINOR,
                    PROGRAM_VERSION_RELEASE)
@@ -587,12 +587,18 @@ class KeepNotePreferences (object):
 
         # listener
         self.changed = Listeners()
+        self.changed.add(self._on_changed)
 
 
     def get_pref_dir(self):
         """Returns preference directory"""
         return self._pref_dir
     
+
+    def _on_changed(self):
+        """Listener for preference changes"""
+        self.write()
+
 
     def read(self):
         """Read preferences from file"""

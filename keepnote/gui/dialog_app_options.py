@@ -234,13 +234,13 @@ class ApplicationOptionsDialog (object):
                 _("Choose alternative notebook index directory"),
                 "", action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER))
 
-        if self.main_window.notebook is not None:
-            font = self.main_window.notebook.pref.default_font
+        if self.main_window.get_notebook() is not None:
+            font = self.main_window.get_notebook().pref.default_font
             family, mods, size = richtext.parse_font(font)
             self.notebook_font_family.set_family(family)
             self.notebook_font_size.set_value(size)
 
-            self.notebook_index_dir.set_text(self.main_window.notebook.pref.index_dir)
+            self.notebook_index_dir.set_text(self.main_window.get_notebook().pref.index_dir)
 
 
         self.dialog.show()
@@ -335,9 +335,9 @@ class ApplicationOptionsDialog (object):
 
     def on_set_default_notebook_button_clicked(self, widget):
 
-        if self.main_window.notebook:
+        if self.main_window.get_notebook():
             self.general_xml.get_widget("default_notebook_entry").set_text(
-                self.main_window.notebook.get_path())
+                self.main_window.get_notebook().get_path())
             
         
 
@@ -401,22 +401,22 @@ class ApplicationOptionsDialog (object):
                     self.entries[key].get_text())
 
         # save notebook font        
-        if self.main_window.notebook is not None:
-            pref = self.main_window.notebook.pref
+        if self.main_window.get_notebook() is not None:
+            pref = self.main_window.get_notebook().pref
             pref.default_font = "%s %d" % (
                 self.notebook_font_family.get_family(),
                 self.notebook_font_size.get_value())
 
-            self.main_window.notebook.pref.index_dir = \
+            self.main_window.get_notebook().pref.index_dir = \
                 self.notebook_index_dir.get_text()
 
 
             # TODO: move this out.  Use signals to envoke save
-            self.main_window.notebook.write_preferences()
-            self.main_window.notebook.notify_change(False)
-            
+            self.main_window.get_notebook().write_preferences()
+            self.main_window.get_notebook().notify_change(False)
         
-        self.app.pref.write()
+        
+        # notify application preference changes
         self.app.pref.changed.notify()
 
         

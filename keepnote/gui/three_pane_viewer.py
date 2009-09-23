@@ -246,8 +246,9 @@ class ThreePaneViewer (Viewer):
         self.paned2.add2(self.editor_pane)
 
         # record preference
-        self._app.pref.view_mode = mode        
-        self._app.pref.write()
+        if mode != self._app.pref.view_mode:
+            self._app.pref.view_mode = mode
+            self._app.pref.changed.notify()
 
 
 

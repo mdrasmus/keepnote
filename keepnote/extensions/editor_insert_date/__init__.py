@@ -57,17 +57,16 @@ class Extension (keepnote.Extension):
         """Initialize extension"""
         
         keepnote.Extension.__init__(self, app)
-        self._app = app
-        self._widget_focus = None
+        self._widget_focus = {}
 
 
     def on_new_window(self, window):
         """Initialize extension for a particular window"""
 
-        # add menu options
 
         window.connect("set-focus", self._on_focus)
 
+        # add menu options
         window.actiongroup.add_actions([
             ("Insert Date", None, "Insert _Date",
              "", None,
@@ -89,13 +88,15 @@ class Extension (keepnote.Extension):
 
 
     def _on_focus(self, window, widget):
-        self._widget_focus = widget
+        """Callback for focus change in window"""
+        self._widget_focus[window] = widget
 
-    def insert_date(self, main_window):
+    def insert_date(self, window):
         """Insert a date in the editor of a window"""
 
-        if isinstance(self._widget_focus, gtk.TextView):
+        widget = self._widget_focus.get(window, None)
 
+        if isinstance(widget, gtk.TextView):
             stamp = time.strftime("%Y/%m/%d", time.localtime())
-            self._widget_focus.get_buffer().insert_at_cursor(stamp)
+            widget.get_buffer().insert_at_cursor(stamp)
 
