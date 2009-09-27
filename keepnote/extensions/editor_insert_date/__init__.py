@@ -50,47 +50,63 @@ class Extension (keepnote.Extension):
     
     version = (1, 0)
     name = "Editor Insert Date"
-    description = "Inserts a the current date in the text editor"
+    description = "Inserts the current date in the text editor"
 
 
     def __init__(self, app):
         """Initialize extension"""
         
         keepnote.Extension.__init__(self, app)
+
         self._widget_focus = {}
+        self._set_focus_id = {}
+        self._ui_id = {}
 
+        
+    def on_add_ui(self, window):
 
-    def on_new_window(self, window):
-        """Initialize extension for a particular window"""
-
-
-        window.connect("set-focus", self._on_focus)
+        self._set_focus_id[window] = window.connect("set-focus", self._on_focus)
 
         # add menu options
         window.actiongroup.add_actions([
-            ("Insert Date", None, "Insert _Date",
-             "", None,
-             lambda w: self.insert_date(window)),
-            ])
-        
-        window.uimanager.add_ui_from_string(
-            """
-            <ui>
-            <menubar name="main_menu_bar">
-               <menu action="Edit">
-                  <placeholder name="Editor">
-                     <menuitem action="Insert Date"/>
-                  </placeholder>
-               </menu>
-            </menubar>
-            </ui>
-            """)
+                ("Insert Date", None, "Insert _Date",
+                 "", None,
+                 lambda w: self.insert_date(window)),
+                ])
+
+        self._ui_id[window] = window.uimanager.add_ui_from_string(
+                """
+                <ui>
+                <menubar name="main_menu_bar">
+                   <menu action="Edit">
+                      <placeholder name="Editor">
+                         <menuitem action="Insert Date"/>
+                      </placeholder>
+                   </menu>
+                </menubar>
+                </ui>
+                """)
+
+    def on_remove_ui(self, window):        
+
+        window.diconnect(self._set_focus_id[window])
+        del self._set_focus_id[window]
+
+        # remove menu options
+        for action in window.actiongroup.list_actions():
+            if action.name == "Insert Date":
+                window.actiongroup.remove_action(action)
+
+        window.uimanager.remove_ui(self._ui_id[window])
+        del self._ui_id[window]
+
 
 
     def _on_focus(self, window, widget):
         """Callback for focus change in window"""
         self._widget_focus[window] = widget
 
+    
     def insert_date(self, window):
         """Insert a date in the editor of a window"""
 

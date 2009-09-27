@@ -67,8 +67,10 @@ class Extension (keepnote.Extension):
         keepnote.Extension.__init__(self, app)
         self.app = app
 
+        self._ui_id = {}
 
-    def on_new_window(self, window):
+
+    def on_add_ui(self, window):
         """Initialize extension for a particular window"""
 
         # add menu options
@@ -83,7 +85,7 @@ class Extension (keepnote.Extension):
              lambda w: self.on_restore_notebook(window))
             ])
         
-        window.uimanager.add_ui_from_string(
+        self._ui_id[window] = window.uimanager.add_ui_from_string(
             """
             <ui>
             <menubar name="main_menu_bar">
@@ -96,6 +98,16 @@ class Extension (keepnote.Extension):
             </menubar>
             </ui>
             """)
+
+    def on_remove_ui(self, window):        
+
+        # remove menu options
+        for action in window.actiongroup.list_actions():
+            if action.name in ("Backup Notebook", "Restore Notebook"):
+                window.actiongroup.remove_action(action)
+
+        window.uimanager.remove_ui(self._ui_id[window])
+        del self._ui_id[window]
 
 
     def on_archive_notebook(self, window, notebook):

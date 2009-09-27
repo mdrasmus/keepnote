@@ -69,7 +69,7 @@ import xml.sax.saxutils
 #=============================================================================
 # globals / constants
 
-PROGRAM_NAME = "KeepNote"
+PROGRAM_NAME = u"KeepNote"
 PROGRAM_VERSION_MAJOR = 0
 PROGRAM_VERSION_MINOR = 6
 PROGRAM_VERSION_RELEASE = 1
@@ -961,15 +961,10 @@ class KeepNote (object):
         errors = []
         
         for name in self._extensions:
-            try:
-                ext = self.get_extension(name)
-            except KeepNotePreferenceError, e:                
-                sys.stderr.write("\n")
-                traceback.print_exception(type(e), e, None)
-                #errors.append(e)
-
-        #if len(errors) > 0:
-        #    raise KeepNotePreferenceError("\n".join(str(e) for e in errors))
+            ext = self.get_extension(name)
+            
+            # enable extension
+            ext.enable(True)
 
 
     def init_extensions_window(self, window):
@@ -996,11 +991,22 @@ class KeepNote (object):
 
         # load if first use
         if ext is None:
-            ext = import_extension(self, name, filename)
-            self._extensions[name] = (filename, ext)
+            try:
+                ext = import_extension(self, name, filename)
+                self._extensions[name] = (filename, ext)
+            except KeepNotePreferenceError, e:
+                sys.stderr.write("\n")
+                traceback.print_exception(type(e), e, None)
                 
         return ext
 
+
+    def iter_extensions(self):
+        
+        for name in self._extensions:
+            ext = self.get_extension(name)
+            if ext:
+                yield ext
 
     
         
@@ -1014,9 +1020,55 @@ class Extension (object):
 
 
     def __init__(self, app):
-        pass
+        
+        self._enabled = False
+        self._windows = set()
+        self._uis = set()
 
-    def on_new_window(self, window):
+    def enable(self, enable):
+        self._enabled = enable
+
+        if enable:
+            for window in self._windows:
+                if window not in self._uis:
+                    self.on_add_ui(window)
+                    self._uis.add(window)
+        else:
+            for window in self._uis:
+                self.on_remove_ui(window)
+            self._uis.clear()
+
+        # call callback for enable event
+        self.on_enabled(enable)
+
+    def is_enabled(self):
+        return self._enabled
+
+    def on_enabled(self, enabled):
+        """Callback for when extension is enabled/disabled"""
         pass
 
     
+    def on_new_window(self, window):
+        """Initialize extension for a particular window"""
+
+        if self._enabled:
+            self.on_add_ui(window)
+            self._uis.add(window)
+            self._windows.add(window)
+
+
+    def on_close_window(self, window):
+        """Callback for when window is closed"""
+     
+        if window in self._windows:
+            self.on_remove_ui(window)
+            self._uis.remove(window)
+            self._windows.remove(window)
+
+
+    def on_add_ui(self, window):
+        pass
+
+    def on_remove_ui(self, window):
+        pass

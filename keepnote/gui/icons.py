@@ -90,11 +90,11 @@ DEFAULT_QUICK_PICK_ICONS = [u"folder" + c + u".png" for c in _colors] + \
 class MimeIcons:
     
     def __init__(self):
-        theme = gtk.icon_theme_get_default()
-        if theme is None:
+        self.theme = gtk.icon_theme_get_default()
+        if self.theme is None:
             icons = []
         else:
-            icons = theme.list_icons()
+            icons = self.theme.list_icons()
         self._icons = set(icons)
         self._cache = {}
  
@@ -135,11 +135,11 @@ class MimeIcons:
 
     def get_icon_filename(self, name, default=None):
 
-        if name is None:
+        if name is None or self.theme is None:
             return default
         
         size = 16
-        info = gtk.icon_theme_get_default().lookup_icon(name, size, 0)
+        info = self.theme.lookup_icon(name, size, 0)
         if info:
             return unicode_gtk(info.get_filename())
         else:
@@ -148,6 +148,10 @@ class MimeIcons:
 
 # singleton
 _g_mime_icons = MimeIcons()
+
+
+def get_icon_filename(icon_name, default=None):
+    return _g_mime_icons.get_icon_filename(icon_name, default)
 
 
 def get_default_icon_basenames(node):
