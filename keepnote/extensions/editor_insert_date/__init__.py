@@ -89,12 +89,12 @@ class Extension (keepnote.Extension):
 
     def on_remove_ui(self, window):        
 
-        window.diconnect(self._set_focus_id[window])
+        window.disconnect(self._set_focus_id[window])
         del self._set_focus_id[window]
 
         # remove menu options
         for action in window.actiongroup.list_actions():
-            if action.name == "Insert Date":
+            if action.get_name() == "Insert Date":
                 window.actiongroup.remove_action(action)
 
         window.uimanager.remove_ui(self._ui_id[window])

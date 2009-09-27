@@ -45,6 +45,7 @@ import gobject
 
 # keepnote imports
 import keepnote
+from keepnote import log_error
 import keepnote.gui.richtext.richtext_tags
 from keepnote import get_resource, ensure_unicode, get_platform
 from keepnote.notebook import \
@@ -219,7 +220,6 @@ class KeepNote (keepnote.KeepNote):
 
         window = main_window.KeepNoteWindow(self)
         window.connect("delete-event", self._on_window_close)
-        #window.connect("window-state-event", self._on_window_state)
         window.connect("focus-in-event", self._on_focus)
         self._windows.append(window)
         
@@ -260,10 +260,12 @@ class KeepNote (keepnote.KeepNote):
         notebook = notebooklib.NoteBook()
         notebook.load(filename)
 
-
+        # install default quick pick icons
         if len(notebook.pref.get_quick_pick_icons()) == 0:
             notebook.pref.set_quick_pick_icons(
                 list(DEFAULT_QUICK_PICK_ICONS))
+
+            # TODO: use listeners to invoke saving
             notebook.write_preferences()
 
         return notebook
@@ -287,11 +289,18 @@ class KeepNote (keepnote.KeepNote):
     def _on_window_close(self, window, event):
         """Callback for window close event"""
 
-        # remove window from window list
-        self._windows.remove(window)
+        if window in self._windows:
+            for ext in self.iter_extensions():
+                try:
+                    ext.on_close_window(window)
+                except Exception, e:
+                    log_error(e, sys.exc_info()[2])
 
-        if window == self._current_window:
-            self._current_window = None
+            # remove window from window list
+            self._windows.remove(window)
+
+            if window == self._current_window:
+                self._current_window = None
 
         # quit app if last window closes
         if len(self._windows) == 0:
@@ -310,4 +319,16 @@ class KeepNote (keepnote.KeepNote):
         gtk.main_quit()
 
 
+    #====================================
+    # extension methods
+
+
+    def init_extensions_window(self, window):
+        """Initialize all extensions for a window"""
+        
+        for ext in self.iter_extensions():
+            try:
+                ext.on_new_window(window)
+            except Exception, e:
+                log_error(e, sys.exc_info()[2])
 

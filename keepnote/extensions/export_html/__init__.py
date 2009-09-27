@@ -107,7 +107,7 @@ class Extension (keepnote.Extension):
 
         # remove options
         for action in window.actiongroup.list_actions():
-            if action.name == "Export HTML":
+            if action.get_name() == "Export HTML":
                 window.actiongroup.remove_action(action)
 
         window.uimanager.remove_ui(self._ui_id[window])

@@ -103,7 +103,7 @@ class Extension (keepnote.Extension):
 
         # remove menu options
         for action in window.actiongroup.list_actions():
-            if action.name in ("Backup Notebook", "Restore Notebook"):
+            if action.get_name() in ("Backup Notebook", "Restore Notebook"):
                 window.actiongroup.remove_action(action)
 
         window.uimanager.remove_ui(self._ui_id[window])

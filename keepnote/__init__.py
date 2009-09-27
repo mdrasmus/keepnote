@@ -441,7 +441,9 @@ def import_extension(app, name, filename):
     try:
         mod = imp.load_module(name, infile, filename2,
                               (".py", "rb", imp.PY_SOURCE))
-        return mod.Extension(app)
+        ext = mod.Extension(app)
+        ext.key = name
+        return ext
                 
     except Exception, e:
         infile.close()
@@ -551,6 +553,9 @@ class KeepNotePreferences (object):
 
         self.id = None
 
+        # extensions
+        self.disabled_extensions = []
+
         # window presentation options
         self.window_size = DEFAULT_WINDOW_SIZE
         self.window_maximized = True
@@ -558,6 +563,7 @@ class KeepNotePreferences (object):
         self.hsash_pos = DEFAULT_HSASH_POS
         self.view_mode = DEFAULT_VIEW_MODE
         
+        # look and feel
         self.treeview_lines = True
         self.listview_rules = True
         self.use_stock_icons = False
@@ -761,6 +767,17 @@ g_keepnote_pref_parser = xmlo.XmlObject(
                         )
            ]),
 
+        # disabled extensions
+        xmlo.Tag("extensions", tags=[
+            xmlo.Tag("disabled", tags=[
+                xmlo.TagMany("extension",
+                iterfunc=lambda s: range(len(s.disabled_extensions)),
+                get=lambda (s, i), x: s.disabled_extensions.append(x),
+                set=lambda (s, i): s.disabled_extensions[i]
+                        )
+                ]),
+            ]),
+
 
         xmlo.Tag("external_apps", tags=[
 
@@ -842,15 +859,21 @@ class KeepNote (object):
         
         # load application preferences
         self.pref = KeepNotePreferences()
-        self.pref.read()
 
         # list of application notebooks
         self._notebooks = {}
         
-        # find extensions
+        # set of associated extensions with application
         self._extensions = {}
+
+        # read preferences
+        self.pref.read()
+
+        # scan extensions
         self.scan_extensions_dir(get_system_extensions_dir())
         self.scan_extensions_dir(get_user_extensions_dir())
+
+        # initialize all extensions
         self.init_extensions()
         
 
@@ -963,17 +986,8 @@ class KeepNote (object):
         for ext in self.iter_extensions():
             # enable extension
             try:
-                ext.enable(True)
-            except Exception, e:
-                log_error(e, sys.exc_info()[2])
-
-
-    def init_extensions_window(self, window):
-        """Initialize all extensions for a window"""
-        
-        for ext in self.iter_extensions():
-            try:
-                ext.on_new_window(window)
+                if ext.key not in self.pref.disabled_extensions:
+                    ext.enable(True)
             except Exception, e:
                 log_error(e, sys.exc_info()[2])
     
@@ -1008,22 +1022,35 @@ class KeepNote (object):
             if ext:
                 yield ext
 
+
+    def on_extension_enabled(self, ext, enabled):
+        """Callback for extension enabled"""
+
+        if enabled:
+            if ext.key in self.pref.disabled_extensions:
+                self.pref.disabled_extensions.remove(ext.key)
+        else:
+            if ext.key not in self.pref.disabled_extensions:
+                self.pref.disabled_extensions.append(ext.key)
     
-        
+
 
 class Extension (object):
     """KeepNote Extension"""
 
     version = (1, 0)
+    key = ""
     name = "untitled"
     description = "base extension"
 
 
     def __init__(self, app):
         
+        self._app = app
         self._enabled = False
         self._windows = set()
         self._uis = set()
+
 
     def enable(self, enable):
         self._enabled = enable
@@ -1037,6 +1064,9 @@ class Extension (object):
             for window in self._uis:
                 self.on_remove_ui(window)
             self._uis.clear()
+
+        # call callback for app
+        self._app.on_extension_enabled(self, enable)
 
         # call callback for enable event
         self.on_enabled(enable)

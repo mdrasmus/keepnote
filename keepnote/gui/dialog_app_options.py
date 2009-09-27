@@ -378,8 +378,6 @@ class NoteBookSection (Section):
             self.notebook.pref.index_dir = \
                 self.notebook_index_dir.get_text()
 
-            self.notebook.write_preferences()
-            self.notebook.notify_change(False)
         
 
 class ExtensionsSection (Section):
@@ -413,7 +411,7 @@ class ExtensionsSection (Section):
         sw.add(self.list)
 
 
-        self.list_store = gtk.ListStore(str, str, bool)
+        self.list_store = gtk.ListStore(object, str, str, bool)
         self.list.set_model(self.list_store)
 
         # enabled column
@@ -422,7 +420,7 @@ class ExtensionsSection (Section):
         cell = gtk.CellRendererToggle()
         cell.connect("toggled", self._on_extension_enabled)
         column.pack_start(cell, True)
-        column.add_attribute(cell, 'active', 2)
+        column.add_attribute(cell, 'active', 3)
         self.list.append_column(column)
         
         
@@ -431,7 +429,7 @@ class ExtensionsSection (Section):
         column.set_title(_("Name"))
         cell_text = gtk.CellRendererText()
         column.pack_start(cell_text, True)
-        column.add_attribute(cell_text, 'text', 0)
+        column.add_attribute(cell_text, 'text', 1)
         self.list.append_column(column)
 
         # description column
@@ -439,12 +437,13 @@ class ExtensionsSection (Section):
         column.set_title(_("Description"))
         cell_text = gtk.CellRendererText()
         column.pack_start(cell_text, True)
-        column.add_attribute(cell_text, 'text', 1)
+        column.add_attribute(cell_text, 'text', 2)
         self.list.append_column(column)
         
         
         for ext in app.iter_extensions():
-            self.list_store.append([ext.name, ext.description, True])
+            self.list_store.append([ext, ext.name, ext.description, 
+                                    ext.is_enabled()])
 
         w, h = self.list.size_request()
         w2, h2 = sw.get_vscrollbar().size_request()
@@ -460,11 +459,13 @@ class ExtensionsSection (Section):
     def _on_extension_enabled(self, cell, path):
         """Callback for when enabled check box is clicked"""
 
-        self.list_store[path][2] = not cell.get_active()
-        # TODO: make call to extension
+        self.list_store[path][3] = not cell.get_active()
 
     def save_options(self, app):
-        pass
+        
+        for row in self.list_store:
+            ext, enable = row[0], row[3]
+            ext.enable(enable)
 
 
 
@@ -584,7 +585,13 @@ class ApplicationOptionsDialog (object):
         
         # notify application preference changes
         self.app.pref.changed.notify()
-        
+
+        # save noteboook preference changes
+        notebook = self.main_window.get_notebook()
+        if notebook:
+            notebook.write_preferences()
+            notebook.notify_change(False)
+
         # close dialog
         self.dialog.destroy()
         self.dialog = None
