@@ -952,42 +952,41 @@ class KeepNote (object):
 
 
     def scan_extensions_dir(self, extensions_dir):
-        """Scan extensions directory"""
+        """Scan extensions directory and store references in application"""
         
         for filename in iter_extensions(extensions_dir):
             self._extensions[os.path.basename(filename)] = (filename, None)
 
     def init_extensions(self):
-        errors = []
+        """Initialize all extensions"""
         
-        for name in self._extensions:
-            ext = self.get_extension(name)
-            
+        for ext in self.iter_extensions():
             # enable extension
-            ext.enable(True)
+            try:
+                ext.enable(True)
+            except Exception, e:
+                log_error(e, sys.exc_info()[2])
 
 
     def init_extensions_window(self, window):
-        errors = []
+        """Initialize all extensions for a window"""
         
-        for name in self._extensions:
+        for ext in self.iter_extensions():
             try:
-                ext = self.get_extension(name)
                 ext.on_new_window(window)
-                
-            except KeepNotePreferenceError, e:
-                errors.append(e)
-
-            # TODO: display errors
+            except Exception, e:
+                log_error(e, sys.exc_info()[2])
     
             
     def get_extension(self, name):
         """Get an extension module by name"""
         
-        try:
-            filename, ext = self._extensions[name]        
-        except KeyError:
-            raise KeepNotePreferenceError("unknown extension '%s'" % name)
+        # return None if extension name is unknown
+        if name not in self._extensions:
+            return None
+
+        # get extension information
+        filename, ext = self._extensions[name]        
 
         # load if first use
         if ext is None:
@@ -996,13 +995,14 @@ class KeepNote (object):
                 self._extensions[name] = (filename, ext)
             except KeepNotePreferenceError, e:
                 sys.stderr.write("\n")
-                traceback.print_exception(type(e), e, None)
+                log_error(e, sys.exc_info()[2])
                 
         return ext
 
 
     def iter_extensions(self):
-        
+        """Iterate through all extensions"""
+
         for name in self._extensions:
             ext = self.get_extension(name)
             if ext:
@@ -1055,15 +1055,16 @@ class Extension (object):
         if self._enabled:
             self.on_add_ui(window)
             self._uis.add(window)
-            self._windows.add(window)
+        self._windows.add(window)
 
 
     def on_close_window(self, window):
         """Callback for when window is closed"""
      
         if window in self._windows:
-            self.on_remove_ui(window)
-            self._uis.remove(window)
+            if window in self._uis:
+                self.on_remove_ui(window)
+                self._uis.remove(window)
             self._windows.remove(window)
 
 
