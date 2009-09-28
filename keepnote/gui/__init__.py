@@ -244,15 +244,6 @@ class KeepNote (keepnote.KeepNote):
         return self._current_window
     
 
-    def get_notebook(self, filename, window=None):
-        """Returns a an opened notebook at filename"""
-
-        filename = os.path.realpath(filename)
-        if filename not in self._notebooks:
-            self._notebooks[filename] = self.open_notebook(filename, window)
-
-        return self._notebooks[filename]
-
 
     def open_notebook(self, filename, window=None):
         """Open notebook"""

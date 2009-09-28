@@ -888,6 +888,22 @@ class KeepNote (object):
         return notebook
 
 
+    def get_notebook(self, filename, window=None):
+        """Returns a an opened notebook at filename"""
+
+        filename = os.path.realpath(filename)
+        if filename not in self._notebooks:
+            self._notebooks[filename] = self.open_notebook(filename, window)
+
+        return self._notebooks[filename]
+
+
+    def iter_notebooks(self):
+        """Iterate through open notebooks"""
+        
+        return self._noteboook.itervalues()
+
+    
     def run_external_app(self, app_key, filename, wait=False):
         """Runs a registered external application on a file"""
 

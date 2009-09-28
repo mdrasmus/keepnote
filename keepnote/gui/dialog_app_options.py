@@ -360,13 +360,12 @@ class DatesSection (Section):
 
 class NoteBookSection (Section):
     
-    def __init__(self, key, dialog, app, label=u"", 
+    def __init__(self, key, dialog, app, notebook, label=u"", 
                  icon="folder.png"):
         Section.__init__(self, key, dialog, app, label, icon)
         self.entries = {}
 
-        # TODO: think about multiple notebooks...
-        self.notebook = None
+        self.notebook = notebook
 
         # add notebook font widget
         self.notebook_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
@@ -394,7 +393,7 @@ class NoteBookSection (Section):
 
     def load_options(self, app, notebook):
 
-        self.notebook = notebook
+        #self.notebook = notebook
 
         if self.notebook is not None:
             font = self.notebook.pref.default_font
@@ -576,9 +575,13 @@ class ApplicationOptionsDialog (object):
         # add notebook options
         # TODO: pass notebook at this point
         # TODO: remove notebook reference from load_options/save_options
-        self.add_section(NoteBookSection("notebook1", self.dialog, self.app, 
-                                         self.notebook.get_title()), 
-                         "notebooks")
+        self.notebook_sections = [
+            self.add_section(NoteBookSection("notebook_%d" % i, 
+                                             self.dialog, self.app, 
+                                             notebook.get_title(),
+                                             notebook), 
+                             "notebooks")
+            for i, notebook in enumerate(self.app.iter_notebooks())]
 
 
         self.load_options(self.app, self.notebook)
@@ -672,6 +675,8 @@ class ApplicationOptionsDialog (object):
         
         self._next_tab_position += 1
 
+        return section
+
 
     def remove_section(self, key):
         
@@ -744,7 +749,8 @@ class ApplicationOptionsDialog (object):
         # close dialog
         self.dialog.hide()        
 
-        self.remove_section("notebook1")
+        for section in self.notebook_sections:
+            self.remove_section(section.key)
 
 
     # TODO: add apply button
