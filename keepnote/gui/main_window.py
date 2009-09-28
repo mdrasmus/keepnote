@@ -74,7 +74,6 @@ from keepnote.gui.icons import \
 import keepnote.search
 from keepnote.gui import richtext
 from keepnote.gui import \
-    dialog_app_options, \
     dialog_drag_drop_test, \
     dialog_wait, \
     dialog_update_notebook, \
@@ -143,7 +142,7 @@ class KeepNoteWindow (gtk.Window):
         #====================================
         # Dialogs
         
-        self.app_options_dialog = dialog_app_options.ApplicationOptionsDialog(self)
+        # TODO: move to app
         self.drag_test = dialog_drag_drop_test.DragDropTestDialog(self)
         self.node_icon_dialog = dialog_node_icon.NodeIconDialog(self)
         
@@ -1338,7 +1337,7 @@ class KeepNoteWindow (gtk.Window):
             
             ("KeepNote Options", gtk.STOCK_PREFERENCES, _("KeepNote _Options"),
              "", None,
-             lambda w: self.app_options_dialog.on_app_options()),
+             lambda w: self.app.app_options_dialog.on_app_options(self)),
 
             #=========================================
             ("Help", None, _("_Help")),

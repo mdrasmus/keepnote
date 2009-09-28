@@ -40,7 +40,8 @@ import keepnote
 from keepnote import unicode_gtk
 from keepnote import get_resource
 from keepnote.gui.font_selector import FontSelector
-from keepnote.gui import richtext, get_resource_pixbuf, get_pixbuf
+#from keepnote.gui import richtext, get_resource_pixbuf, get_pixbuf
+import keepnote.gui
 from keepnote.gui.icons import get_icon_filename
 
 _ = gettext.gettext
@@ -84,10 +85,11 @@ class Section (object):
 
 class GeneralSection (Section):
 
-    def __init__(self, key, dialog, app, label=u"", icon="keepnote-16x16.png"):
+    def __init__(self, key, dialog, app, notebook,
+                 label=u"", icon="keepnote-16x16.png"):
         Section.__init__(self, key, dialog, app, label, icon)
         
-        
+        self.notebook = notebook
         
         self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                       "general_frame", keepnote.GETTEXT_DOMAIN)
@@ -158,9 +160,9 @@ class GeneralSection (Section):
     
     def on_set_default_notebook_button_clicked(self, widget):
 
-        if self.dialog.main_window.get_notebook():
+        if self.notebook:
             self.xml.get_widget("default_notebook_entry").set_text(
-                self.dialog.main_window.get_notebook().get_path())
+                self.notebook.get_path())
 
 
     def save_options(self, app):
@@ -212,7 +214,7 @@ class LookAndFeelSection (Section):
 
         # icon
         try:
-            self.icon = get_pixbuf(get_icon_filename(gtk.STOCK_SELECT_COLOR))
+            self.icon = keepnote.gui.get_pixbuf(get_icon_filename(gtk.STOCK_SELECT_COLOR))
         except:
             pass
 
@@ -289,7 +291,7 @@ class HelperAppsSection (Section):
 
         # set icon
         try:
-            self.icon = get_pixbuf(get_icon_filename(gtk.STOCK_EXECUTE))
+            self.icon = keepnote.gui.get_pixbuf(get_icon_filename(gtk.STOCK_EXECUTE))
         except:
             pass
 
@@ -360,7 +362,7 @@ class NoteBookSection (Section):
 
         if self.notebook is not None:
             font = self.notebook.pref.default_font
-            family, mods, size = richtext.parse_font(font)
+            family, mods, size = keepnote.gui.richtext.parse_font(font)
             self.notebook_font_family.set_family(family)
             self.notebook_font_size.set_value(size)
 
@@ -451,7 +453,7 @@ class ExtensionsSection (Section):
 
         # set icon
         try:
-            self.icon = get_pixbuf(get_icon_filename(gtk.STOCK_ADD))
+            self.icon = keepnote.gui.get_pixbuf(get_icon_filename(gtk.STOCK_ADD))
         except:
             pass
 
@@ -474,12 +476,11 @@ class ExtensionsSection (Section):
 class ApplicationOptionsDialog (object):
     """Application options"""
     
-    def __init__(self, main_window):
-        self.main_window = main_window
-        self.app = main_window.app
+    def __init__(self, app):
+        self.app = app
 
     
-    def on_app_options(self):
+    def on_app_options(self, main_window):
         """Display application options"""
         
         self._next_tab_position = 0
@@ -489,12 +490,14 @@ class ApplicationOptionsDialog (object):
         self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                  "app_options_dialog", keepnote.GETTEXT_DOMAIN)
         self.dialog = self.xml.get_widget("app_options_dialog")
-        self.dialog.set_transient_for(self.main_window)
+        self.dialog.set_transient_for(main_window)
         self.tabs = self.xml.get_widget("app_options_tabs")
         self.xml.signal_autoconnect(self)
         self.xml.signal_autoconnect({
             "on_cancel_button_clicked": 
-                lambda w: self.dialog.destroy()})
+                lambda w: self.dialog.destroy(),
+            "on_ok_button_clicked":
+                lambda w: self.on_ok_button_clicked(w, main_window)})
 
         # setup treeview
         self.overview = self.xml.get_widget("app_config_treeview")
@@ -514,7 +517,7 @@ class ApplicationOptionsDialog (object):
         
 
         # add tabs
-        self.add_default_sections()
+        self.add_default_sections(main_window)
 
         self.dialog.show()
 
@@ -540,7 +543,7 @@ class ApplicationOptionsDialog (object):
             icon = icon="note.png"
         
         if isinstance(icon, basestring):
-            pixbuf = get_resource_pixbuf(icon)
+            pixbuf = keepnote.gui.get_resource_pixbuf(icon)
         else:
             pixbuf = icon
 
@@ -577,7 +580,7 @@ class ApplicationOptionsDialog (object):
             self.tabs.set_current_page(self.tree2tab[row])         
 
     
-    def on_ok_button_clicked(self, widget):
+    def on_ok_button_clicked(self, main_window):
 
         # set the options from each section
         for section in self._sections:
@@ -587,7 +590,7 @@ class ApplicationOptionsDialog (object):
         self.app.pref.changed.notify()
 
         # save noteboook preference changes
-        notebook = self.main_window.get_notebook()
+        notebook = main_window.get_notebook()
         if notebook:
             notebook.write_preferences()
             notebook.notify_change(False)
@@ -597,11 +600,13 @@ class ApplicationOptionsDialog (object):
         self.dialog = None
     
 
-    def add_default_sections(self):
+    def add_default_sections(self, main_window):
         
+        notebook = main_window.get_notebook()
+
         self.add_section(
             GeneralSection("general", self.dialog, self.app, 
-                           keepnote.PROGRAM_NAME))
+                           notebook, keepnote.PROGRAM_NAME))
         self.add_section(
             LookAndFeelSection("look_and_feel", self.dialog, 
                                self.app, _("Look and Feel")), 
@@ -616,8 +621,7 @@ class ApplicationOptionsDialog (object):
             "general")
         self.add_section(
             NoteBookSection("notebook", self.dialog, self.app, 
-                            self.main_window.get_notebook(), 
-                            _("This Notebook")))
+                            notebook, _("This Notebook")))
         self.add_section(
             ExtensionsSection("extensions", self.dialog, 
                               self.app, _("Extensions")))

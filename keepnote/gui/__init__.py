@@ -51,6 +51,8 @@ from keepnote import get_resource, ensure_unicode, get_platform
 from keepnote.notebook import \
      NoteBookError
 import keepnote.notebook as notebooklib
+import keepnote.gui.dialog_app_options
+import keepnote.gui
 from keepnote.gui.icons import \
     DEFAULT_QUICK_PICK_ICONS
     
@@ -192,9 +194,18 @@ class ToggleAction (gtk.ToggleAction):
             self.connect("activate", func)
 
 def add_actions(actiongroup, actions):
+    """Add a list of Action's to an gtk.ActionGroup"""
+
     for action in actions:
         actiongroup.add_action_with_accel(action, action.accel)
 
+
+def remove_actions(actiongroup, names):
+    """Remove actions specified by name from an gtk.ActionGroup"""
+
+    for action in actiongroup.list_actions():
+        if action.get_name() in names:
+            actiongroup.remove_action(action)
 
 
 #=============================================================================
@@ -212,13 +223,13 @@ class KeepNote (keepnote.KeepNote):
         self._current_window = None
         self._windows = []
 
+        self.app_options_dialog = keepnote.gui.dialog_app_options.ApplicationOptionsDialog(self)
+
 
     def new_window(self):
         """Create a new main window"""
 
-        from keepnote.gui import main_window
-
-        window = main_window.KeepNoteWindow(self)
+        window = keepnote.gui.main_window.KeepNoteWindow(self)
         window.connect("delete-event", self._on_window_close)
         window.connect("focus-in-event", self._on_focus)
         self._windows.append(window)

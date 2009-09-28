@@ -979,7 +979,8 @@ class KeepNote (object):
         
         for filename in iter_extensions(extensions_dir):
             self._extensions[os.path.basename(filename)] = (filename, None)
-
+        
+        
     def init_extensions(self):
         """Initialize all extensions"""
         
@@ -1008,7 +1009,6 @@ class KeepNote (object):
                 ext = import_extension(self, name, filename)
                 self._extensions[name] = (filename, ext)
             except KeepNotePreferenceError, e:
-                sys.stderr.write("\n")
                 log_error(e, sys.exc_info()[2])
                 
         return ext
