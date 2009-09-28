@@ -79,6 +79,10 @@ class Section (object):
         self.label = label
         self.icon = icon
 
+        self.frame = gtk.Frame("")
+        self.frame.get_label_widget().set_text("<b>%s</b>" % label)
+        self.frame.get_label_widget().set_use_markup(True)
+
     def load_options(self, app, notebook):
         """Load options from app to UI"""
         pass
@@ -249,7 +253,7 @@ class HelperAppsSection (Section):
         
         self.entries = {}
         self.frame = gtk.Frame("")
-        self.frame.get_label_widget().set_text("<b>Helper Applications</b>")
+        self.frame.get_label_widget().set_text("<b>%s</b>" % label)
         self.frame.get_label_widget().set_use_markup(True)
         self.frame.set_property("shadow-type", gtk.SHADOW_NONE)
         
@@ -525,10 +529,11 @@ class ApplicationOptionsDialog (object):
         self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                  "app_options_dialog", keepnote.GETTEXT_DOMAIN)
         self.dialog = self.xml.get_widget("app_options_dialog")
+        self.dialog.connect("delete-event", self._on_delete_event)
         self.tabs = self.xml.get_widget("app_options_tabs")
         self.xml.signal_autoconnect({
             "on_cancel_button_clicked": 
-                lambda w: self.dialog.hide(),
+                lambda w: self.finish(),
             "on_ok_button_clicked":
                 lambda w: self.on_ok_button_clicked()})
 
@@ -553,6 +558,13 @@ class ApplicationOptionsDialog (object):
         self.add_default_sections()
 
 
+    def _on_delete_event(self, widget, event):
+        """Callback for window close"""
+
+        self.finish()
+        self.dialog.stop_emission("delete-event")
+        return True
+
     
     def on_app_options(self, main_window):
         """Display application options"""
@@ -560,6 +572,14 @@ class ApplicationOptionsDialog (object):
         self.main_window = main_window
         self.notebook = main_window.get_notebook()
         self.dialog.set_transient_for(main_window)
+
+        # add notebook options
+        # TODO: pass notebook at this point
+        # TODO: remove notebook reference from load_options/save_options
+        self.add_section(NoteBookSection("notebook1", self.dialog, self.app, 
+                                         self.notebook.get_title()), 
+                         "notebooks")
+
 
         self.load_options(self.app, self.notebook)
 
@@ -584,8 +604,8 @@ class ApplicationOptionsDialog (object):
                               self.app, _("Helper Applications")), 
             "general")
         self.add_section(
-            NoteBookSection("notebook", self.dialog, self.app, 
-                            _("This Notebook")))
+            Section("notebooks", self.dialog, self.app, 
+                    _("Notebook Options"), "folder.png"))
         self.add_section(
             ExtensionsSection("extensions", self.dialog, 
                               self.app, _("Extensions")))
@@ -643,11 +663,32 @@ class ApplicationOptionsDialog (object):
         else:
             pixbuf = icon
 
+        # add to overview
         it = self.overview_store.append(it, [section.label, section, pixbuf])
         path = self.overview_store.get_path(it)
         self.overview.expand_to_path(path)
         self.tree2tab[path] = self._next_tab_position
+
+        
         self._next_tab_position += 1
+
+
+    def remove_section(self, key):
+        
+        # TODO: may need to update tree2tab, when other pages slide in position
+
+        path = self.get_section_path(key)
+
+        if path is None:
+            return
+
+        # remove from tabs
+        pos = self.tree2tab[path]
+        self.tabs.remove_page(pos)
+        del self.tree2tab[path]
+
+        # remove from tree
+        self.overview_store.remove(self.overview_store.get_iter(path))
 
 
     def get_section(self, key):
@@ -661,11 +702,23 @@ class ApplicationOptionsDialog (object):
     def get_section_path(self, key):
         """Returns the TreeModel path for a section"""
 
-        for row in self.overview_store:
-            if row[1].key == key:
-                return row.path
+        def walk(node):
 
-        return None
+            child = self.overview_store.iter_children(node)
+            while child:
+                row = self.overview_store[child]
+                if row[1].key == key:
+                    return row.path
+                
+                # recurse
+                ret = walk(child)
+                if ret:
+                    return ret
+
+                child = self.overview_store.iter_next(child)
+
+            return None
+        return walk(None)
 
 
     #==========================================================
@@ -681,11 +734,18 @@ class ApplicationOptionsDialog (object):
     
     def on_ok_button_clicked(self):
 
-        self.save_options(self.app, self.notebook)
-        
-        # close dialog
-        self.dialog.hide()
+        self.save_options(self.app, self.notebook)        
+
+        self.finish()
     
+
+    def finish(self):
+
+        # close dialog
+        self.dialog.hide()        
+
+        self.remove_section("notebook1")
+
 
     # TODO: add apply button
     
