@@ -40,7 +40,6 @@ import keepnote
 from keepnote import unicode_gtk
 from keepnote import get_resource
 from keepnote.gui.font_selector import FontSelector
-#from keepnote.gui import richtext, get_resource_pixbuf, get_pixbuf
 import keepnote.gui
 from keepnote.gui.icons import get_icon_filename
 
@@ -60,6 +59,8 @@ def on_browse(parent, title, filename, entry,
     dialog.set_modal(True)
 
     # set the filename if it is fully specified
+    if filename == "":
+        filename = entry.get_text()
     if os.path.isabs(filename):            
         dialog.set_filename(filename)
 
@@ -78,6 +79,10 @@ class Section (object):
         self.label = label
         self.icon = icon
 
+    def load_options(self, app, notebook):
+        """Load options from app to UI"""
+        pass
+
     def save_options(self, app):
         """Save options to the app"""
         pass
@@ -85,11 +90,11 @@ class Section (object):
 
 class GeneralSection (Section):
 
-    def __init__(self, key, dialog, app, notebook,
+    def __init__(self, key, dialog, app,
                  label=u"", icon="keepnote-16x16.png"):
         Section.__init__(self, key, dialog, app, label, icon)
         
-        self.notebook = notebook
+        self.notebook = None
         
         self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                       "general_frame", keepnote.GETTEXT_DOMAIN)
@@ -97,41 +102,12 @@ class GeneralSection (Section):
         self.xml.signal_autoconnect({
             "on_default_notebook_button_clicked":
                 lambda w: on_browse(self.dialog,
-                    "Choose Default Notebook",
-                    app.pref.default_notebook,
+                    _("Choose Default Notebook"),
+                    "",
                     self.xml.get_widget("default_notebook_entry")),
             })
         self.frame = self.xml.get_widget("general_frame")
 
-
-        # populate default notebook        
-        if app.pref.use_last_notebook == True:
-            self.xml.get_widget("last_notebook_radio").set_active(True)
-        elif app.pref.default_notebook == "":
-            self.xml.get_widget("no_default_notebook_radio").set_active(True)
-        else:
-            self.xml.get_widget("default_notebook_radio").set_active(True)
-            self.xml.get_widget("default_notebook_entry").\
-                set_text(app.pref.default_notebook)
-
-
-
-        # populate autosave
-        self.xml.get_widget("autosave_check").set_active(
-            app.pref.autosave)
-        self.xml.get_widget("autosave_entry").set_text(
-            str(int(app.pref.autosave_time / 1000)))
-
-        self.xml.get_widget("autosave_entry").set_sensitive(
-            app.pref.autosave)
-        self.xml.get_widget("autosave_label").set_sensitive(
-            app.pref.autosave)
-
-
-        # use systray icon
-        self.xml.get_widget("systray_check").set_active(app.pref.use_systray)
-        self.xml.get_widget("skip_taskbar_check").set_active(app.pref.skip_taskbar)
-        self.xml.get_widget("skip_taskbar_check").set_sensitive(app.pref.use_systray)
 
 
     def on_default_notebook_radio_changed(self, radio):
@@ -163,6 +139,40 @@ class GeneralSection (Section):
         if self.notebook:
             self.xml.get_widget("default_notebook_entry").set_text(
                 self.notebook.get_path())
+
+
+    def load_options(self, app, notebook):
+
+        self.notebook = notebook
+
+        # populate default notebook        
+        if app.pref.use_last_notebook:
+            self.xml.get_widget("last_notebook_radio").set_active(True)
+        elif app.pref.default_notebook == "":
+            self.xml.get_widget("no_default_notebook_radio").set_active(True)
+        else:
+            self.xml.get_widget("default_notebook_radio").set_active(True)
+            self.xml.get_widget("default_notebook_entry").\
+                set_text(app.pref.default_notebook)
+
+
+
+        # populate autosave
+        self.xml.get_widget("autosave_check").set_active(
+            app.pref.autosave)
+        self.xml.get_widget("autosave_entry").set_text(
+            str(int(app.pref.autosave_time / 1000)))
+
+        self.xml.get_widget("autosave_entry").set_sensitive(
+            app.pref.autosave)
+        self.xml.get_widget("autosave_label").set_sensitive(
+            app.pref.autosave)
+
+
+        # use systray icon
+        self.xml.get_widget("systray_check").set_active(app.pref.use_systray)
+        self.xml.get_widget("skip_taskbar_check").set_active(app.pref.skip_taskbar)
+        self.xml.get_widget("skip_taskbar_check").set_sensitive(app.pref.use_systray)
 
 
     def save_options(self, app):
@@ -200,23 +210,27 @@ class LookAndFeelSection (Section):
                                       "look_frame", keepnote.GETTEXT_DOMAIN)
         self.look_xml.signal_autoconnect(self)
         self.frame = self.look_xml.get_widget("look_frame")
-        self.treeview_lines_check = self.look_xml.get_widget("treeview_lines_check")
-        self.treeview_lines_check.set_active(app.pref.treeview_lines)
-        self.listview_rules_check = self.look_xml.get_widget("listview_rules_check")
-        self.listview_rules_check.set_active(app.pref.listview_rules)
-        self.use_stock_icons_check = \
-            self.look_xml.get_widget("use_stock_icons_check")
-        self.use_stock_icons_check.set_active(app.pref.use_stock_icons)
-        self.use_minitoolbar = \
-            self.look_xml.get_widget("use_minitoolbar")
-        self.use_minitoolbar.set_active(app.pref.use_minitoolbar)
 
+        self.treeview_lines_check = self.look_xml.get_widget("treeview_lines_check")
+
+        self.listview_rules_check = self.look_xml.get_widget("listview_rules_check")
+        self.use_stock_icons_check = self.look_xml.get_widget("use_stock_icons_check")
+        self.use_minitoolbar = self.look_xml.get_widget("use_minitoolbar")
 
         # icon
         try:
             self.icon = keepnote.gui.get_pixbuf(get_icon_filename(gtk.STOCK_SELECT_COLOR))
         except:
             pass
+
+
+    def load_options(self, app, notebook):
+
+        self.treeview_lines_check.set_active(app.pref.treeview_lines)
+        self.listview_rules_check.set_active(app.pref.listview_rules)
+        self.use_stock_icons_check.set_active(app.pref.use_stock_icons)
+        self.use_minitoolbar.set_active(app.pref.use_minitoolbar)
+
 
 
     def save_options(self, app):
@@ -244,11 +258,24 @@ class HelperAppsSection (Section):
         align.show()
         self.frame.add(align)
         
-        table = gtk.Table(len(app.pref.external_apps), 2)
-        table.show()
-        align.add(table)
+        self.table = gtk.Table(len(app.pref.external_apps), 2)
+        self.table.show()
+        align.add(self.table)
+
+        # set icon
+        try:
+            self.icon = keepnote.gui.get_pixbuf(get_icon_filename(gtk.STOCK_EXECUTE))
+        except:
+            pass
+
+
         
-        
+    def load_options(self, app, notebook):
+
+        # clear table, resize
+        self.table.foreach(lambda x: self.table.remove(x))
+        self.table.resize(len(app.pref.external_apps), 2)
+
         for i, app in enumerate(app.pref.external_apps):
             key = app.key
             app_title = app.title
@@ -259,7 +286,7 @@ class HelperAppsSection (Section):
             label.set_justify(gtk.JUSTIFY_RIGHT)
             label.set_alignment(1.0, 0.5)
             label.show()
-            table.attach(label, 0, 1, i, i+1,
+            self.table.attach(label, 0, 1, i, i+1,
                          xoptions=gtk.FILL, yoptions=0,
                          xpadding=2, ypadding=2)
 
@@ -269,7 +296,7 @@ class HelperAppsSection (Section):
             entry.set_width_chars(30)
             entry.show()
             self.entries[key] = entry
-            table.attach(entry, 1, 2, i, i+1,
+            self.table.attach(entry, 1, 2, i, i+1,
                          xoptions=gtk.FILL | gtk.EXPAND, yoptions=0,
                          xpadding=2, ypadding=2)
 
@@ -278,23 +305,17 @@ class HelperAppsSection (Section):
                 return lambda w: \
                     on_browse(self.dialog,
                               _("Choose %s") % title,
-                              prog, self.entries[key])
+                              "", self.entries[key])
             button = gtk.Button(_("Browse..."))
             button.set_image(
                 gtk.image_new_from_stock(gtk.STOCK_OPEN,
                                          gtk.ICON_SIZE_SMALL_TOOLBAR))
             button.show()
             button.connect("clicked", button_clicked(key, app_title, prog))
-            table.attach(button, 2, 3, i, i+1,
+            self.table.attach(button, 2, 3, i, i+1,
                          xoptions=0, yoptions=0,
                          xpadding=2, ypadding=2)
-
-        # set icon
-        try:
-            self.icon = keepnote.gui.get_pixbuf(get_icon_filename(gtk.STOCK_EXECUTE))
-        except:
-            pass
-
+    
 
     def save_options(self, app):
 
@@ -318,6 +339,9 @@ class DatesSection (Section):
                                    "date_time_frame", keepnote.GETTEXT_DOMAIN)
         self.date_xml.signal_autoconnect(self)
         self.frame = self.date_xml.get_widget("date_time_frame")
+
+
+    def load_options(self, app, notebook):
         for name in ["same_day", "same_month", "same_year", "diff_year"]:
             self.date_xml.get_widget("date_%s_entry" % name).\
                 set_text(app.pref.timestamp_formats[name])
@@ -332,11 +356,13 @@ class DatesSection (Section):
 
 class NoteBookSection (Section):
     
-    def __init__(self, key, dialog, app, notebook, label=u"", 
+    def __init__(self, key, dialog, app, label=u"", 
                  icon="folder.png"):
         Section.__init__(self, key, dialog, app, label, icon)
         self.entries = {}
-        self.notebook = notebook
+
+        # TODO: think about multiple notebooks...
+        self.notebook = None
 
         # add notebook font widget
         self.notebook_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
@@ -359,6 +385,12 @@ class NoteBookSection (Section):
                 _("Choose alternative notebook index directory"),
                 "", self.notebook_index_dir,
                 action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER))
+
+
+
+    def load_options(self, app, notebook):
+
+        self.notebook = notebook
 
         if self.notebook is not None:
             font = self.notebook.pref.default_font
@@ -402,15 +434,15 @@ class ExtensionsSection (Section):
         v.show()
         align.add(v)
 
-        sw = gtk.ScrolledWindow()
-        sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        sw.set_shadow_type(gtk.SHADOW_IN)
-        sw.show()
-        v.pack_start(sw, True, True, 0)
+        self.sw = gtk.ScrolledWindow()
+        self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        self.sw.set_shadow_type(gtk.SHADOW_IN)
+        self.sw.show()
+        v.pack_start(self.sw, True, True, 0)
 
         self.list = gtk.TreeView()
         self.list.show()
-        sw.add(self.list)
+        self.sw.add(self.list)
 
 
         self.list_store = gtk.ListStore(object, str, str, bool)
@@ -441,21 +473,25 @@ class ExtensionsSection (Section):
         column.pack_start(cell_text, True)
         column.add_attribute(cell_text, 'text', 2)
         self.list.append_column(column)
-        
-        
-        for ext in app.iter_extensions():
-            self.list_store.append([ext, ext.name, ext.description, 
-                                    ext.is_enabled()])
-
-        w, h = self.list.size_request()
-        w2, h2 = sw.get_vscrollbar().size_request()
-        sw.set_size_request(400, h+w2+10)
 
         # set icon
         try:
             self.icon = keepnote.gui.get_pixbuf(get_icon_filename(gtk.STOCK_ADD))
         except:
             pass
+
+
+
+    def load_options(self, app, notebook):
+        
+        for ext in app.iter_extensions():
+            self.list_store.append([ext, ext.name, ext.description, 
+                                    ext.is_enabled()])
+
+        w, h = self.list.size_request()
+        w2, h2 = self.sw.get_vscrollbar().size_request()
+        self.sw.set_size_request(400, h+w2+10)
+
 
 
     def _on_extension_enabled(self, cell, path):
@@ -478,11 +514,10 @@ class ApplicationOptionsDialog (object):
     
     def __init__(self, app):
         self.app = app
+        self.main_window = None
+        self.notebook = None
 
-    
-    def on_app_options(self, main_window):
-        """Display application options"""
-        
+
         self._next_tab_position = 0
         self._sections = []
         self.tree2tab = {}
@@ -490,14 +525,12 @@ class ApplicationOptionsDialog (object):
         self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                  "app_options_dialog", keepnote.GETTEXT_DOMAIN)
         self.dialog = self.xml.get_widget("app_options_dialog")
-        self.dialog.set_transient_for(main_window)
         self.tabs = self.xml.get_widget("app_options_tabs")
-        self.xml.signal_autoconnect(self)
         self.xml.signal_autoconnect({
             "on_cancel_button_clicked": 
-                lambda w: self.dialog.destroy(),
+                lambda w: self.dialog.hide(),
             "on_ok_button_clicked":
-                lambda w: self.on_ok_button_clicked(w, main_window)})
+                lambda w: self.on_ok_button_clicked()})
 
         # setup treeview
         self.overview = self.xml.get_widget("app_config_treeview")
@@ -517,10 +550,73 @@ class ApplicationOptionsDialog (object):
         
 
         # add tabs
-        self.add_default_sections(main_window)
+        self.add_default_sections()
+
+
+    
+    def on_app_options(self, main_window):
+        """Display application options"""
+        
+        self.main_window = main_window
+        self.notebook = main_window.get_notebook()
+        self.dialog.set_transient_for(main_window)
+
+        self.load_options(self.app, self.notebook)
 
         self.dialog.show()
 
+
+    def add_default_sections(self):
+
+        self.add_section(
+            GeneralSection("general", self.dialog, self.app, 
+                           keepnote.PROGRAM_NAME))
+        self.add_section(
+            LookAndFeelSection("look_and_feel", self.dialog, 
+                               self.app, _("Look and Feel")), 
+            "general")
+        self.add_section(
+            DatesSection("date_and_time", self.dialog, self.app, 
+                         _("Date and Time")), 
+            "general")
+        self.add_section(
+            HelperAppsSection("helper_apps", self.dialog, 
+                              self.app, _("Helper Applications")), 
+            "general")
+        self.add_section(
+            NoteBookSection("notebook", self.dialog, self.app, 
+                            _("This Notebook")))
+        self.add_section(
+            ExtensionsSection("extensions", self.dialog, 
+                              self.app, _("Extensions")))
+
+    #=====================================
+    # options
+
+    def load_options(self, app, notebook):
+        """Load options into sections"""
+        
+        for section in self._sections:
+            section.load_options(self.app, notebook)
+
+    
+    def save_options(self, app, notebook):
+        """Save the options from each section"""
+        
+        for section in self._sections:
+            section.save_options(self.app)
+
+        # notify application preference changes
+        self.app.pref.changed.notify()
+
+        # save noteboook preference changes
+        if notebook:
+            notebook.write_preferences()
+            notebook.notify_change(False)
+
+
+    #=====================================
+    # section handling
 
     def add_section(self, section, parent=None):
         """Add a section to the Options Dialog"""
@@ -572,6 +668,9 @@ class ApplicationOptionsDialog (object):
         return None
 
 
+    #==========================================================
+    # callbacks
+
     def on_overview_select(self, overview):
         """Callback for changing topic in overview"""
         
@@ -580,52 +679,13 @@ class ApplicationOptionsDialog (object):
             self.tabs.set_current_page(self.tree2tab[row])         
 
     
-    def on_ok_button_clicked(self, main_window):
+    def on_ok_button_clicked(self):
 
-        # set the options from each section
-        for section in self._sections:
-            section.save_options(self.app)
+        self.save_options(self.app, self.notebook)
         
-        # notify application preference changes
-        self.app.pref.changed.notify()
-
-        # save noteboook preference changes
-        notebook = main_window.get_notebook()
-        if notebook:
-            notebook.write_preferences()
-            notebook.notify_change(False)
-
         # close dialog
-        self.dialog.destroy()
-        self.dialog = None
+        self.dialog.hide()
     
 
-    def add_default_sections(self, main_window):
-        
-        notebook = main_window.get_notebook()
-
-        self.add_section(
-            GeneralSection("general", self.dialog, self.app, 
-                           notebook, keepnote.PROGRAM_NAME))
-        self.add_section(
-            LookAndFeelSection("look_and_feel", self.dialog, 
-                               self.app, _("Look and Feel")), 
-            "general")
-        self.add_section(
-            DatesSection("date_and_time", self.dialog, self.app, 
-                         _("Date and Time")), 
-            "general")
-        self.add_section(
-            HelperAppsSection("helper_apps", self.dialog, 
-                              self.app, _("Helper Applications")), 
-            "general")
-        self.add_section(
-            NoteBookSection("notebook", self.dialog, self.app, 
-                            notebook, _("This Notebook")))
-        self.add_section(
-            ExtensionsSection("extensions", self.dialog, 
-                              self.app, _("Extensions")))
-
-
-
+    # TODO: add apply button
     
