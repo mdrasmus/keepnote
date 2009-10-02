@@ -28,11 +28,14 @@
 # python imports
 import gettext
 import time
+import os
+import sys
 _ = gettext.gettext
 
 
 # keepnote imports
 import keepnote
+from keepnote.gui import dialog_app_options
 
 # pygtk imports
 try:
@@ -62,7 +65,36 @@ class Extension (keepnote.Extension):
         self._set_focus_id = {}
         self._ui_id = {}
 
+        self.format = "%Y/%m/%d"
+
+
+    def on_enabled(self, enabled):
+        self.load_config()
+
+    #===============================
+    # config handling
+
+    def get_config_file(self):
+        return self.get_data_file("config")
+
+    def load_config(self):
+        config = self.get_config_file()
+        if not os.path.exists(config):
+            self.save_config()
+        else:
+            self.format = open(config).readline()
         
+
+    def save_config(self):
+        config = self.get_config_file()
+        out = open(config, "w")
+        out.write(self.format)
+        out.close()
+
+        
+    #================================
+    # UI setup
+
     def on_add_ui(self, window):
 
         self._set_focus_id[window] = window.connect("set-focus", self._on_focus)
@@ -101,6 +133,26 @@ class Extension (keepnote.Extension):
         del self._ui_id[window]
 
 
+    #=================================
+    # Options UI setup
+
+    def on_add_options_ui(self, dialog):
+        
+        dialog.add_section(EditorInsertDateSection("editor_insert_date", 
+                                                   dialog, self._app,
+                                                   self),
+                           "extensions")
+
+
+
+    def on_remove_options_ui(self, dialog):
+        
+        dialog.remove_section("editor_insert_date")
+
+
+    #================================
+    # actions
+
 
     def _on_focus(self, window, widget):
         """Callback for focus change in window"""
@@ -113,6 +165,54 @@ class Extension (keepnote.Extension):
         widget = self._widget_focus.get(window, None)
 
         if isinstance(widget, gtk.TextView):
-            stamp = time.strftime("%Y/%m/%d", time.localtime())
+            stamp = time.strftime(self.format, time.localtime())
             widget.get_buffer().insert_at_cursor(stamp)
 
+
+
+class EditorInsertDateSection (dialog_app_options.Section):
+    """A Section in the Options Dialog"""
+
+    def __init__(self, key, dialog, app, ext,
+                 label=u"Editor Insert Date", 
+                 icon=None):
+        dialog_app_options.Section.__init__(self, key, dialog, app, label, icon)
+
+        self.ext = ext
+
+        w = self.get_default_widget()
+        v = gtk.VBox(False, 5)
+        w.add(v)
+
+        table = gtk.Table(1, 2)
+        v.pack_start(table, False, True, 0)
+
+        label = gtk.Label("Date format:")
+        table.attach(label, 0, 1, 0, 1,
+                     xoptions=0, yoptions=0,
+                     xpadding=2, ypadding=2)
+
+        self.format = gtk.Entry()
+        table.attach(self.format, 1, 2, 0, 1,
+                     xoptions=gtk.FILL, yoptions=0,
+                     xpadding=2, ypadding=2)
+
+        xml = gtk.glade.XML(dialog_app_options.get_resource("rc", "keepnote.glade"),
+                            "date_and_time_key", keepnote.GETTEXT_DOMAIN)
+        key = xml.get_widget("date_and_time_key")
+        key.set_size_request(400, 200)
+        v.pack_start(key, True, True, 0)
+
+        w.show_all()
+
+
+    def load_options(self, app):
+        """Load options from app to UI"""
+        
+        self.format.set_text(self.ext.format)
+
+    def save_options(self, app):
+        """Save options to the app"""
+        
+        self.ext.format = self.format.get_text()
+        self.ext.save_config()

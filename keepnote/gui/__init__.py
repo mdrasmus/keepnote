@@ -123,6 +123,17 @@ def get_accel_file():
     return os.path.join(keepnote.get_user_pref_dir(), ACCEL_FILE)
 
 
+def init_key_shortcuts():
+    """Setup key shortcuts for the window"""
+
+    accel_file = get_accel_file()
+    if os.path.exists(accel_file):
+        gtk.accel_map_load(accel_file)
+    else:
+        gtk.accel_map_save(accel_file)
+
+
+
 def update_file_preview(file_chooser, preview):
     """Preview widget for file choosers"""
         

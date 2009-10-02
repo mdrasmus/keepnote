@@ -82,8 +82,20 @@ class Section (object):
         self.frame = gtk.Frame("")
         self.frame.get_label_widget().set_text("<b>%s</b>" % label)
         self.frame.get_label_widget().set_use_markup(True)
+        self.frame.set_property("shadow-type", gtk.SHADOW_NONE)
 
-    def load_options(self, app, notebook):
+        self.__align = gtk.Alignment()
+        self.__align.set_padding(10, 0, 10, 0)
+        self.__align.show()
+        self.frame.add(self.__align)
+
+
+    def get_default_widget(self):
+        """Returns the default parent widget for a Section"""
+        return self.__align
+
+
+    def load_options(self, app):
         """Load options from app to UI"""
         pass
 
@@ -145,9 +157,11 @@ class GeneralSection (Section):
                 self.notebook.get_path())
 
 
-    def load_options(self, app, notebook):
-
-        self.notebook = notebook
+    def load_options(self, app):
+        
+        win = app.get_current_window()
+        if win:
+            self.notebook = win.get_notebook()
 
         # populate default notebook        
         if app.pref.use_last_notebook:
@@ -228,7 +242,7 @@ class LookAndFeelSection (Section):
             pass
 
 
-    def load_options(self, app, notebook):
+    def load_options(self, app):
 
         self.treeview_lines_check.set_active(app.pref.treeview_lines)
         self.listview_rules_check.set_active(app.pref.listview_rules)
@@ -252,19 +266,21 @@ class HelperAppsSection (Section):
         Section.__init__(self, key, dialog, app, label, icon)
         
         self.entries = {}
-        self.frame = gtk.Frame("")
-        self.frame.get_label_widget().set_text("<b>%s</b>" % label)
-        self.frame.get_label_widget().set_use_markup(True)
-        self.frame.set_property("shadow-type", gtk.SHADOW_NONE)
+        #self.frame = gtk.Frame("")
+        #self.frame.get_label_widget().set_text("<b>%s</b>" % label)
+        #self.frame.get_label_widget().set_use_markup(True)
+        #self.frame.set_property("shadow-type", gtk.SHADOW_NONE)
         
-        align = gtk.Alignment()
-        align.set_padding(10, 0, 10, 0)
-        align.show()
-        self.frame.add(align)
+        #align = gtk.Alignment()
+        #align.set_padding(10, 0, 10, 0)
+        #align.show()
+        #self.frame.add(align)
+
+        w = self.get_default_widget()
         
         self.table = gtk.Table(len(app.pref.external_apps), 2)
         self.table.show()
-        align.add(self.table)
+        w.add(self.table)
 
         # set icon
         try:
@@ -274,7 +290,7 @@ class HelperAppsSection (Section):
 
 
         
-    def load_options(self, app, notebook):
+    def load_options(self, app):
 
         # clear table, resize
         self.table.foreach(lambda x: self.table.remove(x))
@@ -345,7 +361,7 @@ class DatesSection (Section):
         self.frame = self.date_xml.get_widget("date_time_frame")
 
 
-    def load_options(self, app, notebook):
+    def load_options(self, app):
         for name in ["same_day", "same_month", "same_year", "diff_year"]:
             self.date_xml.get_widget("date_%s_entry" % name).\
                 set_text(app.pref.timestamp_formats[name])
@@ -356,6 +372,17 @@ class DatesSection (Section):
             app.pref.timestamp_formats[name] = unicode_gtk(
                 self.date_xml.get_widget("date_%s_entry" % name).get_text())
         
+
+class AllNoteBooksSection (Section):
+    
+    def __init__(self, key, dialog, app, label=u"", icon="folder.png"):
+        Section.__init__(self, key, dialog, app, label, icon)
+
+        w = self.get_default_widget()
+        l = gtk.Label(_("This section contains options that are saved on a per notebook basis (e.g. notebook-specific font).   A subsection will appear for each notebook that is currently opened."))
+        l.set_line_wrap(True)
+        w.add(l)
+        w.show_all()
 
 
 class NoteBookSection (Section):
@@ -389,12 +416,12 @@ class NoteBookSection (Section):
                 "", self.notebook_index_dir,
                 action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER))
 
+        self.frame.show_all()
 
 
-    def load_options(self, app, notebook):
 
-        #self.notebook = notebook
-
+    def load_options(self, app):
+        
         if self.notebook is not None:
             font = self.notebook.pref.default_font
             family, mods, size = keepnote.gui.richtext.parse_font(font)
@@ -405,15 +432,17 @@ class NoteBookSection (Section):
 
 
     def save_options(self, app):
-        # save notebook font        
+        
         if self.notebook is not None:
             pref = self.notebook.pref
+
+            # save notebook font        
             pref.default_font = "%s %d" % (
                 self.notebook_font_family.get_family(),
                 self.notebook_font_size.get_value())
 
-            self.notebook.pref.index_dir = \
-                self.notebook_index_dir.get_text()
+            # alternative index directory
+            pref.index_dir = self.notebook_index_dir.get_text()
 
         
 
@@ -485,8 +514,10 @@ class ExtensionsSection (Section):
 
 
 
-    def load_options(self, app, notebook):
-        
+    def load_options(self, app):
+
+        self.list_store.clear()
+
         for ext in app.iter_extensions():
             self.list_store.append([ext, ext.name, ext.description, 
                                     ext.is_enabled()])
@@ -517,13 +548,10 @@ class ApplicationOptionsDialog (object):
     
     def __init__(self, app):
         self.app = app
-        self.main_window = None
-        self.notebook = None
+        self.parent = None
 
-
-        self._next_tab_position = 0
         self._sections = []
-        self.tree2tab = {}
+        self.tree2section = {}
         
         self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                  "app_options_dialog", keepnote.GETTEXT_DOMAIN)
@@ -532,9 +560,11 @@ class ApplicationOptionsDialog (object):
         self.tabs = self.xml.get_widget("app_options_tabs")
         self.xml.signal_autoconnect({
             "on_cancel_button_clicked": 
-                lambda w: self.finish(),
+                lambda w: self.on_cancel_button_clicked(),
             "on_ok_button_clicked":
-                lambda w: self.on_ok_button_clicked()})
+                lambda w: self.on_ok_button_clicked(),
+            "on_apply_button_clicked":
+                lambda w: self.on_apply_button_clicked()})
 
         # setup treeview
         self.overview = self.xml.get_widget("app_config_treeview")
@@ -556,37 +586,44 @@ class ApplicationOptionsDialog (object):
         # add tabs
         self.add_default_sections()
 
-
-    def _on_delete_event(self, widget, event):
-        """Callback for window close"""
-
-        self.finish()
-        self.dialog.stop_emission("delete-event")
-        return True
-
     
-    def on_app_options(self, main_window):
+    def show(self, parent):
         """Display application options"""
         
-        self.main_window = main_window
-        self.notebook = main_window.get_notebook()
-        self.dialog.set_transient_for(main_window)
+        self.parent = parent
+        self.dialog.set_transient_for(parent)
 
         # add notebook options
-        # TODO: pass notebook at this point
-        # TODO: remove notebook reference from load_options/save_options
         self.notebook_sections = [
             self.add_section(NoteBookSection("notebook_%d" % i, 
                                              self.dialog, self.app, 
-                                             notebook.get_title(),
-                                             notebook), 
+                                             notebook,
+                                             notebook.get_title()), 
                              "notebooks")
             for i, notebook in enumerate(self.app.iter_notebooks())]
 
 
-        self.load_options(self.app, self.notebook)
+        # add extension options
+        self.extensions_ui = []
+        for ext in self.app.iter_extensions(True):
+            ext.on_add_options_ui(self)
+            self.extensions_ui.append(ext)
+
+        # populate options ui
+        self.load_options(self.app)
 
         self.dialog.show()
+
+    def finish(self):
+
+        # remove extension options
+        for ext in self.extensions_ui:
+            ext.on_remove_options_ui(self)
+        self.extensions_ui = []
+
+        # remove notebook options
+        for section in self.notebook_sections:
+            self.remove_section(section.key)
 
 
     def add_default_sections(self):
@@ -607,8 +644,8 @@ class ApplicationOptionsDialog (object):
                               self.app, _("Helper Applications")), 
             "general")
         self.add_section(
-            Section("notebooks", self.dialog, self.app, 
-                    _("Notebook Options"), "folder.png"))
+            AllNoteBooksSection("notebooks", self.dialog, self.app, 
+                                _("Notebook Options"), "folder.png"))
         self.add_section(
             ExtensionsSection("extensions", self.dialog, 
                               self.app, _("Extensions")))
@@ -616,14 +653,14 @@ class ApplicationOptionsDialog (object):
     #=====================================
     # options
 
-    def load_options(self, app, notebook):
+    def load_options(self, app):
         """Load options into sections"""
         
         for section in self._sections:
-            section.load_options(self.app, notebook)
+            section.load_options(self.app)
 
     
-    def save_options(self, app, notebook):
+    def save_options(self, app):
         """Save the options from each section"""
         
         for section in self._sections:
@@ -633,7 +670,7 @@ class ApplicationOptionsDialog (object):
         self.app.pref.changed.notify()
 
         # save noteboook preference changes
-        if notebook:
+        for notebook in self.app.iter_notebooks():
             notebook.write_preferences()
             notebook.notify_change(False)
 
@@ -652,8 +689,7 @@ class ApplicationOptionsDialog (object):
             it = None
 
         self._sections.append(section)
-        self.tabs.insert_page(section.frame, tab_label=None, 
-                              position=self._next_tab_position)
+        self.tabs.insert_page(section.frame, tab_label=None)
         section.frame.show()
         section.frame.queue_resize()
 
@@ -670,17 +706,14 @@ class ApplicationOptionsDialog (object):
         it = self.overview_store.append(it, [section.label, section, pixbuf])
         path = self.overview_store.get_path(it)
         self.overview.expand_to_path(path)
-        self.tree2tab[path] = self._next_tab_position
-
-        
-        self._next_tab_position += 1
+        self.tree2section[path] = section
 
         return section
 
 
     def remove_section(self, key):
         
-        # TODO: may need to update tree2tab, when other pages slide in position
+        # TODO: may need to update tree2section, when other pages slide in position
 
         path = self.get_section_path(key)
 
@@ -688,12 +721,14 @@ class ApplicationOptionsDialog (object):
             return
 
         # remove from tabs
-        pos = self.tree2tab[path]
-        self.tabs.remove_page(pos)
-        del self.tree2tab[path]
+        section = self.tree2section[path]
+        self.tabs.remove_page(self._sections.index(section))
+        del self.tree2section[path]
 
         # remove from tree
         self.overview_store.remove(self.overview_store.get_iter(path))
+
+        self._sections.remove(section)
 
 
     def get_section(self, key):
@@ -734,23 +769,37 @@ class ApplicationOptionsDialog (object):
         
         row, col = overview.get_cursor()
         if row is not None:
-            self.tabs.set_current_page(self.tree2tab[row])         
+            section = self.tree2section[row]
+            self.tabs.set_current_page(self._sections.index(section))
 
+
+    def on_cancel_button_clicked(self):
+        
+        self.dialog.hide()
+        self.finish()
     
     def on_ok_button_clicked(self):
 
-        self.save_options(self.app, self.notebook)        
-
+        self.save_options(self.app)
+        self.dialog.hide()
         self.finish()
+
+
+    def on_apply_button_clicked(self):
+        self.save_options(self.app)
+
+        # clean up and reshow dialog
+        self.finish()
+        self.show(self.parent)
+        
+
     
-
-    def finish(self):
-
-        # close dialog
-        self.dialog.hide()        
-
-        for section in self.notebook_sections:
-            self.remove_section(section.key)
+    def _on_delete_event(self, widget, event):
+        """Callback for window close"""
+        self.dialog.hide()
+        self.finish()
+        self.dialog.stop_emission("delete-event")
+        return True
 
 
     # TODO: add apply button

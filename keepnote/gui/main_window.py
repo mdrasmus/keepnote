@@ -67,7 +67,8 @@ from keepnote.gui import \
      ToggleAction, \
      add_actions, \
      CONTEXT_MENU_ACCEL_PATH, \
-     FileChooserDialog
+     FileChooserDialog, \
+     init_key_shortcuts
 
 from keepnote.gui.icons import \
      lookup_icon_filename
@@ -111,7 +112,7 @@ class KeepNoteWindow (gtk.Window):
         self.accel_group = self.uimanager.get_accel_group()
         self.add_accel_group(self.accel_group)
 
-        self.init_key_shortcuts()
+        init_key_shortcuts()
         self.init_layout()
         self.setup_systray()
 
@@ -142,7 +143,6 @@ class KeepNoteWindow (gtk.Window):
         #====================================
         # Dialogs
         
-        # TODO: move to app
         self.drag_test = dialog_drag_drop_test.DragDropTestDialog(self)
         self.node_icon_dialog = dialog_node_icon.NodeIconDialog(self)
         
@@ -190,15 +190,6 @@ class KeepNoteWindow (gtk.Window):
             ui_id = self.uimanager.add_ui_from_string(s)
         self.viewer.setup_menus(self.uimanager)
 
-
-    def init_key_shortcuts(self):
-        """Setup key shortcuts for the window"""
-        
-        accel_file = get_accel_file()
-        if os.path.exists(accel_file):
-            gtk.accel_map_load(accel_file)
-        else:
-            gtk.accel_map_save(accel_file)
 
 
     def setup_systray(self):
@@ -587,7 +578,7 @@ class KeepNoteWindow (gtk.Window):
 
         # check version
         try:
-            notebook = self.app.open_notebook(filename, self)
+            notebook = self.app.get_notebook(filename, self)
             notebook.node_changed.add(self.on_notebook_node_changed)
 
         except NoteBookVersionError, e:
@@ -856,8 +847,6 @@ class KeepNoteWindow (gtk.Window):
         node = nodes[0]
 
         icon_file, icon_open_file = self.node_icon_dialog.show(node)
-
-        print icon_file, icon_open_file
 
         newly_installed = set()
 
@@ -1337,7 +1326,7 @@ class KeepNoteWindow (gtk.Window):
             
             ("KeepNote Options", gtk.STOCK_PREFERENCES, _("KeepNote _Options"),
              "", None,
-             lambda w: self.app.app_options_dialog.on_app_options(self)),
+             lambda w: self.app.app_options_dialog.show(self)),
 
             #=========================================
             ("Help", None, _("_Help")),

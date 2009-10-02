@@ -104,6 +104,9 @@ USER_LOCK_FILE = u"lockfile"
 USER_ERROR_LOG = u"error-log.txt"
 USER_EXTENSIONS_DIR = u"extensions"
 XDG_USER_EXTENSIONS_DIR = u"takenote/extensions"
+USER_EXTENSIONS_DATA_DIR = u"extensions_data"
+XDG_USER_EXTENSIONS_DATA_DIR = u"takenote/extensions_data"
+
 
 
 DEFAULT_WINDOW_SIZE = (800, 600)
@@ -309,6 +312,17 @@ def get_user_extensions_dir(pref_dir=None, home=None):
         return xdg.get_data_file(XDG_USER_EXTENSIONS_DIR, default=True)
 
 
+def get_user_extensions_data_dir(pref_dir=None, home=None):
+    """Returns user extensions data directory"""
+
+    if not use_xdg():
+        if pref_dir is None:
+            pref_dir = get_user_pref_dir(home)
+        return os.path.join(pref_dir, USER_EXTENSIONS_DATA_DIR)
+    else:
+        return xdg.get_data_file(XDG_USER_EXTENSIONS_DATA_DIR, default=True)
+
+
 def get_system_extensions_dir():
     """Returns system-wdie extensions directory"""
     return os.path.join(BASEDIR, u"extensions")
@@ -412,11 +426,17 @@ def init_user_extensions(pref_dir=None, home=None):
 
     if pref_dir is None:
         pref_dir = get_user_pref_dir(home)
-    extensions_dir = get_user_extensions_dir(pref_dir)
 
+    extensions_dir = get_user_extensions_dir(pref_dir)
     if not os.path.exists(extensions_dir):
         # make dir
         os.makedirs(extensions_dir, 0700)
+
+    extensions_data_dir = get_user_extensions_data_dir(pref_dir)
+    if not os.path.exists(extensions_data_dir):
+        # make dir
+        os.makedirs(extensions_data_dir, 0700)
+
 
 
 def iter_extensions(extensions_dir):
@@ -659,9 +679,9 @@ class KeepNotePreferences (object):
 
 
         # initialize user extensions directory
-        user_extensions_dir = get_user_extensions_dir(self._pref_dir)
-        if not os.path.exists(user_extensions_dir):
-            init_user_extensions(self._pref_dir)
+        #user_extensions_dir = get_user_extensions_dir(self._pref_dir)
+        #if not os.path.exists(user_extensions_dir):
+        init_user_extensions(self._pref_dir)
         
         
         # notify listeners
@@ -901,7 +921,7 @@ class KeepNote (object):
     def iter_notebooks(self):
         """Iterate through open notebooks"""
         
-        return self._noteboook.itervalues()
+        return self._notebooks.itervalues()
 
     
     def run_external_app(self, app_key, filename, wait=False):
@@ -1030,12 +1050,22 @@ class KeepNote (object):
         return ext
 
 
-    def iter_extensions(self):
-        """Iterate through all extensions"""
+    def get_extension_base_dir(self, extkey):
+        return self._extensions[extkey][0]
+    
+    def get_extension_data_dir(self, extkey):
+        return os.path.join(get_user_extensions_data_dir(), extkey)
+
+    def iter_extensions(self, enabled=False):
+        """
+        Iterate through all extensions
+
+        If 'enabled' is True, then only enabled extensions are returned.
+        """
 
         for name in self._extensions:
             ext = self.get_extension(name)
-            if ext:
+            if ext and (ext.is_enabled() or not enabled):
                 yield ext
 
 
@@ -1064,22 +1094,23 @@ class Extension (object):
         
         self._app = app
         self._enabled = False
-        self._windows = set()
-        self._uis = set()
+        self.__windows = set()
+
+        self.__uis = set()
 
 
     def enable(self, enable):
         self._enabled = enable
 
         if enable:
-            for window in self._windows:
-                if window not in self._uis:
+            for window in self.__windows:
+                if window not in self.__uis:
                     self.on_add_ui(window)
-                    self._uis.add(window)
+                    self.__uis.add(window)
         else:
-            for window in self._uis:
+            for window in self.__uis:
                 self.on_remove_ui(window)
-            self._uis.clear()
+            self.__uis.clear()
 
         # call callback for app
         self._app.on_extension_enabled(self, enable)
@@ -1094,28 +1125,56 @@ class Extension (object):
         """Callback for when extension is enabled/disabled"""
         pass
 
+
+    def get_base_dir(self, exist=True):
+        path = self._app.get_extension_base_dir(self.key)
+        if exist and not os.path.exists(path):
+            os.makedirs(path)
+        return path
+
+
+    def get_data_dir(self, exist=True):
+        path = self._app.get_extension_data_dir(self.key)
+        if exist and not os.path.exists(path):
+            os.makedirs(path)
+        return path
+
+    def get_data_file(self, filename, exist=True):
+        return os.path.join(self.get_data_dir(exist), filename)
+
     
     def on_new_window(self, window):
         """Initialize extension for a particular window"""
 
         if self._enabled:
             self.on_add_ui(window)
-            self._uis.add(window)
-        self._windows.add(window)
+            self.__uis.add(window)
+        self.__windows.add(window)
 
 
     def on_close_window(self, window):
         """Callback for when window is closed"""
      
-        if window in self._windows:
-            if window in self._uis:
+        if window in self.__windows:
+            if window in self.__uis:
                 self.on_remove_ui(window)
-                self._uis.remove(window)
-            self._windows.remove(window)
+                self.__uis.remove(window)
+            self.__windows.remove(window)
 
+    def get_windows(self):
+        """Returns windows associated with extension"""
+        return self.__windows
+            
 
     def on_add_ui(self, window):
         pass
 
     def on_remove_ui(self, window):
         pass
+
+    def on_add_options_ui(self, dialog):
+        pass
+
+    def on_remove_options_ui(self, dialog):
+        pass
+
