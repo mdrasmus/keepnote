@@ -529,6 +529,8 @@ class ThreePaneViewer (Viewer):
                 return
             node = nodes[0]
         
+        treenodes = self.treeview.get_selected_nodes()
+
         if direct:
             self.treeview.select_nodes([node])
         else:
@@ -536,16 +538,22 @@ class ThreePaneViewer (Viewer):
             path = []
             ptr = node
             while ptr:
+                if ptr in treenodes:
+                    # if parent path is allready selected then quit
+                    path = []
+                    break
                 path.append(ptr)
                 ptr = ptr.get_parent()
             
             # find first node that is collapsed
+            node2 = None
             for node2 in reversed(path):
                 if not self.treeview.is_node_expanded(node2):
                     break
             
             # make selections
-            self.treeview.select_nodes([node2])
+            if node2:
+                self.treeview.select_nodes([node2])
             self.listview.select_nodes([node])
                     
 

@@ -706,7 +706,6 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                 # get source
                 source_widget = drag_context.get_source_widget()
                 source_node = source_widget.get_drag_node()
-                #source_path = get_path_from_node(self.model, source_node)
             
                 # determine if drag is allowed
                 if self._drop_allowed(source_node, target_node, drop_position):
@@ -869,13 +868,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             self.emit("error", e.msg, e)
             return
 
-        # make sure to show new children
-        if (drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or
-            drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER):
-            new_parent_path = get_path_from_node(self.model, new_parent,
-                                             self.rich_model.get_node_column())
-            if new_parent_path is not None:
-                self.expand_row(new_parent_path, False)
+        # re-establish selection on source node
+        self.emit("goto-node", source_node)
 
         # notify that drag was successful
         drag_context.finish(True, True, eventtime)
@@ -906,10 +900,6 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             not (source_node and 
                  self._reorder == REORDER_FOLDER and not drop_into and
                  target_node.get_parent() == source_node.get_parent()))
-                #       or 
-                #not (self._reorder == REORDER_FOLDER and 
-                #    (drop_position not in (gtk.TREE_VIEW_DROP_INTO_OR_BEFORE,
-                #                           gtk.TREE_VIEW_DROP_INTO_OR_AFTER))))
 
 
 
