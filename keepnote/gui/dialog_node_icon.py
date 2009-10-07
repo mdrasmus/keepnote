@@ -88,7 +88,7 @@ class NodeIconDialog (object):
     
     def __init__(self, main_window):
         self.main_window = main_window
-        self.app = main_window.app
+        self.app = main_window.get_app()
         self.node = None
         
     

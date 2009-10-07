@@ -263,7 +263,7 @@ class Viewer (gtk.VBox):
         """image context menu"""
 
         # TODO: remove dependency on main window
-        menu.set_accel_group(self._main_window.accel_group)
+        menu.set_accel_group(self._main_window.get_accel_group())
         menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
         item = gtk.SeparatorMenuItem()
         item.show()

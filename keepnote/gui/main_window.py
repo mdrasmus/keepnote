@@ -94,6 +94,12 @@ def set_menu_icon(uimanager, path, filename):
     item.set_image(img) 
 
 
+def set_tool_icon(uimanager, path, filename):
+    item = uimanager.get_widget(path)
+    img = gtk.Image()
+    img.set_from_pixbuf(get_resource_pixbuf(filename))
+    item.set_icon_widget(img) 
+
 
 class KeepNoteWindow (gtk.Window):
     """Main windows for KeepNote"""
@@ -101,16 +107,16 @@ class KeepNoteWindow (gtk.Window):
     def __init__(self, app):
         gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
         
-        self.app = app # application object
+        self._app = app # application object
 
         # window state
         self._maximized = False   # True if window is maximized
         self._iconified = False   # True if window is minimized
         self._tray_icon = None
 
-        self.uimanager = gtk.UIManager()
-        self.accel_group = self.uimanager.get_accel_group()
-        self.add_accel_group(self.accel_group)
+        self._uimanager = gtk.UIManager()
+        self._accel_group = self._uimanager.get_accel_group()
+        self.add_accel_group(self._accel_group)
 
         init_key_shortcuts()
         self.init_layout()
@@ -133,7 +139,7 @@ class KeepNoteWindow (gtk.Window):
         self.connect("delete-event", lambda w,e: self._on_close())
         self.connect("window-state-event", self._on_window_state)
         self.connect("size-allocate", self._on_window_size)
-        self.app.pref.changed.add(self._on_app_options_changed)
+        self._app.pref.changed.add(self._on_app_options_changed)
         
 
         # viewer
@@ -185,10 +191,10 @@ class KeepNoteWindow (gtk.Window):
         status_hbox.pack_start(self.stats_bar, True, True, 0)
 
         # add viewer menus
-        add_actions(self.actiongroup, self.viewer.get_actions())
+        add_actions(self._actiongroup, self.viewer.get_actions())
         for s in self.viewer.get_ui():
-            ui_id = self.uimanager.add_ui_from_string(s)
-        self.viewer.setup_menus(self.uimanager)
+            ui_id = self._uimanager.add_ui_from_string(s)
+        self.viewer.setup_menus(self._uimanager)
 
 
 
@@ -203,7 +209,7 @@ class KeepNoteWindow (gtk.Window):
                 self._tray_icon.set_tooltip(keepnote.PROGRAM_NAME)
                 self._tray_icon.connect("activate", self._on_tray_icon_activate)
 
-            self._tray_icon.set_property("visible", self.app.pref.use_systray)
+            self._tray_icon.set_property("visible", self._app.pref.use_systray)
             
         else:
             self._tray_icon = None
@@ -212,7 +218,7 @@ class KeepNoteWindow (gtk.Window):
     def new_viewer(self):
         """Creates a new viewer for this window"""
 
-        viewer = ThreePaneViewer(self.app, self)
+        viewer = ThreePaneViewer(self._app, self)
         viewer.connect("error", lambda w,m,e: self.error(m, e))
         viewer.connect("status", lambda w,m,b: self.set_status(m, b))
         viewer.connect("window-request", self._on_window_request)
@@ -228,27 +234,30 @@ class KeepNoteWindow (gtk.Window):
     # accessors
 
     def get_app(self):
-        """Return application object"""
-        return self.app
+        """Returns application object"""
+        return self._app
 
+    def get_uimanager(self):
+        """Returns the UIManager for the window"""
+        return self._uimanager
 
     def get_viewer(self):
-        """Return window's viewer"""
+        """Returns window's viewer"""
         return self.viewer
             
 
     def get_accel_group(self):
         """Returns the accel group for the window"""
-        return self.accel_group()
+        return self._accel_group
 
 
     def get_notebook(self):
-        """Return the currently loaded notebook"""
+        """Returns the currently loaded notebook"""
         return self.viewer.get_notebook()
 
     
     def get_current_page(self):
-        """Return the currently selected page"""
+        """Returns the currently selected page"""
         return self.viewer.get_current_page()
         
         
@@ -274,7 +283,7 @@ class KeepNoteWindow (gtk.Window):
 
         # record window size if it is not maximized or minimized
         if not self._maximized and not self._iconified:
-            self.app.pref.window_size = self.get_size()
+            self._app.pref.window_size = self.get_size()
 
 
     def _on_app_options_changed(self):
@@ -346,38 +355,38 @@ class KeepNoteWindow (gtk.Window):
         """Load preferences"""
         
         if first_open:
-            self.resize(*self.app.pref.window_size)
-            if self.app.pref.window_maximized:
+            self.resize(*self._app.pref.window_size)
+            if self._app.pref.window_maximized:
                 self.maximize()
 
-        self.enable_spell_check(self.app.pref.spell_check)
+        self.enable_spell_check(self._app.pref.spell_check)
         self.setup_systray()
 
-        if self.app.pref.use_systray:
-            self.set_property("skip-taskbar-hint", self.app.pref.skip_taskbar)
+        if self._app.pref.use_systray:
+            self.set_property("skip-taskbar-hint", self._app.pref.skip_taskbar)
         
-        self.set_recent_notebooks_menu(self.app.pref.recent_notebooks)
+        self.set_recent_notebooks_menu(self._app.pref.recent_notebooks)
 
-        self.viewer.load_preferences(self.app.pref, first_open)
+        self.viewer.load_preferences(self._app.pref, first_open)
     
 
     def save_preferences(self):
         """Save preferences"""
 
-        self.app.pref.window_maximized = self._maximized
-        self.viewer.save_preferences(self.app.pref)
-        self.app.pref.last_treeview_name_path = []
+        self._app.pref.window_maximized = self._maximized
+        self.viewer.save_preferences(self._app.pref)
+        self._app.pref.last_treeview_name_path = []
 
-        if self.app.pref.use_last_notebook and self.viewer.get_notebook():
-            self.app.pref.default_notebook = self.viewer.get_notebook().get_path()
+        if self._app.pref.use_last_notebook and self.viewer.get_notebook():
+            self._app.pref.default_notebook = self.viewer.get_notebook().get_path()
         
-        self.app.pref.write()
+        self._app.pref.write()
         
         
     def set_recent_notebooks_menu(self, recent_notebooks):
         """Set the recent notebooks in the file menu"""
 
-        menu = self.uimanager.get_widget("/main_menu_bar/File/Open Recent Notebook")
+        menu = self._uimanager.get_widget("/main_menu_bar/File/Open Recent Notebook")
 
         # init menu
         if menu.get_submenu() is None:
@@ -419,7 +428,7 @@ class KeepNoteWindow (gtk.Window):
             action=gtk.FILE_CHOOSER_ACTION_SAVE, #CREATE_FOLDER,
             buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
                      _("New"), gtk.RESPONSE_OK),
-            app=self.app,
+            app=self._app,
             persistent_path="new_notebook_path")
         response = dialog.run()
         
@@ -440,7 +449,7 @@ class KeepNoteWindow (gtk.Window):
             action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, 
             buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
                      _("Open"), gtk.RESPONSE_OK),
-            app=self.app,
+            app=self._app,
             persistent_path="new_notebook_path")
 
         def on_folder_changed(filechooser):
@@ -466,7 +475,7 @@ class KeepNoteWindow (gtk.Window):
         if response == gtk.RESPONSE_OK:
             # make sure start in parent directory
             if dialog.get_current_folder():
-                self.app.pref.new_notebook_path = \
+                self._app.pref.new_notebook_path = \
                     os.path.dirname(unicode_gtk(dialog.get_current_folder()))
 
             if dialog.get_filename():
@@ -578,7 +587,7 @@ class KeepNoteWindow (gtk.Window):
 
         # check version
         try:
-            notebook = self.app.get_notebook(filename, self)
+            notebook = self._app.get_notebook(filename, self)
             notebook.node_changed.add(self.on_notebook_node_changed)
 
         except NoteBookVersionError, e:
@@ -645,8 +654,8 @@ class KeepNoteWindow (gtk.Window):
     def begin_auto_save(self):
         """Begin autosave callbacks"""
 
-        if self.app.pref.autosave:
-            gobject.timeout_add(self.app.pref.autosave_time, self.auto_save)
+        if self._app.pref.autosave:
+            gobject.timeout_add(self._app.pref.autosave_time, self.auto_save)
         
 
     def auto_save(self):
@@ -656,7 +665,7 @@ class KeepNoteWindow (gtk.Window):
         
         if self.viewer.get_notebook() is not None:
             self.save_notebook(True)
-            return self.app.pref.autosave
+            return self._app.pref.autosave
         else:
             return False
     
@@ -670,13 +679,13 @@ class KeepNoteWindow (gtk.Window):
     def add_recent_notebook(self, filename):
         """Add recent notebook"""
         
-        if filename in self.app.pref.recent_notebooks:
-            self.app.pref.recent_notebooks.remove(filename)
+        if filename in self._app.pref.recent_notebooks:
+            self._app.pref.recent_notebooks.remove(filename)
         
-        self.app.pref.recent_notebooks = \
-            [filename] + self.app.pref.recent_notebooks[:keepnote.gui.MAX_RECENT_NOTEBOOKS]
+        self._app.pref.recent_notebooks = \
+            [filename] + self._app.pref.recent_notebooks[:keepnote.gui.MAX_RECENT_NOTEBOOKS]
 
-        self.app.pref.changed.notify()
+        self._app.pref.changed.notify()
 
 
     def update_index(self):
@@ -920,7 +929,7 @@ class KeepNoteWindow (gtk.Window):
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
                      _("Attach"), gtk.RESPONSE_OK),
-            app=self.app,
+            app=self._app,
             persistent_path="attach_file_path")
         dialog.set_default_response(gtk.RESPONSE_OK)
 
@@ -1035,7 +1044,7 @@ class KeepNoteWindow (gtk.Window):
             if kind == "page" and \
                node.get_attr("content_type") != notebooklib.CONTENT_TYPE_PAGE:
                 self.error(_("Only pages can be viewed with %s.") %
-                           self.app.pref.get_external_app(app).title)
+                           self._app.pref.get_external_app(app).title)
                 return
 
         try:
@@ -1047,7 +1056,7 @@ class KeepNoteWindow (gtk.Window):
                 # get payload file
                 if not node.has_attr("payload_filename"):
                     self.error(_("Only files can be viewed with %s.") %
-                               self.app.pref.get_external_app(app).title)
+                               self._app.pref.get_external_app(app).title)
                     return
                 filename = os.path.realpath(
                     os.path.join(node.get_path(),
@@ -1057,7 +1066,7 @@ class KeepNoteWindow (gtk.Window):
                 # get node dir
                 filename = os.path.realpath(node.get_path())
             
-            self.app.run_external_app(app, filename)
+            self._app.run_external_app(app, filename)
         except KeepNoteError, e:
             self.error(e.msg, e, sys.exc_info()[2])
 
@@ -1073,7 +1082,7 @@ class KeepNoteWindow (gtk.Window):
             shutil.copy(filename, filename2)        
 
             # use text editor to view error log
-            self.app.run_external_app("text_editor", filename2)
+            self._app.run_external_app("text_editor", filename2)
         except Exception, e:
             self.error(_("Could not open error log"), e, sys.exc_info()[2])
 
@@ -1099,7 +1108,7 @@ class KeepNoteWindow (gtk.Window):
             enabled = textview.is_spell_check_enabled()
 
             # record state in preferences
-            self.app.pref.spell_check = enabled
+            self._app.pref.spell_check = enabled
 
             # update UI to match
             self.spell_check_toggle.set_active(enabled)
@@ -1112,7 +1121,7 @@ class KeepNoteWindow (gtk.Window):
 
         def func(dialog, link, data):
             try:
-                self.app.open_webpage(link)
+                self._app.open_webpage(link)
             except KeepNoteError, e:
                 self.error(e.msg, e, sys.exc_info()[2])
         gtk.about_dialog_set_url_hook(func, None)
@@ -1202,15 +1211,15 @@ class KeepNoteWindow (gtk.Window):
              "", _("Start a new notebook"),
              lambda w: self.on_new_notebook()),
 
-            ("New Page", None, _("New _Page"),
+            ("New Page", gtk.STOCK_NEW, _("New _Page"),
              "<control>N", _("Create a new page"),
              lambda w: self.on_new_page()),
 
-            ("New Child Page", None, _("New _Child Page"),
+            ("New Child Page", gtk.STOCK_NEW, _("New _Child Page"),
              "<control><shift>N", _("Create a new child page"),
              lambda w: self.on_new_child_page()),
 
-            ("New Folder", None, _("New _Folder"),
+            ("New Folder", gtk.STOCK_DIRECTORY, _("New _Folder"),
              "<control><shift>M", _("Create a new folder"),
              lambda w: self.on_new_dir()),
 
@@ -1326,7 +1335,7 @@ class KeepNoteWindow (gtk.Window):
             
             ("KeepNote Options", gtk.STOCK_PREFERENCES, _("KeepNote _Options"),
              "", None,
-             lambda w: self.app.app_options_dialog.show(self)),
+             lambda w: self._app.app_options_dialog.show(self)),
 
             #=========================================
             ("Help", None, _("_Help")),
@@ -1440,6 +1449,17 @@ class KeepNoteWindow (gtk.Window):
     <menuitem action="About"/>
   </menu>
 </menubar>
+
+
+<toolbar name="main_tool_bar">
+  <toolitem action="New Folder"/>
+  <toolitem action="New Page"/>
+  <separator/>
+  <toolitem action="Back"/>
+  <toolitem action="Forward"/>
+  <separator/>
+  <placeholder name="Viewer"/>
+</toolbar>
 </ui>
 """]
 
@@ -1450,25 +1470,25 @@ class KeepNoteWindow (gtk.Window):
         #===============================
         # ui manager
 
-        self.actiongroup = gtk.ActionGroup('MainWindow')
-        self.uimanager.insert_action_group(self.actiongroup, 0)
+        self._actiongroup = gtk.ActionGroup('MainWindow')
+        self._uimanager.insert_action_group(self._actiongroup, 0)
 
         # setup menus
-        add_actions(self.actiongroup, self.get_actions())
+        add_actions(self._actiongroup, self.get_actions())
         for s in self.get_ui():
-            self.uimanager.add_ui_from_string(s)
-        self.setup_menus(self.uimanager)
+            self._uimanager.add_ui_from_string(s)
+        self.setup_menus(self._uimanager)
 
 
         # get spell check toggle
         self.spell_check_toggle = \
-            self.uimanager.get_widget("/main_menu_bar/Options/Spell Check")
+            self._uimanager.get_widget("/main_menu_bar/Options/Spell Check")
         self.spell_check_toggle.set_sensitive(
             self.viewer.editor.get_textview().can_spell_check())
 
 
         # return menu bar
-        menubar = self.uimanager.get_widget('/main_menu_bar')
+        menubar = self._uimanager.get_widget('/main_menu_bar')
         return menubar
        
             
@@ -1476,9 +1496,11 @@ class KeepNoteWindow (gtk.Window):
     
     def make_toolbar(self):
         
-        toolbar = gtk.Toolbar()
+        toolbar = self._uimanager.get_widget('/main_tool_bar')
+        #toolbar = gtk.Toolbar()
         toolbar.set_orientation(gtk.ORIENTATION_HORIZONTAL)
         toolbar.set_style(gtk.TOOLBAR_ICONS)
+
 
         try:
             # NOTE: if this version of GTK doesn't have this size, then
@@ -1491,55 +1513,20 @@ class KeepNoteWindow (gtk.Window):
         
         tips = gtk.Tooltips()
         tips.enable()
-      
 
-        # new folder
-        button = gtk.ToolButton()
-        if self.app.pref.use_stock_icons:
-            button.set_stock_id(gtk.STOCK_DIRECTORY)
-        else:
-            button.set_icon_widget(get_resource_image("folder-new.png"))
-        tips.set_tip(button, _("New Folder"))
-        button.connect("clicked", lambda w: self.on_new_dir())
-        toolbar.insert(button, -1)
+        if not self._app.pref.use_stock_icons:
+            set_tool_icon(self._uimanager, "/main_tool_bar/New Folder", 
+                          "folder-new.png")
+            set_tool_icon(self._uimanager, "/main_tool_bar/New Page", 
+                          "note-new.png")
 
-        # new page
-        button = gtk.ToolButton()
-        if self.app.pref.use_stock_icons:
-            button.set_stock_id(gtk.STOCK_NEW)
-        else:
-            button.set_icon_widget(get_resource_image("note-new.png"))
-        tips.set_tip(button, _("New Page"))
-        button.connect("clicked", lambda w: self.on_new_page())
-        toolbar.insert(button, -1)
-
-        # separator
-        toolbar.insert(gtk.SeparatorToolItem(), -1)
-
-        # back in history
-        self.back_button = gtk.ToolButton()
-        self.back_button.set_stock_id(gtk.STOCK_GO_BACK)
-        tips.set_tip(self.back_button, "Back")
-        self.back_button.connect("clicked", 
-                                        lambda w: self._on_history(-1))
-        toolbar.insert(self.back_button, -1)
-        
-        # forward in history
-        self.forward_button = gtk.ToolButton()
-        self.forward_button.set_stock_id(gtk.STOCK_GO_FORWARD)
-        tips.set_tip(self.forward_button, "Forward")
-        self.forward_button.connect("clicked", lambda w: self._on_history(1))
-        toolbar.insert(self.forward_button, -1)
-
-
-        # separator
-        toolbar.insert(gtk.SeparatorToolItem(), -1)
-
+        self.back_button = self._uimanager.get_widget("/main_tool_bar/Back")
+        self.forward_button = self._uimanager.get_widget("/main_tool_bar/Forward")
         
         # insert editor toolbar
         self.viewer.make_toolbar(toolbar, tips, 
-                                 self.app.pref.use_stock_icons,
-                                 self.app.pref.use_minitoolbar)
+                                 self._app.pref.use_stock_icons,
+                                 self._app.pref.use_minitoolbar)
 
         # separator
         spacer = gtk.SeparatorToolItem()
@@ -1729,7 +1716,7 @@ class KeepNoteWindow (gtk.Window):
     def make_treeview_menu(self, treeview, menu):
         """treeview context menu"""
 
-        menu.set_accel_group(self.accel_group)
+        menu.set_accel_group(self._accel_group)
         menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
         
         self.make_node_menu(treeview, menu, "treeview")
@@ -1738,7 +1725,7 @@ class KeepNoteWindow (gtk.Window):
     def make_listview_menu(self, listview, menu):
         """listview context menu"""
 
-        menu.set_accel_group(self.accel_group)
+        menu.set_accel_group(self._accel_group)
         menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
 
         # listview/view note
@@ -1771,7 +1758,7 @@ class KeepNoteWindow (gtk.Window):
         
         # TODO: Try to add accellerator to popup menu
         #menu = viewer.editor.get_textview().get_popup_menu()
-        #menu.set_accel_group(self.accel_group)
+        #menu.set_accel_group(self._accel_group)
         #menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
 
         self.make_treeview_menu(viewer.treeview, viewer.treeview.menu)

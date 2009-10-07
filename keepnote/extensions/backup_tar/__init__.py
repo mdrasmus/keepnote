@@ -57,7 +57,7 @@ except ImportError:
 class Extension (keepnote.Extension):
     
     version = (1, 0)
-    name = "TAR Backup"
+    name = "Notebook Backup (tar)"
     description = "Backups a notebook to a gzip tar file (*.tar.gz)"
 
 
@@ -74,8 +74,8 @@ class Extension (keepnote.Extension):
         """Initialize extension for a particular window"""
 
         # add menu options
-
-        window.actiongroup.add_actions([
+        self.action_group = gtk.ActionGroup("MainWindow")
+        self.action_group.add_actions([
             ("Backup Notebook", None, "_Backup Notebook...",
              "", None,
              lambda w: self.on_archive_notebook(window,
@@ -84,8 +84,9 @@ class Extension (keepnote.Extension):
              "", None,
              lambda w: self.on_restore_notebook(window))
             ])
+        window.get_uimanager().insert_action_group(self.action_group, 0)
         
-        self._ui_id[window] = window.uimanager.add_ui_from_string(
+        self._ui_id[window] = window.get_uimanager().add_ui_from_string(
             """
             <ui>
             <menubar name="main_menu_bar">
@@ -102,11 +103,10 @@ class Extension (keepnote.Extension):
     def on_remove_ui(self, window):        
 
         # remove menu options
-        for action in window.actiongroup.list_actions():
-            if action.get_name() in ("Backup Notebook", "Restore Notebook"):
-                window.actiongroup.remove_action(action)
-
-        window.uimanager.remove_ui(self._ui_id[window])
+        window.get_uimanager().remove_action_group(self.action_group)
+        self.action_group = None
+        
+        window.get_uimanager().remove_ui(self._ui_id[window])
         del self._ui_id[window]
 
 

@@ -97,16 +97,20 @@ class Extension (keepnote.Extension):
 
     def on_add_ui(self, window):
 
+        # list to focus events from the window
         self._set_focus_id[window] = window.connect("set-focus", self._on_focus)
 
         # add menu options
-        window.actiongroup.add_actions([
+        self.action_group = gtk.ActionGroup("MainWindow")
+        self.action_group.add_actions([
                 ("Insert Date", None, "Insert _Date",
                  "", None,
                  lambda w: self.insert_date(window)),
                 ])
+        window.get_uimanager().insert_action_group(self.action_group, 0)
 
-        self._ui_id[window] = window.uimanager.add_ui_from_string(
+
+        self._ui_id[window] = window.get_uimanager().add_ui_from_string(
                 """
                 <ui>
                 <menubar name="main_menu_bar">
@@ -121,15 +125,14 @@ class Extension (keepnote.Extension):
 
     def on_remove_ui(self, window):        
 
+        # disconnect window callbacks
         window.disconnect(self._set_focus_id[window])
         del self._set_focus_id[window]
 
         # remove menu options
-        for action in window.actiongroup.list_actions():
-            if action.get_name() == "Insert Date":
-                window.actiongroup.remove_action(action)
-
-        window.uimanager.remove_ui(self._ui_id[window])
+        window.get_uimanager().remove_action_group(self.action_group)
+        window.get_uimanager().remove_ui(self._ui_id[window])
+        self.action_group = None
         del self._ui_id[window]
 
 

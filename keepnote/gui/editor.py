@@ -82,6 +82,11 @@ def set_menu_icon(uimanager, path, filename):
     img.set_from_pixbuf(get_resource_pixbuf(filename))
     item.set_image(img)
 
+def set_tool_icon(uimanager, path, filename):
+    item = uimanager.get_widget(path)
+    img = gtk.Image()
+    img.set_from_pixbuf(get_resource_pixbuf(filename))
+    item.set_icon_widget(img) 
 
 
 class KeepNoteEditor (gtk.VBox):
@@ -763,104 +768,8 @@ class EditorMenus (gobject.GObject):
 
     def make_toolbar(self, toolbar, tips, use_stock_icons, use_minitoolbar):
         
-        # bold tool
-        self.bold = self._make_toggle_button(
-            toolbar, tips,
-            _("Bold"), "bold.png", gtk.STOCK_BOLD,
-            lambda: self._editor.get_textview().toggle_font_mod("bold"),
-            use_stock_icons)
-        
-        # italic tool
-        self.italic = self._make_toggle_button(
-            toolbar, tips,
-            _("Italic"), "italic.png", gtk.STOCK_ITALIC,
-            lambda: self._editor.get_textview().toggle_font_mod("italic"),
-            use_stock_icons)
-
-        # underline tool
-        self.underline = self._make_toggle_button(
-            toolbar, tips,
-            _("Underline"), "underline.png", gtk.STOCK_UNDERLINE,
-            lambda: self._editor.get_textview().toggle_font_mod("underline"),
-            use_stock_icons)
-
-        # strikethrough
-        self.strike = self._make_toggle_button(
-            toolbar, tips,
-            _("Strike"), "strike.png", gtk.STOCK_STRIKETHROUGH,
-            lambda: self._editor.get_textview().toggle_font_mod("strike"),
-            use_stock_icons, use_minitoolbar)
-        
-        # fixed-width tool
-        self.fixed_width = self._make_toggle_button(
-            toolbar, tips,
-            _("Monospace"), "fixed-width.png", None,
-            lambda: self._editor.get_textview().toggle_font_mod("tt"),
-            use_stock_icons, use_minitoolbar)
-
-        # link
-        self.link = self._make_toggle_button(
-            toolbar, tips,
-            _("Make Link"), "link.png", None,
-            self.on_toggle_link,
-            use_stock_icons)
-
-        # no wrap tool
-        self.no_wrap = self._make_toggle_button(
-            toolbar, tips,
-            _("No Wrapping"), "no-wrap.png", None,
-            lambda: self._editor.get_textview().toggle_font_mod("nowrap"),
-            use_stock_icons, use_minitoolbar)
-
-        
-
-        # family combo
-        self.font_family_combo = FontSelector()
-        self.font_family_combo.set_size_request(150, 25)
-        item = gtk.ToolItem()
-        item.add(self.font_family_combo)
-        tips.set_tip(item, _("Font Family"))
-        toolbar.insert(item, -1)
-        self.font_family_id = self.font_family_combo.connect("changed",
-            lambda w: self.on_family_set())
-        self._font_ui_signals.append(FontUI(self.font_family_combo,
-                                           self.font_family_id))
-                
-        # font size
-        DEFAULT_FONT_SIZE = 10
-        self.font_size_button = gtk.SpinButton(
-          gtk.Adjustment(value=DEFAULT_FONT_SIZE, lower=2, upper=500, 
-                         step_incr=1))
-        self.font_size_button.set_size_request(-1, 25)
-        #self.font_size_button.set_range(2, 100)
-        self.font_size_button.set_value(DEFAULT_FONT_SIZE)
-        self.font_size_button.set_editable(False)
-        item = gtk.ToolItem()
-        item.add(self.font_size_button)
-        tips.set_tip(item, _("Font Size"))
-        toolbar.insert(item, -1)
-        self.font_size_id = self.font_size_button.connect("value-changed",
-            lambda w: 
-            self.on_font_size_change(self.font_size_button.get_value()))
-        self._font_ui_signals.append(FontUI(self.font_size_button,
-                                           self.font_size_id))
-
-
-        # font fg color
-        # TODO: code in proper default color
-        self.fg_color_button = FgColorTool(14, 15, (0, 0, 0))
-        self.fg_color_button.connect("set-color",
-            lambda w, color: self.on_color_set("fg", color))
-        tips.set_tip(self.fg_color_button, _("Set Text Color"))
-        toolbar.insert(self.fg_color_button, -1)
-        
-
-        # font bg color
-        self.bg_color_button = BgColorTool(14, 15, (65535, 65535, 65535))
-        self.bg_color_button.connect("set-color",
-            lambda w, color: self.on_color_set("bg", color))
-        tips.set_tip(self.bg_color_button, _("Set Background Color"))
-        toolbar.insert(self.bg_color_button, -1)
+        self.use_stock_icons = use_stock_icons
+        self.use_minitoolbar = use_minitoolbar
 
                 
         
@@ -906,7 +815,10 @@ class EditorMenus (gobject.GObject):
 
     def get_actions(self):
         
-        return map(lambda x: Action(*x), [
+        def BothAction(name1, *args):
+            return [Action(name1, *args), ToggleAction(name1 + " Tool", *args)]
+
+        return (map(lambda x: Action(*x), [
             ("Insert Horizontal Rule", None, _("Insert _Horizontal Rule"),
              "<control>H", None,
              lambda w: self._editor.on_insert_hr()),
@@ -938,39 +850,46 @@ class EditorMenus (gobject.GObject):
              _("_Replace In Page..."), 
              "<control>R", None,
              lambda w: self._editor.find_dialog.on_find(True)),
+            
+            ("Format", None, _("Fo_rmat")) ]) + 
 
 
-            
-            ("Format", None, _("Fo_rmat")),
 
-            ("Bold", None, _("_Bold"), 
-             "<control>B", None,
-             lambda w: self.on_mod("bold")),
+            BothAction("Bold", gtk.STOCK_BOLD, _("_Bold"), 
+             "<control>B", _("Bold"),
+             lambda w: self.on_mod("bold")) + 
+                
+            BothAction("Italic", gtk.STOCK_ITALIC, _("_Italic"), 
+             "<control>I", _("Italic"),
+             lambda w: self.on_mod("italic")) +
             
-            ("Italic", None, _("_Italic"), 
-             "<control>I", None,
-             lambda w: self.on_mod("italic")),
+            BothAction("Underline", gtk.STOCK_UNDERLINE, _("_Underline"), 
+             "<control>U", _("Underline"),
+             lambda w: self.on_mod("underline")) +
             
-            ("Underline", None, _("_Underline"), 
-             "<control>U", None,
-             lambda w: self.on_mod("underline")),
+            BothAction("Strike", None, _("S_trike"),
+             "", _("Strike"),
+             lambda w: self.on_mod("strike")) +
             
-            ("Strike", None, _("S_trike"),
-             "", None,
-             lambda w: self.on_mod("strike")),
+            BothAction("Monospace", None, _("_Monospace"),
+             "<control>M", _("Monospace"),
+             lambda w: self.on_mod("tt")) +
             
-            ("Monospace", None, _("_Monospace"),
-             "<control>M", None,
-             lambda w: self.on_mod("tt")),
+            BothAction("Link", None, _("Lin_k"),
+             "<control>L", _("Make Link"),
+             lambda w: self.on_toggle_link()) +
             
-            ("Link", None, _("Lin_k"),
-             "<control>L", None,
-             lambda w: self.on_toggle_link()),
+            BothAction("No Wrapping", None, _("No _Wrapping"),
+             "", _("No Wrapping"),
+             lambda w: self.on_mod("nowrap")) +
             
-            ("No Wrapping", None, _("No _Wrapping"),
-             "", None,
-             lambda w: self.on_mod("nowrap")),
+            map(lambda x: Action(*x), [
             
+            ("Font Selector Tool", None, "", "", _("Set Font Face")),
+            ("Font Size Tool", None, "", "", _("Set Font Size")),
+            ("Font Fg Color Tool", None, "", "", _("Set Text Color")),
+            ("Font Bg Color Tool", None, "", "", _("Set Background Color")),
+
             ("Left Align", None, _("_Left Align"), 
              "<shift><control>L", None,
              lambda w: self.on_justify("left")),
@@ -1018,12 +937,12 @@ class EditorMenus (gobject.GObject):
             ("Choose Font", None, _("Choose _Font"), 
              "<control><shift>F", None,
              lambda w: self.on_choose_font())
-        ])
+        ]))
         
 
     def get_ui(self):
 
-        return ["""
+        ui = ["""
         <ui>
         <menubar name="main_menu_bar">
           <menu action="Edit">
@@ -1067,13 +986,150 @@ class EditorMenus (gobject.GObject):
           </menu>
           </placeholder>
         </menubar>
-        </ui>
+     </ui>
         """]
+
+
+        if self.use_minitoolbar:
+            ui.append("""
+        <ui>
+        <toolbar name="main_tool_bar">
+          <placeholder name="Viewer">
+            <toolitem action="Bold Tool"/>
+            <toolitem action="Italic Tool"/>
+            <toolitem action="Underline Tool"/>
+            <toolitem action="Link Tool"/>
+            <toolitem action="Font Selector Tool"/>
+            <toolitem action="Font Size Tool"/>
+            <toolitem action="Font Fg Color"/>
+            <toolitem action="Font Bg Color"/>
+          </placeholder>
+        </toolbar>
+
+        </ui>
+        """)
+        else:
+            ui.append("""
+        <ui>
+        <toolbar name="main_tool_bar">
+          <placeholder name="Viewer">
+            <toolitem action="Bold Tool"/>
+            <toolitem action="Italic Tool"/>
+            <toolitem action="Underline Tool"/>
+            <toolitem action="Strike Tool"/>
+            <toolitem action="Monospace Tool"/>
+            <toolitem action="Link Tool"/>
+            <toolitem action="No Wrapping Tool"/>
+            <toolitem action="Font Selector Tool"/>
+            <toolitem action="Font Size Tool"/>
+            <toolitem action="Font Fg Color Tool"/>
+            <toolitem action="Font Bg Color Tool"/>
+          </placeholder>
+        </toolbar>
+
+        </ui>
+        """)
+
+        return ui
+
+
+
+    def setup_font_toggle(self, uimanager, path, icon, stock=False):
+
+        # TODO: add this back
+        if icon is not None and (not stock or not self.use_stock_icons):
+            set_tool_icon(uimanager, path, icon)
+
+        widget = uimanager.get_widget(path)
+        #widget.connect("toolbar-reconfigured", lambda x: 
+        #               True)
+
+        action = uimanager.get_action(path)
+        ui = FontUI(action, action.signal)
+        self._font_ui_signals.append(ui)
+        return ui
+
 
     def setup_menu(self, uimanager):
 
         u = uimanager
         
+        self.bold = self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/Bold Tool", "bold.png", True)
+        self.italic = self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/Italic Tool", "italic.png", True)
+        self.underline = self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/Underline Tool", "underline.png", True)
+        self.strike = self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/Strike Tool", "strike.png")
+        self.fixed_width = self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/Monospace Tool", "fixed-width.png")
+        self.link = self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/Link Tool", "link.png")
+        self.no_wrap = self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/No Wrapping Tool", "no-wrap.png")
+
+        
+        # family combo
+        
+        self.font_family_combo = FontSelector()
+        self.font_family_combo.set_size_request(150, 25)
+
+        w = uimanager.get_widget("/main_tool_bar/Viewer/Font Selector Tool")
+        w.remove(w.child)
+        w.add(self.font_family_combo)
+        self.font_family_id = self.font_family_combo.connect("changed",
+            lambda w: self.on_family_set())
+        self._font_ui_signals.append(FontUI(self.font_family_combo,
+                                            self.font_family_id))
+
+        # font size
+        DEFAULT_FONT_SIZE = 10
+        self.font_size_button = gtk.SpinButton(
+          gtk.Adjustment(value=DEFAULT_FONT_SIZE, lower=2, upper=500, 
+                         step_incr=1))        
+        self.font_size_button.set_size_request(-1, 25)
+        #self.font_size_button.set_range(2, 100)
+        self.font_size_button.set_value(DEFAULT_FONT_SIZE)
+        self.font_size_button.set_editable(False)
+        
+        w = uimanager.get_widget("/main_tool_bar/Viewer/Font Size Tool")
+        w.remove(w.child)
+        w.add(self.font_size_button)
+        w.set_homogeneous(False)
+        self.font_size_id = self.font_size_button.connect("value-changed",
+            lambda w: 
+            self.on_font_size_change(self.font_size_button.get_value()))
+        self._font_ui_signals.append(FontUI(self.font_size_button,
+                                            self.font_size_id))
+
+
+        # font fg color
+        # TODO: code in proper default color
+        self.fg_color_button = FgColorTool(14, 15, (0, 0, 0))
+        self.fg_color_button.set_homogeneous(False)
+        self.fg_color_button.connect("set-color",
+            lambda w, color: self.on_color_set("fg", color))
+
+        w = uimanager.get_widget("/main_tool_bar/Viewer/Font Fg Color Tool")
+        w.remove(w.child)
+        w.add(self.fg_color_button)
+        w.set_homogeneous(False)
+
+        # font bg color
+        self.bg_color_button = BgColorTool(14, 15, (65535, 65535, 65535))
+        
+        self.bg_color_button.connect("set-color",
+            lambda w, color: self.on_color_set("bg", color))
+
+        w = uimanager.get_widget("/main_tool_bar/Viewer/Font Bg Color Tool")
+        w.remove(w.child)
+        w.add(self.bg_color_button)
+        w.set_homogeneous(False)
+                
+        
+
+
         set_menu_icon(u, "/main_menu_bar/Editor/Format/Bold",
                       get_resource("images", "bold.png"))
         set_menu_icon(u, "/main_menu_bar/Editor/Format/Italic",

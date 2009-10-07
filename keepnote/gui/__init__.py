@@ -185,14 +185,15 @@ class FileChooserDialog (gtk.FileChooserDialog):
 
 
 class Action (gtk.Action):
-    def __init__(self, name, stockid, label=None,
+    def __init__(self, name, stockid=None, label=None,
                  accel="", tooltip="", func=None):
         gtk.Action.__init__(self, name, label, tooltip, stockid)
         self.func = func
         self.accel = accel
+        self.signal = None
 
         if func:
-            self.connect("activate", func)
+            self.signal = self.connect("activate", func)
 
 class ToggleAction (gtk.ToggleAction):
     def __init__(self, name, stockid, label=None,
@@ -200,9 +201,10 @@ class ToggleAction (gtk.ToggleAction):
         gtk.Action.__init__(self, name, label, tooltip, stockid)
         self.func = func
         self.accel = accel
+        self.signal = None
 
         if func:
-            self.connect("activate", func)
+            self.signal = self.connect("toggled", func)
 
 def add_actions(actiongroup, actions):
     """Add a list of Action's to an gtk.ActionGroup"""
