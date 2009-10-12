@@ -84,9 +84,17 @@ def set_menu_icon(uimanager, path, filename):
 
 def set_tool_icon(uimanager, path, filename):
     item = uimanager.get_widget(path)
-    img = gtk.Image()
-    img.set_from_pixbuf(get_resource_pixbuf(filename))
-    item.set_icon_widget(img) 
+    if item:
+        img = gtk.Image()
+        img.set_from_pixbuf(get_resource_pixbuf(filename))
+        item.set_icon_widget(img) 
+
+class FontUI (object):
+
+    def __init__(self, widget, signal, update_func=lambda ui, font: None):
+        self.widget = widget
+        self.signal = signal
+        self.update_func = update_func
 
 
 class KeepNoteEditor (gtk.VBox):
@@ -567,17 +575,8 @@ gobject.signal_new("child-activated", KeepNoteEditor, gobject.SIGNAL_RUN_LAST,
     gobject.TYPE_NONE, (object, object))
 gobject.signal_new("window-request", KeepNoteEditor, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (str,))
-
-
-#=============================================================================
-# menu classes functions
-
-
-class FontUI (object):
-
-    def __init__(self, widget, signal):
-        self.widget = widget
-        self.signal = signal
+gobject.signal_new("make-link", KeepNoteEditor, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, ())
 
 
 
@@ -601,28 +600,10 @@ class EditorMenus (gobject.GObject):
         for ui in self._font_ui_signals:
             ui.widget.handler_block(ui.signal)
 
-        # update font mods
-        self.bold.widget.set_active(font.mods["bold"])
-        self.italic.widget.set_active(font.mods["italic"])
-        self.underline.widget.set_active(font.mods["underline"])
-        self.strike.widget.set_active(font.mods["strike"])
-        self.fixed_width.widget.set_active(font.mods["tt"])
-        self.link.widget.set_active(font.link is not None)
-        self.no_wrap.widget.set_active(font.mods["nowrap"])
-        
-        # update text justification
-        self.left_align.widget.set_active(font.justify == "left")
-        self.center_align.widget.set_active(font.justify == "center")
-        self.right_align.widget.set_active(font.justify == "right")
-        self.fill_align.widget.set_active(font.justify == "fill")
+        # call update callback
+        for ui in self._font_ui_signals:
+            ui.update_func(ui, font)
 
-        # update bullet list
-        self.bullet.widget.set_active(font.par_type == "bullet")
-        
-        # update family/size buttons        
-        self.font_family_combo.set_family(font.family)
-        self.font_size_button.set_value(font.size)
-        
         # unblock toolbar handlers
         for ui in self._font_ui_signals:
             ui.widget.handler_unblock(ui.signal)
@@ -631,12 +612,12 @@ class EditorMenus (gobject.GObject):
     #==================================================
     # changing font handlers
 
-    def on_mod(self, mod):
+    def _on_mod(self, mod):
         """Toggle a font modification"""
         self._editor.get_textview().toggle_font_mod(mod)
 
 
-    def on_toggle_link(self):
+    def _on_toggle_link(self):
         """Link mode has been toggled"""
 
         textview = self._editor.get_textview()
@@ -648,44 +629,44 @@ class EditorMenus (gobject.GObject):
             if tag.get_href() == "" and is_url(url):
                 # set default url to link text
                 textview.set_link(url, start, end)
-            self.emit("make-link")
+            self._editor.emit("make-link")
     
 
-    def on_justify(self, justify):
+    def _on_justify(self, justify):
         """Set font justification"""
         self._editor.get_textview().set_justify(justify)
         font = self._editor.get_textview().get_font()
         self.on_font_change(self._editor, font)
         
-    def on_bullet_list(self):
+    def _on_bullet_list(self):
         """Toggle bullet list"""
         self._editor.get_textview().toggle_bullet()
         font = self._editor.get_textview().get_font()
         self.on_font_change(self._editor, font)
         
-    def on_indent(self):
+    def _on_indent(self):
         """Indent current paragraph"""
         self._editor.get_textview().indent()
 
-    def on_unindent(self):
+    def _on_unindent(self):
         """Unindent current paragraph"""
         self._editor.get_textview().unindent()
 
 
     
-    def on_family_set(self):
+    def _on_family_set(self, font_family_combo):
         """Set the font family"""
         self._editor.get_textview().set_font_family(
-            self.font_family_combo.get_family())
+            font_family_combo.get_family())
         self._editor.get_textview().grab_focus()
         
 
-    def on_font_size_change(self, size):
+    def _on_font_size_change(self, size):
         """Set the font size"""
         self._editor.get_textview().set_font_size(size)
         self._editor.get_textview().grab_focus()
     
-    def on_font_size_inc(self):
+    def _on_font_size_inc(self):
         """Increase font size"""
         font = self._editor.get_textview().get_font()
         font.size += 2        
@@ -693,7 +674,7 @@ class EditorMenus (gobject.GObject):
         self.on_font_change(self._editor, font)
     
     
-    def on_font_size_dec(self):
+    def _on_font_size_dec(self):
         """Decrease font size"""
         font = self._editor.get_textview().get_font()
         if font.size > 4:
@@ -702,16 +683,11 @@ class EditorMenus (gobject.GObject):
         self.on_font_change(self._editor, font)
 
 
-    def on_color_set(self, kind, color=0):
+    def _on_color_set(self, kind, widget, color=0):
         """Set text/background color"""
         
         if color == 0:
-            if kind == "fg":
-                color = self.fg_color_button.color
-            elif kind == "bg":
-                color = self.bg_color_button.color
-            else:
-                color = None
+            color = widget.color            
 
         if color is not None:
             colorstr = color_tuple_to_string(color)
@@ -726,7 +702,7 @@ class EditorMenus (gobject.GObject):
             raise Exception("unknown color type '%s'" % str(kind))
         
 
-    def on_choose_font(self):
+    def _on_choose_font(self):
         """Callback for opening Choose Font Dialog"""
         
         font = self._editor.get_textview().get_font()
@@ -741,77 +717,39 @@ class EditorMenus (gobject.GObject):
 
         dialog.destroy()
 
+    #=======================================================
+    # spellcheck
+
+    def enable_spell_check(self, enabled):
+        """Spell check"""
+
+        self._editor.get_textview().enable_spell_check(enabled)
+            
+        # see if spell check became enabled
+        enabled = self._editor.get_textview().is_spell_check_enabled()
+
+        # update UI to match
+        self.spell_check_toggle.set_active(enabled)
+
+        return enabled
+
+    
+    def on_spell_check_toggle(self, widget):
+        """Toggle spell checker"""
+        self.enable_spell_check(widget.get_active())
+
+
+
     #=====================================================
     # toolbar and menus
+    
 
-    def _make_toggle_button(self, toolbar, tips, tip_text, icon, 
-                            stock_id=None, 
-                            func=lambda: None,
-                            use_stock_icons=False,
-                            use_minitoolbar=False):
-
-        button = gtk.ToggleToolButton()
-        if use_stock_icons and stock_id:
-            button.set_stock_id(stock_id)
-        else:
-            button.set_icon_widget(get_resource_image(icon))
-        signal = button.connect("toggled", lambda w: func())
-        font_ui = FontUI(button, signal)
-        self._font_ui_signals.append(font_ui)
-
-        if not use_minitoolbar:        
-            toolbar.insert(button, -1)
-        tips.set_tip(button, tip_text)
-        
-        return font_ui
-
-
-    def make_toolbar(self, toolbar, tips, use_stock_icons, use_minitoolbar):
+    def setup_toolbar(self, use_stock_icons, use_minitoolbar):
         
         self.use_stock_icons = use_stock_icons
         self.use_minitoolbar = use_minitoolbar
 
-                
-        
-        # separator
-        toolbar.insert(gtk.SeparatorToolItem(), -1)
-        
-                
-        # left tool
-        self.left_align = self._make_toggle_button(
-            toolbar, tips,
-            "Left Align", "alignleft.png", gtk.STOCK_JUSTIFY_LEFT,
-            lambda: self.on_justify("left"),
-            use_stock_icons, use_minitoolbar)
 
-        # center tool
-        self.center_align = self._make_toggle_button(
-            toolbar, tips,
-            _("Center Align"), "aligncenter.png", gtk.STOCK_JUSTIFY_CENTER,
-            lambda: self.on_justify("center"),
-            use_stock_icons, use_minitoolbar)
-
-        # right tool
-        self.right_align = self._make_toggle_button(
-            toolbar, tips,
-            _("Right Align"), "alignright.png", gtk.STOCK_JUSTIFY_RIGHT,
-            lambda: self.on_justify("right"),
-            use_stock_icons, use_minitoolbar)
-
-        # justify tool
-        self.fill_align = self._make_toggle_button(
-            toolbar, tips,
-            _("Justify Align"), "alignjustify.png", gtk.STOCK_JUSTIFY_FILL,
-            lambda: self.on_justify("fill"),
-            use_stock_icons, use_minitoolbar)
-        
-        
-        # bullet list tool
-        self.bullet = self._make_toggle_button(
-            toolbar, tips,
-            _("Bullet List"), "bullet.png", None,
-            lambda: self.on_bullet_list(),
-            use_stock_icons)
 
     def get_actions(self):
         
@@ -857,23 +795,23 @@ class EditorMenus (gobject.GObject):
 
             BothAction("Bold", gtk.STOCK_BOLD, _("_Bold"), 
              "<control>B", _("Bold"),
-             lambda w: self.on_mod("bold")) + 
+             lambda w: self._on_mod("bold")) + 
                 
             BothAction("Italic", gtk.STOCK_ITALIC, _("_Italic"), 
              "<control>I", _("Italic"),
-             lambda w: self.on_mod("italic")) +
+             lambda w: self._on_mod("italic")) +
             
             BothAction("Underline", gtk.STOCK_UNDERLINE, _("_Underline"), 
              "<control>U", _("Underline"),
-             lambda w: self.on_mod("underline")) +
+             lambda w: self._on_mod("underline")) +
             
             BothAction("Strike", None, _("S_trike"),
              "", _("Strike"),
-             lambda w: self.on_mod("strike")) +
+             lambda w: self._on_mod("strike")) +
             
             BothAction("Monospace", None, _("_Monospace"),
              "<control>M", _("Monospace"),
-             lambda w: self.on_mod("tt")) +
+             lambda w: self._on_mod("tt")) +
             
             BothAction("Link", None, _("Lin_k"),
              "<control>L", _("Make Link"),
@@ -881,7 +819,27 @@ class EditorMenus (gobject.GObject):
             
             BothAction("No Wrapping", None, _("No _Wrapping"),
              "", _("No Wrapping"),
-             lambda w: self.on_mod("nowrap")) +
+             lambda w: self._on_mod("nowrap")) +
+
+            BothAction("Left Align", None, _("_Left Align"), 
+             "<shift><control>L", _("Left Align"),
+             lambda w: self._on_justify("left")) +
+            
+            BothAction("Center Align", None, _("C_enter Align"), 
+             "<shift><control>E", _("Center Align"),
+             lambda w: self._on_justify("center")) +
+            
+            BothAction("Right Align", None, _("_Right Align"), 
+             "<shift><control>R", _("Right Align"),
+             lambda w: self._on_justify("right")) +
+            
+            BothAction("Justify Align", None, _("_Justify Align"), 
+             "<shift><control>J", _("Justify Align"),
+             lambda w: self._on_justify("fill")) +
+
+            BothAction("Bullet List", None, _("_Bullet List"), 
+             "<control>asterisk", _("Bullet List"),
+             lambda w: self._on_bullet_list()) +
             
             map(lambda x: Action(*x), [
             
@@ -889,55 +847,40 @@ class EditorMenus (gobject.GObject):
             ("Font Size Tool", None, "", "", _("Set Font Size")),
             ("Font Fg Color Tool", None, "", "", _("Set Text Color")),
             ("Font Bg Color Tool", None, "", "", _("Set Background Color")),
-
-            ("Left Align", None, _("_Left Align"), 
-             "<shift><control>L", None,
-             lambda w: self.on_justify("left")),
-            
-            ("Center Align", None, _("C_enter Align"), 
-             "<shift><control>E", None,
-             lambda w: self.on_justify("center")),
-            
-            ("Right Align", None, _("_Right Align"), 
-             "<shift><control>R", None,
-             lambda w: self.on_justify("right")),
-            
-            ("Justify Align", None, _("_Justify Align"), 
-             "<shift><control>J", None,
-             lambda w: self.on_justify("fill")),
-
-            ("Bullet List", None, _("_Bullet List"), 
-             "<control>asterisk", None,
-             lambda w: self.on_bullet_list()),
             
             ("Indent More", None, _("Indent M_ore"), 
              "<control>parenright", None,
-             lambda w: self.on_indent()),
+             lambda w: self._on_indent()),
             
             ("Indent Less", None, _("Indent Le_ss"), 
              "<control>parenleft", None,
-             lambda w: self.on_unindent()),
+             lambda w: self._on_unindent()),
             
             ("Increase Font Size", None, _("Increase Font _Size"), 
              "<control>equal", None,
-             lambda w: self.on_font_size_inc()),
+             lambda w: self._on_font_size_inc()),
             
             ("Decrease Font Size", None, _("_Decrease Font Size"),
              "<control>minus", None,
-             lambda w: self.on_font_size_dec()),
+             lambda w: self._on_font_size_dec()),
 
             ("Apply Text Color", None, _("_Apply Text Color"), 
              "", None,
-             lambda w: self.on_color_set("fg")),
+             lambda w: self._on_color_set("fg")),
             
             ("Apply Background Color", None, _("A_pply Background Color"), 
              "", None,
-             lambda w: self.on_color_set("bg")),
+             lambda w: self._on_color_set("bg")),
                         
             ("Choose Font", None, _("Choose _Font"), 
              "<control><shift>F", None,
-             lambda w: self.on_choose_font())
-        ]))
+             lambda w: self._on_choose_font())
+         ]) +  
+                
+         [ToggleAction("Spell Check", None, _("_Spell Check"), 
+                       "", None,
+                       self.on_spell_check_toggle)]
+        )
         
 
     def get_ui(self):
@@ -960,6 +903,7 @@ class EditorMenus (gobject.GObject):
               <menuitem action="Replace In Page"/>
             </placeholder>
           </menu>
+          <placeholder name="Viewer">
           <placeholder name="Editor">
           <menu action="Format">
             <menuitem action="Bold"/>
@@ -985,6 +929,15 @@ class EditorMenus (gobject.GObject):
             <menuitem action="Choose Font"/>
           </menu>
           </placeholder>
+          </placeholder>
+
+          <menu action="Options">
+            <placeholder name="Viewer">
+              <separator/>
+              <menuitem action="Spell Check"/>
+              <separator/>
+            </placeholder>
+          </menu>
         </menubar>
      </ui>
         """]
@@ -1001,8 +954,10 @@ class EditorMenus (gobject.GObject):
             <toolitem action="Link Tool"/>
             <toolitem action="Font Selector Tool"/>
             <toolitem action="Font Size Tool"/>
-            <toolitem action="Font Fg Color"/>
-            <toolitem action="Font Bg Color"/>
+            <toolitem action="Font Fg Color Tool"/>
+            <toolitem action="Font Bg Color Tool"/>
+            <separator/>
+            <toolitem action="Bullet List Tool"/>
           </placeholder>
         </toolbar>
 
@@ -1024,6 +979,12 @@ class EditorMenus (gobject.GObject):
             <toolitem action="Font Size Tool"/>
             <toolitem action="Font Fg Color Tool"/>
             <toolitem action="Font Bg Color Tool"/>
+            <separator/>
+            <toolitem action="Left Align Tool"/>
+            <toolitem action="Center Align Tool"/>
+            <toolitem action="Right Align Tool"/>
+            <toolitem action="Justify Align Tool"/>
+            <toolitem action="Bullet List Tool"/>
           </placeholder>
         </toolbar>
 
@@ -1034,140 +995,184 @@ class EditorMenus (gobject.GObject):
 
 
 
-    def setup_font_toggle(self, uimanager, path, icon, stock=False):
+    def setup_font_toggle(self, uimanager, path, icon, stock=False, 
+                          update_func=lambda ui, font: None):
 
-        # TODO: add this back
         if icon is not None and (not stock or not self.use_stock_icons):
             set_tool_icon(uimanager, path, icon)
-
-        widget = uimanager.get_widget(path)
-        #widget.connect("toolbar-reconfigured", lambda x: 
-        #               True)
-
+        
         action = uimanager.get_action(path)
-        ui = FontUI(action, action.signal)
-        self._font_ui_signals.append(ui)
-        return ui
+        if action:
+            ui = FontUI(action, action.signal, update_func)
+            self._font_ui_signals.append(ui)
+            return ui
+        else:
+            return None
 
 
     def setup_menu(self, uimanager):
 
         u = uimanager
-        
-        self.bold = self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Bold Tool", "bold.png", True)
-        self.italic = self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Italic Tool", "italic.png", True)
-        self.underline = self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Underline Tool", "underline.png", True)
-        self.strike = self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Strike Tool", "strike.png")
-        self.fixed_width = self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Monospace Tool", "fixed-width.png")
-        self.link = self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Link Tool", "link.png")
-        self.no_wrap = self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/No Wrapping Tool", "no-wrap.png")
+
+        self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/Bold Tool", "bold.png", True,
+            update_func=
+            lambda ui, font: ui.widget.set_active(font.mods["bold"]))
+        self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/Italic Tool", "italic.png", True,
+            update_func=lambda ui, font: 
+            ui.widget.set_active(font.mods["italic"]))
+        self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/Underline Tool", 
+            "underline.png", True,
+            update_func=lambda ui, font: 
+            ui.widget.set_active(font.mods["underline"]))
+        self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/Strike Tool", "strike.png",
+            update_func=lambda ui, font:
+            ui.widget.set_active(font.mods["strike"]))
+        self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/Monospace Tool", 
+            "fixed-width.png",
+            update_func=lambda ui, font:
+            ui.widget.set_active(font.mods["tt"]))
+        self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/Link Tool", "link.png",
+            update_func=lambda ui, font:
+            ui.widget.set_active(font.link is not None))
+        self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/No Wrapping Tool", "no-wrap.png",
+            update_func=lambda ui, font:
+            ui.widget.set_active(font.mods["nowrap"]))
+
+                
+        self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/Left Align Tool", 
+            "alignleft.png", True, update_func=lambda ui, font:
+             ui.widget.set_active(font.justify == "left"))
+        self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/Center Align Tool", 
+            "aligncenter.png", True, update_func=lambda ui, font:
+             ui.widget.set_active(font.justify == "center"))
+        self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/Right Align Tool", 
+            "alignright.png", True, update_func=lambda ui, font:
+             ui.widget.set_active(font.justify == "right"))
+        self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/Justify Align Tool", 
+            "alignjustify.png", True, update_func=lambda ui, font:
+             ui.widget.set_active(font.justify == "fill"))
+        self.setup_font_toggle(
+            uimanager, "/main_tool_bar/Viewer/Bullet List Tool", 
+            "bullet.png", True, update_func=lambda ui, font:
+                ui.widget.set_active(font.par_type == "bullet"))
+
 
         
         # family combo
-        
-        self.font_family_combo = FontSelector()
-        self.font_family_combo.set_size_request(150, 25)
+        font_family_combo = FontSelector()
+        font_family_combo.set_size_request(150, 25)
 
         w = uimanager.get_widget("/main_tool_bar/Viewer/Font Selector Tool")
-        w.remove(w.child)
-        w.add(self.font_family_combo)
-        self.font_family_id = self.font_family_combo.connect("changed",
-            lambda w: self.on_family_set())
-        self._font_ui_signals.append(FontUI(self.font_family_combo,
-                                            self.font_family_id))
+        if w:
+            w.remove(w.child)
+            w.add(font_family_combo)
+            font_family_id = font_family_combo.connect("changed",
+                                                       self._on_family_set)
+            self._font_ui_signals.append(
+                FontUI(font_family_combo,
+                       font_family_id,
+                       update_func=lambda ui, font: 
+                       ui.widget.set_family(font.family)))
 
         # font size
         DEFAULT_FONT_SIZE = 10
-        self.font_size_button = gtk.SpinButton(
+        font_size_button = gtk.SpinButton(
           gtk.Adjustment(value=DEFAULT_FONT_SIZE, lower=2, upper=500, 
                          step_incr=1))        
-        self.font_size_button.set_size_request(-1, 25)
-        #self.font_size_button.set_range(2, 100)
-        self.font_size_button.set_value(DEFAULT_FONT_SIZE)
-        self.font_size_button.set_editable(False)
+        font_size_button.set_size_request(-1, 25)
+        font_size_button.set_value(DEFAULT_FONT_SIZE)
+        font_size_button.set_editable(False)
         
         w = uimanager.get_widget("/main_tool_bar/Viewer/Font Size Tool")
         w.remove(w.child)
-        w.add(self.font_size_button)
+        w.add(font_size_button)
         w.set_homogeneous(False)
-        self.font_size_id = self.font_size_button.connect("value-changed",
+        font_size_id = font_size_button.connect("value-changed",
             lambda w: 
-            self.on_font_size_change(self.font_size_button.get_value()))
-        self._font_ui_signals.append(FontUI(self.font_size_button,
-                                            self.font_size_id))
+            self._on_font_size_change(font_size_button.get_value()))
+        self._font_ui_signals.append(
+            FontUI(font_size_button,
+                   font_size_id,
+                   update_func=lambda ui, font:
+                       ui.widget.set_value(font.size)))
 
 
         # font fg color
         # TODO: code in proper default color
-        self.fg_color_button = FgColorTool(14, 15, (0, 0, 0))
-        self.fg_color_button.set_homogeneous(False)
-        self.fg_color_button.connect("set-color",
-            lambda w, color: self.on_color_set("fg", color))
+        fg_color_button = FgColorTool(14, 15, (0, 0, 0))
+        fg_color_button.set_homogeneous(False)
+        fg_color_button.connect("set-color",
+            lambda w, color: self._on_color_set("fg", fg_color_button, color))
 
         w = uimanager.get_widget("/main_tool_bar/Viewer/Font Fg Color Tool")
         w.remove(w.child)
-        w.add(self.fg_color_button)
+        w.add(fg_color_button)
         w.set_homogeneous(False)
 
         # font bg color
-        self.bg_color_button = BgColorTool(14, 15, (65535, 65535, 65535))
+        bg_color_button = BgColorTool(14, 15, (65535, 65535, 65535))
         
-        self.bg_color_button.connect("set-color",
-            lambda w, color: self.on_color_set("bg", color))
+        bg_color_button.connect("set-color",
+            lambda w, color: self._on_color_set("bg", bg_color_button, color))
 
         w = uimanager.get_widget("/main_tool_bar/Viewer/Font Bg Color Tool")
         w.remove(w.child)
-        w.add(self.bg_color_button)
+        w.add(bg_color_button)
         w.set_homogeneous(False)
                 
-        
 
 
-        set_menu_icon(u, "/main_menu_bar/Editor/Format/Bold",
+
+        # get spell check toggle
+        self.spell_check_toggle = \
+            uimanager.get_widget("/main_menu_bar/Options/Viewer/Spell Check")
+        self.spell_check_toggle.set_sensitive(
+            self._editor.get_textview().can_spell_check())
+
+
+        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Bold",
                       get_resource("images", "bold.png"))
-        set_menu_icon(u, "/main_menu_bar/Editor/Format/Italic",
+        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Italic",
                       get_resource("images", "italic.png"))
-        set_menu_icon(u, "/main_menu_bar/Editor/Format/Underline",
+        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Underline",
                       get_resource("images", "underline.png"))
-        set_menu_icon(u, "/main_menu_bar/Editor/Format/Strike",
+        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Strike",
                       get_resource("images", "strike.png"))
-        set_menu_icon(u, "/main_menu_bar/Editor/Format/Monospace",
+        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Monospace",
                       get_resource("images", "fixed-width.png"))
-        set_menu_icon(u, "/main_menu_bar/Editor/Format/Link",
+        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Link",
                       get_resource("images", "link.png"))
-        set_menu_icon(u, "/main_menu_bar/Editor/Format/No Wrapping",
+        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/No Wrapping",
                       get_resource("images", "no-wrap.png"))
-        set_menu_icon(u, "/main_menu_bar/Editor/Format/Left Align",
+        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Left Align",
                       get_resource("images", "alignleft.png"))
-        set_menu_icon(u, "/main_menu_bar/Editor/Format/Center Align",
+        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Center Align",
                       get_resource("images", "aligncenter.png"))
-        set_menu_icon(u, "/main_menu_bar/Editor/Format/Right Align",
+        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Right Align",
                       get_resource("images", "alignright.png"))
-        set_menu_icon(u, "/main_menu_bar/Editor/Format/Justify Align",
+        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Justify Align",
                       get_resource("images", "alignjustify.png"))
-        set_menu_icon(u, "/main_menu_bar/Editor/Format/Bullet List",
+        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Bullet List",
                       get_resource("images", "bullet.png"))
-        set_menu_icon(u, "/main_menu_bar/Editor/Format/Indent More",
+        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Indent More",
                       get_resource("images", "indent-more.png"))
-        set_menu_icon(u, "/main_menu_bar/Editor/Format/Indent Less",
+        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Indent Less",
                       get_resource("images", "indent-less.png"))
-        set_menu_icon(u, "/main_menu_bar/Editor/Format/Increase Font Size",
+        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Increase Font Size",
                       get_resource("images", "font-inc.png"))
-        set_menu_icon(u, "/main_menu_bar/Editor/Format/Decrease Font Size",
+        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Decrease Font Size",
                       get_resource("images", "font-dec.png"))
-        set_menu_icon(u, "/main_menu_bar/Editor/Format/Choose Font",
+        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Choose Font",
                       get_resource("images", "font.png"))
 
-            
-
-
-gobject.type_register(EditorMenus)
-gobject.signal_new("make-link", EditorMenus, gobject.SIGNAL_RUN_LAST,
-                   gobject.TYPE_NONE, ())

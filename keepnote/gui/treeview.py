@@ -99,8 +99,6 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
         self.column.add_attribute(self.cell_text, 'text',
                                   self.model.get_column_by_name("title").pos)
 
-        self.menu = gtk.Menu()
-        self.menu.attach_to_widget(self, lambda w,m:None)
 
         self.set_sensitive(False)
 

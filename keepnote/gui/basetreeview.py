@@ -104,7 +104,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         self._node_col = None
         self._get_icon = None
 
-
+        self._menu = None
 
         # selection
         self.get_selection().connect("changed", self.__on_select_changed)
@@ -232,17 +232,27 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                 self.on_row_has_child_toggled)
 
 
+    def set_popup_menu(self, menu):
+        self._menu = menu
+
+    def get_popup_menu(self):
+        return self._menu
+
+
     def popup_menu(self, x, y, button, time):
         """Display popup menu"""
         
+        if self._menu is None:
+            return
+
         path = self.get_path_at_pos(int(x), int(y))
         if path is None:
             return False
         
         path = path[0]
         self.get_selection().select_path(path)
-        self.menu.popup(None, None, None, button, time)
-        self.menu.show()
+        self._menu.popup(None, None, None, button, time)
+        self._menu.show()
         return True
 
 
@@ -420,63 +430,9 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             return []
         return [self.model.get_value(it, self._node_col)]
 
-
-
-    #=====================================================
-    # delete node
-    
-    def on_delete_node(self):
-        # TODO: add folder name to message box
-        # factor out confirm dialog?
         
-        # get node to delete
-        nodes = self.get_selected_nodes()
-        if len(nodes) == 0:
-            return
-        node = nodes[0]
-        
-        if isinstance(node, NoteBookTrash):
-            self.emit("error", _("The Trash folder cannot be deleted."), None)
-            return
-        elif node.get_parent() == None:
-            self.emit("error", _("The top-level folder cannot be deleted."), None)
-            return
-        elif len(node.get_children()) > 0:
-            message = _("Do you want to delete this note and all of its children?")
-        else:
-            message = _("Do you want to delete this note?")
-        
-        dialog = gtk.MessageDialog(self.get_toplevel(), 
-            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-            type=gtk.MESSAGE_QUESTION, 
-            buttons=gtk.BUTTONS_YES_NO, 
-            message_format=message)
-
-        response = dialog.run()
-        dialog.destroy()
-        
-        if response == gtk.RESPONSE_YES:
-            self._delete_node(node)
-            
-    
-    def _delete_node(self, node):
-        parent = node.get_parent()
-        children = parent.get_children()
-        i = children.index(node)
-        if i < len(children) - 1:
-            self.select_nodes([children[i+1]])
-        else:
-            self.select_nodes([parent])
-        
-        if parent is not None:
-            try:
-                node.trash()
-            except NoteBookError, e:
-                self.emit("error", e.msg, e)
-        else:
-            # warn
-            self.emit("error", _("The top-level folder cannot be deleted."), None)
-        
+    # TODO: add a reselect if node is deleted
+    # select next sibling or parent
 
 
     #============================================

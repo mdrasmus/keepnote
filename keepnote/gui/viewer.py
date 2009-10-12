@@ -56,14 +56,6 @@ from keepnote.gui import \
      CONTEXT_MENU_ACCEL_PATH
 from keepnote.history import NodeHistory
 from keepnote import notebook as notebooklib
-from keepnote.gui import richtext
-from keepnote.gui.richtext import RichTextView, RichTextImage, RichTextError
-from keepnote.gui.treeview import KeepNoteTreeView
-from keepnote.gui.listview import KeepNoteListView
-from keepnote.gui.editor import KeepNoteEditor, EditorMenus
-from keepnote.gui.icon_menu import IconMenu
-from keepnote.gui.link_editor import LinkEditor
-from keepnote import notebook as notebooklib
 from keepnote.gui.treemodel import iter_children
 
 
@@ -146,9 +138,6 @@ class Viewer (gtk.VBox):
         pass
 
     def setup_menus(self, uimanager):
-        pass
-
-    def make_toolbar(self, toolbar, tips, use_stock_icons):
         pass
 
     def goto_node(self, node, direct=True):

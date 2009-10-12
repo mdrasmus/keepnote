@@ -140,10 +140,6 @@ class KeepNoteWindow (gtk.Window):
         self.connect("window-state-event", self._on_window_state)
         self.connect("size-allocate", self._on_window_size)
         self._app.pref.changed.add(self._on_app_options_changed)
-        
-
-        # viewer
-        self.viewer = self.new_viewer()
 
 
         #====================================
@@ -152,6 +148,7 @@ class KeepNoteWindow (gtk.Window):
         self.drag_test = dialog_drag_drop_test.DragDropTestDialog(self)
         self.node_icon_dialog = dialog_node_icon.NodeIconDialog(self)
         
+        self.viewer = self.new_viewer()
         
         #====================================
         # Layout
@@ -173,7 +170,8 @@ class KeepNoteWindow (gtk.Window):
         main_vbox.pack_start(main_vbox2, True, True, 0)
 
         # viewer
-        main_vbox2.pack_start(self.viewer, True, True, 0)
+        self.viewer_box = gtk.VBox(False, 0)
+        main_vbox2.pack_start(self.viewer_box, True, True, 0)
 
 
         # status bar
@@ -190,12 +188,17 @@ class KeepNoteWindow (gtk.Window):
         self.stats_bar = gtk.Statusbar()
         status_hbox.pack_start(self.stats_bar, True, True, 0)
 
+
+        #====================================================
+        # viewer
+        
+        self.viewer_box.pack_start(self.viewer, True, True, 0)
+
         # add viewer menus
         add_actions(self._actiongroup, self.viewer.get_actions())
         for s in self.viewer.get_ui():
             ui_id = self._uimanager.add_ui_from_string(s)
         self.viewer.setup_menus(self._uimanager)
-
 
 
     def setup_systray(self):
@@ -222,10 +225,6 @@ class KeepNoteWindow (gtk.Window):
         viewer.connect("error", lambda w,m,e: self.error(m, e))
         viewer.connect("status", lambda w,m,b: self.set_status(m, b))
         viewer.connect("window-request", self._on_window_request)
-        viewer.connect("history-changed", self._on_history_changed)
-
-        # context menus
-        self.make_context_menus(viewer)
 
         return viewer
 
@@ -313,14 +312,6 @@ class KeepNoteWindow (gtk.Window):
         else:
             raise Exception("unknown window request: " + str(action))
     
-            
-    def _on_history_changed(self, viewer, history):
-        """Callback for when node browse history changes"""
-        
-        self.back_button.set_sensitive(history.has_back())
-        self.forward_button.set_sensitive(history.has_forward())
-
-    
 
 
     #=================================================
@@ -359,7 +350,6 @@ class KeepNoteWindow (gtk.Window):
             if self._app.pref.window_maximized:
                 self.maximize()
 
-        self.enable_spell_check(self._app.pref.spell_check)
         self.setup_systray()
 
         if self._app.pref.use_systray:
@@ -491,6 +481,7 @@ class KeepNoteWindow (gtk.Window):
         self.save_preferences()
         self.close_notebook()
         if self._tray_icon:
+            # turn off try icon
             self._tray_icon.set_property("visible", False)
             
         return False
@@ -513,7 +504,7 @@ class KeepNoteWindow (gtk.Window):
             return
         
         try:
-            # TODO: should this be outside exception
+            # TODO: should this be outside exception?
             self.viewer.save()
             self.viewer.get_notebook().save()
 
@@ -761,57 +752,10 @@ class KeepNoteWindow (gtk.Window):
         except NoteBookError, e:
             self.error(_("Could not empty trash."), e, sys.exc_info()[2])
 
-
-    def _on_history(self, offset):
-        """Move forward or backward in history"""
-        self.viewer.visit_history(offset)
         
 
-
-    def on_search_nodes(self):
-        """Search nodes"""
-
-        # do nothing if notebook is not defined
-        if not self.viewer.get_notebook():
-            return
-
-        # get words
-        words = [x.lower() for x in
-                 unicode_gtk(self.search_box.get_text()).strip().split()]
-        
-        # prepare search iterator
-        nodes = keepnote.search.search_manual(self.viewer.get_notebook(), words)
-
-        # clear listview        
-        self.viewer.start_search_result()
-
-        def search(task):
-            # do search in another thread
-
-            def gui_update(node):
-                def func():
-                    gtk.gdk.threads_enter()
-                    self.viewer.add_search_result(node)
-                    gtk.gdk.threads_leave()
-                return func
-
-            for node in nodes:
-                # terminate if search is canceled
-                if task.aborted():
-                    break
-                gobject.idle_add(gui_update(node))
-                
-            task.finish()
-
-        # launch task
-        self.wait_dialog(_("Searching notebook"), _("Searching..."),
-                         tasklib.Task(search))
-
-
-    def focus_on_search_box(self):
-        """Place cursor in search box"""
-        self.search_box.grab_focus()
-
+    #===========================================
+    # node icons
 
     def on_set_icon(self, icon_file, icon_open_file, widget="focus"):
         """
@@ -988,6 +932,78 @@ class KeepNoteWindow (gtk.Window):
             self.error(_("Error while attaching file '%s'" % filename),
                        e, sys.exc_info()[2])
                              
+
+    #======================================================
+    # Search
+
+
+    def on_search_nodes(self):
+        """Search nodes"""
+
+        # do nothing if notebook is not defined
+        if not self.viewer.get_notebook():
+            return
+
+        # get words
+        words = [x.lower() for x in
+                 unicode_gtk(self.search_box.get_text()).strip().split()]
+        
+        # prepare search iterator
+        nodes = keepnote.search.search_manual(self.viewer.get_notebook(), words)
+
+        # clear listview        
+        self.viewer.start_search_result()
+
+        def search(task):
+            # do search in another thread
+
+            def gui_update(node):
+                def func():
+                    gtk.gdk.threads_enter()
+                    self.viewer.add_search_result(node)
+                    gtk.gdk.threads_leave()
+                return func
+
+            for node in nodes:
+                # terminate if search is canceled
+                if task.aborted():
+                    break
+                gobject.idle_add(gui_update(node))
+                
+            task.finish()
+
+        # launch task
+        self.wait_dialog(_("Searching notebook"), _("Searching..."),
+                         tasklib.Task(search))
+
+
+    def focus_on_search_box(self):
+        """Place cursor in search box"""
+        self.search_box.grab_focus()
+
+
+    def _on_search_box_text_changed(self, url_text):
+
+        if not self._ignore_text:
+            self.search_box_update_completion()
+
+    def search_box_update_completion(self):
+
+        text = unicode_gtk(self.search_box.get_text())
+        
+        self.search_box_list.clear()
+        if len(text) > 0:
+            results = self.viewer.get_notebook().search_node_titles(text)[:10]
+            for nodeid, title in results:
+                self.search_box_list.append([title, nodeid])
+
+    def _on_search_box_completion_match(self, completion, model, iter):
+        
+        nodeid = model[iter][1]
+
+        node = self.viewer.get_notebook().get_node_by_id(nodeid)
+        if node:
+            self.viewer.goto_node(node, False)
         
 
     
@@ -1022,54 +1038,9 @@ class KeepNoteWindow (gtk.Window):
         """Redo callback"""
         self.viewer.redo()
     
-    
-    #=====================================================
-    # External app viewers
 
-    # TODO: may be move this to viewer
-        
-    def on_view_node_external_app(self, app, node=None, widget="focus",
-                                  kind=None):
-        """View a node with an external app"""
-
-        self.save_notebook()
-        
-        if node is None:
-            nodes, widget = self.get_selected_nodes(widget)
-            if len(nodes) == 0:
-                self.error(_("No notes are selected."))
-                return            
-            node = nodes[0]
-
-            if kind == "page" and \
-               node.get_attr("content_type") != notebooklib.CONTENT_TYPE_PAGE:
-                self.error(_("Only pages can be viewed with %s.") %
-                           self._app.pref.get_external_app(app).title)
-                return
-
-        try:
-            if kind == "page":
-                # get html file
-                filename = os.path.realpath(node.get_data_file())
-                
-            elif kind == "file":
-                # get payload file
-                if not node.has_attr("payload_filename"):
-                    self.error(_("Only files can be viewed with %s.") %
-                               self._app.pref.get_external_app(app).title)
-                    return
-                filename = os.path.realpath(
-                    os.path.join(node.get_path(),
-                                 node.get_attr("payload_filename")))
-                
-            else:
-                # get node dir
-                filename = os.path.realpath(node.get_path())
-            
-            self._app.run_external_app(app, filename)
-        except KeepNoteError, e:
-            self.error(e.msg, e, sys.exc_info()[2])
-
+    #===================================================
+    # Misc.
 
     def view_error_log(self):        
         """View error in text editor"""
@@ -1088,30 +1059,6 @@ class KeepNoteWindow (gtk.Window):
 
 
 
-
-    #=======================================================
-    # spellcheck
-    
-    def on_spell_check_toggle(self, widget):
-        """Toggle spell checker"""
-        self.enable_spell_check(widget.get_active())
-
-
-    def enable_spell_check(self, enabled):
-        """Spell check"""
-
-        textview = self.viewer.editor.get_textview()
-        if textview is not None:
-            textview.enable_spell_check(enabled)
-            
-            # see if spell check became enabled
-            enabled = textview.is_spell_check_enabled()
-
-            # record state in preferences
-            self._app.pref.spell_check = enabled
-
-            # update UI to match
-            self.spell_check_toggle.set_active(enabled)
     
     #==================================================
     # Help/about dialog
@@ -1211,14 +1158,17 @@ class KeepNoteWindow (gtk.Window):
              "", _("Start a new notebook"),
              lambda w: self.on_new_notebook()),
 
+            # TODO: move to viewer
             ("New Page", gtk.STOCK_NEW, _("New _Page"),
              "<control>N", _("Create a new page"),
              lambda w: self.on_new_page()),
 
+            # TODO: move to viewer
             ("New Child Page", gtk.STOCK_NEW, _("New _Child Page"),
              "<control><shift>N", _("Create a new child page"),
              lambda w: self.on_new_child_page()),
 
+            # TODO: move to viewer
             ("New Folder", gtk.STOCK_DIRECTORY, _("New _Folder"),
              "<control><shift>M", _("Create a new folder"),
              lambda w: self.on_new_dir()),
@@ -1274,10 +1224,12 @@ class KeepNoteWindow (gtk.Window):
              "<control>V", None,
              lambda w: self.on_paste()),
 
+            # TODO: move to viewer
             ("Attach File", gtk.STOCK_ADD, _("_Attach File..."),
              "", _("Attach a file to the notebook"),
              lambda w: self.on_attach_file()),
 
+            # TODO: move to viewer
             ("Empty Trash", gtk.STOCK_DELETE, _("Empty _Trash"),
              "", None,
              lambda w: self.on_empty_trash()),
@@ -1285,46 +1237,13 @@ class KeepNoteWindow (gtk.Window):
             #========================================
             ("Search", None, _("_Search")),
             
+            # TODO: move to viewer
             ("Search All Notes", gtk.STOCK_FIND, _("_Search All Notes"),
              "<control>K", None,
              lambda w: self.focus_on_search_box()),
 
-
-            #========================================
-            ("View", None, _("_View")),
-
-            
-            ("View Note in File Explorer", gtk.STOCK_OPEN,
-             _("View Note in File Explorer"),
-             "", None,
-             lambda w: self.on_view_node_external_app("file_explorer")),
-            
-            ("View Note in Text Editor", gtk.STOCK_OPEN,
-             _("View Note in Text Editor"),
-             "", None,
-             lambda w: self.on_view_node_external_app("text_editor",
-                                                      kind="page")),
-
-            ("View Note in Web Browser", gtk.STOCK_OPEN,
-             _("View Note in Web Browser"),
-             "", None,
-             lambda w: self.on_view_node_external_app("web_browser",
-                                                      kind="page")),
-
-            ("Open File", gtk.STOCK_OPEN,
-             _("_Open File"),
-             "", None,
-             lambda w: self.on_view_node_external_app("file_launcher",
-                                                      kind="file")),
-
             #=======================================
             ("Go", None, _("_Go")),
-
-            ("Back", gtk.STOCK_GO_BACK, _("_Back"), "", None,
-             lambda w: self._on_history(-1)),
-
-            ("Forward", gtk.STOCK_GO_FORWARD, _("_Forward"), "", None,
-             lambda w: self._on_history(1)),
             
             #=========================================
             ("Options", None, _("_Options")),
@@ -1355,11 +1274,13 @@ class KeepNoteWindow (gtk.Window):
             ("About", gtk.STOCK_ABOUT, _("_About"),
              "", None,
              lambda w: self.on_about())
-            ]) + \
-            map(lambda x: ToggleAction(*x), [
-            ("Spell Check", None, _("_Spell Check"), 
-             "", None,
-             self.on_spell_check_toggle)])
+            ]) +  [
+
+            Action("Main Spacer Tool"),
+            Action("Search Box Tool", None, None, "", _("Search All Notes")),
+            Action("Search Button Tool", gtk.STOCK_FIND, None, "", 
+                   _("Search All Notes"),
+                   lambda w: self.on_search_nodes())]
 
 
         # make sure recent notebooks is always visible
@@ -1380,9 +1301,12 @@ class KeepNoteWindow (gtk.Window):
 
         return ["""
 <ui>
+
+<!-- main window menu bar -->
 <menubar name="main_menu_bar">
   <menu action="File">
      <menuitem action="New Notebook"/>
+     <placeholder name="Viewer"/>
      <menuitem action="New Page"/>
      <menuitem action="New Child Page"/>
      <menuitem action="New Folder"/>
@@ -1420,22 +1344,11 @@ class KeepNoteWindow (gtk.Window):
     <menuitem action="Search All Notes"/>
     <placeholder name="Editor"/>
   </menu>
-  <placeholder name="Editor"/>
-  <menu action="View">
-    <menuitem action="View Note in File Explorer"/>
-    <menuitem action="View Note in Text Editor"/>
-    <menuitem action="View Note in Web Browser"/>
-    <menuitem action="Open File"/>
-  </menu>
+  <placeholder name="Viewer"/>
   <menu action="Go">
-    <menuitem action="Back"/>
-    <menuitem action="Forward"/>
-    <separator/>
     <placeholder name="Viewer"/>
   </menu>
   <menu action="Options">
-    <menuitem action="Spell Check"/>
-    <separator/>
     <placeholder name="Viewer"/>
     <separator/>
     <menuitem action="Update Notebook Index"/>
@@ -1450,15 +1363,15 @@ class KeepNoteWindow (gtk.Window):
   </menu>
 </menubar>
 
-
+<!-- main window tool bar -->
 <toolbar name="main_tool_bar">
   <toolitem action="New Folder"/>
   <toolitem action="New Page"/>
   <separator/>
-  <toolitem action="Back"/>
-  <toolitem action="Forward"/>
-  <separator/>
   <placeholder name="Viewer"/>
+  <toolitem action="Main Spacer Tool"/>
+  <toolitem action="Search Box Tool"/>
+  <toolitem action="Search Button Tool"/>
 </toolbar>
 </ui>
 """]
@@ -1479,14 +1392,6 @@ class KeepNoteWindow (gtk.Window):
             self._uimanager.add_ui_from_string(s)
         self.setup_menus(self._uimanager)
 
-
-        # get spell check toggle
-        self.spell_check_toggle = \
-            self._uimanager.get_widget("/main_menu_bar/Options/Spell Check")
-        self.spell_check_toggle.set_sensitive(
-            self.viewer.editor.get_textview().can_spell_check())
-
-
         # return menu bar
         menubar = self._uimanager.get_widget('/main_menu_bar')
         return menubar
@@ -1496,11 +1401,11 @@ class KeepNoteWindow (gtk.Window):
     
     def make_toolbar(self):
         
+        # configure toolbar
         toolbar = self._uimanager.get_widget('/main_tool_bar')
-        #toolbar = gtk.Toolbar()
         toolbar.set_orientation(gtk.ORIENTATION_HORIZONTAL)
         toolbar.set_style(gtk.TOOLBAR_ICONS)
-
+        toolbar.set_border_width(0)
 
         try:
             # NOTE: if this version of GTK doesn't have this size, then
@@ -1509,41 +1414,25 @@ class KeepNoteWindow (gtk.Window):
         except:
             pass
         
-        toolbar.set_border_width(0)
-        
-        tips = gtk.Tooltips()
-        tips.enable()
-
+                
         if not self._app.pref.use_stock_icons:
             set_tool_icon(self._uimanager, "/main_tool_bar/New Folder", 
                           "folder-new.png")
             set_tool_icon(self._uimanager, "/main_tool_bar/New Page", 
                           "note-new.png")
 
-        self.back_button = self._uimanager.get_widget("/main_tool_bar/Back")
-        self.forward_button = self._uimanager.get_widget("/main_tool_bar/Forward")
         
-        # insert editor toolbar
-        self.viewer.make_toolbar(toolbar, tips, 
-                                 self._app.pref.use_stock_icons,
-                                 self._app.pref.use_minitoolbar)
-
-        # separator
-        spacer = gtk.SeparatorToolItem()
-        spacer.set_draw(False)
+        # separator (is there a better way to do this?)
+        spacer = self._uimanager.get_widget("/main_tool_bar/Main Spacer Tool")
+        spacer.remove(spacer.child)
         spacer.set_expand(True)
-        toolbar.insert(spacer, -1)
 
 
         # search box
-        item = gtk.ToolItem()
         self.search_box = gtk.Entry()
-        #self.search_box.set_max_chars(30)
         self.search_box.connect("changed", self._on_search_box_text_changed)
         self.search_box.connect("activate",
-                                lambda w: self.on_search_nodes())
-        item.add(self.search_box)
-        toolbar.insert(item, -1)
+                                lambda w: self.on_search_nodes())        
 
         self.search_box_list = gtk.ListStore(gobject.TYPE_STRING, 
                                              gobject.TYPE_STRING)
@@ -1555,212 +1444,10 @@ class KeepNoteWindow (gtk.Window):
         self.search_box_completion.set_text_column(0)
         self.search_box.set_completion(self.search_box_completion)
         self._ignore_text = False
-
-        # search button
-        self.search_button = gtk.ToolButton()
-        self.search_button.set_stock_id(gtk.STOCK_FIND)
-        tips.set_tip(self.search_button, _("Search All Notes"))
-        self.search_button.connect("clicked",
-                                   lambda w: self.on_search_nodes())
-        toolbar.insert(self.search_button, -1)
-        
-                
+        w = self._uimanager.get_widget("/main_tool_bar/Search Box Tool")
+        w.remove(w.child)
+        w.add(self.search_box)
+                        
         return toolbar
 
-
-    def _on_search_box_text_changed(self, url_text):
-
-        if not self._ignore_text:
-            self.search_box_update_completion()
-
-    def search_box_update_completion(self):
-
-        text = unicode_gtk(self.search_box.get_text())
-        
-        self.search_box_list.clear()
-        if len(text) > 0:
-            results = self.viewer.get_notebook().search_node_titles(text)[:10]
-            for nodeid, title in results:
-                self.search_box_list.append([title, nodeid])
-
-    def _on_search_box_completion_match(self, completion, model, iter):
-        
-        nodeid = model[iter][1]
-
-        node = self.viewer.get_notebook().get_node_by_id(nodeid)
-        if node:
-            self.viewer.goto_node(node, False)
-
-
-
-
-    def make_node_menu(self, widget, menu, control):
-        """make list of menu options for nodes"""
-
-        # new page
-        item = gtk.ImageMenuItem(_("New _Page"))
-        item.set_image(get_resource_image("note-new.png"))        
-        item.connect("activate", lambda w: self.on_new_page(control))
-        menu.append(item)
-        item.show()
-
-
-        # new child page 
-        item = gtk.ImageMenuItem(_("New _Child Page"))
-        item.set_image(get_resource_image("note-new.png"))
-        item.connect("activate", lambda w: self.on_new_child_page(control))
-        menu.append(item)
-        item.show()
-
-        
-        # new folder
-        item = gtk.ImageMenuItem(_("New _Folder"))
-        item.set_image(get_resource_image("folder-new.png"))
-        item.connect("activate", lambda w: self.on_new_dir(control))
-        menu.append(item)
-        item.show()
-        
-
-        # attach file
-        item = gtk.ImageMenuItem(gtk.STOCK_ADD)
-        item.child.set_label(_("_Attach File"))
-        item.connect("activate", lambda w: self.on_attach_file(control))
-        menu.append(item)
-        item.show()
-
-        #=============================================================
-        item = gtk.SeparatorMenuItem()
-        menu.append(item)
-        item.show()
-
-        # treeview/delete node
-        item = gtk.ImageMenuItem(gtk.STOCK_DELETE)
-        item.connect("activate", lambda w: widget.on_delete_node())
-        menu.append(item)
-        item.show()
-
-        # rename node
-        item = gtk.ImageMenuItem(gtk.STOCK_EDIT)
-        item.child.set_label(_("_Rename"))
-        item.connect("activate", lambda w:
-                     widget.edit_node(widget.get_selected_nodes()[0]))
-        menu.add(item)
-        item.show()
-        
-
-        # change icon
-        item = gtk.ImageMenuItem(_("Change _Icon"))
-        img = gtk.Image()
-        img.set_from_file(lookup_icon_filename(None, u"folder-red.png"))
-        item.set_image(img)
-        menu.append(item)
-        menu.iconmenu = IconMenu()
-        menu.iconmenu.connect("set-icon",
-                              lambda w, i: self.on_set_icon(i, u"", control))
-        menu.iconmenu.new_icon.connect("activate",
-                                       lambda w: self.on_new_icon(control))
-        item.set_submenu(menu.iconmenu)
-        item.show()
-        
-
-        #=============================================================
-        item = gtk.SeparatorMenuItem()
-        menu.append(item)
-        item.show()
-
-
-        # treeview/file explorer
-        item = gtk.ImageMenuItem(gtk.STOCK_OPEN)
-        item.child.set_label(_("View in File _Explorer"))
-        item.connect("activate",
-                     lambda w: self.on_view_node_external_app("file_explorer",
-                                                              None,
-                                                              control))
-        menu.append(item)
-        item.show()        
-
-        # treeview/web browser
-        item = gtk.ImageMenuItem(gtk.STOCK_OPEN)
-        item.child.set_label(_("View in _Web Browser"))
-        item.connect("activate",
-                     lambda w: self.on_view_node_external_app("web_browser",
-                                                              None,
-                                                              control,
-                                                              kind="page"))
-        menu.append(item)
-        item.show()        
-
-        # treeview/text editor
-        item = gtk.ImageMenuItem(gtk.STOCK_OPEN)
-        item.child.set_label(_("View in _Text Editor"))
-        item.connect("activate",
-                     lambda w: self.on_view_node_external_app("text_editor",
-                                                              None,
-                                                              control,
-                                                              kind="page"))
-        menu.append(item)
-        item.show()
-
-        # treeview/Open File
-        item = gtk.ImageMenuItem(gtk.STOCK_OPEN)
-        item.child.set_label(_("Open _File"))
-        item.connect("activate",
-                     lambda w: self.on_view_node_external_app("file_launcher",
-                                                              None,
-                                                              control,
-                                                              kind="file"))
-        menu.append(item)
-        item.show()
-        
-
-    def make_treeview_menu(self, treeview, menu):
-        """treeview context menu"""
-
-        menu.set_accel_group(self._accel_group)
-        menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
-        
-        self.make_node_menu(treeview, menu, "treeview")
-
-        
-    def make_listview_menu(self, listview, menu):
-        """listview context menu"""
-
-        menu.set_accel_group(self._accel_group)
-        menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
-
-        # listview/view note
-        item = gtk.ImageMenuItem(gtk.STOCK_GO_DOWN)
-        #item.child.set_label("Go to _Note")
-        item.child.set_markup_with_mnemonic(_("<b>Go to _Note</b>"))
-        item.connect("activate",
-                     lambda w: self.viewer.on_list_view_node(None, None))
-        menu.append(item)
-        item.show()
-
-        # listview/view note
-        item = gtk.ImageMenuItem(gtk.STOCK_GO_UP)
-        item.child.set_label(_("Go to _Parent Note"))
-        item.connect("activate",
-                     lambda w: self.viewer.on_list_view_parent_node())
-        menu.append(item)
-        item.show()
-
-        item = gtk.SeparatorMenuItem()
-        menu.append(item)
-        item.show()
-
-        self.make_node_menu(listview, menu, "listview")
-
-
-
-    def make_context_menus(self, viewer):
-        """Initialize context menus"""        
-        
-        # TODO: Try to add accellerator to popup menu
-        #menu = viewer.editor.get_textview().get_popup_menu()
-        #menu.set_accel_group(self._accel_group)
-        #menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
-
-        self.make_treeview_menu(viewer.treeview, viewer.treeview.menu)
-        self.make_listview_menu(viewer.listview, viewer.listview.menu)
 
