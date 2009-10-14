@@ -62,7 +62,6 @@ from keepnote.gui import \
      get_resource, \
      get_resource_image, \
      get_resource_pixbuf, \
-     get_accel_file, \
      Action, \
      ToggleAction, \
      add_actions, \
@@ -89,16 +88,18 @@ from keepnote.gui.three_pane_viewer import ThreePaneViewer
 
 def set_menu_icon(uimanager, path, filename):
     item = uimanager.get_widget(path)
-    img = gtk.Image()
-    img.set_from_pixbuf(get_resource_pixbuf(filename))
-    item.set_image(img) 
+    if item:
+        img = gtk.Image()
+        img.set_from_pixbuf(get_resource_pixbuf(filename))
+        item.set_image(img) 
 
 
 def set_tool_icon(uimanager, path, filename):
     item = uimanager.get_widget(path)
-    img = gtk.Image()
-    img.set_from_pixbuf(get_resource_pixbuf(filename))
-    item.set_icon_widget(img) 
+    if item:
+        img = gtk.Image()
+        img.set_from_pixbuf(get_resource_pixbuf(filename))
+        item.set_icon_widget(img)
 
 
 class KeepNoteWindow (gtk.Window):
@@ -1157,8 +1158,7 @@ class KeepNoteWindow (gtk.Window):
             ("New Notebook", gtk.STOCK_NEW, _("_New Notebook..."),
              "", _("Start a new notebook"),
              lambda w: self.on_new_notebook()),
-
-            # TODO: move to viewer
+            
             ("New Page", gtk.STOCK_NEW, _("New _Page"),
              "<control>N", _("Create a new page"),
              lambda w: self.on_new_page()),
@@ -1365,8 +1365,10 @@ class KeepNoteWindow (gtk.Window):
 
 <!-- main window tool bar -->
 <toolbar name="main_tool_bar">
+  <!--
   <toolitem action="New Folder"/>
   <toolitem action="New Page"/>
+-->
   <separator/>
   <placeholder name="Viewer"/>
   <toolitem action="Main Spacer Tool"/>
@@ -1394,6 +1396,8 @@ class KeepNoteWindow (gtk.Window):
 
         # return menu bar
         menubar = self._uimanager.get_widget('/main_menu_bar')
+        
+
         return menubar
        
             

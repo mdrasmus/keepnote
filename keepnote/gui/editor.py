@@ -587,7 +587,7 @@ class EditorMenus (gobject.GObject):
         
         self._editor = editor
         self._font_ui_signals = []     # list of font ui widgets
-
+        self.spell_check_toggle = None
 
 
     #=============================================================
@@ -729,7 +729,8 @@ class EditorMenus (gobject.GObject):
         enabled = self._editor.get_textview().is_spell_check_enabled()
 
         # update UI to match
-        self.spell_check_toggle.set_active(enabled)
+        if self.spell_check_toggle:
+            self.spell_check_toggle.set_active(enabled)
 
         return enabled
 
@@ -815,7 +816,7 @@ class EditorMenus (gobject.GObject):
             
             BothAction("Link", None, _("Lin_k"),
              "<control>L", _("Make Link"),
-             lambda w: self.on_toggle_link()) +
+             lambda w: self._on_toggle_link()) +
             
             BothAction("No Wrapping", None, _("No _Wrapping"),
              "", _("No Wrapping"),

@@ -223,7 +223,8 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         if event.keyval == gtk.keysyms.Delete:
             # capture node deletes
             self.stop_emission("key-release-event")            
-            self.on_delete_node()
+            #self.on_delete_node()
+            self.emit("delete-node", self.get_selected_nodes())
             
         elif event.keyval == gtk.keysyms.BackSpace and \
              event.state & gdk.CONTROL_MASK:

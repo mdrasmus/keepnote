@@ -92,7 +92,8 @@ class ThreePaneViewer (Viewer):
         self._treeview_sel_nodes = [] # current selected nodes in treeview
         self._queue_list_select = []  # nodes to select in listview after treeview change
         self._new_page_occurred = False
-
+        self.view_mode_h_toggle = None
+        self.back_button = None
 
         self._ignore_view_mode = False # prevent recursive view mode changes
 
@@ -104,6 +105,7 @@ class ThreePaneViewer (Viewer):
         # treeview
         self.treeview = KeepNoteTreeView()
         self.treeview.connect("select-nodes", self._on_tree_select)
+        self.treeview.connect("delete-node", self.on_delete_node)
         self.treeview.connect("error", lambda w,t,e: self.emit("error", t, e))
         self.treeview.connect("edit-title", self._on_edit_title)
         self.treeview.connect("goto-node", self.on_list_view_node)
@@ -112,6 +114,7 @@ class ThreePaneViewer (Viewer):
         # listview
         self.listview = KeepNoteListView()
         self.listview.connect("select-nodes", self._on_list_select)
+        self.listview.connect("delete-node", self.on_delete_node)
         self.listview.connect("goto-node", self.on_list_view_node)
         self.listview.connect("goto-parent-node",
                               lambda w: self.on_list_view_parent_node())
@@ -190,8 +193,9 @@ class ThreePaneViewer (Viewer):
         self.listview.set_notebook(notebook)
         self.treeview.set_notebook(notebook)
 
-        self.treeview.get_popup_menu().iconmenu.set_notebook(notebook)
-        self.listview.get_popup_menu().iconmenu.set_notebook(notebook)
+        if self.treeview.get_popup_menu():
+            self.treeview.get_popup_menu().iconmenu.set_notebook(notebook)
+            self.listview.get_popup_menu().iconmenu.set_notebook(notebook)
 
         # restore selections
         if self._notebook:
@@ -229,8 +233,9 @@ class ThreePaneViewer (Viewer):
         if self._ignore_view_mode:
             return
         self._ignore_view_mode = True
-        self.view_mode_h_toggle.set_active(mode == "horizontal")
-        self.view_mode_v_toggle.set_active(mode == "vertical")
+        if self.view_mode_h_toggle:
+            self.view_mode_h_toggle.set_active(mode == "horizontal")
+            self.view_mode_v_toggle.set_active(mode == "vertical")
         self._ignore_view_mode = False
 
 
@@ -364,18 +369,21 @@ class ThreePaneViewer (Viewer):
     def _on_history_changed(self, viewer, history):
         """Callback for when node browse history changes"""
         
-        self.back_button.set_sensitive(history.has_back())
-        self.forward_button.set_sensitive(history.has_forward())
+        if self.back_button:
+            self.back_button.set_sensitive(history.has_back())
+            self.forward_button.set_sensitive(history.has_forward())
 
     #=====================================================
     # delete node
     
-    def on_delete_node(self):
+    def on_delete_node(self, widget=None, nodes=None):
         # TODO: add folder name to message box
         # factor out confirm dialog?
         
         # get node to delete
-        nodes, widget = self.get_selected_nodes()
+        if nodes is None:
+            nodes, widget = self.get_selected_nodes()
+        
         if len(nodes) == 0:
             return
         node = nodes[0]
@@ -789,6 +797,9 @@ class ThreePaneViewer (Viewer):
     
     def get_ui(self):        
         
+        # NOTE: I use a dummy menubar popup_menus so that I can have
+        # accelerators on the menus.  It is a hack.
+
         return ["""
         <ui>
         <menubar name="main_menu_bar">
@@ -839,7 +850,8 @@ class ThreePaneViewer (Viewer):
           </placeholder>
         </toolbar>
 
-        <popup name="treeview_popup">
+        <menubar name="popup_menus">
+        <menu action="treeview_popup">
           <menuitem action="New Page"/>
           <menuitem action="New Child Page"/>
           <menuitem action="New Folder"/>
@@ -853,9 +865,9 @@ class ThreePaneViewer (Viewer):
           <menuitem action="View Note in Text Editor"/>
           <menuitem action="View Note in Web Browser"/>
           <menuitem action="Open File"/>
-        </popup>
+        </menu>
 
-        <popup name="listview_popup">
+        <menu action="listview_popup">
           <menuitem action="Go to Note"/>
           <menuitem action="Go to Parent Note"/>
           <separator/>
@@ -872,7 +884,8 @@ class ThreePaneViewer (Viewer):
           <menuitem action="View Note in Text Editor"/>
           <menuitem action="View Note in Web Browser"/>
           <menuitem action="Open File"/>
-        </popup>
+        </menu>
+        </menubar>
 
         </ui>
         """] + self.editor_menus.get_ui()
@@ -881,6 +894,11 @@ class ThreePaneViewer (Viewer):
     def get_actions(self):
 
         return map(lambda x: Action(*x), [
+                
+            ("treeview_popup", None, "", "", None, lambda w: None),
+            ("listview_popup", None, "", "", None, lambda w: None),
+
+
             ("Back", gtk.STOCK_GO_BACK, _("_Back"), "", None,
              lambda w: self.visit_history(-1)),
             
@@ -979,10 +997,10 @@ class ThreePaneViewer (Viewer):
         
             ("Delete Note", gtk.STOCK_DELETE, _("_Delete"),
              "", None, 
-             lambda w: self.on_delete_node()),
+             lambda w: self.on_delete_node(None, [])),
 
             ("Rename Note", gtk.STOCK_EDIT, _("_Rename"),
-             "", None, 
+             "<Control>2", None, 
              lambda w: self.on_edit_node()),
 
             ("Change Note Icon", None, _("_Change Note Icon"),
@@ -1014,32 +1032,36 @@ class ThreePaneViewer (Viewer):
 
 
         # treeview context menu
-        menu = uimanager.get_widget("/treeview_popup")
+        menu = uimanager.get_widget("/popup_menus/treeview_popup").get_submenu()
+        #menu.detach()
+        menu1 = menu
         self.treeview.set_popup_menu(menu)
-        menu.attach_to_widget(self.treeview, lambda w,m:None)
-        menu.set_accel_group(self._main_window.get_accel_group())
+        #menu.attach_to_widget(self.treeview, lambda w,m:None)
         menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
+        menu.set_accel_group(uimanager.get_accel_group())
 
 
         # listview context menu
-        menu = uimanager.get_widget("/listview_popup")
+        menu = uimanager.get_widget("/popup_menus/listview_popup").get_submenu()
+        #menu.detach()
+        menu2 = menu
         self.listview.set_popup_menu(menu)
-        menu.attach_to_widget(self.listview, lambda w,m:None)
-        menu.set_accel_group(self._main_window.get_accel_group())
+        #menu.attach_to_widget(self.listview, lambda w,m:None)
+        menu.set_accel_group(uimanager.get_accel_group())
         menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
 
-        set_menu_icon(u, "/treeview_popup/New Page",
+        set_menu_icon(u, "/popup_menus/treeview_popup/New Page",
                       get_resource("images", "note-new.png"))
-        set_menu_icon(u, "/treeview_popup/New Child Page",
+        set_menu_icon(u, "/popup_menus/treeview_popup/New Child Page",
                       get_resource("images", "note-new.png"))
-        set_menu_icon(u, "/treeview_popup/New Folder",
+        set_menu_icon(u, "/popup_menus/treeview_popup/New Folder",
                       get_resource("images", "folder-new.png"))
 
-        set_menu_icon(u, "/listview_popup/New Page",
+        set_menu_icon(u, "/popup_menus/listview_popup/New Page",
                       get_resource("images", "note-new.png"))
-        set_menu_icon(u, "/listview_popup/New Child Page",
+        set_menu_icon(u, "/popup_menus/listview_popup/New Child Page",
                       get_resource("images", "note-new.png"))
-        set_menu_icon(u, "/listview_popup/New Folder",
+        set_menu_icon(u, "/popup_menus/listview_popup/New Folder",
                       get_resource("images", "folder-new.png"))
 
 
@@ -1047,8 +1069,9 @@ class ThreePaneViewer (Viewer):
         # TODO: clean up
         # TODO: remove main window dependency
         # change icon
-        menu = uimanager.get_widget("/treeview_popup")
-        item = uimanager.get_widget("/treeview_popup/Change Note Icon")
+        #menu = uimanager.get_widget("/popup_menus/treeview_popup")
+        menu = menu1
+        item = uimanager.get_widget("/popup_menus/treeview_popup/Change Note Icon")
         img = gtk.Image()
         img.set_from_file(lookup_icon_filename(None, u"folder-red.png"))
         item.set_image(img)
@@ -1061,16 +1084,20 @@ class ThreePaneViewer (Viewer):
         item.show()
 
 
+        
+        #menu = uimanager.get_widget("/popup_menus/listview_popup").get_submenu()
+        menu = menu2
+        menu.iconmenu = IconMenu()
 
-        menu = uimanager.get_widget("/listview_popup")
-        item = uimanager.get_widget("/listview_popup/Change Note Icon")
+        item = uimanager.get_widget("/popup_menus/listview_popup/Change Note Icon")
         img = gtk.Image()
         img.set_from_file(lookup_icon_filename(None, u"folder-red.png"))
         item.set_image(img)
-        menu.iconmenu = IconMenu()
+        
         menu.iconmenu.connect("set-icon",
                               lambda w, i: self._main_window.on_set_icon(i, u"", "listview"))
         menu.iconmenu.new_icon.connect("activate",
                                        lambda w: self._main_window.on_new_icon("listview"))
         item.set_submenu(menu.iconmenu)
         item.show()
+        

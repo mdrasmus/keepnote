@@ -114,7 +114,7 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
         
         if event.keyval == gtk.keysyms.Delete and \
            not self.editing:
-            self.on_delete_node()
+            self.emit("delete-node", self.get_selected_nodes())#on_delete_node()
             self.stop_emission("key-release-event")
 
     def on_button_press(self, widget, event):
