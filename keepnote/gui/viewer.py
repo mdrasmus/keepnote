@@ -81,11 +81,7 @@ class Viewer (gtk.VBox):
 
     def get_notebook(self):
         return self._notebook
-
-    def set_view_mode(self, mode):
-        # TODO: is this too specific?
-        pass
-
+    
     def load_preferences(self, app_pref):
         pass
 
@@ -101,7 +97,19 @@ class Viewer (gtk.VBox):
     def redo(self):
         pass
 
-        
+    def get_current_page(self):
+        return None
+
+    def get_selected_nodes(self, widget="focus"):
+        pass
+
+    def new_node(self, kind, widget, pos):
+        # TODO: choose a more general interface (i.e. deal with widget param)
+        pass
+
+    def goto_node(self, node, direct=True):
+        pass
+
     def visit_history(self, offset):
         """Visit a node in the viewer's history"""
         
@@ -115,11 +123,8 @@ class Viewer (gtk.VBox):
             self._history.end_suspend()
 
 
-    def get_current_page(self):
-        return None
-
-    def get_selected_nodes(self, widget="focus"):
-        pass
+    #===============================================
+    # search
 
     def start_search_result(self):        
         pass
@@ -127,9 +132,8 @@ class Viewer (gtk.VBox):
     def add_search_result(self, node):
         pass
 
-    def new_node(self, kind, widget, pos):
-        # TODO: choose a more general interface (i.e. deal with widget param)
-        pass
+    #================================================
+    # UI management
 
     def get_ui(self):
         pass
@@ -139,10 +143,6 @@ class Viewer (gtk.VBox):
 
     def setup_menus(self, uimanager):
         pass
-
-    def goto_node(self, node, direct=True):
-        pass
-
 
 
     #=================================================

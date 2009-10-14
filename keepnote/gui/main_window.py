@@ -1365,10 +1365,8 @@ class KeepNoteWindow (gtk.Window):
 
 <!-- main window tool bar -->
 <toolbar name="main_tool_bar">
-  <!--
   <toolitem action="New Folder"/>
   <toolitem action="New Page"/>
--->
   <separator/>
   <placeholder name="Viewer"/>
   <toolitem action="Main Spacer Tool"/>

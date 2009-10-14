@@ -219,56 +219,6 @@ class ThreePaneViewer (Viewer):
         return self._notebook
 
 
-
-    def set_view_mode(self, mode):
-        """
-        Sets view mode for ThreePaneViewer
-
-        modes:
-            "vertical"
-            "horizontal"
-        """
-
-        # update menu
-        if self._ignore_view_mode:
-            return
-        self._ignore_view_mode = True
-        if self.view_mode_h_toggle:
-            self.view_mode_h_toggle.set_active(mode == "horizontal")
-            self.view_mode_v_toggle.set_active(mode == "vertical")
-        self._ignore_view_mode = False
-
-
-
-        # detach widgets
-        self.paned2.remove(self.listview_sw)
-        self.paned2.remove(self.editor_pane)
-        self.hpaned.remove(self.paned2)
-
-        # remake paned2
-        if mode == "vertical":
-            # create a vertical paned widget
-            self.paned2 = gtk.VPaned()
-        else:
-            # create a horizontal paned widget
-            self.paned2 = gtk.HPaned()
-                    
-        self.paned2.set_position(self._app.pref.vsash_pos)
-        self.paned2.show()        
-        
-        self.hpaned.add2(self.paned2)
-        self.hpaned.show()
-        
-        self.paned2.add1(self.listview_sw)
-        self.paned2.add2(self.editor_pane)
-
-        # record preference
-        if mode != self._app.pref.view_mode:
-            self._app.pref.view_mode = mode
-            self._app.pref.changed.notify()
-
-
-
     def load_preferences(self, app_pref, first_open=False):
         """Load application preferences"""
 
@@ -322,15 +272,6 @@ class ThreePaneViewer (Viewer):
     def get_current_page(self):
         return self._current_page
 
-    def get_focused_widget(self, default=None):
-        
-        if self.treeview.is_focus():
-            return self.treeview
-        if self.listview.is_focus():
-            return self.listview
-        else:
-            return default
-
 
     def get_selected_nodes(self, widget="focus"):
         """
@@ -372,6 +313,67 @@ class ThreePaneViewer (Viewer):
         if self.back_button:
             self.back_button.set_sensitive(history.has_back())
             self.forward_button.set_sensitive(history.has_forward())
+
+
+    def get_focused_widget(self, default=None):
+        
+        if self.treeview.is_focus():
+            return self.treeview
+        if self.listview.is_focus():
+            return self.listview
+        else:
+            return default
+
+
+
+    def set_view_mode(self, mode):
+        """
+        Sets view mode for ThreePaneViewer
+
+        modes:
+            "vertical"
+            "horizontal"
+        """
+
+        # update menu
+        if self._ignore_view_mode:
+            return
+        self._ignore_view_mode = True
+        if self.view_mode_h_toggle:
+            self.view_mode_h_toggle.set_active(mode == "horizontal")
+            self.view_mode_v_toggle.set_active(mode == "vertical")
+        self._ignore_view_mode = False
+
+
+
+        # detach widgets
+        self.paned2.remove(self.listview_sw)
+        self.paned2.remove(self.editor_pane)
+        self.hpaned.remove(self.paned2)
+
+        # remake paned2
+        if mode == "vertical":
+            # create a vertical paned widget
+            self.paned2 = gtk.VPaned()
+        else:
+            # create a horizontal paned widget
+            self.paned2 = gtk.HPaned()
+                    
+        self.paned2.set_position(self._app.pref.vsash_pos)
+        self.paned2.show()        
+        
+        self.hpaned.add2(self.paned2)
+        self.hpaned.show()
+        
+        self.paned2.add1(self.listview_sw)
+        self.paned2.add2(self.editor_pane)
+
+        # record preference
+        if mode != self._app.pref.view_mode:
+            self._app.pref.view_mode = mode
+            self._app.pref.changed.notify()
+
+
 
     #=====================================================
     # delete node
