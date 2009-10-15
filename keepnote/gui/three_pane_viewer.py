@@ -72,13 +72,6 @@ from keepnote.gui.icons import \
 
 
 
-def set_menu_icon(uimanager, path, filename):
-    item = uimanager.get_widget(path)
-    img = gtk.Image()
-    img.set_from_pixbuf(get_resource_pixbuf(filename))
-    item.set_image(img)
-
-
 
 class ThreePaneViewer (Viewer):
     """A viewer with a treeview, listview, and editor"""
@@ -147,7 +140,7 @@ class ThreePaneViewer (Viewer):
         self.editor_pane.pack_start(self.link_editor, False, True, 0)
         self.link_editor.set_search_nodes(self.search_nodes)
 
-        self.make_image_menu(self.editor.get_textview().get_image_menu())
+        self._main_window.make_image_menu(self.editor.get_textview().get_image_menu())
 
         #=====================================
         # layout
@@ -269,62 +262,9 @@ class ThreePaneViewer (Viewer):
     def redo(self):
         self.editor.get_textview().redo()
 
-    def get_current_page(self):
-        return self._current_page
-
-
-    def get_selected_nodes(self, widget="focus"):
-        """
-        Returns (nodes, widget) where 'nodes' are a list of selected nodes
-        in widget 'widget'
-
-        Wiget can be
-           listview -- nodes selected in listview
-           treeview -- nodes selected in treeview
-           focus    -- nodes selected in widget with focus
-        """
-        
-        if widget == "focus":
-            if self.listview.is_focus():
-                widget = "listview"
-            elif self.treeview.is_focus():
-                widget = "treeview"
-            elif self.editor.is_focus():
-                widget = "listview"
-            else:
-                return ([], "")
-
-        if widget == "treeview":
-            nodes = self.treeview.get_selected_nodes()
-        elif widget == "listview":
-            nodes = self.listview.get_selected_nodes()
-        else:
-            raise Exception("unknown widget '%s'" % widget)
-
-        return (nodes, widget)
 
     def set_status(self, text, bar="status"):
         self.emit("status", text, bar)
-
-
-    def _on_history_changed(self, viewer, history):
-        """Callback for when node browse history changes"""
-        
-        if self.back_button:
-            self.back_button.set_sensitive(history.has_back())
-            self.forward_button.set_sensitive(history.has_forward())
-
-
-    def get_focused_widget(self, default=None):
-        
-        if self.treeview.is_focus():
-            return self.treeview
-        if self.listview.is_focus():
-            return self.listview
-        else:
-            return default
-
-
 
     def set_view_mode(self, mode):
         """
@@ -374,67 +314,93 @@ class ThreePaneViewer (Viewer):
             self._app.pref.changed.notify()
 
 
+    #===============================================
+    # node operations
 
-    #=====================================================
-    # delete node
+
+    def get_current_page(self):
+        return self._current_page
+
+
+    def get_selected_nodes(self, widget="focus"):
+        """
+        Returns (nodes, widget) where 'nodes' are a list of selected nodes
+        in widget 'widget'
+
+        Wiget can be
+           listview -- nodes selected in listview
+           treeview -- nodes selected in treeview
+           focus    -- nodes selected in widget with focus
+        """
+        
+        if widget == "focus":
+            if self.listview.is_focus():
+                widget = "listview"
+            elif self.treeview.is_focus():
+                widget = "treeview"
+            elif self.editor.is_focus():
+                widget = "listview"
+            else:
+                return ([], "")
+
+        if widget == "treeview":
+            nodes = self.treeview.get_selected_nodes()
+        elif widget == "listview":
+            nodes = self.listview.get_selected_nodes()
+        else:
+            raise Exception("unknown widget '%s'" % widget)
+
+        return (nodes, widget)
+
+
+    def _on_history_changed(self, viewer, history):
+        """Callback for when node browse history changes"""
+        
+        if self.back_button:
+            self.back_button.set_sensitive(history.has_back())
+            self.forward_button.set_sensitive(history.has_forward())
+
+
+    def get_focused_widget(self, default=None):
+        
+        if self.treeview.is_focus():
+            return self.treeview
+        if self.listview.is_focus():
+            return self.listview
+        else:
+            return default
     
-    def on_delete_node(self, widget=None, nodes=None):
-        # TODO: add folder name to message box
-        # factor out confirm dialog?
+
+    def on_delete_node(self, widget="focus", nodes=None):
         
         # get node to delete
         if nodes is None:
             nodes, widget = self.get_selected_nodes()
-        
+            
         if len(nodes) == 0:
             return
         node = nodes[0]
         
-        if isinstance(node, NoteBookTrash):
-            self.emit("error", _("The Trash folder cannot be deleted."), None)
-            return
-        elif node.get_parent() == None:
-            self.emit("error", _("The top-level folder cannot be deleted."), None)
-            return
-        elif len(node.get_children()) > 0:
-            message = _("Do you want to delete this note and all of its children?")
-        else:
-            message = _("Do you want to delete this note?")
-        
-        dialog = gtk.MessageDialog(self.get_toplevel(), 
-            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-            type=gtk.MESSAGE_QUESTION, 
-            buttons=gtk.BUTTONS_YES_NO, 
-            message_format=message)
+        if self._main_window.confirm_delete_nodes(nodes):
+            # change selection            
+            widget = self.get_focused_widget()
+            parent = node.get_parent()
+            children = parent.get_children()
+            i = children.index(node)
+            if i < len(children) - 1:
+                widget.select_nodes([children[i+1]])
+            else:
+                widget.select_nodes([parent])
 
-        response = dialog.run()
-        dialog.destroy()
-        
-        if response == gtk.RESPONSE_YES:
-            self._delete_node(node)
-            
-    
-    def _delete_node(self, node):
-        self.treeview.select_nodes([])
-        parent = node.get_parent()
-        #children = parent.get_children()
-        #i = children.index(node)
-        #if i < len(children) - 1:
-        #    widget.select_nodes([children[i+1]])
-        #else:
-        #    widget.select_nodes([parent])
-        
-        if parent is not None:
+            # perform delete
             try:
                 node.trash()
             except NoteBookError, e:
                 self.emit("error", e.msg, e)
-        else:
-            # warn
-            self.emit("error", _("The top-level folder cannot be deleted."), None)
 
 
     def _on_make_link(self, editor):
+        """Callback from editor to make a link"""
         self.link_editor.edit()
     
     
@@ -442,22 +408,6 @@ class ThreePaneViewer (Viewer):
         """Callback for when editor views a node"""
         self._history.add(node.get_attr("nodeid"))
         self.emit("history-changed", self._history)
-
-
-    def search_nodes(self, text):
-        
-        # TODO: make proper interface
-
-        # don't show current page in results list
-        if self._current_page:
-            current_nodeid = self._current_page.get_attr("nodeid")
-        else:
-            current_nodeid = None
-            
-        nodes = [(nodeid, title) 
-                for nodeid, title in self._notebook._index.search_titles(text)
-                if nodeid != current_nodeid]
-        return nodes
 
 
     def _on_child_activated(self, editor, textview, child):
@@ -504,17 +454,17 @@ class ThreePaneViewer (Viewer):
         try:
             self.editor.view_pages(pages)
         except RichTextError, e:
-            self.error("Could not load page '%s'" % pages[0].get_title(),
-                       e, sys.exc_info()[2])
+            self.emit("error", 
+                      "Could not load page '%s'." % pages[0].get_title(),
+                      e, sys.exc_info()[2])
 
     def on_list_view_node(self, listview, node, direct=False):
         """Focus listview on a node"""
         
         if node and node.has_attr("payload_filename"):
             self._main_window.on_view_node_external_app("file_launcher",
-                                                        node,
-                                                        None,
-                                                        kind="file")
+                                           node,
+                                           kind="file")
         else:
             self.goto_node(node, direct)
         
@@ -570,6 +520,8 @@ class ThreePaneViewer (Viewer):
 
     def new_node(self, kind, widget, pos):
 
+        # TODO: think about where this goes
+
         if self._notebook is None:
             return
 
@@ -597,19 +549,36 @@ class ThreePaneViewer (Viewer):
                                     notebooklib.DEFAULT_PAGE_NAME,
                                     index)
         
-        self._new_page_occurred = True
+        self.view_new_node(node, widget)
 
+
+    def view_new_node(self, node, widget):
+        
+        self._new_page_occurred = True
+        
         if widget == "treeview":
             #self.treeview.cancel_editing()
-            self.treeview.expand_node(parent)
+            self.treeview.expand_node(node.get_parent())
             self.treeview.edit_node(node)
         elif widget == "listview":
-            self.listview.expand_node(parent)
+            self.listview.expand_node(node.get_parent())
             self.listview.edit_node(node)
         elif widget == "":
             pass
         else:
             raise Exception("unknown widget '%s'" % widget)
+
+
+    def on_edit_node(self):
+        nodes, widget = self.get_selected_nodes()
+
+        if len(nodes) == 0:
+            return
+
+        if widget == "listview":
+            self.listview.edit_node(nodes[0])
+        elif widget == "treeview":
+            self.treeview.edit_node(nodes[0])
 
 
     def goto_node(self, node, direct=True):
@@ -701,66 +670,21 @@ class ThreePaneViewer (Viewer):
             else:
                 widget.collapse_row(path)
 
-    def on_view_node_external_app(self, app, node=None, widget="focus",
-                                  kind=None):
-        """View a node with an external app"""
 
-        # TODO: decide whether interacting with main window is appropriate
-        # make sure notebook changes are saved before letting an external 
-        # program interact with the notebook
-        self._main_window.save_notebook()
-        
-        # determine node to view
-        if node is None:
-            nodes, widget = self.get_selected_nodes(widget)
-            if len(nodes) == 0:
-                self.emit("error", _("No notes are selected."))
-                return            
-            node = nodes[0]
+    def search_nodes(self, text):
+        """Return nodes with titles containing 'text'"""
 
-            # TODO: could allow "Files" to be opened by page actions
-            if kind == "page" and \
-               node.get_attr("content_type") != notebooklib.CONTENT_TYPE_PAGE:
-                self.emit("error", _("Only pages can be viewed with %s.") %
-                          self._app.pref.get_external_app(app).title)
-                return
+        # TODO: make proper interface
 
-        try:
-            if kind == "page":
-                # get html file
-                filename = os.path.realpath(node.get_data_file())
-                
-            elif kind == "file":
-                # get payload file
-                if not node.has_attr("payload_filename"):
-                    self.error(_("Only files can be viewed with %s.") %
-                               self._app.pref.get_external_app(app).title)
-                    return
-                filename = os.path.realpath(
-                    os.path.join(node.get_path(),
-                                 node.get_attr("payload_filename")))
-                
-            else:
-                # get node dir
-                filename = os.path.realpath(node.get_path())
+        # don't show current page in results list
+        #if self._current_page:
+        #    current_nodeid = self._current_page.get_attr("nodeid")
+        #else:
+        #    current_nodeid = None
             
-            self._app.run_external_app(app, filename)
-        
-        except KeepNoteError, e:
-            self.emit("error", e.msg, e, sys.exc_info()[2])
-
-
-
-    def on_edit_node(self):
-        nodes, widget = self.get_selected_nodes()
-
-        if len(nodes) == 0:
-            return
-
-        if widget == "listview":
-            self.listview.edit_node(nodes[0])
-        elif widget == "treeview":
-            self.treeview.edit_node(nodes[0])
+        nodes = [(nodeid, title) 
+                for nodeid, title in self._notebook._index.search_titles(text)]
+        return nodes
 
 
     #============================================
@@ -805,6 +729,22 @@ class ThreePaneViewer (Viewer):
         return ["""
         <ui>
         <menubar name="main_menu_bar">
+          <menu action="File">
+            <placeholder name="Viewer">
+              <menuitem action="New Page"/>
+              <menuitem action="New Child Page"/>
+              <menuitem action="New Folder"/>
+            </placeholder>
+          </menu>
+
+          <menu action="Edit">
+            <placeholder name="Viewer">
+              <menuitem action="Attach File"/>
+              <separator/>
+              <placeholder name="Editor"/>
+            </placeholder>
+          </menu>
+
           <placeholder name="Viewer">
             <placeholder name="Editor"/>
             <menu action="View">
@@ -963,25 +903,25 @@ class ThreePaneViewer (Viewer):
             ("View Note in File Explorer", gtk.STOCK_OPEN,
              _("View Note in File Explorer"),
              "", None,
-             lambda w: self.on_view_node_external_app("file_explorer")),
+             lambda w: self._main_window.on_view_node_external_app("file_explorer")),
             
             # TODO: move to viewer
             ("View Note in Text Editor", gtk.STOCK_OPEN,
              _("View Note in Text Editor"),
              "", None,
-             lambda w: self.on_view_node_external_app("text_editor",
+             lambda w: self._main_window.on_view_node_external_app("text_editor",
                                                       kind="page")),
             # TODO: move to viewer
             ("View Note in Web Browser", gtk.STOCK_OPEN,
              _("View Note in Web Browser"),
              "", None,
-             lambda w: self.on_view_node_external_app("web_browser",
+             lambda w: self._main_window.on_view_node_external_app("web_browser",
                                                       kind="page")),
             # TODO: move to viewer
             ("Open File", gtk.STOCK_OPEN,
              _("_Open File"),
              "", None,
-             lambda w: self.on_view_node_external_app("file_launcher",
+             lambda w: self._main_window.on_view_node_external_app("file_launcher",
                                                       kind="file")),
 
 
@@ -999,14 +939,15 @@ class ThreePaneViewer (Viewer):
         
             ("Delete Note", gtk.STOCK_DELETE, _("_Delete"),
              "", None, 
-             lambda w: self.on_delete_node(None, [])),
+             lambda w: self.on_delete_node()),
 
             ("Rename Note", gtk.STOCK_EDIT, _("_Rename"),
-             "<Control>2", None, 
+             "", None, 
              lambda w: self.on_edit_node()),
 
             ("Change Note Icon", None, _("_Change Note Icon"),
-             "", None, lambda w: None),
+             "", None, lambda w: None,
+             lookup_icon_filename(None, u"folder-red.png")),
 
         ])
 
@@ -1015,6 +956,7 @@ class ThreePaneViewer (Viewer):
         
         u = uimanager
 
+        # setup toolbar
         self.back_button = uimanager.get_widget("/main_tool_bar/Viewer/Back")
         self.forward_button = uimanager.get_widget("/main_tool_bar/Viewer/Forward")
 
@@ -1024,6 +966,7 @@ class ThreePaneViewer (Viewer):
         self.view_mode_v_toggle = \
             uimanager.get_widget("/main_menu_bar/Options/Viewer/Vertical Layout")
 
+        # setup editor
         self.editor_menus.setup_menu(uimanager)
         
         # TODO: Try to add accellerator to popup menu
@@ -1032,74 +975,36 @@ class ThreePaneViewer (Viewer):
         #menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
 
 
-
-        # treeview context menu
-        menu = uimanager.get_widget("/popup_menus/treeview_popup").get_submenu()
-        #menu.detach()
-        menu1 = menu
-        self.treeview.set_popup_menu(menu)
-        #menu.attach_to_widget(self.treeview, lambda w,m:None)
-        menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
-        menu.set_accel_group(uimanager.get_accel_group())
-
-
-        # listview context menu
-        menu = uimanager.get_widget("/popup_menus/listview_popup").get_submenu()
-        #menu.detach()
-        menu2 = menu
-        self.listview.set_popup_menu(menu)
-        #menu.attach_to_widget(self.listview, lambda w,m:None)
-        menu.set_accel_group(uimanager.get_accel_group())
-        menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
-
-        set_menu_icon(u, "/popup_menus/treeview_popup/New Page",
-                      get_resource("images", "note-new.png"))
-        set_menu_icon(u, "/popup_menus/treeview_popup/New Child Page",
-                      get_resource("images", "note-new.png"))
-        set_menu_icon(u, "/popup_menus/treeview_popup/New Folder",
-                      get_resource("images", "folder-new.png"))
-
-        set_menu_icon(u, "/popup_menus/listview_popup/New Page",
-                      get_resource("images", "note-new.png"))
-        set_menu_icon(u, "/popup_menus/listview_popup/New Child Page",
-                      get_resource("images", "note-new.png"))
-        set_menu_icon(u, "/popup_menus/listview_popup/New Folder",
-                      get_resource("images", "folder-new.png"))
-
-
-        
         # TODO: clean up
         # TODO: remove main window dependency
         # change icon
-        #menu = uimanager.get_widget("/popup_menus/treeview_popup")
-        menu = menu1
+
+        # treeview context menu
+        menu1 = uimanager.get_widget("/popup_menus/treeview_popup").get_submenu()
+        self.treeview.set_popup_menu(menu1)
+        menu1.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
+        menu1.set_accel_group(uimanager.get_accel_group())
         item = uimanager.get_widget("/popup_menus/treeview_popup/Change Note Icon")
-        img = gtk.Image()
-        img.set_from_file(lookup_icon_filename(None, u"folder-red.png"))
-        item.set_image(img)
-        menu.iconmenu = IconMenu()
-        menu.iconmenu.connect("set-icon",
-                              lambda w, i: self._main_window.on_set_icon(i, u"", "treeview"))
-        menu.iconmenu.new_icon.connect("activate",
-                                       lambda w: self._main_window.on_new_icon("treeview"))
-        item.set_submenu(menu.iconmenu)
+        menu1.iconmenu = IconMenu()
+        menu1.iconmenu.connect("set-icon",
+            lambda w, i: self._main_window.on_set_icon(i, u"", self.get_selected_nodes()))
+        menu1.iconmenu.new_icon.connect("activate",
+            lambda w: self._main_window.on_new_icon(self.get_selected_nodes()))
+        item.set_submenu(menu1.iconmenu)
         item.show()
 
 
-        
-        #menu = uimanager.get_widget("/popup_menus/listview_popup").get_submenu()
-        menu = menu2
-        menu.iconmenu = IconMenu()
-
+        # listview context menu
+        menu2 = uimanager.get_widget("/popup_menus/listview_popup").get_submenu()
+        self.listview.set_popup_menu(menu2)
+        menu2.set_accel_group(uimanager.get_accel_group())
+        menu2.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
+        menu2.iconmenu = IconMenu()
         item = uimanager.get_widget("/popup_menus/listview_popup/Change Note Icon")
-        img = gtk.Image()
-        img.set_from_file(lookup_icon_filename(None, u"folder-red.png"))
-        item.set_image(img)
-        
-        menu.iconmenu.connect("set-icon",
-                              lambda w, i: self._main_window.on_set_icon(i, u"", "listview"))
-        menu.iconmenu.new_icon.connect("activate",
-                                       lambda w: self._main_window.on_new_icon("listview"))
-        item.set_submenu(menu.iconmenu)
+        menu2.iconmenu.connect("set-icon",
+            lambda w, i: self._main_window.on_set_icon(i, u"", self.get_selected_nodes()))
+        menu2.iconmenu.new_icon.connect("activate",
+            lambda w: self._main_window.on_new_icon(self.get_selected_nodes()))
+        item.set_submenu(menu2.iconmenu)
         item.show()
         

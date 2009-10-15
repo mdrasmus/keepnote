@@ -47,7 +47,7 @@ import gobject
 import keepnote
 from keepnote import log_error
 import keepnote.gui.richtext.richtext_tags
-from keepnote import get_resource, ensure_unicode, get_platform
+from keepnote import get_resource, ensure_unicode, get_platform, unicode_gtk
 from keepnote.notebook import \
      NoteBookError
 import keepnote.notebook as notebooklib
@@ -184,12 +184,67 @@ class FileChooserDialog (gtk.FileChooserDialog):
 # menu actions
 
 
+class UIManager (gtk.UIManager):
+    def __init__(self, force_stock=False):
+        gtk.UIManager.__init__(self)
+        self.connect("connect-proxy", self._on_connect_proxy)
+        self.connect("disconnect-proxy", self._on_disconnect_proxy)
+
+        self.widgets = {}
+        self.force_stock = force_stock
+
+    def _on_connect_proxy(self, uimanager, action, widget):
+
+        if isinstance(action, (Action, ToggleAction)) and action.icon:
+            self.widgets[widget] = action
+            self.set_icon(widget, action)
+
+    def _on_disconnect_proxy(self, uimanager, action, widget):
+        
+        if widget in self.widgets:
+            del self.widgets[widget]
+
+    def set_force_stock(self, force):
+        self.force_stock = force
+
+        for widget, action in self.widgets.items():
+            self.set_icon(widget, action)
+
+
+    def set_icon(self, widget, action):
+        if isinstance(widget, gtk.ImageMenuItem):
+            if self.force_stock and action.get_property("stock-id"):
+                img = gtk.Image()
+                img.set_from_stock(action.get_property("stock-id"),
+                                   gtk.ICON_SIZE_MENU)
+                img.show()
+                widget.set_image(img)
+            elif action.icon:
+                img = gtk.Image()
+                img.set_from_pixbuf(get_resource_pixbuf(action.icon))
+                img.show()
+                widget.set_image(img)
+
+        elif isinstance(widget, gtk.ToolItem):
+            if self.force_stock and action.get_property("stock-id"):
+                widget.set_icon_widget(None)
+            elif action.icon:
+                img = gtk.Image()
+                img.set_from_pixbuf(get_resource_pixbuf(action.icon))
+                img.show()
+                widget.set_icon_widget(img)        
+
+        
+
+
 class Action (gtk.Action):
     def __init__(self, name, stockid=None, label=None,
-                 accel="", tooltip="", func=None):
+                 accel="", tooltip="", func=None,
+                 icon=None):
         gtk.Action.__init__(self, name, label, tooltip, stockid)
         self.func = func
         self.accel = accel
+        self.icon = icon
         self.signal = None
 
         if func:
@@ -197,10 +252,11 @@ class Action (gtk.Action):
 
 class ToggleAction (gtk.ToggleAction):
     def __init__(self, name, stockid, label=None,
-                 accel="", tooltip="", func=None):
+                 accel="", tooltip="", func=None, icon=None):
         gtk.Action.__init__(self, name, label, tooltip, stockid)
         self.func = func
         self.accel = accel
+        self.icon = icon
         self.signal = None
 
         if func:
@@ -212,13 +268,6 @@ def add_actions(actiongroup, actions):
     for action in actions:
         actiongroup.add_action_with_accel(action, action.accel)
 
-
-def remove_actions(actiongroup, names):
-    """Remove actions specified by name from an gtk.ActionGroup"""
-
-    for action in actiongroup.list_actions():
-        if action.get_name() in names:
-            actiongroup.remove_action(action)
 
 
 #=============================================================================
@@ -252,6 +301,7 @@ class KeepNote (keepnote.KeepNote):
 
         return window
 
+    
     def get_current_window(self):
         """Returns the currenly active window"""
         return self._current_window
@@ -261,8 +311,6 @@ class KeepNote (keepnote.KeepNote):
     def open_notebook(self, filename, window=None):
         """Open notebook"""
 
-        # TODO: think about error dialogs without main window
-        
         from keepnote.gui import dialog_update_notebook
 
         version = notebooklib.get_notebook_version(filename)
@@ -296,6 +344,23 @@ class KeepNote (keepnote.KeepNote):
     def get_richtext_tag_table(self):
         """Returns the application-wide richtext tag table"""
         return self._tag_table
+
+    def error(self, text, error=None, tracebk=None):
+        """Display an error message"""
+
+        dialog = gtk.MessageDialog(self._current_window,
+            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            type=gtk.MESSAGE_ERROR, 
+            buttons=gtk.BUTTONS_OK, 
+            message_format=text)
+        dialog.connect("response", lambda d,r: d.destroy())
+        dialog.set_title(_("Error"))
+        dialog.show()
+        
+        # add message to error log
+        if error is not None:
+            keepnote.log_error(error, tracebk)
+
 
     #===================================
     # callbacks

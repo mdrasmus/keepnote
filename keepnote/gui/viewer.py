@@ -43,17 +43,7 @@ import gobject
 
 # keepnote imports
 import keepnote
-from keepnote import unicode_gtk
 from keepnote import KeepNoteError
-from keepnote.gui import \
-     dialog_image_resize, \
-     get_resource, \
-     get_resource_image, \
-     get_resource_pixbuf, \
-     get_accel_file, \
-     Action, \
-     FileChooserDialog, \
-     CONTEXT_MENU_ACCEL_PATH
 from keepnote.history import NodeHistory
 from keepnote import notebook as notebooklib
 from keepnote.gui.treemodel import iter_children
@@ -70,9 +60,6 @@ class Viewer (gtk.VBox):
         
         self._notebook = None
         self._history = NodeHistory()
-
-        self.image_resize_dialog = \
-            dialog_image_resize.ImageResizeDialog(parent, self._app.pref)
 
 
 
@@ -145,141 +132,6 @@ class Viewer (gtk.VBox):
         pass
 
 
-    #=================================================
-    # Image context menu
-
-
-    def view_image(self, image_filename):
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-
-        image_path = os.path.join(current_page.get_path(), image_filename)
-        viewer = self._app.pref.get_external_app("image_viewer")
-        
-        if viewer is not None:
-            try:
-                proc = subprocess.Popen([viewer.prog, image_path])
-            except OSError, e:
-                self.emit("error", _("Could not open Image Viewer"), 
-                           e, sys.exc_info()[2])
-        else:
-            self.emit("error", _("You must specify an Image Viewer in Application Options"))
-
-
-
-    def _on_view_image(self, menuitem):
-        """View image in Image Viewer"""
-        
-        # get image filename
-        image_filename = menuitem.get_parent().get_child().get_filename()
-        self.view_image(image_filename)
-        
-
-
-    def _on_edit_image(self, menuitem):
-        """Edit image in Image Editor"""
-
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-        
-        # get image filename
-        image_filename = menuitem.get_parent().get_child().get_filename()
-
-        image_path = os.path.join(current_page.get_path(), image_filename)
-        editor = self._app.pref.get_external_app("image_editor")
-    
-        if editor is not None:
-            try:
-                proc = subprocess.Popen([editor.prog, image_path])
-            except OSError, e:
-                self.emit("error", _("Could not open Image Editor"), e)
-        else:
-            self.emit("error", _("You must specify an Image Editor in Application Options"))
-
-
-    def _on_resize_image(self, menuitem):
-        """Resize image"""
-
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-        
-        image = menuitem.get_parent().get_child()
-        self.image_resize_dialog.on_resize(image)
-        
-
-
-    def _on_save_image_as(self, menuitem):
-        """Save image as a new file"""
-
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-        
-        # get image filename
-        image = menuitem.get_parent().get_child()
-        image_filename = image.get_filename()
-        image_path = os.path.join(current_page.get_path(), image_filename)
-
-        dialog = FileChooserDialog(
-            _("Save Image As..."), self, 
-            action=gtk.FILE_CHOOSER_ACTION_SAVE,
-            buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
-                     _("Save"), gtk.RESPONSE_OK),
-            app=self._app,
-            persistent_path="save_image_path")
-        dialog.set_default_response(gtk.RESPONSE_OK)
-        response = dialog.run()        
-
-        if response == gtk.RESPONSE_OK:
-
-            if not dialog.get_filename():
-                self.emit("error", _("Must specify a filename for the image."))
-            else:
-                filename = unicode_gtk(dialog.get_filename())
-                try:                
-                    image.write(filename)
-                except Exception, e:
-                    self.emit("error", _("Could not save image '%s'") %
-                               filename)
-
-        dialog.destroy()
-    
-
-    def make_image_menu(self, menu):
-        """image context menu"""
-
-        # TODO: remove dependency on main window
-        menu.set_accel_group(self._main_window.get_accel_group())
-        menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
-        item = gtk.SeparatorMenuItem()
-        item.show()
-        menu.append(item)
-            
-        # image/edit
-        item = gtk.MenuItem(_("_View Image..."))
-        item.connect("activate", self._on_view_image)
-        item.child.set_markup_with_mnemonic(_("<b>_View Image...</b>"))
-        item.show()
-        menu.append(item)
-        
-        item = gtk.MenuItem(_("_Edit Image..."))
-        item.connect("activate", self._on_edit_image)
-        item.show()
-        menu.append(item)
-
-        item = gtk.MenuItem(_("_Resize Image..."))
-        item.connect("activate", self._on_resize_image)
-        item.show()
-        menu.append(item)
-
-        # image/save
-        item = gtk.ImageMenuItem(_("_Save Image As..."))
-        item.connect("activate", self._on_save_image_as)
-        item.show()
-        menu.append(item)
 
 
 

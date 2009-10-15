@@ -76,18 +76,7 @@ from keepnote.gui.popupwindow import PopupWindow
 from keepnote.gui.linkcomplete import LinkPickerPopup
 
 
-def set_menu_icon(uimanager, path, filename):
-    item = uimanager.get_widget(path)
-    img = gtk.Image()
-    img.set_from_pixbuf(get_resource_pixbuf(filename))
-    item.set_image(img)
 
-def set_tool_icon(uimanager, path, filename):
-    item = uimanager.get_widget(path)
-    if item:
-        img = gtk.Image()
-        img.set_from_pixbuf(get_resource_pixbuf(filename))
-        item.set_icon_widget(img) 
 
 class FontUI (object):
 
@@ -796,51 +785,63 @@ class EditorMenus (gobject.GObject):
 
             BothAction("Bold", gtk.STOCK_BOLD, _("_Bold"), 
              "<control>B", _("Bold"),
-             lambda w: self._on_mod("bold")) + 
+             lambda w: self._on_mod("bold"),
+             "bold.png") + 
                 
             BothAction("Italic", gtk.STOCK_ITALIC, _("_Italic"), 
              "<control>I", _("Italic"),
-             lambda w: self._on_mod("italic")) +
+             lambda w: self._on_mod("italic"),
+             "italic.png") +
             
             BothAction("Underline", gtk.STOCK_UNDERLINE, _("_Underline"), 
              "<control>U", _("Underline"),
-             lambda w: self._on_mod("underline")) +
+             lambda w: self._on_mod("underline"),
+             "underline.png") +
             
             BothAction("Strike", None, _("S_trike"),
              "", _("Strike"),
-             lambda w: self._on_mod("strike")) +
+             lambda w: self._on_mod("strike"),
+             "strike.png") +
             
             BothAction("Monospace", None, _("_Monospace"),
              "<control>M", _("Monospace"),
-             lambda w: self._on_mod("tt")) +
+             lambda w: self._on_mod("tt"),
+             "fixed-width.png") +
             
             BothAction("Link", None, _("Lin_k"),
              "<control>L", _("Make Link"),
-             lambda w: self._on_toggle_link()) +
+             lambda w: self._on_toggle_link(),
+             "link.png") +
             
             BothAction("No Wrapping", None, _("No _Wrapping"),
              "", _("No Wrapping"),
-             lambda w: self._on_mod("nowrap")) +
+             lambda w: self._on_mod("nowrap"),
+             "no-wrap.png") +
 
             BothAction("Left Align", None, _("_Left Align"), 
              "<shift><control>L", _("Left Align"),
-             lambda w: self._on_justify("left")) +
+             lambda w: self._on_justify("left"),
+             "alignleft.png") +
             
             BothAction("Center Align", None, _("C_enter Align"), 
              "<shift><control>E", _("Center Align"),
-             lambda w: self._on_justify("center")) +
+             lambda w: self._on_justify("center"),
+             "aligncenter.png") +
             
             BothAction("Right Align", None, _("_Right Align"), 
              "<shift><control>R", _("Right Align"),
-             lambda w: self._on_justify("right")) +
+             lambda w: self._on_justify("right"),
+             "alignright.png") +
             
             BothAction("Justify Align", None, _("_Justify Align"), 
              "<shift><control>J", _("Justify Align"),
-             lambda w: self._on_justify("fill")) +
+             lambda w: self._on_justify("fill"),
+             "alignjustify.png") +
 
             BothAction("Bullet List", None, _("_Bullet List"), 
              "<control>asterisk", _("Bullet List"),
-             lambda w: self._on_bullet_list()) +
+             lambda w: self._on_bullet_list(),
+             "bullet.png") +
             
             map(lambda x: Action(*x), [
             
@@ -851,11 +852,13 @@ class EditorMenus (gobject.GObject):
             
             ("Indent More", None, _("Indent M_ore"), 
              "<control>parenright", None,
-             lambda w: self._on_indent()),
+             lambda w: self._on_indent(),
+             "indent-more.png"),
             
             ("Indent Less", None, _("Indent Le_ss"), 
              "<control>parenleft", None,
-             lambda w: self._on_unindent()),
+             lambda w: self._on_unindent(),
+             "indent-less.png"),
             
             ("Increase Font Size", None, _("Increase Font _Size"), 
              "<control>equal", None,
@@ -867,15 +870,18 @@ class EditorMenus (gobject.GObject):
 
             ("Apply Text Color", None, _("_Apply Text Color"), 
              "", None,
-             lambda w: self._on_color_set("fg")),
+             lambda w: self._on_color_set("fg"),
+             "font-inc.png"),
             
             ("Apply Background Color", None, _("A_pply Background Color"), 
              "", None,
-             lambda w: self._on_color_set("bg")),
+             lambda w: self._on_color_set("bg"),
+             "font-dec.png"),
                         
             ("Choose Font", None, _("Choose _Font"), 
              "<control><shift>F", None,
-             lambda w: self._on_choose_font())
+             lambda w: self._on_choose_font(),
+             "font.png")
          ]) +  
                 
          [ToggleAction("Spell Check", None, _("_Spell Check"), 
@@ -890,10 +896,12 @@ class EditorMenus (gobject.GObject):
         <ui>
         <menubar name="main_menu_bar">
           <menu action="Edit">
-            <placeholder name="Editor">
-              <menuitem action="Insert Horizontal Rule"/>
-              <menuitem action="Insert Image"/>
-              <menuitem action="Insert Screenshot"/>
+            <placeholder name="Viewer">
+              <placeholder name="Editor">
+                <menuitem action="Insert Horizontal Rule"/>
+                <menuitem action="Insert Image"/>
+                <menuitem action="Insert Screenshot"/>
+              </placeholder>
             </placeholder>
           </menu>
           <menu action="Search">
@@ -996,12 +1004,9 @@ class EditorMenus (gobject.GObject):
 
 
 
-    def setup_font_toggle(self, uimanager, path, icon, stock=False, 
+    def setup_font_toggle(self, uimanager, path, stock=False, 
                           update_func=lambda ui, font: None):
 
-        if icon is not None and (not stock or not self.use_stock_icons):
-            set_tool_icon(uimanager, path, icon)
-        
         action = uimanager.get_action(path)
         if action:
             ui = FontUI(action, action.signal, update_func)
@@ -1016,56 +1021,54 @@ class EditorMenus (gobject.GObject):
         u = uimanager
 
         self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Bold Tool", "bold.png", True,
+            uimanager, "/main_tool_bar/Viewer/Bold Tool", 
             update_func=
             lambda ui, font: ui.widget.set_active(font.mods["bold"]))
         self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Italic Tool", "italic.png", True,
+            uimanager, "/main_tool_bar/Viewer/Italic Tool", 
             update_func=lambda ui, font: 
             ui.widget.set_active(font.mods["italic"]))
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Underline Tool", 
-            "underline.png", True,
             update_func=lambda ui, font: 
             ui.widget.set_active(font.mods["underline"]))
         self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Strike Tool", "strike.png",
+            uimanager, "/main_tool_bar/Viewer/Strike Tool", 
             update_func=lambda ui, font:
             ui.widget.set_active(font.mods["strike"]))
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Monospace Tool", 
-            "fixed-width.png",
             update_func=lambda ui, font:
             ui.widget.set_active(font.mods["tt"]))
         self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Link Tool", "link.png",
+            uimanager, "/main_tool_bar/Viewer/Link Tool", 
             update_func=lambda ui, font:
             ui.widget.set_active(font.link is not None))
         self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/No Wrapping Tool", "no-wrap.png",
+            uimanager, "/main_tool_bar/Viewer/No Wrapping Tool", 
             update_func=lambda ui, font:
             ui.widget.set_active(font.mods["nowrap"]))
 
                 
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Left Align Tool", 
-            "alignleft.png", True, update_func=lambda ui, font:
+            update_func=lambda ui, font:
              ui.widget.set_active(font.justify == "left"))
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Center Align Tool", 
-            "aligncenter.png", True, update_func=lambda ui, font:
+            update_func=lambda ui, font:
              ui.widget.set_active(font.justify == "center"))
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Right Align Tool", 
-            "alignright.png", True, update_func=lambda ui, font:
+            update_func=lambda ui, font:
              ui.widget.set_active(font.justify == "right"))
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Justify Align Tool", 
-            "alignjustify.png", True, update_func=lambda ui, font:
+            update_func=lambda ui, font:
              ui.widget.set_active(font.justify == "fill"))
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Bullet List Tool", 
-            "bullet.png", True, update_func=lambda ui, font:
+            update_func=lambda ui, font:
                 ui.widget.set_active(font.par_type == "bullet"))
 
 
@@ -1140,40 +1143,3 @@ class EditorMenus (gobject.GObject):
             uimanager.get_widget("/main_menu_bar/Options/Viewer/Spell Check")
         self.spell_check_toggle.set_sensitive(
             self._editor.get_textview().can_spell_check())
-
-
-        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Bold",
-                      get_resource("images", "bold.png"))
-        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Italic",
-                      get_resource("images", "italic.png"))
-        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Underline",
-                      get_resource("images", "underline.png"))
-        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Strike",
-                      get_resource("images", "strike.png"))
-        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Monospace",
-                      get_resource("images", "fixed-width.png"))
-        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Link",
-                      get_resource("images", "link.png"))
-        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/No Wrapping",
-                      get_resource("images", "no-wrap.png"))
-        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Left Align",
-                      get_resource("images", "alignleft.png"))
-        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Center Align",
-                      get_resource("images", "aligncenter.png"))
-        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Right Align",
-                      get_resource("images", "alignright.png"))
-        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Justify Align",
-                      get_resource("images", "alignjustify.png"))
-        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Bullet List",
-                      get_resource("images", "bullet.png"))
-        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Indent More",
-                      get_resource("images", "indent-more.png"))
-        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Indent Less",
-                      get_resource("images", "indent-less.png"))
-        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Increase Font Size",
-                      get_resource("images", "font-inc.png"))
-        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Decrease Font Size",
-                      get_resource("images", "font-dec.png"))
-        set_menu_icon(u, "/main_menu_bar/Viewer/Editor/Format/Choose Font",
-                      get_resource("images", "font.png"))
-

@@ -55,7 +55,8 @@ from keepnote import \
     FS_ENCODING
 from keepnote.notebook import \
      NoteBookError, \
-     NoteBookVersionError
+     NoteBookVersionError, \
+     NoteBookTrash
 from keepnote import notebook as notebooklib
 from keepnote import tasklib
 from keepnote.gui import \
@@ -67,13 +68,15 @@ from keepnote.gui import \
      add_actions, \
      CONTEXT_MENU_ACCEL_PATH, \
      FileChooserDialog, \
-     init_key_shortcuts
+     init_key_shortcuts, \
+     UIManager
 
 from keepnote.gui.icons import \
      lookup_icon_filename
 import keepnote.search
 from keepnote.gui import richtext
 from keepnote.gui import \
+    dialog_image_resize, \
     dialog_drag_drop_test, \
     dialog_wait, \
     dialog_update_notebook, \
@@ -84,22 +87,6 @@ from keepnote.gui.three_pane_viewer import ThreePaneViewer
 
 
 
-
-
-def set_menu_icon(uimanager, path, filename):
-    item = uimanager.get_widget(path)
-    if item:
-        img = gtk.Image()
-        img.set_from_pixbuf(get_resource_pixbuf(filename))
-        item.set_image(img) 
-
-
-def set_tool_icon(uimanager, path, filename):
-    item = uimanager.get_widget(path)
-    if item:
-        img = gtk.Image()
-        img.set_from_pixbuf(get_resource_pixbuf(filename))
-        item.set_icon_widget(img)
 
 
 class KeepNoteWindow (gtk.Window):
@@ -115,7 +102,7 @@ class KeepNoteWindow (gtk.Window):
         self._iconified = False   # True if window is minimized
         self._tray_icon = None
 
-        self._uimanager = gtk.UIManager()
+        self._uimanager = UIManager()
         self._accel_group = self._uimanager.get_accel_group()
         self.add_accel_group(self._accel_group)
 
@@ -148,7 +135,10 @@ class KeepNoteWindow (gtk.Window):
         
         self.drag_test = dialog_drag_drop_test.DragDropTestDialog(self)
         self.node_icon_dialog = dialog_node_icon.NodeIconDialog(self)
+        self.image_resize_dialog = \
+            dialog_image_resize.ImageResizeDialog(self, self._app.pref)
         
+
         self.viewer = self.new_viewer()
         
         #====================================
@@ -358,6 +348,8 @@ class KeepNoteWindow (gtk.Window):
         
         self.set_recent_notebooks_menu(self._app.pref.recent_notebooks)
 
+        self._uimanager.set_force_stock(self._app.pref.use_stock_icons)
+
         self.viewer.load_preferences(self._app.pref, first_open)
     
 
@@ -515,7 +507,7 @@ class KeepNoteWindow (gtk.Window):
             
         except Exception, e:
             if not silent:
-                self.error(_("Could not save notebook"), e, sys.exc_info()[2])
+                self.error(_("Could not save notebook."), e, sys.exc_info()[2])
                 self.set_status(_("Error saving notebook"))
                 return
 
@@ -528,7 +520,7 @@ class KeepNoteWindow (gtk.Window):
         """Reload the current NoteBook"""
         
         if self.viewer.get_notebook() is None:
-            self.error(_("Reloading only works when a notebook is open"))
+            self.error(_("Reloading only works when a notebook is open."))
             return
         
         filename = self.viewer.get_notebook().get_path()
@@ -553,7 +545,7 @@ class KeepNoteWindow (gtk.Window):
             notebook.close()
             self.set_status(_("Created '%s'") % notebook.get_title())
         except NoteBookError, e:
-            self.error(_("Could not create new notebook"), e, sys.exc_info()[2])
+            self.error(_("Could not create new notebook."), e, sys.exc_info()[2])
             self.set_status("")
             return None
         
@@ -584,7 +576,7 @@ class KeepNoteWindow (gtk.Window):
 
         except NoteBookVersionError, e:
             self.error(_("This version of %s cannot read this notebook.\n" 
-                         "The notebook has version %d.  %s can only read %d")
+                         "The notebook has version %d.  %s can only read %d.")
                        % (keepnote.PROGRAM_NAME,
                           e.notebook_version,
                           keepnote.PROGRAM_NAME,
@@ -593,13 +585,13 @@ class KeepNoteWindow (gtk.Window):
             return None
 
         except NoteBookError, e:            
-            self.error(_("Could not load notebook '%s'") % filename,
+            self.error(_("Could not load notebook '%s'.") % filename,
                        e, sys.exc_info()[2])
             return None
 
         except Exception, e:
             # give up opening notebook
-            self.error(_("Could not load notebook '%s'") % filename,
+            self.error(_("Could not load notebook '%s'.") % filename,
                        e, sys.exc_info()[2])
             return None
 
@@ -629,12 +621,12 @@ class KeepNoteWindow (gtk.Window):
     def close_notebook(self, save=True):
         """Close the NoteBook"""
         
-        if self.viewer.get_notebook() is not None:
+        if self.get_notebook() is not None:
             if save:
                 self.save_notebook()
             
-            self.viewer.get_notebook().node_changed.remove(self.on_notebook_node_changed)
-            notebook = self.viewer.get_notebook()
+            self.get_notebook().node_changed.remove(self.on_notebook_node_changed)
+            notebook = self.get_notebook()
             self.set_notebook(None)
             self.set_status(_("Notebook closed"))
 
@@ -742,14 +734,43 @@ class KeepNoteWindow (gtk.Window):
         self.on_new_node(notebooklib.CONTENT_TYPE_PAGE, widget, "child")
 
 
+    def confirm_delete_nodes(self, nodes):
+
+        # TODO: add note names to dialog
+        # TODO: assume one node is selected
+        node = nodes[0]
+
+        if isinstance(node, NoteBookTrash):
+            self.error(_("The Trash folder cannot be deleted."), None)
+            return False
+        elif node.get_parent() == None:
+            self.error(_("The top-level folder cannot be deleted."), None)
+            return False
+        elif len(node.get_children()) > 0:
+            message = _("Do you want to delete this note and all of its children?")
+        else:
+            message = _("Do you want to delete this note?")
+        
+        dialog = gtk.MessageDialog(self.get_toplevel(), 
+            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            type=gtk.MESSAGE_QUESTION, 
+            buttons=gtk.BUTTONS_YES_NO, 
+            message_format=message)
+
+        response = dialog.run()
+        dialog.destroy()
+        
+        return response == gtk.RESPONSE_YES
+
+
     def on_empty_trash(self):
         """Empty Trash folder in NoteBook"""
         
-        if self.viewer.get_notebook() is None:
+        if self.get_notebook() is None:
             return
 
         try:
-            self.viewer.get_notebook().empty_trash()
+            self.get_notebook().empty_trash()
         except NoteBookError, e:
             self.error(_("Could not empty trash."), e, sys.exc_info()[2])
 
@@ -758,7 +779,7 @@ class KeepNoteWindow (gtk.Window):
     #===========================================
     # node icons
 
-    def on_set_icon(self, icon_file, icon_open_file, widget="focus"):
+    def on_set_icon(self, icon_file, icon_open_file, nodes):
         """
         Change the icon for a node
 
@@ -767,13 +788,7 @@ class KeepNoteWindow (gtk.Window):
             use None to leave icon setting unchanged
         """
 
-        if self.viewer.get_notebook() is None:
-            return
-
-        nodes, widget = self.get_selected_nodes(widget)
-
         for node in nodes:
-
             if icon_file == u"":
                 node.del_attr("icon")
             elif icon_file is not None:
@@ -789,14 +804,14 @@ class KeepNoteWindow (gtk.Window):
 
 
 
-    def on_new_icon(self, widget="focus"):
+    def on_new_icon(self, nodes):
         """Change the icon for a node"""
 
-        if self.viewer.get_notebook() is None:
+        if self.get_notebook() is None:
             return
 
-        nodes, widget = self.get_selected_nodes(widget)
-
+        notebook = self.get_notebook()
+        
         # TODO: assume only one node is selected
         node = nodes[0]
 
@@ -807,34 +822,35 @@ class KeepNoteWindow (gtk.Window):
         # NOTE: files may be filename or basename, use isabs to distinguish
         if icon_file and os.path.isabs(icon_file) and \
            icon_open_file and os.path.isabs(icon_open_file):
-            icon_file, icon_open_file = self.viewer.get_notebook().install_icons(
+            icon_file, icon_open_file = notebook.install_icons(
                 icon_file, icon_open_file)
             newly_installed.add(os.path.basename(icon_file))
             newly_installed.add(os.path.basename(icon_open_file))
             
         else:
             if icon_file and os.path.isabs(icon_file):
-                icon_file = self.viewer.get_notebook().install_icon(icon_file)
+                icon_file = notebook.install_icon(icon_file)
                 newly_installed.add(os.path.basename(icon_file))
 
             if icon_open_file and os.path.isabs(icon_open_file):
-                icon_open_file = self.viewer.get_notebook().install_icon(icon_open_file)
+                icon_open_file = notebook.install_icon(icon_open_file)
                 newly_installed.add(os.path.basename(icon_open_file))
 
         # set quick picks if OK was pressed
         if icon_file is not None:
-            self.viewer.get_notebook().pref.set_quick_pick_icons(
+            notebook.pref.set_quick_pick_icons(
                 self.node_icon_dialog.get_quick_pick_icons())
 
             # set notebook icons
-            notebook_icons = self.viewer.get_notebook().get_icons()
+            notebook_icons = notebook.get_icons()
             keep_set = set(self.node_icon_dialog.get_notebook_icons()) | \
                        newly_installed
             for icon in notebook_icons:
                 if icon not in keep_set:
-                    self.viewer.get_notebook().uninstall_icon(icon)
+                    notebook.uninstall_icon(icon)
             
-            self.viewer.get_notebook().write_preferences()
+            # TODO: should this be done with a notify?
+            notebook.write_preferences()
 
         self.on_set_icon(icon_file, icon_open_file)
 
@@ -930,9 +946,194 @@ class KeepNoteWindow (gtk.Window):
             if child:
                 child.delete()
 
-            self.error(_("Error while attaching file '%s'" % filename),
+            self.error(_("Error while attaching file '%s'." % filename),
                        e, sys.exc_info()[2])
-                             
+
+    def on_view_node_external_app(self, app, node=None, kind=None):
+        """View a node with an external app"""
+        
+        # TODO: try to clean up
+
+        self.save_notebook()
+        
+        # determine node to view
+        if node is None:
+            nodes, widget = self.get_selected_nodes()
+            if len(nodes) == 0:
+                self.emit("error", _("No notes are selected."))
+                return            
+            node = nodes[0]
+
+            # TODO: could allow "Files" to be opened by page actions
+            if kind == "page" and \
+               node.get_attr("content_type") != notebooklib.CONTENT_TYPE_PAGE:
+                self.emit("error", _("Only pages can be viewed with %s.") %
+                          self._app.pref.get_external_app(app).title)
+                return
+
+        try:
+            if kind == "page":
+                # get html file
+                filename = os.path.realpath(node.get_data_file())
+                
+            elif kind == "file":
+                # get payload file
+                if not node.has_attr("payload_filename"):
+                    self.emit("error", 
+                              _("Only files can be viewed with %s.") %
+                              self._app.pref.get_external_app(app).title)
+                    return
+                filename = os.path.realpath(
+                    os.path.join(node.get_path(),
+                                 node.get_attr("payload_filename")))
+                
+            else:
+                # get node dir
+                filename = os.path.realpath(node.get_path())
+            
+            self._app.run_external_app(app, filename)
+        
+        except KeepNoteError, e:
+            self.emit("error", e.msg, e, sys.exc_info()[2])
+
+                           
+
+    #=================================================
+    # Image context menu
+
+
+    def view_image(self, image_filename):
+        current_page = self.get_current_page()
+        if current_page is None:
+            return
+
+        image_path = os.path.join(current_page.get_path(), image_filename)
+        viewer = self._app.pref.get_external_app("image_viewer")
+        
+        if viewer is not None:
+            try:
+                proc = subprocess.Popen([viewer.prog, image_path])
+            except OSError, e:
+                self.emit("error", _("Could not open Image Viewer."), 
+                           e, sys.exc_info()[2])
+        else:
+            self.emit("error", _("You must specify an Image Viewer in Application Options."))
+
+
+
+    def _on_view_image(self, menuitem):
+        """View image in Image Viewer"""
+        
+        # get image filename
+        image_filename = menuitem.get_parent().get_child().get_filename()
+        self.view_image(image_filename)
+        
+
+
+    def _on_edit_image(self, menuitem):
+        """Edit image in Image Editor"""
+
+        current_page = self.get_current_page()
+        if current_page is None:
+            return
+        
+        # get image filename
+        image_filename = menuitem.get_parent().get_child().get_filename()
+
+        image_path = os.path.join(current_page.get_path(), image_filename)
+        editor = self._app.pref.get_external_app("image_editor")
+    
+        if editor is not None:
+            try:
+                proc = subprocess.Popen([editor.prog, image_path])
+            except OSError, e:
+                self.emit("error", _("Could not open Image Editor."), e)
+        else:
+            self.emit("error", _("You must specify an Image Editor in Application Options."))
+
+
+    def _on_resize_image(self, menuitem):
+        """Resize image"""
+
+        current_page = self.get_current_page()
+        if current_page is None:
+            return
+        
+        image = menuitem.get_parent().get_child()
+        self.image_resize_dialog.on_resize(image)
+        
+
+
+    def _on_save_image_as(self, menuitem):
+        """Save image as a new file"""
+
+        current_page = self.get_current_page()
+        if current_page is None:
+            return
+        
+        # get image filename
+        image = menuitem.get_parent().get_child()
+        image_filename = image.get_filename()
+        image_path = os.path.join(current_page.get_path(), image_filename)
+
+        dialog = FileChooserDialog(
+            _("Save Image As..."), self, 
+            action=gtk.FILE_CHOOSER_ACTION_SAVE,
+            buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
+                     _("Save"), gtk.RESPONSE_OK),
+            app=self._app,
+            persistent_path="save_image_path")
+        dialog.set_default_response(gtk.RESPONSE_OK)
+        response = dialog.run()        
+
+        if response == gtk.RESPONSE_OK:
+
+            if not dialog.get_filename():
+                self.emit("error", _("Must specify a filename for the image."))
+            else:
+                filename = unicode_gtk(dialog.get_filename())
+                try:                
+                    image.write(filename)
+                except Exception, e:
+                    self.error(_("Could not save image '%s'.") % filename)
+
+        dialog.destroy()
+    
+
+    def make_image_menu(self, menu):
+        """image context menu"""
+
+        # TODO: remove dependency on main window
+        menu.set_accel_group(self.get_accel_group())
+        menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
+        item = gtk.SeparatorMenuItem()
+        item.show()
+        menu.append(item)
+            
+        # image/edit
+        item = gtk.MenuItem(_("_View Image..."))
+        item.connect("activate", self._on_view_image)
+        item.child.set_markup_with_mnemonic(_("<b>_View Image...</b>"))
+        item.show()
+        menu.append(item)
+        
+        item = gtk.MenuItem(_("_Edit Image..."))
+        item.connect("activate", self._on_edit_image)
+        item.show()
+        menu.append(item)
+
+        item = gtk.MenuItem(_("_Resize Image..."))
+        item.connect("activate", self._on_resize_image)
+        item.show()
+        menu.append(item)
+
+        # image/save
+        item = gtk.ImageMenuItem(_("_Save Image As..."))
+        item.connect("activate", self._on_save_image_as)
+        item.show()
+        menu.append(item)
+
+  
 
     #======================================================
     # Search
@@ -1056,7 +1257,7 @@ class KeepNoteWindow (gtk.Window):
             # use text editor to view error log
             self._app.run_external_app("text_editor", filename2)
         except Exception, e:
-            self.error(_("Could not open error log"), e, sys.exc_info()[2])
+            self.error(_("Could not open error log."), e, sys.exc_info()[2])
 
 
 
@@ -1078,13 +1279,11 @@ class KeepNoteWindow (gtk.Window):
         about = gtk.AboutDialog()
         about.set_name(keepnote.PROGRAM_NAME)
         about.set_version(keepnote.PROGRAM_VERSION_TEXT)
-        about.set_copyright("Copyright Matt Rasmussen 2009.")
+        about.set_copyright(keepnote.COPYRIGHT)
         about.set_logo(get_resource_pixbuf("keepnote-icon.png"))
         about.set_website(keepnote.WEBSITE)
-        about.set_license("GPL version 2")
-        about.set_translator_credits(
-            "French: tb <thibaut.bethune@gmail.com>\n"
-            "Turkish: Yuce Tekol <yucetekol@gmail.com>\n")
+        about.set_license(keepnote.LICENSE_NAME)
+        about.set_translator_credits(keepnote.TRANSLATOR_CREDITS)
 
         license_file = keepnote.get_resource(u"rc", u"COPYING")
         if os.path.exists(license_file):
@@ -1123,19 +1322,7 @@ class KeepNoteWindow (gtk.Window):
     
     def error(self, text, error=None, tracebk=None):
         """Display an error message"""
-        
-        dialog = gtk.MessageDialog(self.get_toplevel(), 
-            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-            type=gtk.MESSAGE_ERROR, 
-            buttons=gtk.BUTTONS_OK, 
-            message_format=text)
-        dialog.connect("response", lambda d,r: d.destroy())
-        dialog.set_title(_("Error"))
-        dialog.show()
-        
-        # add message to error log
-        if error is not None:
-            keepnote.log_error(error, tracebk)
+        self._app.error(text, error, tracebk)
 
 
     def wait_dialog(self, title, text, task):
@@ -1161,17 +1348,17 @@ class KeepNoteWindow (gtk.Window):
             
             ("New Page", gtk.STOCK_NEW, _("New _Page"),
              "<control>N", _("Create a new page"),
-             lambda w: self.on_new_page()),
+             lambda w: self.on_new_page(), "note-new.png"),
 
-            # TODO: move to viewer
             ("New Child Page", gtk.STOCK_NEW, _("New _Child Page"),
              "<control><shift>N", _("Create a new child page"),
-             lambda w: self.on_new_child_page()),
+             lambda w: self.on_new_child_page(),
+             "note-new.png"),
 
-            # TODO: move to viewer
             ("New Folder", gtk.STOCK_DIRECTORY, _("New _Folder"),
              "<control><shift>M", _("Create a new folder"),
-             lambda w: self.on_new_dir()),
+             lambda w: self.on_new_dir(),
+             "folder-new.png"),
 
             ("Open Notebook", gtk.STOCK_OPEN, _("_Open Notebook..."),
              "<control>O", _("Open an existing notebook"),
@@ -1224,12 +1411,10 @@ class KeepNoteWindow (gtk.Window):
              "<control>V", None,
              lambda w: self.on_paste()),
 
-            # TODO: move to viewer
             ("Attach File", gtk.STOCK_ADD, _("_Attach File..."),
              "", _("Attach a file to the notebook"),
              lambda w: self.on_attach_file()),
 
-            # TODO: move to viewer
             ("Empty Trash", gtk.STOCK_DELETE, _("Empty _Trash"),
              "", None,
              lambda w: self.on_empty_trash()),
@@ -1237,7 +1422,6 @@ class KeepNoteWindow (gtk.Window):
             #========================================
             ("Search", None, _("_Search")),
             
-            # TODO: move to viewer
             ("Search All Notes", gtk.STOCK_FIND, _("_Search All Notes"),
              "<control>K", None,
              lambda w: self.focus_on_search_box()),
@@ -1291,11 +1475,7 @@ class KeepNoteWindow (gtk.Window):
         return actions
 
     def setup_menus(self, uimanager):
-        u = uimanager
-        set_menu_icon(u, "/main_menu_bar/File/New Page", "note-new.png")
-        set_menu_icon(u, "/main_menu_bar/File/New Child Page", "note-new.png")
-        set_menu_icon(u, "/main_menu_bar/File/New Folder", "folder-new.png")
-
+        pass
 
     def get_ui(self):
 
@@ -1307,9 +1487,6 @@ class KeepNoteWindow (gtk.Window):
   <menu action="File">
      <menuitem action="New Notebook"/>
      <placeholder name="Viewer"/>
-     <menuitem action="New Page"/>
-     <menuitem action="New Child Page"/>
-     <menuitem action="New Folder"/>
      <separator/>
      <menuitem action="Open Notebook"/>
      <menuitem action="Open Recent Notebook"/>
@@ -1334,9 +1511,7 @@ class KeepNoteWindow (gtk.Window):
     <menuitem action="Copy"/>
     <menuitem action="Paste"/>
     <separator/>
-    <menuitem action="Attach File"/>
-    <separator/>
-    <placeholder name="Editor"/>
+    <placeholder name="Viewer"/>
     <separator/>
     <menuitem action="Empty Trash"/>
   </menu>
@@ -1344,7 +1519,9 @@ class KeepNoteWindow (gtk.Window):
     <menuitem action="Search All Notes"/>
     <placeholder name="Editor"/>
   </menu>
+
   <placeholder name="Viewer"/>
+
   <menu action="Go">
     <placeholder name="Viewer"/>
   </menu>
@@ -1416,12 +1593,13 @@ class KeepNoteWindow (gtk.Window):
         except:
             pass
         
-                
-        if not self._app.pref.use_stock_icons:
-            set_tool_icon(self._uimanager, "/main_tool_bar/New Folder", 
-                          "folder-new.png")
-            set_tool_icon(self._uimanager, "/main_tool_bar/New Page", 
-                          "note-new.png")
+         
+        # TODO: add this option back
+        #if not self._app.pref.use_stock_icons:
+            #set_tool_icon(self._uimanager, "/main_tool_bar/New Folder", 
+            #              "folder-new.png")
+            #set_tool_icon(self._uimanager, "/main_tool_bar/New Page", 
+            #              "note-new.png")
 
         
         # separator (is there a better way to do this?)

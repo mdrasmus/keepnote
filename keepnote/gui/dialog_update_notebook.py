@@ -106,7 +106,7 @@ class UpdateNoteBookDialog (object):
             ret = not task.aborted()
             ty, err, tb =  task.exc_info()
             if err:
-                self.main_window.error(_("Error while updating"), err, tb)
+                self.main_window.error(_("Error while updating."), err, tb)
                 ret = False
         
         self.dialog.destroy()
@@ -163,10 +163,10 @@ class UpdateNoteBookDialog (object):
             if task.aborted():
                 ty, err, tb = task.exc_info()
                 if err:
-                    self.main_window.error(_("Error occurred during backup"), 
+                    self.main_window.error(_("Error occurred during backup."), 
                                            err, tb)
                 else:
-                    self.main_window.error(_("Backup canceled"))
+                    self.main_window.error(_("Backup canceled."))
                 return False
             
         return True

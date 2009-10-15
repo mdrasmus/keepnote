@@ -115,8 +115,10 @@ class Extension (keepnote.Extension):
                 <ui>
                 <menubar name="main_menu_bar">
                    <menu action="Edit">
-                      <placeholder name="Editor">
-                         <menuitem action="Insert Date"/>
+                      <placeholder name="Viewer">
+                         <placeholder name="Editor">
+                           <menuitem action="Insert Date"/>
+                         </placeholder>
                       </placeholder>
                    </menu>
                 </menubar>

@@ -86,6 +86,13 @@ else:
                                       PROGRAM_VERSION_MINOR)
 
 WEBSITE = u"http://rasm.ods.org/keepnote"
+LICENSE_NAME = "GPL version 2"
+COPYRIGHT = "Copyright Matt Rasmussen 2009."
+TRANSLATOR_CREDITS = (
+    "French: tb <thibaut.bethune@gmail.com>\n"
+    "Turkish: Yuce Tekol <yucetekol@gmail.com>\n")
+
+
 
 
 BASEDIR = unicode(os.path.dirname(__file__))
