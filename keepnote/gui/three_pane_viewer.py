@@ -214,8 +214,8 @@ class ThreePaneViewer (Viewer):
     def load_preferences(self, app_pref, first_open=False):
         """Load application preferences"""
 
-        self.remove_ui()
-        self.add_ui()
+        self.remove_ui(self._main_window)
+        self.add_ui(self._main_window)
 
         self.set_view_mode(app_pref.view_mode)
         self.paned2.set_position(app_pref.vsash_pos)
@@ -725,7 +725,9 @@ class ThreePaneViewer (Viewer):
     #===========================================
     # ui
     
-    def add_ui(self):
+    def add_ui(self, window):
+
+        assert window == self._main_window
 
         #print "add"
 
@@ -759,7 +761,7 @@ class ThreePaneViewer (Viewer):
         #self.editor_menus.setup_menu(uimanager)
         self.editor_menus.setup_toolbar(self._app.pref.use_stock_icons,
                                         self._app.pref.use_minitoolbar)
-        self.editor_menus.add_ui(self._main_window)
+        self.editor_menus.add_ui(window)
         
         # TODO: Try to add accellerator to popup menu
         #menu = viewer.editor.get_textview().get_popup_menu()
@@ -808,7 +810,9 @@ class ThreePaneViewer (Viewer):
 
 
 
-    def remove_ui(self):
+    def remove_ui(self, window):
+
+        assert self._main_window == window
 
         #print "remove"
 

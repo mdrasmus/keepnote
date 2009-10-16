@@ -2877,7 +2877,7 @@ the first Monday are considered to be in week 0</property>
                   <widget class="GtkCheckButton" id="use_stock_icons_check">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="label" translatable="yes">use GTK stock icons in toolbar (requires restart)</property>
+                    <property name="label" translatable="yes">use GTK stock icons in toolbar</property>
                     <property name="response_id">0</property>
                     <property name="draw_indicator">True</property>
                   </widget>
@@ -2890,7 +2890,7 @@ the first Monday are considered to be in week 0</property>
                   <widget class="GtkCheckButton" id="use_minitoolbar">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="label" translatable="yes">use minimal toolbar (requires restart)</property>
+                    <property name="label" translatable="yes">use minimal toolbar</property>
                     <property name="response_id">0</property>
                     <property name="draw_indicator">True</property>
                   </widget>

@@ -186,7 +186,7 @@ class KeepNoteWindow (gtk.Window):
         self.viewer_box.pack_start(self.viewer, True, True, 0)
 
         # add viewer menus
-        self.viewer.add_ui()
+        self.viewer.add_ui(self)
 
 
     def setup_systray(self):

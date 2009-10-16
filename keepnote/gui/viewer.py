@@ -122,10 +122,10 @@ class Viewer (gtk.VBox):
     #================================================
     # UI management
 
-    def add_ui(self):
+    def add_ui(self, window):
         pass
 
-    def remove_ui(self):
+    def remove_ui(self, window):
         pass
 
 
