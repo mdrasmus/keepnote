@@ -46,15 +46,16 @@ import keepnote
 from keepnote import unicode_gtk, KeepNoteError
 from keepnote.notebook import NoteBookTrash
 from keepnote.gui import \
-     dialog_image_resize, \
-     get_resource, \
-     get_resource_image, \
-     get_resource_pixbuf, \
-     get_accel_file, \
-     Action, \
-     ToggleAction, \
-     FileChooserDialog, \
-     CONTEXT_MENU_ACCEL_PATH
+    add_actions, \
+    dialog_image_resize, \
+    get_resource, \
+    get_resource_image, \
+    get_resource_pixbuf, \
+    get_accel_file, \
+    Action, \
+    ToggleAction, \
+    FileChooserDialog, \
+    CONTEXT_MENU_ACCEL_PATH
 from keepnote.history import NodeHistory
 from keepnote import notebook as notebooklib
 from keepnote.gui import richtext
@@ -119,8 +120,6 @@ class ThreePaneViewer (Viewer):
         # editor
         self.editor = KeepNoteEditor(self._app)
         self.editor_menus = EditorMenus(self.editor)
-        self.editor_menus.setup_toolbar(self._app.pref.use_stock_icons,
-                                        self._app.pref.use_minitoolbar)
         self.editor.connect("make-link", self._on_make_link)
         self.editor.connect("child-activated", self._on_child_activated)
         self.editor.connect("visit-node", lambda w, n: self.goto_node(n, False))
@@ -215,6 +214,9 @@ class ThreePaneViewer (Viewer):
     def load_preferences(self, app_pref, first_open=False):
         """Load application preferences"""
 
+        self.remove_ui()
+        self.add_ui()
+
         self.set_view_mode(app_pref.view_mode)
         self.paned2.set_position(app_pref.vsash_pos)
         self.hpaned.set_position(app_pref.hsash_pos)
@@ -229,6 +231,8 @@ class ThreePaneViewer (Viewer):
             pass
 
         self.editor_menus.enable_spell_check(self._app.pref.spell_check)
+
+        
         
 
 
@@ -719,8 +723,106 @@ class ThreePaneViewer (Viewer):
 
 
     #===========================================
-    # menus
+    # ui
     
+    def add_ui(self):
+
+        #print "add"
+
+        self._action_group = gtk.ActionGroup("Viewer")
+        self._uis = []
+        add_actions(self._action_group, self.get_actions())
+        self._main_window.get_uimanager().insert_action_group(
+            self._action_group, 0)
+
+        for s in self.get_ui():
+            self._uis.append(
+                self._main_window.get_uimanager().add_ui_from_string(s))
+
+        uimanager = self._main_window.get_uimanager()
+        uimanager.ensure_update()
+        
+        # setup toolbar
+        self.back_button = uimanager.get_widget("/main_tool_bar/Viewer/Back")
+        self.forward_button = uimanager.get_widget("/main_tool_bar/Viewer/Forward")
+
+
+        # view mode
+        self.view_mode_h_toggle = \
+            uimanager.get_widget(
+              "/main_menu_bar/Options/Viewer/Horizontal Layout")
+        self.view_mode_v_toggle = \
+            uimanager.get_widget(
+              "/main_menu_bar/Options/Viewer/Vertical Layout")
+
+        # setup editor
+        #self.editor_menus.setup_menu(uimanager)
+        self.editor_menus.setup_toolbar(self._app.pref.use_stock_icons,
+                                        self._app.pref.use_minitoolbar)
+        self.editor_menus.add_ui(self._main_window)
+        
+        # TODO: Try to add accellerator to popup menu
+        #menu = viewer.editor.get_textview().get_popup_menu()
+        #menu.set_accel_group(self._accel_group)
+        #menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
+
+
+        # treeview context menu
+        menu1 = uimanager.get_widget(
+            "/popup_menus/treeview_popup").get_submenu()
+        self.treeview.set_popup_menu(menu1)
+        menu1.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
+        menu1.set_accel_group(uimanager.get_accel_group())
+        menu1.iconmenu = self._setup_icon_menu()
+        item = uimanager.get_widget(
+            "/popup_menus/treeview_popup/Change Note Icon")
+        item.set_submenu(menu1.iconmenu)
+        item.show()
+
+
+        # listview context menu
+        menu2 = uimanager.get_widget(
+            "/popup_menus/listview_popup").get_submenu()
+        self.listview.set_popup_menu(menu2)
+        menu2.set_accel_group(uimanager.get_accel_group())
+        menu2.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
+        menu2.iconmenu = self._setup_icon_menu()
+        item = uimanager.get_widget(
+            "/popup_menus/listview_popup/Change Note Icon")
+        item.set_submenu(menu2.iconmenu)
+        item.show()
+        
+
+    def _setup_icon_menu(self):
+
+        iconmenu = IconMenu()
+        iconmenu.connect("set-icon",
+            lambda w, i: self._main_window.on_set_icon(
+                i, u"", self.get_selected_nodes()[0]))
+        iconmenu.new_icon.connect("activate",
+            lambda w: self._main_window.on_new_icon(
+                self.get_selected_nodes()[0]))
+
+        return iconmenu
+
+
+
+
+    def remove_ui(self):
+
+        #print "remove"
+
+        self.editor_menus.remove_ui(self._main_window)
+
+        for ui in reversed(self._uis):
+            self._main_window.get_uimanager().remove_ui(ui)
+        self._uis = []
+
+        self._main_window.get_uimanager().remove_action_group(self._action_group)
+        self._action_group = None
+        self._main_window.get_uimanager().ensure_update()
+
+
     def get_ui(self):        
         
         # NOTE: I use a dummy menubar popup_menus so that I can have
@@ -789,48 +891,49 @@ class ThreePaneViewer (Viewer):
             <toolitem action="Back"/>
             <toolitem action="Forward"/>
             <separator/>
+            <placeholder name="Editor"/>
           </placeholder>
         </toolbar>
 
         <menubar name="popup_menus">
-        <menu action="treeview_popup">
-          <menuitem action="New Page"/>
-          <menuitem action="New Child Page"/>
-          <menuitem action="New Folder"/>
-          <menuitem action="Attach File"/>
-          <separator/>
-          <menuitem action="Delete Note"/>
-          <menuitem action="Rename Note"/>
-          <menuitem action="Change Note Icon"/>
-          <separator/>
-          <menuitem action="View Note in File Explorer"/>
-          <menuitem action="View Note in Text Editor"/>
-          <menuitem action="View Note in Web Browser"/>
-          <menuitem action="Open File"/>
-        </menu>
+          <menu action="treeview_popup">
+            <menuitem action="New Page"/>
+            <menuitem action="New Child Page"/>
+            <menuitem action="New Folder"/>
+            <menuitem action="Attach File"/>
+            <separator/>
+            <menuitem action="Delete Note"/>
+            <menuitem action="Rename Note"/>
+            <menuitem action="Change Note Icon"/>
+            <separator/>
+            <menuitem action="View Note in File Explorer"/>
+            <menuitem action="View Note in Text Editor"/>
+            <menuitem action="View Note in Web Browser"/>
+            <menuitem action="Open File"/>
+          </menu>
 
-        <menu action="listview_popup">
-          <menuitem action="Go to Note"/>
-          <menuitem action="Go to Parent Note"/>
-          <separator/>
-          <menuitem action="New Page"/>
-          <menuitem action="New Child Page"/>
-          <menuitem action="New Folder"/>
-          <menuitem action="Attach File"/>
-          <separator/>
-          <menuitem action="Delete Note"/>
-          <menuitem action="Rename Note"/>
-          <menuitem action="Change Note Icon"/>
-          <separator/>
-          <menuitem action="View Note in File Explorer"/>
-          <menuitem action="View Note in Text Editor"/>
-          <menuitem action="View Note in Web Browser"/>
-          <menuitem action="Open File"/>
-        </menu>
+          <menu action="listview_popup">
+            <menuitem action="Go to Note"/>
+            <menuitem action="Go to Parent Note"/>
+            <separator/>
+            <menuitem action="New Page"/>
+            <menuitem action="New Child Page"/>
+            <menuitem action="New Folder"/>
+            <menuitem action="Attach File"/>
+            <separator/>
+            <menuitem action="Delete Note"/>
+            <menuitem action="Rename Note"/>
+            <menuitem action="Change Note Icon"/>
+            <separator/>
+            <menuitem action="View Note in File Explorer"/>
+            <menuitem action="View Note in Text Editor"/>
+            <menuitem action="View Note in Web Browser"/>
+            <menuitem action="Open File"/>
+          </menu>
         </menubar>
 
         </ui>
-        """] + self.editor_menus.get_ui()
+        """]# + self.editor_menus.get_ui()
         
 
     def get_actions(self):
@@ -935,7 +1038,7 @@ class ThreePaneViewer (Viewer):
              "", None,
              lambda w: self.set_view_mode("vertical")),
 
-            ]) + self.editor_menus.get_actions() + map(lambda x: Action(*x), [
+            ]) + map(lambda x: Action(*x), [
         
             ("Delete Note", gtk.STOCK_DELETE, _("_Delete"),
              "", None, 
@@ -949,62 +1052,6 @@ class ThreePaneViewer (Viewer):
              "", None, lambda w: None,
              lookup_icon_filename(None, u"folder-red.png")),
 
-        ])
+        ]) #+ self.editor_menus.get_actions()
 
 
-    def setup_menus(self, uimanager):
-        
-        u = uimanager
-
-        # setup toolbar
-        self.back_button = uimanager.get_widget("/main_tool_bar/Viewer/Back")
-        self.forward_button = uimanager.get_widget("/main_tool_bar/Viewer/Forward")
-
-        # view mode
-        self.view_mode_h_toggle = \
-            uimanager.get_widget("/main_menu_bar/Options/Viewer/Horizontal Layout")
-        self.view_mode_v_toggle = \
-            uimanager.get_widget("/main_menu_bar/Options/Viewer/Vertical Layout")
-
-        # setup editor
-        self.editor_menus.setup_menu(uimanager)
-        
-        # TODO: Try to add accellerator to popup menu
-        #menu = viewer.editor.get_textview().get_popup_menu()
-        #menu.set_accel_group(self._accel_group)
-        #menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
-
-
-        # TODO: clean up
-        # TODO: remove main window dependency
-        # change icon
-
-        # treeview context menu
-        menu1 = uimanager.get_widget("/popup_menus/treeview_popup").get_submenu()
-        self.treeview.set_popup_menu(menu1)
-        menu1.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
-        menu1.set_accel_group(uimanager.get_accel_group())
-        item = uimanager.get_widget("/popup_menus/treeview_popup/Change Note Icon")
-        menu1.iconmenu = IconMenu()
-        menu1.iconmenu.connect("set-icon",
-            lambda w, i: self._main_window.on_set_icon(i, u"", self.get_selected_nodes()))
-        menu1.iconmenu.new_icon.connect("activate",
-            lambda w: self._main_window.on_new_icon(self.get_selected_nodes()))
-        item.set_submenu(menu1.iconmenu)
-        item.show()
-
-
-        # listview context menu
-        menu2 = uimanager.get_widget("/popup_menus/listview_popup").get_submenu()
-        self.listview.set_popup_menu(menu2)
-        menu2.set_accel_group(uimanager.get_accel_group())
-        menu2.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
-        menu2.iconmenu = IconMenu()
-        item = uimanager.get_widget("/popup_menus/listview_popup/Change Note Icon")
-        menu2.iconmenu.connect("set-icon",
-            lambda w, i: self._main_window.on_set_icon(i, u"", self.get_selected_nodes()))
-        menu2.iconmenu.new_icon.connect("activate",
-            lambda w: self._main_window.on_new_icon(self.get_selected_nodes()))
-        item.set_submenu(menu2.iconmenu)
-        item.show()
-        

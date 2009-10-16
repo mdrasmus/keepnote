@@ -186,10 +186,7 @@ class KeepNoteWindow (gtk.Window):
         self.viewer_box.pack_start(self.viewer, True, True, 0)
 
         # add viewer menus
-        add_actions(self._actiongroup, self.viewer.get_actions())
-        for s in self.viewer.get_ui():
-            ui_id = self._uimanager.add_ui_from_string(s)
-        self.viewer.setup_menus(self._uimanager)
+        self.viewer.add_ui()
 
 
     def setup_systray(self):
@@ -1103,7 +1100,9 @@ class KeepNoteWindow (gtk.Window):
     def make_image_menu(self, menu):
         """image context menu"""
 
-        # TODO: remove dependency on main window
+        # TODO: convert into UIManager?
+
+
         menu.set_accel_group(self.get_accel_group())
         menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
         item = gtk.SeparatorMenuItem()
@@ -1593,14 +1592,6 @@ class KeepNoteWindow (gtk.Window):
         except:
             pass
         
-         
-        # TODO: add this option back
-        #if not self._app.pref.use_stock_icons:
-            #set_tool_icon(self._uimanager, "/main_tool_bar/New Folder", 
-            #              "folder-new.png")
-            #set_tool_icon(self._uimanager, "/main_tool_bar/New Page", 
-            #              "note-new.png")
-
         
         # separator (is there a better way to do this?)
         spacer = self._uimanager.get_widget("/main_tool_bar/Main Spacer Tool")

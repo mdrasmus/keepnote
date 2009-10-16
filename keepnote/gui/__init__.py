@@ -185,6 +185,8 @@ class FileChooserDialog (gtk.FileChooserDialog):
 
 
 class UIManager (gtk.UIManager):
+    """Specialization of UIManager for use in KeepNote"""
+
     def __init__(self, force_stock=False):
         gtk.UIManager.__init__(self)
         self.connect("connect-proxy", self._on_connect_proxy)
@@ -194,24 +196,27 @@ class UIManager (gtk.UIManager):
         self.force_stock = force_stock
 
     def _on_connect_proxy(self, uimanager, action, widget):
-
+        """Callback for a widget entering management"""
         if isinstance(action, (Action, ToggleAction)) and action.icon:
             self.widgets[widget] = action
             self.set_icon(widget, action)
 
     def _on_disconnect_proxy(self, uimanager, action, widget):
-        
+        """Callback for a widget leaving management"""
         if widget in self.widgets:
             del self.widgets[widget]
 
     def set_force_stock(self, force):
-        self.force_stock = force
+        """Sets the 'force stock icon' option"""
 
+        self.force_stock = force
         for widget, action in self.widgets.items():
             self.set_icon(widget, action)
 
 
     def set_icon(self, widget, action):
+        """Sets the icon for a managed widget"""
+
         if isinstance(widget, gtk.ImageMenuItem):
             if self.force_stock and action.get_property("stock-id"):
                 img = gtk.Image()
@@ -232,7 +237,7 @@ class UIManager (gtk.UIManager):
                 img = gtk.Image()
                 img.set_from_pixbuf(get_resource_pixbuf(action.icon))
                 img.show()
-                widget.set_icon_widget(img)        
+                widget.set_icon_widget(img)
 
         
 

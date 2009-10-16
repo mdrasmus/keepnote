@@ -65,6 +65,7 @@ from keepnote.gui import \
      get_resource_pixbuf, \
      Action, \
      ToggleAction, \
+     add_actions, \
      update_file_preview
 from keepnote.gui.icons import \
     get_node_icon
@@ -740,6 +741,40 @@ class EditorMenus (gobject.GObject):
         self.use_minitoolbar = use_minitoolbar
 
 
+    def add_ui(self, window):
+        
+        self._action_group = gtk.ActionGroup("Editor")
+        self._uis = []
+        add_actions(self._action_group, self.get_actions())
+        window.get_uimanager().insert_action_group(
+            self._action_group, 0)
+
+        for s in self.get_ui():
+            self._uis.append(window.get_uimanager().add_ui_from_string(s))
+        window.get_uimanager().ensure_update()
+
+        self.setup_menu(window.get_uimanager())
+
+
+
+    def remove_ui(self, window):
+        
+        # disconnect signals
+        for ui in self._font_ui_signals:
+            ui.widget.disconnect(ui.signal)
+        self._font_ui_signals = []
+
+        # remove ui
+        for ui in reversed(self._uis):
+            window.get_uimanager().remove_ui(ui)
+        self._uis = []
+        window.get_uimanager().ensure_update()
+
+        # remove action group
+        window.get_uimanager().remove_action_group(self._action_group)
+        self._action_group = None
+        
+
 
     def get_actions(self):
         
@@ -984,16 +1019,19 @@ class EditorMenus (gobject.GObject):
             <toolitem action="Monospace Tool"/>
             <toolitem action="Link Tool"/>
             <toolitem action="No Wrapping Tool"/>
+
             <toolitem action="Font Selector Tool"/>
             <toolitem action="Font Size Tool"/>
             <toolitem action="Font Fg Color Tool"/>
             <toolitem action="Font Bg Color Tool"/>
+
             <separator/>
             <toolitem action="Left Align Tool"/>
             <toolitem action="Center Align Tool"/>
             <toolitem action="Right Align Tool"/>
             <toolitem action="Justify Align Tool"/>
             <toolitem action="Bullet List Tool"/>
+            <separator/>
           </placeholder>
         </toolbar>
 
@@ -1081,6 +1119,7 @@ class EditorMenus (gobject.GObject):
         if w:
             w.remove(w.child)
             w.add(font_family_combo)
+            font_family_combo.show()
             font_family_id = font_family_combo.connect("changed",
                                                        self._on_family_set)
             self._font_ui_signals.append(
@@ -1101,6 +1140,7 @@ class EditorMenus (gobject.GObject):
         w = uimanager.get_widget("/main_tool_bar/Viewer/Font Size Tool")
         w.remove(w.child)
         w.add(font_size_button)
+        font_size_button.show()
         w.set_homogeneous(False)
         font_size_id = font_size_button.connect("value-changed",
             lambda w: 
@@ -1122,6 +1162,7 @@ class EditorMenus (gobject.GObject):
         w = uimanager.get_widget("/main_tool_bar/Viewer/Font Fg Color Tool")
         w.remove(w.child)
         w.add(fg_color_button)
+        fg_color_button.show()
         w.set_homogeneous(False)
 
         # font bg color
@@ -1133,6 +1174,7 @@ class EditorMenus (gobject.GObject):
         w = uimanager.get_widget("/main_tool_bar/Viewer/Font Bg Color Tool")
         w.remove(w.child)
         w.add(bg_color_button)
+        bg_color_button.show()
         w.set_homogeneous(False)
                 
 
