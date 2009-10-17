@@ -1428,14 +1428,42 @@ class KeepNoteWindow (gtk.Window):
             #=======================================
             ("Go", None, _("_Go")),
             
+            #=======================================
+
+            # TODO: move to viewer
+            ("View Note in File Explorer", gtk.STOCK_OPEN,
+             _("View Note in File Explorer"),
+             "", None,
+             lambda w: self.on_view_node_external_app("file_explorer")),
+            
+            # TODO: move to viewer
+            ("View Note in Text Editor", gtk.STOCK_OPEN,
+             _("View Note in Text Editor"),
+             "", None,
+             lambda w: self.on_view_node_external_app("text_editor",
+                                                      kind="page")),
+            # TODO: move to viewer
+            ("View Note in Web Browser", gtk.STOCK_OPEN,
+             _("View Note in Web Browser"),
+             "", None,
+             lambda w: self.on_view_node_external_app("web_browser",
+                                                      kind="page")),
+            # TODO: move to viewer
+            ("Open File", gtk.STOCK_OPEN,
+             _("_Open File"),
+             "", None,
+             lambda w: self.on_view_node_external_app("file_launcher",
+                                                      kind="file")),
+
+
             #=========================================
-            ("Options", None, _("_Options")),
+            ("Tools", None, _("_Tools")),
 
             ("Update Notebook Index", None, _("_Update Notebook Index"),
              "", None,
              lambda w: self.update_index()),
             
-            ("KeepNote Options", gtk.STOCK_PREFERENCES, _("KeepNote _Options"),
+            ("KeepNote Preferences", gtk.STOCK_PREFERENCES, _("KeepNote _Preferences"),
              "", None,
              lambda w: self._app.app_options_dialog.show(self)),
 
@@ -1498,10 +1526,11 @@ class KeepNoteWindow (gtk.Window):
      <menu action="Import">
      </menu>
      <separator/>
-     <placeholder name="File Extensions"/>
+     <placeholder name="Extensions"/>
      <separator/>
      <menuitem action="Quit"/>
   </menu>
+
   <menu action="Edit">
     <menuitem action="Undo"/>
     <menuitem action="Redo"/>
@@ -1513,10 +1542,13 @@ class KeepNoteWindow (gtk.Window):
     <placeholder name="Viewer"/>
     <separator/>
     <menuitem action="Empty Trash"/>
+    <separator/>
+    <menuitem action="KeepNote Preferences"/>
   </menu>
+
   <menu action="Search">
     <menuitem action="Search All Notes"/>
-    <placeholder name="Editor"/>
+    <placeholder name="Viewer"/>
   </menu>
 
   <placeholder name="Viewer"/>
@@ -1524,13 +1556,13 @@ class KeepNoteWindow (gtk.Window):
   <menu action="Go">
     <placeholder name="Viewer"/>
   </menu>
-  <menu action="Options">
+
+  <menu action="Tools">
     <placeholder name="Viewer"/>
     <separator/>
     <menuitem action="Update Notebook Index"/>
-    <separator/>
-    <menuitem action="KeepNote Options"/>
   </menu>
+
   <menu action="Help">
     <menuitem action="View Error Log..."/>
     <menuitem action="Drag and Drop Test..."/>
@@ -1541,9 +1573,6 @@ class KeepNoteWindow (gtk.Window):
 
 <!-- main window tool bar -->
 <toolbar name="main_tool_bar">
-  <toolitem action="New Folder"/>
-  <toolitem action="New Page"/>
-  <separator/>
   <placeholder name="Viewer"/>
   <toolitem action="Main Spacer Tool"/>
   <toolitem action="Search Box Tool"/>

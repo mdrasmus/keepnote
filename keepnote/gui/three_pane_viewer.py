@@ -214,9 +214,6 @@ class ThreePaneViewer (Viewer):
     def load_preferences(self, app_pref, first_open=False):
         """Load application preferences"""
 
-        self.remove_ui(self._main_window)
-        self.add_ui(self._main_window)
-
         self.set_view_mode(app_pref.view_mode)
         self.paned2.set_position(app_pref.vsash_pos)
         self.hpaned.set_position(app_pref.hsash_pos)
@@ -231,6 +228,10 @@ class ThreePaneViewer (Viewer):
             pass
 
         self.editor_menus.enable_spell_check(self._app.pref.spell_check)
+
+        # reload ui
+        self.remove_ui(self._main_window)
+        self.add_ui(self._main_window)
 
         
         
@@ -657,6 +658,8 @@ class ThreePaneViewer (Viewer):
 
     def collapse_node(self, all=False):
         
+        # TODO: move guts into basetreeview
+
         widget = self.get_focused_widget(self.treeview)
         path, col = widget.get_cursor()
 
@@ -752,10 +755,10 @@ class ThreePaneViewer (Viewer):
         # view mode
         self.view_mode_h_toggle = \
             uimanager.get_widget(
-              "/main_menu_bar/Options/Viewer/Horizontal Layout")
+              "/main_menu_bar/Tools/Viewer/Horizontal Layout")
         self.view_mode_v_toggle = \
             uimanager.get_widget(
-              "/main_menu_bar/Options/Viewer/Vertical Layout")
+              "/main_menu_bar/Tools/Viewer/Vertical Layout")
 
         # setup editor
         #self.editor_menus.setup_menu(uimanager)
@@ -880,7 +883,7 @@ class ThreePaneViewer (Viewer):
               <menuitem action="Go to Link"/>
             </placeholder>
           </menu>
-          <menu action="Options">
+          <menu action="Tools">
             <placeholder name="Viewer">
               <separator/>
               <menuitem action="Horizontal Layout"/>
@@ -892,6 +895,9 @@ class ThreePaneViewer (Viewer):
 
         <toolbar name="main_tool_bar">
           <placeholder name="Viewer">
+            <toolitem action="New Folder"/>
+            <toolitem action="New Page"/>
+            <separator/>
             <toolitem action="Back"/>
             <toolitem action="Forward"/>
             <separator/>
@@ -937,7 +943,7 @@ class ThreePaneViewer (Viewer):
         </menubar>
 
         </ui>
-        """]# + self.editor_menus.get_ui()
+        """]
         
 
     def get_actions(self):
@@ -1005,32 +1011,6 @@ class ThreePaneViewer (Viewer):
 
             #========================================
             ("View", None, _("_View")),
-
-            # TODO: move to viewer
-            ("View Note in File Explorer", gtk.STOCK_OPEN,
-             _("View Note in File Explorer"),
-             "", None,
-             lambda w: self._main_window.on_view_node_external_app("file_explorer")),
-            
-            # TODO: move to viewer
-            ("View Note in Text Editor", gtk.STOCK_OPEN,
-             _("View Note in Text Editor"),
-             "", None,
-             lambda w: self._main_window.on_view_node_external_app("text_editor",
-                                                      kind="page")),
-            # TODO: move to viewer
-            ("View Note in Web Browser", gtk.STOCK_OPEN,
-             _("View Note in Web Browser"),
-             "", None,
-             lambda w: self._main_window.on_view_node_external_app("web_browser",
-                                                      kind="page")),
-            # TODO: move to viewer
-            ("Open File", gtk.STOCK_OPEN,
-             _("_Open File"),
-             "", None,
-             lambda w: self._main_window.on_view_node_external_app("file_launcher",
-                                                      kind="file")),
-
 
             ]) + \
             map(lambda x: ToggleAction(*x), [

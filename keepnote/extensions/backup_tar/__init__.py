@@ -91,7 +91,7 @@ class Extension (keepnote.Extension):
             <ui>
             <menubar name="main_menu_bar">
                <menu action="File">
-                  <placeholder name="File Extensions">
+                  <placeholder name="Extensions">
                      <menuitem action="Backup Notebook"/>
                      <menuitem action="Restore Notebook"/>
                   </placeholder>

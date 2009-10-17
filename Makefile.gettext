@@ -27,6 +27,6 @@ update:
 
 # make translations for application
 make:
-	mkdir -p $(LOCAL_DIR)/$(LANG)/LC_MESSAGES/
-	msgfmt gettext/$(LANG).po -o $(LOCAL_DIR)/$(LANG)/LC_MESSAGES/keepnote.mo
+	mkdir -p $(LOCALE_DIR)/$(LANG)/LC_MESSAGES/
+	msgfmt gettext/$(LANG).po -o $(LOCALE_DIR)/$(LANG)/LC_MESSAGES/keepnote.mo
 

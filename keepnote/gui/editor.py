@@ -936,46 +936,49 @@ class EditorMenus (gobject.GObject):
                 <menuitem action="Insert Horizontal Rule"/>
                 <menuitem action="Insert Image"/>
                 <menuitem action="Insert Screenshot"/>
+                <placeholder name="Extension"/>
               </placeholder>
             </placeholder>
           </menu>
           <menu action="Search">
-            <placeholder name="Editor">
-              <menuitem action="Find In Page"/>
-              <menuitem action="Find Next In Page"/>
-              <menuitem action="Find Previous In Page"/>
-              <menuitem action="Replace In Page"/>
+            <placeholder name="Viewer">
+              <placeholder name="Editor">
+                <menuitem action="Find In Page"/>
+                <menuitem action="Find Next In Page"/>
+                <menuitem action="Find Previous In Page"/>
+                <menuitem action="Replace In Page"/>
+              </placeholder>
             </placeholder>
           </menu>
           <placeholder name="Viewer">
-          <placeholder name="Editor">
-          <menu action="Format">
-            <menuitem action="Bold"/>
-            <menuitem action="Italic"/>
-            <menuitem action="Underline"/>
-            <menuitem action="Strike"/>
-            <menuitem action="Monospace"/>
-            <menuitem action="Link"/>
-            <menuitem action="No Wrapping"/>
-            <separator/>
-            <menuitem action="Left Align"/>
-            <menuitem action="Center Align"/>
-            <menuitem action="Right Align"/>
-            <menuitem action="Justify Align"/>
-            <menuitem action="Bullet List"/>
-            <menuitem action="Indent More"/>
-            <menuitem action="Indent Less"/>
-            <separator/>
-            <menuitem action="Increase Font Size"/>
-            <menuitem action="Decrease Font Size"/>
-            <menuitem action="Apply Text Color"/>
-            <menuitem action="Apply Background Color"/>
-            <menuitem action="Choose Font"/>
-          </menu>
-          </placeholder>
+            <placeholder name="Editor">
+                <menu action="Format">
+                <menuitem action="Bold"/>
+                <menuitem action="Italic"/>
+                <menuitem action="Underline"/>
+                <menuitem action="Strike"/>
+                <menuitem action="Monospace"/>
+                <menuitem action="Link"/>
+                <menuitem action="No Wrapping"/>
+                <separator/>
+                <menuitem action="Left Align"/>
+                <menuitem action="Center Align"/>
+                <menuitem action="Right Align"/>
+                <menuitem action="Justify Align"/>
+                <menuitem action="Bullet List"/>
+                <menuitem action="Indent More"/>
+                <menuitem action="Indent Less"/>
+                <separator/>
+                <menuitem action="Increase Font Size"/>
+                <menuitem action="Decrease Font Size"/>
+                <menuitem action="Apply Text Color"/>
+                <menuitem action="Apply Background Color"/>
+                <menuitem action="Choose Font"/>
+              </menu>
+            </placeholder>
           </placeholder>
 
-          <menu action="Options">
+          <menu action="Tools">
             <placeholder name="Viewer">
               <separator/>
               <menuitem action="Spell Check"/>
@@ -1176,12 +1179,10 @@ class EditorMenus (gobject.GObject):
         w.add(bg_color_button)
         bg_color_button.show()
         w.set_homogeneous(False)
-                
-
 
 
         # get spell check toggle
         self.spell_check_toggle = \
-            uimanager.get_widget("/main_menu_bar/Options/Viewer/Spell Check")
+            uimanager.get_widget("/main_menu_bar/Tools/Viewer/Spell Check")
         self.spell_check_toggle.set_sensitive(
             self._editor.get_textview().can_spell_check())

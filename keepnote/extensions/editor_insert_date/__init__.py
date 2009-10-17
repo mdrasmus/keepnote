@@ -117,7 +117,9 @@ class Extension (keepnote.Extension):
                    <menu action="Edit">
                       <placeholder name="Viewer">
                          <placeholder name="Editor">
-                           <menuitem action="Insert Date"/>
+                           <placeholder name="Extension">
+                             <menuitem action="Insert Date"/>
+                           </placeholder>
                          </placeholder>
                       </placeholder>
                    </menu>
@@ -132,8 +134,8 @@ class Extension (keepnote.Extension):
         del self._set_focus_id[window]
 
         # remove menu options
-        window.get_uimanager().remove_action_group(self.action_group)
         window.get_uimanager().remove_ui(self._ui_id[window])
+        window.get_uimanager().remove_action_group(self.action_group)
         self.action_group = None
         del self._ui_id[window]
 
