@@ -1428,27 +1428,26 @@ class KeepNoteWindow (gtk.Window):
             #=======================================
             ("Go", None, _("_Go")),
             
-            #=======================================
+            #========================================
+            ("View", None, _("_View")),
 
-            # TODO: move to viewer
             ("View Note in File Explorer", gtk.STOCK_OPEN,
              _("View Note in File Explorer"),
              "", None,
              lambda w: self.on_view_node_external_app("file_explorer")),
             
-            # TODO: move to viewer
             ("View Note in Text Editor", gtk.STOCK_OPEN,
              _("View Note in Text Editor"),
              "", None,
              lambda w: self.on_view_node_external_app("text_editor",
                                                       kind="page")),
-            # TODO: move to viewer
+
             ("View Note in Web Browser", gtk.STOCK_OPEN,
              _("View Note in Web Browser"),
              "", None,
              lambda w: self.on_view_node_external_app("web_browser",
                                                       kind="page")),
-            # TODO: move to viewer
+
             ("Open File", gtk.STOCK_OPEN,
              _("_Open File"),
              "", None,
@@ -1559,7 +1558,6 @@ class KeepNoteWindow (gtk.Window):
 
   <menu action="Tools">
     <placeholder name="Viewer"/>
-    <separator/>
     <menuitem action="Update Notebook Index"/>
   </menu>
 

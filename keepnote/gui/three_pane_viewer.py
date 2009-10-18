@@ -86,10 +86,7 @@ class ThreePaneViewer (Viewer):
         self._treeview_sel_nodes = [] # current selected nodes in treeview
         self._queue_list_select = []  # nodes to select in listview after treeview change
         self._new_page_occurred = False
-        self.view_mode_h_toggle = None
         self.back_button = None
-
-        self._ignore_view_mode = False # prevent recursive view mode changes
 
         self.connect("history-changed", self._on_history_changed)
 
@@ -279,17 +276,6 @@ class ThreePaneViewer (Viewer):
             "vertical"
             "horizontal"
         """
-
-        # update menu
-        if self._ignore_view_mode:
-            return
-        self._ignore_view_mode = True
-        if self.view_mode_h_toggle:
-            self.view_mode_h_toggle.set_active(mode == "horizontal")
-            self.view_mode_v_toggle.set_active(mode == "vertical")
-        self._ignore_view_mode = False
-
-
 
         # detach widgets
         self.paned2.remove(self.listview_sw)
@@ -752,16 +738,7 @@ class ThreePaneViewer (Viewer):
         self.forward_button = uimanager.get_widget("/main_tool_bar/Viewer/Forward")
 
 
-        # view mode
-        self.view_mode_h_toggle = \
-            uimanager.get_widget(
-              "/main_menu_bar/Tools/Viewer/Horizontal Layout")
-        self.view_mode_v_toggle = \
-            uimanager.get_widget(
-              "/main_menu_bar/Tools/Viewer/Vertical Layout")
-
         # setup editor
-        #self.editor_menus.setup_menu(uimanager)
         self.editor_menus.setup_toolbar(self._app.pref.use_stock_icons,
                                         self._app.pref.use_minitoolbar)
         self.editor_menus.add_ui(window)
@@ -884,12 +861,6 @@ class ThreePaneViewer (Viewer):
             </placeholder>
           </menu>
           <menu action="Tools">
-            <placeholder name="Viewer">
-              <separator/>
-              <menuitem action="Horizontal Layout"/>
-              <menuitem action="Vertical Layout"/>
-              <separator/>
-            </placeholder>
           </menu>
         </menubar>
 
@@ -1008,21 +979,6 @@ class ThreePaneViewer (Viewer):
             ("Go to Link", None, _("Go to Lin_k"),
              "<control>space", None,
              lambda w: self.goto_link()),
-
-            #========================================
-            ("View", None, _("_View")),
-
-            ]) + \
-            map(lambda x: ToggleAction(*x), [
-            ("Horizontal Layout", None, _("_Horizontal Layout"),
-             "", None,
-             lambda w: self.set_view_mode("horizontal")),
-            
-            ("Vertical Layout", None, _("_Vertical Layout"),
-             "", None,
-             lambda w: self.set_view_mode("vertical")),
-
-            ]) + map(lambda x: Action(*x), [
         
             ("Delete Note", gtk.STOCK_DELETE, _("_Delete"),
              "", None, 

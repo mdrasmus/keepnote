@@ -224,17 +224,37 @@ class LookAndFeelSection (Section):
     def __init__(self, key, dialog, app, label=u"", icon=None):
         Section.__init__(self, key, dialog, app, label, icon)
 
-        self.look_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
-                                      "look_frame", keepnote.GETTEXT_DOMAIN)
-        self.look_xml.signal_autoconnect(self)
-        self.frame = self.look_xml.get_widget("look_frame")
+        w = self.get_default_widget()
+        v = gtk.VBox(False, 5)
+        v.show()
+        w.add(v)
 
-        self.treeview_lines_check = self.look_xml.get_widget("treeview_lines_check")
+        def add_check(label):
+            c = gtk.CheckButton(label)
+            c.show()
+            v.pack_start(c, False, False, 0)
+            return c
 
-        self.listview_rules_check = self.look_xml.get_widget("listview_rules_check")
-        self.use_stock_icons_check = self.look_xml.get_widget("use_stock_icons_check")
-        self.use_minitoolbar = self.look_xml.get_widget("use_minitoolbar")
-
+        self.treeview_lines_check = add_check(
+            _("show lines in treeview"))
+        self.listview_rules_check = add_check(
+            _("use ruler hints in listview"))
+        self.use_stock_icons_check = add_check(
+            _("use GTK stock icons in toolbar"))
+        self.use_minitoolbar = add_check(
+            _("use minimal toolbar"))
+        
+        # view mode combo
+        h = gtk.HBox(False, 5); h.show()
+        l = gtk.Label(_("Listview Layout:")); l.show()
+        h.pack_start(l, False, False, 0)
+        c = gtk.combo_box_new_text(); c.show()
+        c.append_text(_("Vertical"))
+        c.append_text(_("Horizontal"))
+        h.pack_start(c, False, False, 0)
+        v.pack_start(h)
+        self.listview_layout = c
+        
         # icon
         try:
             self.icon = keepnote.gui.get_pixbuf(get_icon_filename(gtk.STOCK_SELECT_COLOR))
@@ -249,6 +269,11 @@ class LookAndFeelSection (Section):
         self.use_stock_icons_check.set_active(app.pref.use_stock_icons)
         self.use_minitoolbar.set_active(app.pref.use_minitoolbar)
 
+        if app.pref.view_mode == "horizontal":
+            self.listview_layout.set_active(1)
+        else:
+            self.listview_layout.set_active(0)
+            
 
 
     def save_options(self, app):
@@ -257,6 +282,9 @@ class LookAndFeelSection (Section):
         app.pref.listview_rules = self.listview_rules_check.get_active()
         app.pref.use_stock_icons = self.use_stock_icons_check.get_active()
         app.pref.use_minitoolbar = self.use_minitoolbar.get_active()
+
+        app.pref.view_mode = ["vertical", "horizontal"][
+            self.listview_layout.get_active()]
  
 
 
@@ -266,16 +294,6 @@ class HelperAppsSection (Section):
         Section.__init__(self, key, dialog, app, label, icon)
         
         self.entries = {}
-        #self.frame = gtk.Frame("")
-        #self.frame.get_label_widget().set_text("<b>%s</b>" % label)
-        #self.frame.get_label_widget().set_use_markup(True)
-        #self.frame.set_property("shadow-type", gtk.SHADOW_NONE)
-        
-        #align = gtk.Alignment()
-        #align.set_padding(10, 0, 10, 0)
-        #align.show()
-        #self.frame.add(align)
-
         w = self.get_default_widget()
         
         self.table = gtk.Table(len(app.pref.external_apps), 2)
