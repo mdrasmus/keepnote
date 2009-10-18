@@ -221,7 +221,7 @@ class GeneralSection (Section):
 
 class LookAndFeelSection (Section):
     
-    def __init__(self, key, dialog, app, label=u"", icon=None):
+    def __init__(self, key, dialog, app, label=u"", icon="lookandfeel.png"):
         Section.__init__(self, key, dialog, app, label, icon)
 
         w = self.get_default_widget()
@@ -255,11 +255,6 @@ class LookAndFeelSection (Section):
         v.pack_start(h)
         self.listview_layout = c
         
-        # icon
-        try:
-            self.icon = keepnote.gui.get_pixbuf(get_icon_filename(gtk.STOCK_SELECT_COLOR))
-        except:
-            pass
 
 
     def load_options(self, app):
@@ -370,7 +365,7 @@ class HelperAppsSection (Section):
 
 class DatesSection (Section):
     
-    def __init__(self, key, dialog, app, label=u"", icon=None):
+    def __init__(self, key, dialog, app, label=u"", icon="time.png"):
         Section.__init__(self, key, dialog, app, label, icon)
 
         self.date_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),

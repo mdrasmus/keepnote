@@ -733,15 +733,8 @@ class EditorMenus (gobject.GObject):
 
     #=====================================================
     # toolbar and menus
-    
 
-    def setup_toolbar(self, use_stock_icons, use_minitoolbar):
-        
-        self.use_stock_icons = use_stock_icons
-        self.use_minitoolbar = use_minitoolbar
-
-
-    def add_ui(self, window):
+    def add_ui(self, window, use_minitoolbar=False):
         
         self._action_group = gtk.ActionGroup("Editor")
         self._uis = []
@@ -749,7 +742,7 @@ class EditorMenus (gobject.GObject):
         window.get_uimanager().insert_action_group(
             self._action_group, 0)
 
-        for s in self.get_ui():
+        for s in self.get_ui(use_minitoolbar=use_minitoolbar):
             self._uis.append(window.get_uimanager().add_ui_from_string(s))
         window.get_uimanager().ensure_update()
 
@@ -925,7 +918,7 @@ class EditorMenus (gobject.GObject):
         )
         
 
-    def get_ui(self):
+    def get_ui(self, use_minitoolbar=False):
 
         ui = ["""
         <ui>
@@ -990,7 +983,7 @@ class EditorMenus (gobject.GObject):
         """]
 
 
-        if self.use_minitoolbar:
+        if use_minitoolbar:
             ui.append("""
         <ui>
         <toolbar name="main_tool_bar">
