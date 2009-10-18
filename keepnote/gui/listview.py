@@ -368,6 +368,11 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         self.scroll_to_cell(path)
         
 
+    #def cancel_editing(self):
+    #    # TODO: add this
+    #    pass
+    #    #self.cell_text.stop_editing(True)
+
     
     def save_sorting(self, node):
         """Save sorting information into node"""

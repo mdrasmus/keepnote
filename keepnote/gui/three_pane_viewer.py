@@ -411,6 +411,8 @@ class ThreePaneViewer (Viewer):
     def _on_tree_select(self, treeview, nodes):
         """Callback for treeview selection change"""
 
+        #print "callback", nodes
+
         # do nothing if selection is unchanged
         if self._treeview_sel_nodes == nodes:
             return
@@ -516,8 +518,11 @@ class ThreePaneViewer (Viewer):
         if self._notebook is None:
             return
 
+        self.treeview.cancel_editing()
+        self.listview.cancel_editing()
+
         nodes, widget = self.get_selected_nodes(widget)
-        #print "nodes", nodes
+        #print "nodes", self.treeview.editing, nodes
         
         if len(nodes) == 1:
             parent = nodes[0]
@@ -548,7 +553,6 @@ class ThreePaneViewer (Viewer):
         self._new_page_occurred = True
         
         if widget == "treeview":
-            #self.treeview.cancel_editing()
             self.treeview.expand_node(node.get_parent())
             self.treeview.edit_node(node)
         elif widget == "listview":

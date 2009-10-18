@@ -113,22 +113,26 @@ class Extension (keepnote.Extension):
     def on_archive_notebook(self, window, notebook):
         """Callback from gui for archiving a notebook"""
 
+        if notebook is None:
+            return
+
         dialog = gtk.FileChooserDialog("Backup Notebook", window, 
             action=gtk.FILE_CHOOSER_ACTION_SAVE,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "Backup", gtk.RESPONSE_OK))
 
-
-        filename = notebooklib.get_unique_filename(
-            self.app.pref.archive_notebook_path,
-            time.strftime(os.path.basename(notebook.get_path()) +
-                          "-%Y-%m-%d"),
-            ".tar.gz",
-            ".")
-        dialog.set_current_name(os.path.basename(filename))
-
         if os.path.exists(self.app.pref.archive_notebook_path):
             dialog.set_current_folder(self.app.pref.archive_notebook_path)
+            filename = notebooklib.get_unique_filename(
+                self.app.pref.archive_notebook_path,
+                os.path.basename(notebook.get_path()) +
+                time.strftime("-%Y-%m-%d"), ".tar.gz", ".")
+        else: 
+            filename = os.path.basename(notebook.get_path()) + \
+                time.strftime("-%Y-%m-%d") + u".tar.gz"
+        
+        dialog.set_current_name(os.path.basename(filename))
+
 
         file_filter = gtk.FileFilter()
         file_filter.add_pattern("*.tar.gz")

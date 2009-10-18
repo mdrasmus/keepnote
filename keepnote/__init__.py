@@ -936,8 +936,8 @@ class KeepNote (object):
 
         app = self.pref.get_external_app(app_key)
         
-        if app is None:
-            raise KeepNoteError("Must specify program to use in Application Options")         
+        if app is None or app.prog == "":
+            raise KeepNoteError("Must specify program to use in Helper Application")
 
         # build command arguments
         cmd = [app.prog] + app.args
@@ -959,8 +959,8 @@ class KeepNote (object):
         except OSError, e:
             raise KeepNoteError(
                 (u"Error occurred while opening file with %s.\n\n" 
-                 u"program: %s\n\n"
-                 u"file: %s\n\n"
+                 u"program: '%s'\n\n"
+                 u"file: '%s'\n\n"
                  u"error: %s")
                 % (app.title, app.prog, filename, unicode(e)), e)
 

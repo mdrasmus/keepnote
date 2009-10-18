@@ -170,5 +170,3 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
         #gobject.idle_add(lambda: self.scroll_to_cell(path))
 
 
-    def cancel_editing(self):
-        self.cell_text.stop_editing(True)

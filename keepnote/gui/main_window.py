@@ -1256,7 +1256,8 @@ class KeepNoteWindow (gtk.Window):
             # use text editor to view error log
             self._app.run_external_app("text_editor", filename2)
         except Exception, e:
-            self.error(_("Could not open error log."), e, sys.exc_info()[2])
+            self.error(_("Could not open error log") + ":\n" + str(e), 
+                       e, sys.exc_info()[2])
 
 
 

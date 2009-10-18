@@ -973,9 +973,7 @@ class EditorMenus (gobject.GObject):
 
           <menu action="Tools">
             <placeholder name="Viewer">
-              <separator/>
               <menuitem action="Spell Check"/>
-              <separator/>
             </placeholder>
           </menu>
         </menubar>
@@ -1008,26 +1006,28 @@ class EditorMenus (gobject.GObject):
         <ui>
         <toolbar name="main_tool_bar">
           <placeholder name="Viewer">
-            <toolitem action="Bold Tool"/>
-            <toolitem action="Italic Tool"/>
-            <toolitem action="Underline Tool"/>
-            <toolitem action="Strike Tool"/>
-            <toolitem action="Monospace Tool"/>
-            <toolitem action="Link Tool"/>
-            <toolitem action="No Wrapping Tool"/>
+            <placeholder name="Editor">
+              <toolitem action="Bold Tool"/>
+              <toolitem action="Italic Tool"/>
+              <toolitem action="Underline Tool"/>
+              <toolitem action="Strike Tool"/>
+              <toolitem action="Monospace Tool"/>
+              <toolitem action="Link Tool"/>
+              <toolitem action="No Wrapping Tool"/>
 
-            <toolitem action="Font Selector Tool"/>
-            <toolitem action="Font Size Tool"/>
-            <toolitem action="Font Fg Color Tool"/>
-            <toolitem action="Font Bg Color Tool"/>
+              <toolitem action="Font Selector Tool"/>
+              <toolitem action="Font Size Tool"/>
+              <toolitem action="Font Fg Color Tool"/>
+              <toolitem action="Font Bg Color Tool"/>
 
-            <separator/>
-            <toolitem action="Left Align Tool"/>
-            <toolitem action="Center Align Tool"/>
-            <toolitem action="Right Align Tool"/>
-            <toolitem action="Justify Align Tool"/>
-            <toolitem action="Bullet List Tool"/>
-            <separator/>
+              <separator/>
+              <toolitem action="Left Align Tool"/>
+              <toolitem action="Center Align Tool"/>
+              <toolitem action="Right Align Tool"/>
+              <toolitem action="Justify Align Tool"/>
+              <toolitem action="Bullet List Tool"/>
+              <separator/>
+            </placeholder>
           </placeholder>
         </toolbar>
 
@@ -1055,53 +1055,53 @@ class EditorMenus (gobject.GObject):
         u = uimanager
 
         self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Bold Tool", 
+            uimanager, "/main_tool_bar/Viewer/Editor/Bold Tool", 
             update_func=
             lambda ui, font: ui.widget.set_active(font.mods["bold"]))
         self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Italic Tool", 
+            uimanager, "/main_tool_bar/Viewer/Editor/Italic Tool", 
             update_func=lambda ui, font: 
             ui.widget.set_active(font.mods["italic"]))
         self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Underline Tool", 
+            uimanager, "/main_tool_bar/Viewer/Editor/Underline Tool", 
             update_func=lambda ui, font: 
             ui.widget.set_active(font.mods["underline"]))
         self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Strike Tool", 
+            uimanager, "/main_tool_bar/Viewer/Editor/Strike Tool", 
             update_func=lambda ui, font:
             ui.widget.set_active(font.mods["strike"]))
         self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Monospace Tool", 
+            uimanager, "/main_tool_bar/Viewer/Editor/Monospace Tool", 
             update_func=lambda ui, font:
             ui.widget.set_active(font.mods["tt"]))
         self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Link Tool", 
+            uimanager, "/main_tool_bar/Viewer/Editor/Link Tool", 
             update_func=lambda ui, font:
             ui.widget.set_active(font.link is not None))
         self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/No Wrapping Tool", 
+            uimanager, "/main_tool_bar/Viewer/Editor/No Wrapping Tool", 
             update_func=lambda ui, font:
             ui.widget.set_active(font.mods["nowrap"]))
 
                 
         self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Left Align Tool", 
+            uimanager, "/main_tool_bar/Viewer/Editor/Left Align Tool", 
             update_func=lambda ui, font:
              ui.widget.set_active(font.justify == "left"))
         self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Center Align Tool", 
+            uimanager, "/main_tool_bar/Viewer/Editor/Center Align Tool", 
             update_func=lambda ui, font:
              ui.widget.set_active(font.justify == "center"))
         self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Right Align Tool", 
+            uimanager, "/main_tool_bar/Viewer/Editor/Right Align Tool", 
             update_func=lambda ui, font:
              ui.widget.set_active(font.justify == "right"))
         self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Justify Align Tool", 
+            uimanager, "/main_tool_bar/Viewer/Editor/Justify Align Tool", 
             update_func=lambda ui, font:
              ui.widget.set_active(font.justify == "fill"))
         self.setup_font_toggle(
-            uimanager, "/main_tool_bar/Viewer/Bullet List Tool", 
+            uimanager, "/main_tool_bar/Viewer/Editor/Bullet List Tool", 
             update_func=lambda ui, font:
                 ui.widget.set_active(font.par_type == "bullet"))
 
@@ -1111,7 +1111,7 @@ class EditorMenus (gobject.GObject):
         font_family_combo = FontSelector()
         font_family_combo.set_size_request(150, 25)
 
-        w = uimanager.get_widget("/main_tool_bar/Viewer/Font Selector Tool")
+        w = uimanager.get_widget("/main_tool_bar/Viewer/Editor/Font Selector Tool")
         if w:
             w.remove(w.child)
             w.add(font_family_combo)
@@ -1133,7 +1133,7 @@ class EditorMenus (gobject.GObject):
         font_size_button.set_value(DEFAULT_FONT_SIZE)
         font_size_button.set_editable(False)
         
-        w = uimanager.get_widget("/main_tool_bar/Viewer/Font Size Tool")
+        w = uimanager.get_widget("/main_tool_bar/Viewer/Editor/Font Size Tool")
         w.remove(w.child)
         w.add(font_size_button)
         font_size_button.show()
@@ -1155,7 +1155,7 @@ class EditorMenus (gobject.GObject):
         fg_color_button.connect("set-color",
             lambda w, color: self._on_color_set("fg", fg_color_button, color))
 
-        w = uimanager.get_widget("/main_tool_bar/Viewer/Font Fg Color Tool")
+        w = uimanager.get_widget("/main_tool_bar/Viewer/Editor/Font Fg Color Tool")
         w.remove(w.child)
         w.add(fg_color_button)
         fg_color_button.show()
@@ -1167,7 +1167,7 @@ class EditorMenus (gobject.GObject):
         bg_color_button.connect("set-color",
             lambda w, color: self._on_color_set("bg", bg_color_button, color))
 
-        w = uimanager.get_widget("/main_tool_bar/Viewer/Font Bg Color Tool")
+        w = uimanager.get_widget("/main_tool_bar/Viewer/Editor/Font Bg Color Tool")
         w.remove(w.child)
         w.add(bg_color_button)
         bg_color_button.show()

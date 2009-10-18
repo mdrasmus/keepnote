@@ -267,13 +267,11 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # suppress selection changes while nodes are changing
         self.__suppress_sel = True
 
-        # cancel any existing editing
-        #self.cancel_editing()
-
+        # cancel editing
+        self.cancel_editing()
 
 
     def _on_node_changed_end(self, model, nodes):
-
         # maintain proper expansion
         for node in nodes:
 
@@ -299,7 +297,9 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                         self.expand_row(path, False)
                 
         
+        
         # if nodes still exist, and expanded, try to reselect them
+        deselect = False
         if len(self.__sel_nodes2) > 0:
             # TODO: only reselects one node
             node = self.__sel_nodes2[0]
@@ -312,9 +312,16 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                     # reselect and scroll to node    
                     self.set_cursor(path2)
                     gobject.idle_add(lambda: self.scroll_to_cell(path2))
+            else:
+                # emit de-selection
+                deselect = True
 
         # resume emitting selection changes
         self.__suppress_sel = False
+
+        if deselect:
+            #print self, "here"
+            self.select_nodes([])
 
 
     def __on_select_changed(self, treeselect):
@@ -376,7 +383,10 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         pass
 
     def cancel_editing(self):
-        pass
+        if self.editing:
+            self.set_cursor_on_cell(self.editing, None, None, False)
+            #self.cell_text.stop_editing(True)
+
 
     #===========================================
     # actions
@@ -411,7 +421,9 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
     def on_select_changed(self, treeselect): 
         model, paths = treeselect.get_selected_rows()
-        
+
+        #print paths
+
         nodes = [self.model.get_value(self.model.get_iter(path), self._node_col)
                  for path in paths]
         self.emit("select-nodes", nodes)
@@ -449,6 +461,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         """Callback for canceled of title editing"""
         # remember editing state
         self.editing = None
+        
 
 
     def on_edit_title(self, cellrenderertext, path, new_text):
