@@ -721,9 +721,7 @@ class ThreePaneViewer (Viewer):
     def add_ui(self, window):
 
         assert window == self._main_window
-
-        #print "add"
-
+        
         self._action_group = gtk.ActionGroup("Viewer")
         self._uis = []
         add_actions(self._action_group, self.get_actions())

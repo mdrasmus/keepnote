@@ -192,30 +192,36 @@ class UIManager (gtk.UIManager):
         self.connect("connect-proxy", self._on_connect_proxy)
         self.connect("disconnect-proxy", self._on_disconnect_proxy)
 
-        self.widgets = {}
         self.force_stock = force_stock
+
+        self.c = gtk.VBox()
 
     def _on_connect_proxy(self, uimanager, action, widget):
         """Callback for a widget entering management"""
         if isinstance(action, (Action, ToggleAction)) and action.icon:
-            self.widgets[widget] = action
             self.set_icon(widget, action)
 
     def _on_disconnect_proxy(self, uimanager, action, widget):
         """Callback for a widget leaving management"""
-        if widget in self.widgets:
-            del self.widgets[widget]
+        pass
 
     def set_force_stock(self, force):
         """Sets the 'force stock icon' option"""
 
         self.force_stock = force
-        for widget, action in self.widgets.items():
-            self.set_icon(widget, action)
+
+        for ag in self.get_action_groups():
+            for action in ag.list_actions():
+                for widget in action.get_proxies():
+                    self.set_icon(widget, action)
 
 
     def set_icon(self, widget, action):
         """Sets the icon for a managed widget"""
+
+        # do not handle actions that are not of our custom classes
+        if not isinstance(action, (Action, ToggleAction)):
+            return
 
         if isinstance(widget, gtk.ImageMenuItem):
             if self.force_stock and action.get_property("stock-id"):
@@ -224,20 +230,29 @@ class UIManager (gtk.UIManager):
                                    gtk.ICON_SIZE_MENU)
                 img.show()
                 widget.set_image(img)
+                
             elif action.icon:
                 img = gtk.Image()
                 img.set_from_pixbuf(get_resource_pixbuf(action.icon))
                 img.show()
                 widget.set_image(img)
 
-        elif isinstance(widget, gtk.ToolItem):
+        elif isinstance(widget, gtk.ToolButton):            
             if self.force_stock and action.get_property("stock-id"):
-                widget.set_icon_widget(None)
+                w = widget.get_icon_widget()
+                if w:
+                    w.set_from_stock(action.get_property("stock-id"),
+                                     gtk.ICON_SIZE_MENU)
+                
             elif action.icon:
-                img = gtk.Image()
-                img.set_from_pixbuf(get_resource_pixbuf(action.icon))
-                img.show()
-                widget.set_icon_widget(img)
+                w = widget.get_icon_widget()
+                if w:
+                    w.set_from_pixbuf(get_resource_pixbuf(action.icon))
+                else:
+                    img = gtk.Image()
+                    img.set_from_pixbuf(get_resource_pixbuf(action.icon))
+                    img.show()
+                    widget.set_icon_widget(img)
 
         
 

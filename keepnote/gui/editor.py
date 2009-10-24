@@ -579,6 +579,7 @@ class EditorMenus (gobject.GObject):
         self._font_ui_signals = []     # list of font ui widgets
         self.spell_check_toggle = None
 
+        self._removed_widgets = []
 
     #=============================================================
     # Update UI (menubar) from font under cursor
@@ -986,16 +987,18 @@ class EditorMenus (gobject.GObject):
         <ui>
         <toolbar name="main_tool_bar">
           <placeholder name="Viewer">
-            <toolitem action="Bold Tool"/>
-            <toolitem action="Italic Tool"/>
-            <toolitem action="Underline Tool"/>
-            <toolitem action="Link Tool"/>
-            <toolitem action="Font Selector Tool"/>
-            <toolitem action="Font Size Tool"/>
-            <toolitem action="Font Fg Color Tool"/>
-            <toolitem action="Font Bg Color Tool"/>
-            <separator/>
-            <toolitem action="Bullet List Tool"/>
+            <placeholder name="Editor">
+              <toolitem action="Bold Tool"/>
+              <toolitem action="Italic Tool"/>
+              <toolitem action="Underline Tool"/>
+              <toolitem action="Link Tool"/>
+              <toolitem action="Font Selector Tool"/>
+              <toolitem action="Font Size Tool"/>
+              <toolitem action="Font Fg Color Tool"/>
+              <toolitem action="Font Bg Color Tool"/>
+              <separator/>
+              <toolitem action="Bullet List Tool"/>
+            </placeholder>
           </placeholder>
         </toolbar>
 
@@ -1111,8 +1114,12 @@ class EditorMenus (gobject.GObject):
         font_family_combo = FontSelector()
         font_family_combo.set_size_request(150, 25)
 
+
+        # TODO: make proper custom tools
+        
         w = uimanager.get_widget("/main_tool_bar/Viewer/Editor/Font Selector Tool")
         if w:
+            self._removed_widgets.append(w.child)
             w.remove(w.child)
             w.add(font_family_combo)
             font_family_combo.show()
@@ -1134,18 +1141,20 @@ class EditorMenus (gobject.GObject):
         font_size_button.set_editable(False)
         
         w = uimanager.get_widget("/main_tool_bar/Viewer/Editor/Font Size Tool")
-        w.remove(w.child)
-        w.add(font_size_button)
-        font_size_button.show()
-        w.set_homogeneous(False)
-        font_size_id = font_size_button.connect("value-changed",
-            lambda w: 
-            self._on_font_size_change(font_size_button.get_value()))
-        self._font_ui_signals.append(
-            FontUI(font_size_button,
-                   font_size_id,
-                   update_func=lambda ui, font:
-                       ui.widget.set_value(font.size)))
+        if w:
+            self._removed_widgets.append(w.child)
+            w.remove(w.child)
+            w.add(font_size_button)
+            font_size_button.show()
+            w.set_homogeneous(False)
+            font_size_id = font_size_button.connect("value-changed",
+                lambda w: 
+                self._on_font_size_change(font_size_button.get_value()))
+            self._font_ui_signals.append(
+                FontUI(font_size_button,
+                       font_size_id,
+                       update_func=lambda ui, font:
+                           ui.widget.set_value(font.size)))
 
 
         # font fg color
@@ -1156,22 +1165,26 @@ class EditorMenus (gobject.GObject):
             lambda w, color: self._on_color_set("fg", fg_color_button, color))
 
         w = uimanager.get_widget("/main_tool_bar/Viewer/Editor/Font Fg Color Tool")
-        w.remove(w.child)
-        w.add(fg_color_button)
-        fg_color_button.show()
-        w.set_homogeneous(False)
+        if w:
+            self._removed_widgets.append(w.child)
+            w.remove(w.child)
+            w.add(fg_color_button)
+            fg_color_button.show()
+            w.set_homogeneous(False)
 
-        # font bg color
-        bg_color_button = BgColorTool(14, 15, (65535, 65535, 65535))
-        
-        bg_color_button.connect("set-color",
-            lambda w, color: self._on_color_set("bg", bg_color_button, color))
+            # font bg color
+            bg_color_button = BgColorTool(14, 15, (65535, 65535, 65535))
+
+            bg_color_button.connect("set-color",
+                lambda w, color: self._on_color_set("bg", bg_color_button, color))
 
         w = uimanager.get_widget("/main_tool_bar/Viewer/Editor/Font Bg Color Tool")
-        w.remove(w.child)
-        w.add(bg_color_button)
-        bg_color_button.show()
-        w.set_homogeneous(False)
+        if w:
+            self._removed_widgets.append(w.child)
+            w.remove(w.child)
+            w.add(bg_color_button)
+            bg_color_button.show()
+            w.set_homogeneous(False)
 
 
         # get spell check toggle
@@ -1179,3 +1192,39 @@ class EditorMenus (gobject.GObject):
             uimanager.get_widget("/main_menu_bar/Tools/Viewer/Spell Check")
         self.spell_check_toggle.set_sensitive(
             self._editor.get_textview().can_spell_check())
+
+    
+
+
+
+class ComboToolItem(gtk.ToolItem):
+
+    __gtype_name__ = "ComboToolItem"
+
+    def __init__(self):
+        gtk.ToolItem.__init__(self)
+
+        self.set_border_width(2)
+        self.set_homogeneous(False)
+        self.set_expand(False)
+
+        self.combobox = gtk.combo_box_entry_new_text()
+        for text in ['a', 'b', 'c', 'd', 'e', 'f']:
+            self.combobox.append_text(text)
+        self.combobox.show()
+        self.add(self.combobox)
+
+    def do_set_tooltip(self, tooltips, tip_text=None, tip_private=None):
+        gtk.ToolItem.set_tooltip(self, tooltips, tip_text, tip_private)
+
+        tooltips.set_tip(self.combobox, tip_text, tip_private)
+
+class ComboToolAction(gtk.Action):
+
+    __gtype_name__ = "ComboToolAction"
+
+    def __init__(self, name, label, tooltip, stock_id):
+        gtk.Action.__init__(self, name, label, tooltip, stock_id)
+
+ComboToolAction.set_tool_item_type(ComboToolItem)
+
