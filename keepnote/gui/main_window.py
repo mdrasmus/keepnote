@@ -1666,3 +1666,6 @@ class KeepNoteWindow (gtk.Window):
         return toolbar
 
 
+gobject.type_register(KeepNoteWindow)
+gobject.signal_new("error", KeepNoteWindow, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (str, object))
