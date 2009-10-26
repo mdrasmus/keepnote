@@ -27,6 +27,7 @@
 
 # python imports
 import codecs
+import gettext
 import sys
 import os
 import tempfile
@@ -34,6 +35,8 @@ import re
 import random
 import urllib2
 import StringIO
+
+_ = gettext.gettext
 
 # pygtk imports
 import pygtk
@@ -1001,7 +1004,7 @@ class RichTextView (gtk.TextView):
         # insert "paste as plain text" after paste
         item = gtk.ImageMenuItem(stock_id=gtk.STOCK_PASTE,
                                  accel_group=None)        
-        item.child.set_text("Paste As Plain Text")
+        item.child.set_text(_("Paste As Plain Text"))
         item.connect("activate", lambda item: self.paste_clipboard_as_text())
         item.show()
         menu.insert(item, 3)
@@ -1045,6 +1048,10 @@ class RichTextView (gtk.TextView):
     def get_image_menu(self):
         """Returns the image popup menu"""
         return self._image_menu
+
+    def get_popup_menu(self):
+        """Returns the popup menu"""
+        return self._popup_menu
 
 
     #==========================================

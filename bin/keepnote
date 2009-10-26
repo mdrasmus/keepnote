@@ -20,8 +20,14 @@
 
 
 # python imports
-import errno, sys, os, time, optparse, exceptions, thread, traceback, socket, random
+import exceptions
+import sys
+import os
 from os.path import basename, dirname, realpath, join, isdir
+import time
+import optparse
+import thread
+import traceback
 
 
 # pygtk imports
@@ -131,7 +137,11 @@ o.add_option("-c", "--cmd", dest="cmd",
              help="treat remaining arguments as a command")
 o.add_option("", "--newproc", dest="newproc",
              action="store_true",
-             help="startKeepNote in a new process")
+             help="start KeepNote in a new process")
+o.add_option("-p", "--port", dest="port",
+             default=None,
+             type="int",
+             help="use a specified port for listening to commands")
 
 
 #=============================================================================
@@ -196,6 +206,12 @@ def execute_command(app, argv):
 
         elif args[0] == "focus":
             app.focus_windows()
+            
+        elif args[0] == "screenshot":
+            # TODO: may need to generalize for different type of viewers
+            window = app.get_current_window()
+            if window:
+                window.get_viewer().editor.on_screenshot()
 
         else:
             raise Exception(_("Unknown command '%s'") % args[0])
@@ -214,9 +230,20 @@ def execute_command(app, argv):
         app.new_window()
 
 
+def gui_exec(function, *args, **kw):
+    """Execute a function in the GUI thread"""
+    def idle_func():
+        gtk.gdk.threads_enter()
+        try:
+            function(*args, **kw)
+            return False
+        finally:
+            gtk.gdk.threads_leave()
+    gobject.idle_add(idle_func)
+
 
 def main(argv):
-    """Main execution"""
+    """Main execution"""    
 
     options, args = parse_argv(argv)
 
@@ -233,8 +260,9 @@ def main(argv):
         cmd_exec = CommandExecutor()
     else:
         main_proc, cmd_exec = get_command_executor(
-            lambda app, argv: gobject.timeout_add(
-                0, lambda: execute_command(app, argv)))
+            lambda app, argv: gui_exec(
+                lambda: execute_command(app, argv)),
+            port=options.port)
 
     
     if main_proc:
@@ -267,6 +295,5 @@ except Exception, e:
     
     # flush final errors
     sys.stderr.flush()
-
 
 

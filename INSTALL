@@ -63,20 +63,22 @@ Linux Install
     This will download and install KeepNote to your default path.
 
 
-MacOS X Install
+Mac OS X Install
 
   All third-party libraries for the Linux version of KeepNote are 
-  cross-platform and should also work for MacOS X.  
+  cross-platform and should also work for Mac OS X.  
 
      - python (http://www.python.org)
      - gtk (http://www.gtk.org)
      - pygtk (http://www.pygtk.org)
 
-  All of these libraries are also available through fink for MaxOS X.  Once
+  All of these libraries are also available through fink for Mac OS X.  Once
   installed, KeepNote can be run directly from its source directory
 
-    $ path-to-keepnote-src/bin/keepnote
+    $ /sw/bin/pthyon2.5 path-to-keepnote-src/bin/keepnote
 
+  NOTE: You will need to make sure the fink version of python is used instead
+  of the native Mac OS X.  The command above forces the fink version to be used.
   
   Alternative: Another option for running KeepNote is to use the Windows 
   version in WINE or another Virtual Machine (VMware, etc).

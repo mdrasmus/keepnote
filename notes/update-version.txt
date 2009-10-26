@@ -1,6 +1,5 @@
 I have to change version in these files:
 
-Makefile
 takenote/__init__.py
 
 

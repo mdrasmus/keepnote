@@ -75,7 +75,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         cell_icon = gtk.CellRendererPixbuf()
         self.title_text = gtk.CellRendererText()
         self.title_column = gtk.TreeViewColumn()
-        self.title_column.set_title("Title")
+        self.title_column.set_title(_("Title"))
         self.title_column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
         self.title_column.set_min_width(10)
         self.title_column.set_fixed_width(250)
@@ -105,7 +105,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         cell_text = gtk.CellRendererText()
         cell_text.set_fixed_height_from_font(1)        
         column = gtk.TreeViewColumn()
-        column.set_title("Created")
+        column.set_title(_("Created"))
         column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
         column.set_property("resizable", True)
         column.set_min_width(10)
@@ -124,7 +124,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         cell_text = gtk.CellRendererText()
         cell_text.set_fixed_height_from_font(1)
         column = gtk.TreeViewColumn()
-        column.set_title("Modified")
+        column.set_title(_("Modified"))
         column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
         column.set_property("resizable", True)
         column.set_min_width(10)
@@ -147,9 +147,6 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             gtk.SORT_ASCENDING)
         self.set_reorder(basetreeview.REORDER_ALL)
         
-        self.menu = gtk.Menu()
-        self.menu.attach_to_widget(self, lambda w,m:None)
-
         self.set_sensitive(False)
 
 
@@ -196,16 +193,25 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             
 
     def _sort_column_changed(self, sortmodel):
-        col, sort_dir = self.model.get_sort_column_id()
+        self._update_reorder()
+        
 
-        if col is None or col < 0:
+    def _update_reorder(self):
+        col_id, sort_dir = self.model.get_sort_column_id()
+
+        if col_id is None or col_id < 0:
+            col = None
+        else:
+            col = self.rich_model.get_column(col_id)
+        
+        if col is None or col.attr == "order":
             self.model.set_sort_column_id(
                 self.rich_model.get_column_by_name("order").pos,
                 gtk.SORT_ASCENDING)
             self.set_reorder(basetreeview.REORDER_ALL)
         else:
-            self.set_reorder(basetreeview.REORDER_FOLDER)
-        
+            self.set_reorder(basetreeview.REORDER_FOLDER)        
+
     
     def on_key_released(self, widget, event):
         """Callback for key release events"""
@@ -217,7 +223,8 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         if event.keyval == gtk.keysyms.Delete:
             # capture node deletes
             self.stop_emission("key-release-event")            
-            self.on_delete_node()
+            #self.on_delete_node()
+            self.emit("delete-node", self.get_selected_nodes())
             
         elif event.keyval == gtk.keysyms.BackSpace and \
              event.state & gdk.CONTROL_MASK:
@@ -361,6 +368,11 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         self.scroll_to_cell(path)
         
 
+    #def cancel_editing(self):
+    #    # TODO: add this
+    #    pass
+    #    #self.cell_text.stop_editing(True)
+
     
     def save_sorting(self, node):
         """Save sorting information into node"""
@@ -400,6 +412,8 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         for col in self.rich_model.get_columns():
             if info_sort == col.attr:
                 model.set_sort_column_id(col.pos, sort_dir)
+
+        self._update_reorder()
 
     
     def set_status(self, text, bar="status"):

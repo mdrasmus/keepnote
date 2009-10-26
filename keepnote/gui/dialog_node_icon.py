@@ -88,7 +88,7 @@ class NodeIconDialog (object):
     
     def __init__(self, main_window):
         self.main_window = main_window
-        self.app = main_window.app
+        self.app = main_window.get_app()
         self.node = None
         
     
@@ -191,7 +191,7 @@ class NodeIconDialog (object):
 
     def populate_iconlist(self, list, icons):
         for iconfile in icons:
-            filename = lookup_icon_filename(self.main_window.notebook, iconfile)
+            filename = lookup_icon_filename(self.main_window.get_notebook(), iconfile)
             if filename:
                 try:
                     pixbuf = get_pixbuf(filename)
@@ -212,14 +212,14 @@ class NodeIconDialog (object):
 
         # populate notebook
         self.populate_iconlist(self.notebook_iconlist,
-                               self.main_window.notebook.get_icons())
+                               self.main_window.get_notebook().get_icons())
         self.notebook_iconview.set_model(self.notebook_iconlist)
         self.notebook_iconview.set_pixbuf_column(0)
 
 
         # populate quick pick icons
         self.populate_iconlist(self.quick_iconlist,
-                               self.main_window.notebook.pref.get_quick_pick_icons())
+                               self.main_window.get_notebook().pref.get_quick_pick_icons())
         self.quick_iconview.set_model(self.quick_iconlist)
         self.quick_iconview.set_pixbuf_column(0)
 
@@ -298,7 +298,7 @@ class NodeIconDialog (object):
                     self.set_icon("icon_open", open_filename)
                 else:
                     # just do preview
-                    if lookup_icon_filename(self.main_window.notebook,
+                    if lookup_icon_filename(self.main_window.get_notebook(),
                                             open_filename):
                         self.set_preview("icon_open", open_filename)
                     else:
@@ -310,7 +310,7 @@ class NodeIconDialog (object):
         if os.path.isabs(filename):
             filename2 = filename
         else:
-            filename2 = lookup_icon_filename(self.main_window.notebook,
+            filename2 = lookup_icon_filename(self.main_window.get_notebook(),
                                              filename)
             
         if kind == "icon":

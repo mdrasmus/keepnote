@@ -52,6 +52,12 @@ from keepnote import safefile
 from keepnote.util import compose
 from keepnote import mswin
 
+# import screenshot so that py2exe discovers it
+try:
+    import mswin.screenshot
+except ImportError:
+    pass
+
 
 #=============================================================================
 # modules needed by builtin extensions
@@ -63,10 +69,10 @@ import xml.sax.saxutils
 #=============================================================================
 # globals / constants
 
-PROGRAM_NAME = "KeepNote"
+PROGRAM_NAME = u"KeepNote"
 PROGRAM_VERSION_MAJOR = 0
 PROGRAM_VERSION_MINOR = 6
-PROGRAM_VERSION_RELEASE = 0
+PROGRAM_VERSION_RELEASE = 1
 PROGRAN_VERSION = (PROGRAM_VERSION_MAJOR,
                    PROGRAM_VERSION_MINOR,
                    PROGRAM_VERSION_RELEASE)
@@ -80,6 +86,13 @@ else:
                                       PROGRAM_VERSION_MINOR)
 
 WEBSITE = u"http://rasm.ods.org/keepnote"
+LICENSE_NAME = "GPL version 2"
+COPYRIGHT = "Copyright Matt Rasmussen 2009."
+TRANSLATOR_CREDITS = (
+    "French: tb <thibaut.bethune@gmail.com>\n"
+    "Turkish: Yuce Tekol <yucetekol@gmail.com>\n")
+
+
 
 
 BASEDIR = unicode(os.path.dirname(__file__))
@@ -98,6 +111,9 @@ USER_LOCK_FILE = u"lockfile"
 USER_ERROR_LOG = u"error-log.txt"
 USER_EXTENSIONS_DIR = u"extensions"
 XDG_USER_EXTENSIONS_DIR = u"takenote/extensions"
+USER_EXTENSIONS_DATA_DIR = u"extensions_data"
+XDG_USER_EXTENSIONS_DATA_DIR = u"takenote/extensions_data"
+
 
 
 DEFAULT_WINDOW_SIZE = (800, 600)
@@ -185,7 +201,6 @@ def set_locale():
     locale.setlocale(locale.LC_ALL, '')
     gettext.bindtextdomain(GETTEXT_DOMAIN, get_locale_dir())
     gettext.textdomain(GETTEXT_DOMAIN)
-    print get_locale_dir()
 
 
 def translate(message):
@@ -304,6 +319,17 @@ def get_user_extensions_dir(pref_dir=None, home=None):
         return xdg.get_data_file(XDG_USER_EXTENSIONS_DIR, default=True)
 
 
+def get_user_extensions_data_dir(pref_dir=None, home=None):
+    """Returns user extensions data directory"""
+
+    if not use_xdg():
+        if pref_dir is None:
+            pref_dir = get_user_pref_dir(home)
+        return os.path.join(pref_dir, USER_EXTENSIONS_DATA_DIR)
+    else:
+        return xdg.get_data_file(XDG_USER_EXTENSIONS_DATA_DIR, default=True)
+
+
 def get_system_extensions_dir():
     """Returns system-wdie extensions directory"""
     return os.path.join(BASEDIR, u"extensions")
@@ -319,15 +345,9 @@ def get_user_documents(home=None):
     
     elif p == "windows":
         return mswin.get_my_documents()
-        #home = ensure_unicode(os.getenv(u"USERPROFILE"), FS_ENCODING)
-        #return ensure_unicode(os.getenv(u"CSIDL_DEFAULT_MYDOCUMENTS"),
-        #                      FS_ENCODING)
-        # TODO can I find a way to find "My Documents"?
-        #return os.path.join(home, u"My Documents")
     
     else:
         return u""
-        #raise Exception("unknown platform '%s'" % p)
     
 
 def get_user_pref_file(pref_dir=None, home=None):
@@ -413,11 +433,17 @@ def init_user_extensions(pref_dir=None, home=None):
 
     if pref_dir is None:
         pref_dir = get_user_pref_dir(home)
-    extensions_dir = get_user_extensions_dir(pref_dir)
 
+    extensions_dir = get_user_extensions_dir(pref_dir)
     if not os.path.exists(extensions_dir):
         # make dir
         os.makedirs(extensions_dir, 0700)
+
+    extensions_data_dir = get_user_extensions_data_dir(pref_dir)
+    if not os.path.exists(extensions_data_dir):
+        # make dir
+        os.makedirs(extensions_data_dir, 0700)
+
 
 
 def iter_extensions(extensions_dir):
@@ -442,7 +468,9 @@ def import_extension(app, name, filename):
     try:
         mod = imp.load_module(name, infile, filename2,
                               (".py", "rb", imp.PY_SOURCE))
-        return mod.Extension(app)
+        ext = mod.Extension(app)
+        ext.key = name
+        return ext
                 
     except Exception, e:
         infile.close()
@@ -492,39 +520,45 @@ class EnvError (StandardError):
 
 
 DEFAULT_EXTERNAL_APPS = [
-    ExternalApp("file_launcher", "File Launcher", ""),
-    ExternalApp("web_browser", "Web Browser", ""),
-    ExternalApp("file_explorer", "File Explorer", ""),
-    ExternalApp("text_editor", "Text Editor", ""),
-    ExternalApp("image_editor", "Image Editor", ""),
-    ExternalApp("image_viewer", "Image Viewer", ""),
-    ExternalApp("screen_shot", "Screen Shot", "")
-]
+            ExternalApp("file_launcher", "File Launcher", u""),
+            ExternalApp("web_browser", "Web Browser", u""),
+            ExternalApp("file_explorer", "File Explorer", u""),
+            ExternalApp("text_editor", "Text Editor", u""),
+            ExternalApp("image_editor", "Image Editor", u""),
+            ExternalApp("image_viewer", "Image Viewer", u""),
+            ExternalApp("screen_shot", "Screen Shot", u"")
+            ]
 
+def get_external_app_defaults():
+    if get_platform() == "windows":
+        files = os.environ.get("PROGRAMFILES", u"C:\\Program Files")
 
-DEFAULT_EXTERNAL_APPS_WINDOWS = [
-    ExternalApp("file_launcher", "File Launcher", "explorer.exe"),
-    ExternalApp("web_browser", "Web Browser",
-                "C:\\Program Files\\Internet Explorer\\iexplore.exe"),
-    ExternalApp("file_explorer", "File Explorer", "explorer.exe"),
-    ExternalApp("text_editor", "Text Editor",
-                "C:\Program Files\\Windows NT\\Accessories\\wordpad.exe"),
-    ExternalApp("image_editor", "Image Editor", "mspaint.exe"),
-    ExternalApp("image_viewer", "Image Viewer",
-                "C:\\Program Files\\Internet Explorer\\iexplore.exe"),
-    ExternalApp("screen_shot", "Screen Shot", "")
-]
+        return [
+            ExternalApp("file_launcher", "File Launcher", "explorer.exe"),
+            ExternalApp("web_browser", "Web Browser",
+                        files + u"\\Internet Explorer\\iexplore.exe"),
+            ExternalApp("file_explorer", "File Explorer", "explorer.exe"),
+            ExternalApp("text_editor", "Text Editor",
+                        files + u"\\Windows NT\\Accessories\\wordpad.exe"),
+            ExternalApp("image_editor", "Image Editor", "mspaint.exe"),
+            ExternalApp("image_viewer", "Image Viewer",
+                        files + u"\\Internet Explorer\\iexplore.exe"),
+            ExternalApp("screen_shot", "Screen Shot", "")
+            ]
 
-
-DEFAULT_EXTERNAL_APPS_LINUX = [
-    ExternalApp("file_launcher", "File Launcher", "xdg-open"),
-    ExternalApp("web_browser", "Web Browser", ""),
-    ExternalApp("file_explorer", "File Explorer", ""),
-    ExternalApp("text_editor", "Text Editor", ""),
-    ExternalApp("image_editor", "Image Editor", ""),
-    ExternalApp("image_viewer", "Image Viewer", "display"),
-    ExternalApp("screen_shot", "Screen Shot", "import")
-]
+    elif get_platform() == "unix":
+        return [
+            ExternalApp("file_launcher", "File Launcher", u"xdg-open"),
+            ExternalApp("web_browser", "Web Browser", u""),
+            ExternalApp("file_explorer", "File Explorer", u""),
+            ExternalApp("text_editor", "Text Editor", u""),
+            ExternalApp("image_editor", "Image Editor", u""),
+            ExternalApp("image_viewer", "Image Viewer", u"display"),
+            ExternalApp("screen_shot", "Screen Shot", u"import")
+            ]
+    else:
+        return DEFAULT_EXTERNAL_APPS
+        
 
 
 # TODO: maybe merge with app class?
@@ -546,6 +580,9 @@ class KeepNotePreferences (object):
 
         self.id = None
 
+        # extensions
+        self.disabled_extensions = []
+
         # window presentation options
         self.window_size = DEFAULT_WINDOW_SIZE
         self.window_maximized = True
@@ -553,6 +590,7 @@ class KeepNotePreferences (object):
         self.hsash_pos = DEFAULT_HSASH_POS
         self.view_mode = DEFAULT_VIEW_MODE
         
+        # look and feel
         self.treeview_lines = True
         self.listview_rules = True
         self.use_stock_icons = False
@@ -588,12 +626,19 @@ class KeepNotePreferences (object):
 
         # listener
         self.changed = Listeners()
+        self.changed.add(self._on_changed)
 
 
     def get_pref_dir(self):
         """Returns preference directory"""
         return self._pref_dir
     
+
+    def _on_changed(self):
+        """Listener for preference changes"""
+        self.write()
+        
+
 
     def read(self):
         """Read preferences from file"""
@@ -628,12 +673,7 @@ class KeepNotePreferences (object):
             self._external_apps_lookup[app.key] = app
 
         # add default programs
-        if get_platform() == "windows":
-            lst = DEFAULT_EXTERNAL_APPS_WINDOWS
-        elif get_platform() == "unix":
-            lst = DEFAULT_EXTERNAL_APPS_LINUX
-        else:
-            lst = DEFAULT_EXTERNAL_APPS
+        lst = get_external_app_defaults()
         for defapp in lst:
             if defapp.key not in self._external_apps_lookup:
                 self.external_apps.append(defapp)
@@ -646,9 +686,9 @@ class KeepNotePreferences (object):
 
 
         # initialize user extensions directory
-        user_extensions_dir = get_user_extensions_dir(self._pref_dir)
-        if not os.path.exists(user_extensions_dir):
-            init_user_extensions(self._pref_dir)
+        #user_extensions_dir = get_user_extensions_dir(self._pref_dir)
+        #if not os.path.exists(user_extensions_dir):
+        init_user_extensions(self._pref_dir)
         
         
         # notify listeners
@@ -754,6 +794,17 @@ g_keepnote_pref_parser = xmlo.XmlObject(
                         )
            ]),
 
+        # disabled extensions
+        xmlo.Tag("extensions", tags=[
+            xmlo.Tag("disabled", tags=[
+                xmlo.TagMany("extension",
+                iterfunc=lambda s: range(len(s.disabled_extensions)),
+                get=lambda (s, i), x: s.disabled_extensions.append(x),
+                set=lambda (s, i): s.disabled_extensions[i]
+                        )
+                ]),
+            ]),
+
 
         xmlo.Tag("external_apps", tags=[
 
@@ -835,15 +886,21 @@ class KeepNote (object):
         
         # load application preferences
         self.pref = KeepNotePreferences()
-        self.pref.read()
 
         # list of application notebooks
         self._notebooks = {}
         
-        # find extensions
+        # set of associated extensions with application
         self._extensions = {}
+
+        # read preferences
+        self.pref.read()
+
+        # scan extensions
         self.scan_extensions_dir(get_system_extensions_dir())
         self.scan_extensions_dir(get_user_extensions_dir())
+
+        # initialize all extensions
         self.init_extensions()
         
 
@@ -858,13 +915,29 @@ class KeepNote (object):
         return notebook
 
 
+    def get_notebook(self, filename, window=None):
+        """Returns a an opened notebook at filename"""
+
+        filename = os.path.realpath(filename)
+        if filename not in self._notebooks:
+            self._notebooks[filename] = self.open_notebook(filename, window)
+
+        return self._notebooks[filename]
+
+
+    def iter_notebooks(self):
+        """Iterate through open notebooks"""
+        
+        return self._notebooks.itervalues()
+
+    
     def run_external_app(self, app_key, filename, wait=False):
         """Runs a registered external application on a file"""
 
         app = self.pref.get_external_app(app_key)
         
-        if app is None:
-            raise KeepNoteError("Must specify program to use in Application Options")         
+        if app is None or app.prog == "":
+            raise KeepNoteError("Must specify program to use in Helper Application")
 
         # build command arguments
         cmd = [app.prog] + app.args
@@ -886,8 +959,8 @@ class KeepNote (object):
         except OSError, e:
             raise KeepNoteError(
                 (u"Error occurred while opening file with %s.\n\n" 
-                 u"program: %s\n\n"
-                 u"file: %s\n\n"
+                 u"program: '%s'\n\n"
+                 u"file: '%s'\n\n"
                  u"error: %s")
                 % (app.title, app.prog, filename, unicode(e)), e)
 
@@ -945,71 +1018,170 @@ class KeepNote (object):
 
 
     def scan_extensions_dir(self, extensions_dir):
-        """Scan extensions directory"""
+        """Scan extensions directory and store references in application"""
         
         for filename in iter_extensions(extensions_dir):
             self._extensions[os.path.basename(filename)] = (filename, None)
-
+        
+        
     def init_extensions(self):
-        errors = []
+        """Initialize all extensions"""
         
-        for name in self._extensions:
+        for ext in self.iter_extensions():
+            # enable extension
             try:
-                ext = self.get_extension(name)
-            except KeepNotePreferenceError, e:                
-                sys.stderr.write("\n")
-                traceback.print_exception(type(e), e, None)
-                #errors.append(e)
-
-        #if len(errors) > 0:
-        #    raise KeepNotePreferenceError("\n".join(str(e) for e in errors))
-
-
-    def init_extensions_window(self, window):
-        errors = []
-        
-        for name in self._extensions:
-            try:
-                ext = self.get_extension(name)
-                ext.on_new_window(window)
-                
-            except KeepNotePreferenceError, e:
-                errors.append(e)
-
-            # TODO: display errors
+                if ext.key not in self.pref.disabled_extensions:
+                    ext.enable(True)
+            except Exception, e:
+                log_error(e, sys.exc_info()[2])
     
             
     def get_extension(self, name):
         """Get an extension module by name"""
         
-        try:
-            filename, ext = self._extensions[name]        
-        except KeyError:
-            raise KeepNotePreferenceError("unknown extension '%s'" % name)
+        # return None if extension name is unknown
+        if name not in self._extensions:
+            return None
+
+        # get extension information
+        filename, ext = self._extensions[name]        
 
         # load if first use
         if ext is None:
-            ext = import_extension(self, name, filename)
-            self._extensions[name] = (filename, ext)
+            try:
+                ext = import_extension(self, name, filename)
+                self._extensions[name] = (filename, ext)
+            except KeepNotePreferenceError, e:
+                log_error(e, sys.exc_info()[2])
                 
         return ext
 
 
+    def get_extension_base_dir(self, extkey):
+        return self._extensions[extkey][0]
     
-        
+    def get_extension_data_dir(self, extkey):
+        return os.path.join(get_user_extensions_data_dir(), extkey)
+
+    def iter_extensions(self, enabled=False):
+        """
+        Iterate through all extensions
+
+        If 'enabled' is True, then only enabled extensions are returned.
+        """
+
+        for name in self._extensions:
+            ext = self.get_extension(name)
+            if ext and (ext.is_enabled() or not enabled):
+                yield ext
+
+
+    def on_extension_enabled(self, ext, enabled):
+        """Callback for extension enabled"""
+
+        if enabled:
+            if ext.key in self.pref.disabled_extensions:
+                self.pref.disabled_extensions.remove(ext.key)
+        else:
+            if ext.key not in self.pref.disabled_extensions:
+                self.pref.disabled_extensions.append(ext.key)
+    
+
 
 class Extension (object):
     """KeepNote Extension"""
 
     version = (1, 0)
+    key = ""
     name = "untitled"
     description = "base extension"
 
 
     def __init__(self, app):
+        
+        self._app = app
+        self._enabled = False
+        self.__windows = set()
+
+        self.__uis = set()
+
+
+    def enable(self, enable):
+        self._enabled = enable
+
+        if enable:
+            for window in self.__windows:
+                if window not in self.__uis:
+                    self.on_add_ui(window)
+                    self.__uis.add(window)
+        else:
+            for window in self.__uis:
+                self.on_remove_ui(window)
+            self.__uis.clear()
+
+        # call callback for app
+        self._app.on_extension_enabled(self, enable)
+
+        # call callback for enable event
+        self.on_enabled(enable)
+
+    def is_enabled(self):
+        return self._enabled
+
+    def on_enabled(self, enabled):
+        """Callback for when extension is enabled/disabled"""
         pass
 
-    def on_new_window(self, window):
-        pass
+
+    def get_base_dir(self, exist=True):
+        path = self._app.get_extension_base_dir(self.key)
+        if exist and not os.path.exists(path):
+            os.makedirs(path)
+        return path
+
+
+    def get_data_dir(self, exist=True):
+        path = self._app.get_extension_data_dir(self.key)
+        if exist and not os.path.exists(path):
+            os.makedirs(path)
+        return path
+
+    def get_data_file(self, filename, exist=True):
+        return os.path.join(self.get_data_dir(exist), filename)
 
     
+    def on_new_window(self, window):
+        """Initialize extension for a particular window"""
+
+        if self._enabled:
+            self.on_add_ui(window)
+            self.__uis.add(window)
+        self.__windows.add(window)
+
+
+    def on_close_window(self, window):
+        """Callback for when window is closed"""
+     
+        if window in self.__windows:
+            if window in self.__uis:
+                self.on_remove_ui(window)
+                self.__uis.remove(window)
+            self.__windows.remove(window)
+
+    def get_windows(self):
+        """Returns windows associated with extension"""
+        return self.__windows
+            
+
+    def on_add_ui(self, window):
+        pass
+
+    def on_remove_ui(self, window):
+        pass
+
+    def on_add_options_ui(self, dialog):
+        pass
+
+    def on_remove_options_ui(self, dialog):
+        pass
+

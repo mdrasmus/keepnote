@@ -104,7 +104,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         self._node_col = None
         self._get_icon = None
 
-
+        self._menu = None
 
         # selection
         self.get_selection().connect("changed", self.__on_select_changed)
@@ -232,17 +232,27 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                 self.on_row_has_child_toggled)
 
 
+    def set_popup_menu(self, menu):
+        self._menu = menu
+
+    def get_popup_menu(self):
+        return self._menu
+
+
     def popup_menu(self, x, y, button, time):
         """Display popup menu"""
         
+        if self._menu is None:
+            return
+
         path = self.get_path_at_pos(int(x), int(y))
         if path is None:
             return False
         
         path = path[0]
         self.get_selection().select_path(path)
-        self.menu.popup(None, None, None, button, time)
-        self.menu.show()
+        self._menu.popup(None, None, None, button, time)
+        self._menu.show()
         return True
 
 
@@ -257,13 +267,11 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # suppress selection changes while nodes are changing
         self.__suppress_sel = True
 
-        # cancel any existing editing
-        #self.cancel_editing()
-
+        # cancel editing
+        self.cancel_editing()
 
 
     def _on_node_changed_end(self, model, nodes):
-
         # maintain proper expansion
         for node in nodes:
 
@@ -289,7 +297,9 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                         self.expand_row(path, False)
                 
         
+        
         # if nodes still exist, and expanded, try to reselect them
+        deselect = False
         if len(self.__sel_nodes2) > 0:
             # TODO: only reselects one node
             node = self.__sel_nodes2[0]
@@ -302,9 +312,16 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                     # reselect and scroll to node    
                     self.set_cursor(path2)
                     gobject.idle_add(lambda: self.scroll_to_cell(path2))
+            else:
+                # emit de-selection
+                deselect = True
 
         # resume emitting selection changes
         self.__suppress_sel = False
+
+        if deselect:
+            #print self, "here"
+            self.select_nodes([])
 
 
     def __on_select_changed(self, treeselect):
@@ -366,7 +383,10 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         pass
 
     def cancel_editing(self):
-        pass
+        if self.editing:
+            self.set_cursor_on_cell(self.editing, None, None, False)
+            #self.cell_text.stop_editing(True)
+
 
     #===========================================
     # actions
@@ -401,7 +421,9 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
     def on_select_changed(self, treeselect): 
         model, paths = treeselect.get_selected_rows()
-        
+
+        #print paths
+
         nodes = [self.model.get_value(self.model.get_iter(path), self._node_col)
                  for path in paths]
         self.emit("select-nodes", nodes)
@@ -420,63 +442,9 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             return []
         return [self.model.get_value(it, self._node_col)]
 
-
-
-    #=====================================================
-    # delete node
-    
-    def on_delete_node(self):
-        # TODO: add folder name to message box
-        # factor out confirm dialog?
         
-        # get node to delete
-        nodes = self.get_selected_nodes()
-        if len(nodes) == 0:
-            return
-        node = nodes[0]
-        
-        if isinstance(node, NoteBookTrash):
-            self.emit("error", _("The Trash folder cannot be deleted."), None)
-            return
-        elif node.get_parent() == None:
-            self.emit("error", _("The top-level folder cannot be deleted."), None)
-            return
-        elif len(node.get_children()) > 0:
-            message = _("Do you want to delete this note and all of its children?")
-        else:
-            message = _("Do you want to delete this note?")
-        
-        dialog = gtk.MessageDialog(self.get_toplevel(), 
-            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-            type=gtk.MESSAGE_QUESTION, 
-            buttons=gtk.BUTTONS_YES_NO, 
-            message_format=message)
-
-        response = dialog.run()
-        dialog.destroy()
-        
-        if response == gtk.RESPONSE_YES:
-            self._delete_node(node)
-            
-    
-    def _delete_node(self, node):
-        parent = node.get_parent()
-        children = parent.get_children()
-        i = children.index(node)
-        if i < len(children) - 1:
-            self.select_nodes([children[i+1]])
-        else:
-            self.select_nodes([parent])
-        
-        if parent is not None:
-            try:
-                node.trash()
-            except NoteBookError, e:
-                self.emit("error", e.msg, e)
-        else:
-            # warn
-            self.emit("error", _("The top-level folder cannot be deleted."), None)
-        
+    # TODO: add a reselect if node is deleted
+    # select next sibling or parent
 
 
     #============================================
@@ -493,6 +461,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         """Callback for canceled of title editing"""
         # remember editing state
         self.editing = None
+        
 
 
     def on_edit_title(self, cellrenderertext, path, new_text):
@@ -706,7 +675,6 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                 # get source
                 source_widget = drag_context.get_source_widget()
                 source_node = source_widget.get_drag_node()
-                #source_path = get_path_from_node(self.model, source_node)
             
                 # determine if drag is allowed
                 if self._drop_allowed(source_node, target_node, drop_position):
@@ -869,13 +837,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             self.emit("error", e.msg, e)
             return
 
-        # make sure to show new children
-        if (drop_position == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE or
-            drop_position == gtk.TREE_VIEW_DROP_INTO_OR_AFTER):
-            new_parent_path = get_path_from_node(self.model, new_parent,
-                                             self.rich_model.get_node_column())
-            if new_parent_path is not None:
-                self.expand_row(new_parent_path, False)
+        # re-establish selection on source node
+        self.emit("goto-node", source_node)
 
         # notify that drag was successful
         drag_context.finish(True, True, eventtime)
@@ -906,15 +869,13 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             not (source_node and 
                  self._reorder == REORDER_FOLDER and not drop_into and
                  target_node.get_parent() == source_node.get_parent()))
-                #       or 
-                #not (self._reorder == REORDER_FOLDER and 
-                #    (drop_position not in (gtk.TREE_VIEW_DROP_INTO_OR_BEFORE,
-                #                           gtk.TREE_VIEW_DROP_INTO_OR_AFTER))))
 
 
 
 gobject.type_register(KeepNoteBaseTreeView)
 gobject.signal_new("goto-node", KeepNoteBaseTreeView, gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, (object,))
+gobject.signal_new("delete-node", KeepNoteBaseTreeView, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, (object,))
 gobject.signal_new("goto-parent-node", KeepNoteBaseTreeView,
                    gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())

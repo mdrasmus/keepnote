@@ -99,8 +99,6 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
         self.column.add_attribute(self.cell_text, 'text',
                                   self.model.get_column_by_name("title").pos)
 
-        self.menu = gtk.Menu()
-        self.menu.attach_to_widget(self, lambda w,m:None)
 
         self.set_sensitive(False)
 
@@ -116,7 +114,7 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
         
         if event.keyval == gtk.keysyms.Delete and \
            not self.editing:
-            self.on_delete_node()
+            self.emit("delete-node", self.get_selected_nodes())#on_delete_node()
             self.stop_emission("key-release-event")
 
     def on_button_press(self, widget, event):
@@ -172,5 +170,3 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
         #gobject.idle_add(lambda: self.scroll_to_cell(path))
 
 
-    def cancel_editing(self):
-        self.cell_text.stop_editing(True)

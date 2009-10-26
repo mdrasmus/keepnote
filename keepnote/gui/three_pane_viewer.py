@@ -27,6 +27,8 @@
 
 # python imports
 import gettext
+import os
+import subprocess
 import traceback
 _ = gettext.gettext
 
@@ -41,13 +43,20 @@ import gobject
 
 # keepnote imports
 import keepnote
-from keepnote import KeepNoteError
+from keepnote import unicode_gtk, KeepNoteError
+from keepnote.notebook import NoteBookTrash
 from keepnote.gui import \
-     get_resource, \
-     get_resource_image, \
-     get_resource_pixbuf, \
-     get_accel_file, \
-     Action
+    add_actions, \
+    dialog_image_resize, \
+    get_resource, \
+    get_resource_image, \
+    get_resource_pixbuf, \
+    get_accel_file, \
+    Action, \
+    ToggleAction, \
+    FileChooserDialog, \
+    CONTEXT_MENU_ACCEL_PATH
+from keepnote.history import NodeHistory
 from keepnote import notebook as notebooklib
 from keepnote.gui import richtext
 from keepnote.gui.richtext import RichTextView, RichTextImage, RichTextError
@@ -58,146 +67,28 @@ from keepnote.gui.icon_menu import IconMenu
 from keepnote.gui.link_editor import LinkEditor
 from keepnote import notebook as notebooklib
 from keepnote.gui.treemodel import iter_children
+from keepnote.gui.viewer import Viewer
+from keepnote.gui.icons import \
+     lookup_icon_filename
 
 
-class Viewer (gtk.VBox):
-
-    def __init__(self):
-        gtk.VBox.__init__(self, False, 0)
-
-
-    def set_notebook(self, notebook):
-        pass
-
-    def set_view_mode(self, mode):
-        pass
-
-    def load_preferences(self, app_pref):
-        pass
-
-    def save_preferences(self, app_pref):
-        pass
-
-    def save(self):
-        pass
-
-    def undo(self):
-        pass
-
-    def redo(self):
-        pass
-
-    def visit_history(self, offset):
-        pass
-
-    def get_current_page(self):
-        return None
-
-    def get_selected_nodes(self, widget="focus"):
-        pass
-
-    def start_search_result(self):        
-        pass
-
-    def add_search_result(self, node):
-        pass
-
-    def new_node(self, kind, widget, pos):
-        # TODO: choose a more general interface (i.e. deal with widget param)
-        pass
-
-    def get_ui(self):
-        pass
-
-    def get_actions(self):
-        pass
-
-    def setup_menus(self, uimanager):
-        pass
-
-    def make_toolbar(self, toolbar, tips, use_stock_icons):
-        pass
-
-    def goto_node(self, node, direct=True):
-        pass
-
-
-gobject.type_register(Viewer)
-gobject.signal_new("error", Viewer, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (str, object,))
-gobject.signal_new("history-changed", Viewer, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object,))
-
-
-
-class NodeHistory (object):
-
-    def __init__(self):
-        self._list = []
-        self._pos = 0
-        self._suspend = 0
-        self._maxsize = 40
-        
-
-    def add(self, nodeid):
-        if self._suspend == 0:
-            # truncate list to current position
-            if self._list:
-                self._list = self._list[:self._pos+1]
-            
-            # add page to history
-            self._list.append(nodeid)
-            self._pos = len(self._list) - 1
-
-            # keep history to max size
-            if len(self._list) > self._maxsize:
-                self._list = self._list[-self._maxsize:]
-                self._pos = len(self._list) - 1
-
-    def move(self, offset):
-        self._pos += offset
-        if self._pos < 0:
-            self._pos = 0
-        if self._pos >= len(self._list):
-            self._pos = len(self._list) - 1
-        
-        if self._list:
-            return self._list[self._pos]
-        else:
-            return None
-
-    def begin_suspend(self):
-        self._suspend += 1
-
-    def end_suspend(self):
-        self._suspend -=1
-        assert self._suspend >= 0
-
-    def has_back(self):
-        return self._pos > 0
-
-    def has_forward(self):
-        return self._pos < len(self._list) - 1
-        
 
 
 class ThreePaneViewer (Viewer):
     """A viewer with a treeview, listview, and editor"""
 
     def __init__(self, app, main_window):
-        Viewer.__init__(self)
+        Viewer.__init__(self, app, main_window)
 
-        self._app = app
-        self._main_window = main_window
-        self._notebook = None
-        self._history = NodeHistory()
 
         # node selections        
         self._current_page = None     # current page in editor
         self._treeview_sel_nodes = [] # current selected nodes in treeview
         self._queue_list_select = []  # nodes to select in listview after treeview change
         self._new_page_occurred = False
+        self.back_button = None
 
+        self.connect("history-changed", self._on_history_changed)
 
         #=========================================
         # widgets
@@ -205,6 +96,7 @@ class ThreePaneViewer (Viewer):
         # treeview
         self.treeview = KeepNoteTreeView()
         self.treeview.connect("select-nodes", self._on_tree_select)
+        self.treeview.connect("delete-node", self.on_delete_node)
         self.treeview.connect("error", lambda w,t,e: self.emit("error", t, e))
         self.treeview.connect("edit-title", self._on_edit_title)
         self.treeview.connect("goto-node", self.on_list_view_node)
@@ -213,21 +105,27 @@ class ThreePaneViewer (Viewer):
         # listview
         self.listview = KeepNoteListView()
         self.listview.connect("select-nodes", self._on_list_select)
+        self.listview.connect("delete-node", self.on_delete_node)
         self.listview.connect("goto-node", self.on_list_view_node)
         self.listview.connect("goto-parent-node",
                               lambda w: self.on_list_view_parent_node())
         self.listview.connect("error", lambda w,t,e: self.emit("error", t, e))
         self.listview.connect("edit-title", self._on_edit_title)
         self.listview.connect("drop-file", self._on_attach_file)
+        self.listview.on_status = self.set_status  # TODO: clean up
         
         # editor
         self.editor = KeepNoteEditor(self._app)
         self.editor_menus = EditorMenus(self.editor)
-        self.editor_menus.connect("make-link", self._on_make_link)
+        self.editor.connect("make-link", self._on_make_link)
+        self.editor.connect("child-activated", self._on_child_activated)
+        self.editor.connect("visit-node", lambda w, n: self.goto_node(n, False))
         self.editor.connect("font-change", self.editor_menus.on_font_change)
         self.editor.connect("error", lambda w,t,e: self.emit("error", t, e))
+        self.editor.connect("window-request", lambda w,t: 
+                            self.emit("window-request", t))
         self.editor.view_pages([])
-
+        
         self.editor_pane = gtk.VBox(False, 5)
         self.editor_pane.pack_start(self.editor, True, True, 0)
 
@@ -238,6 +136,7 @@ class ThreePaneViewer (Viewer):
         self.editor_pane.pack_start(self.link_editor, False, True, 0)
         self.link_editor.set_search_nodes(self.search_nodes)
 
+        self._main_window.make_image_menu(self.editor.get_textview().get_image_menu())
 
         #=====================================
         # layout
@@ -283,8 +182,9 @@ class ThreePaneViewer (Viewer):
         self.listview.set_notebook(notebook)
         self.treeview.set_notebook(notebook)
 
-        self.treeview.menu.iconmenu.set_notebook(notebook)
-        self.listview.menu.iconmenu.set_notebook(notebook)            
+        if self.treeview.get_popup_menu():
+            self.treeview.get_popup_menu().iconmenu.set_notebook(notebook)
+            self.listview.get_popup_menu().iconmenu.set_notebook(notebook)
 
         # restore selections
         if self._notebook:
@@ -303,9 +203,79 @@ class ThreePaneViewer (Viewer):
         self.treeview.grab_focus()
 
 
+    def get_notebook(self):
+        """Return the current notebook for the view"""
+        return self._notebook
+
+
+    def load_preferences(self, app_pref, first_open=False):
+        """Load application preferences"""
+
+        self.set_view_mode(app_pref.view_mode)
+        self.paned2.set_position(app_pref.vsash_pos)
+        self.hpaned.set_position(app_pref.hsash_pos)
+
+        self.listview.set_date_formats(app_pref.timestamp_formats)
+        self.listview.set_rules_hint(app_pref.listview_rules)        
+        try:
+            # if this version of GTK doesn't have tree-lines, ignore it
+            self.treeview.set_property("enable-tree-lines",
+                                       app_pref.treeview_lines)
+        except:
+            pass
+
+        self.editor_menus.enable_spell_check(self._app.pref.spell_check)
+
+        # reload ui
+        self.remove_ui(self._main_window)
+        self.add_ui(self._main_window)
+
+        
+        
+
+
+    def save_preferences(self, app_pref):
+        """Save application preferences"""
+        
+        app_pref.vsash_pos = self.paned2.get_position()
+        app_pref.hsash_pos = self.hpaned.get_position()
+        
+        # record state in preferences
+        app_pref.spell_check = self.editor.get_textview().is_spell_check_enabled()
+
+
+
+    def save(self):
+        self.editor.save()
+
+        # save selections
+        self._notebook.pref.selected_treeview_nodes = [
+            node.get_attr("nodeid")
+            for node in self.treeview.get_selected_nodes()]
+        self._notebook.pref.selected_listview_nodes = [
+            node.get_attr("nodeid")
+            for node in self.listview.get_selected_nodes()]
+        self._notebook.set_preferences_dirty()
+        
+
+    def undo(self):
+        self.editor.get_textview().undo()
+
+    def redo(self):
+        self.editor.get_textview().redo()
+
+
+    def set_status(self, text, bar="status"):
+        self.emit("status", text, bar)
 
     def set_view_mode(self, mode):
-        """Sets view mode for ThreePaneViewer"""
+        """
+        Sets view mode for ThreePaneViewer
+
+        modes:
+            "vertical"
+            "horizontal"
+        """
 
         # detach widgets
         self.paned2.remove(self.listview_sw)
@@ -329,76 +299,18 @@ class ThreePaneViewer (Viewer):
         self.paned2.add1(self.listview_sw)
         self.paned2.add2(self.editor_pane)
 
-
-    def load_preferences(self, app_pref, first_open=False):
-        """Load application preferences"""
-
-        self.paned2.set_position(app_pref.vsash_pos)
-        self.hpaned.set_position(app_pref.hsash_pos)
-
-        self.listview.set_date_formats(app_pref.timestamp_formats)
-        self.listview.set_rules_hint(app_pref.listview_rules)        
-        try:
-            # if this version of GTK doesn't have tree-lines, ignore it
-            self.treeview.set_property("enable-tree-lines",
-                                       app_pref.treeview_lines)
-        except:
-            pass
-        
-
-    def save_preferences(self, app_pref):
-        """Save application preferences"""
-        
-        app_pref.vsash_pos = self.paned2.get_position()
-        app_pref.hsash_pos = self.hpaned.get_position()
-        
+        # record preference
+        if mode != self._app.pref.view_mode:
+            self._app.pref.view_mode = mode
+            self._app.pref.changed.notify()
 
 
+    #===============================================
+    # node operations
 
-    def save(self):
-        self.editor.save()
-
-        # save selections
-        self._notebook.pref.selected_treeview_nodes = [
-            node.get_attr("nodeid")
-            for node in self.treeview.get_selected_nodes()]
-        self._notebook.pref.selected_listview_nodes = [
-            node.get_attr("nodeid")
-            for node in self.listview.get_selected_nodes()]
-        self._notebook.set_preferences_dirty()
-
-
-    def visit_history(self, offset):
-        """Visit a node in the viewer's history"""
-        
-        nodeid = self._history.move(offset)
-        if nodeid is None:
-            return
-        node = self._notebook.get_node_by_id(nodeid)
-        if node:
-            self._history.begin_suspend()
-            self.goto_node(node, False)
-            self._history.end_suspend()
-            
-        
-
-    def undo(self):
-        self.editor.get_textview().undo()
-
-    def redo(self):
-        self.editor.get_textview().redo()
 
     def get_current_page(self):
         return self._current_page
-
-    def get_focused_widget(self, default=None):
-        
-        if self.treeview.is_focus():
-            return self.treeview
-        if self.listview.is_focus():
-            return self.listview
-        else:
-            return default
 
 
     def get_selected_nodes(self, widget="focus"):
@@ -432,7 +344,54 @@ class ThreePaneViewer (Viewer):
         return (nodes, widget)
 
 
-    def _on_make_link(self, editor_menu):
+    def _on_history_changed(self, viewer, history):
+        """Callback for when node browse history changes"""
+        
+        if self.back_button:
+            self.back_button.set_sensitive(history.has_back())
+            self.forward_button.set_sensitive(history.has_forward())
+
+
+    def get_focused_widget(self, default=None):
+        
+        if self.treeview.is_focus():
+            return self.treeview
+        if self.listview.is_focus():
+            return self.listview
+        else:
+            return default
+    
+
+    def on_delete_node(self, widget="focus", nodes=None):
+        
+        # get node to delete
+        if nodes is None:
+            nodes, widget = self.get_selected_nodes()
+            
+        if len(nodes) == 0:
+            return
+        node = nodes[0]
+        
+        if self._main_window.confirm_delete_nodes(nodes):
+            # change selection            
+            widget = self.get_focused_widget()
+            parent = node.get_parent()
+            children = parent.get_children()
+            i = children.index(node)
+            if i < len(children) - 1:
+                widget.select_nodes([children[i+1]])
+            else:
+                widget.select_nodes([parent])
+
+            # perform delete
+            try:
+                node.trash()
+            except NoteBookError, e:
+                self.emit("error", e.msg, e)
+
+
+    def _on_make_link(self, editor):
+        """Callback from editor to make a link"""
         self.link_editor.edit()
     
     
@@ -442,24 +401,17 @@ class ThreePaneViewer (Viewer):
         self.emit("history-changed", self._history)
 
 
-    def search_nodes(self, text):
+    def _on_child_activated(self, editor, textview, child):
+        """Callback for when child widget in editor is activated"""
         
-        # TODO: make proper interface
-
-        # don't show current page in results list
-        if self._current_page:
-            current_nodeid = self._current_page.get_attr("nodeid")
-        else:
-            current_nodeid = None
-            
-        nodes = [(nodeid, title) 
-                for nodeid, title in self._notebook._index.search_titles(text)
-                if nodeid != current_nodeid]
-        return nodes
+        if isinstance(child, richtext.RichTextImage):
+            self.view_image(child.get_filename())
 
         
     def _on_tree_select(self, treeview, nodes):
         """Callback for treeview selection change"""
+
+        #print "callback", nodes
 
         # do nothing if selection is unchanged
         if self._treeview_sel_nodes == nodes:
@@ -495,17 +447,17 @@ class ThreePaneViewer (Viewer):
         try:
             self.editor.view_pages(pages)
         except RichTextError, e:
-            self.error("Could not load page '%s'" % pages[0].get_title(),
-                       e, sys.exc_info()[2])
+            self.emit("error", 
+                      "Could not load page '%s'." % pages[0].get_title(),
+                      e, sys.exc_info()[2])
 
     def on_list_view_node(self, listview, node, direct=False):
         """Focus listview on a node"""
         
         if node and node.has_attr("payload_filename"):
             self._main_window.on_view_node_external_app("file_launcher",
-                                                        node,
-                                                        None,
-                                                        kind="file")
+                                           node,
+                                           kind="file")
         else:
             self.goto_node(node, direct)
         
@@ -561,11 +513,16 @@ class ThreePaneViewer (Viewer):
 
     def new_node(self, kind, widget, pos):
 
+        # TODO: think about where this goes
+
         if self._notebook is None:
             return
 
+        self.treeview.cancel_editing()
+        self.listview.cancel_editing()
+
         nodes, widget = self.get_selected_nodes(widget)
-        #print "nodes", nodes
+        #print "nodes", self.treeview.editing, nodes
         
         if len(nodes) == 1:
             parent = nodes[0]
@@ -588,19 +545,35 @@ class ThreePaneViewer (Viewer):
                                     notebooklib.DEFAULT_PAGE_NAME,
                                     index)
         
-        self._new_page_occurred = True
+        self.view_new_node(node, widget)
 
+
+    def view_new_node(self, node, widget):
+        
+        self._new_page_occurred = True
+        
         if widget == "treeview":
-            #self.treeview.cancel_editing()
-            self.treeview.expand_node(parent)
+            self.treeview.expand_node(node.get_parent())
             self.treeview.edit_node(node)
         elif widget == "listview":
-            self.listview.expand_node(parent)
+            self.listview.expand_node(node.get_parent())
             self.listview.edit_node(node)
         elif widget == "":
             pass
         else:
             raise Exception("unknown widget '%s'" % widget)
+
+
+    def on_edit_node(self):
+        nodes, widget = self.get_selected_nodes()
+
+        if len(nodes) == 0:
+            return
+
+        if widget == "listview":
+            self.listview.edit_node(nodes[0])
+        elif widget == "treeview":
+            self.treeview.edit_node(nodes[0])
 
 
     def goto_node(self, node, direct=True):
@@ -610,6 +583,8 @@ class ThreePaneViewer (Viewer):
                 return
             node = nodes[0]
         
+        treenodes = self.treeview.get_selected_nodes()
+
         if direct:
             self.treeview.select_nodes([node])
         else:
@@ -617,16 +592,22 @@ class ThreePaneViewer (Viewer):
             path = []
             ptr = node
             while ptr:
+                if ptr in treenodes:
+                    # if parent path is allready selected then quit
+                    path = []
+                    break
                 path.append(ptr)
                 ptr = ptr.get_parent()
             
             # find first node that is collapsed
+            node2 = None
             for node2 in reversed(path):
                 if not self.treeview.is_node_expanded(node2):
                     break
             
             # make selections
-            self.treeview.select_nodes([node2])
+            if node2:
+                self.treeview.select_nodes([node2])
             self.listview.select_nodes([node])
                     
 
@@ -667,6 +648,8 @@ class ThreePaneViewer (Viewer):
 
     def collapse_node(self, all=False):
         
+        # TODO: move guts into basetreeview
+
         widget = self.get_focused_widget(self.treeview)
         path, col = widget.get_cursor()
 
@@ -683,6 +666,23 @@ class ThreePaneViewer (Viewer):
                 walk(it)
             else:
                 widget.collapse_row(path)
+
+
+    def search_nodes(self, text):
+        """Return nodes with titles containing 'text'"""
+
+        # TODO: make proper interface
+
+        # don't show current page in results list
+        #if self._current_page:
+        #    current_nodeid = self._current_page.get_attr("nodeid")
+        #else:
+        #    current_nodeid = None
+            
+        nodes = [(nodeid, title) 
+                for nodeid, title in self._notebook._index.search_titles(text)]
+        return nodes
+
 
     #============================================
     # Search
@@ -716,15 +716,136 @@ class ThreePaneViewer (Viewer):
 
 
     #===========================================
-    # menus
+    # ui
     
+    def add_ui(self, window):
+
+        assert window == self._main_window
+        
+        self._action_group = gtk.ActionGroup("Viewer")
+        self._uis = []
+        add_actions(self._action_group, self.get_actions())
+        self._main_window.get_uimanager().insert_action_group(
+            self._action_group, 0)
+
+        for s in self.get_ui():
+            self._uis.append(
+                self._main_window.get_uimanager().add_ui_from_string(s))
+
+        uimanager = self._main_window.get_uimanager()
+        uimanager.ensure_update()
+        
+        # setup toolbar
+        self.back_button = uimanager.get_widget("/main_tool_bar/Viewer/Back")
+        self.forward_button = uimanager.get_widget("/main_tool_bar/Viewer/Forward")
+
+
+        # setup editor
+        self.editor_menus.add_ui(window,
+                                 use_minitoolbar=self._app.pref.use_minitoolbar)
+        
+        # TODO: Try to add accellerator to popup menu
+        #menu = viewer.editor.get_textview().get_popup_menu()
+        #menu.set_accel_group(self._accel_group)
+        #menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
+
+
+        # treeview context menu
+        menu1 = uimanager.get_widget(
+            "/popup_menus/treeview_popup").get_submenu()
+        self.treeview.set_popup_menu(menu1)
+        menu1.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
+        menu1.set_accel_group(uimanager.get_accel_group())
+        menu1.iconmenu = self._setup_icon_menu()
+        item = uimanager.get_widget(
+            "/popup_menus/treeview_popup/Change Note Icon")
+        item.set_submenu(menu1.iconmenu)
+        item.show()
+
+
+        # listview context menu
+        menu2 = uimanager.get_widget(
+            "/popup_menus/listview_popup").get_submenu()
+        self.listview.set_popup_menu(menu2)
+        menu2.set_accel_group(uimanager.get_accel_group())
+        menu2.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
+        menu2.iconmenu = self._setup_icon_menu()
+        item = uimanager.get_widget(
+            "/popup_menus/listview_popup/Change Note Icon")
+        item.set_submenu(menu2.iconmenu)
+        item.show()
+        
+
+    def _setup_icon_menu(self):
+
+        iconmenu = IconMenu()
+        iconmenu.connect("set-icon",
+            lambda w, i: self._main_window.on_set_icon(
+                i, u"", self.get_selected_nodes()[0]))
+        iconmenu.new_icon.connect("activate",
+            lambda w: self._main_window.on_new_icon(
+                self.get_selected_nodes()[0]))
+
+        return iconmenu
+
+
+
+
+    def remove_ui(self, window):
+
+        assert self._main_window == window
+
+        #print "remove"
+
+        self.editor_menus.remove_ui(self._main_window)
+
+        for ui in reversed(self._uis):
+            self._main_window.get_uimanager().remove_ui(ui)
+        self._uis = []
+
+        self._main_window.get_uimanager().remove_action_group(self._action_group)
+        self._action_group = None
+        self._main_window.get_uimanager().ensure_update()
+
+
     def get_ui(self):        
         
+        # NOTE: I use a dummy menubar popup_menus so that I can have
+        # accelerators on the menus.  It is a hack.
+
         return ["""
         <ui>
         <menubar name="main_menu_bar">
+          <menu action="File">
+            <placeholder name="Viewer">
+              <menuitem action="New Page"/>
+              <menuitem action="New Child Page"/>
+              <menuitem action="New Folder"/>
+            </placeholder>
+          </menu>
+
+          <menu action="Edit">
+            <placeholder name="Viewer">
+              <menuitem action="Attach File"/>
+              <separator/>
+              <placeholder name="Editor"/>
+            </placeholder>
+          </menu>
+
+          <placeholder name="Viewer">
+            <placeholder name="Editor"/>
+            <menu action="View">
+              <menuitem action="View Note in File Explorer"/>
+              <menuitem action="View Note in Text Editor"/>
+              <menuitem action="View Note in Web Browser"/>
+              <menuitem action="Open File"/>
+            </menu>
+          </placeholder>
           <menu action="Go">
             <placeholder name="Viewer">
+              <menuitem action="Back"/>
+              <menuitem action="Forward"/>
+              <separator/>
               <menuitem action="Go to Note"/>
               <menuitem action="Go to Parent Note"/>
               <menuitem action="Go to Next Note"/>
@@ -740,14 +861,77 @@ class ThreePaneViewer (Viewer):
               <menuitem action="Go to Link"/>
             </placeholder>
           </menu>
+          <menu action="Tools">
+          </menu>
         </menubar>
+
+        <toolbar name="main_tool_bar">
+          <placeholder name="Viewer">
+            <toolitem action="New Folder"/>
+            <toolitem action="New Page"/>
+            <separator/>
+            <toolitem action="Back"/>
+            <toolitem action="Forward"/>
+            <separator/>
+            <placeholder name="Editor"/>
+          </placeholder>
+        </toolbar>
+
+        <menubar name="popup_menus">
+          <menu action="treeview_popup">
+            <menuitem action="New Page"/>
+            <menuitem action="New Child Page"/>
+            <menuitem action="New Folder"/>
+            <menuitem action="Attach File"/>
+            <separator/>
+            <menuitem action="Delete Note"/>
+            <menuitem action="Rename Note"/>
+            <menuitem action="Change Note Icon"/>
+            <separator/>
+            <menuitem action="View Note in File Explorer"/>
+            <menuitem action="View Note in Text Editor"/>
+            <menuitem action="View Note in Web Browser"/>
+            <menuitem action="Open File"/>
+          </menu>
+
+          <menu action="listview_popup">
+            <menuitem action="Go to Note"/>
+            <menuitem action="Go to Parent Note"/>
+            <separator/>
+            <menuitem action="New Page"/>
+            <menuitem action="New Child Page"/>
+            <menuitem action="New Folder"/>
+            <menuitem action="Attach File"/>
+            <separator/>
+            <menuitem action="Delete Note"/>
+            <menuitem action="Rename Note"/>
+            <menuitem action="Change Note Icon"/>
+            <separator/>
+            <menuitem action="View Note in File Explorer"/>
+            <menuitem action="View Note in Text Editor"/>
+            <menuitem action="View Note in Web Browser"/>
+            <menuitem action="Open File"/>
+          </menu>
+        </menubar>
+
         </ui>
-        """] + self.editor_menus.get_ui()
+        """]
         
 
     def get_actions(self):
 
         return map(lambda x: Action(*x), [
+                
+            ("treeview_popup", None, "", "", None, lambda w: None),
+            ("listview_popup", None, "", "", None, lambda w: None),
+
+
+            ("Back", gtk.STOCK_GO_BACK, _("_Back"), "", None,
+             lambda w: self.visit_history(-1)),
+            
+            ("Forward", gtk.STOCK_GO_FORWARD, _("_Forward"), "", None,
+             lambda w: self.visit_history(1)),
+
             ("Go to Note", gtk.STOCK_JUMP_TO, _("Go to _Note"),
              "", None,
              lambda w: self.on_list_view_node(None, None)),
@@ -795,21 +979,20 @@ class ThreePaneViewer (Viewer):
             
             ("Go to Link", None, _("Go to Lin_k"),
              "<control>space", None,
-             lambda w: self.goto_link())
-            
-            ]) + self.editor_menus.get_actions()
-
-    def setup_menus(self, uimanager):
-        self.editor_menus.setup_menu(uimanager)
-
+             lambda w: self.goto_link()),
         
-    def make_toolbar(self, toolbar, tips, use_stock_icons,
-                     use_minitoolbar):
-        self.editor_menus.make_toolbar(toolbar, tips, 
-                                       use_stock_icons,
-                                       use_minitoolbar)
+            ("Delete Note", gtk.STOCK_DELETE, _("_Delete"),
+             "", None, 
+             lambda w: self.on_delete_node()),
 
+            ("Rename Note", gtk.STOCK_EDIT, _("_Rename"),
+             "", None, 
+             lambda w: self.on_edit_node()),
 
+            ("Change Note Icon", None, _("_Change Note Icon"),
+             "", None, lambda w: None,
+             lookup_icon_filename(None, u"folder-red.png")),
 
+        ]) #+ self.editor_menus.get_actions()
 
 

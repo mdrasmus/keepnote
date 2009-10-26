@@ -41,13 +41,6 @@ from xml.sax.saxutils import escape
 _ = gettext.gettext
 
 
-# pygtk imports
-import pygtk
-pygtk.require('2.0')
-from gtk import gdk
-import gtk.glade
-import gobject
-
 # keepnote imports
 import keepnote
 from keepnote import unicode_gtk
@@ -83,20 +76,23 @@ class Extension (keepnote.Extension):
         keepnote.Extension.__init__(self, app)
         self.app = app
 
+        self._ui_id = {}
 
-    def on_new_window(self, window):
+
+    def on_add_ui(self, window):
         """Initialize extension for a particular window"""
 
         # add menu options
-
-        window.actiongroup.add_actions([
+        self.action_group = gtk.ActionGroup("MainWindow")
+        self.action_group.add_actions([
             ("Export HTML", None, "_HTML...",
              "", None,
              lambda w: self.on_export_notebook(window,
                                                window.get_notebook())),
             ])
+        window.get_uimanager().insert_action_group(self.action_group, 0)
         
-        window.uimanager.add_ui_from_string(
+        self._ui_id[window] = window.get_uimanager().add_ui_from_string(
             """
             <ui>
             <menubar name="main_menu_bar">
@@ -108,6 +104,15 @@ class Extension (keepnote.Extension):
             </menubar>
             </ui>
             """)
+
+    def on_remove_ui(self, window):        
+
+        # remove option
+        window.get_uimanager().remove_action_group(self.action_group)
+        self.action_group = None
+        
+        window.get_uimanager().remove_ui(self._ui_id[window])
+        del self._ui_id[window]
 
 
     def on_export_notebook(self, window, notebook):
@@ -122,7 +127,7 @@ class Extension (keepnote.Extension):
                      "Export", gtk.RESPONSE_OK))
 
 
-        basename = time.strftime(os.path.basename(window.notebook.get_path()) +
+        basename = time.strftime(os.path.basename(notebook.get_path()) +
                                  "-%Y-%m-%d")
 
         if os.path.exists(self.app.pref.archive_notebook_path):            
@@ -149,6 +154,8 @@ class Extension (keepnote.Extension):
             dialog.destroy()
 
             self.export_notebook(notebook, filename, window=window)
+        else:
+            dialog.destroy()
 
 
     def export_notebook(self, notebook, filename, window=None):

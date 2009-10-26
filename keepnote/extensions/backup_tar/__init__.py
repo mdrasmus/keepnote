@@ -57,7 +57,7 @@ except ImportError:
 class Extension (keepnote.Extension):
     
     version = (1, 0)
-    name = "TAR Backup"
+    name = "Notebook Backup (tar)"
     description = "Backups a notebook to a gzip tar file (*.tar.gz)"
 
 
@@ -67,13 +67,15 @@ class Extension (keepnote.Extension):
         keepnote.Extension.__init__(self, app)
         self.app = app
 
+        self._ui_id = {}
 
-    def on_new_window(self, window):
+
+    def on_add_ui(self, window):
         """Initialize extension for a particular window"""
 
         # add menu options
-
-        window.actiongroup.add_actions([
+        self.action_group = gtk.ActionGroup("MainWindow")
+        self.action_group.add_actions([
             ("Backup Notebook", None, "_Backup Notebook...",
              "", None,
              lambda w: self.on_archive_notebook(window,
@@ -82,13 +84,14 @@ class Extension (keepnote.Extension):
              "", None,
              lambda w: self.on_restore_notebook(window))
             ])
+        window.get_uimanager().insert_action_group(self.action_group, 0)
         
-        window.uimanager.add_ui_from_string(
+        self._ui_id[window] = window.get_uimanager().add_ui_from_string(
             """
             <ui>
             <menubar name="main_menu_bar">
                <menu action="File">
-                  <placeholder name="File Extensions">
+                  <placeholder name="Extensions">
                      <menuitem action="Backup Notebook"/>
                      <menuitem action="Restore Notebook"/>
                   </placeholder>
@@ -97,26 +100,39 @@ class Extension (keepnote.Extension):
             </ui>
             """)
 
+    def on_remove_ui(self, window):        
+
+        # remove menu options
+        window.get_uimanager().remove_action_group(self.action_group)
+        self.action_group = None
+        
+        window.get_uimanager().remove_ui(self._ui_id[window])
+        del self._ui_id[window]
+
 
     def on_archive_notebook(self, window, notebook):
         """Callback from gui for archiving a notebook"""
+
+        if notebook is None:
+            return
 
         dialog = gtk.FileChooserDialog("Backup Notebook", window, 
             action=gtk.FILE_CHOOSER_ACTION_SAVE,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
                      "Backup", gtk.RESPONSE_OK))
 
-
-        filename = notebooklib.get_unique_filename(
-            self.app.pref.archive_notebook_path,
-            time.strftime(os.path.basename(notebook.get_path()) +
-                          "-%Y-%m-%d"),
-            ".tar.gz",
-            ".")
-        dialog.set_current_name(os.path.basename(filename))
-
         if os.path.exists(self.app.pref.archive_notebook_path):
             dialog.set_current_folder(self.app.pref.archive_notebook_path)
+            filename = notebooklib.get_unique_filename(
+                self.app.pref.archive_notebook_path,
+                os.path.basename(notebook.get_path()) +
+                time.strftime("-%Y-%m-%d"), ".tar.gz", ".")
+        else: 
+            filename = os.path.basename(notebook.get_path()) + \
+                time.strftime("-%Y-%m-%d") + u".tar.gz"
+        
+        dialog.set_current_name(os.path.basename(filename))
+
 
         file_filter = gtk.FileFilter()
         file_filter.add_pattern("*.tar.gz")
