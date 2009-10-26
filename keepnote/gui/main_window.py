@@ -99,6 +99,7 @@ class KeepNoteWindow (gtk.Window):
 
         # window state
         self._maximized = False   # True if window is maximized
+        self._was_maximized = False # True if iconified and was maximized
         self._iconified = False   # True if window is minimized
         self._tray_icon = None
 
@@ -255,14 +256,28 @@ class KeepNoteWindow (gtk.Window):
     def _on_window_state(self, window, event):
         """Callback for window state"""
 
+        iconified = self._iconified        
+
         # keep track of maximized and minimized state
         self._iconified = bool(event.new_window_state & 
                                gtk.gdk.WINDOW_STATE_ICONIFIED)
 
-        # TODO: add call to maximize window to help MS windows
+        # detect recent iconification
+        if not iconified and self._iconified:
+            # save maximized state before iconification
+            self._was_maximized = self._maximized
+
 
         self._maximized = bool(event.new_window_state & 
                                gtk.gdk.WINDOW_STATE_MAXIMIZED)
+
+        # detect recent de-iconification
+        if iconified and not self._iconified:
+            # explicitly maximize if not maximized
+            # NOTE: this is needed to work around a MS windows GTK bug
+            if self._was_maximized: # and not self._maximized:
+                print "maximize"
+                gobject.idle_add(self.maximize)
 
 
     def _on_window_size(self, window, event):
@@ -1642,6 +1657,7 @@ class KeepNoteWindow (gtk.Window):
         self.search_box_completion.set_model(self.search_box_list)
         self.search_box_completion.set_text_column(0)
         self.search_box.set_completion(self.search_box_completion)
+        self.search_box.show()
         self._ignore_text = False
         w = self._uimanager.get_widget("/main_tool_bar/Search Box Tool")
         w.remove(w.child)

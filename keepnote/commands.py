@@ -282,13 +282,16 @@ class CommandExecutor (object):
         # use port number to connect
         s = socket.socket(socket.AF_INET)
         s.connect(("localhost", port))
-        connfile = s.makefile()
+        
                     
         # ensure header matches
-        header = connfile.readline()
+        #header = connfile.readline()
+        s.settimeout(5.0) # wait upto 5 seconds to connect
+        header = s.recv(len(KEEPNOTE_HEADER))
         assert header == KEEPNOTE_HEADER
 
         # send password
+        connfile = s.makefile()
         connfile.write("%s\n" % passwd)
                     
         def execute(app, argv):
@@ -325,8 +328,12 @@ class CommandExecutor (object):
                 except Exception, e:
                     # lockfile does not contain proper port number
                     # remove lock file and attempt to acquire again
-                    if fd:
-                        os.close(fd)
+                    try:
+                        if fd:
+                            os.close(fd)
+                    except Exception:
+                        # ignore failure to close fd
+                        pass
                     os.remove(lock_file)
 
         raise Exception("cannot get lock")
