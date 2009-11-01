@@ -961,6 +961,8 @@ class KeepNoteWindow (gtk.Window):
             self.error(_("Error while attaching file '%s'." % filename),
                        e, sys.exc_info()[2])
 
+
+
     def on_view_node_external_app(self, app, node=None, kind=None):
         """View a node with an external app"""
         
@@ -976,39 +978,27 @@ class KeepNoteWindow (gtk.Window):
                 return            
             node = nodes[0]
 
-            # TODO: could allow "Files" to be opened by page actions
-            if kind == "page" and \
-               node.get_attr("content_type") != notebooklib.CONTENT_TYPE_PAGE:
-                self.emit("error", _("Only pages can be viewed with %s.") %
-                          self._app.pref.get_external_app(app).title)
-                return
-
         try:
-            if kind == "page":
+            if node.get_attr("content_type") == notebooklib.CONTENT_TYPE_PAGE:
                 # get html file
-                filename = os.path.realpath(node.get_data_file())
-                
-            elif kind == "file":
-                # get payload file
-                if not node.has_attr("payload_filename"):
-                    self.emit("error", 
-                              _("Only files can be viewed with %s.") %
-                              self._app.pref.get_external_app(app).title)
-                    return
-                filename = os.path.realpath(
-                    os.path.join(node.get_path(),
-                                 node.get_attr("payload_filename")))
-                
-            else:
+                filename = node.get_data_file()
+
+            elif node.get_attr("content_type") == notebooklib.CONTENT_TYPE_DIR:
                 # get node dir
-                filename = os.path.realpath(node.get_path())
+                filename = node.get_path()
+                
+            elif node.has_attr("payload_filename"):
+                # get payload file
+                filename = os.path.join(node.get_path(),
+                                        node.get_attr("payload_filename"))
+            else:
+                raise KeepNoteError(_("Unable to dertermine note type."))
             
-            self._app.run_external_app(app, filename)
+            self._app.run_external_app(app, os.path.realpath(filename))
         
         except KeepNoteError, e:
             self.emit("error", e.msg, e, sys.exc_info()[2])
 
-                           
 
     #=================================================
     # Image context menu
@@ -1535,6 +1525,7 @@ class KeepNoteWindow (gtk.Window):
      <menuitem action="Reload Notebook"/>
      <menuitem action="Save Notebook"/>
      <menuitem action="Close Notebook"/>
+     <menuitem action="Empty Trash"/>
      <separator/>
      <menu action="Export">
      </menu>
@@ -1555,8 +1546,6 @@ class KeepNoteWindow (gtk.Window):
     <menuitem action="Paste"/>
     <separator/>
     <placeholder name="Viewer"/>
-    <separator/>
-    <menuitem action="Empty Trash"/>
     <separator/>
     <menuitem action="KeepNote Preferences"/>
   </menu>

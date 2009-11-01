@@ -1,9 +1,7 @@
-# French translations for keepnote package
-# Traductions françaises du paquet keepnote.
+# Spanish translations for keepnote package
 # Copyright (C) 2009 Matt Rasmussen
 # This file is distributed under the same license as the keepnote package.
 #
-# tb <thibaut.bethune@gmail.com>, 2009.
 # Klemens Häckel <click3d at linuxmail (dot) org>, 2009.
 msgid ""
 msgstr ""
