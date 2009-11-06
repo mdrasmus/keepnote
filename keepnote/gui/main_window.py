@@ -35,8 +35,6 @@ import sys
 import tempfile
 import traceback
 
-_ = gettext.gettext
-
 
 # pygtk imports
 import pygtk
@@ -86,6 +84,7 @@ from keepnote.gui.icon_menu import IconMenu
 from keepnote.gui.three_pane_viewer import ThreePaneViewer
 
 
+_ = keepnote.translate
 
 
 
@@ -346,8 +345,8 @@ class KeepNoteWindow (gtk.Window):
     # Application preferences     
     
     def load_preferences(self, first_open=False):
-        """Load preferences"""
-        
+        """Load preferences"""        
+
         if first_open:
             self.resize(*self._app.pref.window_size)
             if self._app.pref.window_maximized:

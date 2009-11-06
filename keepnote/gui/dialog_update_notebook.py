@@ -44,7 +44,7 @@ from keepnote.notebook import update
 from keepnote import notebook as notebooklib
 from keepnote.gui import get_resource
 
-_ = gettext.gettext
+_ = keepnote.translate
 
 
 MESSAGE_TEXT = _("This notebook has format version %d and must be updated to version %d before opening.")

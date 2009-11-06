@@ -43,7 +43,7 @@ from keepnote.gui.font_selector import FontSelector
 import keepnote.gui
 from keepnote.gui.icons import get_icon_filename
 
-_ = gettext.gettext
+_ = keepnote.translate
 
 
 

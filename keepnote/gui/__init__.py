@@ -34,7 +34,6 @@ import subprocess
 import sys
 import tempfile
 
-_ = gettext.gettext
 
 # pygtk imports
 import pygtk
@@ -56,6 +55,7 @@ import keepnote.gui
 from keepnote.gui.icons import \
     DEFAULT_QUICK_PICK_ICONS
     
+_ = keepnote.translate
 
 # setup glade with gettext
 gtk.glade.bindtextdomain(keepnote.GETTEXT_DOMAIN, keepnote.get_locale_dir())

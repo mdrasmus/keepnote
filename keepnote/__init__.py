@@ -51,6 +51,8 @@ from keepnote.listening import Listeners
 from keepnote import safefile
 from keepnote.util import compose
 from keepnote import mswin
+import keepnote.trans
+
 
 # import screenshot so that py2exe discovers it
 try:
@@ -197,53 +199,12 @@ def unicode_gtk(text):
 #=============================================================================
 # locale functions
 
-
-def set_locale():
-    locale.setlocale(locale.LC_ALL, '')
-    gettext.bindtextdomain(GETTEXT_DOMAIN, get_locale_dir())
-    gettext.textdomain(GETTEXT_DOMAIN)
-
+def set_lang(lang=None):
+    keepnote.trans.set_lang(lang)
 
 def translate(message):
-    return gettext.gettext(message)
+    return keepnote.trans.translate(message)
 
-'''
-#Translation stuff
-
-#Get the local directory since we are not installing anything
-self.local_path = os.path.realpath(os.path.dirname(sys.argv[0]))
-# Init the list of languages to support
-langs = []
-#Check the default locale
-lc, encoding = locale.getdefaultlocale()
-if (lc):
-	#If we have a default, it's the first in the list
-	langs = [lc]
-# Now lets get all of the supported languages on the system
-language = os.environ.get('LANGUAGE', None)
-if (language):
-	"""langage comes back something like en_CA:en_US:en_GB:en
-	on linuxy systems, on Win32 it's nothing, so we need to
-	split it up into a list"""
-	langs += language.split(":")
-"""Now add on to the back of the list the translations that we
-know that we have, our defaults"""
-langs += ["en_CA", "en_US"]
-
-"""Now langs is a list of all of the languages that we are going
-to try to use.  First we check the default, then what the system
-told us, and finally the 'known' list"""
-
-gettext.bindtextdomain(APP_NAME, self.local_path)
-gettext.textdomain(APP_NAME)
-# Get the language to use
-self.lang = gettext.translation(APP_NAME, self.local_path
-	, languages=langs, fallback = True)
-"""Install the language, map _() (which we marked our
-strings to translate with) to self.lang.gettext() which will
-translate them."""
-_ = self.lang.gettext
-'''
 
 
 
@@ -611,6 +572,8 @@ class KeepNotePreferences (object):
         self.skip_taskbar = False
         self.recent_notebooks = []
 
+        self.language = ""
+
         # dialog chooser paths
         docs = get_user_documents()
         self.new_notebook_path = docs
@@ -723,6 +686,8 @@ class KeepNotePreferences (object):
 g_keepnote_pref_parser = xmlo.XmlObject(
     xmlo.Tag("takenote", tags=[
         xmlo.Tag("id", attr=("id", None, None)),
+        xmlo.Tag("language", attr=("language", None, None)),
+
         xmlo.Tag("default_notebook",
                  attr=("default_notebook", None, None)),
         xmlo.Tag("use_last_notebook",
@@ -894,6 +859,8 @@ class KeepNote (object):
         # set of associated extensions with application
         self._extensions = {}
 
+        self.pref.changed.add(self.load_preferences)
+
         # read preferences
         self.pref.read()
 
@@ -904,6 +871,19 @@ class KeepNote (object):
         # initialize all extensions
         self.init_extensions()
         
+
+    def load_preferences(self):
+        """Load information from preferences"""
+
+        keepnote.trans.set_lang(self.pref.language)
+
+
+    def save_preferneces(self):
+        """TODO: not used yet"""
+        pass
+
+        #self._app.pref.write()
+
 
     #==================================
     # actions

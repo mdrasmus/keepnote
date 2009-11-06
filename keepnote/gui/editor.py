@@ -31,9 +31,6 @@ import gettext
 import sys, os
 
 
-_ = gettext.gettext
-
-
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
@@ -76,7 +73,7 @@ from keepnote.gui import dialog_find
 from keepnote.gui.popupwindow import PopupWindow
 from keepnote.gui.linkcomplete import LinkPickerPopup
 
-
+_ = keepnote.translate
 
 
 class FontUI (object):

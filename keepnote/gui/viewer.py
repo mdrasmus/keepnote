@@ -30,7 +30,6 @@ import gettext
 import os
 import subprocess
 import traceback
-_ = gettext.gettext
 
 
 # pygtk imports
@@ -48,6 +47,7 @@ from keepnote.history import NodeHistory
 from keepnote import notebook as notebooklib
 from keepnote.gui.treemodel import iter_children
 
+_ = keepnote.translate
 
 
 

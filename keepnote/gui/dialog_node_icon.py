@@ -28,8 +28,6 @@
 import gettext
 import os
 
-_ = gettext.gettext
-
 
 # pygtk imports
 import pygtk
@@ -53,6 +51,8 @@ from keepnote.gui.icons import \
      builtin_icons, \
      get_all_icon_basenames, \
      get_node_icon_filenames
+
+_ = keepnote.translate
 
 
 

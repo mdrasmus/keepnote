@@ -26,8 +26,6 @@
 
 import gettext
 
-_ = gettext.gettext
-
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
@@ -43,7 +41,9 @@ from keepnote.gui import \
 from keepnote.gui import treemodel
 from keepnote import notebook
 from keepnote.notebook import NoteBookError
+import keepnote
 
+_ = keepnote.translate
 
 
 

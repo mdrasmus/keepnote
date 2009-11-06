@@ -284,7 +284,7 @@ class KeepNoteTreeModel (gtk.GenericTreeModel):
             if node == self._master_node:
                 # reset roots
                 self.set_root_nodes(self._master_node.get_children())
-            else:
+            elif recurse:
                 try:
                     path = self.on_get_path(node)
                 except:
@@ -293,6 +293,7 @@ class KeepNoteTreeModel (gtk.GenericTreeModel):
                 
                 rowref = self.create_tree_iter(node)
 
+                # TODO: is there something more elegant?
                 self.row_deleted(path)
                 self.row_inserted(path, rowref)
                 self.row_has_child_toggled(path, rowref)

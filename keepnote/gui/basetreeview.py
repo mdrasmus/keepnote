@@ -27,8 +27,6 @@
 # python imports
 import gettext, urllib
 
-_ = gettext.gettext
-
 
 # pygtk imports
 import pygtk
@@ -39,10 +37,15 @@ from gtk import gdk
 
 
 # keepnote imports
+import keepnote
 from keepnote import unicode_gtk
 from keepnote.notebook import NoteBookError, NoteBookTrash
 from keepnote.gui.treemodel import \
      get_path_from_node
+
+_ = keepnote.translate
+
+
 
 CLIPBOARD_NAME = "CLIPBOARD"     
 MIME_NODE = "application/x-keepnote-node"
@@ -100,6 +103,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         self.editing = False
         self.__sel_nodes = []
         self.__sel_nodes2 = []
+        self.__scroll = (0, 0)
         self.__suppress_sel = False
         self._node_col = None
         self._get_icon = None
@@ -261,6 +265,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
     # model change callbacks
 
     def _on_node_changed_start(self, model, nodes):
+        
         # remember which nodes are selected
         self.__sel_nodes2 = list(self.__sel_nodes)
 
@@ -270,8 +275,12 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # cancel editing
         self.cancel_editing()
 
+        # save scrolling
+        self.__scroll = self.widget_to_tree_coords(0, 0)
+
 
     def _on_node_changed_end(self, model, nodes):
+
         # maintain proper expansion
         for node in nodes:
 
@@ -309,18 +318,19 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                                            self.rich_model.get_node_column())
                 if path2 is not None and \
                    (len(path2) <= 1 or self.row_expanded(path2[:-1])):
-                    # reselect and scroll to node    
+                    # reselect and scroll to node 
                     self.set_cursor(path2)
-                    gobject.idle_add(lambda: self.scroll_to_cell(path2))
             else:
                 # emit de-selection
                 deselect = True
+        
+        # restore scroll
+        gobject.idle_add(lambda : self.scroll_to_point(*self.__scroll))
 
         # resume emitting selection changes
         self.__suppress_sel = False
 
         if deselect:
-            #print self, "here"
             self.select_nodes([])
 
 
