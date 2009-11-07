@@ -33,13 +33,14 @@ locale.setlocale(locale.LC_ALL, "")
 
 # global translation object
 _translation = None
-
+_lang = None
 
 
 def set_lang(lang=None, localedir=None):
     """Set the locale"""
 
-    global _translation
+    global _translation, _lang
+
     
     # setup language preference order
     languages = []
@@ -66,10 +67,16 @@ def set_lang(lang=None, localedir=None):
     # setup language translations
     if langfile:
         _translation = gettext.GNUTranslations(open(langfile))
-        #langname = os.path.basename(os.path.dirname(
-        #                            os.path.dirname(langfile)))
+        _lang = os.path.basename(os.path.dirname(
+                os.path.dirname(langfile)))
+        
     else:
         _translation = gettext.NullTranslations()
+        _lang = ""
+
+
+def get_lang():
+    return _lang
 
 
 def translate(message):

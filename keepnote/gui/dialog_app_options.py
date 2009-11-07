@@ -42,6 +42,7 @@ from keepnote import get_resource
 from keepnote.gui.font_selector import FontSelector
 import keepnote.gui
 from keepnote.gui.icons import get_icon_filename
+import keepnote.trans
 
 _ = keepnote.translate
 
@@ -281,6 +282,58 @@ class LookAndFeelSection (Section):
         app.pref.view_mode = ["vertical", "horizontal"][
             self.listview_layout.get_active()]
  
+
+class LanguageSection (Section):
+    
+    def __init__(self, key, dialog, app, label=u"", icon=None):
+        Section.__init__(self, key, dialog, app, label, icon)
+
+        w = self.get_default_widget()
+        v = gtk.VBox(False, 5)
+        v.show()
+        w.add(v)        
+        
+        # view mode combo
+        h = gtk.HBox(False, 5); h.show()
+        l = gtk.Label(_("Language:")); l.show()
+        h.pack_start(l, False, False, 0)
+        c = gtk.combo_box_new_text(); c.show()
+
+        c.append_text("default")
+
+        for lang in keepnote.trans.get_langs():
+            c.append_text(lang)
+        
+        h.pack_start(c, False, False, 0)
+        v.pack_start(h)
+        self.language_box = c
+        
+
+
+    def load_options(self, app):
+
+        # set default
+        if app.pref.language == "":
+            self.language_box.set_active(0)
+        else:
+            for i, row in enumerate(self.language_box.get_model()):
+                if app.pref.language == row[0]:
+                    self.language_box.set_active(i)
+                    break
+
+
+    def save_options(self, app):
+        
+        if self.language_box.get_active() > 0:
+            app.pref.language = lang = self.language_box.get_active_text()
+        else:
+            # set default
+            app.pref.language = ""
+
+        if app.pref.language != keepnote.trans.get_lang():
+            keepnote.trans.set_lang(app.pref.language)
+ 
+
 
 
 class HelperAppsSection (Section):
@@ -647,6 +700,10 @@ class ApplicationOptionsDialog (object):
         self.add_section(
             LookAndFeelSection("look_and_feel", self.dialog, 
                                self.app, _("Look and Feel")), 
+            "general")
+        self.add_section(
+            LanguageSection("language", self.dialog, self.app, 
+                            _("Language")),
             "general")
         self.add_section(
             DatesSection("date_and_time", self.dialog, self.app, 
