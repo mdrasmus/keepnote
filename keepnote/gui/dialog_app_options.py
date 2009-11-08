@@ -586,8 +586,9 @@ class ExtensionsSection (Section):
         self.list_store.clear()
 
         for ext in app.iter_extensions():
-            self.list_store.append([ext, ext.name, ext.description, 
-                                    ext.is_enabled()])
+            if ext.visible:
+                self.list_store.append([ext, ext.name, ext.description, 
+                                        ext.is_enabled()])
 
         w, h = self.list.size_request()
         w2, h2 = self.sw.get_vscrollbar().size_request()

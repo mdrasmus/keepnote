@@ -362,7 +362,7 @@ def init_user_pref_dir(pref_dir=None, home=None):
     init_error_log(pref_dir)
 
     # init user extensions
-    init_user_extensions(pref_dir)
+    extension.init_user_extensions(pref_dir)
 
 
 def init_error_log(pref_dir=None, home=None):
@@ -389,61 +389,6 @@ def log_error(error, tracebk=None, out=sys.stderr):
 def log_message(message, out=sys.stderr):
     out.write(message)
 
-
-#=============================================================================
-# extension functions
-
-
-def init_user_extensions(pref_dir=None, home=None):
-    """Ensure users extensions are initialized
-       Install defaults if needed"""
-
-    if pref_dir is None:
-        pref_dir = get_user_pref_dir(home)
-
-    extensions_dir = get_user_extensions_dir(pref_dir)
-    if not os.path.exists(extensions_dir):
-        # make dir
-        os.makedirs(extensions_dir, 0700)
-
-    extensions_data_dir = get_user_extensions_data_dir(pref_dir)
-    if not os.path.exists(extensions_data_dir):
-        # make dir
-        os.makedirs(extensions_data_dir, 0700)
-
-
-
-def iter_extensions(extensions_dir):
-    """Iterate through the extensions in directory"""
-
-    for filename in os.listdir(extensions_dir):
-        yield os.path.join(extensions_dir, filename)
-
-
-
-def import_extension(app, name, filename):
-    
-    filename2 = os.path.join(filename, "__init__.py")
-
-    try:
-        infile = open(filename2)
-        #name = os.path.basename(filename)
-    except Exception, e:
-        raise KeepNotePreferenceError("cannot load extension '%s'" %
-                                      filename, e)
-
-    try:
-        mod = imp.load_module(name, infile, filename2,
-                              (".py", "rb", imp.PY_SOURCE))
-        ext = mod.Extension(app)
-        ext.key = name
-        return ext
-                
-    except Exception, e:
-        infile.close()
-        raise KeepNotePreferenceError("cannot load extension '%s'" %
-                                      filename, e)            
-    infile.close()
 
 
 #=============================================================================
@@ -657,7 +602,7 @@ class KeepNotePreferences (object):
         # initialize user extensions directory
         #user_extensions_dir = get_user_extensions_dir(self._pref_dir)
         #if not os.path.exists(user_extensions_dir):
-        init_user_extensions(self._pref_dir)
+        extension.init_user_extensions(self._pref_dir)
         
         
         # notify listeners
@@ -1017,7 +962,7 @@ class KeepNote (object):
     def scan_extensions_dir(self, extensions_dir):
         """Scan extensions directory and store references in application"""
         
-        for filename in iter_extensions(extensions_dir):
+        for filename in extension.iter_extensions(extensions_dir):
             self._extensions[os.path.basename(filename)] = (filename, None)
         
         
@@ -1038,17 +983,15 @@ class KeepNote (object):
 
             except DependencyException, e:
 
-                log_message("  skipping extension '%s':\n" % ext.key)
+                log_message(_("  skipping extension '%s':\n") % ext.key)
                 for dep in ext.get_depends():
                     if not self.dependency_satisfied(dep):
-                        log_message("    failed dependency: %s\n" % repr(dep))
+                        log_message(_("    failed dependency: %s\n") % repr(dep))
 
             except Exception, e:
                 log_error(e, sys.exc_info()[2])
-
-
     
-            
+    
     def get_extension(self, name):
         """Get an extension module by name"""
         
@@ -1062,7 +1005,7 @@ class KeepNote (object):
         # load if first use
         if ext is None:
             try:
-                ext = import_extension(self, name, filename)
+                ext = extension.import_extension(self, name, filename)
                 self._extensions[name] = (filename, ext)
             except KeepNotePreferenceError, e:
                 log_error(e, sys.exc_info()[2])
@@ -1128,6 +1071,7 @@ class KeepNoteExtension (extension.Extension):
     key = "keepnote"
     name = "KeepNote"
     description = "The KeepNote application"
+    visible = False
 
     def __init__(self, app):
         extension.Extension.__init__(self, app)

@@ -23,17 +23,93 @@
 #
 
 import os
+import imp
 
 import keepnote
 
 
+
+
+class DependencyException (Exception):
+    """Exception for dependency error"""
+
+    def __init__(self, ext, dep):
+        self.ext = ext
+        self.dep = dep
+
+
+    def __str__(self):
+        return "Extension '%s' has failed dependency %s" % (self.ext.key, self.dep)
+
+
+#=============================================================================
+# extension functions
+
+
+def init_user_extensions(pref_dir=None, home=None):
+    """Ensure users extensions are initialized
+       Install defaults if needed"""
+
+    if pref_dir is None:
+        pref_dir = keepnote.get_user_pref_dir(home)
+
+    extensions_dir = keepnote.get_user_extensions_dir(pref_dir)
+    if not os.path.exists(extensions_dir):
+        # make user extensions directory
+        os.makedirs(extensions_dir, 0700)
+
+    extensions_data_dir = keepnote.get_user_extensions_data_dir(pref_dir)
+    if not os.path.exists(extensions_data_dir):
+        # make user extensions data directory
+        os.makedirs(extensions_data_dir, 0700)
+
+
+
+def iter_extensions(extensions_dir):
+    """Iterate through the extensions in directory"""
+
+    for filename in os.listdir(extensions_dir):
+        yield os.path.join(extensions_dir, filename)
+
+
+
+def import_extension(app, name, filename):
+    """Import an Extension"""
+
+    filename2 = os.path.join(filename, "__init__.py")
+
+    try:
+        infile = open(filename2)
+    except Exception, e:
+        raise keepnote.KeepNotePreferenceError("cannot load extension '%s'" %
+                                               filename, e)
+
+    try:
+        mod = imp.load_module(name, infile, filename2,
+                              (".py", "rb", imp.PY_SOURCE))
+        ext = mod.Extension(app)
+        ext.key = name
+        infile.close()
+        return ext
+                
+    except Exception, e:
+        infile.close()
+        raise keepnote.KeepNotePreferenceError("cannot load extension '%s'" %
+                                               filename, e)
+
+
+
 def dependency_satisfied(ext, dep):
-    """Checks whether an extension satisfies a dependency"""
+    """
+    Checks whether an extension satisfies a dependency
+
+    if ext is None, only the 'no' rel is checked
+    """
 
     name, rel, version = dep
 
     if ext is None:
-        return (rel == "!=")
+        return (rel == "no")
 
     if rel == ">":
         if not (ext.version > version): return False
@@ -45,19 +121,10 @@ def dependency_satisfied(ext, dep):
         if not (ext.version <= version): return False
     elif rel == "<":
         if not (ext.version < version): return False
+    elif rel == "!=":
+        if not (ext.version != version): return False
 
     return True
-
-
-class DependencyException (Exception):
-    
-    def __init__(self, ext, dep):
-        self.ext = ext
-        self.dep = dep
-
-
-    def __str__(self):
-        return "Extension '%s' has failed dependency %s" % (self.ext.key, self.dep)
 
 
 class Extension (object):
@@ -67,6 +134,7 @@ class Extension (object):
     key = ""
     name = "untitled"
     description = "base extension"
+    visible = True
 
 
     def __init__(self, app):
@@ -131,6 +199,7 @@ class Extension (object):
            '<='   the version must less than or equal to
            '<'    the version must be less than
            '!='   the version must not be equal to
+           'no'   the extension must not exist
 
         All dependencies must be met to enable an extension.  A extension
         name can appear more than once if several relations are required

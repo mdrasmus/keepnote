@@ -71,6 +71,10 @@ class Extension (extension.Extension):
         self._ui_id = {}
 
 
+    def get_depends(self):
+        return [("keepnote", ">=", (0, 6, 1))]
+
+
     def on_add_ui(self, window):
         """Initialize extension for a particular window"""
 
