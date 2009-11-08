@@ -35,6 +35,7 @@ _ = gettext.gettext
 
 # keepnote imports
 import keepnote
+from keepnote import extension
 from keepnote.gui import dialog_app_options
 
 # pygtk imports
@@ -49,7 +50,7 @@ except ImportError:
 
 
 
-class Extension (keepnote.Extension):
+class Extension (extension.Extension):
     
     version = (1, 0)
     name = "Editor Insert Date"
@@ -59,7 +60,7 @@ class Extension (keepnote.Extension):
     def __init__(self, app):
         """Initialize extension"""
         
-        keepnote.Extension.__init__(self, app)
+        extension.Extension.__init__(self, app)
 
         self._widget_focus = {}
         self._set_focus_id = {}
@@ -70,6 +71,7 @@ class Extension (keepnote.Extension):
 
     def on_enabled(self, enabled):
         self.load_config()
+
 
     #===============================
     # config handling

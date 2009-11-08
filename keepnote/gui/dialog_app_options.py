@@ -293,17 +293,18 @@ class LanguageSection (Section):
         v.show()
         w.add(v)        
         
-        # view mode combo
+        # language combo
         h = gtk.HBox(False, 5); h.show()
         l = gtk.Label(_("Language:")); l.show()
         h.pack_start(l, False, False, 0)
         c = gtk.combo_box_new_text(); c.show()
 
+        # populate language options
         c.append_text("default")
-
         for lang in keepnote.trans.get_langs():
             c.append_text(lang)
         
+        # pack combo
         h.pack_start(c, False, False, 0)
         v.pack_start(h)
         self.language_box = c
@@ -603,7 +604,13 @@ class ExtensionsSection (Section):
         
         for row in self.list_store:
             ext, enable = row[0], row[3]
-            ext.enable(enable)
+
+            try:
+                ext.enable(enable)
+            except Exception, e:
+                keepnote.log_error(e)
+
+            row[3] = ext.is_enabled()
 
 
 

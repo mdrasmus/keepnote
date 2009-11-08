@@ -52,6 +52,7 @@ from keepnote import safefile
 from keepnote.util import compose
 from keepnote import mswin
 import keepnote.trans
+from keepnote import extension
 
 
 # import screenshot so that py2exe discovers it
@@ -75,7 +76,7 @@ PROGRAM_NAME = u"KeepNote"
 PROGRAM_VERSION_MAJOR = 0
 PROGRAM_VERSION_MINOR = 6
 PROGRAM_VERSION_RELEASE = 1
-PROGRAN_VERSION = (PROGRAM_VERSION_MAJOR,
+PROGRAM_VERSION = (PROGRAM_VERSION_MAJOR,
                    PROGRAM_VERSION_MINOR,
                    PROGRAM_VERSION_RELEASE)
 
@@ -205,7 +206,7 @@ def set_lang(lang=None):
 def translate(message):
     return keepnote.trans.translate(message)
 
-
+_ = translate
 
 
 #=============================================================================
@@ -383,6 +384,10 @@ def log_error(error, tracebk=None, out=sys.stderr):
     
     out.write("\n")
     traceback.print_exception(type(error), error, tracebk, file=out)
+
+
+def log_message(message, out=sys.stderr):
+    out.write(message)
 
 
 #=============================================================================
@@ -865,6 +870,7 @@ class KeepNote (object):
         self.pref.read()
 
         # scan extensions
+        self.clear_extensions()
         self.scan_extensions_dir(get_system_extensions_dir())
         self.scan_extensions_dir(get_user_extensions_dir())
 
@@ -998,6 +1004,16 @@ class KeepNote (object):
     # extensions
 
 
+    def clear_extensions(self):
+
+        # disable all enabled extension
+        for ext in self.iter_extensions(enabled=True):
+            ext.disable()
+
+        # add default application extension
+        self._extensions = {"keepnote": ("", KeepNoteExtension(self))}
+
+
     def scan_extensions_dir(self, extensions_dir):
         """Scan extensions directory and store references in application"""
         
@@ -1008,13 +1024,29 @@ class KeepNote (object):
     def init_extensions(self):
         """Initialize all extensions"""
         
+        # ensure all extensions are imported first
+        for ext in self.iter_extensions():
+            pass
+
+        # enable those extensions that have their dependencies met
         for ext in self.iter_extensions():
             # enable extension
             try:
                 if ext.key not in self.pref.disabled_extensions:
-                    ext.enable(True)
+                    log_message(_("enabling extension '%s'\n") % ext.key)
+                    enabled = ext.enable(True)
+
+            except DependencyException, e:
+
+                log_message("  skipping extension '%s':\n" % ext.key)
+                for dep in ext.get_depends():
+                    if not self.dependency_satisfied(dep):
+                        log_message("    failed dependency: %s\n" % repr(dep))
+
             except Exception, e:
                 log_error(e, sys.exc_info()[2])
+
+
     
             
     def get_extension(self, name):
@@ -1039,9 +1071,11 @@ class KeepNote (object):
 
 
     def get_extension_base_dir(self, extkey):
+        """Get base directory of an extension"""
         return self._extensions[extkey][0]
     
     def get_extension_data_dir(self, extkey):
+        """Get the data directory of an extension"""
         return os.path.join(get_user_extensions_data_dir(), extkey)
 
     def iter_extensions(self, enabled=False):
@@ -1057,6 +1091,23 @@ class KeepNote (object):
                 yield ext
 
 
+    def dependency_satisfied(self, dep):
+        """Returns True if dependency 'dep' is satisfied"""
+
+        ext  = self.get_extension(dep[0])
+        return extension.dependency_satisfied(ext, dep)
+
+
+    def dependencies_satisfied(self, depends):
+        """Returns True if dependencies 'depend' are satisfied"""
+
+        for dep in depends:
+            if not extension.dependency_satisfied(self.get_extension(dep[0]), 
+                                                  dep):
+                return False
+        return True
+
+
     def on_extension_enabled(self, ext, enabled):
         """Callback for extension enabled"""
 
@@ -1069,100 +1120,25 @@ class KeepNote (object):
     
 
 
-class Extension (object):
-    """KeepNote Extension"""
 
-    version = (1, 0)
-    key = ""
-    name = "untitled"
-    description = "base extension"
+class KeepNoteExtension (extension.Extension):
+    """Extension that represents the application itself"""
 
+    version = PROGRAM_VERSION
+    key = "keepnote"
+    name = "KeepNote"
+    description = "The KeepNote application"
 
     def __init__(self, app):
+        extension.Extension.__init__(self, app)
         
-        self._app = app
-        self._enabled = False
-        self.__windows = set()
-
-        self.__uis = set()
-
 
     def enable(self, enable):
-        self._enabled = enable
+        """This extension is always enabled"""
+        extension.Extension.enable(self, True)
+        return True
 
-        if enable:
-            for window in self.__windows:
-                if window not in self.__uis:
-                    self.on_add_ui(window)
-                    self.__uis.add(window)
-        else:
-            for window in self.__uis:
-                self.on_remove_ui(window)
-            self.__uis.clear()
-
-        # call callback for app
-        self._app.on_extension_enabled(self, enable)
-
-        # call callback for enable event
-        self.on_enabled(enable)
-
-    def is_enabled(self):
-        return self._enabled
-
-    def on_enabled(self, enabled):
-        """Callback for when extension is enabled/disabled"""
-        pass
-
-
-    def get_base_dir(self, exist=True):
-        path = self._app.get_extension_base_dir(self.key)
-        if exist and not os.path.exists(path):
-            os.makedirs(path)
-        return path
-
-
-    def get_data_dir(self, exist=True):
-        path = self._app.get_extension_data_dir(self.key)
-        if exist and not os.path.exists(path):
-            os.makedirs(path)
-        return path
-
-    def get_data_file(self, filename, exist=True):
-        return os.path.join(self.get_data_dir(exist), filename)
-
-    
-    def on_new_window(self, window):
-        """Initialize extension for a particular window"""
-
-        if self._enabled:
-            self.on_add_ui(window)
-            self.__uis.add(window)
-        self.__windows.add(window)
-
-
-    def on_close_window(self, window):
-        """Callback for when window is closed"""
-     
-        if window in self.__windows:
-            if window in self.__uis:
-                self.on_remove_ui(window)
-                self.__uis.remove(window)
-            self.__windows.remove(window)
-
-    def get_windows(self):
-        """Returns windows associated with extension"""
-        return self.__windows
-            
-
-    def on_add_ui(self, window):
-        pass
-
-    def on_remove_ui(self, window):
-        pass
-
-    def on_add_options_ui(self, dialog):
-        pass
-
-    def on_remove_options_ui(self, dialog):
-        pass
+    def get_depends(self):
+        """Application has no dependencies, returns []"""
+        return []
 
