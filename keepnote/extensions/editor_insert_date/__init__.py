@@ -36,13 +36,15 @@ _ = gettext.gettext
 # keepnote imports
 import keepnote
 from keepnote import extension
-from keepnote.gui import dialog_app_options
+
 
 # pygtk imports
 try:
     import pygtk
     pygtk.require('2.0')
     import gtk
+
+    from keepnote.gui import dialog_app_options
 except ImportError:
     # do not fail on gtk import error,
     # extension should be usable for non-graphical uses
@@ -72,6 +74,9 @@ class Extension (extension.Extension):
     def on_enabled(self, enabled):
         self.load_config()
 
+
+    def get_depends(self):
+        return [("keepnote", ">=", (0, 6, 1))]
 
     #===============================
     # config handling

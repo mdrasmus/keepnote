@@ -30,7 +30,7 @@ import keepnote
 
 
 
-class DependencyException (Exception):
+class DependencyError (StandardError):
     """Exception for dependency error"""
 
     def __init__(self, ext, dep):
@@ -151,7 +151,7 @@ class Extension (object):
         # check dependencies
         for dep in self.get_depends():
             if not self._app.dependency_satisfied(dep):
-                raise DependencyException(self, dep)
+                raise DependencyError(self, dep)
 
         self._enabled = enable
 
@@ -187,19 +187,31 @@ class Extension (object):
         """
         Returns dependencies of extension
 
-        Dependencies returned as a list of tuples (NAME, REL, VERSION)
+        Dependencies returned as a list of tuples (NAME, REL, EXTRA)
 
         NAME is a string identify an extension (or 'keepnote' itself).
-        VERSION is a tuple representing a version number.
-           ex: the tuple (0, 6, 1) represents version 0.6.1
+        EXTRA is an object whose type depends on REL
+
         REL is a string representing a relation.  Options are:
-           '>='   the version must be greater than or equal to
-           '>'    the version must be greater than
-           '=='   the version must be exactly equal to
-           '<='   the version must less than or equal to
-           '<'    the version must be less than
-           '!='   the version must not be equal to
-           'no'   the extension must not exist
+
+          Version relations.  For each of these values for REL, the EXTRA
+          field is interpreted as VERSION (see below):
+            '>='   the version must be greater than or equal to
+            '>'    the version must be greater than
+            '=='   the version must be exactly equal to
+            '<='   the version must less than or equal to
+            '<'    the version must be less than
+            '!='   the version must not be equal to
+
+          Other relations.  
+            'no'   the extension must not exist.  EXTRA is None.
+
+
+        Possible values for EXTRA:
+
+          VERSION   This is a tuple representing a version number.
+            ex: the tuple (0, 6, 1) represents version 0.6.1
+
 
         All dependencies must be met to enable an extension.  A extension
         name can appear more than once if several relations are required

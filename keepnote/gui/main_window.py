@@ -979,20 +979,29 @@ class KeepNoteWindow (gtk.Window):
 
         try:
             if node.get_attr("content_type") == notebooklib.CONTENT_TYPE_PAGE:
-                # get html file
-                filename = node.get_data_file()
+
+                if kind == "dir":
+                    filename = node.get_path()
+                else:
+                    # get html file
+                    filename = node.get_data_file()
 
             elif node.get_attr("content_type") == notebooklib.CONTENT_TYPE_DIR:
                 # get node dir
                 filename = node.get_path()
                 
             elif node.has_attr("payload_filename"):
-                # get payload file
-                filename = os.path.join(node.get_path(),
-                                        node.get_attr("payload_filename"))
+
+                if kind == "dir":
+                    filename = node.get_path()
+                else:
+                    # get payload file
+                    filename = os.path.join(node.get_path(),
+                                            node.get_attr("payload_filename"))
             else:
                 raise KeepNoteError(_("Unable to dertermine note type."))
             
+
             self._app.run_external_app(app, os.path.realpath(filename))
         
         except KeepNoteError, e:
@@ -1439,7 +1448,8 @@ class KeepNoteWindow (gtk.Window):
             ("View Note in File Explorer", gtk.STOCK_OPEN,
              _("View Note in File Explorer"),
              "", None,
-             lambda w: self.on_view_node_external_app("file_explorer")),
+             lambda w: self.on_view_node_external_app("file_explorer", 
+                                                      kind="dir")),
             
             ("View Note in Text Editor", gtk.STOCK_OPEN,
              _("View Note in Text Editor"),
@@ -1467,7 +1477,7 @@ class KeepNoteWindow (gtk.Window):
              "", None,
              lambda w: self.update_index()),
             
-            ("KeepNote Preferences", gtk.STOCK_PREFERENCES, _("KeepNote _Preferences"),
+            ("KeepNote Preferences", gtk.STOCK_PREFERENCES, _("_Preferences"),
              "", None,
              lambda w: self._app.app_options_dialog.show(self)),
 

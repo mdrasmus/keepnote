@@ -114,8 +114,9 @@ USER_PREF_FILE = u"takenote.xml"
 USER_LOCK_FILE = u"lockfile"
 USER_ERROR_LOG = u"error-log.txt"
 USER_EXTENSIONS_DIR = u"extensions"
-XDG_USER_EXTENSIONS_DIR = u"takenote/extensions"
 USER_EXTENSIONS_DATA_DIR = u"extensions_data"
+
+XDG_USER_EXTENSIONS_DIR = u"takenote/extensions"
 XDG_USER_EXTENSIONS_DATA_DIR = u"takenote/extensions_data"
 
 
@@ -131,6 +132,8 @@ GETTEXT_DOMAIN = 'keepnote'
 
 #=============================================================================
 # application resources
+
+# TODO: cleanup, make get/set_basedir symmetrical
 
 def get_basedir():
     return os.path.dirname(__file__)
@@ -379,14 +382,21 @@ def init_error_log(pref_dir=None, home=None):
         open(error_log, "a").close()
 
 
-def log_error(error, tracebk=None, out=sys.stderr):
+def log_error(error, tracebk=None, out=None):
     """Write an exception error to the error log"""
     
+    if out is None:
+        out = sys.stderr
+
     out.write("\n")
     traceback.print_exception(type(error), error, tracebk, file=out)
 
 
-def log_message(message, out=sys.stderr):
+def log_message(message, out=None):
+    """Write a message to the error log"""
+
+    if out is None:
+        out = sys.stderr
     out.write(message)
 
 
@@ -981,7 +991,7 @@ class KeepNote (object):
                     log_message(_("enabling extension '%s'\n") % ext.key)
                     enabled = ext.enable(True)
 
-            except DependencyException, e:
+            except extension.DependencyError, e:
 
                 log_message(_("  skipping extension '%s':\n") % ext.key)
                 for dep in ext.get_depends():
