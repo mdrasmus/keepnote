@@ -815,6 +815,7 @@ class KeepNote (object):
 
         # list of application notebooks
         self._notebooks = {}
+        self._notebook_count = {}
         
         # set of associated extensions with application
         self._extensions = {}
@@ -856,15 +857,37 @@ class KeepNote (object):
         notebook.load(filename)
         return notebook
 
+    def close_notebook(self, notebook):
+        """Close notebook"""
+        if notebook in self._notebook_count:
+            # reduce ref count
+            self._notebook_count[notebook] -= 1
+
+            # close if refcount is zero
+            if self._notebook_count[notebook] == 0:
+                del self._notebook_count[notebook]
+
+                for key, val in self._notebooks.iteritems():
+                    if val == notebook:
+                        del self._notebooks[key]
+                        break
+
+                notebook.close()
+
 
     def get_notebook(self, filename, window=None):
         """Returns a an opened notebook at filename"""
 
         filename = os.path.realpath(filename)
         if filename not in self._notebooks:
-            self._notebooks[filename] = self.open_notebook(filename, window)
+            notebook = self.open_notebook(filename, window)
+            self._notebooks[filename] = notebook
+            self._notebook_count[notebook] = 1
+        else:
+            notebook = self._notebooks[filename]
+            self._notebook_count[notebook] +=1 
 
-        return self._notebooks[filename]
+        return notebook
 
 
     def iter_notebooks(self):

@@ -631,19 +631,22 @@ class KeepNoteWindow (gtk.Window):
         
     def close_notebook(self, save=True):
         """Close the NoteBook"""
-        
-        if self.get_notebook() is not None:
+
+        notebook = self.get_notebook()        
+
+        if notebook is not None:
             if save:
                 self.save_notebook()
             
-            self.get_notebook().node_changed.remove(self.on_notebook_node_changed)
-            notebook = self.get_notebook()
+            notebook.node_changed.remove(self.on_notebook_node_changed)
+            
             self.set_notebook(None)
             self.set_status(_("Notebook closed"))
 
             # TODO: will need to check that notebook is not opened by 
             # another window
-            notebook.close()
+            #notebook.close()
+            self._app.close_notebook(notebook)
 
 
     def begin_auto_save(self):
