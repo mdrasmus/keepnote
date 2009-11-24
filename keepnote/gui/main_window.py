@@ -101,6 +101,7 @@ class KeepNoteWindow (gtk.Window):
         self._was_maximized = False # True if iconified and was maximized
         self._iconified = False   # True if window is minimized
         self._tray_icon = None
+        self._auto_saving = False
 
         self._uimanager = UIManager()
         self._accel_group = self._uimanager.get_accel_group()
@@ -653,14 +654,23 @@ class KeepNoteWindow (gtk.Window):
         """Begin autosave callbacks"""
 
         if self._app.pref.autosave:
+            self._auto_saving = True
             gobject.timeout_add(self._app.pref.autosave_time, self.auto_save)
         
+    def end_auto_save(self):
+        """Stop autosave"""
+
+        self._auto_saving = False
+
 
     def auto_save(self):
         """Callback for autosaving"""
 
         # NOTE: return True to activate next timeout callback
         
+        if not self._auto_saving:
+            return False
+
         if self.viewer.get_notebook() is not None:
             self.save_notebook(True)
             return self._app.pref.autosave
@@ -692,6 +702,8 @@ class KeepNoteWindow (gtk.Window):
         if not self.viewer.get_notebook():
             return
 
+        self.end_auto_save()
+
         def update(task):
             # do search in another thread
 
@@ -709,6 +721,8 @@ class KeepNoteWindow (gtk.Window):
         # launch task
         self.wait_dialog(_("Indexing notebook"), _("Indexing..."),
                          tasklib.Task(update))
+
+        self.begin_auto_save()
 
 
 

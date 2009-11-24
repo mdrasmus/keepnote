@@ -431,8 +431,6 @@ class NoteBookIndex (object):
 
         # display error
         keepnote.log_error(error, tracebk)
-        #sys.stderr.write("\n")
-        #traceback.print_exception(type(error), error, tracebk)
 
 
 #NoteBookIndex = NoteBookIndexDummy
