@@ -102,6 +102,11 @@ except ImportError:
     # if this works we know we are running from src_path (1)
     basedir = keepnote.get_basedir()
 
+# locale
+keepnote.set_lang()
+_ = keepnote.translate
+
+
 
 # keepnote imports
 import keepnote.gui
@@ -110,11 +115,6 @@ from keepnote.commands import get_command_executor, CommandExecutor
 from keepnote.teefile import TeeFileStream
 
 
-# locale
-keepnote.set_locale()
-
-import gettext
-_ = gettext.gettext
 
 
 #=============================================================================

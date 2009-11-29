@@ -48,6 +48,7 @@ from keepnote.notebook import NoteBookError, get_valid_unique_filename
 from keepnote import notebook as notebooklib
 from keepnote import tasklib
 from keepnote import tarfile
+from keepnote import extension
 
 # pygtk imports
 try:
@@ -63,7 +64,7 @@ except ImportError:
 
 
 
-class Extension (keepnote.Extension):
+class Extension (extension.Extension):
     
     version = (1, 0)
     name = "Export HTML"
@@ -73,10 +74,14 @@ class Extension (keepnote.Extension):
     def __init__(self, app):
         """Initialize extension"""
         
-        keepnote.Extension.__init__(self, app)
+        extension.Extension.__init__(self, app)
         self.app = app
 
         self._ui_id = {}
+
+
+    def get_depends(self):
+        return [("keepnote", ">=", (0, 6, 1))]
 
 
     def on_add_ui(self, window):

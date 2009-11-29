@@ -35,8 +35,6 @@ import sys
 import tempfile
 import traceback
 
-_ = gettext.gettext
-
 
 # pygtk imports
 import pygtk
@@ -86,6 +84,7 @@ from keepnote.gui.icon_menu import IconMenu
 from keepnote.gui.three_pane_viewer import ThreePaneViewer
 
 
+_ = keepnote.translate
 
 
 
@@ -102,6 +101,7 @@ class KeepNoteWindow (gtk.Window):
         self._was_maximized = False # True if iconified and was maximized
         self._iconified = False   # True if window is minimized
         self._tray_icon = None
+        self._auto_saving = False
 
         self._uimanager = UIManager()
         self._accel_group = self._uimanager.get_accel_group()
@@ -346,8 +346,8 @@ class KeepNoteWindow (gtk.Window):
     # Application preferences     
     
     def load_preferences(self, first_open=False):
-        """Load preferences"""
-        
+        """Load preferences"""        
+
         if first_open:
             self.resize(*self._app.pref.window_size)
             if self._app.pref.window_maximized:
@@ -632,33 +632,45 @@ class KeepNoteWindow (gtk.Window):
         
     def close_notebook(self, save=True):
         """Close the NoteBook"""
-        
-        if self.get_notebook() is not None:
+
+        notebook = self.get_notebook()        
+
+        if notebook is not None:
             if save:
                 self.save_notebook()
             
-            self.get_notebook().node_changed.remove(self.on_notebook_node_changed)
-            notebook = self.get_notebook()
+            notebook.node_changed.remove(self.on_notebook_node_changed)
+            
             self.set_notebook(None)
             self.set_status(_("Notebook closed"))
 
             # TODO: will need to check that notebook is not opened by 
             # another window
-            notebook.close()
+            #notebook.close()
+            self._app.close_notebook(notebook)
 
 
     def begin_auto_save(self):
         """Begin autosave callbacks"""
 
         if self._app.pref.autosave:
+            self._auto_saving = True
             gobject.timeout_add(self._app.pref.autosave_time, self.auto_save)
         
+    def end_auto_save(self):
+        """Stop autosave"""
+
+        self._auto_saving = False
+
 
     def auto_save(self):
         """Callback for autosaving"""
 
         # NOTE: return True to activate next timeout callback
         
+        if not self._auto_saving:
+            return False
+
         if self.viewer.get_notebook() is not None:
             self.save_notebook(True)
             return self._app.pref.autosave
@@ -690,6 +702,8 @@ class KeepNoteWindow (gtk.Window):
         if not self.viewer.get_notebook():
             return
 
+        self.end_auto_save()
+
         def update(task):
             # do search in another thread
 
@@ -707,6 +721,8 @@ class KeepNoteWindow (gtk.Window):
         # launch task
         self.wait_dialog(_("Indexing notebook"), _("Indexing..."),
                          tasklib.Task(update))
+
+        self.begin_auto_save()
 
 
 
@@ -961,6 +977,8 @@ class KeepNoteWindow (gtk.Window):
             self.error(_("Error while attaching file '%s'." % filename),
                        e, sys.exc_info()[2])
 
+
+
     def on_view_node_external_app(self, app, node=None, kind=None):
         """View a node with an external app"""
         
@@ -976,39 +994,36 @@ class KeepNoteWindow (gtk.Window):
                 return            
             node = nodes[0]
 
-            # TODO: could allow "Files" to be opened by page actions
-            if kind == "page" and \
-               node.get_attr("content_type") != notebooklib.CONTENT_TYPE_PAGE:
-                self.emit("error", _("Only pages can be viewed with %s.") %
-                          self._app.pref.get_external_app(app).title)
-                return
-
         try:
-            if kind == "page":
-                # get html file
-                filename = os.path.realpath(node.get_data_file())
-                
-            elif kind == "file":
-                # get payload file
-                if not node.has_attr("payload_filename"):
-                    self.emit("error", 
-                              _("Only files can be viewed with %s.") %
-                              self._app.pref.get_external_app(app).title)
-                    return
-                filename = os.path.realpath(
-                    os.path.join(node.get_path(),
-                                 node.get_attr("payload_filename")))
-                
-            else:
+            if node.get_attr("content_type") == notebooklib.CONTENT_TYPE_PAGE:
+
+                if kind == "dir":
+                    filename = node.get_path()
+                else:
+                    # get html file
+                    filename = node.get_data_file()
+
+            elif node.get_attr("content_type") == notebooklib.CONTENT_TYPE_DIR:
                 # get node dir
-                filename = os.path.realpath(node.get_path())
+                filename = node.get_path()
+                
+            elif node.has_attr("payload_filename"):
+
+                if kind == "dir":
+                    filename = node.get_path()
+                else:
+                    # get payload file
+                    filename = os.path.join(node.get_path(),
+                                            node.get_attr("payload_filename"))
+            else:
+                raise KeepNoteError(_("Unable to dertermine note type."))
             
-            self._app.run_external_app(app, filename)
+
+            self._app.run_external_app(app, os.path.realpath(filename))
         
         except KeepNoteError, e:
             self.emit("error", e.msg, e, sys.exc_info()[2])
 
-                           
 
     #=================================================
     # Image context menu
@@ -1450,7 +1465,8 @@ class KeepNoteWindow (gtk.Window):
             ("View Note in File Explorer", gtk.STOCK_OPEN,
              _("View Note in File Explorer"),
              "", None,
-             lambda w: self.on_view_node_external_app("file_explorer")),
+             lambda w: self.on_view_node_external_app("file_explorer", 
+                                                      kind="dir")),
             
             ("View Note in Text Editor", gtk.STOCK_OPEN,
              _("View Note in Text Editor"),
@@ -1478,7 +1494,7 @@ class KeepNoteWindow (gtk.Window):
              "", None,
              lambda w: self.update_index()),
             
-            ("KeepNote Preferences", gtk.STOCK_PREFERENCES, _("KeepNote _Preferences"),
+            ("KeepNote Preferences", gtk.STOCK_PREFERENCES, _("_Preferences"),
              "", None,
              lambda w: self._app.app_options_dialog.show(self)),
 
@@ -1535,6 +1551,7 @@ class KeepNoteWindow (gtk.Window):
      <menuitem action="Reload Notebook"/>
      <menuitem action="Save Notebook"/>
      <menuitem action="Close Notebook"/>
+     <menuitem action="Empty Trash"/>
      <separator/>
      <menu action="Export">
      </menu>
@@ -1555,8 +1572,6 @@ class KeepNoteWindow (gtk.Window):
     <menuitem action="Paste"/>
     <separator/>
     <placeholder name="Viewer"/>
-    <separator/>
-    <menuitem action="Empty Trash"/>
     <separator/>
     <menuitem action="KeepNote Preferences"/>
   </menu>
@@ -1666,3 +1681,6 @@ class KeepNoteWindow (gtk.Window):
         return toolbar
 
 
+gobject.type_register(KeepNoteWindow)
+gobject.signal_new("error", KeepNoteWindow, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (str, object))

@@ -42,8 +42,9 @@ from keepnote import get_resource
 from keepnote.gui.font_selector import FontSelector
 import keepnote.gui
 from keepnote.gui.icons import get_icon_filename
+import keepnote.trans
 
-_ = gettext.gettext
+_ = keepnote.translate
 
 
 
@@ -281,6 +282,59 @@ class LookAndFeelSection (Section):
         app.pref.view_mode = ["vertical", "horizontal"][
             self.listview_layout.get_active()]
  
+
+class LanguageSection (Section):
+    
+    def __init__(self, key, dialog, app, label=u"", icon=None):
+        Section.__init__(self, key, dialog, app, label, icon)
+
+        w = self.get_default_widget()
+        v = gtk.VBox(False, 5)
+        v.show()
+        w.add(v)        
+        
+        # language combo
+        h = gtk.HBox(False, 5); h.show()
+        l = gtk.Label(_("Language:")); l.show()
+        h.pack_start(l, False, False, 0)
+        c = gtk.combo_box_new_text(); c.show()
+
+        # populate language options
+        c.append_text("default")
+        for lang in keepnote.trans.get_langs():
+            c.append_text(lang)
+        
+        # pack combo
+        h.pack_start(c, False, False, 0)
+        v.pack_start(h)
+        self.language_box = c
+        
+
+
+    def load_options(self, app):
+
+        # set default
+        if app.pref.language == "":
+            self.language_box.set_active(0)
+        else:
+            for i, row in enumerate(self.language_box.get_model()):
+                if app.pref.language == row[0]:
+                    self.language_box.set_active(i)
+                    break
+
+
+    def save_options(self, app):
+        
+        if self.language_box.get_active() > 0:
+            app.pref.language = lang = self.language_box.get_active_text()
+        else:
+            # set default
+            app.pref.language = ""
+
+        if app.pref.language != keepnote.trans.get_lang():
+            keepnote.trans.set_lang(app.pref.language)
+ 
+
 
 
 class HelperAppsSection (Section):
@@ -532,8 +586,9 @@ class ExtensionsSection (Section):
         self.list_store.clear()
 
         for ext in app.iter_extensions():
-            self.list_store.append([ext, ext.name, ext.description, 
-                                    ext.is_enabled()])
+            if ext.visible:
+                self.list_store.append([ext, ext.name, ext.description, 
+                                        ext.is_enabled()])
 
         w, h = self.list.size_request()
         w2, h2 = self.sw.get_vscrollbar().size_request()
@@ -550,7 +605,13 @@ class ExtensionsSection (Section):
         
         for row in self.list_store:
             ext, enable = row[0], row[3]
-            ext.enable(enable)
+
+            try:
+                ext.enable(enable)
+            except Exception, e:
+                keepnote.log_error(e)
+
+            row[3] = ext.is_enabled()
 
 
 
@@ -647,6 +708,10 @@ class ApplicationOptionsDialog (object):
         self.add_section(
             LookAndFeelSection("look_and_feel", self.dialog, 
                                self.app, _("Look and Feel")), 
+            "general")
+        self.add_section(
+            LanguageSection("language", self.dialog, self.app, 
+                            _("Language")),
             "general")
         self.add_section(
             DatesSection("date_and_time", self.dialog, self.app, 

@@ -1,8 +1,17 @@
 KeepNote Change Log
 -------------------
 
-keepnote-0.6
-------------
+keepnote-0.6.1
+--------------
+- add insert timestamp
+- add more extension support
+- reorganized menus
+- fixed Microsoft maximize window bug
+- added Spanish translation.
+
+
+keepnote-0.6 (2009/9/16)
+------------------------
 - added HTML export
 - added note-to-note links
   - autocomplete for making links
@@ -14,7 +23,7 @@ keepnote-0.6
 
 
 keepnote-0.5.3 (2009/7/8)
---------------
+-------------------------
 - setup for translations
    - initial French translation included
    - translations are welcomed! see README.translations.txt

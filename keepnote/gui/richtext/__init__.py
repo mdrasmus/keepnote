@@ -36,7 +36,6 @@ import random
 import urllib2
 import StringIO
 
-_ = gettext.gettext
 
 # pygtk imports
 import pygtk
@@ -82,6 +81,11 @@ from keepnote.gui.richtext.richtext_tags import \
 from keepnote.gui.richtext.richtext_html import HtmlBuffer, HtmlError
 
 from keepnote import safefile
+
+
+import keepnote
+_ = keepnote.translate
+
 
 
 #=============================================================================

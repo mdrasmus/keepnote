@@ -35,8 +35,6 @@ import traceback
 import urlparse
 import urllib2
 
-_ = gettext.gettext
-
 # xml imports
 import xml.dom.minidom as xmldom
 import xml.dom
@@ -54,8 +52,13 @@ from keepnote.timestamp import \
      get_str_timestamp
 from keepnote import safefile
 from keepnote import uuid
+from keepnote import trans
 from keepnote.notebook import index as notebook_index
 import keepnote
+
+
+_ = trans.translate
+
 
 
 # NOTE: the <?xml ?> header is left off to keep it compatiable with IE,

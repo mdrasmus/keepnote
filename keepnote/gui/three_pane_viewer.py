@@ -30,7 +30,6 @@ import gettext
 import os
 import subprocess
 import traceback
-_ = gettext.gettext
 
 
 # pygtk imports
@@ -71,6 +70,7 @@ from keepnote.gui.viewer import Viewer
 from keepnote.gui.icons import \
      lookup_icon_filename
 
+_ = keepnote.translate
 
 
 

@@ -51,6 +51,9 @@ from keepnote.listening import Listeners
 from keepnote import safefile
 from keepnote.util import compose
 from keepnote import mswin
+import keepnote.trans
+from keepnote import extension
+
 
 # import screenshot so that py2exe discovers it
 try:
@@ -73,7 +76,7 @@ PROGRAM_NAME = u"KeepNote"
 PROGRAM_VERSION_MAJOR = 0
 PROGRAM_VERSION_MINOR = 6
 PROGRAM_VERSION_RELEASE = 1
-PROGRAN_VERSION = (PROGRAM_VERSION_MAJOR,
+PROGRAM_VERSION = (PROGRAM_VERSION_MAJOR,
                    PROGRAM_VERSION_MINOR,
                    PROGRAM_VERSION_RELEASE)
 
@@ -90,7 +93,8 @@ LICENSE_NAME = "GPL version 2"
 COPYRIGHT = "Copyright Matt Rasmussen 2009."
 TRANSLATOR_CREDITS = (
     "French: tb <thibaut.bethune@gmail.com>\n"
-    "Turkish: Yuce Tekol <yucetekol@gmail.com>\n")
+    "Turkish: Yuce Tekol <yucetekol@gmail.com>\n"
+    "Spanish: Klemens Hackel <click3d at linuxmail (dot) org>\n")
 
 
 
@@ -110,8 +114,9 @@ USER_PREF_FILE = u"takenote.xml"
 USER_LOCK_FILE = u"lockfile"
 USER_ERROR_LOG = u"error-log.txt"
 USER_EXTENSIONS_DIR = u"extensions"
-XDG_USER_EXTENSIONS_DIR = u"takenote/extensions"
 USER_EXTENSIONS_DATA_DIR = u"extensions_data"
+
+XDG_USER_EXTENSIONS_DIR = u"takenote/extensions"
 XDG_USER_EXTENSIONS_DATA_DIR = u"takenote/extensions_data"
 
 
@@ -127,6 +132,8 @@ GETTEXT_DOMAIN = 'keepnote'
 
 #=============================================================================
 # application resources
+
+# TODO: cleanup, make get/set_basedir symmetrical
 
 def get_basedir():
     return os.path.dirname(__file__)
@@ -196,54 +203,13 @@ def unicode_gtk(text):
 #=============================================================================
 # locale functions
 
-
-def set_locale():
-    locale.setlocale(locale.LC_ALL, '')
-    gettext.bindtextdomain(GETTEXT_DOMAIN, get_locale_dir())
-    gettext.textdomain(GETTEXT_DOMAIN)
-
+def set_lang(lang=None):
+    keepnote.trans.set_lang(lang)
 
 def translate(message):
-    return gettext.gettext(message)
+    return keepnote.trans.translate(message)
 
-'''
-#Translation stuff
-
-#Get the local directory since we are not installing anything
-self.local_path = os.path.realpath(os.path.dirname(sys.argv[0]))
-# Init the list of languages to support
-langs = []
-#Check the default locale
-lc, encoding = locale.getdefaultlocale()
-if (lc):
-	#If we have a default, it's the first in the list
-	langs = [lc]
-# Now lets get all of the supported languages on the system
-language = os.environ.get('LANGUAGE', None)
-if (language):
-	"""langage comes back something like en_CA:en_US:en_GB:en
-	on linuxy systems, on Win32 it's nothing, so we need to
-	split it up into a list"""
-	langs += language.split(":")
-"""Now add on to the back of the list the translations that we
-know that we have, our defaults"""
-langs += ["en_CA", "en_US"]
-
-"""Now langs is a list of all of the languages that we are going
-to try to use.  First we check the default, then what the system
-told us, and finally the 'known' list"""
-
-gettext.bindtextdomain(APP_NAME, self.local_path)
-gettext.textdomain(APP_NAME)
-# Get the language to use
-self.lang = gettext.translation(APP_NAME, self.local_path
-	, languages=langs, fallback = True)
-"""Install the language, map _() (which we marked our
-strings to translate with) to self.lang.gettext() which will
-translate them."""
-_ = self.lang.gettext
-'''
-
+_ = translate
 
 
 #=============================================================================
@@ -399,7 +365,7 @@ def init_user_pref_dir(pref_dir=None, home=None):
     init_error_log(pref_dir)
 
     # init user extensions
-    init_user_extensions(pref_dir)
+    extension.init_user_extensions(pref_dir)
 
 
 def init_error_log(pref_dir=None, home=None):
@@ -416,67 +382,23 @@ def init_error_log(pref_dir=None, home=None):
         open(error_log, "a").close()
 
 
-def log_error(error, tracebk=None, out=sys.stderr):
+def log_error(error, tracebk=None, out=None):
     """Write an exception error to the error log"""
     
+    if out is None:
+        out = sys.stderr
+
     out.write("\n")
     traceback.print_exception(type(error), error, tracebk, file=out)
 
 
-#=============================================================================
-# extension functions
+def log_message(message, out=None):
+    """Write a message to the error log"""
 
+    if out is None:
+        out = sys.stderr
+    out.write(message)
 
-def init_user_extensions(pref_dir=None, home=None):
-    """Ensure users extensions are initialized
-       Install defaults if needed"""
-
-    if pref_dir is None:
-        pref_dir = get_user_pref_dir(home)
-
-    extensions_dir = get_user_extensions_dir(pref_dir)
-    if not os.path.exists(extensions_dir):
-        # make dir
-        os.makedirs(extensions_dir, 0700)
-
-    extensions_data_dir = get_user_extensions_data_dir(pref_dir)
-    if not os.path.exists(extensions_data_dir):
-        # make dir
-        os.makedirs(extensions_data_dir, 0700)
-
-
-
-def iter_extensions(extensions_dir):
-    """Iterate through the extensions in directory"""
-
-    for filename in os.listdir(extensions_dir):
-        yield os.path.join(extensions_dir, filename)
-
-
-
-def import_extension(app, name, filename):
-    
-    filename2 = os.path.join(filename, "__init__.py")
-
-    try:
-        infile = open(filename2)
-        #name = os.path.basename(filename)
-    except Exception, e:
-        raise KeepNotePreferenceError("cannot load extension '%s'" %
-                                      filename, e)
-
-    try:
-        mod = imp.load_module(name, infile, filename2,
-                              (".py", "rb", imp.PY_SOURCE))
-        ext = mod.Extension(app)
-        ext.key = name
-        return ext
-                
-    except Exception, e:
-        infile.close()
-        raise KeepNotePreferenceError("cannot load extension '%s'" %
-                                      filename, e)            
-    infile.close()
 
 
 #=============================================================================
@@ -610,6 +532,8 @@ class KeepNotePreferences (object):
         self.skip_taskbar = False
         self.recent_notebooks = []
 
+        self.language = ""
+
         # dialog chooser paths
         docs = get_user_documents()
         self.new_notebook_path = docs
@@ -688,7 +612,7 @@ class KeepNotePreferences (object):
         # initialize user extensions directory
         #user_extensions_dir = get_user_extensions_dir(self._pref_dir)
         #if not os.path.exists(user_extensions_dir):
-        init_user_extensions(self._pref_dir)
+        extension.init_user_extensions(self._pref_dir)
         
         
         # notify listeners
@@ -722,6 +646,8 @@ class KeepNotePreferences (object):
 g_keepnote_pref_parser = xmlo.XmlObject(
     xmlo.Tag("takenote", tags=[
         xmlo.Tag("id", attr=("id", None, None)),
+        xmlo.Tag("language", attr=("language", None, None)),
+
         xmlo.Tag("default_notebook",
                  attr=("default_notebook", None, None)),
         xmlo.Tag("use_last_notebook",
@@ -889,20 +815,37 @@ class KeepNote (object):
 
         # list of application notebooks
         self._notebooks = {}
+        self._notebook_count = {}
         
         # set of associated extensions with application
         self._extensions = {}
+
+        self.pref.changed.add(self.load_preferences)
 
         # read preferences
         self.pref.read()
 
         # scan extensions
+        self.clear_extensions()
         self.scan_extensions_dir(get_system_extensions_dir())
         self.scan_extensions_dir(get_user_extensions_dir())
 
         # initialize all extensions
         self.init_extensions()
         
+
+    def load_preferences(self):
+        """Load information from preferences"""
+
+        keepnote.trans.set_lang(self.pref.language)
+
+
+    def save_preferneces(self):
+        """TODO: not used yet"""
+        pass
+
+        #self._app.pref.write()
+
 
     #==================================
     # actions
@@ -914,15 +857,37 @@ class KeepNote (object):
         notebook.load(filename)
         return notebook
 
+    def close_notebook(self, notebook):
+        """Close notebook"""
+        if notebook in self._notebook_count:
+            # reduce ref count
+            self._notebook_count[notebook] -= 1
+
+            # close if refcount is zero
+            if self._notebook_count[notebook] == 0:
+                del self._notebook_count[notebook]
+
+                for key, val in self._notebooks.iteritems():
+                    if val == notebook:
+                        del self._notebooks[key]
+                        break
+
+                notebook.close()
+
 
     def get_notebook(self, filename, window=None):
         """Returns a an opened notebook at filename"""
 
         filename = os.path.realpath(filename)
         if filename not in self._notebooks:
-            self._notebooks[filename] = self.open_notebook(filename, window)
+            notebook = self.open_notebook(filename, window)
+            self._notebooks[filename] = notebook
+            self._notebook_count[notebook] = 1
+        else:
+            notebook = self._notebooks[filename]
+            self._notebook_count[notebook] +=1 
 
-        return self._notebooks[filename]
+        return notebook
 
 
     def iter_notebooks(self):
@@ -1017,25 +982,49 @@ class KeepNote (object):
     # extensions
 
 
+    def clear_extensions(self):
+
+        # disable all enabled extension
+        for ext in self.iter_extensions(enabled=True):
+            ext.disable()
+
+        # add default application extension
+        self._extensions = {"keepnote": ("", KeepNoteExtension(self))}
+
+
     def scan_extensions_dir(self, extensions_dir):
         """Scan extensions directory and store references in application"""
         
-        for filename in iter_extensions(extensions_dir):
+        for filename in extension.iter_extensions(extensions_dir):
             self._extensions[os.path.basename(filename)] = (filename, None)
         
         
     def init_extensions(self):
         """Initialize all extensions"""
         
+        # ensure all extensions are imported first
+        for ext in self.iter_extensions():
+            pass
+
+        # enable those extensions that have their dependencies met
         for ext in self.iter_extensions():
             # enable extension
             try:
                 if ext.key not in self.pref.disabled_extensions:
-                    ext.enable(True)
+                    log_message(_("enabling extension '%s'\n") % ext.key)
+                    enabled = ext.enable(True)
+
+            except extension.DependencyError, e:
+
+                log_message(_("  skipping extension '%s':\n") % ext.key)
+                for dep in ext.get_depends():
+                    if not self.dependency_satisfied(dep):
+                        log_message(_("    failed dependency: %s\n") % repr(dep))
+
             except Exception, e:
                 log_error(e, sys.exc_info()[2])
     
-            
+    
     def get_extension(self, name):
         """Get an extension module by name"""
         
@@ -1049,7 +1038,7 @@ class KeepNote (object):
         # load if first use
         if ext is None:
             try:
-                ext = import_extension(self, name, filename)
+                ext = extension.import_extension(self, name, filename)
                 self._extensions[name] = (filename, ext)
             except KeepNotePreferenceError, e:
                 log_error(e, sys.exc_info()[2])
@@ -1058,9 +1047,11 @@ class KeepNote (object):
 
 
     def get_extension_base_dir(self, extkey):
+        """Get base directory of an extension"""
         return self._extensions[extkey][0]
     
     def get_extension_data_dir(self, extkey):
+        """Get the data directory of an extension"""
         return os.path.join(get_user_extensions_data_dir(), extkey)
 
     def iter_extensions(self, enabled=False):
@@ -1076,6 +1067,23 @@ class KeepNote (object):
                 yield ext
 
 
+    def dependency_satisfied(self, dep):
+        """Returns True if dependency 'dep' is satisfied"""
+
+        ext  = self.get_extension(dep[0])
+        return extension.dependency_satisfied(ext, dep)
+
+
+    def dependencies_satisfied(self, depends):
+        """Returns True if dependencies 'depend' are satisfied"""
+
+        for dep in depends:
+            if not extension.dependency_satisfied(self.get_extension(dep[0]), 
+                                                  dep):
+                return False
+        return True
+
+
     def on_extension_enabled(self, ext, enabled):
         """Callback for extension enabled"""
 
@@ -1088,100 +1096,26 @@ class KeepNote (object):
     
 
 
-class Extension (object):
-    """KeepNote Extension"""
 
-    version = (1, 0)
-    key = ""
-    name = "untitled"
-    description = "base extension"
+class KeepNoteExtension (extension.Extension):
+    """Extension that represents the application itself"""
 
+    version = PROGRAM_VERSION
+    key = "keepnote"
+    name = "KeepNote"
+    description = "The KeepNote application"
+    visible = False
 
     def __init__(self, app):
+        extension.Extension.__init__(self, app)
         
-        self._app = app
-        self._enabled = False
-        self.__windows = set()
-
-        self.__uis = set()
-
 
     def enable(self, enable):
-        self._enabled = enable
+        """This extension is always enabled"""
+        extension.Extension.enable(self, True)
+        return True
 
-        if enable:
-            for window in self.__windows:
-                if window not in self.__uis:
-                    self.on_add_ui(window)
-                    self.__uis.add(window)
-        else:
-            for window in self.__uis:
-                self.on_remove_ui(window)
-            self.__uis.clear()
-
-        # call callback for app
-        self._app.on_extension_enabled(self, enable)
-
-        # call callback for enable event
-        self.on_enabled(enable)
-
-    def is_enabled(self):
-        return self._enabled
-
-    def on_enabled(self, enabled):
-        """Callback for when extension is enabled/disabled"""
-        pass
-
-
-    def get_base_dir(self, exist=True):
-        path = self._app.get_extension_base_dir(self.key)
-        if exist and not os.path.exists(path):
-            os.makedirs(path)
-        return path
-
-
-    def get_data_dir(self, exist=True):
-        path = self._app.get_extension_data_dir(self.key)
-        if exist and not os.path.exists(path):
-            os.makedirs(path)
-        return path
-
-    def get_data_file(self, filename, exist=True):
-        return os.path.join(self.get_data_dir(exist), filename)
-
-    
-    def on_new_window(self, window):
-        """Initialize extension for a particular window"""
-
-        if self._enabled:
-            self.on_add_ui(window)
-            self.__uis.add(window)
-        self.__windows.add(window)
-
-
-    def on_close_window(self, window):
-        """Callback for when window is closed"""
-     
-        if window in self.__windows:
-            if window in self.__uis:
-                self.on_remove_ui(window)
-                self.__uis.remove(window)
-            self.__windows.remove(window)
-
-    def get_windows(self):
-        """Returns windows associated with extension"""
-        return self.__windows
-            
-
-    def on_add_ui(self, window):
-        pass
-
-    def on_remove_ui(self, window):
-        pass
-
-    def on_add_options_ui(self, dialog):
-        pass
-
-    def on_remove_options_ui(self, dialog):
-        pass
+    def get_depends(self):
+        """Application has no dependencies, returns []"""
+        return []
 

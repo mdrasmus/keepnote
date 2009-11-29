@@ -35,13 +35,16 @@ _ = gettext.gettext
 
 # keepnote imports
 import keepnote
-from keepnote.gui import dialog_app_options
+from keepnote import extension
+
 
 # pygtk imports
 try:
     import pygtk
     pygtk.require('2.0')
     import gtk
+
+    from keepnote.gui import dialog_app_options
 except ImportError:
     # do not fail on gtk import error,
     # extension should be usable for non-graphical uses
@@ -49,7 +52,7 @@ except ImportError:
 
 
 
-class Extension (keepnote.Extension):
+class Extension (extension.Extension):
     
     version = (1, 0)
     name = "Editor Insert Date"
@@ -59,7 +62,7 @@ class Extension (keepnote.Extension):
     def __init__(self, app):
         """Initialize extension"""
         
-        keepnote.Extension.__init__(self, app)
+        extension.Extension.__init__(self, app)
 
         self._widget_focus = {}
         self._set_focus_id = {}
@@ -70,6 +73,10 @@ class Extension (keepnote.Extension):
 
     def on_enabled(self, enabled):
         self.load_config()
+
+
+    def get_depends(self):
+        return [("keepnote", ">=", (0, 6, 1))]
 
     #===============================
     # config handling
