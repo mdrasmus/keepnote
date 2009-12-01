@@ -54,6 +54,10 @@ def str2bool(s):
     """Convert a string into a bool"""
     return bool(int(s))
     
+def str_no_none(x):
+    if x is None:
+        return ""
+    return x
 
 class Tag (object):
     def __init__(self, name,
@@ -79,7 +83,7 @@ class Tag (object):
                 self._read_data = lambda s,x: s.__setattr__(attr_name, attr_get(x))
 
             if attr_set is None:
-                self._write_data = lambda s: s.__dict__[attr_name]
+                self._write_data = lambda s: str_no_none(s.__dict__[attr_name])
             else:
                 self._write_data = lambda s: attr_set(s.__dict__[attr_name])
 
