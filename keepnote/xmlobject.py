@@ -56,8 +56,9 @@ def str2bool(s):
     
 def str_no_none(x):
     if x is None:
-        return ""
+        return u""
     return x
+
 
 class Tag (object):
     def __init__(self, name,

@@ -297,7 +297,7 @@ def add_actions(actiongroup, actions):
 class KeepNote (keepnote.KeepNote):
     """GUI version of the KeepNote application instance"""
 
-    def __init__(self, basedir=""):
+    def __init__(self, basedir=None):
         keepnote.KeepNote.__init__(self, basedir)
 
         self._tag_table = keepnote.gui.richtext.richtext_tags.RichTextTagTable()
@@ -310,6 +310,8 @@ class KeepNote (keepnote.KeepNote):
 
     def new_window(self):
         """Create a new main window"""
+
+        import keepnote.gui.main_window
 
         window = keepnote.gui.main_window.KeepNoteWindow(self)
         window.connect("delete-event", self._on_window_close)
@@ -345,8 +347,10 @@ class KeepNote (keepnote.KeepNote):
 
         # install default quick pick icons
         if len(notebook.pref.get_quick_pick_icons()) == 0:
+            print "HERE"
             notebook.pref.set_quick_pick_icons(
                 list(DEFAULT_QUICK_PICK_ICONS))
+            notebook.set_preferences_dirty()
 
             # TODO: use listeners to invoke saving
             notebook.write_preferences()

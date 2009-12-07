@@ -90,7 +90,7 @@ class IconMenu (gtk.Menu):
 
     def setup_menu(self):
         """Update menu to reflect notebook"""
-        
+
         self.clear()       
 
         if self._notebook is None:
@@ -98,6 +98,7 @@ class IconMenu (gtk.Menu):
                 self.add_icon(iconfile)
         else:
             for iconfile in self._notebook.pref.get_quick_pick_icons():
+                print iconfile
                 self.add_icon(iconfile)
 
         # separator

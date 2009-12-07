@@ -876,11 +876,13 @@ class KeepNoteWindow (gtk.Window):
             for icon in notebook_icons:
                 if icon not in keep_set:
                     notebook.uninstall_icon(icon)
+
+            notebook.set_preferences_dirty()
             
             # TODO: should this be done with a notify?
             notebook.write_preferences()
 
-        self.on_set_icon(icon_file, icon_open_file)
+        self.on_set_icon(icon_file, icon_open_file, nodes)
 
 
     
