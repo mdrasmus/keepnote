@@ -512,10 +512,8 @@ class KeepNoteWindow (gtk.Window):
             # TODO: should this be outside exception?
             self.viewer.save()
             self.viewer.get_notebook().save()
-
-            self.set_status(_("Notebook saved"))
             
-            self.set_notebook_modified(False)
+            self.set_status(_("Notebook saved"))
             
         except Exception, e:
             if not silent:
@@ -523,7 +521,7 @@ class KeepNoteWindow (gtk.Window):
                 self.set_status(_("Error saving notebook"))
                 return
 
-            self.set_notebook_modified(False)
+        self.set_notebook_modified(False)
 
         
             

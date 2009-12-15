@@ -1300,8 +1300,7 @@ class NoteBook (NoteBookDir):
         """Recursively save any loaded nodes"""
 
         if force or self in self._dirty:
-            self.write_meta_data()
-            print "save", self.pref._quick_pick_icons
+            self.write_meta_data()            
             self.write_preferences()
 
         self._index.save()
@@ -1579,8 +1578,6 @@ class NoteBook (NoteBookDir):
                                        NOTEBOOK_FORMAT_VERSION)
 
 
-        print self.pref._quick_pick_icons
-
 
 
 #=============================================================================
@@ -1701,7 +1698,6 @@ class NoteBookNodeMetaData (object):
             out.write("</node>\n")
             out.close()
         except Exception, e:
-            print e
             raise NoteBookError(_("Cannot write meta data"), e)
 
 

@@ -46,7 +46,7 @@ class IconMenu (gtk.Menu):
         gtk.Menu.__init__(self)
 
         self._notebook = None
-
+        
         # default icon
         self.default_icon = gtk.MenuItem("_Default Icon")
         self.default_icon.connect("activate",
@@ -72,6 +72,7 @@ class IconMenu (gtk.Menu):
         self.posi = 0
         self.posj = 0
 
+
     def set_notebook(self, notebook):        
         """Set notebook for menu"""
         
@@ -94,11 +95,10 @@ class IconMenu (gtk.Menu):
         self.clear()       
 
         if self._notebook is None:
-            for iconfile in default_menu_icons:                    
+            for iconfile in default_menu_icons:
                 self.add_icon(iconfile)
         else:
             for iconfile in self._notebook.pref.get_quick_pick_icons():
-                print iconfile
                 self.add_icon(iconfile)
 
         # separator

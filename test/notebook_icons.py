@@ -48,6 +48,10 @@ class TestCaseNotebookIndex (unittest.TestCase):
         win = app.new_window()
         book = win.open_notebook("test/data/notebook-v3")
 
+        print book.pref.get_quick_pick_icons()
+
+        gtk.main()
+
         book.pref.set_quick_pick_icons(["x2.png"])
         book.set_preferences_dirty()
 

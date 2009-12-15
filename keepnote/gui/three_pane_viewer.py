@@ -793,6 +793,7 @@ class ThreePaneViewer (Viewer):
         iconmenu.new_icon.connect("activate",
             lambda w: self._main_window.on_new_icon(
                 self.get_selected_nodes()[0]))
+        iconmenu.set_notebook(self._notebook)
 
         return iconmenu
 
@@ -802,8 +803,6 @@ class ThreePaneViewer (Viewer):
     def remove_ui(self, window):
 
         assert self._main_window == window
-
-        #print "remove"
 
         self.editor_menus.remove_ui(self._main_window)
 
