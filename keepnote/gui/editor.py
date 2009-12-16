@@ -76,13 +76,6 @@ from keepnote.gui.linkcomplete import LinkPickerPopup
 _ = keepnote.translate
 
 
-class FontUI (object):
-
-    def __init__(self, widget, signal, update_func=lambda ui, font: None):
-        self.widget = widget
-        self.signal = signal
-        self.update_func = update_func
-
 
 class KeepNoteEditor (gtk.VBox):
 
@@ -567,6 +560,28 @@ gobject.signal_new("make-link", KeepNoteEditor, gobject.SIGNAL_RUN_LAST,
 
 
 
+
+
+class FontUI (object):
+
+    def __init__(self, widget, signal, update_func=lambda ui, font: None,
+                 block=None, unblock=None):
+        self.widget = widget
+        self.signal = signal
+        self.update_func = update_func
+
+
+        if block is None:
+            self.block = lambda: self.widget.handler_block(self.signal)
+        else:
+            self.block = block
+
+        if unblock is None:
+            self.unblock = lambda: self.widget.handler_unblock(self.signal)
+        else:
+            self.unblock = unblock
+        
+
 class EditorMenus (gobject.GObject):
 
     def __init__(self, editor):
@@ -578,15 +593,16 @@ class EditorMenus (gobject.GObject):
 
         self._removed_widgets = []
 
+
     #=============================================================
     # Update UI (menubar) from font under cursor
     
     def on_font_change(self, editor, font):
         """Update the toolbar reflect the font under the cursor"""
-        
+
         # block toolbar handlers
-        for ui in self._font_ui_signals:
-            ui.widget.handler_block(ui.signal)
+        for ui in self._font_ui_signals:            
+            ui.block()
 
         # call update callback
         for ui in self._font_ui_signals:
@@ -594,8 +610,8 @@ class EditorMenus (gobject.GObject):
 
         # unblock toolbar handlers
         for ui in self._font_ui_signals:
-            ui.widget.handler_unblock(ui.signal)
-
+            ui.unblock()
+            
 
     #==================================================
     # changing font handlers
@@ -623,14 +639,14 @@ class EditorMenus (gobject.GObject):
     def _on_justify(self, justify):
         """Set font justification"""
         self._editor.get_textview().set_justify(justify)
-        font = self._editor.get_textview().get_font()
-        self.on_font_change(self._editor, font)
+        #font = self._editor.get_textview().get_font()
+        #self.on_font_change(self._editor, font)
         
     def _on_bullet_list(self):
         """Toggle bullet list"""
         self._editor.get_textview().toggle_bullet()
-        font = self._editor.get_textview().get_font()
-        self.on_font_change(self._editor, font)
+        #font = self._editor.get_textview().get_font()
+        #self.on_font_change(self._editor, font)
         
     def _on_indent(self):
         """Indent current paragraph"""
@@ -659,7 +675,7 @@ class EditorMenus (gobject.GObject):
         font = self._editor.get_textview().get_font()
         font.size += 2        
         self._editor.get_textview().set_font_size(font.size)
-        self.on_font_change(self._editor, font)
+        #self.on_font_change(self._editor, font)
     
     
     def _on_font_size_dec(self):
@@ -668,7 +684,7 @@ class EditorMenus (gobject.GObject):
         if font.size > 4:
             font.size -= 2
         self._editor.get_textview().set_font_size(font.size)
-        self.on_font_change(self._editor, font)
+        #self.on_font_change(self._editor, font)
 
 
     def _on_color_set(self, kind, widget, color=0):
@@ -1039,11 +1055,25 @@ class EditorMenus (gobject.GObject):
 
 
     def setup_font_toggle(self, uimanager, path, stock=False, 
-                          update_func=lambda ui, font: None):
+                          update=lambda ui, font: None):
 
         action = uimanager.get_action(path)
+        widget = action.get_proxies()[0]
+
+        def block():
+            action.handler_block(action.signal)
+            action.block_activate_from(widget)
+
+        def unblock():
+            action.handler_unblock(action.signal)
+            action.unblock_activate_from(widget)
+
+
+
         if action:
-            ui = FontUI(action, action.signal, update_func)
+            ui = FontUI(action, action.signal, update_func,
+                        block=block,
+                        unblock=unblock)
             self._font_ui_signals.append(ui)
             return ui
         else:
@@ -1083,6 +1113,11 @@ class EditorMenus (gobject.GObject):
             update_func=lambda ui, font:
             ui.widget.set_active(font.mods["nowrap"]))
 
+
+        def update(ui, font):
+            widget = ui.widget.get_proxies()[0]
+            widget.set_active(font.par_type == "bullet")
+
                 
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Editor/Left Align Tool", 
@@ -1102,8 +1137,9 @@ class EditorMenus (gobject.GObject):
              ui.widget.set_active(font.justify == "fill"))
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Editor/Bullet List Tool", 
-            update_func=lambda ui, font:
-                ui.widget.set_active(font.par_type == "bullet"))
+            update_func=update)
+        #lambda ui, font:
+                #ui.widget.set_active(font.par_type == "bullet"))
 
 
         

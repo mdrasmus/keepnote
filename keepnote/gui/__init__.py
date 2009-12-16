@@ -273,7 +273,7 @@ class Action (gtk.Action):
 class ToggleAction (gtk.ToggleAction):
     def __init__(self, name, stockid, label=None,
                  accel="", tooltip="", func=None, icon=None):
-        gtk.Action.__init__(self, name, label, tooltip, stockid)
+        gtk.ToggleAction.__init__(self, name, label, tooltip, stockid)
         self.func = func
         self.accel = accel
         self.icon = icon
