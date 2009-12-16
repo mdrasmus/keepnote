@@ -1112,8 +1112,7 @@ class EditorMenus (gobject.GObject):
             ui.widget.set_active(font.mods["nowrap"]))
 
 
-        def update(ui, font):
-            print "UPDATE"
+        def update(ui, font):            
             widget = ui.widget.get_proxies()[0]
             widget.set_active(font.par_type == "bullet")
 
