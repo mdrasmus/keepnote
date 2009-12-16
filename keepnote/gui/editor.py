@@ -1055,7 +1055,7 @@ class EditorMenus (gobject.GObject):
 
 
     def setup_font_toggle(self, uimanager, path, stock=False, 
-                          update=lambda ui, font: None):
+                          update_func=lambda ui, font: None):
 
         action = uimanager.get_action(path)
         widget = action.get_proxies()[0]
@@ -1067,8 +1067,6 @@ class EditorMenus (gobject.GObject):
         def unblock():
             action.handler_unblock(action.signal)
             action.unblock_activate_from(widget)
-
-
 
         if action:
             ui = FontUI(action, action.signal, update_func,
@@ -1115,6 +1113,7 @@ class EditorMenus (gobject.GObject):
 
 
         def update(ui, font):
+            print "UPDATE"
             widget = ui.widget.get_proxies()[0]
             widget.set_active(font.par_type == "bullet")
 
