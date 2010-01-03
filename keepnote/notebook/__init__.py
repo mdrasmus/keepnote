@@ -34,6 +34,7 @@ import re
 import traceback
 import urlparse
 import urllib2
+import mimetypes
 
 # xml imports
 import xml.dom.minidom as xmldom

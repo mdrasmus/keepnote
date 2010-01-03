@@ -57,8 +57,7 @@ from keepnote.gui.icons import \
     
 _ = keepnote.translate
 
-# setup glade with gettext
-gtk.glade.bindtextdomain(keepnote.GETTEXT_DOMAIN, keepnote.get_locale_dir())
+
 
 
 # constants
@@ -306,6 +305,17 @@ class KeepNote (keepnote.KeepNote):
         self._windows = []
 
         self.app_options_dialog = keepnote.gui.dialog_app_options.ApplicationOptionsDialog(self)
+
+        
+    def set_lang(self):
+        
+        keepnote.KeepNote.set_lang(self)
+
+        # setup glade with gettext
+        import gtk.glade
+        gtk.glade.bindtextdomain(keepnote.GETTEXT_DOMAIN, 
+                                 keepnote.get_locale_dir())
+        gtk.glade.textdomain(keepnote.GETTEXT_DOMAIN)
 
 
     def new_window(self):

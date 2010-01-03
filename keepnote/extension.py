@@ -133,6 +133,8 @@ class Extension (object):
     version = (1, 0)
     key = ""
     name = "untitled"
+    author = "no author"
+    website = "http://rasm.ods.org/keepnote"
     description = "base extension"
     visible = True
 
