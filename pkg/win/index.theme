@@ -1,0 +1,20 @@
+[Icon Theme]
+Name=Hicolor
+Comment=Fallback icon theme
+Hidden=true
+Directories=16x16/stock,16x16/actions,16x16/mimetypes
+
+[16x16/stock]
+Size=16
+Context=Actions
+Type=Threshold
+
+[16x16/actions]
+Size=16
+Context=Actions
+Type=Threshold
+
+[16x16/mimetypes]
+Size=16
+Context=Actions
+Type=Threshold
