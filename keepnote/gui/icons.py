@@ -27,6 +27,7 @@
 
 
 # python imports
+import sys
 import mimetypes
 import os
 
@@ -98,6 +99,7 @@ class MimeIcons:
         self._icons = set(icons)
         self._cache = {}
  
+
     def get_icon(self, filename, default=None):
         """Try to find icon for filename"""
  
