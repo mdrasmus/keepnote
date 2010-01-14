@@ -1058,17 +1058,17 @@ class EditorMenus (gobject.GObject):
                           update_func=lambda ui, font: None):
 
         action = uimanager.get_action(path)
-        widget = action.get_proxies()[0]
-
-        def block():
-            action.handler_block(action.signal)
-            action.block_activate_from(widget)
-
-        def unblock():
-            action.handler_unblock(action.signal)
-            action.unblock_activate_from(widget)
-
         if action:
+            widget = action.get_proxies()[0]
+
+            def block():
+                action.handler_block(action.signal)
+                action.block_activate_from(widget)
+
+            def unblock():
+                action.handler_unblock(action.signal)
+                action.unblock_activate_from(widget)
+
             ui = FontUI(action, action.signal, update_func,
                         block=block,
                         unblock=unblock)

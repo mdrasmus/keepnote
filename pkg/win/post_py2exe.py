@@ -65,9 +65,14 @@ include(find_path("GTK/share/xml"), dest+"share/xml")
 
 # make sure accels can be changed
 out = open(dest+"etc/gtk-2.0/gtkrc", "a")
-out.write("gtk-can-change-accels = 1\n")
-out.close()
 
+# allow customization of shortcuts
+out.write("gtk-can-change-accels = 1\n")
+
+# suppress bell sound
+out.write("gtk-error-bell = 0\n")
+
+out.close()
 
 
 #prune("dist/share/doc")
