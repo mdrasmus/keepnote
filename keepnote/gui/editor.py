@@ -1058,6 +1058,8 @@ class EditorMenus (gobject.GObject):
                           update_func=lambda ui, font: None):
 
         action = uimanager.get_action(path)
+        # NOTE: action can be none if minimal toolbar is in use.
+
         if action:
             widget = action.get_proxies()[0]
 
