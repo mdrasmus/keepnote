@@ -30,8 +30,8 @@ from ctypes import cdll
 
 # try to import windows lib
 try:
-    from ctypes import windll
-    cdll.msvcrt._putenv.argtypes = [ctypes.c_char_p]
+    msvcrt = cdll.msvcrt
+    msvcrt._putenv.argtypes = [ctypes.c_char_p]
     _windows = True
 except:
     _windows = False
@@ -55,15 +55,20 @@ def set_env(key, val):
     """Cross-platform environment setting"""
     
     if _windows:
-        x = u"%s=%s" % (key, val)
-        setstr = x.encode(locale.getpreferredencoding())
-        #_win_env.append(setstr)
-        #cdll.msvcrt._putenv(setstr)
-        cdll.msvcrt._putenv(setstr)
+        # ignore settings that don't change
+        if os.environ.get(key, "") == val:
+            return
+
+        setstr = u"%s=%s" % (key, val)
+        #setstr = x.encode(locale.getpreferredencoding())
+        msvcrt._putenv(setstr)
 
         #win32api.SetEnvironmentVariable(key, val)
         #ctypes.windll.kernel32.SetEnvironmentVariableA(key, val)
-        os.environ[key] = val
+
+        # NOTE: we only need to change the python copy of the environment
+        # The data member is only available if we are on windows
+        os.environ.data[key] = val
     else:
         os.environ[key] = val
 
