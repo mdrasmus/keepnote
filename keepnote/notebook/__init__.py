@@ -34,6 +34,7 @@ import re
 import traceback
 import urlparse
 import urllib2
+import mimetypes
 
 # xml imports
 import xml.dom.minidom as xmldom
@@ -1121,6 +1122,12 @@ class NoteBookPreferences (object):
     """Preference data structure for a NoteBook"""
     def __init__(self):
 
+        self.quick_pick_icons_changed = Listeners()
+        self.clear()
+
+
+    def clear(self):
+        
         self.version = NOTEBOOK_FORMAT_VERSION
         self.default_font = DEFAULT_FONT
         self.index_dir = u""
@@ -1129,8 +1136,8 @@ class NoteBookPreferences (object):
         self.selected_listview_nodes = []
 
         self._quick_pick_icons = []
+        self.quick_pick_icons_changed.notify()
 
-        self.quick_pick_icons_changed = Listeners()
 
     def get_quick_pick_icons(self):
         return self._quick_pick_icons
@@ -1294,7 +1301,7 @@ class NoteBook (NoteBookDir):
         """Recursively save any loaded nodes"""
 
         if force or self in self._dirty:
-            self.write_meta_data()
+            self.write_meta_data()            
             self.write_preferences()
 
         self._index.save()
@@ -1560,6 +1567,7 @@ class NoteBook (NoteBookDir):
     def read_preferences(self):
         """Reads the NoteBook's preferneces from the file-system"""
         try:
+            self.pref.clear()
             g_notebook_pref_parser.read(self.pref, self.get_pref_file())
         except IOError, e:
             raise NoteBookError(_("Cannot read notebook preferences"), e)
@@ -1569,6 +1577,7 @@ class NoteBook (NoteBookDir):
         if self.pref.version > NOTEBOOK_FORMAT_VERSION:
             raise NoteBookVersionError(self.pref.version,
                                        NOTEBOOK_FORMAT_VERSION)
+
 
 
 
@@ -1690,7 +1699,6 @@ class NoteBookNodeMetaData (object):
             out.write("</node>\n")
             out.close()
         except Exception, e:
-            print e
             raise NoteBookError(_("Cannot write meta data"), e)
 
 

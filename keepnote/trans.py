@@ -25,15 +25,53 @@
 import os
 import gettext
 import locale
+import ctypes
+from ctypes import cdll
 
-import keepnote
+# try to import windows lib
+try:
+    from ctypes import windll
+    cdll.msvcrt._putenv.argtypes = [ctypes.c_char_p]
+    _windows = True
+except:
+    _windows = False
+
+
+# global translation object
+GETTEXT_DOMAIN = 'keepnote'
+_locale_dir = u""
+_translation = None
+_lang = None
+
 
 locale.setlocale(locale.LC_ALL, "")
 
 
-# global translation object
-_translation = None
-_lang = None
+# we must not let windows environment variables deallocate
+# thus we keep a global list of pointers
+#_win_env = []
+
+def set_env(key, val):
+    """Cross-platform environment setting"""
+    
+    if _windows:
+        x = u"%s=%s" % (key, val)
+        setstr = x.encode(locale.getpreferredencoding())
+        #_win_env.append(setstr)
+        #cdll.msvcrt._putenv(setstr)
+        cdll.msvcrt._putenv(setstr)
+
+        #win32api.SetEnvironmentVariable(key, val)
+        #ctypes.windll.kernel32.SetEnvironmentVariableA(key, val)
+        os.environ[key] = val
+    else:
+        os.environ[key] = val
+
+
+def set_local_dir(dirname):
+    """Set the locale directory"""
+    global _locale_dir
+    _locale_dir = dirname
 
 
 def set_lang(lang=None, localedir=None):
@@ -41,7 +79,6 @@ def set_lang(lang=None, localedir=None):
 
     global _translation, _lang
 
-    
     # setup language preference order
     languages = []
     
@@ -56,23 +93,28 @@ def set_lang(lang=None, localedir=None):
 
     # initialize gettext
     if localedir is None:
-        localedir = keepnote.get_locale_dir()
-    gettext.bindtextdomain(keepnote.GETTEXT_DOMAIN, localedir)
-    gettext.textdomain(keepnote.GETTEXT_DOMAIN)
+        localedir = _locale_dir
+    gettext.bindtextdomain(GETTEXT_DOMAIN, localedir)
+    gettext.textdomain(GETTEXT_DOMAIN)
 
     # search for language file
-    langfile = gettext.find(keepnote.GETTEXT_DOMAIN, localedir, languages)
-    
+    langfile = gettext.find(GETTEXT_DOMAIN, localedir, languages)
 
     # setup language translations
     if langfile:
-        _translation = gettext.GNUTranslations(open(langfile))
         _lang = os.path.basename(os.path.dirname(
                 os.path.dirname(langfile)))
-        
+        set_env("LANG", _lang)
+        set_env("LANGUAGE", _lang)
+        _translation = gettext.GNUTranslations(open(langfile, "rb"))
     else:
-        _translation = gettext.NullTranslations()
         _lang = ""
+        set_env("LANG", _lang)
+        set_env("LANGUAGE", _lang)
+        _translation = gettext.NullTranslations()
+
+    # install "_" into python builtins
+    _translation.install()
 
 
 def get_lang():
@@ -81,13 +123,16 @@ def get_lang():
 
 def translate(message):
     """Translate a string into the current language"""
+    if _translation is None:
+        return message
     return _translation.gettext(message)
 
 
 def get_langs(localedir=None):
     """Return available languages"""
+
     if localedir is None:
-        localedir = keepnote.get_locale_dir()
+        localedir = _locale_dir
 
     return os.listdir(localedir)
 

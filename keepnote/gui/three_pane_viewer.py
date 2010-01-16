@@ -465,33 +465,41 @@ class ThreePaneViewer (Viewer):
     def on_list_view_parent_node(self, node=None):
         """Focus listview on a node's parent"""
 
-        # get node
         if node is None:
-            if len(self._treeview_sel_nodes) == 0:
+            nodes, widget = self.get_selected_nodes()
+            if len(nodes) == 0:
                 return
-            if len(self._treeview_sel_nodes) > 1 or \
-               not self.listview.is_view_tree():
-                nodes = self.listview.get_selected_nodes()
-                if len(nodes) == 0:
-                    return
-                node = nodes[0]
-            else:
-                node = self._treeview_sel_nodes[0]
+            node = nodes[0]
+
+        # get node
+        #if node is None:
+        #    if len(self._treeview_sel_nodes) == 0:
+        #        return
+        #    if len(self._treeview_sel_nodes) > 1 or \
+        #       not self.listview.is_view_tree():
+        #        nodes = self.listview.get_selected_nodes()
+        #        if len(nodes) == 0:
+        #            return
+        #        node = nodes[0]
+        #    else:
+        #        node = self._treeview_sel_nodes[0]
 
         # get parent
         parent = node.get_parent()
         if parent is None:
             return
 
+        self.goto_node(parent, direct=False)
+
         # queue list select
-        nodes = self.listview.get_selected_nodes()
-        if len(nodes) > 0:
-            self._queue_list_select = nodes
-        else:
-            self._queue_list_select = [node]
+        #nodes = self.listview.get_selected_nodes()
+        #if len(nodes) > 0:
+        #    self._queue_list_select = nodes
+        #else:
+        #    self._queue_list_select = [node]
 
         # select parent
-        self.treeview.select_nodes([parent])
+        #self.treeview.select_nodes([parent])
 
 
     def _on_edit_title(self, widget, node, title):
@@ -785,6 +793,7 @@ class ThreePaneViewer (Viewer):
         iconmenu.new_icon.connect("activate",
             lambda w: self._main_window.on_new_icon(
                 self.get_selected_nodes()[0]))
+        iconmenu.set_notebook(self._notebook)
 
         return iconmenu
 
@@ -794,8 +803,6 @@ class ThreePaneViewer (Viewer):
     def remove_ui(self, window):
 
         assert self._main_window == window
-
-        #print "remove"
 
         self.editor_menus.remove_ui(self._main_window)
 

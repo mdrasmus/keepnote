@@ -3,8 +3,8 @@ KeepNote Change Log
 
 keepnote-0.6.1
 --------------
-- add insert timestamp
-- add more extension support
+- added insert timestamp
+- added more extension support
 - reorganized menus
 - fixed Microsoft maximize window bug
 - added Spanish translation.

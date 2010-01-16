@@ -57,8 +57,7 @@ from keepnote.gui.icons import \
     
 _ = keepnote.translate
 
-# setup glade with gettext
-gtk.glade.bindtextdomain(keepnote.GETTEXT_DOMAIN, keepnote.get_locale_dir())
+
 
 
 # constants
@@ -273,7 +272,7 @@ class Action (gtk.Action):
 class ToggleAction (gtk.ToggleAction):
     def __init__(self, name, stockid, label=None,
                  accel="", tooltip="", func=None, icon=None):
-        gtk.Action.__init__(self, name, label, tooltip, stockid)
+        gtk.ToggleAction.__init__(self, name, label, tooltip, stockid)
         self.func = func
         self.accel = accel
         self.icon = icon
@@ -297,7 +296,7 @@ def add_actions(actiongroup, actions):
 class KeepNote (keepnote.KeepNote):
     """GUI version of the KeepNote application instance"""
 
-    def __init__(self, basedir=""):
+    def __init__(self, basedir=None):
         keepnote.KeepNote.__init__(self, basedir)
 
         self._tag_table = keepnote.gui.richtext.richtext_tags.RichTextTagTable()
@@ -307,9 +306,22 @@ class KeepNote (keepnote.KeepNote):
 
         self.app_options_dialog = keepnote.gui.dialog_app_options.ApplicationOptionsDialog(self)
 
+        
+    def set_lang(self):
+        
+        keepnote.KeepNote.set_lang(self)
+
+        # setup glade with gettext
+        import gtk.glade
+        gtk.glade.bindtextdomain(keepnote.GETTEXT_DOMAIN, 
+                                 keepnote.get_locale_dir())
+        gtk.glade.textdomain(keepnote.GETTEXT_DOMAIN)
+
 
     def new_window(self):
         """Create a new main window"""
+
+        import keepnote.gui.main_window
 
         window = keepnote.gui.main_window.KeepNoteWindow(self)
         window.connect("delete-event", self._on_window_close)
@@ -345,8 +357,10 @@ class KeepNote (keepnote.KeepNote):
 
         # install default quick pick icons
         if len(notebook.pref.get_quick_pick_icons()) == 0:
+            print "HERE"
             notebook.pref.set_quick_pick_icons(
                 list(DEFAULT_QUICK_PICK_ICONS))
+            notebook.set_preferences_dirty()
 
             # TODO: use listeners to invoke saving
             notebook.write_preferences()

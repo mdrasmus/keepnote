@@ -48,6 +48,7 @@ _ = keepnote.translate
 
 
 
+
 def on_browse(parent, title, filename, entry,
               action=gtk.FILE_CHOOSER_ACTION_OPEN):
     """Callback for selecting file browser associated with a text entry"""
@@ -114,7 +115,7 @@ class GeneralSection (Section):
         self.notebook = None
         
         self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
-                                      "general_frame", keepnote.GETTEXT_DOMAIN)
+                                 "general_frame", keepnote.GETTEXT_DOMAIN)
         self.xml.signal_autoconnect(self)
         self.xml.signal_autoconnect({
             "on_default_notebook_button_clicked":
@@ -331,8 +332,9 @@ class LanguageSection (Section):
             # set default
             app.pref.language = ""
 
-        if app.pref.language != keepnote.trans.get_lang():
-            keepnote.trans.set_lang(app.pref.language)
+        # XXX: may be I should not change translation during execution
+        #if app.pref.language != keepnote.trans.get_lang():
+        #    keepnote.trans.set_lang(app.pref.language)
  
 
 

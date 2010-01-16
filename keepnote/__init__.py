@@ -48,10 +48,10 @@ import keepnote.notebook as notebooklib
 from keepnote import xdg
 from keepnote import xmlobject as xmlo
 from keepnote.listening import Listeners
-from keepnote import safefile
 from keepnote.util import compose
 from keepnote import mswin
 import keepnote.trans
+from keepnote.trans import GETTEXT_DOMAIN
 from keepnote import extension
 
 
@@ -128,7 +128,7 @@ DEFAULT_HSASH_POS = 200
 DEFAULT_VIEW_MODE = "vertical"
 DEFAULT_AUTOSAVE_TIME = 10 * 1000 # 10 sec (in msec)
 
-GETTEXT_DOMAIN = 'keepnote'
+
 
 #=============================================================================
 # application resources
@@ -141,6 +141,8 @@ def get_basedir():
 def set_basedir(basedir):
     global BASEDIR
     BASEDIR = basedir
+    keepnote.trans.set_local_dir(get_locale_dir())
+
 
 def get_resource(*path_list):
     return os.path.join(BASEDIR, *path_list)
@@ -203,11 +205,14 @@ def unicode_gtk(text):
 #=============================================================================
 # locale functions
 
-def set_lang(lang=None):
-    keepnote.trans.set_lang(lang)
-
 def translate(message):
     return keepnote.trans.translate(message)
+
+def get_locale_dir():
+    """Returns KeepNote's locale directory"""
+    #return os.path.join(BASEDIR, u"..", u"locale")
+    return get_resource(u"rc", u"locale")
+
 
 _ = translate
 
@@ -235,12 +240,6 @@ def use_xdg(home=None):
     
     else:
         return False
-
-
-def get_locale_dir():
-    """Returns KeepNote's locale directory"""
-    #return os.path.join(BASEDIR, u"..", u"locale")
-    return get_resource(u"rc", u"locale")
 
 
 #def get_nonxdg_user_pref_dir(home=None):
@@ -824,6 +823,7 @@ class KeepNote (object):
 
         # read preferences
         self.pref.read()
+        self.set_lang()
 
         # scan extensions
         self.clear_extensions()
@@ -836,8 +836,7 @@ class KeepNote (object):
 
     def load_preferences(self):
         """Load information from preferences"""
-
-        keepnote.trans.set_lang(self.pref.language)
+        pass
 
 
     def save_preferneces(self):
@@ -845,6 +844,11 @@ class KeepNote (object):
         pass
 
         #self._app.pref.write()
+
+    def set_lang(self):                
+        """Set the language based on preference"""
+
+        keepnote.trans.set_lang(self.pref.language)
 
 
     #==================================

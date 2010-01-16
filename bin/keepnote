@@ -18,6 +18,18 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
+# XXX
+#import os
+#import win32api
+#win32api.SetEnvironmentVariable("LANG", "fr_FR.UTF8")
+#win32api.SetEnvironmentVariable("LANGUAGE", "fr_FR.UTF8")
+#os.environ["LANG"] = "fr_FR.UTF8"
+
+#from ctypes import cdll
+#msvcrt = cdll.msvcrt
+#result = msvcrt._putenv("LANG=fr_FR.UTF8")
+
+#print os.system("echo start %LANG%")
 
 # python imports
 import exceptions
@@ -36,6 +48,7 @@ pygtk.require('2.0')
 import gtk
 import gtk.gdk
 import gobject
+
 
 
 #=============================================================================
@@ -80,6 +93,8 @@ bin_path = os.path.dirname(sys.argv[0])
 
 """
 
+
+
 try:
     # try to import from python path first
     import keepnote
@@ -102,18 +117,13 @@ except ImportError:
     # if this works we know we are running from src_path (1)
     basedir = keepnote.get_basedir()
 
-# locale
-keepnote.set_lang()
-_ = keepnote.translate
-
 
 
 # keepnote imports
 import keepnote.gui
-import keepnote.gui.main_window
 from keepnote.commands import get_command_executor, CommandExecutor
 from keepnote.teefile import TeeFileStream
-
+_ = keepnote.translate
 
 
 
@@ -240,6 +250,7 @@ def gui_exec(function, *args, **kw):
         finally:
             gtk.gdk.threads_leave()
     gobject.idle_add(idle_func)
+
 
 
 def main(argv):

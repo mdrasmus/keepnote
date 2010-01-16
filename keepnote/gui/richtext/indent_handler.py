@@ -166,6 +166,7 @@ class IndentHandler (object):
                     all_bullets = False
                     break
             
+            # choose opposite new par_type
             if all_bullets:
                 par_type = "none"
             else:
@@ -181,7 +182,7 @@ class IndentHandler (object):
 
 
     def _set_bullet_list_paragraph(self, par_start, par_end, par_type):
-        """Toggle the state of a bullet list for a paragraph"""
+        """Set the state of a bullet list for a paragraph"""
         
         # start indent if it is not present
         indent, _ = self.get_indent(par_start)
@@ -311,7 +312,7 @@ class IndentHandler (object):
 
         # fixup indentation tags
         # The general rule is that the indentation at the start of
-        # each paragraph should determines the indentation of the rest
+        # each paragraph determines the indentation of the rest
         # of the paragraph
 
         # if no indentation requests are queued then do nothing

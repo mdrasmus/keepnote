@@ -2,7 +2,7 @@
 
 import sys
 
-# make sure py2exe finds wine32com
+# make sure py2exe finds win32com
 try:
     import modulefinder
     import win32com
@@ -24,6 +24,9 @@ try:
     import win32gui
     import win32con
     import win32ui
+
+    import ctypes.windll.kernel32
+
 except:
     pass
 
@@ -38,4 +41,7 @@ def get_my_documents():
 
     return mydocs
 
+
+def set_env(key, val):
+    ctypes.windll.kernel32.SetEnvironmentVariableW(key, val)
 

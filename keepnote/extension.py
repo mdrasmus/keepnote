@@ -133,6 +133,8 @@ class Extension (object):
     version = (1, 0)
     key = ""
     name = "untitled"
+    author = "no author"
+    website = "http://rasm.ods.org/keepnote"
     description = "base extension"
     visible = True
 
@@ -253,8 +255,11 @@ class Extension (object):
         """Initialize extension for a particular window"""
 
         if self._enabled:
-            self.on_add_ui(window)
-            self.__uis.add(window)
+            try:
+                self.on_add_ui(window)
+                self.__uis.add(window)
+            except Exception, e:
+                keepnote.log_error(e, sys.exc_info()[2])
         self.__windows.add(window)
 
 
@@ -263,7 +268,10 @@ class Extension (object):
      
         if window in self.__windows:
             if window in self.__uis:
-                self.on_remove_ui(window)
+                try:
+                    self.on_remove_ui(window)
+                except Exception, e:
+                    keepnote.log_error(e, sys.exc_info()[2])
                 self.__uis.remove(window)
             self.__windows.remove(window)
 
