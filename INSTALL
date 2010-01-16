@@ -72,14 +72,19 @@ Mac OS X Install
      - gtk (http://www.gtk.org)
      - pygtk (http://www.pygtk.org)
 
-  All of these libraries are also available through fink for Mac OS X.  Once
-  installed, KeepNote can be run directly from its source directory
+  All of these libraries are also available through MacPorts for Mac OS X. 
+  Once installed, KeepNote can be run directly from its source directory
 
-    $ /sw/bin/pthyon2.5 path-to-keepnote-src/bin/keepnote
+    $ path-to-keepnote-src/bin/keepnote
 
-  NOTE: You will need to make sure the fink version of python is used instead
-  of the native Mac OS X.  The command above forces the fink version to be used.
+  NOTE: You will need to make sure the darwin version of python is used instead
+  of the native Mac OS X.  The command above forces the fink version to be 
+  used.
   
+  To install dependencies with MacPorts use the following command:
+
+    $ sudo port install py25-gtk
+
   Alternative: Another option for running KeepNote is to use the Windows 
   version in WINE or another Virtual Machine (VMware, etc).
 

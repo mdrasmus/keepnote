@@ -102,7 +102,14 @@ MIME_KEEPNOTE = "application/x-keepnote" + str(random.randint(1, 100000))
 MIME_IMAGES = ["image/png",
                "image/bmp",
                "image/jpeg",
-               "image/xpm"]
+               "image/xpm",
+
+               # Mac OS X MIME types
+               "public.png",
+               "public.bmp",
+               "public.jpeg",
+               "public.xpm"]
+
 
 # TODO: add more text MIME types?
 MIME_TEXT = ["text/plain",
