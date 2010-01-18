@@ -104,20 +104,12 @@ IMAGE_DIR = u"images"
 NODE_ICON_DIR = os.path.join(IMAGE_DIR, u"node_icons")
 PLATFORM = None
 
-# backward compatiable files
-USER_PREF_DIR_OLD = u"takenote"
-USER_PREF_FILE_OLD = u"takenote.xml"
-XDG_USER_EXTENSIONS_DIR_OLD = u"takenote/extensions"
-
-USER_PREF_DIR = u"takenote"
-USER_PREF_FILE = u"takenote.xml"
+USER_PREF_DIR = u"keepnote"
+USER_PREF_FILE = u"keepnote.xml"
 USER_LOCK_FILE = u"lockfile"
 USER_ERROR_LOG = u"error-log.txt"
 USER_EXTENSIONS_DIR = u"extensions"
 USER_EXTENSIONS_DATA_DIR = u"extensions_data"
-
-XDG_USER_EXTENSIONS_DIR = u"takenote/extensions"
-XDG_USER_EXTENSIONS_DATA_DIR = u"takenote/extensions_data"
 
 
 
@@ -221,6 +213,7 @@ _ = translate
 # filenaming scheme
 
 
+'''
 def use_xdg(home=None):
     """
     Returns True if configuration is stored in XDG
@@ -229,7 +222,7 @@ def use_xdg(home=None):
     does not exist.
     """
 
-    if get_platform() == "unix":
+    if get_platform() in ("unix", "darwin"):
         if home is None:
             home = ensure_unicode(os.getenv("HOME"), FS_ENCODING)
             if home is None:
@@ -240,6 +233,7 @@ def use_xdg(home=None):
     
     else:
         return False
+'''
 
 
 #def get_nonxdg_user_pref_dir(home=None):
@@ -276,23 +270,17 @@ def get_user_pref_dir(home=None):
 def get_user_extensions_dir(pref_dir=None, home=None):
     """Returns user extensions directory"""
 
-    if not use_xdg():
-        if pref_dir is None:
-            pref_dir = get_user_pref_dir(home)
-        return os.path.join(pref_dir, USER_EXTENSIONS_DIR)
-    else:
-        return xdg.get_data_file(XDG_USER_EXTENSIONS_DIR, default=True)
-
+    if pref_dir is None:
+        pref_dir = get_user_pref_dir(home)
+    return os.path.join(pref_dir, USER_EXTENSIONS_DIR)
+    
 
 def get_user_extensions_data_dir(pref_dir=None, home=None):
     """Returns user extensions data directory"""
 
-    if not use_xdg():
-        if pref_dir is None:
-            pref_dir = get_user_pref_dir(home)
-        return os.path.join(pref_dir, USER_EXTENSIONS_DATA_DIR)
-    else:
-        return xdg.get_data_file(XDG_USER_EXTENSIONS_DATA_DIR, default=True)
+    if pref_dir is None:
+        pref_dir = get_user_pref_dir(home)
+    return os.path.join(pref_dir, USER_EXTENSIONS_DATA_DIR)
 
 
 def get_system_extensions_dir():
@@ -332,13 +320,9 @@ def get_user_lock_file(pref_dir=None, home=None):
 def get_user_error_log(pref_dir=None, home=None):
     """Returns a file for the error log"""
 
-    if use_xdg():
-         return xdg.get_data_file(os.path.join(USER_PREF_DIR, USER_ERROR_LOG),
-                                  default=True)
-    else:
-        if pref_dir is None:
-            pref_dir = get_user_pref_dir(home)
-        return os.path.join(pref_dir, USER_ERROR_LOG)
+    if pref_dir is None:
+        pref_dir = get_user_pref_dir(home)
+    return os.path.join(pref_dir, USER_ERROR_LOG)
 
 
 def init_user_pref_dir(pref_dir=None, home=None):
@@ -356,8 +340,8 @@ def init_user_pref_dir(pref_dir=None, home=None):
     if not os.path.exists(pref_file):
         out = open(pref_file, "w")
         out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        out.write("<takenote>\n")
-        out.write("</takenote>\n")
+        out.write("<keepnote>\n")
+        out.write("</keepnote>\n")
         out.close()
 
     # init error log
@@ -643,7 +627,7 @@ class KeepNotePreferences (object):
         
 
 g_keepnote_pref_parser = xmlo.XmlObject(
-    xmlo.Tag("takenote", tags=[
+    xmlo.Tag("keepnote", tags=[
         xmlo.Tag("id", attr=("id", None, None)),
         xmlo.Tag("language", attr=("language", None, None)),
 
@@ -821,10 +805,14 @@ class KeepNote (object):
 
         self.pref.changed.add(self.load_preferences)
 
+
+    def init(self):
+        """Initialize from preferences saved on disk"""
+        
         # read preferences
         self.pref.read()
         self.set_lang()
-
+        
         # scan extensions
         self.clear_extensions()
         self.scan_extensions_dir(get_system_extensions_dir())
@@ -832,7 +820,7 @@ class KeepNote (object):
 
         # initialize all extensions
         self.init_extensions()
-        
+
 
     def load_preferences(self):
         """Load information from preferences"""
