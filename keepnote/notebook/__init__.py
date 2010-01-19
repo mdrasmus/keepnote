@@ -46,11 +46,7 @@ from xml.sax.saxutils import escape
 # keepnote imports
 import keepnote.xmlobject as xmlo
 from keepnote.listening import Listeners
-from keepnote.timestamp import \
-     DEFAULT_TIMESTAMP_FORMATS, \
-     get_timestamp, \
-     get_localtime, \
-     get_str_timestamp
+from keepnote.timestamp import get_timestamp
 from keepnote import safefile
 from keepnote import uuid
 from keepnote import trans

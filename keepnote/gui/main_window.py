@@ -26,23 +26,21 @@
 
 
 # python imports
-import gettext
 import mimetypes
 import os
 import shutil
 import subprocess
 import sys
-import tempfile
-import traceback
+
 
 
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
-from gtk import gdk
-import gtk.glade
+import gtk
 import gobject
-import pango
+
+
 
 # keepnote imports
 import keepnote

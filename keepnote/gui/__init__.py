@@ -308,7 +308,8 @@ class KeepNote (keepnote.KeepNote):
 
         
     def set_lang(self):
-        
+        """Set the language setting"""
+
         keepnote.KeepNote.set_lang(self)
 
         # setup glade with gettext

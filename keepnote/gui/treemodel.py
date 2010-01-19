@@ -33,8 +33,9 @@ import gtk, gobject, pango
 from gtk import gdk
 
 # keepnote imports
+from keepnote.timestamp import get_str_timestamp
 from keepnote.gui.icons import get_node_icon
-from keepnote.notebook import NoteBookError, get_str_timestamp
+from keepnote.notebook import NoteBookError
 
 
 

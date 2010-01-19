@@ -46,13 +46,16 @@ include(find_path("GTK/bin/jpeg62.dll"), dest+"jpeg62.dll")
 include(find_path("GTK/etc"), dest+"etc")
 
 
+# OLD paths no long included
 #include(find_path("GTK/share/applications"), dest+"share/applications")
 #include(find_path("GTK/share/gettext"), dest+"share/gettext")
-include(find_path("GTK/share/glade3"), dest+"share/glade3")
 #include(find_path("GTK/share/glib-2.0"), dest+"share/glib-2.0")
 #include(find_path("GTK/share/gtk-2.0"), dest+"share/gtk-2.0")
-include(find_path("GTK/share/gtkthemeselector"), dest+"share/gtkthemeselector")
 #include(find_path("GTK/share/icons/hicolor/16x16/stock"), dest+"share/icons/hicolor/16x16/stock")
+
+
+include(find_path("GTK/share/glade3"), dest+"share/glade3")
+include(find_path("GTK/share/gtkthemeselector"), dest+"share/gtkthemeselector")
 include("share/icons/gnome/16x16/actions", dest+"share/icons/hicolor/16x16/actions")
 include("share/icons/gnome/16x16/mimetypes", dest+"share/icons/hicolor/16x16/mimetypes")
 include("pkg/win/index.theme", dest+"share/icons/hicolor/index.theme")
@@ -73,11 +76,4 @@ out.write("gtk-can-change-accels = 1\n")
 out.write("gtk-error-bell = 0\n")
 
 out.close()
-
-
-#prune("dist/share/doc")
-#prune("dist/share/gtk-doc")
-#for name in os.listdir("dist/share/locale"):
-#    if "en" not in name:
-#        prune("dist/share/locale/%s" % name)
 
