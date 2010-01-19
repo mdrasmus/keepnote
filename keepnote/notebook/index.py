@@ -203,6 +203,8 @@ class NoteBookIndex (object):
 
 
             # init Nodes table
+            # TODO: remove icon attribute
+            # TODO: this is basically just a title table
             con.execute(u"""CREATE TABLE IF NOT EXISTS Nodes
                            (nodeid TEXT,
                             title TEXT,
@@ -211,6 +213,15 @@ class NoteBookIndex (object):
 
             con.execute(u"""CREATE INDEX IF NOT EXISTS IdxNodesTitle 
                            ON Nodes (Title);""")
+
+
+            # TODO: make an Attr table
+            # this will let me query whether an attribute is currently being
+            # indexed and in what table it is in.
+            #con.execute(u"""CREATE TABLE IF NOT EXISTS Attr
+            #               (attr TEXT,
+            #                tablename TEXT);
+            #            """)
 
             con.commit()
         except sqlite.DatabaseError, e:
@@ -232,7 +243,11 @@ class NoteBookIndex (object):
 
 
     def index_all(self, root=None):
-        """Reindex all nodes under root"""
+        """
+        Reindex all nodes under root
+
+        This function returns an iterator which must be iterated to completion.
+        """
         
         if root is None:
             root = self._notebook
@@ -240,13 +255,14 @@ class NoteBookIndex (object):
         visit = set()
         queue = []
 
+        # record nodes that change while indexing
         def changed_callback(nodes, recurse):
             for node in nodes:
                 if node not in visit:
                     queue.append(node)
-
         self._notebook.node_changed.add(changed_callback)
 
+        # perform indexing
         for node in preorder(root):
             self.add_node(node)
             visit.add(node)
@@ -261,6 +277,7 @@ class NoteBookIndex (object):
                     visit.add(node)
                     yield node
 
+        # remove callback for notebook changes
         self._notebook.node_changed.remove(changed_callback)
 
         # record index complete
@@ -331,9 +348,8 @@ class NoteBookIndex (object):
                     ret = cur.execute(u"UPDATE Nodes SET "
                                       u"nodeid=?, "
                                       u"title=?, "
-                                      u"icon=? "
                                       u"WHERE nodeid = ?",
-                                      (nodeid, title, u"", nodeid))
+                                      (nodeid, title, nodeid))
             else:
                 # insert new row
                 cur.execute(u"""
