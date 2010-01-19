@@ -77,6 +77,10 @@ Mac OS X Install
 
     $ path-to-keepnote-src/bin/keepnote
   
+  To install dependencies with MacPorts use the following command:
+
+    $ sudo port install py25-gtk
+
   Alternative: Another option for running KeepNote is to use the Windows 
   version in WINE or another Virtual Machine (VMware, etc).
 

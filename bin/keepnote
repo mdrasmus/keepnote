@@ -18,19 +18,6 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
-# XXX
-#import os
-#import win32api
-#win32api.SetEnvironmentVariable("LANG", "fr_FR.UTF8")
-#win32api.SetEnvironmentVariable("LANGUAGE", "fr_FR.UTF8")
-#os.environ["LANG"] = "fr_FR.UTF8"
-
-#from ctypes import cdll
-#msvcrt = cdll.msvcrt
-#result = msvcrt._putenv("LANG=fr_FR.UTF8")
-
-#print os.system("echo start %LANG%")
-
 # python imports
 import exceptions
 import sys
@@ -120,9 +107,10 @@ except ImportError:
 
 
 # keepnote imports
-import keepnote.gui
+import keepnote
 from keepnote.commands import get_command_executor, CommandExecutor
 from keepnote.teefile import TeeFileStream
+import keepnote.compat.pref
 _ = keepnote.translate
 
 
@@ -252,6 +240,20 @@ def gui_exec(function, *args, **kw):
     gobject.idle_add(idle_func)
 
 
+def start_gui(argv, options, args, cmd_exec):
+    import keepnote.gui        
+
+    # start error log
+    start_error_log(options.show_errors)
+
+    # read preferences
+    app = keepnote.gui.KeepNote(basedir)
+    app.init()
+    cmd_exec.set_app(app)
+    execute_command(app, argv)
+    
+    gtk.main()
+
 
 def main(argv):
     """Main execution"""    
@@ -260,7 +262,10 @@ def main(argv):
 
     # setup threading environment
     setup_threading()
-    
+
+    # check for old preference info
+    keepnote.compat.pref.check_old_user_pref_dir()
+
     # init preference dir
     if not os.path.exists(keepnote.get_user_pref_dir()):
         keepnote.init_user_pref_dir()
@@ -278,17 +283,7 @@ def main(argv):
     
     if main_proc:
         # initiate main process
-        
-        # start error log
-        start_error_log(options.show_errors)
-
-        # read preferences
-        app = keepnote.gui.KeepNote(basedir)
-        cmd_exec.set_app(app)
-        execute_command(app, argv)
-
-        gtk.main()
-        
+        start_gui(argv, options, args, cmd_exec)
     else:
         # this is a command process, send command to main process
         cmd_exec.execute(argv)

@@ -305,7 +305,7 @@ class FontHandler (gobject.GObject):
         self._default_attr.copy_values(attr)
         it.get_attributes(attr)
         tags = it.get_tags()
-
+        
         # create font object and return
         if font is None:
             font = self.get_font_class()()

@@ -409,14 +409,12 @@ class ThreePaneViewer (Viewer):
         """Callback for when child widget in editor is activated"""
         
         if isinstance(child, richtext.RichTextImage):
-            self.view_image(child.get_filename())
+            self._main_window.view_image(child.get_filename())
 
         
     def _on_tree_select(self, treeview, nodes):
         """Callback for treeview selection change"""
-
-        #print "callback", nodes
-
+        
         # do nothing if selection is unchanged
         if self._treeview_sel_nodes == nodes:
             return
@@ -499,8 +497,8 @@ class ThreePaneViewer (Viewer):
 
 
     def new_node(self, kind, widget, pos):
-        """Callback for creating new node"""
-
+        """Add a new node to the notebook"""
+        
         # TODO: think about where this goes
 
         if self._notebook is None:
@@ -510,7 +508,6 @@ class ThreePaneViewer (Viewer):
         self.listview.cancel_editing()
 
         nodes, widget = self.get_selected_nodes(widget)
-        #print "nodes", self.treeview.editing, nodes
         
         if len(nodes) == 1:
             parent = nodes[0]
@@ -534,6 +531,21 @@ class ThreePaneViewer (Viewer):
                                     index)
         
         self._view_new_node(node, widget)
+
+        
+    def on_new_dir(self, widget="focus"):
+        """Add new folder near selected nodes"""
+        self.new_node(notebooklib.CONTENT_TYPE_DIR, widget, "sibling")
+        
+    
+    def on_new_page(self, widget="focus"):
+        """Add new page near selected nodes"""
+        self.new_node(notebooklib.CONTENT_TYPE_PAGE, widget, "sibling")
+    
+
+    def on_new_child_page(self, widget="focus"):
+        """Add new page as child of selected nodes"""
+        self.new_node(notebooklib.CONTENT_TYPE_PAGE, widget, "child")
 
 
     def _view_new_node(self, node, widget):
@@ -774,15 +786,15 @@ class ThreePaneViewer (Viewer):
 
         iconmenu = IconMenu()
         iconmenu.connect("set-icon",
-            lambda w, i: self._main_window.on_set_icon(
+            lambda w, i: self._app.on_set_icon(
                 i, u"", self.get_selected_nodes()[0]))
         iconmenu.new_icon.connect("activate",
-            lambda w: self._main_window.on_new_icon(
-                self.get_selected_nodes()[0]))
+            lambda w: self._app.on_new_icon(
+                self.get_selected_nodes()[0], self._notebook, 
+                self._main_window))
         iconmenu.set_notebook(self._notebook)
 
         return iconmenu
-
 
 
 
@@ -920,6 +932,21 @@ class ThreePaneViewer (Viewer):
                 
             ("treeview_popup", None, "", "", None, lambda w: None),
             ("listview_popup", None, "", "", None, lambda w: None),
+
+            
+            ("New Page", gtk.STOCK_NEW, _("New _Page"),
+             "<control>N", _("Create a new page"),
+             lambda w: self.on_new_page(), "note-new.png"),
+
+            ("New Child Page", gtk.STOCK_NEW, _("New _Child Page"),
+             "<control><shift>N", _("Create a new child page"),
+             lambda w: self.on_new_child_page(),
+             "note-new.png"),
+
+            ("New Folder", gtk.STOCK_DIRECTORY, _("New _Folder"),
+             "<control><shift>M", _("Create a new folder"),
+             lambda w: self.on_new_dir(),
+             "folder-new.png"),
 
 
             ("Back", gtk.STOCK_GO_BACK, _("_Back"), "", None,

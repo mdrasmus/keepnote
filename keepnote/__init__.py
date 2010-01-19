@@ -27,9 +27,7 @@
 
 
 # python imports
-import gettext
 import imp
-import locale
 import os
 import shutil
 import sys
@@ -104,20 +102,12 @@ IMAGE_DIR = u"images"
 NODE_ICON_DIR = os.path.join(IMAGE_DIR, u"node_icons")
 PLATFORM = None
 
-# backward compatiable files
-USER_PREF_DIR_OLD = u"takenote"
-USER_PREF_FILE_OLD = u"takenote.xml"
-XDG_USER_EXTENSIONS_DIR_OLD = u"takenote/extensions"
-
-USER_PREF_DIR = u"takenote"
-USER_PREF_FILE = u"takenote.xml"
+USER_PREF_DIR = u"keepnote"
+USER_PREF_FILE = u"keepnote.xml"
 USER_LOCK_FILE = u"lockfile"
 USER_ERROR_LOG = u"error-log.txt"
 USER_EXTENSIONS_DIR = u"extensions"
 USER_EXTENSIONS_DATA_DIR = u"extensions_data"
-
-XDG_USER_EXTENSIONS_DIR = u"takenote/extensions"
-XDG_USER_EXTENSIONS_DATA_DIR = u"takenote/extensions_data"
 
 
 
@@ -171,34 +161,32 @@ def is_url(text):
     """Returns True is text is a url"""
     return re.match("^[^:]+://", text) is not None
 
-FS_ENCODING = object()
+
+FS_ENCODING = sys.getfilesystemencoding()
 def ensure_unicode(text, encoding="utf8"):
     """Ensures a string is unicode"""
 
+    # let None's pass through
     if text is None:
         return None
 
+    # make sure text is unicode
     if not isinstance(text, unicode):
-        if encoding == FS_ENCODING:
-            return unicode(text, sys.getfilesystemencoding())
-        else:
-            return unicode(text, encoding)
+        return unicode(text, encoding)
     return text
 
-def unicode_fs(text):
-    """Converts a string from the filesystem to unicode"""
-
-    if text is None:
-        return None
-
-    if not isinstance(text, unicode):
-        if encoding == FS_ENCODING:
-            return unicode(text, sys.getfilesystemencoding())
-    
-    return text
 
 def unicode_gtk(text):
-    """Converts a string from gtk (utf8) to unicode"""
+    """
+    Converts a string from gtk (utf8) to unicode
+
+    All strings from the pygtk API are returned as byte strings (str) 
+    encoded as utf8.  KeepNote has the convention to keep all strings as
+    unicode internally.  So strings from pygtk must be converted to unicode
+    immediately.
+
+    Note: pygtk can accept either unicode or utf8 encoded byte strings.
+    """
     return unicode(text, "utf8")
 
 
@@ -206,11 +194,11 @@ def unicode_gtk(text):
 # locale functions
 
 def translate(message):
+    """Translate a string"""
     return keepnote.trans.translate(message)
 
 def get_locale_dir():
     """Returns KeepNote's locale directory"""
-    #return os.path.join(BASEDIR, u"..", u"locale")
     return get_resource(u"rc", u"locale")
 
 
@@ -218,50 +206,24 @@ _ = translate
 
 
 #=============================================================================
-# filenaming scheme
+# preference filenaming scheme
 
 
-def use_xdg(home=None):
-    """
-    Returns True if configuration is stored in XDG
+def get_home():
+    """Returns user's HOME directory"""
+    home = ensure_unicode(os.getenv(u"HOME"), FS_ENCODING)
+    if home is None:
+        raise EnvError("HOME environment variable must be specified")
 
-    Only returns True if platform is unix and old config $HOME/.keepnote 
-    does not exist.
-    """
-
-    if get_platform() == "unix":
-        if home is None:
-            home = ensure_unicode(os.getenv("HOME"), FS_ENCODING)
-            if home is None:
-                raise EnvError("HOME environment variable must be specified")
-        old_dir = os.path.join(home, "." + USER_PREF_DIR)
-
-        return not os.path.exists(old_dir)
-    
-    else:
-        return False
-
-
-#def get_nonxdg_user_pref_dir(home=None):
-    
 
 def get_user_pref_dir(home=None):
     """Returns the directory of the application preference file"""
     
     p = get_platform()
     if p == "unix" or p == "darwin":
-        
         if home is None:
-            home = ensure_unicode(os.getenv(u"HOME"), FS_ENCODING)
-                                  
-            if home is None:
-                raise EnvError("HOME environment variable must be specified")
-        old_dir = os.path.join(home, u"." + USER_PREF_DIR)
-
-        if os.path.exists(old_dir):
-            return old_dir
-        else:
-            return xdg.get_config_file(USER_PREF_DIR, default=True)
+            home = get_home()
+        return xdg.get_config_file(USER_PREF_DIR, default=True)
 
     elif p == "windows":
         appdata = ensure_unicode(os.getenv(u"APPDATA"), FS_ENCODING)
@@ -276,27 +238,21 @@ def get_user_pref_dir(home=None):
 def get_user_extensions_dir(pref_dir=None, home=None):
     """Returns user extensions directory"""
 
-    if not use_xdg():
-        if pref_dir is None:
-            pref_dir = get_user_pref_dir(home)
-        return os.path.join(pref_dir, USER_EXTENSIONS_DIR)
-    else:
-        return xdg.get_data_file(XDG_USER_EXTENSIONS_DIR, default=True)
-
+    if pref_dir is None:
+        pref_dir = get_user_pref_dir(home)
+    return os.path.join(pref_dir, USER_EXTENSIONS_DIR)
+    
 
 def get_user_extensions_data_dir(pref_dir=None, home=None):
     """Returns user extensions data directory"""
 
-    if not use_xdg():
-        if pref_dir is None:
-            pref_dir = get_user_pref_dir(home)
-        return os.path.join(pref_dir, USER_EXTENSIONS_DATA_DIR)
-    else:
-        return xdg.get_data_file(XDG_USER_EXTENSIONS_DATA_DIR, default=True)
+    if pref_dir is None:
+        pref_dir = get_user_pref_dir(home)
+    return os.path.join(pref_dir, USER_EXTENSIONS_DATA_DIR)
 
 
 def get_system_extensions_dir():
-    """Returns system-wdie extensions directory"""
+    """Returns system-wide extensions directory"""
     return os.path.join(BASEDIR, u"extensions")
 
 
@@ -305,7 +261,7 @@ def get_user_documents(home=None):
     p = get_platform()
     if p == "unix" or p == "darwin":
         if home is None:
-            home = ensure_unicode(os.getenv(u"HOME"), FS_ENCODING)
+            home = get_home()
         return home
     
     elif p == "windows":
@@ -332,14 +288,13 @@ def get_user_lock_file(pref_dir=None, home=None):
 def get_user_error_log(pref_dir=None, home=None):
     """Returns a file for the error log"""
 
-    if use_xdg():
-         return xdg.get_data_file(os.path.join(USER_PREF_DIR, USER_ERROR_LOG),
-                                  default=True)
-    else:
-        if pref_dir is None:
-            pref_dir = get_user_pref_dir(home)
-        return os.path.join(pref_dir, USER_ERROR_LOG)
+    if pref_dir is None:
+        pref_dir = get_user_pref_dir(home)
+    return os.path.join(pref_dir, USER_ERROR_LOG)
 
+
+#=============================================================================
+# preference/extension initialization
 
 def init_user_pref_dir(pref_dir=None, home=None):
     """Initializes the application preference file"""
@@ -356,8 +311,8 @@ def init_user_pref_dir(pref_dir=None, home=None):
     if not os.path.exists(pref_file):
         out = open(pref_file, "w")
         out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-        out.write("<takenote>\n")
-        out.write("</takenote>\n")
+        out.write("<keepnote>\n")
+        out.write("</keepnote>\n")
         out.close()
 
     # init error log
@@ -404,6 +359,8 @@ def log_message(message, out=None):
 # Preference data structures
 
 class ExternalApp (object):
+    """Class represents the information needed for calling an external application"""
+
     def __init__(self, key, title, prog, args=[]):
         self.key = key
         self.title = title
@@ -562,7 +519,6 @@ class KeepNotePreferences (object):
         self.write()
         
 
-
     def read(self):
         """Read preferences from file"""
 
@@ -609,11 +565,8 @@ class KeepNotePreferences (object):
 
 
         # initialize user extensions directory
-        #user_extensions_dir = get_user_extensions_dir(self._pref_dir)
-        #if not os.path.exists(user_extensions_dir):
         extension.init_user_extensions(self._pref_dir)
-        
-        
+                
         # notify listeners
         self.changed.notify()
 
@@ -637,13 +590,13 @@ class KeepNotePreferences (object):
             g_keepnote_pref_parser.write(self,
                                          get_user_pref_file(self._pref_dir))
         except (IOError, OSError), e:
-            raise NoteBookError("Cannot save preferences", e)
+            raise NoteBookError(_("Cannot save preferences"), e)
 
 
         
 
 g_keepnote_pref_parser = xmlo.XmlObject(
-    xmlo.Tag("takenote", tags=[
+    xmlo.Tag("keepnote", tags=[
         xmlo.Tag("id", attr=("id", None, None)),
         xmlo.Tag("language", attr=("language", None, None)),
 
@@ -821,10 +774,14 @@ class KeepNote (object):
 
         self.pref.changed.add(self.load_preferences)
 
+
+    def init(self):
+        """Initialize from preferences saved on disk"""
+        
         # read preferences
         self.pref.read()
         self.set_lang()
-
+        
         # scan extensions
         self.clear_extensions()
         self.scan_extensions_dir(get_system_extensions_dir())
@@ -832,7 +789,7 @@ class KeepNote (object):
 
         # initialize all extensions
         self.init_extensions()
-        
+
 
     def load_preferences(self):
         """Load information from preferences"""
@@ -906,7 +863,7 @@ class KeepNote (object):
         app = self.pref.get_external_app(app_key)
         
         if app is None or app.prog == "":
-            raise KeepNoteError("Must specify program to use in Helper Application")
+            raise KeepNoteError(_("Must specify program to use in Helper Application"))
 
         # build command arguments
         cmd = [app.prog] + app.args
@@ -927,10 +884,10 @@ class KeepNote (object):
             proc = subprocess.Popen(cmd)
         except OSError, e:
             raise KeepNoteError(
-                (u"Error occurred while opening file with %s.\n\n" 
-                 u"program: '%s'\n\n"
-                 u"file: '%s'\n\n"
-                 u"error: %s")
+                _(u"Error occurred while opening file with %s.\n\n" 
+                  u"program: '%s'\n\n"
+                  u"file: '%s'\n\n"
+                  u"error: %s")
                 % (app.title, app.prog, filename, unicode(e)), e)
 
         # wait for process to return
@@ -964,7 +921,7 @@ class KeepNote (object):
             # use external app for screen shot
             screenshot = self.pref.get_external_app("screen_shot")
             if screenshot is None or screenshot.prog == "":
-                raise Exception("You must specify a Screen Shot program in Application Options")
+                raise Exception(_("You must specify a Screen Shot program in Application Options"))
 
             # create temp file
             f, imgfile = tempfile.mkstemp(".png", filename)
@@ -976,7 +933,7 @@ class KeepNote (object):
 
         if not os.path.exists(imgfile):
             # catch error if image is not created
-            raise Exception("The screenshot program did not create the necessary image file '%s'" % imgfile)
+            raise Exception(_("The screenshot program did not create the necessary image file '%s'") % imgfile)
 
         return imgfile  
 

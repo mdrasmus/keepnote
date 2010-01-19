@@ -41,9 +41,6 @@ import keepnote
 from keepnote import unicode_gtk
 from keepnote import tasklib
 from keepnote import notebook as notebooklib
-from keepnote.gui import \
-     get_pixbuf, \
-     get_resource
 import keepnote.gui
 from keepnote.gui.icons import \
      guess_open_icon_filename, \
@@ -86,19 +83,22 @@ def browse_file(parent, title, filename=None):
 class NodeIconDialog (object):
     """Updates a notebook"""
     
-    def __init__(self, main_window):
-        self.main_window = main_window
-        self.app = main_window.get_app()
+    def __init__(self, app):
+        self.app = app
+        self.main_window = None
         self.node = None
         
     
-    def show(self, node=None):
+    def show(self, node=None, window=None):
 
+        # TODO: factor out main_window.get_notebook() calls
+        self.main_window = window
         self.node = node
 
-        self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
-                                 "node_icon_dialog",
-                                 keepnote.GETTEXT_DOMAIN)
+        self.xml = gtk.glade.XML(
+            keepnote.gui.get_resource("rc", "keepnote.glade"),
+            "node_icon_dialog",
+            keepnote.GETTEXT_DOMAIN)
         self.dialog = self.xml.get_widget("node_icon_dialog")
         self.xml.signal_autoconnect(self)
         self.dialog.connect("close", lambda w:
@@ -194,7 +194,7 @@ class NodeIconDialog (object):
             filename = lookup_icon_filename(self.main_window.get_notebook(), iconfile)
             if filename:
                 try:
-                    pixbuf = get_pixbuf(filename)
+                    pixbuf = keepnote.gui.get_pixbuf(filename)
                 except GError:
                     continue
                 list.append((pixbuf, iconfile))

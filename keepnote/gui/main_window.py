@@ -76,7 +76,6 @@ from keepnote.gui import \
     dialog_drag_drop_test, \
     dialog_wait, \
     dialog_update_notebook, \
-    dialog_node_icon, \
     update_file_preview
 from keepnote.gui.icon_menu import IconMenu
 from keepnote.gui.three_pane_viewer import ThreePaneViewer
@@ -133,7 +132,6 @@ class KeepNoteWindow (gtk.Window):
         # Dialogs
         
         self.drag_test = dialog_drag_drop_test.DragDropTestDialog(self)
-        self.node_icon_dialog = dialog_node_icon.NodeIconDialog(self)
         self.image_resize_dialog = \
             dialog_image_resize.ImageResizeDialog(self, self._app.pref)
         
@@ -273,8 +271,7 @@ class KeepNoteWindow (gtk.Window):
         if iconified and not self._iconified:
             # explicitly maximize if not maximized
             # NOTE: this is needed to work around a MS windows GTK bug
-            if self._was_maximized: # and not self._maximized:
-                print "maximize"
+            if self._was_maximized:
                 gobject.idle_add(self.maximize)
 
 
@@ -313,7 +310,6 @@ class KeepNoteWindow (gtk.Window):
         else:
             raise Exception("unknown window request: " + str(action))
     
-
 
     #=================================================
     # Window manipulation
@@ -391,10 +387,10 @@ class KeepNoteWindow (gtk.Window):
         # clear menu
         menu.foreach(lambda x: menu.remove(x))
 
-        def make_filename(filename):
-            if len(filename) > 30:
+        def make_filename(filename, maxsize=30):
+            if len(filename) > maxsize:
                 base = os.path.basename(filename)
-                pre = max(30 - len(base), 10)
+                pre = max(maxsize - len(base), 10)
                 return os.path.join(filename[:pre] + u"...", base)
             else:
                 return filename
@@ -409,6 +405,18 @@ class KeepNoteWindow (gtk.Window):
             item.show()
             menu.append(item)
 
+
+    def add_recent_notebook(self, filename):
+        """Add recent notebook"""
+        
+        if filename in self._app.pref.recent_notebooks:
+            self._app.pref.recent_notebooks.remove(filename)
+        
+        self._app.pref.recent_notebooks = \
+            [filename] + self._app.pref.recent_notebooks[:keepnote.gui.MAX_RECENT_NOTEBOOKS]
+
+        self._app.pref.changed.notify()
+
            
     #=============================================
     # Notebook open/save/close UI
@@ -418,13 +426,12 @@ class KeepNoteWindow (gtk.Window):
         
         dialog = FileChooserDialog(
             _("New Notebook"), self, 
-            action=gtk.FILE_CHOOSER_ACTION_SAVE, #CREATE_FOLDER,
+            action=gtk.FILE_CHOOSER_ACTION_SAVE,
             buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
                      _("New"), gtk.RESPONSE_OK),
             app=self._app,
             persistent_path="new_notebook_path")
         response = dialog.run()
-        
         
         if response == gtk.RESPONSE_OK:
             # create new notebook
@@ -680,18 +687,6 @@ class KeepNoteWindow (gtk.Window):
         self.viewer.set_notebook(notebook)
 
 
-    def add_recent_notebook(self, filename):
-        """Add recent notebook"""
-        
-        if filename in self._app.pref.recent_notebooks:
-            self._app.pref.recent_notebooks.remove(filename)
-        
-        self._app.pref.recent_notebooks = \
-            [filename] + self._app.pref.recent_notebooks[:keepnote.gui.MAX_RECENT_NOTEBOOKS]
-
-        self._app.pref.changed.notify()
-
-
     def update_index(self):
         """Update notebook index"""
 
@@ -721,6 +716,26 @@ class KeepNoteWindow (gtk.Window):
         self.begin_auto_save()
 
 
+    #=====================================================
+    # Notebook callbacks
+    
+    def on_notebook_node_changed(self, nodes, recurse):
+        """Callback for when the notebook changes"""
+        self.set_notebook_modified(True)
+        
+    
+    def set_notebook_modified(self, modified):
+        """Set the modification state of the notebook"""
+        
+        if self.viewer.get_notebook() is None:
+            self.set_title(keepnote.PROGRAM_NAME)
+        else:
+            if modified:
+                self.set_title("* %s" % self.viewer.get_notebook().get_title())
+                self.set_status(_("Notebook modified"))
+            else:
+                self.set_title("%s" % self.viewer.get_notebook().get_title())
+    
 
     #===========================================================
     # page and folder actions
@@ -739,27 +754,10 @@ class KeepNoteWindow (gtk.Window):
         return self.viewer.get_selected_nodes(widget)
         
 
-    def on_new_node(self, kind, widget, pos):
-        self.viewer.new_node(kind, widget, pos)
-        
-    
-    def on_new_dir(self, widget="focus"):
-        """Add new folder near selected nodes"""
-        self.on_new_node(notebooklib.CONTENT_TYPE_DIR, widget, "sibling")
-    
-            
-    
-    def on_new_page(self, widget="focus"):
-        """Add new page near selected nodes"""
-        self.on_new_node(notebooklib.CONTENT_TYPE_PAGE, widget, "sibling")
-    
-
-    def on_new_child_page(self, widget="focus"):
-        self.on_new_node(notebooklib.CONTENT_TYPE_PAGE, widget, "child")
-
-
     def confirm_delete_nodes(self, nodes):
+        """Confirm whether nodes should be deleted"""
 
+        # TODO: move to app?
         # TODO: add note names to dialog
         # TODO: assume one node is selected
         node = nodes[0]
@@ -800,108 +798,7 @@ class KeepNoteWindow (gtk.Window):
 
         
 
-    #===========================================
-    # node icons
 
-    def on_set_icon(self, icon_file, icon_open_file, nodes):
-        """
-        Change the icon for a node
-
-        icon_file, icon_open_file -- icon basenames
-            use "" to delete icon setting (set default)
-            use None to leave icon setting unchanged
-        """
-
-        for node in nodes:
-            if icon_file == u"":
-                node.del_attr("icon")
-            elif icon_file is not None:
-                node.set_attr("icon", icon_file)
-
-            if icon_open_file == u"":
-                node.del_attr("icon_open")
-            elif icon_open_file is not None:
-                node.set_attr("icon_open", icon_open_file)
-
-            node.del_attr("icon_load")
-            node.del_attr("icon_open_load")
-
-
-
-    def on_new_icon(self, nodes):
-        """Change the icon for a node"""
-
-        if self.get_notebook() is None:
-            return
-
-        notebook = self.get_notebook()
-        
-        # TODO: assume only one node is selected
-        node = nodes[0]
-
-        icon_file, icon_open_file = self.node_icon_dialog.show(node)
-
-        newly_installed = set()
-
-        # NOTE: files may be filename or basename, use isabs to distinguish
-        if icon_file and os.path.isabs(icon_file) and \
-           icon_open_file and os.path.isabs(icon_open_file):
-            icon_file, icon_open_file = notebook.install_icons(
-                icon_file, icon_open_file)
-            newly_installed.add(os.path.basename(icon_file))
-            newly_installed.add(os.path.basename(icon_open_file))
-            
-        else:
-            if icon_file and os.path.isabs(icon_file):
-                icon_file = notebook.install_icon(icon_file)
-                newly_installed.add(os.path.basename(icon_file))
-
-            if icon_open_file and os.path.isabs(icon_open_file):
-                icon_open_file = notebook.install_icon(icon_open_file)
-                newly_installed.add(os.path.basename(icon_open_file))
-
-        # set quick picks if OK was pressed
-        if icon_file is not None:
-            notebook.pref.set_quick_pick_icons(
-                self.node_icon_dialog.get_quick_pick_icons())
-
-            # set notebook icons
-            notebook_icons = notebook.get_icons()
-            keep_set = set(self.node_icon_dialog.get_notebook_icons()) | \
-                       newly_installed
-            for icon in notebook_icons:
-                if icon not in keep_set:
-                    notebook.uninstall_icon(icon)
-
-            notebook.set_preferences_dirty()
-            
-            # TODO: should this be done with a notify?
-            notebook.write_preferences()
-
-        self.on_set_icon(icon_file, icon_open_file, nodes)
-
-
-    
-    
-    #=====================================================
-    # Notebook callbacks
-    
-    def on_notebook_node_changed(self, nodes, recurse):
-        """Callback for when the notebook changes"""
-        self.set_notebook_modified(True)
-        
-    
-    def set_notebook_modified(self, modified):
-        """Set the modification state of the notebook"""
-        
-        if self.viewer.get_notebook() is None:
-            self.set_title(keepnote.PROGRAM_NAME)
-        else:
-            if modified:
-                self.set_title("* %s" % self.viewer.get_notebook().get_title())
-                self.set_status(_("Notebook modified"))
-            else:
-                self.set_title("%s" % self.viewer.get_notebook().get_title())
     
     #=================================================
     # file attachments
@@ -1374,20 +1271,6 @@ class KeepNoteWindow (gtk.Window):
              "", _("Start a new notebook"),
              lambda w: self.on_new_notebook()),
             
-            ("New Page", gtk.STOCK_NEW, _("New _Page"),
-             "<control>N", _("Create a new page"),
-             lambda w: self.on_new_page(), "note-new.png"),
-
-            ("New Child Page", gtk.STOCK_NEW, _("New _Child Page"),
-             "<control><shift>N", _("Create a new child page"),
-             lambda w: self.on_new_child_page(),
-             "note-new.png"),
-
-            ("New Folder", gtk.STOCK_DIRECTORY, _("New _Folder"),
-             "<control><shift>M", _("Create a new folder"),
-             lambda w: self.on_new_dir(),
-             "folder-new.png"),
-
             ("Open Notebook", gtk.STOCK_OPEN, _("_Open Notebook..."),
              "<control>O", _("Open an existing notebook"),
              lambda w: self.on_open_notebook()),

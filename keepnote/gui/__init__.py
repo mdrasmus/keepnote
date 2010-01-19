@@ -51,6 +51,7 @@ from keepnote.notebook import \
      NoteBookError
 import keepnote.notebook as notebooklib
 import keepnote.gui.dialog_app_options
+import keepnote.gui.dialog_node_icon
 import keepnote.gui
 from keepnote.gui.icons import \
     DEFAULT_QUICK_PICK_ICONS
@@ -298,18 +299,22 @@ class KeepNote (keepnote.KeepNote):
 
     def __init__(self, basedir=None):
         keepnote.KeepNote.__init__(self, basedir)
-
-        self._tag_table = keepnote.gui.richtext.richtext_tags.RichTextTagTable()
         
         self._current_window = None
         self._windows = []
 
+
+    def init(self):
+        """Initialize application from disk"""
+        keepnote.KeepNote.init(self)
+
         self.app_options_dialog = keepnote.gui.dialog_app_options.ApplicationOptionsDialog(self)
+        self.node_icon_dialog = keepnote.gui.dialog_node_icon.NodeIconDialog(self)
+        self._tag_table = keepnote.gui.richtext.richtext_tags.RichTextTagTable()
 
         
     def set_lang(self):
-        """Set the language setting"""
-
+        """Set language for application"""
         keepnote.KeepNote.set_lang(self)
 
         # setup glade with gettext
@@ -319,6 +324,14 @@ class KeepNote (keepnote.KeepNote):
         gtk.glade.textdomain(keepnote.GETTEXT_DOMAIN)
 
 
+    #=================================
+    # GUI
+
+    def get_richtext_tag_table(self):
+        """Returns the application-wide richtext tag table"""
+        return self._tag_table
+
+
     def new_window(self):
         """Create a new main window"""
 
@@ -326,7 +339,7 @@ class KeepNote (keepnote.KeepNote):
 
         window = keepnote.gui.main_window.KeepNoteWindow(self)
         window.connect("delete-event", self._on_window_close)
-        window.connect("focus-in-event", self._on_focus)
+        window.connect("focus-in-event", self._on_window_focus)
         self._windows.append(window)
         
         self.init_extensions_window(window)
@@ -358,7 +371,6 @@ class KeepNote (keepnote.KeepNote):
 
         # install default quick pick icons
         if len(notebook.pref.get_quick_pick_icons()) == 0:
-            print "HERE"
             notebook.pref.set_quick_pick_icons(
                 list(DEFAULT_QUICK_PICK_ICONS))
             notebook.set_preferences_dirty()
@@ -369,16 +381,95 @@ class KeepNote (keepnote.KeepNote):
         return notebook
 
 
+    #===========================================
+    # node icons
+
+    def on_set_icon(self, icon_file, icon_open_file, nodes):
+        """
+        Change the icon for a node
+
+        icon_file, icon_open_file -- icon basenames
+            use "" to delete icon setting (set default)
+            use None to leave icon setting unchanged
+        """
+        
+        for node in nodes:
+            if icon_file == u"":
+                node.del_attr("icon")
+            elif icon_file is not None:
+                node.set_attr("icon", icon_file)
+
+            if icon_open_file == u"":
+                node.del_attr("icon_open")
+            elif icon_open_file is not None:
+                node.set_attr("icon_open", icon_open_file)
+
+            node.del_attr("icon_load")
+            node.del_attr("icon_open_load")
+
+
+
+    def on_new_icon(self, nodes, notebook, window=None):
+        """Change the icon for a node"""
+
+        if notebook is None:
+            return
+        
+        # TODO: assume only one node is selected
+        node = nodes[0]
+
+        icon_file, icon_open_file = self.node_icon_dialog.show(node,
+                                                               window=window)
+
+        newly_installed = set()
+
+        # NOTE: files may be filename or basename, use isabs to distinguish
+        if icon_file and os.path.isabs(icon_file) and \
+           icon_open_file and os.path.isabs(icon_open_file):
+            icon_file, icon_open_file = notebook.install_icons(
+                icon_file, icon_open_file)
+            newly_installed.add(os.path.basename(icon_file))
+            newly_installed.add(os.path.basename(icon_open_file))
+            
+        else:
+            if icon_file and os.path.isabs(icon_file):
+                icon_file = notebook.install_icon(icon_file)
+                newly_installed.add(os.path.basename(icon_file))
+
+            if icon_open_file and os.path.isabs(icon_open_file):
+                icon_open_file = notebook.install_icon(icon_open_file)
+                newly_installed.add(os.path.basename(icon_open_file))
+
+        # set quick picks if OK was pressed
+        if icon_file is not None:
+            notebook.pref.set_quick_pick_icons(
+                self.node_icon_dialog.get_quick_pick_icons())
+
+            # set notebook icons
+            notebook_icons = notebook.get_icons()
+            keep_set = set(self.node_icon_dialog.get_notebook_icons()) | \
+                       newly_installed
+            for icon in notebook_icons:
+                if icon not in keep_set:
+                    notebook.uninstall_icon(icon)
+
+            notebook.set_preferences_dirty()
+            
+            # TODO: should this be done with a notify?
+            notebook.write_preferences()
+
+        self.on_set_icon(icon_file, icon_open_file, nodes)
+
+
+    #==================================
+    # misc GUI
+
     def focus_windows(self):
         """Focus all open windows on desktop"""
 
         for window in self._windows:
             window.restore_window()
 
-
-    def get_richtext_tag_table(self):
-        """Returns the application-wide richtext tag table"""
-        return self._tag_table
 
     def error(self, text, error=None, tracebk=None):
         """Display an error message"""
@@ -395,6 +486,13 @@ class KeepNote (keepnote.KeepNote):
         # add message to error log
         if error is not None:
             keepnote.log_error(error, tracebk)
+
+
+    def quit(self):
+        """Quit the gtk event loop"""
+        
+        gtk.accel_map_save(get_accel_file())
+        gtk.main_quit()
 
 
     #===================================
@@ -422,16 +520,9 @@ class KeepNote (keepnote.KeepNote):
             self.quit()
 
 
-    def _on_focus(self, window, event):
+    def _on_window_focus(self, window, event):
         """Callback for when a window gains focus"""
         self._current_window = window
-
-
-    def quit(self):
-        """Quit the gtk event loop"""
-        
-        gtk.accel_map_save(get_accel_file())
-        gtk.main_quit()
 
 
     #====================================

@@ -74,7 +74,8 @@ from keepnote.gui.richtext.richtext_tags import \
      RichTextIndentTag, \
      RichTextBulletTag, \
      RichTextLinkTag, \
-     get_text_scale
+     get_text_scale, \
+     set_text_scale
 
 # richtext io
 from keepnote.gui.richtext.richtext_html import HtmlBuffer, HtmlError
@@ -101,7 +102,14 @@ MIME_KEEPNOTE = "application/x-keepnote" + str(random.randint(1, 100000))
 MIME_IMAGES = ["image/png",
                "image/bmp",
                "image/jpeg",
-               "image/xpm"]
+               "image/xpm",
+
+               # Mac OS X MIME types
+               "public.png",
+               "public.bmp",
+               "public.jpeg",
+               "public.xpm"]
+
 
 # TODO: add more text MIME types?
 MIME_TEXT = ["text/plain",
@@ -326,6 +334,7 @@ class RichTextView (gtk.TextView):
         if textbuffer is None:
             textbuffer = RichTextBuffer() 
         self.set_buffer(textbuffer)
+
         self.set_default_font(DEFAULT_FONT)
         
         
@@ -1417,6 +1426,12 @@ class RichTextView (gtk.TextView):
     def set_default_font(self, font):
         """Sets the default font of the textview"""
         try:
+
+            # HACK: fix small font sizes on Mac
+            PIXELS_PER_PANGO_UNIT = 1024
+            native_size = self.get_default_attributes().font.get_size() // PIXELS_PER_PANGO_UNIT
+            set_text_scale(native_size / 10.0)
+
             f = pango.FontDescription(font)
             f.set_size(int(f.get_size() * get_text_scale()))
             self.modify_font(f)
