@@ -142,7 +142,7 @@ def upgrade_user_pref_dir(old_user_pref_dir, new_user_pref_dir):
     tree = ElementTree.ElementTree(file=newfile)
     elm = tree.getroot()
     elm.tag = "keepnote"
-    tree.write(newfile, encoding="utf8")
+    tree.write(newfile, encoding="UTF-8")
 
     # move over data files from .local/share/takenote
     if keepnote.get_platform() in ("unix", "darwin"):
