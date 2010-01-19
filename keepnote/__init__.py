@@ -39,9 +39,9 @@ import traceback
 
 # keepnote imports
 from keepnote.notebook import \
-    DEFAULT_TIMESTAMP_FORMATS, \
     NoteBookError, \
     get_unique_filename_list
+from keepnote import timestamp
 import keepnote.notebook as notebooklib
 from keepnote import xdg
 from keepnote import xmlobject as xmlo
@@ -73,7 +73,7 @@ import xml.sax.saxutils
 PROGRAM_NAME = u"KeepNote"
 PROGRAM_VERSION_MAJOR = 0
 PROGRAM_VERSION_MINOR = 6
-PROGRAM_VERSION_RELEASE = 1
+PROGRAM_VERSION_RELEASE = 2
 PROGRAM_VERSION = (PROGRAM_VERSION_MAJOR,
                    PROGRAM_VERSION_MINOR,
                    PROGRAM_VERSION_RELEASE)
@@ -480,7 +480,7 @@ class KeepNotePreferences (object):
         
         self.default_notebook = ""
         self.use_last_notebook = True
-        self.timestamp_formats = dict(DEFAULT_TIMESTAMP_FORMATS)
+        self.timestamp_formats = dict(timestamp.DEFAULT_TIMESTAMP_FORMATS)
         self.spell_check = True
         self.image_size_snap = True
         self.image_size_snap_amount = 50
