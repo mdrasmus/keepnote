@@ -393,6 +393,8 @@ class KeepNote (keepnote.KeepNote):
             use None to leave icon setting unchanged
         """
         
+        # TODO: maybe this belongs inside the node_icon_dialog?
+
         for node in nodes:
             if icon_file == u"":
                 node.del_attr("icon")
@@ -411,6 +413,8 @@ class KeepNote (keepnote.KeepNote):
 
     def on_new_icon(self, nodes, notebook, window=None):
         """Change the icon for a node"""
+
+        # TODO: maybe this belongs inside the node_icon_dialog?
 
         if notebook is None:
             return
@@ -445,6 +449,7 @@ class KeepNote (keepnote.KeepNote):
             notebook.pref.set_quick_pick_icons(
                 self.node_icon_dialog.get_quick_pick_icons())
 
+            # TODO: figure out whether I need to track newly installed or not.
             # set notebook icons
             notebook_icons = notebook.get_icons()
             keep_set = set(self.node_icon_dialog.get_notebook_icons()) | \

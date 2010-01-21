@@ -863,7 +863,7 @@ class KeepNote (object):
         app = self.pref.get_external_app(app_key)
         
         if app is None or app.prog == "":
-            raise KeepNoteError(_("Must specify program to use in Helper Application"))
+            raise KeepNoteError(_("Must specify program to use in Helper Applications"))
 
         # build command arguments
         cmd = [app.prog] + app.args

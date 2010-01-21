@@ -834,6 +834,9 @@ class KeepNoteWindow (gtk.Window):
 
     def attach_file(self, filename, node=None, index=None, widget="focus"):
         
+        # TODO: where does this belong?
+        # could this be a convenience function for the notebook.
+        
         if node is None:
             nodes, widget = self.get_selected_nodes(widget)
             node = nodes[0]
@@ -923,6 +926,7 @@ class KeepNoteWindow (gtk.Window):
     #=================================================
     # Image context menu
 
+    # TODO: where does this belong?
 
     def view_image(self, image_filename):
         current_page = self.get_current_page()
@@ -1025,6 +1029,7 @@ class KeepNoteWindow (gtk.Window):
     def make_image_menu(self, menu):
         """image context menu"""
 
+        # TODO: where does this belong?
         # TODO: convert into UIManager?
 
 
@@ -1062,6 +1067,7 @@ class KeepNoteWindow (gtk.Window):
     #======================================================
     # Search
 
+    # TODO: make a separate search widget.
 
     def on_search_nodes(self):
         """Search nodes"""
@@ -1180,6 +1186,17 @@ class KeepNoteWindow (gtk.Window):
 
             # use text editor to view error log
             self._app.run_external_app("text_editor", filename2)
+        except Exception, e:
+            self.error(_("Could not open error log") + ":\n" + str(e), 
+                       e, sys.exc_info()[2])
+
+    def view_config_files(self):        
+        """View config folder in a file explorer"""
+
+        try:
+            # use text editor to view error log
+            filename = keepnote.get_user_pref_dir()
+            self._app.run_external_app("file_explorer", filename)
         except Exception, e:
             self.error(_("Could not open error log") + ":\n" + str(e), 
                        e, sys.exc_info()[2])
@@ -1385,6 +1402,9 @@ class KeepNoteWindow (gtk.Window):
             ("View Error Log...", gtk.STOCK_DIALOG_ERROR, _("View _Error Log..."),
              "", None,
              lambda w: self.view_error_log()),
+
+            ("View Preference Files...", None, _("View Preference Files..."), "", None,
+             lambda w: self.view_config_files()),
             
             ("Drag and Drop Test...", None, _("Drag and Drop Test..."),
              "", None,
@@ -1475,6 +1495,7 @@ class KeepNoteWindow (gtk.Window):
 
   <menu action="Help">
     <menuitem action="View Error Log..."/>
+    <menuitem action="View Preference Files..."/>
     <menuitem action="Drag and Drop Test..."/>
     <separator/>
     <menuitem action="About"/>
