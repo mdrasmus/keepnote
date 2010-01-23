@@ -28,8 +28,6 @@ import imp
 import keepnote
 
 
-
-
 class DependencyError (StandardError):
     """Exception for dependency error"""
 

@@ -39,6 +39,7 @@ import pango
 
 # keepnote imports
 import keepnote
+from keepnote.gui import Action
 
 
 def move_to_start_of_line(it):
@@ -58,12 +59,24 @@ def move_to_end_of_line(it):
     return it
 
 
+class Stream (object):
+
+    def __init__(self, callback):
+        self._callback = callback
+
+    def write(self, text):
+        self._callback(text)
+
+
+
 class PythonDialog (object):
     """Python dialog"""
     
     def __init__(self, main_window):
         self.main_window = main_window
         self.app = main_window.get_app()
+        self.outfile = Stream(self.output_text)
+
     
     def show(self):
         self.dialog = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -76,6 +89,7 @@ class PythonDialog (object):
         self.dialog.add(self.vpaned)
         self.vpaned.set_position(200)
         
+        # editor buffer
         self.editor = gtk.TextView()
         self.editor.connect("key-press-event", self.on_key_press_event)
         f = pango.FontDescription("Courier New")
@@ -86,6 +100,7 @@ class PythonDialog (object):
         sw.add(self.editor)
         self.vpaned.add1(sw)
         
+        # output buffer
         self.output = gtk.TextView()
         self.output.set_wrap_mode(gtk.WRAP_WORD)
         f = pango.FontDescription("Courier New")
@@ -103,8 +118,7 @@ class PythonDialog (object):
     def on_key_press_event(self, textview, event):
         """Callback from key press event"""
         
-        buf = textview.get_buffer()
-        buf2 = self.output.get_buffer()
+        buf = textview.get_buffer()        
 
         if (event.keyval == gtk.keysyms.Return and
             event.state & gtk.gdk.CONTROL_MASK):
@@ -113,12 +127,10 @@ class PythonDialog (object):
             start = buf.get_start_iter()
             end = buf.get_end_iter()
             text = start.get_text(end)
-
-            s = execute(text, {"app": self.app,
-                               "window": self.main_window})
-
-            buf2.place_cursor(buf2.get_end_iter())
-            buf2.insert_at_cursor(s.getvalue())
+            
+            execute(text, {"app": self.app,
+                           "window": self.main_window}, 
+                    self.outfile)
 
             return True
 
@@ -140,19 +152,47 @@ class PythonDialog (object):
             return True
 
 
-def execute(code, vars):
-    
-    __s = StringIO.StringIO()
+    def output_text(self, text):
+        """Output text to output buffer"""
+        
+        buf = self.output.get_buffer()
+
+        # determine whether to follow
+        mark = buf.get_insert()
+        it = buf.get_iter_at_mark(mark)
+        follow = it.is_end()
+
+        # add output text
+        buf.insert(buf.get_end_iter(), text)
+        
+        if follow:
+            buf.place_cursor(buf.get_end_iter())
+            self.output.scroll_mark_onscreen(mark)
+
+
+    '''
+    def get_actions(self):
+
+        actions = map(lambda x: Action(*x),
+                      [
+            ("Python", None, _("_File")),
+
+            ("New Notebook", gtk.STOCK_NEW, _("_New Notebook..."),
+             "", _("Start a new notebook"),
+             lambda w: self.on_new_notebook())])
+             '''
+
+def execute(code, vars, out):
+    """Execute user's python code"""
+
     __stdout = sys.stdout
     __stderr = sys.stderr
-    sys.stdout = __s
-    sys.stderr = __s
+    sys.stdout = out
+    sys.stderr = out
     try:
         exec(code, vars)
     except Exception, e:
-        keepnote.log_error(e, sys.exc_info()[2], __s)
+        keepnote.log_error(e, sys.exc_info()[2], out)
     sys.stdout = __stdout
     sys.stderr = __stderr
-
-    return __s
 
