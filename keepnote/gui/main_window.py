@@ -76,6 +76,7 @@ from keepnote.gui import \
     dialog_drag_drop_test, \
     dialog_wait, \
     dialog_update_notebook, \
+    dialog_python, \
     update_file_preview
 from keepnote.gui.icon_menu import IconMenu
 from keepnote.gui.three_pane_viewer import ThreePaneViewer
@@ -1240,10 +1241,10 @@ class KeepNoteWindow (gtk.Window):
         about.show()
 
 
-    #def on_python_prompt(self):
+    def on_python_prompt(self):
 
-    #    import idlelib
-        #idlelib.idle
+        dialog = dialog_python.PythonDialog(self)
+        dialog.show()
         
 
     #===========================================
@@ -1410,9 +1411,9 @@ class KeepNoteWindow (gtk.Window):
              "", None,
              lambda w: self.drag_test.on_drag_and_drop_test()),
 
-            #("Python Prompt...", None, _("Python Prompt..."),
-            # "", None,
-            # lambda w: self.on_python_prompt()),
+            ("Python Prompt...", None, _("Python Prompt..."),
+             "", None,
+             lambda w: self.on_python_prompt()),
             
             ("About", gtk.STOCK_ABOUT, _("_About"),
              "", None,
@@ -1497,6 +1498,7 @@ class KeepNoteWindow (gtk.Window):
     <menuitem action="View Error Log..."/>
     <menuitem action="View Preference Files..."/>
     <menuitem action="Drag and Drop Test..."/>
+    <menuitem action="Python Prompt..."/>
     <separator/>
     <menuitem action="About"/>
   </menu>

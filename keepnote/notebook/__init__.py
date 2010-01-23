@@ -359,7 +359,10 @@ class NoteBookAttr (object):
             self.read = read
 
         # default function
-        self.default = default
+        if default is None:
+            self.default = lambda: ""
+        else:
+            self.default = datatype
         
 
 class UnknownAttr (object):
@@ -396,14 +399,17 @@ modified_time_attr = NoteBookAttr("Modified", int, "modified_time", default=get_
 
 g_default_attrs = [
     title_attr,
-    NoteBookAttr("Content type", unicode, "content_type"),
-    NoteBookAttr("Order", int, "order"),
+    NoteBookAttr("Content type", unicode, "content_type",
+                 default=lambda: CONTENT_TYPE_DIR),
+    NoteBookAttr("Order", int, "order", default=lambda: sys.maxint),
     created_time_attr,
     modified_time_attr,
-    NoteBookAttr("Expaned", bool, "expanded", default=True),
-    NoteBookAttr("Expanded2", bool, "expanded2", default=True),
-    NoteBookAttr("Folder Sort", unicode, "info_sort", read=read_info_sort),
-    NoteBookAttr("Folder Sort Direction", int, "info_sort_dir"),
+    NoteBookAttr("Expaned", bool, "expanded", default=lambda: True),
+    NoteBookAttr("Expanded2", bool, "expanded2", default=lambda: True),
+    NoteBookAttr("Folder Sort", unicode, "info_sort", read=read_info_sort,
+                 default=lambda: "order"),
+    NoteBookAttr("Folder Sort Direction", int, "info_sort_dir", 
+                 default=lambda: 1),
     NoteBookAttr("Node ID", unicode, "nodeid", default=new_nodeid),
     NoteBookAttr("Icon", unicode, "icon"),
     NoteBookAttr("Icon Open", unicode, "icon_open"),
