@@ -469,6 +469,39 @@ class KeepNote (keepnote.KeepNote):
 
         self.on_set_icon(icon_file, icon_open_file, nodes)
 
+    #==================================
+    # file attachment
+
+
+    def on_attach_file(self, widget="focus", notebook=None, parent=None):
+
+        if notebook is None:
+            return
+        
+        dialog = FileChooserDialog(
+            _("Attach File..."), parent, 
+            action=gtk.FILE_CHOOSER_ACTION_OPEN,
+            buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
+                     _("Attach"), gtk.RESPONSE_OK),
+            app=self,
+            persistent_path="attach_file_path")
+        dialog.set_default_response(gtk.RESPONSE_OK)
+
+        # setup preview
+        preview = gtk.Image()
+        dialog.set_preview_widget(preview)
+        dialog.connect("update-preview", update_file_preview, preview)
+
+        response = dialog.run()
+
+        if response == gtk.RESPONSE_OK:
+            if dialog.get_filename():
+                # TODO: change this call, when attach_file is moved
+                parent.attach_file(unicode_gtk(dialog.get_filename()), 
+                                        widget=widget)
+
+        dialog.destroy()
+
 
     #==================================
     # misc GUI

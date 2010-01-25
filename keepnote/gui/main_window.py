@@ -823,35 +823,6 @@ class KeepNoteWindow (gtk.Window):
     #=================================================
     # file attachments
 
-    def on_attach_file(self, widget="focus"):
-
-        if self.viewer.get_notebook() is None:
-            return
-        
-        dialog = FileChooserDialog(
-            _("Attach File..."), self, 
-            action=gtk.FILE_CHOOSER_ACTION_OPEN,
-            buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
-                     _("Attach"), gtk.RESPONSE_OK),
-            app=self._app,
-            persistent_path="attach_file_path")
-        dialog.set_default_response(gtk.RESPONSE_OK)
-
-        # setup preview
-        preview = gtk.Image()
-        dialog.set_preview_widget(preview)
-        dialog.connect("update-preview", update_file_preview, preview)
-
-        response = dialog.run()
-
-        if response == gtk.RESPONSE_OK:
-            if dialog.get_filename():
-                self.attach_file(unicode_gtk(dialog.get_filename()), 
-                                 widget=widget)
-
-        dialog.destroy()
-
-
     def attach_file(self, filename, node=None, index=None, widget="focus"):
         
         # TODO: where does this belong?
@@ -1380,7 +1351,8 @@ class KeepNoteWindow (gtk.Window):
             
             ("Attach File", gtk.STOCK_ADD, _("_Attach File..."),
              "", _("Attach a file to the notebook"),
-             lambda w: self.on_attach_file()),
+             lambda w: self._app.on_attach_file(notebook=self.get_notebook(),
+                                                parent=self)),
 
             ("Empty Trash", gtk.STOCK_DELETE, _("Empty _Trash"),
              "", None,
