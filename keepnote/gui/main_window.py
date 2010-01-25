@@ -123,6 +123,7 @@ class KeepNoteWindow (gtk.Window):
 
 
         # main window signals
+        self.connect("error", lambda w,m,e,t: self.error(m,e,t))
         self.connect("delete-event", lambda w,e: self._on_close())
         self.connect("window-state-event", self._on_window_state)
         self.connect("size-allocate", self._on_window_size)
@@ -208,7 +209,7 @@ class KeepNoteWindow (gtk.Window):
         """Creates a new viewer for this window"""
 
         viewer = ThreePaneViewer(self._app, self)
-        viewer.connect("error", lambda w,m,e: self.error(m, e))
+        viewer.connect("error", lambda w,m,e: self.error(m, e, None))
         viewer.connect("status", lambda w,m,b: self.set_status(m, b))
         viewer.connect("window-request", self._on_window_request)
 
@@ -901,7 +902,7 @@ class KeepNoteWindow (gtk.Window):
         if node is None:
             nodes, widget = self.get_selected_nodes()
             if len(nodes) == 0:
-                self.emit("error", _("No notes are selected."))
+                self.emit("error", _("No notes are selected."), None, None)
                 return            
             node = nodes[0]
 
@@ -956,7 +957,7 @@ class KeepNoteWindow (gtk.Window):
                 self.emit("error", _("Could not open Image Viewer."), 
                            e, sys.exc_info()[2])
         else:
-            self.emit("error", _("You must specify an Image Viewer in Application Options."))
+            self.emit("error", _("You must specify an Image Viewer in Application Options."), None, None)
 
 
 
@@ -986,9 +987,9 @@ class KeepNoteWindow (gtk.Window):
             try:
                 proc = subprocess.Popen([editor.prog, image_path])
             except OSError, e:
-                self.emit("error", _("Could not open Image Editor."), e)
+                self.emit("error", _("Could not open Image Editor."), e, None)
         else:
-            self.emit("error", _("You must specify an Image Editor in Application Options."))
+            self.emit("error", _("You must specify an Image Editor in Application Options."), None, None)
 
 
     def _on_resize_image(self, menuitem):
@@ -1038,7 +1039,8 @@ class KeepNoteWindow (gtk.Window):
         if response == gtk.RESPONSE_OK:
 
             if not dialog.get_filename():
-                self.emit("error", _("Must specify a filename for the image."))
+                self.emit("error", _("Must specify a filename for the image."),
+                          None, None)
             else:
                 filename = unicode_gtk(dialog.get_filename())
                 try:                
@@ -1619,4 +1621,4 @@ class KeepNoteWindow (gtk.Window):
 
 gobject.type_register(KeepNoteWindow)
 gobject.signal_new("error", KeepNoteWindow, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (str, object))
+    gobject.TYPE_NONE, (str, object, object))
