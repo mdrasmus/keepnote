@@ -353,6 +353,10 @@ class KeepNote (keepnote.KeepNote):
         return self._current_window
     
 
+    def get_windows(self):
+        """Returns a list of open windows"""
+        return self._windows
+
 
     def open_notebook(self, filename, window=None):
         """Open notebook"""
@@ -543,3 +547,28 @@ class KeepNote (keepnote.KeepNote):
             except Exception, e:
                 log_error(e, sys.exc_info()[2])
 
+    
+    def install_extension(self, filename):
+        """Install a new extension"""
+
+        dialog = gtk.MessageDialog(self.get_current_window(), 
+            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            type=gtk.MESSAGE_QUESTION, 
+            buttons=gtk.BUTTONS_YES_NO, 
+            message_format=_("Do you want to install the extension \"%s\"?" %
+                             filename))
+
+        response = dialog.run()
+        dialog.destroy()
+        
+        if response == gtk.RESPONSE_YES:
+            if keepnote.KeepNote.install_extension(self, filename):
+                dialog = gtk.MessageDialog(
+                    self.get_current_window(), 
+                    flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+                    type=gtk.MESSAGE_INFO, 
+                    buttons=gtk.BUTTONS_OK, 
+                    message_format=_("Extension \"%s\" is now installed." %
+                                     filename))
+                dialog.run()
+                dialog.destroy()

@@ -942,6 +942,7 @@ class EditorMenus (gobject.GObject):
               <placeholder name="Editor">
                 <menuitem action="Insert Horizontal Rule"/>
                 <menuitem action="Insert Image"/>
+              <!--  <menuitem action="Insert New Image"/> -->
                 <menuitem action="Insert Screenshot"/>
                 <placeholder name="Extension"/>
               </placeholder>

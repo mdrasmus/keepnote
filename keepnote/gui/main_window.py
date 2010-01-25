@@ -73,6 +73,7 @@ import keepnote.search
 from keepnote.gui import richtext
 from keepnote.gui import \
     dialog_image_resize, \
+    dialog_image_new, \
     dialog_drag_drop_test, \
     dialog_wait, \
     dialog_update_notebook, \
@@ -987,7 +988,17 @@ class KeepNoteWindow (gtk.Window):
         
         image = menuitem.get_parent().get_child()
         self.image_resize_dialog.on_resize(image)
+
+
+    def _on_new_image(self):
+        """New image"""
+
+        current_page = self.get_current_page()
+        if current_page is None:
+            return
         
+        dialog = dialog_image_new.NewImageDialog(self, self._app)
+        dialog.show()
 
 
     def _on_save_image_as(self, menuitem):
@@ -1339,6 +1350,10 @@ class KeepNoteWindow (gtk.Window):
              "<control>V", None,
              lambda w: self.on_paste()),
 
+            ("Insert New Image", None, _("Insert _New Image..."),
+             "", _("Insert a new image"),
+             lambda w: self._on_new_image()),
+            
             ("Attach File", gtk.STOCK_ADD, _("_Attach File..."),
              "", _("Attach a file to the notebook"),
              lambda w: self.on_attach_file()),

@@ -215,9 +215,22 @@ def execute_command(app, argv):
             raise Exception(_("Unknown command '%s'") % args[0])
             
     elif len(args) > 0:
-        # open specified notebook
-        win = app.new_window()
-        win.open_notebook(args[0].rstrip("/"))
+
+        if keepnote.extension.is_extension_install_file(args[0]):
+            # install extension
+            if len(app.get_windows()) == 0:
+                app.new_window()
+
+            if app.install_extension(args[0]):
+
+                # make sure each window initializes the new extension
+                for window in app.get_windows():
+                    app.init_extensions_window(window)
+
+        else:
+            # open specified notebook
+            win = app.new_window()
+            win.open_notebook(args[0].rstrip("/"))
 
     elif options.default_notebook and app.pref.default_notebook != "":
         # open default notebook

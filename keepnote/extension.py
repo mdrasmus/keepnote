@@ -27,6 +27,9 @@ import imp
 
 import keepnote
 
+# globals
+EXTENSION_EXT = ".kne"  # filename extension for KeepNote Extensions
+
 
 class DependencyError (StandardError):
     """Exception for dependency error"""
@@ -123,6 +126,13 @@ def dependency_satisfied(ext, dep):
         if not (ext.version != version): return False
 
     return True
+
+
+def is_extension_install_file(filename):
+    """
+    Returns True if file is an extension install file
+    """
+    return filename.endswith(EXTENSION_EXT)
 
 
 class Extension (object):

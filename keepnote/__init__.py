@@ -36,6 +36,7 @@ import re
 import subprocess
 import tempfile
 import traceback
+import zipfile
 
 # keepnote imports
 from keepnote.notebook import \
@@ -938,6 +939,13 @@ class KeepNote (object):
         return imgfile  
 
 
+    def error(self, text, error=None, tracebk=None):
+        """Display an error message"""
+
+        keepnote.log_message(text)
+        if error is not None:
+            keepnote.log_error(error, tracebk)
+
 
     #================================
     # extensions
@@ -1056,6 +1064,69 @@ class KeepNote (object):
                 self.pref.disabled_extensions.append(ext.key)
     
 
+    def install_extension(self, filename):
+        """Install new extension"""
+
+        userdir = get_user_extensions_dir()
+
+        try:
+            newfiles = list(unzip(filename, userdir))
+
+            # rescan user extensions
+            exts = set(self._extensions.keys())
+            self.scan_extensions_dir(userdir)
+
+            # find new extensions
+            new_names = set(self._extensions.keys()) - exts
+            new_exts = [self.get_extension(name) for name in new_names]
+
+        except Exception, e:
+            self.error("Unable to install extension '%s'" % filename,
+                       e, tracebk=sys.exc_info()[2])
+
+            # TODO: delete newfiles
+
+            return False
+        
+        # enable new extensions
+        log_message("Enabling new extensions:\n")
+        for ext in new_exts:
+            log_message(_("enabling extension '%s'\n") % ext.key)
+            ext.enable(True)
+
+        return True
+        
+
+def unzip(filename, outdir):
+    extzip = zipfile.ZipFile(filename)
+            
+    for fn in extzip.namelist():
+        if fn.endswith("/") or fn.endswith("\\"):
+            # skip directory entries
+            continue
+
+        # quick test for unusual filenames
+        if fn.startswith("../") or "/../" in fn:
+            raise Exception("bad file paths in zipfile '%s'" % fn)
+
+        # determine extracted filename
+        newfilename = os.path.join(outdir, fn)
+
+        # ensure directory exists
+        dirname = os.path.dirname(newfilename)
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
+        elif not os.path.isdir(dirname) or os.path.exists(newfilename):
+            raise Exception("Cannot unzip.  Other files are in the way")
+
+
+        # extract file
+        out = open(newfilename, "wb")
+        out.write(extzip.read(fn))
+        out.flush()
+        out.close()
+
+        yield newfilename
 
 
 class KeepNoteExtension (extension.Extension):
