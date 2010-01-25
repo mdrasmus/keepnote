@@ -456,7 +456,7 @@ class ThreePaneViewer (Viewer):
     def on_list_view_node(self, listview, node, direct=False):
         """Focus listview on a node"""
         
-        if node and node.has_attr("payload_filename"):
+        if direct and node and node.has_attr("payload_filename"):
             self._main_window.on_view_node_external_app("file_launcher",
                                            node,
                                            kind="file")

@@ -496,19 +496,25 @@ class KeepNoteWindow (gtk.Window):
     
     def _on_close(self):
         """Callback for window close"""
+
+        try:
+            #print "ON CLOSE"
+            self.save_preferences()
+            self.close_notebook()
+            if self._tray_icon:
+                # turn off try icon
+                self._tray_icon.set_property("visible", False)
         
-        self.save_preferences()
-        self.close_notebook()
-        if self._tray_icon:
-            # turn off try icon
-            self._tray_icon.set_property("visible", False)
-            
+        except Exception, e:
+            self.error("Error while closing", e, sys.exc_info()[2])
+
         return False
     
 
     def close(self):
         """Close the window"""
 
+        #print "CLOSE"
         self.emit("delete-event", None)
         
 
