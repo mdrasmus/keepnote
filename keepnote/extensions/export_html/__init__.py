@@ -87,6 +87,7 @@ class Extension (extension.Extension):
     def on_add_ui(self, window):
         """Initialize extension for a particular window"""
 
+        # TODO: ACTION GROUP MUST BE PER WINDOW
         # add menu options
         self.action_group = gtk.ActionGroup("MainWindow")
         self.action_group.add_actions([

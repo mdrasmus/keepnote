@@ -422,6 +422,13 @@ class KeepNoteWindow (gtk.Window):
     #=============================================
     # Notebook open/save/close UI
 
+    def on_new_window(self):
+        """Open a new window"""
+
+        win = self._app.new_window()
+        win.set_notebook(self.get_notebook())
+
+
     def on_new_notebook(self):
         """Launches New NoteBook dialog"""
         
@@ -588,7 +595,6 @@ class KeepNoteWindow (gtk.Window):
         # check version
         try:
             notebook = self._app.get_notebook(filename, self)
-            notebook.node_changed.add(self.on_notebook_node_changed)
 
         except NoteBookVersionError, e:
             self.error(_("This version of %s cannot read this notebook.\n" 
@@ -643,7 +649,7 @@ class KeepNoteWindow (gtk.Window):
             if save:
                 self.save_notebook()
             
-            notebook.node_changed.remove(self.on_notebook_node_changed)
+            #notebook.node_changed.remove(self.on_notebook_node_changed)
             
             self.set_notebook(None)
             self.set_status(_("Notebook closed"))
@@ -685,6 +691,12 @@ class KeepNoteWindow (gtk.Window):
     def set_notebook(self, notebook):
         """Set the NoteBook for the window"""
         
+        if self.viewer.get_notebook():
+            self.viewer.get_notebook().node_changed.remove(
+                self.on_notebook_node_changed)
+
+        if notebook:
+            notebook.node_changed.add(self.on_notebook_node_changed)
         self.viewer.set_notebook(notebook)
 
 
@@ -1295,6 +1307,10 @@ class KeepNoteWindow (gtk.Window):
                       [
             ("File", None, _("_File")),
 
+            ("New Window", None, _("New Window"),
+             "", _("Open a new window"),
+             lambda w: self.on_new_window()),
+
             ("New Notebook", gtk.STOCK_NEW, _("_New Notebook..."),
              "", _("Start a new notebook"),
              lambda w: self.on_new_notebook()),
@@ -1459,6 +1475,8 @@ class KeepNoteWindow (gtk.Window):
 <!-- main window menu bar -->
 <menubar name="main_menu_bar">
   <menu action="File">
+     <menuitem action="New Window"/>
+     <separator/>
      <menuitem action="New Notebook"/>
      <placeholder name="Viewer"/>
      <separator/>
