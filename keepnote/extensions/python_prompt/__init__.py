@@ -69,6 +69,7 @@ class Extension (extension.Extension):
         extension.Extension.__init__(self, app)
 
         self._ui_id = {}
+        self._action_groups = {}
 
 
     def get_depends(self):
@@ -81,13 +82,13 @@ class Extension (extension.Extension):
     def on_add_ui(self, window):
 
         # add menu options
-        self.action_group = gtk.ActionGroup("MainWindow")
-        self.action_group.add_actions([
+        self._action_groups[window] = gtk.ActionGroup("MainWindow")
+        self._action_groups[window].add_actions([
                 ("Python Prompt...", None, "Python Prompt...",
                  "", None,
                  lambda w: self.on_python_prompt(window)),
                 ])
-        window.get_uimanager().insert_action_group(self.action_group, 0)
+        window.get_uimanager().insert_action_group(self._action_groups[window], 0)
 
 
         self._ui_id[window] = window.get_uimanager().add_ui_from_string(
@@ -107,8 +108,8 @@ class Extension (extension.Extension):
         
         # remove menu options
         window.get_uimanager().remove_ui(self._ui_id[window])
-        window.get_uimanager().remove_action_group(self.action_group)
-        self.action_group = None
+        window.get_uimanager().remove_action_group(self._action_groups[window])
+        del self._action_groups[window]
         del self._ui_id[window]
 
 

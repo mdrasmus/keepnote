@@ -67,6 +67,7 @@ class Extension (extension.Extension):
         self._widget_focus = {}
         self._set_focus_id = {}
         self._ui_id = {}
+        self._action_groups = {}
 
         self.format = "%Y/%m/%d"
 
@@ -108,13 +109,13 @@ class Extension (extension.Extension):
         self._set_focus_id[window] = window.connect("set-focus", self._on_focus)
 
         # add menu options
-        self.action_group = gtk.ActionGroup("MainWindow")
-        self.action_group.add_actions([
+        self._action_groups[window] = gtk.ActionGroup("MainWindow")
+        self._action_groups[window].add_actions([
                 ("Insert Date", None, "Insert _Date",
                  "", None,
                  lambda w: self.insert_date(window)),
                 ])
-        window.get_uimanager().insert_action_group(self.action_group, 0)
+        window.get_uimanager().insert_action_group(self._action_groups[window], 0)
 
 
         self._ui_id[window] = window.get_uimanager().add_ui_from_string(
@@ -142,8 +143,8 @@ class Extension (extension.Extension):
 
         # remove menu options
         window.get_uimanager().remove_ui(self._ui_id[window])
-        window.get_uimanager().remove_action_group(self.action_group)
-        self.action_group = None
+        window.get_uimanager().remove_action_group(self._action_groups[window])
+        del self._action_groups[window]
         del self._ui_id[window]
 
 

@@ -127,7 +127,7 @@ class PythonDialog (object):
         self.dialog.show_all()
 
 
-        self.output_text("ready...\n", "info")
+        self.output_text("Press Ctrl+Enter to execute. Ready...\n", "info")
     
 
     def on_key_press_event(self, textview, event):
