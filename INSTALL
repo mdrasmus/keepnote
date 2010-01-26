@@ -72,17 +72,20 @@ Mac OS X Install
      - gtk (http://www.gtk.org)
      - pygtk (http://www.pygtk.org)
 
-  All of these libraries are also available through Mac Ports Mac OS X.  Once
+  All of these libraries are also available through Mac Ports on Mac OS X.  Once
   installed, KeepNote can be run directly from its source directory
 
     $ path-to-keepnote-src/bin/keepnote
   
   To install dependencies with MacPorts use the following command:
 
-    $ sudo port install py25-gtk
+    $ sudo port install py25-gtk aspell aspell-dict-en
+
+  You may need to add your own language's dictionary (aspell-dict-XX) for 
+  spell checking to work completely.
 
   Alternative: Another option for running KeepNote is to use the Windows 
-  version in WINE or another Virtual Machine (VMware, etc).
+  version in WINE or a Virtual Machine (VMware, etc).
 
 
 =============================================================================
