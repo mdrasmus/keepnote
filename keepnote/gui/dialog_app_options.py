@@ -540,40 +540,11 @@ class ExtensionsSection (Section):
         self.sw.set_shadow_type(gtk.SHADOW_IN)
         self.sw.show()
         v.pack_start(self.sw, True, True, 0)
-
-        self.list = gtk.TreeView()
-        self.list.show()
-        self.sw.add(self.list)
-
-
-        self.list_store = gtk.ListStore(object, str, str, bool)
-        self.list.set_model(self.list_store)
-
-        # enabled column
-        column = gtk.TreeViewColumn()
-        column.set_title(_("Enabled"))
-        cell = gtk.CellRendererToggle()
-        cell.connect("toggled", self._on_extension_enabled)
-        column.pack_start(cell, True)
-        column.add_attribute(cell, 'active', 3)
-        self.list.append_column(column)
         
         
-        # name column
-        column = gtk.TreeViewColumn()
-        column.set_title(_("Name"))
-        cell_text = gtk.CellRendererText()
-        column.pack_start(cell_text, True)
-        column.add_attribute(cell_text, 'text', 1)
-        self.list.append_column(column)
-
-        # description column
-        column = gtk.TreeViewColumn()
-        column.set_title(_("Description"))
-        cell_text = gtk.CellRendererText()
-        column.pack_start(cell_text, True)
-        column.add_attribute(cell_text, 'text', 2)
-        self.list.append_column(column)
+        self.extlist = gtk.VBox(False, 0)
+        self.extlist.show()
+        self.sw.add_with_viewport(self.extlist)
 
         # set icon
         try:
@@ -585,35 +556,106 @@ class ExtensionsSection (Section):
 
     def load_options(self, app):
 
-        self.list_store.clear()
-
+        # clear extension list
+        self.extlist.foreach(self.extlist.remove)
+        
+        # populate extension list
         for ext in app.iter_extensions():
             if ext.visible:
-                self.list_store.append([ext, ext.name, ext.description, 
-                                        ext.is_enabled()])
-
-        w, h = self.list.size_request()
+                p = ExtensionWidget(ext)
+                p.show()
+                self.extlist.pack_start(p, True, True, 0)
+        
+        # setup scroll bar size
+        w, h = self.extlist.size_request()
         w2, h2 = self.sw.get_vscrollbar().size_request()
-        self.sw.set_size_request(400, h+w2+10)
+        self.sw.set_size_request(400, min(300, h+10))
 
-
-
-    def _on_extension_enabled(self, cell, path):
-        """Callback for when enabled check box is clicked"""
-
-        self.list_store[path][3] = not cell.get_active()
 
     def save_options(self, app):
         
-        for row in self.list_store:
-            ext, enable = row[0], row[3]
-
+        for widget in self.extlist:
             try:
-                ext.enable(enable)
+                widget.ext.enable(widget.enabled)
             except Exception, e:
                 keepnote.log_error(e)
+            widget.update()
 
-            row[3] = ext.is_enabled()
+
+class ExtensionWidget (gtk.EventBox):
+    def __init__(self, ext):
+        gtk.EventBox.__init__(self)
+
+        self.enabled = ext.is_enabled()
+        self.ext = ext
+
+        self.modify_bg(gtk.STATE_NORMAL, gtk.gdk.Color(65535, 65535, 65535))
+
+        frame = gtk.Frame(None)
+        frame.set_property("shadow-type", gtk.SHADOW_OUT)
+        frame.show()
+        self.add(frame)
+
+        # name
+        frame2 = gtk.Frame("")
+        frame2.set_property("shadow-type", gtk.SHADOW_NONE)
+        frame2.get_label_widget().set_text("<b>%s</b>" % ext.name)
+        frame2.get_label_widget().set_use_markup(True)
+        frame2.show()
+        frame.add(frame2)
+
+        # margin
+        align = gtk.Alignment()
+        align.set_padding(10, 10, 10, 10)
+        align.show()
+        frame2.add(align)
+
+        # vbox
+        v = gtk.VBox(False, 5)
+        v.show()
+        align.add(v)
+
+        # description
+        l = gtk.Label(ext.description)
+        l.set_justify(gtk.JUSTIFY_LEFT)
+        l.set_alignment(0.0, 0.0)
+        l.show()
+        v.pack_start(l, True, True, 0)
+
+        # hbox
+        h = gtk.HBox(False, 0)
+        h.show()
+        v.pack_start(h, True, True, 0)
+
+        # enable button
+        self.enable_check = gtk.CheckButton("Enabled")
+        self.enable_check.set_active(self.enabled)
+        self.enable_check.show()
+        self.enable_check.connect(
+            "toggled", lambda w: self._on_enabled(ext))
+        h.pack_start(self.enable_check, False, True, 0)
+
+        # divider
+        l = gtk.Label("|"); l.show()
+        h.pack_start(l, False, True, 0)
+
+        # uninstall button        
+        self.uninstall_button = gtk.Button("Uninstall")
+        self.uninstall_button.set_relief(gtk.RELIEF_NONE)
+        self.uninstall_button.show()
+        self.uninstall_button.connect(
+            "clicked", lambda w: self._on_uninstall(ext))
+        h.pack_start(self.uninstall_button, False, True, 0)
+
+
+    def update(self):
+        self.enable_check.set_active(self.ext.is_enabled())
+
+    def _on_enabled(self, ext):
+        self.enabled = self.enable_check.get_active()
+
+    def _on_uninstall(self, ext):
+        print "uninstall", ext.name
 
 
 

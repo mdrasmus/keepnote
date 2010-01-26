@@ -347,7 +347,7 @@ class NoteBookIndex (object):
                     # record update
                     ret = cur.execute(u"UPDATE Nodes SET "
                                       u"nodeid=?, "
-                                      u"title=?, "
+                                      u"title=? "
                                       u"WHERE nodeid = ?",
                                       (nodeid, title, nodeid))
             else:
