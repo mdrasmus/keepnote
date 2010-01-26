@@ -498,7 +498,6 @@ class KeepNoteWindow (gtk.Window):
         """Callback for window close"""
 
         try:
-            #print "ON CLOSE"
             self.save_preferences()
             self.close_notebook()
             if self._tray_icon:
@@ -514,8 +513,8 @@ class KeepNoteWindow (gtk.Window):
     def close(self):
         """Close the window"""
 
-        #print "CLOSE"
-        self.emit("delete-event", None)
+        self._on_close()
+        self.destroy()
         
 
     
