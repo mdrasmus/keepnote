@@ -1062,6 +1062,9 @@ class EditorMenus (gobject.GObject):
         # NOTE: action can be none if minimal toolbar is in use.
 
         if action:
+            proxies = action.get_proxies()
+            if len(proxies) == 0:
+                return None
             widget = action.get_proxies()[0]
 
             def block():

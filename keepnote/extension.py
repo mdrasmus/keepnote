@@ -154,8 +154,17 @@ class Extension (object):
         self._app = app
         self._enabled = False
         self.__windows = set()
+        self.__type = "system"
 
         self.__uis = set()
+
+
+    def get_type(self):
+        return self.__type
+
+
+    def set_type(self, ext_type):
+        self.__type = ext_type
 
 
     def enable(self, enable):

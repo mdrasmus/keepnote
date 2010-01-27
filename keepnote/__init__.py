@@ -751,6 +751,14 @@ class KeepNoteError (StandardError):
         return self.msg
 
 
+class ExtensionEntry (object):
+    """An entry for an Extension in the KeepNote application"""
+
+    def __init__(self, filename, ext_type, ext):
+        self.filename = filename
+        self.ext_type = ext_type
+        self.ext = ext
+
 
 class KeepNote (object):
     """KeepNote application class"""
@@ -785,8 +793,8 @@ class KeepNote (object):
         
         # scan extensions
         self.clear_extensions()
-        self.scan_extensions_dir(get_system_extensions_dir())
-        self.scan_extensions_dir(get_user_extensions_dir())
+        self.scan_extensions_dir(get_system_extensions_dir(), "system")
+        self.scan_extensions_dir(get_user_extensions_dir(), "user")
 
         # initialize all extensions
         self.init_extensions()
@@ -961,7 +969,7 @@ class KeepNote (object):
         self._extensions = {"keepnote": ("", KeepNoteExtension(self))}
 
 
-    def scan_extensions_dir(self, extensions_dir):
+    def scan_extensions_dir(self, extensions_dir, ext_type):
         """Scan extensions directory and store references in application"""
         
         for filename in extension.iter_extensions(extensions_dir):
@@ -1074,7 +1082,7 @@ class KeepNote (object):
 
             # rescan user extensions
             exts = set(self._extensions.keys())
-            self.scan_extensions_dir(userdir)
+            self.scan_extensions_dir(userdir, "user")
 
             # find new extensions
             new_names = set(self._extensions.keys()) - exts

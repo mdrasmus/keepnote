@@ -599,7 +599,8 @@ class ExtensionWidget (gtk.EventBox):
         # name
         frame2 = gtk.Frame("")
         frame2.set_property("shadow-type", gtk.SHADOW_NONE)
-        frame2.get_label_widget().set_text("<b>%s</b>" % ext.name)
+        frame2.get_label_widget().set_text("<b>%s</b> (%s)" % 
+                                           (ext.name, ext.get_type()))
         frame2.get_label_widget().set_use_markup(True)
         frame2.show()
         frame.add(frame2)
