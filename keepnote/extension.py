@@ -153,10 +153,7 @@ class Extension (object):
         
         self._app = app
         self._enabled = False
-        self.__windows = set()
         self.__type = "system"
-
-        self.__uis = set()
 
 
     def get_type(self):
@@ -167,25 +164,15 @@ class Extension (object):
         self.__type = ext_type
 
 
+
     def enable(self, enable):
+        """Enable/disable extension"""
 
         # check dependencies
-        for dep in self.get_depends():
-            if not self._app.dependency_satisfied(dep):
-                raise DependencyError(self, dep)
+        self.check_depends()
 
         self._enabled = enable
-
-        if enable:
-            for window in self.__windows:
-                if window not in self.__uis:
-                    self.on_add_ui(window)
-                    self.__uis.add(window)
-        else:
-            for window in self.__uis:
-                self.on_remove_ui(window)
-            self.__uis.clear()
-
+        
         # call callback for app
         self._app.on_extension_enabled(self, enable)
 
@@ -195,6 +182,7 @@ class Extension (object):
         # return whether the extension is enabled
         return self._enabled
 
+
     def is_enabled(self):
         """Returns True if extension is enabled"""
         return self._enabled
@@ -202,6 +190,13 @@ class Extension (object):
     def on_enabled(self, enabled):
         """Callback for when extension is enabled/disabled"""
         return True
+
+
+    def check_depends(self):
+        """Checks whether dependencies are met.  Throws exception on failure"""
+        for dep in self.get_depends():
+            if not self._app.dependency_satisfied(dep):
+                raise DependencyError(self, dep)
 
 
     def get_depends(self):
@@ -267,38 +262,6 @@ class Extension (object):
         return os.path.join(self.get_data_dir(exist), filename)
 
     
-    #================================
-    # window interactions
-
-    def on_new_window(self, window):
-        """Initialize extension for a particular window"""
-
-        if self._enabled:
-            try:
-                self.on_add_ui(window)
-                self.__uis.add(window)
-            except Exception, e:
-                keepnote.log_error(e, sys.exc_info()[2])
-        self.__windows.add(window)
-
-
-    def on_close_window(self, window):
-        """Callback for when window is closed"""
-     
-        if window in self.__windows:
-            if window in self.__uis:
-                try:
-                    self.on_remove_ui(window)
-                except Exception, e:
-                    keepnote.log_error(e, sys.exc_info()[2])
-                self.__uis.remove(window)
-            self.__windows.remove(window)
-
-    def get_windows(self):
-        """Returns windows associated with extension"""
-        return self.__windows
-            
-
     #===============================
     # UI interaction
 

@@ -966,14 +966,16 @@ class KeepNote (object):
             ext.disable()
 
         # add default application extension
-        self._extensions = {"keepnote": ("", KeepNoteExtension(self))}
+        self._extensions = {
+            "keepnote": ExtensionEntry("", "system", KeepNoteExtension(self))}
 
 
     def scan_extensions_dir(self, extensions_dir, ext_type):
         """Scan extensions directory and store references in application"""
         
         for filename in extension.iter_extensions(extensions_dir):
-            self._extensions[os.path.basename(filename)] = (filename, None)
+            self._extensions[os.path.basename(filename)] = \
+                ExtensionEntry(filename, ext_type, None)
         
         
     def init_extensions(self):
@@ -1010,22 +1012,21 @@ class KeepNote (object):
             return None
 
         # get extension information
-        filename, ext = self._extensions[name]        
+        entry = self._extensions[name]
 
         # load if first use
-        if ext is None:
+        if entry.ext is None:
             try:
-                ext = extension.import_extension(self, name, filename)
-                self._extensions[name] = (filename, ext)
+                entry.ext = extension.import_extension(self, name, entry.filename)
             except KeepNotePreferenceError, e:
                 log_error(e, sys.exc_info()[2])
                 
-        return ext
+        return entry.ext
 
 
     def get_extension_base_dir(self, extkey):
         """Get base directory of an extension"""
-        return self._extensions[extkey][0]
+        return self._extensions[extkey].filename
     
     def get_extension_data_dir(self, extkey):
         """Get the data directory of an extension"""
@@ -1064,6 +1065,7 @@ class KeepNote (object):
     def on_extension_enabled(self, ext, enabled):
         """Callback for extension enabled"""
 
+        # update user preference on which estensions are disabled
         if enabled:
             if ext.key in self.pref.disabled_extensions:
                 self.pref.disabled_extensions.remove(ext.key)

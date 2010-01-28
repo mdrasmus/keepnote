@@ -39,7 +39,7 @@ from keepnote.notebook import NoteBookError, get_valid_unique_filename
 from keepnote import notebook as notebooklib
 from keepnote import tasklib
 from keepnote import tarfile
-from keepnote import extension
+from keepnote.gui import extension
 
 # pygtk imports
 try:

@@ -514,6 +514,7 @@ class KeepNoteWindow (gtk.Window):
         """Close the window"""
 
         self._on_close()
+        self.emit("delete-event", None)
         self.destroy()
         
 

@@ -1065,6 +1065,8 @@ class EditorMenus (gobject.GObject):
             proxies = action.get_proxies()
             if len(proxies) == 0:
                 return None
+            # NOTE: sometimes get_proxies() is zero length after app options
+            # OK button is clicked.  Don't know why this happens yet.
             widget = action.get_proxies()[0]
 
             def block():

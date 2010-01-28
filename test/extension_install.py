@@ -19,7 +19,7 @@ class ExtensionInstall (unittest.TestCase):
         os.system("rm -rf ~/.config/keepnote/extensions/test_extension")
 
 
-    def test_double_install_gui(self):        
+    def _test_double_install_gui(self):        
         """Test double install"""
 
         # remove old extension

@@ -889,7 +889,6 @@ class ApplicationOptionsDialog (object):
 
     def on_overview_select(self, overview):
         """Callback for changing topic in overview"""
-        
         row, col = overview.get_cursor()
         if row is not None:
             section = self.tree2section[row]
@@ -897,25 +896,26 @@ class ApplicationOptionsDialog (object):
 
 
     def on_cancel_button_clicked(self):
-        
+        """Callback for cancel button"""
         self.dialog.hide()
         self.finish()
+
     
     def on_ok_button_clicked(self):
-
+        """Callback for ok button"""
         self.save_options(self.app)
         self.dialog.hide()
         self.finish()
 
 
     def on_apply_button_clicked(self):
+        """Callback for apply button"""
         self.save_options(self.app)
 
         # clean up and reshow dialog
         self.finish()
         self.show(self.parent)
         
-
     
     def _on_delete_event(self, widget, event):
         """Callback for window close"""
@@ -925,5 +925,3 @@ class ApplicationOptionsDialog (object):
         return True
 
 
-    # TODO: add apply button
-    

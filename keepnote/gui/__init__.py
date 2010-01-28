@@ -547,7 +547,8 @@ class KeepNote (keepnote.KeepNote):
         if window in self._windows:
             for ext in self.iter_extensions():
                 try:
-                    ext.on_close_window(window)
+                    if isinstance(ext, keepnote.gui.extension.Extension):
+                        ext.on_close_window(window)
                 except Exception, e:
                     log_error(e, sys.exc_info()[2])
 
@@ -576,7 +577,8 @@ class KeepNote (keepnote.KeepNote):
         
         for ext in self.iter_extensions():
             try:
-                ext.on_new_window(window)
+                if isinstance(ext, keepnote.gui.extension.Extension):
+                    ext.on_new_window(window)
             except Exception, e:
                 log_error(e, sys.exc_info()[2])
 

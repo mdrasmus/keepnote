@@ -35,7 +35,7 @@ _ = gettext.gettext
 
 # keepnote imports
 import keepnote
-from keepnote import extension
+from keepnote.gui import extension
 
 
 # pygtk imports
