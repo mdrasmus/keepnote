@@ -28,6 +28,7 @@ import imp
 import sys
 
 import keepnote
+from keepnote.listening import Listeners
 
 # globals
 EXTENSION_EXT = ".kne"  # filename extension for KeepNote Extensions
@@ -154,6 +155,7 @@ class Extension (object):
         self._app = app
         self._enabled = False
         self.__type = "system"
+        self.enabled = Listeners()
 
 
     def get_type(self):
@@ -164,20 +166,17 @@ class Extension (object):
         self.__type = ext_type
 
 
-
     def enable(self, enable):
         """Enable/disable extension"""
 
         # check dependencies
         self.check_depends()
 
+        # mark extension as enabled
         self._enabled = enable
-        
-        # call callback for app
-        self._app.on_extension_enabled(self, enable)
 
-        # call callback for enable event
-        self.on_enabled(enable)
+        # notify listeners
+        self.enabled.notify(enable)
 
         # return whether the extension is enabled
         return self._enabled
@@ -186,10 +185,6 @@ class Extension (object):
     def is_enabled(self):
         """Returns True if extension is enabled"""
         return self._enabled
-
-    def on_enabled(self, enabled):
-        """Callback for when extension is enabled/disabled"""
-        return True
 
 
     def check_depends(self):

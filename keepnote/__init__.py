@@ -42,9 +42,9 @@ import zipfile
 from keepnote.notebook import \
     NoteBookError, \
     get_unique_filename_list
-from keepnote import timestamp
-import keepnote.notebook as notebooklib
-from keepnote import xdg
+import keepnote.timestamp
+import keepnote.notebook
+import keepnote.xdg
 from keepnote import xmlobject as xmlo
 from keepnote.listening import Listeners
 from keepnote.util import compose
@@ -224,7 +224,7 @@ def get_user_pref_dir(home=None):
     if p == "unix" or p == "darwin":
         if home is None:
             home = get_home()
-        return xdg.get_config_file(USER_PREF_DIR, default=True)
+        return keepnote.xdg.get_config_file(USER_PREF_DIR, default=True)
 
     elif p == "windows":
         appdata = ensure_unicode(os.getenv(u"APPDATA"), FS_ENCODING)
@@ -481,7 +481,7 @@ class KeepNotePreferences (object):
         
         self.default_notebook = ""
         self.use_last_notebook = True
-        self.timestamp_formats = dict(timestamp.DEFAULT_TIMESTAMP_FORMATS)
+        self.timestamp_formats = dict(keepnote.timestamp.DEFAULT_TIMESTAMP_FORMATS)
         self.spell_check = True
         self.image_size_snap = True
         self.image_size_snap_amount = 50
@@ -823,7 +823,7 @@ class KeepNote (object):
     def open_notebook(self, filename, window=None):
         """Open notebook"""
         
-        notebook = notebooklib.NoteBook()
+        notebook = keepnote.notebook.NoteBook()
         notebook.load(filename)
         return notebook
 
@@ -1018,6 +1018,9 @@ class KeepNote (object):
         if entry.ext is None:
             try:
                 entry.ext = extension.import_extension(self, name, entry.filename)
+                entry.ext.enabled.add(
+                    lambda e: self.on_extension_enabled(entry.ext, e))
+
             except KeepNotePreferenceError, e:
                 log_error(e, sys.exc_info()[2])
                 

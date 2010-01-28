@@ -45,38 +45,15 @@ class Extension (extension.Extension):
         self.__windows = set()
         self.__uis = set()
 
-
-    def enable(self, enable):
-        """Enable/disable extension"""
-
-        # check dependencies
-        self.check_depends()
-
-        # mark extension enable state
-        self._enabled = enable
-
-        # TODO: I should use the listener system and registry each of these
-        # callbacks that way.
-
-        # call callback for app
-        self._app.on_extension_enabled(self, enable)
-
-        # callback for GUI extension
-        self._on_enable_ui()
-
-        # call callback for extension implementation
-        self.on_enabled(enable)
-
-        # return whether the extension is enabled
-        return self._enabled
+        self.enabled.add(self._on_enable_ui)
 
     
     #================================
     # window interactions
 
-    def _on_enable_ui(self):
+    def _on_enable_ui(self, enabled):
         """Initialize UI during enable/disable"""
-        if self._enabled:
+        if enabled:
             # TODO: should each extension have to remember what windows it has?
             for window in self.__windows:
                 if window not in self.__uis:

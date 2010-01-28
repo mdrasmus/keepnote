@@ -71,9 +71,12 @@ class Extension (extension.Extension):
 
         self.format = "%Y/%m/%d"
 
+        self.enabled.add(self.on_enabled)
+
 
     def on_enabled(self, enabled):
-        self.load_config()
+        if enabled:
+            self.load_config()
 
 
     def get_depends(self):
