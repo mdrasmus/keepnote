@@ -1295,7 +1295,11 @@ class RichTextView (gtk.TextView):
         
         if enabled:
             if self._spell_checker is None:
-                self._spell_checker = gtkspell.Spell(self)
+                try:
+                    self._spell_checker = gtkspell.Spell(self)
+                except Exception:
+                    # unable to intialize spellcheck, abort
+                    self._spell_checker = None
         else:
             if self._spell_checker is not None:
                 self._spell_checker.detach()
@@ -1303,7 +1307,7 @@ class RichTextView (gtk.TextView):
 
     def is_spell_check_enabled(self):
         """Returns True if spell check is enabled"""
-        return self._spell_checker != None
+        return self._spell_checker is not None
         
     #===========================================================
     # font manipulation
