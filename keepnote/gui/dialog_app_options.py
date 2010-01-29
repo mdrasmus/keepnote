@@ -43,6 +43,7 @@ from keepnote.gui.font_selector import FontSelector
 import keepnote.gui
 from keepnote.gui.icons import get_icon_filename
 import keepnote.trans
+import keepnote.gui.extension
 
 _ = keepnote.translate
 
@@ -560,7 +561,10 @@ class ExtensionsSection (Section):
         self.extlist.foreach(self.extlist.remove)
         
         # populate extension list
-        for ext in app.iter_extensions():
+        exts = list(app.iter_extensions())
+        d = {"user": 0, "system": 1}
+        exts.sort(key=lambda e: (d.get(e.get_type(), 10), e.name))
+        for ext in exts:
             if ext.visible:
                 p = ExtensionWidget(ext)
                 p.show()
@@ -599,8 +603,9 @@ class ExtensionWidget (gtk.EventBox):
         # name
         frame2 = gtk.Frame("")
         frame2.set_property("shadow-type", gtk.SHADOW_NONE)
-        frame2.get_label_widget().set_text("<b>%s</b> (%s)" % 
-                                           (ext.name, ext.get_type()))
+        frame2.get_label_widget().set_text("<b>%s</b> (%s/%s)" % 
+                                           (ext.name, ext.get_type(),
+                                            ext.key))
         frame2.get_label_widget().set_use_markup(True)
         frame2.show()
         frame.add(frame2)
@@ -725,8 +730,9 @@ class ApplicationOptionsDialog (object):
         # add extension options
         self.extensions_ui = []
         for ext in self.app.iter_extensions(True):
-            ext.on_add_options_ui(self)
-            self.extensions_ui.append(ext)
+            if isinstance(ext, keepnote.gui.extension.Extension):
+                ext.on_add_options_ui(self)
+                self.extensions_ui.append(ext)
 
         # populate options ui
         self.load_options(self.app)
@@ -737,7 +743,8 @@ class ApplicationOptionsDialog (object):
 
         # remove extension options
         for ext in self.extensions_ui:
-            ext.on_remove_options_ui(self)
+            if isinstance(ext, keepnote.gui.extension.Extension):
+                ext.on_remove_options_ui(self)
         self.extensions_ui = []
 
         # remove notebook options

@@ -1018,6 +1018,7 @@ class KeepNote (object):
         if entry.ext is None:
             try:
                 entry.ext = extension.import_extension(self, name, entry.filename)
+                entry.ext.set_type(entry.ext_type)
                 entry.ext.enabled.add(
                     lambda e: self.on_extension_enabled(entry.ext, e))
 

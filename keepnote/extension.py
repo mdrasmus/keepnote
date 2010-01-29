@@ -256,7 +256,8 @@ class Extension (object):
         """
         return os.path.join(self.get_data_dir(exist), filename)
 
-    
+
+'''    
     #===============================
     # UI interaction
 
@@ -272,3 +273,4 @@ class Extension (object):
     def on_remove_options_ui(self, dialog):
         pass
 
+'''
