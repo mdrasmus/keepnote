@@ -44,7 +44,11 @@ _translation = None
 _lang = None
 
 
-locale.setlocale(locale.LC_ALL, "")
+try:
+    locale.setlocale(locale.LC_ALL, "")
+except locale.Error:
+    # environment variable LANG may specify an unsupported locale
+    pass
 
 
 # we must not let windows environment variables deallocate
