@@ -1083,8 +1083,11 @@ class KeepNote (object):
 
         userdir = get_user_extensions_dir()
 
+        newfiles = []
         try:
-            newfiles = list(unzip(filename, userdir))
+            # unzip and record new files
+            for fn in unzip(filename, userdir):
+                newfiles.append(fn)
 
             # rescan user extensions
             exts = set(self._extensions.keys())
@@ -1095,20 +1098,60 @@ class KeepNote (object):
             new_exts = [self.get_extension(name) for name in new_names]
 
         except Exception, e:
-            self.error("Unable to install extension '%s'" % filename,
+            self.error(_("Unable to install extension '%s'") % filename,
                        e, tracebk=sys.exc_info()[2])
 
-            # TODO: delete newfiles
+            # delete newfiles
+            for fn in newfiles:
+                try:
+                    keepnote.log_message(_("removing '%s'") % newfile)
+                    os.remove(newfile)
+                except:
+                    # delete may fail, continue
+                    pass
 
             return False
         
         # enable new extensions
-        log_message("Enabling new extensions:\n")
+        log_message(_("Enabling new extensions:\n"))
         for ext in new_exts:
             log_message(_("enabling extension '%s'\n") % ext.key)
             ext.enable(True)
 
         return True
+
+
+    def uninstall_extension(self, ext):
+        """Uninstall an extension"""
+
+        # retrieve information about extension
+        entry = self._extensions.get(ext.key, None)
+        if entry is None:
+            self.error(_("Unable to uninstall unknown extension '%s'.") % ext.key)
+            return False
+
+        # cannot uninstall system extensions
+        if ext.get_type() == "system":
+            self.error(_("KeepNote cannot uninstall system extensions"))
+            return False
+
+        # disable extension
+        ext.enable(False)
+
+        # remove extension from app
+        del self._extensions[ext.key]
+
+        # delete extension from filesystem
+        try:      
+            shutil.rmtree(entry.filename)
+        except OSError, e:
+            self.error(_("Unable to uninstall extension.  Do not have permission."))
+            return False
+
+        return True
+
+        
+
         
 
 def unzip(filename, outdir):

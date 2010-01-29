@@ -521,6 +521,7 @@ class ExtensionsSection (Section):
     def __init__(self, key, dialog, app, label=u"", icon=None):
         Section.__init__(self, key, dialog, app, label, icon)
         
+        self.app = app
         self.entries = {}
         self.frame = gtk.Frame("")
         self.frame.get_label_widget().set_text("<b>Extensions</b>")
@@ -560,6 +561,9 @@ class ExtensionsSection (Section):
         # clear extension list
         self.extlist.foreach(self.extlist.remove)
         
+        def callback(ext):
+            return lambda w: self._on_uninstall(ext)
+
         # populate extension list
         exts = list(app.iter_extensions())
         d = {"user": 0, "system": 1}
@@ -567,6 +571,7 @@ class ExtensionsSection (Section):
         for ext in exts:
             if ext.visible:
                 p = ExtensionWidget(ext)
+                p.uninstall_button.connect("clicked", callback(ext))
                 p.show()
                 self.extlist.pack_start(p, True, True, 0)
         
@@ -584,6 +589,11 @@ class ExtensionsSection (Section):
             except Exception, e:
                 keepnote.log_error(e)
             widget.update()
+
+
+    def _on_uninstall(self, ext):
+        if self.app.uninstall_extension(ext):
+            self.load_options()
 
 
 class ExtensionWidget (gtk.EventBox):
@@ -649,8 +659,6 @@ class ExtensionWidget (gtk.EventBox):
         self.uninstall_button = gtk.Button("Uninstall")
         self.uninstall_button.set_relief(gtk.RELIEF_NONE)
         self.uninstall_button.show()
-        self.uninstall_button.connect(
-            "clicked", lambda w: self._on_uninstall(ext))
         h.pack_start(self.uninstall_button, False, True, 0)
 
 
@@ -660,9 +668,8 @@ class ExtensionWidget (gtk.EventBox):
     def _on_enabled(self, ext):
         self.enabled = self.enable_check.get_active()
 
-    def _on_uninstall(self, ext):
-        print "uninstall", ext.name
 
+        
 
 
 #=============================================================================

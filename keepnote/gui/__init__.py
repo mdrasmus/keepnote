@@ -607,3 +607,30 @@ class KeepNote (keepnote.KeepNote):
                                      filename))
                 dialog.run()
                 dialog.destroy()
+
+
+
+    def uninstall_extension(self, ext):
+        """Install a new extension"""
+
+        dialog = gtk.MessageDialog(self.get_current_window(), 
+            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            type=gtk.MESSAGE_QUESTION, 
+            buttons=gtk.BUTTONS_YES_NO, 
+            message_format=_("Do you want to uninstall the extension \"%s\"?" %
+                             ext.name))
+
+        response = dialog.run()
+        dialog.destroy()
+        
+        if response == gtk.RESPONSE_YES:
+            if keepnote.KeepNote.uninstall_extension(self, ext):
+                dialog = gtk.MessageDialog(
+                    self.get_current_window(), 
+                    flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+                    type=gtk.MESSAGE_INFO, 
+                    buttons=gtk.BUTTONS_OK, 
+                    message_format=_("Extension \"%s\" is now uninstalled." %
+                                     ext.name))
+                dialog.run()
+                dialog.destroy()
