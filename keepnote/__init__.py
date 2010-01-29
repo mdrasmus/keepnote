@@ -1150,6 +1150,12 @@ class KeepNote (object):
 
         return True
 
+
+    def can_uninstall(self, ext):
+        """Return True if extension can be uninstalled"""
+        return ext.get_type() != "system"
+        
+
         
 
         

@@ -607,6 +607,9 @@ class KeepNote (keepnote.KeepNote):
                                      filename))
                 dialog.run()
                 dialog.destroy()
+                return True
+
+        return False
 
 
 
@@ -634,3 +637,6 @@ class KeepNote (keepnote.KeepNote):
                                      ext.name))
                 dialog.run()
                 dialog.destroy()
+                return True
+
+        return False

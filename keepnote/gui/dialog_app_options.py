@@ -537,16 +537,30 @@ class ExtensionsSection (Section):
         v.show()
         align.add(v)
 
+        # extension list scrollbar
         self.sw = gtk.ScrolledWindow()
         self.sw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         self.sw.set_shadow_type(gtk.SHADOW_IN)
         self.sw.show()
         v.pack_start(self.sw, True, True, 0)
         
-        
+        # extension list
         self.extlist = gtk.VBox(False, 0)
         self.extlist.show()
         self.sw.add_with_viewport(self.extlist)
+
+        # hbox
+        h = gtk.HBox(False, 0)
+        h.show()
+        v.pack_start(h, True, True, 0)
+        
+        # install button
+        self.install_button = gtk.Button("Install new extension")
+        self.install_button.set_relief(gtk.RELIEF_NONE)
+        self.install_button.modify_fg(gtk.STATE_NORMAL, gtk.gdk.Color(0, 0, 65535))
+        self.install_button.connect("clicked", self._on_install)
+        self.install_button.show()
+        h.pack_start(self.install_button, False, True, 0)
 
         # set icon
         try:
@@ -570,15 +584,16 @@ class ExtensionsSection (Section):
         exts.sort(key=lambda e: (d.get(e.get_type(), 10), e.name))
         for ext in exts:
             if ext.visible:
-                p = ExtensionWidget(ext)
+                p = ExtensionWidget(app, ext)
                 p.uninstall_button.connect("clicked", callback(ext))
                 p.show()
                 self.extlist.pack_start(p, True, True, 0)
         
         # setup scroll bar size
+        maxheight = 270 # TODO: make this more dynamic
         w, h = self.extlist.size_request()
         w2, h2 = self.sw.get_vscrollbar().size_request()
-        self.sw.set_size_request(400, min(300, h+10))
+        self.sw.set_size_request(400, min(maxheight, h+10))
 
 
     def save_options(self, app):
@@ -593,13 +608,46 @@ class ExtensionsSection (Section):
 
     def _on_uninstall(self, ext):
         if self.app.uninstall_extension(ext):
-            self.load_options()
+            self.load_options(self.app)
+
+
+    def _on_install(self, widget):
+
+        # open file dialog
+        dialog = gtk.FileChooserDialog(
+            _("Install New Extension"), self.dialog, 
+            action=gtk.FILE_CHOOSER_ACTION_OPEN,
+            buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
+                     _("Open"), gtk.RESPONSE_OK))
+        dialog.set_transient_for(self.dialog)
+        dialog.set_modal(True)
+
+        file_filter = gtk.FileFilter()
+        file_filter.add_pattern("*.kne")
+        file_filter.set_name(_("KeepNote Extension (*.kne)"))
+        dialog.add_filter(file_filter)
+        
+        file_filter = gtk.FileFilter()
+        file_filter.add_pattern("*")
+        file_filter.set_name(_("All files (*.*)"))
+        dialog.add_filter(file_filter)
+
+        response = dialog.run()
+
+        if gtk.RESPONSE_OK and dialog.get_filename():
+            # install extension
+            self.app.install_extension(dialog.get_filename())
+            self.load_options(self.app)
+
+        dialog.destroy()
+
 
 
 class ExtensionWidget (gtk.EventBox):
-    def __init__(self, ext):
+    def __init__(self, app, ext):
         gtk.EventBox.__init__(self)
 
+        self.app = app
         self.enabled = ext.is_enabled()
         self.ext = ext
 
@@ -658,8 +706,10 @@ class ExtensionWidget (gtk.EventBox):
         # uninstall button        
         self.uninstall_button = gtk.Button("Uninstall")
         self.uninstall_button.set_relief(gtk.RELIEF_NONE)
+        self.uninstall_button.set_sensitive(app.can_uninstall(ext))
         self.uninstall_button.show()
         h.pack_start(self.uninstall_button, False, True, 0)
+
 
 
     def update(self):
