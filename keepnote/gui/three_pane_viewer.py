@@ -492,7 +492,14 @@ class ThreePaneViewer (Viewer):
 
     def _on_attach_file(self, widget, parent, index, uri):
         """Attach document"""
-        self._main_window.attach_file(uri, parent, index)
+
+        try:
+            notebooklib.attach_file(uri, parent, index)
+        except Exception, e:
+            self.error(_("Error while attaching file '%s'." % uri),
+                       e, sys.exc_info()[2])
+
+        #self._main_window.attach_file(uri, parent, index)
 
 
 

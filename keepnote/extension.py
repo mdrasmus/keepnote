@@ -154,16 +154,8 @@ class Extension (object):
         
         self._app = app
         self._enabled = False
-        self.__type = "system"
+        self.type = "system"
         self.enabled = Listeners()
-
-
-    def get_type(self):
-        return self.__type
-
-
-    def set_type(self, ext_type):
-        self.__type = ext_type
 
 
     def enable(self, enable):
@@ -171,13 +163,13 @@ class Extension (object):
 
         # check dependencies
         self.check_depends()
-
+        
         # mark extension as enabled
         self._enabled = enable
-
+        
         # notify listeners
         self.enabled.notify(enable)
-
+        
         # return whether the extension is enabled
         return self._enabled
 
@@ -256,21 +248,3 @@ class Extension (object):
         """
         return os.path.join(self.get_data_dir(exist), filename)
 
-
-'''    
-    #===============================
-    # UI interaction
-
-    def on_add_ui(self, window):
-        pass
-
-    def on_remove_ui(self, window):
-        pass
-
-    def on_add_options_ui(self, dialog):
-        pass
-
-    def on_remove_options_ui(self, dialog):
-        pass
-
-'''

@@ -35,7 +35,8 @@ _ = gettext.gettext
 
 # keepnote imports
 import keepnote
-from keepnote import extension
+import keepnote.extension
+import keepnote.gui.extension
 
 
 # pygtk imports
@@ -52,7 +53,7 @@ except ImportError:
     pass
 
 
-class Extension (extension.Extension):
+class Extension (keepnote.gui.extension.Extension):
     
     version = (1, 0)
     name = "Test Extension"
@@ -61,8 +62,7 @@ class Extension (extension.Extension):
 
     def __init__(self, app):
         """Initialize extension"""
-        
-        extension.Extension.__init__(self, app)
+        keepnote.gui.extension.Extension.__init__(self, app)
 
         self._ui_id = {}
 

@@ -1018,7 +1018,7 @@ class KeepNote (object):
         if entry.ext is None:
             try:
                 entry.ext = extension.import_extension(self, name, entry.filename)
-                entry.ext.set_type(entry.ext_type)
+                entry.ext.type = entry.ext_type
                 entry.ext.enabled.add(
                     lambda e: self.on_extension_enabled(entry.ext, e))
 
@@ -1131,7 +1131,7 @@ class KeepNote (object):
             return False
 
         # cannot uninstall system extensions
-        if ext.get_type() == "system":
+        if ext.type == "system":
             self.error(_("KeepNote cannot uninstall system extensions"))
             return False
 
@@ -1153,7 +1153,7 @@ class KeepNote (object):
 
     def can_uninstall(self, ext):
         """Return True if extension can be uninstalled"""
-        return ext.get_type() != "system"
+        return ext.type != "system"
         
 
         

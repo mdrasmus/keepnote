@@ -821,51 +821,21 @@ class KeepNoteWindow (gtk.Window):
 
     
     #=================================================
-    # file attachments
+    # action callbacks
 
-    def attach_file(self, filename, node=None, index=None, widget="focus"):
-        
-        # TODO: where does this belong?
-        # could this be a convenience function for the notebook.
-        
-        if node is None:
-            nodes, widget = self.get_selected_nodes(widget)
-            node = nodes[0]
+    def on_attach_file(self):
+        """Callback for attach file action"""
 
-        # cannot attach directories (yet)
-        if os.path.isdir(filename):
+        # TODO: attach file action could go into application
+
+        if self.get_notebook() is None:
             return
-            
-        content_type = mimetypes.guess_type(filename)[0]
-        if content_type is None:
-            content_type = "application/octet-stream"
+
+        nodes, widget = self.get_selected_nodes()
+        node = nodes[0]
+
+        self._app.on_attach_file(node, self)
         
-        new_filename = os.path.basename(filename)
-        child = None
-
-        try:
-            path = notebooklib.get_valid_unique_filename(node.get_path(), 
-                                                         new_filename)
-            child = self.viewer.get_notebook().new_node(
-                    content_type, 
-                    path,
-                    node,
-                    {"payload_filename": new_filename,
-                     "title": new_filename})
-            child.create()
-            node.add_child(child, index)
-            child.set_payload(filename, new_filename)            
-            child.save(True)
-                
-        except Exception, e:
-
-            # remove child
-            if child:
-                child.delete()
-
-            self.error(_("Error while attaching file '%s'." % filename),
-                       e, sys.exc_info()[2])
-
 
 
     def on_view_node_external_app(self, app, node=None, kind=None):
@@ -1351,8 +1321,7 @@ class KeepNoteWindow (gtk.Window):
             
             ("Attach File", gtk.STOCK_ADD, _("_Attach File..."),
              "", _("Attach a file to the notebook"),
-             lambda w: self._app.on_attach_file(notebook=self.get_notebook(),
-                                                parent=self)),
+             lambda w: self.on_attach_file()),
 
             ("Empty Trash", gtk.STOCK_DELETE, _("Empty _Trash"),
              "", None,

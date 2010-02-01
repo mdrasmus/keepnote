@@ -291,6 +291,44 @@ def parse_node_url(url):
     
 
 
+def attach_file(filename, node, index=None):
+    """Attach a file to a node in a notebook"""
+
+    # cannot attach directories (yet)
+    if os.path.isdir(filename):
+        return False
+
+    # determine content-type
+    content_type = mimetypes.guess_type(filename)[0]
+    if content_type is None:
+        content_type = "application/octet-stream"
+
+    new_filename = os.path.basename(filename)
+    child = None
+
+    try:
+        path = get_valid_unique_filename(node.get_path(), new_filename)
+        child = node.get_notebook().new_node(
+                content_type, 
+                path,
+                node,
+                {"payload_filename": new_filename,
+                 "title": new_filename})
+        child.create()
+        node.add_child(child, index)
+        child.set_payload(filename, new_filename)            
+        child.save(True)
+
+        return True
+
+    except Exception, e:
+        # remove child
+        if child:
+            child.delete()
+        raise e
+
+
+
 #=============================================================================
 # classes
 

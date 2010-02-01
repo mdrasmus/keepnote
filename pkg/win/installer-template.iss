@@ -47,3 +47,17 @@ Root: HKCR; Subkey: "${PKG}_NoteBook\DefaultIcon"; ValueType: string; ValueName:
 
 Root: HKCR; Subkey: "${PKG}_NoteBook\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\keepnote.exe"" ""%1""" 
 
+
+Root: HKCR; Subkey: ".kne"; ValueType: string; ValueName: ""; ValueData: "${PKG}_Extension"; Flags: uninsdeletevalue
+; ".myp" is the extension we're associating. ValueData is the internal name 
+; for the file type as stored in the registry. Make sure you use a unique name 
+; for this so you don't inadvertently overwrite another application's registry key. 
+
+Root: HKCR; Subkey: "${PKG}_Extension"; ValueType: string; ValueName: ""; ValueData: "${PKG} extension"; Flags: uninsdeletekey
+; ValueData above is the name for the file type as shown in Explorer. 
+
+Root: HKCR; Subkey: "${PKG}_Extension\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\keepnote.exe,0"
+;  "DefaultIcon" is the registry key that specifies the filename containing the icon to associate with the file type. ",0" tells Explorer to use the first icon from MYPROG.EXE. (",1" would mean the second icon.) 
+
+Root: HKCR; Subkey: "${PKG}_Extension\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\keepnote.exe"" ""%1""" 
+

@@ -581,7 +581,7 @@ class ExtensionsSection (Section):
         # populate extension list
         exts = list(app.iter_extensions())
         d = {"user": 0, "system": 1}
-        exts.sort(key=lambda e: (d.get(e.get_type(), 10), e.name))
+        exts.sort(key=lambda e: (d.get(e.type, 10), e.name))
         for ext in exts:
             if ext.visible:
                 p = ExtensionWidget(app, ext)
@@ -662,7 +662,7 @@ class ExtensionWidget (gtk.EventBox):
         frame2 = gtk.Frame("")
         frame2.set_property("shadow-type", gtk.SHADOW_NONE)
         frame2.get_label_widget().set_text("<b>%s</b> (%s/%s)" % 
-                                           (ext.name, ext.get_type(),
+                                           (ext.name, ext.type,
                                             ext.key))
         frame2.get_label_widget().set_use_markup(True)
         frame2.show()

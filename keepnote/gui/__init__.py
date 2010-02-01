@@ -473,13 +473,10 @@ class KeepNote (keepnote.KeepNote):
     # file attachment
 
 
-    def on_attach_file(self, widget="focus", notebook=None, parent=None):
+    def on_attach_file(self, node=None, parent_window=None):
 
-        if notebook is None:
-            return
-        
         dialog = FileChooserDialog(
-            _("Attach File..."), parent, 
+            _("Attach File..."), parent_window, 
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
                      _("Attach"), gtk.RESPONSE_OK),
@@ -496,9 +493,12 @@ class KeepNote (keepnote.KeepNote):
 
         if response == gtk.RESPONSE_OK:
             if dialog.get_filename():
-                # TODO: change this call, when attach_file is moved
-                parent.attach_file(unicode_gtk(dialog.get_filename()), 
-                                        widget=widget)
+                filename = unicode_gtk(dialog.get_filename())
+                try:
+                    notebooklib.attach_file(filename, node)
+                except Exception, e:
+                    self.error(_("Error while attaching file '%s'." % filename),
+                               e, sys.exc_info()[2])
 
         dialog.destroy()
 
@@ -574,7 +574,9 @@ class KeepNote (keepnote.KeepNote):
 
     def init_extensions_window(self, window):
         """Initialize all extensions for a window"""
-        
+
+        # TODO: new extensions need to be initialized to existing windows
+
         for ext in self.iter_extensions():
             try:
                 if isinstance(ext, keepnote.gui.extension.Extension):
@@ -585,7 +587,7 @@ class KeepNote (keepnote.KeepNote):
     
     def install_extension(self, filename):
         """Install a new extension"""
-
+        
         dialog = gtk.MessageDialog(self.get_current_window(), 
             flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
             type=gtk.MESSAGE_QUESTION, 
