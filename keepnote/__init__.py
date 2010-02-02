@@ -440,7 +440,6 @@ def get_external_app_defaults():
         
 
 
-# TODO: maybe merge with app class?
 
 class KeepNotePreferences (object):
     """Preference data structure for the KeepNote application"""
@@ -778,7 +777,7 @@ class KeepNote (object):
         self._notebooks = {}
         self._notebook_count = {}
         
-        # set of associated extensions with application
+        # set of registered extensions for this application
         self._extensions = {}
 
         self.pref.changed.add(self.load_preferences)
@@ -821,7 +820,7 @@ class KeepNote (object):
     # actions
 
     def open_notebook(self, filename, window=None):
-        """Open notebook"""
+        """Open a new notebook"""
         
         notebook = keepnote.notebook.NoteBook()
         notebook.load(filename)
@@ -846,7 +845,11 @@ class KeepNote (object):
 
 
     def get_notebook(self, filename, window=None):
-        """Returns a an opened notebook at filename"""
+        """
+        Returns a an opened notebook referenced by filename
+        
+        Open a new notebook if it is not already opened.
+        """
 
         filename = os.path.realpath(filename)
         if filename not in self._notebooks:
@@ -872,7 +875,10 @@ class KeepNote (object):
         app = self.pref.get_external_app(app_key)
         
         if app is None or app.prog == "":
-            raise KeepNoteError(_("Must specify program to use in Helper Applications"))
+            if app:
+                raise KeepNoteError(_("Must specify '%s' program in Helper Applications" % app.title))
+            else:
+                raise KeepNoteError(_("Must specify '%s' program in Helper Applications" % app_key))
 
         # build command arguments
         cmd = [app.prog] + app.args
@@ -960,18 +966,19 @@ class KeepNote (object):
 
 
     def clear_extensions(self):
+        """Disable and unregister all extensions for the app"""
 
-        # disable all enabled extension
+        # disable all enabled extensions
         for ext in self.iter_extensions(enabled=True):
             ext.disable()
 
-        # add default application extension
+        # reset registered extensions list
         self._extensions = {
             "keepnote": ExtensionEntry("", "system", KeepNoteExtension(self))}
 
 
     def scan_extensions_dir(self, extensions_dir, ext_type):
-        """Scan extensions directory and store references in application"""
+        """Scan extensions directory and register extensions with app"""
         
         for filename in extension.iter_extensions(extensions_dir):
             self._extensions[os.path.basename(filename)] = \
@@ -979,7 +986,7 @@ class KeepNote (object):
         
         
     def init_extensions(self):
-        """Initialize all extensions"""
+        """Enable all registered extensions"""
         
         # ensure all extensions are imported first
         for ext in self.iter_extensions():
@@ -1028,14 +1035,6 @@ class KeepNote (object):
         return entry.ext
 
 
-    def get_extension_base_dir(self, extkey):
-        """Get base directory of an extension"""
-        return self._extensions[extkey].filename
-    
-    def get_extension_data_dir(self, extkey):
-        """Get the data directory of an extension"""
-        return os.path.join(get_user_extensions_data_dir(), extkey)
-
     def iter_extensions(self, enabled=False):
         """
         Iterate through all extensions
@@ -1050,14 +1049,14 @@ class KeepNote (object):
 
 
     def dependency_satisfied(self, dep):
-        """Returns True if dependency 'dep' is satisfied"""
+        """Returns True if dependency 'dep' is satisfied by registered extensions"""
 
         ext  = self.get_extension(dep[0])
         return extension.dependency_satisfied(ext, dep)
 
 
     def dependencies_satisfied(self, depends):
-        """Returns True if dependencies 'depend' are satisfied"""
+        """Returns True if dependencies 'depends' are satisfied"""
 
         for dep in depends:
             if not extension.dependency_satisfied(self.get_extension(dep[0]), 
@@ -1067,9 +1066,9 @@ class KeepNote (object):
 
 
     def on_extension_enabled(self, ext, enabled):
-        """Callback for extension enabled"""
+        """Callback for when extension is enabled"""
 
-        # update user preference on which estensions are disabled
+        # update user preference on which extensions are disabled
         if enabled:
             if ext.key in self.pref.disabled_extensions:
                 self.pref.disabled_extensions.remove(ext.key)
@@ -1079,7 +1078,7 @@ class KeepNote (object):
     
 
     def install_extension(self, filename):
-        """Install new extension"""
+        """Install a new extension from package 'filename'"""
 
         userdir = get_user_extensions_dir()
 
@@ -1138,7 +1137,7 @@ class KeepNote (object):
         # disable extension
         ext.enable(False)
 
-        # remove extension from app
+        # unregister extension from app
         del self._extensions[ext.key]
 
         # delete extension from filesystem
@@ -1156,11 +1155,21 @@ class KeepNote (object):
         return ext.type != "system"
         
 
-        
+    def get_extension_base_dir(self, extkey):
+        """Get base directory of an extension"""
+        return self._extensions[extkey].filename
 
-        
+    
+    def get_extension_data_dir(self, extkey):
+        """Get the data directory of an extension"""
+        return os.path.join(get_user_extensions_data_dir(), extkey)
+
+
+
 
 def unzip(filename, outdir):
+    """Unzip an extension"""
+
     extzip = zipfile.ZipFile(filename)
             
     for fn in extzip.namelist():

@@ -885,6 +885,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 gobject.type_register(KeepNoteBaseTreeView)
 gobject.signal_new("goto-node", KeepNoteBaseTreeView, gobject.SIGNAL_RUN_LAST, 
                    gobject.TYPE_NONE, (object,))
+gobject.signal_new("activate-node", KeepNoteBaseTreeView, gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, (object,))
 gobject.signal_new("delete-node", KeepNoteBaseTreeView, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, (object,))
 gobject.signal_new("goto-parent-node", KeepNoteBaseTreeView,

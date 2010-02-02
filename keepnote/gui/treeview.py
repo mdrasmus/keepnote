@@ -133,7 +133,7 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
                          for x in paths]
 
                 # NOTE: can only view one node
-                self.emit("goto-node", nodes[0])
+                self.emit("activate-node", nodes[0])
 
 
 

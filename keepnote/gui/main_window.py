@@ -771,6 +771,7 @@ class KeepNoteWindow (gtk.Window):
            focus    -- nodes selected in widget with focus
         """
         
+        # TODO: see whether I always use focus now.
         return self.viewer.get_selected_nodes(widget)
         
 
@@ -841,6 +842,7 @@ class KeepNoteWindow (gtk.Window):
     def on_view_node_external_app(self, app, node=None, kind=None):
         """View a node with an external app"""
         
+        # TODO: move this to gui.app
         # TODO: try to clean up
 
         self.save_notebook()
@@ -897,6 +899,8 @@ class KeepNoteWindow (gtk.Window):
         image_path = os.path.join(current_page.get_path(), image_filename)
         viewer = self._app.pref.get_external_app("image_viewer")
         
+        # TODO: this should be an external app call
+
         if viewer is not None:
             try:
                 proc = subprocess.Popen([viewer.prog, image_path])
@@ -1212,12 +1216,6 @@ class KeepNoteWindow (gtk.Window):
         about.show()
 
 
-    #def on_python_prompt(self):
-    #
-    #    dialog = dialog_python.PythonDialog(self)
-    #    dialog.show()
-        
-
     #===========================================
     # Messages, warnings, errors UI/dialogs
     
@@ -1390,10 +1388,6 @@ class KeepNoteWindow (gtk.Window):
              "", None,
              lambda w: self.drag_test.on_drag_and_drop_test()),
 
-            #("Python Prompt...", None, _("Python Prompt..."),
-            # "", None,
-            # lambda w: self.on_python_prompt()),
-            
             ("About", gtk.STOCK_ABOUT, _("_About"),
              "", None,
              lambda w: self.on_about())

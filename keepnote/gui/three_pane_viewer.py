@@ -99,16 +99,17 @@ class ThreePaneViewer (Viewer):
         self.treeview.connect("delete-node", self.on_delete_node)
         self.treeview.connect("error", lambda w,t,e: self.emit("error", t, e))
         self.treeview.connect("edit-title", self._on_edit_title)
-        self.treeview.connect("goto-node", self.on_list_view_node)
+        self.treeview.connect("goto-node", self.on_goto_node)
         self.treeview.connect("drop-file", self._on_attach_file)
         
         # listview
         self.listview = KeepNoteListView()
         self.listview.connect("select-nodes", self._on_list_select)
         self.listview.connect("delete-node", self.on_delete_node)
-        self.listview.connect("goto-node", self.on_list_view_node)
+        self.listview.connect("goto-node", self.on_goto_node)
+        self.listview.connect("activate-node", self.on_activate_node)
         self.listview.connect("goto-parent-node",
-                              lambda w: self.on_list_view_parent_node())
+                              lambda w: self.on_goto_parent_node())
         self.listview.connect("error", lambda w,t,e: self.emit("error", t, e))
         self.listview.connect("edit-title", self._on_edit_title)
         self.listview.connect("drop-file", self._on_attach_file)
@@ -453,19 +454,28 @@ class ThreePaneViewer (Viewer):
                       "Could not load page '%s'." % pages[0].get_title(),
                       e, sys.exc_info()[2])
 
-    def on_list_view_node(self, listview, node, direct=False):
-        """Focus listview on a node"""
-        
-        if direct and node and node.has_attr("payload_filename"):
-            self._main_window.on_view_node_external_app("file_launcher",
-                                           node,
-                                           kind="file")
+    def on_goto_node(self, widget, node):
+        """Focus view on a node"""
+        self.goto_node(node, direct=False)
+
+
+    def on_activate_node(self, widget, node):
+        """Focus view on a node"""
+
+        if self.viewing_search():
+            self.goto_node(node, direct=False)
         else:
-            self.goto_node(node, direct)
+            if node and node.has_attr("payload_filename"):
+                # open attached file
+                self._main_window.on_view_node_external_app("file_launcher",
+                                                            node,
+                                                            kind="file")
+            else:
+                self.goto_node(node, direct=True)
         
 
-    def on_list_view_parent_node(self, node=None):
-        """Focus listview on a node's parent"""
+    def on_goto_parent_node(self, node=None):
+        """Focus view on a node's parent"""
 
         if node is None:
             nodes, widget = self.get_selected_nodes()
@@ -704,6 +714,11 @@ class ThreePaneViewer (Viewer):
     def add_search_result(self, node):
         """Add a search result"""
         self.listview.append_node(node)
+
+    def viewing_search(self):
+        """Returns True if we are currently viewing a search result"""
+        return (len(self.treeview.get_selected_nodes()) == 0 and
+                len(self.listview.get_selected_nodes()) > 0)
 
 
     #=============================================
@@ -964,11 +979,11 @@ class ThreePaneViewer (Viewer):
 
             ("Go to Note", gtk.STOCK_JUMP_TO, _("Go to _Note"),
              "", None,
-             lambda w: self.on_list_view_node(None, None)),
+             lambda w: self.on_goto_node(None, None)),
             
             ("Go to Parent Note", gtk.STOCK_GO_BACK, _("Go to _Parent Note"),
              "<shift><alt>Left", None,
-             lambda w: self.on_list_view_parent_node()),
+             lambda w: self.on_goto_parent_node()),
 
             ("Go to Next Note", gtk.STOCK_GO_DOWN, _("Go to Next N_ote"),
              "<alt>Down", None,
