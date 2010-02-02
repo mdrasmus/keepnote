@@ -91,7 +91,7 @@ class PythonDialog (object):
     def show(self):
         self.dialog = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.dialog.connect("delete-event", lambda d,r: self.dialog.destroy())
-        
+        self.dialog.ptr = self
         
         self.dialog.set_default_size(400, 400)
 
@@ -211,17 +211,6 @@ class PythonDialog (object):
             self.output.scroll_mark_onscreen(mark)
 
 
-    '''
-    def get_actions(self):
-
-        actions = map(lambda x: Action(*x),
-                      [
-            ("Python", None, _("_File")),
-
-            ("New Notebook", gtk.STOCK_NEW, _("_New Notebook..."),
-             "", _("Start a new notebook"),
-             lambda w: self.on_new_notebook())])
-             '''
 
 def execute(code, vars, stdout, stderr):
     """Execute user's python code"""
