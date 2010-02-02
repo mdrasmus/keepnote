@@ -87,10 +87,10 @@ TM_ISDST = range(9)
 """
 
 DEFAULT_TIMESTAMP_FORMATS = {
-    "same_day": "%I:%M %p",
-    "same_month": "%a, %d %I:%M %p",
-    "same_year": "%a, %b %d %I:%M %p",
-    "diff_year": "%a, %b %d, %Y"
+    "same_day": u"%I:%M %p",
+    "same_month": u"%a, %d %I:%M %p",
+    "same_year": u"%a, %b %d %I:%M %p",
+    "diff_year": u"%a, %b %d, %Y"
 }
 
 
@@ -111,6 +111,12 @@ def get_str_timestamp(timestamp, current=None,
     The string will be abbreviated according to the current time.
     """
 
+    # NOTE: I have written this function to allow unicode formats.
+    # The encode/decode functions should allow most unicode formats to
+    # to be processed by strftime.  However, a '%' may occur inside a 
+    # multibyte character.  This is a hack until python issue
+    # http://bugs.python.org/issue2782 is resolved.
+
     if formats is None:
         formats = DEFAULT_TIMESTAMP_FORMATS
 
@@ -122,15 +128,19 @@ def get_str_timestamp(timestamp, current=None,
         if local[TM_YEAR] == current[TM_YEAR]:
             if local[TM_MON] == current[TM_MON]:
                 if local[TM_MDAY] == current[TM_MDAY]:
-                    return time.strftime(formats["same_day"], local)
+                    return time.strftime(formats["same_day"].encode("utf-8"), 
+                                         local).decode("utf-8")
                 else:
-                    return time.strftime(formats["same_month"], local)
+                    return time.strftime(formats["same_month"].encode("utf-8"), 
+                                         local).decode("utf-8")
             else:
-                return time.strftime(formats["same_year"], local)        
+                return time.strftime(formats["same_year"].encode("utf-8"), 
+                                     local).decode("utf-8")
         else:
-            return time.strftime(formats["diff_year"], local)
+            return time.strftime(formats["diff_year"].encode("utf-8"), 
+                                 local).decode("utf-8")
     except:
-        return "[formatting error]"
+        return u"[formatting error]"
 
 
 

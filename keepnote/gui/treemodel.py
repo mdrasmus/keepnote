@@ -190,7 +190,7 @@ class KeepNoteTreeModel (gtk.GenericTreeModel):
     def get_time_text(self, node, attr_key):
         timestamp = node.get_attr(attr_key, None)
         if timestamp is None:
-            return ""
+            return u""
         else:
             return get_str_timestamp(timestamp, formats=self._date_formats)
 
