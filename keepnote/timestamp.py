@@ -25,6 +25,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
+import sys
 import time
 
 
@@ -117,6 +118,12 @@ def get_str_timestamp(timestamp, current=None,
     # multibyte character.  This is a hack until python issue
     # http://bugs.python.org/issue2782 is resolved.
 
+    # TODO:
+    # what should I decode as?
+    # maybe its not utf-8 but platform specific?
+
+    encoding = sys.getdefaultencoding()
+
     if formats is None:
         formats = DEFAULT_TIMESTAMP_FORMATS
 
@@ -128,17 +135,17 @@ def get_str_timestamp(timestamp, current=None,
         if local[TM_YEAR] == current[TM_YEAR]:
             if local[TM_MON] == current[TM_MON]:
                 if local[TM_MDAY] == current[TM_MDAY]:
-                    return time.strftime(formats["same_day"].encode("utf-8"), 
-                                         local).decode("utf-8")
+                    return time.strftime(formats["same_day"].encode(encoding), 
+                                         local).decode(encoding)
                 else:
-                    return time.strftime(formats["same_month"].encode("utf-8"), 
-                                         local).decode("utf-8")
+                    return time.strftime(formats["same_month"].encode(encoding),
+                                         local).decode(encoding)
             else:
-                return time.strftime(formats["same_year"].encode("utf-8"), 
-                                     local).decode("utf-8")
+                return time.strftime(formats["same_year"].encode(encoding), 
+                                     local).decode(encoding)
         else:
-            return time.strftime(formats["diff_year"].encode("utf-8"), 
-                                 local).decode("utf-8")
+            return time.strftime(formats["diff_year"].encode(encoding), 
+                                 local).decode(encoding)
     except:
         return u"[formatting error]"
 
