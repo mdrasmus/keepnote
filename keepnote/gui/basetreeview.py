@@ -442,6 +442,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
     def get_selected_nodes(self):
         """Returns a list of currently selected nodes"""
+
+        # TODO: handle multiple selection
         model, it = self.get_selection().get_selected()        
         if it is None:
             #print "edit", self.editing
@@ -575,6 +577,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
     
     def get_drag_node(self):
+        # TODO: handle multiple selection
         model, source = self.get_selection().get_selected()
         #source_path = model.get_path(source)
         return self.model.get_value(source, self._node_col)
@@ -639,6 +642,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         """Callback for beginning of drag and drop"""
         self.stop_emission("drag-begin")
 
+        # TODO: handle multiple selection
         # get the selection
         model, source = self.get_selection().get_selected()
 
@@ -749,6 +753,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # override gtk's data get code
         self.stop_emission("drag-data-get")
 
+        # TODO: handle multiple selection
         # set the source path into the selection
         model, source = self.get_selection().get_selected()
         source_path = model.get_path(source)

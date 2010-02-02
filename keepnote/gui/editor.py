@@ -168,8 +168,10 @@ class KeepNoteEditor (gtk.VBox):
     def view_pages(self, pages):
         """View a page in the editor"""
         
-        # TODO: generalize to multiple pages
-        assert len(pages) <= 1
+        # editor cannot view multiple pages at once
+        # if asked to, it will view none
+        if len(pages) > 1:
+            pages = []
 
         # save current page before changing pages
         self.save()

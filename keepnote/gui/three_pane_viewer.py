@@ -438,11 +438,9 @@ class ThreePaneViewer (Viewer):
     
     def _on_list_select(self, listview, pages):
         """Callback for listview selection change"""
-
-        # TODO: will need to generalize to multiple pages
-
+        
         # remember the selected node
-        if len(pages) > 0:
+        if len(pages) == 1:
             self._current_page = pages[0]
         else:
             self._current_page = None
@@ -463,6 +461,7 @@ class ThreePaneViewer (Viewer):
         """Focus view on a node"""
 
         if self.viewing_search():
+            # if we are in a search, goto node, but not directly
             self.goto_node(node, direct=False)
         else:
             if node and node.has_attr("payload_filename"):
@@ -471,6 +470,7 @@ class ThreePaneViewer (Viewer):
                                                             node,
                                                             kind="file")
             else:
+                # goto node directly
                 self.goto_node(node, direct=True)
         
 
@@ -508,8 +508,6 @@ class ThreePaneViewer (Viewer):
         except Exception, e:
             self.error(_("Error while attaching file '%s'." % uri),
                        e, sys.exc_info()[2])
-
-        #self._main_window.attach_file(uri, parent, index)
 
 
 
@@ -599,6 +597,7 @@ class ThreePaneViewer (Viewer):
         """Move view focus to a particular node"""
 
         if node is None:
+            # default node is the one selected in the listview
             nodes = self.listview.get_selected_nodes()
             if len(nodes) == 0:
                 return
@@ -607,8 +606,11 @@ class ThreePaneViewer (Viewer):
         treenodes = self.treeview.get_selected_nodes()
 
         if direct:
+            # direct goto: open up treeview all the way to the node
             self.treeview.select_nodes([node])
         else:
+            # indirect goto: donot open up treeview, only listview
+            
             # get path to root
             path = []
             ptr = node
