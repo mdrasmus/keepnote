@@ -941,11 +941,9 @@ class NoteBookNode (object):
 
     def read_data_as_plain_text(self):
         """Iterates over the lines of the data file as plain text"""
-
-        # TODO: make sure to open with UTF-8 encoding
         
         filename = self.get_data_file()
-        infile = open(filename)
+        infile = safefile.open(filename, "r", codec="utf-8")
 
         for line in read_data_as_plain_text(infile):
             yield line
@@ -1060,9 +1058,7 @@ class NoteBookPlainText (NoteBookNode):
 
     def read_data_as_plain_text(self):
         """Iterates over the lines of the data file as plain text"""
-
-        # TODO: make sure the codec is UTF-8
-        return iter(open(self.get_data_file()))
+        return iter(safefile.open(self.get_data_file(), "r", codec="utf-8"))
             
     
     def write_empty_data_file(self):

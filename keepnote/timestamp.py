@@ -120,6 +120,8 @@ def get_str_timestamp(timestamp, current=None,
     # http://bugs.python.org/issue2782 is resolved.
 
     encoding = locale.getdefaultlocale()[1]
+    if encoding is None:
+        encoding = "utf-8"
 
     if formats is None:
         formats = DEFAULT_TIMESTAMP_FORMATS
