@@ -25,6 +25,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
+import locale
 import sys
 import time
 
@@ -118,11 +119,7 @@ def get_str_timestamp(timestamp, current=None,
     # multibyte character.  This is a hack until python issue
     # http://bugs.python.org/issue2782 is resolved.
 
-    # TODO:
-    # what should I decode as?
-    # maybe its not utf-8 but platform specific?
-
-    encoding = sys.getdefaultencoding()
+    encoding = locale.getdefaultlocale()[1]
 
     if formats is None:
         formats = DEFAULT_TIMESTAMP_FORMATS
