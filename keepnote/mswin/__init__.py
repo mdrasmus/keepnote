@@ -39,9 +39,14 @@ def get_my_documents():
         "::{450d8fba-ad25-11d0-98a8-0800361b1103}")[1]
     mydocs = shell.SHGetPathFromIDList(pidl)
 
+    # TODO: may need to handle window-specific encoding here.
+    #encoding = locale.getdefaultlocale()[1]
+    #if encoding is None:
+    #    encoding = "utf-8"
+
     return mydocs
 
 
-def set_env(key, val):
-    ctypes.windll.kernel32.SetEnvironmentVariableW(key, val)
+#def set_env(key, val):
+#    ctypes.windll.kernel32.SetEnvironmentVariableW(key, val)
 

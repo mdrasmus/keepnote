@@ -368,10 +368,35 @@ class KeepNote (keepnote.KeepNote):
         if version < notebooklib.NOTEBOOK_FORMAT_VERSION:
             dialog = dialog_update_notebook.UpdateNoteBookDialog(self, window)
             if not dialog.show(filename, version=version):
-                raise NoteBookError(_("Cannot open notebook (version too old)"))
+                self.error(_("Cannot open notebook (version too old)"))
+                return None
 
-        notebook = notebooklib.NoteBook()
-        notebook.load(filename)
+        # try to open notebook
+        try:
+            notebook = notebooklib.NoteBook()
+            notebook.load(filename)
+
+        except NoteBookVersionError, e:
+            self.error(_("This version of %s cannot read this notebook.\n" 
+                         "The notebook has version %d.  %s can only read %d.")
+                       % (keepnote.PROGRAM_NAME,
+                          e.notebook_version,
+                          keepnote.PROGRAM_NAME,
+                          e.readable_version),
+                       e, sys.exc_info()[2])
+            return None
+
+        except NoteBookError, e:
+            self.error(_("Could not load notebook '%s'.") % filename,
+                       e, sys.exc_info()[2])
+            return None
+
+        except Exception, e:
+            # give up opening notebook
+            self.error(_("Could not load notebook '%s'.") % filename,
+                       e, sys.exc_info()[2])
+            return None
+
 
         # install default quick pick icons
         if len(notebook.pref.get_quick_pick_icons()) == 0:

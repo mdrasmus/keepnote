@@ -597,33 +597,23 @@ class KeepNoteWindow (gtk.Window):
         if os.path.isfile(filename):
             filename = os.path.dirname(filename)
 
-        win = self
+        import time
+        def update(task):
+            # do loading in another thread
+            task.set_result(self._app.get_notebook(filename, self))
 
-        # check version
-        try:
-            notebook = self._app.get_notebook(filename, self)
-
-        except NoteBookVersionError, e:
-            self.error(_("This version of %s cannot read this notebook.\n" 
-                         "The notebook has version %d.  %s can only read %d.")
-                       % (keepnote.PROGRAM_NAME,
-                          e.notebook_version,
-                          keepnote.PROGRAM_NAME,
-                          e.readable_version),
-                       e, sys.exc_info()[2])
-            return None
-
-        except NoteBookError, e:            
+        # open notebook
+        task = tasklib.Task(update)
+        self.wait_dialog(_("Opening notebook"), _("Loading..."), task)
+        if task.aborted():
             self.error(_("Could not load notebook '%s'.") % filename,
-                       e, sys.exc_info()[2])
+                       task.exc_info()[1], task.exc_info()[2])
             return None
-
-        except Exception, e:
-            # give up opening notebook
-            self.error(_("Could not load notebook '%s'.") % filename,
-                       e, sys.exc_info()[2])
-            return None
-
+                
+        else:
+            notebook = task.get_result()
+            if notebook is None:
+                return None
 
 
         # setup notebook

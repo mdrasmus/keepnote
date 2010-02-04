@@ -76,30 +76,46 @@ class WaitDialog (object):
     def _on_idle(self):
         """Idle thread"""
         
+        lasttime = [time.time()]
+        pulse_rate = 0.5 # seconds per sweep
+
+        def gui_update():
+            #print "GDK entering..."
+            gtk.gdk.threads_enter()
+            #print "GDK enter"
+            percent = self._task.get_percent()
+            if percent is None:
+                t = time.time()
+                timestep = t - lasttime[0]
+                lasttime[0] = t
+                step = max(min(timestep / pulse_rate, .1), .001)
+                self.progressbar.set_pulse_step(step)
+                self.progressbar.pulse()
+            else:
+                self.progressbar.set_fraction(percent)
+
+            # filter for messages we process
+            messages = filter(lambda x: isinstance(x, tuple) and len(x) == 2,
+                              self._task.get_messages())
+            texts = filter(lambda (a,b): a == "text", messages)
+            details = filter(lambda (a,b): a == "detail", messages)
+
+            if len(texts) > 0:
+                self.text.set_text(texts[-1][1])
+            if len(details) > 0:
+                self.progressbar.set_text(details[-1][1])
+
+            #print "GDK leaving..."
+            gtk.gdk.threads_leave()
+            #print "GDK left"
+
+            return not self._task.is_stopped()
+
+        gobject.idle_add(gui_update)
+
         while not self._task.is_stopped():
-            def gui_update():
-                gtk.gdk.threads_enter()
-                percent = self._task.get_percent()
-                if percent is None:            
-                    self.progressbar.pulse()
-                else:
-                    self.progressbar.set_fraction(percent)
-
-                # filter for messages we process
-                messages = filter(lambda x: isinstance(x, tuple) and len(x) == 2,
-                                  self._task.get_messages())
-                texts = filter(lambda (a,b): a == "text", messages)
-                details = filter(lambda (a,b): a == "detail", messages)
-
-                if len(texts) > 0:
-                    self.text.set_text(texts[-1][1])
-                if len(details) > 0:
-                    self.progressbar.set_text(details[-1][1])
-                
-                gtk.gdk.threads_leave()
-            gobject.idle_add(gui_update)
-            
-            time.sleep(.1)
+            print "tick"
+            time.sleep(.2)
         
         # kill dialog and stop idling
         gobject.idle_add(lambda: self.dialog.destroy())
