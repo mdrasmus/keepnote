@@ -597,14 +597,26 @@ class KeepNoteWindow (gtk.Window):
         if os.path.isfile(filename):
             filename = os.path.dirname(filename)
 
-        import time
+
         def update(task):
-            # do loading in another thread
-            task.set_result(self._app.get_notebook(filename, self))
+            # open notebook
+            notebook = self._app.get_notebook(filename, self)
+
+            # preload certain nodes
+            def walk(node):
+                if node.get_attr("expanded"):
+                    for child in node.get_children():
+                        walk(child)
+            walk(notebook)
+
+            # send notebook back to main thread
+            task.set_result(notebook)
 
         # open notebook
         task = tasklib.Task(update)
         self.wait_dialog(_("Opening notebook"), _("Loading..."), task)
+
+        # detect errors
         if task.aborted():
             self.error(_("Could not load notebook '%s'.") % filename,
                        task.exc_info()[1], task.exc_info()[2])
@@ -614,10 +626,11 @@ class KeepNoteWindow (gtk.Window):
             notebook = task.get_result()
             if notebook is None:
                 return None
-
-
+        
         # setup notebook
         self.set_notebook(notebook)
+
+        
         
         if not new:
             self.set_status(_("Loaded '%s'") % self.viewer.get_notebook().get_title())

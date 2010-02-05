@@ -378,7 +378,8 @@ class KeepNoteTreeModel (gtk.GenericTreeModel):
             return None
     
     def on_iter_has_child(self, rowref):
-        return self._nested and len(rowref.get_children()) > 0
+        #return self._nested and len(rowref.get_children()) > 0
+        return self._nested and rowref.has_children()
     
     def on_iter_n_children(self, rowref):
         if rowref is None:

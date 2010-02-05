@@ -820,6 +820,18 @@ class NoteBookNode (object):
             self._get_children()
         
         return self._children
+
+
+    def has_children(self):
+        """Return True if node has children"""
+
+        try:
+            self.iter_temp_children().next()
+            return True
+        except StopIteration:
+            return False
+        
+
     
     
     def _get_children(self):
@@ -850,6 +862,8 @@ class NoteBookNode (object):
         
         for filename in files:
             path2 = os.path.join(path, filename)
+            if not os.path.isdir(path2):
+                continue
             
             try:
                 node = self._notebook.read_node(self, path2)
@@ -1652,19 +1666,18 @@ class NoteBookNodeFactory (object):
         
         filename = os.path.basename(path)
         metafile = get_node_meta_file(path)
-        node = None
-
-        if os.path.exists(metafile):
+        
+        try:
+            #print ">>>>", metafile
             self._meta.read(metafile, notebook.notebook_attrs)
-
-            # NOTE: node can be None
-            node = self.new_node(self._meta.attr.get("content_type",
-                                                     CONTENT_TYPE_DIR),
-                                 path, parent, notebook, self._meta.attr)
-        else:
+        except IOError, e:
             # ignore directory, not a NoteBook directory            
-            pass
+            return None
 
+        # NOTE: node can be None
+        node = self.new_node(self._meta.attr.get("content_type",
+                                                 CONTENT_TYPE_DIR),
+                             path, parent, notebook, self._meta.attr)
         return node
 
 
@@ -1757,6 +1770,9 @@ class NoteBookNodeMetaData (object):
             infile = open(filename, "rb")
             self._parser.ParseFile(infile)
             infile.close()
+
+        except IOError, e:
+            raise e
             
         except xml.parsers.expat.ExpatError, e:
             raise NoteBookError(_("Cannot read meta data"), e)

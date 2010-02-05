@@ -114,7 +114,7 @@ class WaitDialog (object):
         gobject.idle_add(gui_update)
 
         while not self._task.is_stopped():
-            print "tick"
+            #print "tick"
             time.sleep(.2)
         
         # kill dialog and stop idling
