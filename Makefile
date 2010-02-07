@@ -25,6 +25,7 @@ WININSTALLER=dist/$(WININSTALLER_FILE)
 # files to upload
 UPLOAD_FILES=$(SDIST) $(RPM) $(DEB) $(EBUILD) $(WININSTALLER)
 
+
 TMP_FILES=MANIFEST
 
 # windows related variables
@@ -113,3 +114,6 @@ upload-test: $(UPLOAD_FILES)
 	cp $(UPLOAD_FILES) $(WWW)/download-test
 
 
+upload-contrib:
+	make -C contrib upload
+	

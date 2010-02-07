@@ -29,7 +29,7 @@
 
 
 import keepnote
-import keepnote.extension
+import keepnote.gui.extension
 from keepnote import notebook as notebooklib
 import os,gtk
 import pygtk
@@ -89,15 +89,15 @@ def unescape(text):
    return re.sub("&#?\w+;", fixup, text)
 
 # http://diveintopython.org/html_processing/index.html
-class Extension (keepnote.extension.Extension):
+class Extension (keepnote.gui.extension.Extension):
     version = (1, 0)
-    name = "Import ncd"
+    name = "Import NoteCase"
     description = "Primitive import of .ncd Files."
 
     def __init__(self, app):
         """Initialize extension"""
         
-        keepnote.extension.Extension.__init__(self, app)
+        keepnote.gui.extension.Extension.__init__(self, app)
         self.app = app
         self._ui_id = {}
 
@@ -142,7 +142,8 @@ class Extension (keepnote.extension.Extension):
         """Callback from gui for importing an ncd file"""
         
         if notebook is None:
-            return
+            self.app.error("Must have notebook open to import.")
+            return None
 
         """Imports NoteCase free version ncd file"""
         

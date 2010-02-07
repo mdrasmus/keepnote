@@ -6,7 +6,7 @@ keepnote-0.6.2
 - added install/uninstall extension support
 - added "new window"
 - added python_prompt extension
-- added Russian translation
+- added German and Russian translations
 - faster notebook load times
 - fixed minimal toolbar bug
 - fixed font toggle bug
