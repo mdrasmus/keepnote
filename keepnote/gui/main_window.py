@@ -796,17 +796,9 @@ class KeepNoteWindow (gtk.Window):
             message = _("Do you want to delete this note and all of its children?")
         else:
             message = _("Do you want to delete this note?")
-        
-        dialog = gtk.MessageDialog(self.get_toplevel(), 
-            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-            type=gtk.MESSAGE_QUESTION, 
-            buttons=gtk.BUTTONS_YES_NO, 
-            message_format=message)
 
-        response = dialog.run()
-        dialog.destroy()
-        
-        return response == gtk.RESPONSE_YES
+        return self._app.ask_yes_no(message, _("Delete Note"), 
+                                    parent=self.get_toplevel())
 
 
     def on_empty_trash(self):

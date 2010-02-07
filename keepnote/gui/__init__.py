@@ -342,7 +342,7 @@ class KeepNote (keepnote.KeepNote):
         window.connect("focus-in-event", self._on_window_focus)
         self._windows.append(window)
         
-        self.init_extensions_window(window)
+        self.init_extensions_windows([window])
         window.show_all()
 
         return window
@@ -538,10 +538,13 @@ class KeepNote (keepnote.KeepNote):
             window.restore_window()
 
 
-    def error(self, text, error=None, tracebk=None):
+    def error(self, text, error=None, tracebk=None, parent=None):
         """Display an error message"""
 
-        dialog = gtk.MessageDialog(self._current_window,
+        if parent is None:
+            parent = self.get_current_window()
+
+        dialog = gtk.MessageDialog(parent,
             flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
             type=gtk.MESSAGE_ERROR, 
             buttons=gtk.BUTTONS_OK, 
@@ -553,6 +556,42 @@ class KeepNote (keepnote.KeepNote):
         # add message to error log
         if error is not None:
             keepnote.log_error(error, tracebk)
+
+
+    def message(self, text, title="KeepNote", parent=None):
+        """Display a message window"""
+
+        if parent is None:
+            parent = self.get_current_window()
+
+        dialog = gtk.MessageDialog(
+            parent, 
+            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            type=gtk.MESSAGE_INFO, 
+            buttons=gtk.BUTTONS_OK, 
+            message_format=text)
+        dialog.set_title(title)
+        dialog.run()
+        dialog.destroy()
+
+
+    def ask_yes_no(self, text, title="KeepNote", parent=None):
+        """Display a yes/no window"""
+
+        if parent is None:
+            parent = self.get_current_window()
+
+        dialog = gtk.MessageDialog(parent, 
+            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
+            type=gtk.MESSAGE_QUESTION, 
+            buttons=gtk.BUTTONS_YES_NO, 
+            message_format=text)
+
+        dialog.set_title(title)
+        response = dialog.run()
+        dialog.destroy()
+        
+        return response == gtk.RESPONSE_YES
 
 
     def quit(self):
@@ -597,43 +636,38 @@ class KeepNote (keepnote.KeepNote):
     # extension methods
 
 
-    def init_extensions_window(self, window):
+    def init_extensions_windows(self, windows=None, exts=None):
         """Initialize all extensions for a window"""
+        
+        if exts is None:
+            exts = self.iter_extensions()
 
-        # TODO: new extensions need to be initialized to existing windows
+        if windows is None:
+            windows = self.get_windows()
 
-        for ext in self.iter_extensions():
-            try:
-                if isinstance(ext, keepnote.gui.extension.Extension):
-                    ext.on_new_window(window)
-            except Exception, e:
-                log_error(e, sys.exc_info()[2])
+        for window in windows:
+            for ext in exts:
+                try:
+                    if isinstance(ext, keepnote.gui.extension.Extension):
+                        ext.on_new_window(window)
+                except Exception, e:
+                    log_error(e, sys.exc_info()[2])
 
     
     def install_extension(self, filename):
         """Install a new extension"""
         
-        dialog = gtk.MessageDialog(self.get_current_window(), 
-            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-            type=gtk.MESSAGE_QUESTION, 
-            buttons=gtk.BUTTONS_YES_NO, 
-            message_format=_("Do you want to install the extension \"%s\"?" %
-                             filename))
+        if self.ask_yes_no(_("Do you want to install the extension \"%s\"?") %
+                           filename, "Extension Install"):
+            # install extension
+            new_exts = keepnote.KeepNote.install_extension(self, filename)
 
-        response = dialog.run()
-        dialog.destroy()
-        
-        if response == gtk.RESPONSE_YES:
-            if keepnote.KeepNote.install_extension(self, filename):
-                dialog = gtk.MessageDialog(
-                    self.get_current_window(), 
-                    flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-                    type=gtk.MESSAGE_INFO, 
-                    buttons=gtk.BUTTONS_OK, 
-                    message_format=_("Extension \"%s\" is now installed." %
-                                     filename))
-                dialog.run()
-                dialog.destroy()
+            # initialize extensions with windows
+            self.init_extensions_windows(exts=new_exts)
+
+            if len(new_exts) > 0:
+                self.message(_("Extension \"%s\" is now installed.") %
+                               filename, _("Install Sucessful"))
                 return True
 
         return False
@@ -643,27 +677,12 @@ class KeepNote (keepnote.KeepNote):
     def uninstall_extension(self, ext):
         """Install a new extension"""
 
-        dialog = gtk.MessageDialog(self.get_current_window(), 
-            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-            type=gtk.MESSAGE_QUESTION, 
-            buttons=gtk.BUTTONS_YES_NO, 
-            message_format=_("Do you want to uninstall the extension \"%s\"?" %
-                             ext.name))
-
-        response = dialog.run()
-        dialog.destroy()
-        
-        if response == gtk.RESPONSE_YES:
+        if self.ask_yes_no(_("Do you want to uninstall the extension \"%s\"?") %
+                           ext.name, _("Extension Uninstall")):
             if keepnote.KeepNote.uninstall_extension(self, ext):
-                dialog = gtk.MessageDialog(
-                    self.get_current_window(), 
-                    flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-                    type=gtk.MESSAGE_INFO, 
-                    buttons=gtk.BUTTONS_OK, 
-                    message_format=_("Extension \"%s\" is now uninstalled." %
-                                     ext.name))
-                dialog.run()
-                dialog.destroy()
+                self.message(_("Extension \"%s\" is now uninstalled.") %
+                             ext.name, 
+                             _("Uninstall Sucessful"))
                 return True
 
         return False

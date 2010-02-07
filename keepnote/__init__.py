@@ -1109,7 +1109,7 @@ class KeepNote (object):
                     # delete may fail, continue
                     pass
 
-            return False
+            return []
         
         # enable new extensions
         log_message(_("Enabling new extensions:\n"))
@@ -1117,7 +1117,7 @@ class KeepNote (object):
             log_message(_("enabling extension '%s'\n") % ext.key)
             ext.enable(True)
 
-        return True
+        return new_exts
 
 
     def uninstall_extension(self, ext):
