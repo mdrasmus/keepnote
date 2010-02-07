@@ -89,9 +89,10 @@ else:
 
 WEBSITE = u"http://rasm.ods.org/keepnote"
 LICENSE_NAME = "GPL version 2"
-COPYRIGHT = "Copyright Matt Rasmussen 2009."
+COPYRIGHT = "Copyright Matt Rasmussen 2010."
 TRANSLATOR_CREDITS = (
     "French: tb <thibaut.bethune@gmail.com>\n"
+    "German: Jan Rimmek <jan.rimmek@web.de>\n"
     "Turkish: Yuce Tekol <yucetekol@gmail.com>\n"
     "Spanish: Klemens Hackel <click3d at linuxmail (dot) org>\n")
 
@@ -112,7 +113,7 @@ USER_EXTENSIONS_DATA_DIR = u"extensions_data"
 
 
 
-DEFAULT_WINDOW_SIZE = (800, 600)
+DEFAULT_WINDOW_SIZE = (1024, 600)
 DEFAULT_WINDOW_POS = (-1, -1)
 DEFAULT_VSASH_POS = 200
 DEFAULT_HSASH_POS = 200

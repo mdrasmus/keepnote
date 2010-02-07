@@ -43,7 +43,7 @@ can now edit the file 'gettext/de_DE.UTF8.po'
 
 If strings within the source code have been changed, they must be extracted
 again (see step 2) and merged into the existing translations within
-'gettext/$LANG.po'.  If you were working on th German translation the 
+'gettext/$LANG.po'.  If you were working on the German translation the 
 command is:
 
     make -f Makefile.gettext update LANG=de_DE.UTF8
