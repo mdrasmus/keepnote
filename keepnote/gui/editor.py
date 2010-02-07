@@ -620,6 +620,7 @@ class EditorMenus (gobject.GObject):
 
     def _on_mod(self, mod):
         """Toggle a font modification"""
+
         self._editor.get_textview().toggle_font_mod(mod)
 
 
@@ -1092,60 +1093,54 @@ class EditorMenus (gobject.GObject):
 
         u = uimanager
 
+        def update_toggle(ui, active):
+            if len(ui.widget.get_proxies()) > 0:
+                widget = ui.widget.get_proxies()[0]
+                widget.set_active(active)
+
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Editor/Bold Tool", 
-            update_func=
-            lambda ui, font: ui.widget.set_active(font.mods["bold"]))
+            update_func=lambda ui, font: update_toggle(ui, font.mods["bold"]))
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Editor/Italic Tool", 
-            update_func=lambda ui, font: 
-            ui.widget.set_active(font.mods["italic"]))
+            update_func=lambda ui, font: update_toggle(ui, font.mods["italic"]))
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Editor/Underline Tool", 
-            update_func=lambda ui, font: 
-            ui.widget.set_active(font.mods["underline"]))
+            update_func=lambda ui, font: update_toggle(ui, font.mods["underline"]))
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Editor/Strike Tool", 
-            update_func=lambda ui, font:
-            ui.widget.set_active(font.mods["strike"]))
+            update_func=lambda ui, font: update_toggle(ui, font.mods["strike"]))
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Editor/Monospace Tool", 
-            update_func=lambda ui, font:
-            ui.widget.set_active(font.mods["tt"]))
+            update_func=lambda ui, font: update_toggle(ui, font.mods["tt"]))
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Editor/Link Tool", 
-            update_func=lambda ui, font:
-            ui.widget.set_active(font.link is not None))
+            update_func=lambda ui, font: update_toggle(ui, font.link is not None))
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Editor/No Wrapping Tool", 
-            update_func=lambda ui, font:
-            ui.widget.set_active(font.mods["nowrap"]))
-
-
-        def update(ui, font):            
-            widget = ui.widget.get_proxies()[0]
-            widget.set_active(font.par_type == "bullet")
+            update_func=lambda ui, font: update_toggle(ui, font.mods["nowrap"]))
 
                 
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Editor/Left Align Tool", 
-            update_func=lambda ui, font:
-             ui.widget.set_active(font.justify == "left"))
+            update_func=lambda ui, font: 
+            update_toggle(ui, font.justify == "left"))
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Editor/Center Align Tool", 
-            update_func=lambda ui, font:
-             ui.widget.set_active(font.justify == "center"))
+            update_func=lambda ui, font: 
+            update_toggle(ui, font.justify == "center"))
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Editor/Right Align Tool", 
             update_func=lambda ui, font:
-             ui.widget.set_active(font.justify == "right"))
+            update_toggle(ui, font.justify == "right"))
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Editor/Justify Align Tool", 
             update_func=lambda ui, font:
-             ui.widget.set_active(font.justify == "fill"))
+            update_toggle(ui, font.justify == "fill"))
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Editor/Bullet List Tool", 
-            update_func=update)
+            update_func=lambda ui, font:
+            update_toggle(ui, font.par_type == "bullet"))
         #lambda ui, font:
                 #ui.widget.set_active(font.par_type == "bullet"))
 
