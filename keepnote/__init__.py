@@ -67,6 +67,13 @@ except ImportError:
 from keepnote import tarfile
 import xml.dom.minidom
 import xml.sax.saxutils
+import sgmllib
+import htmlentitydefs
+import re
+import base64
+import string
+import random
+
 
 #=============================================================================
 # globals / constants

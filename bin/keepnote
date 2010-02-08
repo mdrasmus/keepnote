@@ -197,7 +197,8 @@ def execute_command(app, argv):
     """Execute commands given on command line"""
     
     options, args = parse_argv(argv)
-    
+    print args
+
     if options.cmd:
         if len(args) == 0:
             raise Exception(_("Expected command"))
@@ -221,12 +222,7 @@ def execute_command(app, argv):
             if len(app.get_windows()) == 0:
                 app.new_window()
 
-            if app.install_extension(args[0]):
-
-                # make sure each window initializes the new extension
-                for window in app.get_windows():
-                    app.init_extensions_window(window)
-
+            app.install_extension(args[0])
         else:
             # open specified notebook
             win = app.new_window()
@@ -292,7 +288,6 @@ def main(argv):
             lambda app, argv: gui_exec(
                 lambda: execute_command(app, argv)),
             port=options.port)
-
     
     if main_proc:
         # initiate main process

@@ -226,10 +226,19 @@ def escape(text):
     
     return "".join(text2)
 
+def split_args(text):
+    args = []
+    last = 0
+    for i in xrange(len(text)):
+        if text[i] == " " and (i == 0 or text[i-1] != "\\"):
+            args.append(text[last:i])
+            last = i + 1
+    args.append(text[last:])
+    return args
 
 def parse_command(text):
     """Parse a command from the socket"""
-    return [unescape(x) for x in text.split(" ")]
+    return [unescape(x) for x in split_args(text)]
 
 def format_command(argv):
     """Format a command from the socket"""
