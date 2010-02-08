@@ -378,6 +378,13 @@ class ExternalApp (object):
         self.prog = prog
         self.args = args
 
+class AppCommand (object):
+    """Application Command"""
+
+    def __init__(self, name, func=lambda app, args: None):
+        self.name = name
+        self.func = func
+
 
 class KeepNotePreferenceError (StandardError):
     """Exception that occurs when manipulating preferences"""
@@ -783,6 +790,9 @@ class KeepNote (object):
         # load application preferences
         self.pref = KeepNotePreferences()
 
+        # list of possible application commands
+        self._commands = {}
+
         # list of application notebooks
         self._notebooks = {}
         self._notebook_count = {}
@@ -969,6 +979,27 @@ class KeepNote (object):
         keepnote.log_message(text)
         if error is not None:
             keepnote.log_error(error, tracebk)
+
+
+
+    #================================
+    # commands
+
+    def get_command(self, command_name):
+
+        return self._commands.get(command_name, None)
+
+    def add_command(self, command):
+
+        if command.name in self._commands:
+            raise Exception(_("command '%s' already exists") % command.name)
+
+        self._commands[command.name] = command
+
+    def remove_command(self, command_name):
+        
+        if command_name in self._commands:
+            del self._commands[command_name]
 
 
     #================================

@@ -192,49 +192,6 @@ def parse_argv(argv):
     return options, args
 
 
-def execute_command(app, argv):
-    """Execute commands given on command line"""
-    
-    options, args = parse_argv(argv)
-
-    if options.cmd:
-        if len(args) == 0:
-            raise Exception(_("Expected command"))
-
-        elif args[0] == "focus":
-            app.focus_windows()
-            
-        elif args[0] == "screenshot":
-            # TODO: may need to generalize for different type of viewers
-            window = app.get_current_window()
-            if window:
-                window.get_viewer().editor.on_screenshot()
-
-        else:
-            raise Exception(_("Unknown command '%s'") % args[0])
-            
-    elif len(args) > 0:
-
-        if keepnote.extension.is_extension_install_file(args[0]):
-            # install extension
-            if len(app.get_windows()) == 0:
-                app.new_window()
-
-            app.install_extension(args[0])
-        else:
-            # open specified notebook
-            win = app.new_window()
-            win.open_notebook(args[0].rstrip("/"))
-
-    elif options.default_notebook and app.pref.default_notebook != "":
-        # open default notebook
-        win = app.new_window()
-        win.open_notebook(app.pref.default_notebook)
-            
-    else:
-        app.new_window()
-
-
 def gui_exec(function, *args, **kw):
     """Execute a function in the GUI thread"""
     def idle_func():
@@ -262,6 +219,52 @@ def start_gui(argv, options, args, cmd_exec):
     gtk.main()
 
 
+
+def execute_command(app, argv):
+    """Execute commands given on command line"""
+    
+    options, args = parse_argv(argv)
+                                
+
+    if options.cmd:
+        # process command
+        if len(args) == 0:
+            raise Exception(_("Expected command"))
+
+        command = app.get_command(args[0])
+        if command:
+            command.func(app, args)
+        else:
+            raise Exception(_("Unknown command '%s'") % args[0])
+            
+    else:
+        # process a non-command
+
+        if len(args) > 0:
+            if keepnote.extension.is_extension_install_file(args[0]):
+                # install extension
+                if len(app.get_windows()) == 0:
+                    app.new_window()
+
+                app.install_extension(args[0])
+            else:
+                # open specified notebook
+                win = app.new_window()
+                win.open_notebook(args[0].rstrip("/"))
+
+        else:
+            # no arguments        
+
+            if options.default_notebook and app.pref.default_notebook != "":
+                # open default notebook
+                win = app.new_window()
+                win.open_notebook(app.pref.default_notebook)
+            else:
+                # open empty window
+                app.new_window()
+
+
+
 def main(argv):
     """Main execution"""    
 
@@ -270,12 +273,14 @@ def main(argv):
     # setup threading environment
     setup_threading()
 
+
     # check for old preference info
     keepnote.compat.pref.check_old_user_pref_dir()
 
     # init preference dir
     if not os.path.exists(keepnote.get_user_pref_dir()):
         keepnote.init_user_pref_dir()
+
 
     # get command executor
     if options.newproc:
