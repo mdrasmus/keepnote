@@ -197,7 +197,6 @@ def execute_command(app, argv):
     """Execute commands given on command line"""
     
     options, args = parse_argv(argv)
-    print args
 
     if options.cmd:
         if len(args) == 0:
