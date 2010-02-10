@@ -39,6 +39,7 @@ class Extension (extension.Extension):
     
     version = (1, 0)
     name = "Basic Commands"
+    author = "Matt Rasmussen <rasmus@mit.edu>"
     description = "Adds basic command line options to KeepNote"
 
 

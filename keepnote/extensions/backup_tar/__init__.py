@@ -59,6 +59,7 @@ class Extension (extension.Extension):
     
     version = (1, 0)
     name = "Notebook Backup (tar)"
+    author = "Matt Rasmussen <rasmus@mit.edu>"
     description = "Backups a notebook to a gzip tar file (*.tar.gz)"
 
 

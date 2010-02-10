@@ -56,6 +56,7 @@ class Extension (extension.Extension):
     
     version = (1, 0)
     name = "Editor Insert Date"
+    author = "Matt Rasmussen <rasmus@mit.edu>"
     description = "Inserts the current date in the text editor"
 
 

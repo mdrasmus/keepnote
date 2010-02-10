@@ -7,7 +7,7 @@
 #
 #  KeepNote
 #  Copyright (c) 2008-2009 Matt Rasmussen
-#  Author: Matt Rasmussen <rasmus@mit.edu>
+#  Author: Nihil <nihil@blue.dyn-o-saur.com>,Matt Rasmussen <rasmus@mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -92,6 +92,8 @@ def unescape(text):
 class Extension (keepnote.gui.extension.Extension):
     version = (1, 0)
     name = "Import NoteCase"
+    author = "Nihil <nihil@blue.dyn-o-saur.com>"
+    website = "http://rasm.ods.org/keepnote/extensions.shtml"
     description = "Primitive import of .ncd Files."
 
     def __init__(self, app):
