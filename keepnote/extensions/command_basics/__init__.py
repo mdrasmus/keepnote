@@ -131,7 +131,7 @@ class Extension (extension.Extension):
         nodeurl = args[1]
         if keepnote.notebook.is_node_url(nodeurl):
             host, nodeid = keepnote.notebook.parse_node_url(nodeurl)
-            self.view.nodeid(app, nodeid)
+            self.view_nodeid(app, nodeid)
         else:
             # do text search
             window = self.app.get_current_window()
