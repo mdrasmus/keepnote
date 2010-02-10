@@ -54,7 +54,7 @@ class TestCaseInstall (unittest.TestCase):
 
         os.system("cp ~/.Xauthority %s" % home_dir)
 
-        cmd = "HOME=%s; PYTHONPATH=%s/lib/python; %s/bin/keepnote --no-default" % (home_dir, install_dir, install_dir)
+        cmd = "HOME=%s; PYTHONPATH=%s/lib/python; python %s/bin/keepnote --no-default" % (home_dir, install_dir, install_dir)
 
         print
         print cmd

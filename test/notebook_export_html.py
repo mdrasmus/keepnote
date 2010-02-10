@@ -17,6 +17,7 @@ class TestCaseNotebookIndex (unittest.TestCase):
 
         export_filename = "test/data/notebook_export"
         app = keepnote.KeepNote()
+        app.init()
         ext = app.get_extension("export_html")
         
         book = notebooklib.NoteBook()
