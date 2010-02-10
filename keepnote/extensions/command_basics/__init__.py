@@ -24,35 +24,15 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
-import gettext
+
+# python imports
 import os
-import re
-import shutil
 import sys
-import time
 
-#_ = gettext.gettext
-
+# keepnote imports
 import keepnote
-from keepnote import unicode_gtk, AppCommand
-from keepnote.notebook import NoteBookError, get_valid_unique_filename
-from keepnote import notebook as notebooklib
-from keepnote import tasklib
-from keepnote import tarfile
+from keepnote import AppCommand
 from keepnote.gui import extension
-
-# pygtk imports
-try:
-    import pygtk
-    pygtk.require('2.0')
-    from gtk import gdk
-    import gtk.glade
-    import gobject
-except ImportError:
-    # do not fail on gtk import error,
-    # extension should be usable for non-graphical uses
-    pass
-
 
 
 class Extension (extension.Extension):
@@ -69,6 +49,21 @@ class Extension (extension.Extension):
         self.app = app
         self.enabled.add(self.on_enabled)
 
+        self.commands = [
+            AppCommand("focus", lambda app, args: app.focus_windows(),
+                       help="focus all open windows"),
+            AppCommand("screenshot", self.on_screenshot,
+                       help="insert a new screenshot"),
+            AppCommand("install", self.on_install_extension,
+                       metavar="FILENAME",
+                       help="install a new extension"),
+            AppCommand("uninstall", self.on_uninstall_extension,
+                       metavar="EXTENSION_NAME",
+                       help="uninstall an extension"),
+            AppCommand("quit", lambda app, args: app.quit(),
+                       help="close all KeepNote windows"),
+            ]
+
 
     def get_depends(self):
         return [("keepnote", ">=", (0, 6, 2))]
@@ -77,15 +72,39 @@ class Extension (extension.Extension):
     def on_enabled(self, enabled):
         
         if enabled:
-            self.app.add_command(AppCommand("focus", 
-                                            lambda app, args: app.focus_windows()))
-
-            def screenshot_func(app, args):
-                window = app.get_current_window()
-                if window:
-                    window.get_viewer().editor.on_screenshot()
-            self.app.add_command(AppCommand("screenshot", screenshot_func))
+            for command in self.commands:
+                try:
+                    self.app.add_command(command)
+                except Exception, e:
+                    self.app.erorr("Could not add command '%s'" % command.name,
+                                   e, sys.exc_info()[2])
 
         else:
-            self.app.remove_command("focus")
-            self.app.remove_command("screenshot")
+            for command in self.commands:
+                self.app.remove_command(command.name)
+
+
+    #====================================================
+    # commands
+
+    def on_uninstall_extension(self, app, args):
+        
+        for extname in args[1:]:
+            ext = app.get_extension(extname)
+            if ext is None:
+                app.error("unknown extension '%s'" % extname)
+            else:
+                app.uninstall_extension(ext)
+
+
+    def on_install_extension(self, app, args):
+        
+        for filename in args[1:]:
+            app.install_extension(filename)
+
+
+    def on_screenshot(self, app, args):
+        window = app.get_current_window()
+        if window:
+            window.get_viewer().editor.on_screenshot()
+        

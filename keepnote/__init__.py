@@ -381,9 +381,12 @@ class ExternalApp (object):
 class AppCommand (object):
     """Application Command"""
 
-    def __init__(self, name, func=lambda app, args: None):
+    def __init__(self, name, func=lambda app, args: None, 
+                 metavar="", help=""):
         self.name = name
         self.func = func
+        self.metavar = metavar
+        self.help = help
 
 
 class KeepNotePreferenceError (StandardError):
@@ -981,6 +984,8 @@ class KeepNote (object):
             keepnote.log_error(error, tracebk)
 
 
+    def quit(self):
+        pass
 
     #================================
     # commands
@@ -988,6 +993,10 @@ class KeepNote (object):
     def get_command(self, command_name):
 
         return self._commands.get(command_name, None)
+
+    def get_commands(self):
+        return self._commands.values()
+
 
     def add_command(self, command):
 

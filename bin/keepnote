@@ -29,14 +29,6 @@ import thread
 import traceback
 
 
-# pygtk imports
-import pygtk
-pygtk.require('2.0')
-import gtk
-import gtk.gdk
-import gobject
-
-
 
 #=============================================================================
 # KeepNote import
@@ -120,6 +112,15 @@ _ = keepnote.translate
 o = optparse.OptionParser(usage=
                 "%prog [options] [NOTEBOOK]")
 o.set_defaults(default_notebook=True)
+o.add_option("-c", "--cmd", dest="cmd",
+             action="store_true",
+             help="treat remaining arguments as a command")
+o.add_option("-l", "--list-cmd", dest="list_cmd",
+             action="store_true",
+             help="list available commands")
+o.add_option("--no-gui", dest="no_gui",
+             action="store_true",
+             help="run in non-gui mode")
 o.add_option("", "--show-errors", dest="show_errors",
              action="store_true",
              help="show errors on console")
@@ -129,9 +130,6 @@ o.add_option("--no-show-errors", dest="show_errors",
 o.add_option("--no-default", dest="default_notebook",
              action="store_false",
              help="do not open default notebook")
-o.add_option("-c", "--cmd", dest="cmd",
-             action="store_true",
-             help="treat remaining arguments as a command")
 o.add_option("", "--newproc", dest="newproc",
              action="store_true",
              help="start KeepNote in a new process")
@@ -162,21 +160,6 @@ def start_error_log(show_errors):
                                       time.asctime()))
 
 
-
-def setup_threading():
-    """Initialize threading environment"""
-    
-    if keepnote.get_platform() == "windows":
-        # HACK: keep gui thread active
-        def sleeper():
-            time.sleep(.001)
-            return True # repeat timer
-        gobject.timeout_add(400, sleeper)
-
-    else:
-        gtk.gdk.threads_init()
-
-
 def parse_argv(argv):
     """Parse arguments"""
 
@@ -192,8 +175,29 @@ def parse_argv(argv):
     return options, args
 
 
+def setup_threading():
+    """Initialize threading environment"""
+
+    import gtk.gdk
+    import gobject
+
+    if keepnote.get_platform() == "windows":
+        # HACK: keep gui thread active
+        def sleeper():
+            time.sleep(.001)
+            return True # repeat timer
+        gobject.timeout_add(400, sleeper)
+
+    else:
+        gtk.gdk.threads_init()
+
+
 def gui_exec(function, *args, **kw):
     """Execute a function in the GUI thread"""
+    
+    import gtk.gdk
+    import gobject
+
     def idle_func():
         gtk.gdk.threads_enter()
         try:
@@ -205,7 +209,15 @@ def gui_exec(function, *args, **kw):
 
 
 def start_gui(argv, options, args, cmd_exec):
-    import keepnote.gui        
+    import keepnote.gui
+
+    # pygtk imports
+    import pygtk
+    pygtk.require('2.0')
+    import gtk
+
+    # setup threading environment
+    setup_threading()
 
     # start error log
     start_error_log(options.show_errors)
@@ -219,15 +231,32 @@ def start_gui(argv, options, args, cmd_exec):
     gtk.main()
 
 
+def start_non_gui(argv, options, args, cmd_exec):
+
+    # start error log
+    start_error_log(options.show_errors)
+
+    # read preferences
+    app = keepnote.KeepNote(basedir)
+    app.init()
+    cmd_exec.set_app(app)
+
+    execute_command(app, argv)
+
 
 def execute_command(app, argv):
     """Execute commands given on command line"""
     
     options, args = parse_argv(argv)
-                                
+
+    # parse builtin commands
+    if options.list_cmd:
+        list_commands(app)
+        sys.exit()
+    
 
     if options.cmd:
-        # process command
+        # process application command (AppCommand)
         if len(args) == 0:
             raise Exception(_("Expected command"))
 
@@ -239,6 +268,9 @@ def execute_command(app, argv):
             
     else:
         # process a non-command
+
+        if options.no_gui:
+            sys.exit()
 
         if len(args) > 0:
             if keepnote.extension.is_extension_install_file(args[0]):
@@ -264,15 +296,28 @@ def execute_command(app, argv):
                 app.new_window()
 
 
+def list_commands(app):
+    """List available commands"""
+    
+    commands = app.get_commands()
+    commands.sort(key=lambda x: x.name)
+
+    print
+    print "available commands:"
+    for command in commands:
+        print " " + command.name,
+        if command.metavar:
+            print " " + command.metavar,            
+        if command.help:
+            print " -- " + command.help,
+        print
+
+
 
 def main(argv):
     """Main execution"""    
 
     options, args = parse_argv(argv)
-
-    # setup threading environment
-    setup_threading()
-
 
     # check for old preference info
     keepnote.compat.pref.check_old_user_pref_dir()
@@ -280,7 +325,6 @@ def main(argv):
     # init preference dir
     if not os.path.exists(keepnote.get_user_pref_dir()):
         keepnote.init_user_pref_dir()
-
 
     # get command executor
     if options.newproc:
@@ -292,9 +336,13 @@ def main(argv):
                 lambda: execute_command(app, argv)),
             port=options.port)
     
+
     if main_proc:
         # initiate main process
-        start_gui(argv, options, args, cmd_exec)
+        if options.no_gui:
+            start_non_gui(argv, options, args, cmd_exec)
+        else:
+            start_gui(argv, options, args, cmd_exec)
     else:
         # this is a command process, send command to main process
         cmd_exec.execute(argv)
