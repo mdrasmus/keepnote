@@ -32,6 +32,7 @@ import sys
 # keepnote imports
 import keepnote
 from keepnote import AppCommand
+import keepnote.notebook
 from keepnote.gui import extension
 
 
@@ -63,6 +64,14 @@ class Extension (extension.Extension):
                        help="uninstall an extension"),
             AppCommand("quit", lambda app, args: app.quit(),
                        help="close all KeepNote windows"),
+
+            AppCommand("view", self.on_view_note,
+                       metavar="NOTE_URL",
+                       help="view a note"),
+            AppCommand("search-titles", self.on_search_titles,
+                       metavar="TEXT",
+                       help="search notes by title")
+
             ]
 
 
@@ -112,3 +121,70 @@ class Extension (extension.Extension):
         if window:
             window.get_viewer().editor.on_screenshot()
         
+
+    def on_view_note(self, app, args):
+
+        if len(args) < 1:
+            self.error("Must specify note url")
+            return
+        
+        nodeurl = args[1]
+        if keepnote.notebook.is_node_url(nodeurl):
+            host, nodeid = keepnote.notebook.parse_node_url(nodeurl)
+            self.view.nodeid(app, nodeid)
+        else:
+            # do text search
+            window = self.app.get_current_window()
+            if window is None:
+                return
+            notebook = window.get_notebook()
+            if notebook is None:
+                return
+            
+            results = list(notebook.search_node_titles(nodeurl))
+
+            if len(results) == 1:
+                self.view_nodeid(app, results[0][0])
+            else:
+                viewer = window.get_viewer()
+                viewer.start_search_result()
+                for nodeid, title in results:
+                    node = notebook.get_node_by_id(nodeid)
+                    if node:
+                        viewer.add_search_result(node)
+                        
+
+
+
+    def on_search_titles(self, app, args):
+
+        if len(args) < 1:
+            self.error("Must specify text to search")
+            return
+        
+        text = args[1]
+
+        # do text search
+        window = self.app.get_current_window()
+        if window is None:
+            return
+        notebook = window.get_notebook()
+        if notebook is None:
+            return
+            
+        nodes = list(notebook.search_node_titles(text))
+        for nodeid, title in nodes:
+            print "%s\t%s" % (title, keepnote.notebook.get_node_url(nodeid))
+
+
+    def view_nodeid(self, app, nodeid):
+        
+        for window in app.get_windows():
+            notebook = window.get_notebook()
+            if not notebook:
+                continue
+            node = notebook.get_node_by_id(nodeid)
+            if node:
+                window.get_viewer().goto_node(node)
+                break
+
