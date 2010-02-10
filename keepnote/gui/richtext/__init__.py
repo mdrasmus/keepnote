@@ -1432,9 +1432,9 @@ class RichTextView (gtk.TextView):
         try:
 
             # HACK: fix small font sizes on Mac
-            PIXELS_PER_PANGO_UNIT = 1024
-            native_size = self.get_default_attributes().font.get_size() // PIXELS_PER_PANGO_UNIT
-            set_text_scale(native_size / 10.0)
+            #PIXELS_PER_PANGO_UNIT = 1024
+            #native_size = self.get_default_attributes().font.get_size() // PIXELS_PER_PANGO_UNIT
+            #set_text_scale(native_size / 10.0)
 
             f = pango.FontDescription(font)
             f.set_size(int(f.get_size() * get_text_scale()))

@@ -73,10 +73,13 @@ class Extension (extension.Extension):
         
         if enabled:
             for command in self.commands:
+                if self.app.get_command(command.name):
+                    continue
+
                 try:
                     self.app.add_command(command)
                 except Exception, e:
-                    self.app.erorr("Could not add command '%s'" % command.name,
+                    self.app.error("Could not add command '%s'" % command.name,
                                    e, sys.exc_info()[2])
 
         else:
