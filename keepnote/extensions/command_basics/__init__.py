@@ -128,6 +128,8 @@ class Extension (extension.Extension):
             self.error("Must specify note url")
             return
         
+        app.focus_windows()
+
         nodeurl = args[1]
         if keepnote.notebook.is_node_url(nodeurl):
             host, nodeid = keepnote.notebook.parse_node_url(nodeurl)
@@ -162,16 +164,18 @@ class Extension (extension.Extension):
             self.error("Must specify text to search")
             return
         
-        text = args[1]
+        app.focus_windows()        
 
-        # do text search
+        # get window and notebook
         window = self.app.get_current_window()
         if window is None:
             return
         notebook = window.get_notebook()
         if notebook is None:
             return
-            
+        
+        # do search
+        text = args[1]
         nodes = list(notebook.search_node_titles(text))
         for nodeid, title in nodes:
             print "%s\t%s" % (title, keepnote.notebook.get_node_url(nodeid))
