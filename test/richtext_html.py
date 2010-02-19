@@ -665,6 +665,18 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
         self.assertEquals(lst2, [0, 1, 2, 'a', 'b', 'c', 3, 4, 5, 6, 7, 8, 9])
 
 
+    def test_body(self):
+
+        contents = list(self.io.read(["<html><head><title>title</title></head><body>Hello world</body></html>"], 
+                                     partial=False))
+        self.assertEqual(contents, [('text', None, 'Hello world')])
+
+        contents = list(self.io.read(["Hello world"], 
+                                     partial=True))
+        self.assertEqual(contents, [('text', None, 'Hello world')])
+
+
+
         
 htmlbuffer_suite = unittest.defaultTestLoader.loadTestsFromTestCase(
     TestCaseHtmlBuffer)
