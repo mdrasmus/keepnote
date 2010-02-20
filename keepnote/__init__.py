@@ -99,7 +99,7 @@ LICENSE_NAME = "GPL version 2"
 COPYRIGHT = "Copyright Matt Rasmussen 2010."
 TRANSLATOR_CREDITS = (
     "French: tb <thibaut.bethune@gmail.com>\n"
-    "German: Jan Rimmek <jan.rimmek@web.de>\n"
+    "German: Jan Rimmek <jan.rimmek@mhinac.de>\n"
     "Russian: Hikiko Mori <hikikomori.dndz@gmail.com>\n"
     "Spanish: Klemens Hackel <click3d at linuxmail (dot) org>\n"
     "Turkish: Yuce Tekol <yucetekol@gmail.com>\n"
