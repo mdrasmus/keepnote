@@ -443,18 +443,27 @@ class KeepNoteBaseTreeView (gtk.TreeView):
     def get_selected_nodes(self):
         """Returns a list of currently selected nodes"""
 
-        # TODO: handle multiple selection
-        model, it = self.get_selection().get_selected()        
-        if it is None:
-            #print "edit", self.editing
+        iters = self.get_selected_iters()
+        if len(iters) == 0:
             if self.editing:
                 node = self._get_node_from_path(self.editing)
                 if node:
                     return [node]
             return []
-        return [self.model.get_value(it, self._node_col)]
+        else:
+            return [self.model.get_value(it, self._node_col)
+                    for it in iters]
 
         
+    def get_selected_iters(self):
+        """Return a list of currently selected TreeIter's"""
+
+        iters = []
+        self.get_selection().selected_foreach(lambda model, path, it:
+                                                  iters.append(it))
+        return iters
+
+
     # TODO: add a reselect if node is deleted
     # select next sibling or parent
 
@@ -577,10 +586,15 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
     
     def get_drag_node(self):
-        # TODO: handle multiple selection
-        model, source = self.get_selection().get_selected()
-        #source_path = model.get_path(source)
-        return self.model.get_value(source, self._node_col)
+        iters = self.get_selected_iters()
+        if len(iters) == 0:
+            return None
+        return self.model.get_value(iters[0], self._node_col)
+
+
+    def get_drag_nodes(self):
+        return [self.model.get_value(it, self._node_col)
+                for it in self.get_selected_iters()]
 
 
     #  drag and drop callbacks
@@ -642,9 +656,12 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         """Callback for beginning of drag and drop"""
         self.stop_emission("drag-begin")
 
-        # TODO: handle multiple selection
-        # get the selection
-        model, source = self.get_selection().get_selected()
+        iters = self.get_selected_iters()
+        if len(iters) == 0:
+            return
+
+        # use first selected item for icon
+        source = iters[0]
 
         # setup the drag icon
         if self._get_icon:
@@ -688,10 +705,16 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             if "drop_node" in drag_context.targets:
                 # get source
                 source_widget = drag_context.get_source_widget()
-                source_node = source_widget.get_drag_node()
+                source_nodes = source_widget.get_drag_nodes()
             
                 # determine if drag is allowed
-                if self._drop_allowed(source_node, target_node, drop_position):
+                allow = True
+                for source_node in source_nodes:
+                    if not self._drop_allowed(source_node, target_node, 
+                                              drop_position):
+                        allow = False
+                
+                if allow:
                     self.set_drag_dest_row(target_path, drop_position)
                     self._dest_row = target_path, drop_position
                     drag_context.drag_status(gdk.ACTION_MOVE, eventtime)
@@ -755,9 +778,12 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
         # TODO: handle multiple selection
         # set the source path into the selection
-        model, source = self.get_selection().get_selected()
-        source_path = model.get_path(source)
-        selection_data.tree_set_row_drag_data(model, source_path)
+        #model, source = self.get_selection().get_selected()
+        iters = self.get_selected_iters()
+        if len(iters) > 0:
+            source = iters[0]
+            source_path = self.model.get_path(source)
+            selection_data.tree_set_row_drag_data(self.model, source_path)
     
     
     def _on_drag_data_received(self, treeview, drag_context, x, y,
@@ -832,32 +858,43 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
         # get source
         source_widget = drag_context.get_source_widget()
-        source_node = source_widget.get_drag_node()
 
-        # determine if drop is allowed
-        if not self._drop_allowed(source_node, target_node, drop_position):
-            drag_context.finish(False, False, eventtime)
-            return
-
-        # determine new parent
-        new_parent_path = new_path[:-1]
-        new_parent = self._get_node_from_path(new_parent_path)
-
+        # TODO: use get_drag_nodes
+        #source_node = source_widget.get_drag_node()
         
-        # perform move in notebook model
-        try:
-            source_node.move(new_parent, new_path[-1])
-        except NoteBookError, e:
+        source_nodes = source_widget.get_drag_nodes()
+        if len(source_nodes) == 0:
             drag_context.finish(False, False, eventtime)
-            self.emit("error", e.msg, e)
             return
+        
+        source_node = source_nodes[0]
+        
+        # determine if drop is allowed
+        for source_node in source_nodes:
+            if not self._drop_allowed(source_node, target_node, drop_position):
+                drag_context.finish(False, False, eventtime)
+                continue
+
+            # determine new parent
+            new_parent_path = new_path[:-1]
+            new_parent = self._get_node_from_path(new_parent_path)
+
+
+            # perform move in notebook model
+            try:
+                source_node.move(new_parent, new_path[-1])
+            except NoteBookError, e:
+                # TODO: think about whether finish should always be false
+                drag_context.finish(False, False, eventtime)
+                self.emit("error", e.msg, e)
+                return
 
         # re-establish selection on source node
-        self.emit("goto-node", source_node)
+        self.emit("goto-node", source_nodes[0])
 
         # notify that drag was successful
         drag_context.finish(True, True, eventtime)
-    
+  
         
     def _drop_allowed(self, source_node, target_node, drop_position):
         """Determine if drop is allowed"""
