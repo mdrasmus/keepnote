@@ -1321,7 +1321,7 @@ class NoteBook (NoteBookDir):
         self.write_preferences()
 
         # init index database
-        self._index = notebook_index.NoteBookIndex(self)
+        self._init_index()
 
     
     def load(self, filename=None):
@@ -1342,7 +1342,7 @@ class NoteBook (NoteBookDir):
         self.read_meta_data()
         self.read_preferences()
 
-        self._index = notebook_index.NoteBookIndex(self)
+        self._init_index()
 
         self.notify_change(True)
     
@@ -1367,6 +1367,15 @@ class NoteBook (NoteBookDir):
         
         self._dirty.clear()
 
+
+    def _init_index(self):
+        """Initialize the index"""
+        self._index = notebook_index.NoteBookIndex(self)
+        self._index.add_attr(notebook_index.AttrIndex("icon", "TEXT"))
+        self._index.add_attr(notebook_index.AttrIndex("title", "TEXT",
+                                                      index_value=True))
+
+        
 
 
     def _set_dirty_node(self, node, dirty):
@@ -1561,9 +1570,9 @@ class NoteBook (NoteBookDir):
         return os.path.join(self.get_path(), *path[1:])
 
 
-    def search_node_titles(self, text, cols=[]):
+    def search_node_titles(self, text):
         """Search nodes by title"""
-        return self._index.search_titles(text, cols)
+        return self._index.search_titles(text)
 
 
     def close(self, save=True):

@@ -65,7 +65,7 @@ from keepnote.gui import \
      add_actions, \
      update_file_preview
 from keepnote.gui.icons import \
-    get_node_icon
+    get_node_icon, lookup_icon_filename
 from keepnote.gui.font_selector import FontSelector
 from keepnote.gui.colortool import FgColorTool, BgColorTool
 from keepnote.gui.richtext.richtext_tags import color_tuple_to_string
@@ -328,11 +328,22 @@ class KeepNoteEditor (gtk.VBox):
             # perform node search
             text = start.get_text(end)
             results = []
+
+            # TODO: clean up icon handling.
             for nodeid, title in self._notebook.search_node_titles(text)[:self._maxlinks]:
-                node = self._notebook.get_node_by_id(nodeid)
-                if node is not None:
-                    results.append((get_node_url(nodeid), title, 
-                                    get_node_icon(node)))
+                #node = self._notebook.get_node_by_id(nodeid)
+                #icon = get_node_icon(node)
+                icon = self._notebook._index.get_attr(nodeid, "icon")
+                if icon is None:
+                    icon = "note.png"
+                icon = lookup_icon_filename(self._notebook, icon)
+                if icon is None:
+                    icon = lookup_icon_filename(self._notebook, "note.png")
+
+                pb = keepnote.gui.get_pixbuf(icon)
+
+                #if node is not None:
+                results.append((get_node_url(nodeid), title, pb))
 
             # offer url match
             if is_url(text):

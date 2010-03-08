@@ -376,7 +376,7 @@ class KeepNote (keepnote.KeepNote):
             notebook = notebooklib.NoteBook()
             notebook.load(filename)
 
-        except NoteBookVersionError, e:
+        except notebooklib.NoteBookVersionError, e:
             self.error(_("This version of %s cannot read this notebook.\n" 
                          "The notebook has version %d.  %s can only read %d.")
                        % (keepnote.PROGRAM_NAME,
