@@ -58,7 +58,7 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
 
         
         # selection config
-        #self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
+        self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
         
         self.set_headers_visible(False)
 

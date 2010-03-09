@@ -375,22 +375,27 @@ class ThreePaneViewer (Viewer):
             
         if len(nodes) == 0:
             return
-        node = nodes[0]
+
         
         if self._main_window.confirm_delete_nodes(nodes):
-            # change selection            
-            widget = self.get_focused_widget()
-            parent = node.get_parent()
-            children = parent.get_children()
-            i = children.index(node)
-            if i < len(children) - 1:
-                widget.select_nodes([children[i+1]])
+            # change selection
+            if len(nodes) == 1:
+                node = nodes[0]
+                widget = self.get_focused_widget()
+                parent = node.get_parent()
+                children = parent.get_children()
+                i = children.index(node)
+                if i < len(children) - 1:
+                    widget.select_nodes([children[i+1]])
+                else:
+                    widget.select_nodes([parent])
             else:
-                widget.select_nodes([parent])
+                widget.select_nodes([])
 
             # perform delete
             try:
-                node.trash()
+                for node in nodes:
+                    node.trash()
             except NoteBookError, e:
                 self.emit("error", e.msg, e)
 
@@ -676,22 +681,13 @@ class ThreePaneViewer (Viewer):
     def collapse_node(self, all=False):
         """Collapse the tree beneath the focused node"""
         
-        # TODO: move guts into basetreeview
-
         widget = self.get_focused_widget(self.treeview)
         path, col = widget.get_cursor()
 
         if path:
             if all:
                 # recursively collapse all notes
-                model = widget.get_model()
-                it = model.get_iter(path)
-                def walk(it):
-                    for child in iter_children(model, it):
-                        walk(child)
-                    path2 = model.get_path(it)
-                    widget.collapse_row(path2)
-                walk(it)
+                widget.collapse_all_beneath(path)
             else:
                 widget.collapse_row(path)
 
@@ -807,7 +803,7 @@ class ThreePaneViewer (Viewer):
 
     def _setup_icon_menu(self):
         """Setup the icon menu"""
-
+        
         iconmenu = IconMenu()
         iconmenu.connect("set-icon",
             lambda w, i: self._app.on_set_icon(

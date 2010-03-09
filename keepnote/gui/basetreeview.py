@@ -40,8 +40,9 @@ from gtk import gdk
 import keepnote
 from keepnote import unicode_gtk
 from keepnote.notebook import NoteBookError, NoteBookTrash
+from keepnote.gui.icons import get_node_icon
 from keepnote.gui.treemodel import \
-     get_path_from_node
+     get_path_from_node, iter_children
 
 _ = keepnote.translate
 
@@ -132,6 +133,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
         # clipboard
         self.connect("copy-clipboard", self._on_copy_node)
+        self.connect("cut-clipboard", self._on_cut_node)
+        self.connect("paste-clipboard", self._on_paste_node)
 
         # drop and drop events
         self.connect("drag-begin", self._on_drag_begin)
@@ -408,6 +411,18 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         if path is not None:
             self.expand_to_path(path)
 
+    def collapse_all_beneath(self, path):
+        """Collapse all children beneath a path"""
+
+        it = self.model.get_iter(path)
+        def walk(it):
+            for child in iter_children(self.model, it):
+                walk(child)
+            path2 = self.model.get_path(it)
+            self.collapse_row(path2)
+        walk(it)
+
+
 
     #===========================================
     # selection
@@ -544,6 +559,53 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                                     self._clear_selection_data,
                                     nodes)
 
+    def _on_cut_node(self, widget):
+        """Copy a node onto the clipboard"""
+        
+        nodes = widget.get_selected_nodes()
+        if len(nodes) > 0:
+            clipboard = self.get_clipboard(selection=CLIPBOARD_NAME)
+            
+            targets = [(MIME_NODE, gtk.TARGET_SAME_APP, -1),
+                       ("text/html", 0, -1),
+                       ("text/plain", 0, -1)]
+            
+            clipboard.set_with_data(targets, self._get_selection_data, 
+                                    self._clear_selection_data,
+                                    nodes)
+
+            self._fade_nodes(nodes)
+
+
+    def _fade_nodes(self, nodes):
+
+        self.rich_model.fades.clear()        
+
+        for node in nodes:
+            self.rich_model.fades.add(node)
+            #node.set_attr("icon_load", 
+            #              self._fade_pixbuf(get_node_icon(node, False)))
+            #node.set_attr("icon_open_load", 
+            #              self._fade_pixbuf(get_node_icon(node, True)))        
+
+
+    def _on_paste_node(self, widget):
+        """Paste into the treeview"""
+        print "paste"
+        
+        clipboard = self.get_clipboard(selection=CLIPBOARD_NAME)
+        
+        targets = clipboard.wait_for_targets()
+        if targets is None:
+            # nothing on clipboard
+            return
+        targets = set(targets)
+
+        
+        if MIME_NODE in targets:
+            # request KEEPNOTE contents object
+            clipboard.request_contents(MIME_NODE, self._do_paste_nodes)
+
 
     def _get_selection_data(self, clipboard, selection_data, info, nodes):
         """Callback for when Clipboard needs selection data"""        
@@ -568,6 +630,29 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                                               for node in nodes]))
 
     
+    def _do_paste_nodes(self, clipboard, selection_data, data):
+        """Paste nodes into treeview"""
+
+        if self._notebook is None:
+            return
+
+        # find paste location
+        selected = self.get_selected_nodes()
+        if len(selected) > 0:
+            parent = selected[0]
+        else:
+            parent = self._notebook
+
+        
+        # find nodes to paste
+        nodeids = selection_data.data.split(";")
+        nodes = [self._notebook.get_node_by_id(nodeid)
+                 for nodeid in nodeids]
+        print nodeids, nodes
+
+        # TODO: add duplicate code here
+
+
     def _clear_selection_data(self, clipboard, data):
         """Callback for when Clipboard contents are reset"""
         pass
@@ -776,9 +861,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # override gtk's data get code
         self.stop_emission("drag-data-get")
 
-        # TODO: handle multiple selection
-        # set the source path into the selection
-        #model, source = self.get_selection().get_selected()
+        # TODO: think more about what data to actually set for 
+        # tree_set_row_drag_data()
         iters = self.get_selected_iters()
         if len(iters) > 0:
             source = iters[0]
@@ -858,16 +942,10 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
         # get source
         source_widget = drag_context.get_source_widget()
-
-        # TODO: use get_drag_nodes
-        #source_node = source_widget.get_drag_node()
-        
         source_nodes = source_widget.get_drag_nodes()
         if len(source_nodes) == 0:
             drag_context.finish(False, False, eventtime)
             return
-        
-        source_node = source_nodes[0]
         
         # determine if drop is allowed
         for source_node in source_nodes:
@@ -878,7 +956,6 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             # determine new parent
             new_parent_path = new_path[:-1]
             new_parent = self._get_node_from_path(new_parent_path)
-
 
             # perform move in notebook model
             try:

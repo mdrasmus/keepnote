@@ -59,6 +59,10 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         # init model
         self.set_model(gtk.TreeModelSort(treemodel.KeepNoteTreeModel()))
 
+        # selection config
+        self.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
+
+
         self.model.connect("sort-column-changed", self._sort_column_changed)
         
         # init view

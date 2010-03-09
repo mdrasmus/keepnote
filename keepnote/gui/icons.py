@@ -308,22 +308,49 @@ def get_node_icon_filenames(node):
     return filenames
 
 
-def get_node_icon(node, expand=False):
+# TODO: make a class
+
+def get_node_icon(node, expand=False, fade=False):
     """Returns pixbuf of NoteBookNode icon from resource path"""
+
+    icon_size = (15, 15)
 
     if not expand and node.has_attr("icon_load"):
         # return loaded icon
-        return keepnote.gui.get_pixbuf(node.get_attr("icon_load"), (15, 15))
+        if not fade:
+            return keepnote.gui.get_pixbuf(node.get_attr("icon_load"), 
+                                           icon_size)
+        else:
+            return get_node_icon_fade(node.get_attr("icon_load"), icon_size)
+            
     
     elif expand and node.has_attr("icon_open_load"):
         # return loaded icon with open state
-        return keepnote.gui.get_pixbuf(node.get_attr("icon_open_load"), (15, 15))
+        if not fade:
+            return keepnote.gui.get_pixbuf(node.get_attr("icon_open_load"), 
+                                           icon_size)
+        else:
+            get_node_icon_fade(node.get_attr("icon_open_load"), icon_size)
     
     else:
         # load icons and return the one requested
         filenames = get_node_icon_filenames(node)
         node.set_attr("icon_load", filenames[0])
         node.set_attr("icon_open_load", filenames[1])
-        return keepnote.gui.get_pixbuf(filenames[int(expand)], (15, 15))
+        if not fade:
+            return keepnote.gui.get_pixbuf(filenames[int(expand)], icon_size)
+        else:
+            return get_node_icon_fade(filenames[int(expand)], icon_size)
 
 
+def get_node_icon_fade(filename, icon_size, fade_alpha=128):
+
+    key = (filename, icon_size, "fade")
+    cached =  keepnote.gui.is_pixbuf_cached(key)
+    pixbuf = keepnote.gui.get_pixbuf(filename, icon_size, key)
+    if cached:
+        return pixbuf
+    else:
+        pixbuf = keepnote.gui.fade_pixbuf(pixbuf, fade_alpha)
+        keepnote.gui.cache_pixbuf(pixbuf, key)
+        return pixbuf

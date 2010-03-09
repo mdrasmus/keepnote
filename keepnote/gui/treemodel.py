@@ -125,14 +125,17 @@ class KeepNoteTreeModel (gtk.GenericTreeModel):
         self._nested = True
         self._columns = []
         self._columns_lookup = {}
+        self.fades = set()
 
         # TODO: move to set_notebook
         # init default columns
         self.append_column(TreeModelColumn("icon", gdk.Pixbuf,
-                            get=lambda node: get_node_icon(node, False)))
+                            get=lambda node: get_node_icon(node, False,
+                                                           node in self.fades)))
         self.append_column(
             TreeModelColumn("icon_open", gdk.Pixbuf,
-                            get=lambda node: get_node_icon(node, True)))
+                            get=lambda node: get_node_icon(node, True,
+                                                           node in self.fades)))
         self.append_column(
             TreeModelColumn("title", str, get=lambda node: node.get_title()))
         self.append_column(

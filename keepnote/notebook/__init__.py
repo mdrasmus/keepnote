@@ -814,6 +814,19 @@ class NoteBookNode (object):
         return node    
     
     
+    def duplicate(self, parent, index=None, recurse=False):
+        """Duplicate a node to a new parent"""
+
+        # TODO: handle case where notebook is the copied node
+        # TODO: make sure all supplemental files are also copied
+        #  pictures, attached files
+        # TODO: allow recursive and non-recursive copy
+        # TODO: issue new nodeids
+        # TODO: record "duplicate_of" attr
+        pass
+
+
+
     def get_children(self):
         """Returns all children of this node"""
         if self._children is None:

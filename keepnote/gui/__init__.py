@@ -75,14 +75,15 @@ _g_pixbufs = {}
 #=============================================================================
 # resources
 
-def get_pixbuf(filename, size=None):
+def get_pixbuf(filename, size=None, key=None):
     """
     Get pixbuf from a filename
 
     Cache pixbuf for later use
     """
 
-    key = (filename, size)
+    if key is None:
+        key = (filename, size)
     
     if key in _g_pixbufs:
         return _g_pixbufs[key]
@@ -90,6 +91,7 @@ def get_pixbuf(filename, size=None):
         # may raise GError
         pixbuf = gtk.gdk.pixbuf_new_from_file(filename)
 
+        # resize
         if size:
             if size != (pixbuf.get_width(), pixbuf.get_height()):
                 pixbuf = pixbuf.scale_simple(size[0], size[1],
@@ -97,7 +99,14 @@ def get_pixbuf(filename, size=None):
         
         _g_pixbufs[key] = pixbuf
         return pixbuf
+
+def cache_pixbuf(pixbuf, key):
+    _g_pixbufs[key] = pixbuf
     
+
+def is_pixbuf_cached(key):
+    return key in _g_pixbufs
+
 
 def get_resource_image(*path_list):
     """Returns gtk.Image from resource path"""
@@ -111,6 +120,19 @@ def get_resource_pixbuf(*path_list):
     """Returns cached pixbuf from resource path"""
     # raises GError
     return get_pixbuf(get_resource(keepnote.IMAGE_DIR, *path_list))
+
+
+def fade_pixbuf(pixbuf, alpha=128):
+    """Returns a new faded a pixbuf"""
+    width, height = pixbuf.get_width(), pixbuf.get_height()
+    pixbuf2 = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, True, 8, width, height)
+    pixbuf2.fill(0xffffff00) # fill with transparent
+    pixbuf.composite(pixbuf2, 0, 0, width, height, 
+                     0, 0, 1.0, 1.0, gtk.gdk.INTERP_NEAREST, alpha)
+    #pixbuf.composite_color(pixbuf2, 0, 0, width, height, 
+    #                       0, 0, 1.0, 1.0, gtk.gdk.INTERP_NEAREST, alpha,
+    #                       0, 0, 1, 0xcccccc, 0x00000000)
+    return pixbuf2
 
 
 
