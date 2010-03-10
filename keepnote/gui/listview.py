@@ -192,7 +192,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         # don't save the expand state of the master node
         if len(treemodel.get_path_from_node(
                self.model, node,
-               self.rich_model.get_node_column())) > 1:
+               self.rich_model.get_node_column_pos())) > 1:
             node.set_attr("expanded2", expand)
             
 
@@ -256,7 +256,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             # double click --> goto node
             if len(paths) > 0:
                 nodes = [self.model.get_value(self.model.get_iter(x),
-                                              self.rich_model.get_node_column())
+                                              self.rich_model.get_node_column_pos())
                          for x in paths]
 
                 # NOTE: can only view one node
@@ -300,7 +300,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         # expand rows
         for node in roots:
             self.expand_to_path(treemodel.get_path_from_node(
-                self.model, node, self.rich_model.get_node_column()))
+                self.model, node, self.rich_model.get_node_column_pos()))
 
         # disable if no roots
         if len(roots) == 0:
@@ -324,7 +324,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         
         if node.get_attr("expanded2", False):
             self.expand_to_path(treemodel.get_path_from_node(
-                self.model, node, self.rich_model.get_node_column()))
+                self.model, node, self.rich_model.get_node_column_pos()))
 
         self.set_sensitive(True)        
 
@@ -362,12 +362,12 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
     
     def edit_node(self, page):
         path = treemodel.get_path_from_node(
-            self.model, page, self.rich_model.get_node_column())
+            self.model, page, self.rich_model.get_node_column_pos())
         if path is None:
             # view page first if not in view
             self.emit("goto-node", page)
             path = treemodel.get_path_from_node(
-                self.model, page, self.rich_model.get_node_column())
+                self.model, page, self.rich_model.get_node_column_pos())
             assert path is not None
         self.set_cursor_on_cell(path, self.title_column, self.title_text, True)
         path, col = self.get_cursor()

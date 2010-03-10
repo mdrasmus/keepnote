@@ -280,7 +280,6 @@ def get_node_url(nodeid, host=u""):
 
 def is_node_url(url):
     return re.match(u"nbk://[^/]*/.*", url) != None
-    #return url.startswith(u"nbk://")
 
 def parse_node_url(url):
     match = re.match(u"nbk://([^/]*)/(.*)", url)
@@ -451,7 +450,8 @@ g_default_attrs = [
     NoteBookAttr("Node ID", unicode, "nodeid", default=new_nodeid),
     NoteBookAttr("Icon", unicode, "icon"),
     NoteBookAttr("Icon Open", unicode, "icon_open"),
-    NoteBookAttr("Filename", unicode, "payload_filename")
+    NoteBookAttr("Filename", unicode, "payload_filename"),
+    NoteBookAttr("Duplicate of", unicode, "duplicate_of")
 ]
 
 
@@ -815,31 +815,36 @@ class NoteBookNode (object):
     def duplicate(self, parent, index=None, recurse=False):
         """Duplicate a node to a new parent"""
 
-        # TODO: handle case where notebook is the copied node
-        # TODO: make sure all supplemental files are also copied
-        #  pictures, attached files
+        # NOTE: we must be able to handle the case where the root node is
+        # duplicated.
+
         # TODO: allow recursive and non-recursive copy
-        # TODO: issue new nodeids
-        # TODO: record "duplicate_of" attr
 
         assert not recurse
 
+        # create new node
         node = parent.new_child(self.get_attr("content_type"),
                                 self.get_attr("title"),
                                 index=index)
-        node.set_attr("title", self.get_attr("title"))
-        
+
+        # record the nodeid of the original node
+        node._attr["duplicate_of"] = self.get_attr("nodeid")
+
+        # copy attributes
+        for key, value in self.iter_attr():
+            if key not in ("nodeid", "order"):
+                node._attr[key] = value
+
         # copy files
         path = self.get_path()
         path2 = node.get_path()
-
         for filename in os.listdir(path):
+            # skip special files
             if filename == NODE_META_FILE or filename.startswith("__"):
                 continue
 
             fullname = os.path.join(path, filename)
             fullname2 = os.path.join(path2, filename)
-            
             if os.path.isfile(fullname):
                 shutil.copy(fullname, fullname2)
 

@@ -129,7 +129,7 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
             # double click --> goto node
             if len(paths) > 0:
                 nodes = [self.model.get_value(self.model.get_iter(x),
-                                              self.rich_model.get_node_column())
+                                              self.rich_model.get_node_column_pos())
                          for x in paths]
 
                 # NOTE: can only view one node
@@ -165,7 +165,7 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
     
     def edit_node(self, node):
         path = treemodel.get_path_from_node(self.model, node,
-                                            self.rich_model.get_node_column())
+                                            self.rich_model.get_node_column_pos())
         gobject.idle_add(lambda: self.set_cursor_on_cell(path, self.column, self.cell_text, True))
         #gobject.idle_add(lambda: self.scroll_to_cell(path))
 
