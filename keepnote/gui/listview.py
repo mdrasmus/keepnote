@@ -280,6 +280,8 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         if self._sel_nodes is not None and len(self._sel_nodes) == 1:
             self.save_sorting(self._sel_nodes[0])
             
+        if len(nodes) > 1:
+            nested = False
         
         self._sel_nodes = nodes
         self.rich_model.set_nested(nested)
@@ -290,7 +292,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         # populate model
         roots = nodes
         self.rich_model.set_root_nodes(roots)
-        
+
         # load sorting if single node is selected
         if len(nodes) == 1:
             self.load_sorting(nodes[0], self.model)

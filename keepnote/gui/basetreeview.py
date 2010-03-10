@@ -49,7 +49,8 @@ _ = keepnote.translate
 
 
 CLIPBOARD_NAME = "CLIPBOARD"     
-MIME_NODE = "application/x-keepnote-node"
+MIME_NODE_COPY = "application/x-keepnote-node-copy"
+MIME_NODE_CUT = "application/x-keepnote-node-cut"
 
 # treeview drag and drop config
 DROP_URI = ("text/uri-list", 0, 1)
@@ -293,8 +294,11 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                         path = get_path_from_node(self.model, child, self.rich_model.get_node_column())
                         self.expand_row(path, False)
             else:
-                path = get_path_from_node(self.model, node,
-                                          self.rich_model.get_node_column())
+                try:
+                    path = get_path_from_node(self.model, node,
+                                              self.rich_model.get_node_column())
+                except:
+                    path = None
                 if path is not None:
                     parent = node.get_parent()
 
@@ -311,29 +315,27 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         
         
         # if nodes still exist, and expanded, try to reselect them
-        deselect = False
-        if len(self.__sel_nodes2) > 0:
-            # TODO: only reselects one node
-            node = self.__sel_nodes2[0]
-
+        sel_count = 0
+        selection = self.get_selection()
+        for node in self.__sel_nodes2:
+            sel_count += 1
             if node.is_valid():
                 path2 = get_path_from_node(self.model, node,
                                            self.rich_model.get_node_column())
-                if path2 is not None and \
-                   (len(path2) <= 1 or self.row_expanded(path2[:-1])):
+                if (path2 is not None and 
+                    (len(path2) <= 1 or self.row_expanded(path2[:-1]))):
                     # reselect and scroll to node 
-                    self.set_cursor(path2)
-            else:
-                # emit de-selection
-                deselect = True
-        
+                    selection.select_path(path2)
+
+
         # restore scroll
         gobject.idle_add(lambda : self.scroll_to_point(*self.__scroll))
 
         # resume emitting selection changes
         self.__suppress_sel = False
 
-        if deselect:
+        # emit de-selection
+        if sel_count == 0:
             self.select_nodes([])
 
 
@@ -551,7 +553,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         if len(nodes) > 0:
             clipboard = self.get_clipboard(selection=CLIPBOARD_NAME)
             
-            targets = [(MIME_NODE, gtk.TARGET_SAME_APP, -1),
+            targets = [(MIME_NODE_COPY, gtk.TARGET_SAME_APP, -1),
                        ("text/html", 0, -1),
                        ("text/plain", 0, -1)]
             
@@ -566,7 +568,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         if len(nodes) > 0:
             clipboard = self.get_clipboard(selection=CLIPBOARD_NAME)
             
-            targets = [(MIME_NODE, gtk.TARGET_SAME_APP, -1),
+            targets = [(MIME_NODE_CUT, gtk.TARGET_SAME_APP, -1),
                        ("text/html", 0, -1),
                        ("text/plain", 0, -1)]
             
@@ -575,18 +577,6 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                                     nodes)
 
             self._fade_nodes(nodes)
-
-
-    def _fade_nodes(self, nodes):
-
-        self.rich_model.fades.clear()        
-
-        for node in nodes:
-            self.rich_model.fades.add(node)
-            #node.set_attr("icon_load", 
-            #              self._fade_pixbuf(get_node_icon(node, False)))
-            #node.set_attr("icon_open_load", 
-            #              self._fade_pixbuf(get_node_icon(node, True)))        
 
 
     def _on_paste_node(self, widget):
@@ -602,19 +592,26 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         targets = set(targets)
 
         
-        if MIME_NODE in targets:
+        if MIME_NODE_CUT in targets:
             # request KEEPNOTE contents object
-            clipboard.request_contents(MIME_NODE, self._do_paste_nodes)
+            clipboard.request_contents(MIME_NODE_CUT, self._do_paste_nodes)
 
 
     def _get_selection_data(self, clipboard, selection_data, info, nodes):
         """Callback for when Clipboard needs selection data"""        
 
-        if MIME_NODE in selection_data.target:
+        if MIME_NODE_CUT in selection_data.target:
             # set nodes
-            selection_data.set(MIME_NODE, 8, 
+            selection_data.set(MIME_NODE_CUT, 8, 
                                ";".join([node.get_attr("nodeid") 
                                          for node in nodes]))
+
+        elif MIME_NODE_COPY in selection_data.target:
+            # set nodes
+            selection_data.set(MIME_NODE_COPY, 8, 
+                               ";".join([node.get_attr("nodeid") 
+                                         for node in nodes]))
+
             
         elif "text/html" in selection_data.target:
             # set html            
@@ -634,7 +631,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         """Paste nodes into treeview"""
 
         if self._notebook is None:
-            return
+            return        
 
         # find paste location
         selected = self.get_selected_nodes()
@@ -648,15 +645,45 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         nodeids = selection_data.data.split(";")
         nodes = [self._notebook.get_node_by_id(nodeid)
                  for nodeid in nodeids]
-        print nodeids, nodes
 
-        # TODO: add duplicate code here
+
+        if selection_data.target == MIME_NODE_CUT:
+            for node in nodes:
+                try:
+                    if node is not None:
+                        node.move(parent)
+                except:
+                    pass
+
+        elif selection_data.target == MIME_NODE_COPY:
+            # TODO: add duplicate code here
+            pass
+            
 
 
     def _clear_selection_data(self, clipboard, data):
         """Callback for when Clipboard contents are reset"""
-        pass
+
+        print "clear"
+        self._clear_fading()
+        
+
+    #============================================
+    # clear fading
     
+    def _clear_fading(self):
+        """Clear faded nodes"""
+        
+        nodes = list(self.rich_model.fades)
+        self.rich_model.fades.clear()
+        self._notebook.notify_changes(nodes, False)
+
+    def _fade_nodes(self, nodes):
+
+        self.rich_model.fades.clear()        
+        for node in nodes:
+            self.rich_model.fades.add(node)
+            node.notify_change(False)
 
     
     #=============================================

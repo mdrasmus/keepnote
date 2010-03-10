@@ -253,8 +253,14 @@ class KeepNoteTreeModel (gtk.GenericTreeModel):
         self._root_set = {}
 
     
-    def set_root_nodes(self, roots=[]):
-        
+    def set_root_nodes(self, roots=[], model=None):
+        """Set the root nodes of the model.
+           If 'model' is given, populate through model 
+           (useful for sorting model)"""
+
+        if model is None:
+            model = self
+
         # clear the model
         self.clear()
 
