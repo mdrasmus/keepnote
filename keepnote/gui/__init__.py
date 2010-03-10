@@ -67,45 +67,55 @@ ACCEL_FILE = "accel.txt"
 CONTEXT_MENU_ACCEL_PATH = "<main>/context_menu"
 
 
-# globals
-_g_pixbufs = {}
-
-
 
 #=============================================================================
 # resources
 
-def get_pixbuf(filename, size=None, key=None):
-    """
-    Get pixbuf from a filename
+class PixbufCache (object):
+    """A cache for loading pixbufs from the filesystem"""
 
-    Cache pixbuf for later use
-    """
+    def __init__(self):
+        self._pixbufs = {}
 
-    if key is None:
-        key = (filename, size)
+
+    def get_pixbuf(self, filename, size=None, key=None):
+        """
+        Get pixbuf from a filename
+        Cache pixbuf for later use
+        """
+
+        if key is None:
+            key = (filename, size)
+
+        if key in self._pixbufs:
+            return self._pixbufs[key]
+        else:
+            # may raise GError
+            pixbuf = gtk.gdk.pixbuf_new_from_file(filename)
+
+            # resize
+            if size:
+                if size != (pixbuf.get_width(), pixbuf.get_height()):
+                    pixbuf = pixbuf.scale_simple(size[0], size[1],
+                                                 gtk.gdk.INTERP_BILINEAR)
+
+            self._pixbufs[key] = pixbuf
+            return pixbuf
+
+    def cache_pixbuf(self, pixbuf, key):
+        self._pixbufs[key] = pixbuf
+
+
+    def is_pixbuf_cached(self, key):
+        return key in self._pixbufs
     
-    if key in _g_pixbufs:
-        return _g_pixbufs[key]
-    else:
-        # may raise GError
-        pixbuf = gtk.gdk.pixbuf_new_from_file(filename)
+# singleton
+pixbufs = PixbufCache()
 
-        # resize
-        if size:
-            if size != (pixbuf.get_width(), pixbuf.get_height()):
-                pixbuf = pixbuf.scale_simple(size[0], size[1],
-                                             gtk.gdk.INTERP_BILINEAR)
-        
-        _g_pixbufs[key] = pixbuf
-        return pixbuf
 
-def cache_pixbuf(pixbuf, key):
-    _g_pixbufs[key] = pixbuf
-    
-
-def is_pixbuf_cached(key):
-    return key in _g_pixbufs
+get_pixbuf = pixbufs.get_pixbuf
+cache_pixbuf = pixbufs.cache_pixbuf
+is_pixbuf_cached = pixbufs.is_pixbuf_cached
 
 
 def get_resource_image(*path_list):
@@ -119,7 +129,7 @@ def get_resource_image(*path_list):
 def get_resource_pixbuf(*path_list):
     """Returns cached pixbuf from resource path"""
     # raises GError
-    return get_pixbuf(get_resource(keepnote.IMAGE_DIR, *path_list))
+    return pixbufs.get_pixbuf(get_resource(keepnote.IMAGE_DIR, *path_list))
 
 
 def fade_pixbuf(pixbuf, alpha=128):
