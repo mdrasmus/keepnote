@@ -581,7 +581,6 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
     def _on_paste_node(self, widget):
         """Paste into the treeview"""
-        print "paste"
         
         clipboard = self.get_clipboard(selection=CLIPBOARD_NAME)
         
@@ -590,11 +589,14 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             # nothing on clipboard
             return
         targets = set(targets)
-
         
         if MIME_NODE_CUT in targets:
-            # request KEEPNOTE contents object
+            # request KEEPNOTE node objects
             clipboard.request_contents(MIME_NODE_CUT, self._do_paste_nodes)
+
+        elif MIME_NODE_COPY in targets:
+            # request KEEPNOTE node objects
+            clipboard.request_contents(MIME_NODE_COPY, self._do_paste_nodes)
 
 
     def _get_selection_data(self, clipboard, selection_data, info, nodes):
@@ -656,8 +658,12 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                     pass
 
         elif selection_data.target == MIME_NODE_COPY:
-            # TODO: add duplicate code here
-            pass
+            for node in nodes:
+                try:
+                    if node is not None:
+                        node.duplicate(parent)
+                except:
+                    pass
             
 
 

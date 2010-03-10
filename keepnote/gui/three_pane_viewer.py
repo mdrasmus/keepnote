@@ -43,7 +43,7 @@ import gobject
 # keepnote imports
 import keepnote
 from keepnote import unicode_gtk, KeepNoteError
-from keepnote.notebook import NoteBookTrash
+from keepnote.notebook import NoteBookTrash, NoteBookError
 from keepnote.gui import \
     add_actions, \
     dialog_image_resize, \

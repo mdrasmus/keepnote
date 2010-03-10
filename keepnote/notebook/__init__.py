@@ -104,6 +104,7 @@ UNIVERSAL_ROOT = u"b810760f-f246-4e42-aebb-50ce51c3d1ed"
 
 REGEX_SLASHES = re.compile(ur"[/\\]")
 REGEX_BAD_CHARS = re.compile(ur"[\?'&<>|`:;]")
+REGEX_LEADING_UNDERSCORE = re.compile(ur"^__+")
 
 def get_valid_filename(filename, default=u"folder"):
     """Converts a filename into a valid one
@@ -117,8 +118,7 @@ def get_valid_filename(filename, default=u"folder"):
     filename = filename.strip(u" \t.")
     
     # don't allow files to start with two underscores
-    if filename.startswith(u"__"):
-        filename = filename[2:]
+    filename = re.sub(REGEX_LEADING_UNDERSCORE, u"", filename)
     
     # don't allow pure whitespace filenames
     if filename == u"":
@@ -780,23 +780,21 @@ class NoteBookNode (object):
             # just change the title
             self._attr["title"] = title
             self._set_dirty(True)
-            return
-        
-        # try to pick a path that closely resembles the title
-        path = self.get_path()
-        parent_path = os.path.dirname(path)
-        path2 = get_valid_unique_filename(parent_path, title)
+        else:        
+            # try to pick a path that closely resembles the title
+            path = self.get_path()
+            parent_path = os.path.dirname(path)
+            path2 = get_valid_unique_filename(parent_path, title)
 
-        try:
-            os.rename(path, path2)
-            self._attr["title"] = title
-            self._set_basename(path2)
-            self.save(True)
-        except (OSError, NoteBookError), e:
-            raise NoteBookError(_("Cannot rename '%s' to '%s'" % (path, path2)), e)
+            try:
+                os.rename(path, path2)
+                self._attr["title"] = title
+                self._set_basename(path2)
+                self.save(True)
+            except (OSError, NoteBookError), e:
+                raise NoteBookError(_("Cannot rename '%s' to '%s'" % (path, path2)), e)
         
         self._notebook._index.add_node(self)
-
         self.notify_change(False)
 
 
@@ -823,7 +821,30 @@ class NoteBookNode (object):
         # TODO: allow recursive and non-recursive copy
         # TODO: issue new nodeids
         # TODO: record "duplicate_of" attr
-        pass
+
+        assert not recurse
+
+        node = parent.new_child(self.get_attr("content_type"),
+                                self.get_attr("title"),
+                                index=index)
+        node.set_attr("title", self.get_attr("title"))
+        
+        # copy files
+        path = self.get_path()
+        path2 = node.get_path()
+
+        for filename in os.listdir(path):
+            if filename == NODE_META_FILE or filename.startswith("__"):
+                continue
+
+            fullname = os.path.join(path, filename)
+            fullname2 = os.path.join(path2, filename)
+            
+            if os.path.isfile(fullname):
+                shutil.copy(fullname, fullname2)
+
+        return node
+
 
 
 
