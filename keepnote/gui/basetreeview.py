@@ -790,6 +790,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # clear the destination row
         self._dest_row = None
 
+        self.cancel_editing()
+
         self._is_dragging = True
         self._drag_count = 0
         gobject.timeout_add(200, self._on_drag_timer)
