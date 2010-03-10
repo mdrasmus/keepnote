@@ -127,8 +127,6 @@ class BaseTreeModel (gtk.GenericTreeModel):
         self._columns_lookup = {}
         self._node_column = None
 
-        self.fades = set()
-
         self.set_root_nodes(roots)
 
 
@@ -437,6 +435,9 @@ class KeepNoteTreeModel (BaseTreeModel):
 
     def __init__(self, roots=[]):
         BaseTreeModel.__init__(self, roots)
+
+        self.fades = set()
+
 
         # TODO: move to treeviewer
         # init default columns

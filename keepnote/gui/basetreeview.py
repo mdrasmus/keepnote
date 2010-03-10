@@ -680,12 +680,11 @@ class KeepNoteBaseTreeView (gtk.TreeView):
     def _clear_selection_data(self, clipboard, data):
         """Callback for when Clipboard contents are reset"""
 
-        print "clear"
         self._clear_fading()
         
 
     #============================================
-    # clear fading
+    # node fading
     
     def _clear_fading(self):
         """Clear faded nodes"""
