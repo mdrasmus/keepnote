@@ -594,11 +594,24 @@ class RichTextView (gtk.TextView):
         if not self._textbuffer:
             return
         
+        #TODO: make this pluggable.
+        
+        # in preference order
+        accepted_targets = MIME_IMAGES + \
+                           ["text/uri-list",
+                            "text/html",
+                            "text/plain"]
+
+        for target in accepted_targets:
+            if target in drag_context.targets:
+                break
+
+
         img_target = self.drag_dest_find_target(drag_context, 
                                                 [(x, 0, 0)
                                                  for x in MIME_IMAGES])        
              
-        if img_target not in (None, "NONE"):
+        if target in MIME_IMAGES:
             # process image drop
             pixbuf = selection_data.get_pixbuf()
             
@@ -611,8 +624,7 @@ class RichTextView (gtk.TextView):
                 drag_context.finish(True, True, eventtime)
                 self.stop_emission("drag-data-received")
 
-        elif self.drag_dest_find_target(drag_context, 
-            [("text/uri-list", 0, 0)]) not in (None, "NONE"):
+        elif target == "text/uri-list":
             # process URI drop
 
             uris = parse_utf(selection_data.data)
@@ -638,24 +650,22 @@ class RichTextView (gtk.TextView):
         #    drag_context.finish(True, True, eventtime)
         #    self.stop_emission("drag-data-received")
 
-        elif self.drag_dest_find_target(drag_context, 
-            [("text/html", 0, 0)]) not in (None, "NONE"):
+        elif target == "text/html":
             # process html drop
 
             html = parse_utf(selection_data.data)
-            #html = 
             self.insert_html(html)
             
         
-        elif self.drag_dest_find_target(drag_context, 
-            [("text/plain", 0, 0)]) not in (None, "NONE"):
+        elif target == "text/plain":
             # process text drop
 
             #self._textbuffer.begin_user_action()
-            print "drop", repr(selection_data.get_text())
+            #print "drop", repr(selection_data.get_text())
             self._textbuffer.insert_at_cursor(selection_data.get_text())
             #self._textbuffer.end_user_action()
-            
+
+
 
     def on_drag_data_get(self, widget, drag_context, selection_data,
                              info, timestamp):

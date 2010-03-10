@@ -125,6 +125,8 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
             self.popup_menu(event.x, event.y, event.button, event.time)
             
         if event.button == 1 and event.type == gtk.gdk._2BUTTON_PRESS:
+            # TODO: convert to get_selected_nodes()
+
             model, paths = self.get_selection().get_selected_rows()
             # double click --> goto node
             if len(paths) > 0:
