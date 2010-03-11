@@ -317,6 +317,28 @@ class RichTextIO (object):
                         child.write(filename)
                     
 
+class RichTextDragDrop (object):
+    """Manages drag and drop events for a richtext editor"""
+
+    def __init__(self, targets=[]):
+        self._acceptable_targets = []
+        self._acceptable_targets.extend(targets)
+
+    def append_target(self, target):
+        self._acceptable_targets.append(target)
+
+    def extend_targets(self, targets):
+        self._acceptable_targets.extend(target)
+
+    def find_acceptable_target(self, targets):
+        
+        for target in self._acceptable_targets:
+            if target in targets:
+                return target
+        return None
+        
+
+
 
 
 class RichTextView (gtk.TextView):
@@ -330,6 +352,11 @@ class RichTextView (gtk.TextView):
         self._blank_buffer = RichTextBuffer()
         self._popup_menu = None
         self._html_buffer = HtmlBuffer()
+        self.dragdrop = RichTextDragDrop(MIME_IMAGES + \
+                                             ["text/uri-list",
+                                              "text/html",
+                                              "text/plain"])
+        
 
         if textbuffer is None:
             textbuffer = RichTextBuffer() 
@@ -555,6 +582,11 @@ class RichTextView (gtk.TextView):
         if not self._textbuffer:
             return
 
+        target = self.dragdrop.find_acceptable_target(drag_context.targets)
+        if target:
+            textview.drag_dest_set_target_list([(target, 0, 0)])
+
+        '''
         # in preference order
         accepted_targets = MIME_IMAGES + \
                            ["text/uri-list",
@@ -565,6 +597,7 @@ class RichTextView (gtk.TextView):
             if target in drag_context.targets:
                 textview.drag_dest_set_target_list([(target, 0, 0)])
                 break
+        '''
 
         '''
         # check for image targets
@@ -596,21 +629,8 @@ class RichTextView (gtk.TextView):
         
         #TODO: make this pluggable.
         
-        # in preference order
-        accepted_targets = MIME_IMAGES + \
-                           ["text/uri-list",
-                            "text/html",
-                            "text/plain"]
-
-        for target in accepted_targets:
-            if target in drag_context.targets:
-                break
-
-
-        img_target = self.drag_dest_find_target(drag_context, 
-                                                [(x, 0, 0)
-                                                 for x in MIME_IMAGES])        
-             
+        target = self.dragdrop.find_acceptable_target(drag_context.targets)
+        
         if target in MIME_IMAGES:
             # process image drop
             pixbuf = selection_data.get_pixbuf()
@@ -640,16 +660,6 @@ class RichTextView (gtk.TextView):
             self.insert_html("<br />".join(links))
             
                 
-        #elif self.drag_dest_find_target(drag_context, 
-        #    [("application/pdf", 0, 0)]) not in (None, "NONE"):
-        #    # process pdf drop
-        #    
-        #    data = selection_data.data
-        #    self.drop_pdf(data)
-        #    
-        #    drag_context.finish(True, True, eventtime)
-        #    self.stop_emission("drag-data-received")
-
         elif target == "text/html":
             # process html drop
 
@@ -659,11 +669,7 @@ class RichTextView (gtk.TextView):
         
         elif target == "text/plain":
             # process text drop
-
-            #self._textbuffer.begin_user_action()
-            #print "drop", repr(selection_data.get_text())
             self._textbuffer.insert_at_cursor(selection_data.get_text())
-            #self._textbuffer.end_user_action()
 
 
 
@@ -693,50 +699,6 @@ class RichTextView (gtk.TextView):
         #self.emit("cut-clipboard")
         '''
 
-
-
-    def drop_pdf(self, data):
-        """Drop a PDF into the TextView"""
-
-        if not self._textbuffer:
-            return
-
-        # NOTE: requires hardcoded convert
-        # TODO: generalize
-        
-        self._textbuffer.begin_user_action()
-        
-        try:
-            f, imgfile = tempfile.mkstemp(".png", "keepnote")
-            os.close(f)
-
-            out = os.popen("convert - %s" % imgfile, "wb")
-            out.write(data)
-            out.close()
-            
-            name, ext = os.path.splitext(imgfile)
-            imgfile2 = name + "-0" + ext
-            
-            if os.path.exists(imgfile2):
-                i = 0
-                while True:
-                    imgfile = name + "-" + str(i) + ext
-                    if not os.path.exists(imgfile):
-                        break
-                    self.insert_image_from_file(imgfile)
-                    os.remove(imgfile)
-                    i += 1
-                    
-            elif os.path.exists(imgfile):
-                
-                self.insert_image_from_file(imgfile)
-                os.remove(imgfile)
-        except:
-            if os.path.exists(imgfile):
-                os.remove(imgfile)
-
-        self._textbuffer.end_user_action()
-        
 
     
     #==================================================================
@@ -1483,3 +1445,49 @@ gobject.signal_new("child-activated", RichTextView, gobject.SIGNAL_RUN_LAST,
 gobject.signal_new("visit-url", RichTextView, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (str,))
 
+
+
+
+'''
+    def drop_pdf(self, data):
+        """Drop a PDF into the TextView"""
+
+        if not self._textbuffer:
+            return
+
+        # NOTE: requires hardcoded convert
+        # TODO: generalize
+        
+        self._textbuffer.begin_user_action()
+        
+        try:
+            f, imgfile = tempfile.mkstemp(".png", "keepnote")
+            os.close(f)
+
+            out = os.popen("convert - %s" % imgfile, "wb")
+            out.write(data)
+            out.close()
+            
+            name, ext = os.path.splitext(imgfile)
+            imgfile2 = name + "-0" + ext
+            
+            if os.path.exists(imgfile2):
+                i = 0
+                while True:
+                    imgfile = name + "-" + str(i) + ext
+                    if not os.path.exists(imgfile):
+                        break
+                    self.insert_image_from_file(imgfile)
+                    os.remove(imgfile)
+                    i += 1
+                    
+            elif os.path.exists(imgfile):
+                
+                self.insert_image_from_file(imgfile)
+                os.remove(imgfile)
+        except:
+            if os.path.exists(imgfile):
+                os.remove(imgfile)
+
+        self._textbuffer.end_user_action()
+    '''

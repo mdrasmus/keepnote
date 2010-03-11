@@ -135,14 +135,17 @@ def upgrade_user_pref_dir(old_user_pref_dir, new_user_pref_dir):
     shutil.copytree(old_user_pref_dir, new_user_pref_dir)
 
     # rename takenote.xml to keepnote.xml
+    oldfile = os.path.join(new_user_pref_dir, OLD_USER_PREF_FILE)
     newfile = os.path.join(new_user_pref_dir, USER_PREF_FILE)
-    os.rename(os.path.join(new_user_pref_dir, OLD_USER_PREF_FILE), newfile)
+
+    if os.path.exists(oldfile):
+        os.rename(oldfile, newfile)
     
-    # rename root xml tag
-    tree = ElementTree.ElementTree(file=newfile)
-    elm = tree.getroot()
-    elm.tag = "keepnote"
-    tree.write(newfile, encoding="UTF-8")
+        # rename root xml tag
+        tree = ElementTree.ElementTree(file=newfile)
+        elm = tree.getroot()
+        elm.tag = "keepnote"
+        tree.write(newfile, encoding="UTF-8")
 
     # move over data files from .local/share/takenote
     if keepnote.get_platform() in ("unix", "darwin"):

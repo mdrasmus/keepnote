@@ -37,10 +37,8 @@ import urllib2
 import mimetypes
 
 # xml imports
-import xml.dom.minidom as xmldom
-import xml.dom
-import xml.parsers.expat
 from xml.sax.saxutils import escape
+import xml.etree.cElementTree as ElementTree
 
 
 # keepnote imports
@@ -482,7 +480,6 @@ class NoteBookNode (object):
         self._children = None        
         self._valid = True
         self._version = NOTEBOOK_FORMAT_VERSION
-        self._meta = NoteBookNodeMetaData()
         
         self.clear_attr(title=title, content_type=content_type)
 
@@ -1019,19 +1016,18 @@ class NoteBookNode (object):
         return get_node_meta_file(self.get_path())
 
     def write_meta_data(self):
-        self._meta.write(self.get_meta_file(),
-                         self,
-                         self._notebook.notebook_attrs)
+        self._notebook.write_meta_data()
 
     def read_meta_data(self):
-        self._meta.read(self.get_meta_file(),
-                        self._notebook.notebook_attrs)
-        self.set_meta_data(self._meta.attr)
+        self._notebook.read_meta_data()
+
 
 
     def set_meta_data(self, attr):
-        self._version = self._meta.attr.get("version", NOTEBOOK_FORMAT_VERSION)
+        self._version = attr.get("version", NOTEBOOK_FORMAT_VERSION)
         
+        # TODO: can I generalize this out of this function?
+        # Could I call some get_default() function?
         # set defaults
         if "created_time" not in attr:
             attr["created_time"] = get_timestamp()
@@ -1039,7 +1035,7 @@ class NoteBookNode (object):
         if "modified_time" not in attr:
             attr["modified_time"] = get_timestamp()
             self._set_dirty(True)            
-        if "nodeid" not in attr or attr["nodeid"].startswith("urn:"):
+        if "nodeid" not in attr:
             attr["nodeid"] = new_nodeid()
             self._set_dirty(True)            
         
@@ -1286,6 +1282,8 @@ class NoteBook (NoteBookDir):
         self._dirty = set()
         self._trash = None
         self._index = None
+        self._node_factory = None
+        #self._meta = NoteBookNodeMetaData()
         
         self._attr["order"] = 0
 
@@ -1445,6 +1443,17 @@ class NoteBook (NoteBookDir):
         """Create a new NodeBookNode"""        
         return self._node_factory.new_node(content_type, path,
                                            parent, self, attr)
+
+
+    def write_meta_data(self):
+        self._node_factory.write_meta_data(self.get_meta_file(),
+                                           self,
+                                           self.notebook_attrs)
+
+    def read_meta_data(self):
+        attr = self._node_factory.read_meta_data(self.get_meta_file(),
+                                                 self.notebook_attrs)
+        self.set_meta_data(attr)
 
 
     #=====================================
@@ -1682,9 +1691,6 @@ class NoteBook (NoteBookDir):
 #=============================================================================
 # Meta Data Parsing
 
-#
-# TODO: perhaps factory and metadata reader should be combined?
-#
 
 class NoteBookNodeFactory (object):
     """
@@ -1693,7 +1699,7 @@ class NoteBookNodeFactory (object):
 
     def __init__(self):
         self._makers = {}
-        self._meta = NoteBookNodeMetaData()
+        #self._meta = NoteBookNodeMetaData()
 
 
     def add_node_type(self, content_type, make_func):
@@ -1715,17 +1721,18 @@ class NoteBookNodeFactory (object):
         filename = os.path.basename(path)
         metafile = get_node_meta_file(path)
         
+        if not os.path.exists(metafile):
+            return None
+
         try:
-            #print ">>>>", metafile
-            self._meta.read(metafile, notebook.notebook_attrs)
+            attr = self.read_meta_data(metafile, notebook.notebook_attrs)
         except IOError, e:
             # ignore directory, not a NoteBook directory            
             return None
 
         # NOTE: node can be None
-        node = self.new_node(self._meta.attr.get("content_type",
-                                                 CONTENT_TYPE_DIR),
-                             path, parent, notebook, self._meta.attr)
+        node = self.new_node(attr.get("content_type", CONTENT_TYPE_DIR),
+                             path, parent, notebook, attr)
         return node
 
 
@@ -1752,24 +1759,10 @@ class NoteBookNodeFactory (object):
             # TODO: return unknown node here
             return None
 
+   
+    def write_meta_data(self, filename, node, notebook_attrs):
+        """Write a node meta data file"""
 
-
-class NoteBookNodeMetaData (object):
-    """Reads and writes metadata for NoteBookNode objects"""
-
-    def __init__(self):
-        self.attr = {}
-        self.attr_unknown = {}
-        self._notebook_attrs = {}
-
-        self._parser = None
-        self.__meta_root = False
-        self.__meta_data = None
-        self.__meta_tag = None
-
-                    
-    def write(self, filename, node, notebook_attrs):
-        
         try:
             out = safefile.open(filename, "w", codec="utf-8")
             out.write(XML_HEADER)
@@ -1799,88 +1792,34 @@ class NoteBookNodeMetaData (object):
             raise NoteBookError(_("Cannot write meta data"), e)
 
 
-    def read(self, filename, notebook_attrs):
 
-        self._notebook_attrs = notebook_attrs
-        self.attr = {}
-        self.attr_unknown = {}
-    
-        try:            
-            self.__meta_root = False
-            self.__meta_data = None
-            self.__meta_tag = None
+    def read_meta_data(self, filename, notebook_attrs):
+        """Read a node meta data file"""
 
-            self._parser = xml.parsers.expat.ParserCreate()
-            self._parser.StartElementHandler = self.__meta_start_element
-            self._parser.EndElementHandler = self.__meta_end_element
-            self._parser.CharacterDataHandler = self.__meta_char_data
-
-            infile = open(filename, "rb")
-            self._parser.ParseFile(infile)
-            infile.close()
-
-        except IOError, e:
-            raise e
-            
-        except xml.parsers.expat.ExpatError, e:
-            raise NoteBookError(_("Cannot read meta data"), e)
-        
-        except Exception, e:
-            raise NoteBookError(_("Cannot read meta data"), e)
-
-
-
-    def __meta_start_element(self, name, attrs):
-
-        # NOTE: assumes no nested tags
-
-        if self.__meta_root:
-            if self.__meta_tag is not None:
-                raise Exception("corrupt meta file")
-                
-            self.__meta_tag = name
-            self.__meta_attr = attrs
-            self.__meta_data = ""
-
-        elif name == "node":
-            self.__meta_root = True
-        
-        
-    def __meta_end_element(self, name):
+        attr = {}
 
         try:
-            if name == "node":
-                self.__meta_root = False
+            tree = ElementTree.ElementTree(file=filename)
+        except Exception, e:
+            raise NoteBookError(_("Error reading meta data file"), e)
 
-            if not self.__meta_root:
-                return
-
-            if self.__meta_tag == "version":
-                self.attr["version"] = int(self.__meta_data)
-
-            elif self.__meta_tag == "attr":
-                key = self.__meta_attr.get("key", None)
+        # check root
+        root = tree.getroot()
+        if root.tag != "node":
+            raise NoteBookError(_("Root tag is not 'node'"))
+        
+        # iterate children
+        for child in root:
+            if child.tag == "version":
+                attr["version"] = int(child.text)
+            elif child.tag == "attr":
+                key = child.get("key", None)
                 if key is not None:
-                    attr = self._notebook_attrs.get(key, None)
-                    if attr is not None:
-                        self.attr[key] = attr.read(self.__meta_data)
+                    attr_parser = notebook_attrs.get(key, None)
+                    if attr_parser is not None:
+                        attr[key] = attr_parser.read(child.text)
                     else:
                         # unknown attribute is read as a UnknownAttr
-                        self.attr[key] = UnknownAttr(self.__meta_data)
+                        attr[key] = UnknownAttr(child.text)
 
-            # clear state
-            self.__meta_tag = None
-            self.__meta_attr = None
-            self.__meta_data = None
-        except Exception:
-            # TODO: I could record parsing exceptions here
-            raise
-
-        
-    def __meta_char_data(self, data):
-        """read character data and give it to current tag"""
-
-        if self.__meta_data is not None:
-            self.__meta_data += data
-            
-
+        return attr
