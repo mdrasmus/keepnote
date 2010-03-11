@@ -549,7 +549,9 @@ class ThreePaneViewer (Viewer):
             node = parent.new_child(notebooklib.CONTENT_TYPE_PAGE,
                                     notebooklib.DEFAULT_PAGE_NAME,
                                     index)
-        
+
+        print "new", node
+
         self._view_new_node(node, widget)
 
         

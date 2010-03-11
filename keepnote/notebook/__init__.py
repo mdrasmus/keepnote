@@ -1016,10 +1016,10 @@ class NoteBookNode (object):
         return get_node_meta_file(self.get_path())
 
     def write_meta_data(self):
-        self._notebook.write_meta_data()
+        self._notebook.write_node_meta_data(self)
 
     def read_meta_data(self):
-        self._notebook.read_meta_data()
+        self._notebook.read_node_meta_data(self)
 
 
 
@@ -1029,6 +1029,15 @@ class NoteBookNode (object):
         # TODO: can I generalize this out of this function?
         # Could I call some get_default() function?
         # set defaults
+
+        necessary_attrs = ["nodeid", "created_time", "modified_time"]
+        
+        for key in necessary_attrs:
+            if key not in attr:
+                attr[key] = self._notebook.notebook_attrs[key].default()
+                self._set_dirty(True)
+
+        '''
         if "created_time" not in attr:
             attr["created_time"] = get_timestamp()
             self._set_dirty(True)
@@ -1038,7 +1047,8 @@ class NoteBookNode (object):
         if "nodeid" not in attr:
             attr["nodeid"] = new_nodeid()
             self._set_dirty(True)            
-        
+        '''
+
         self._attr.update(attr)
 
 
@@ -1455,6 +1465,15 @@ class NoteBook (NoteBookDir):
                                                  self.notebook_attrs)
         self.set_meta_data(attr)
 
+    def write_node_meta_data(self, node):
+        self._node_factory.write_meta_data(node.get_meta_file(),
+                                           node,
+                                           self.notebook_attrs)
+
+    def read_node_meta_data(self, node):
+        attr = self._node_factory.read_meta_data(node.get_meta_file(),
+                                                 self.notebook_attrs)
+        node.set_meta_data(attr)
 
     #=====================================
     # trash functions
@@ -1762,7 +1781,7 @@ class NoteBookNodeFactory (object):
    
     def write_meta_data(self, filename, node, notebook_attrs):
         """Write a node meta data file"""
-
+        
         try:
             out = safefile.open(filename, "w", codec="utf-8")
             out.write(XML_HEADER)

@@ -474,12 +474,16 @@ class NoteBookIndex (object):
             self._on_corrupt(e, sys.exc_info()[2])
 
         
-    def get_node_path(self, nodeid):
+    def get_node_path(self, nodeid, visit=None):
         """Get node path for a nodeid"""
         
         # TODO: handle multiple parents
 
         con, cur = self.con, self.cur
+
+        if visit is None:
+            visit = set()
+        visit.add(nodeid)
 
         try:
             def walk(nodeid):
@@ -490,8 +494,11 @@ class NoteBookIndex (object):
 
                 if row:
                     nodeid, parentid, basename = row
+                    if parentid in visit:
+                        return None
+
                     if parentid != self._uniroot:
-                        path = self.get_node_path(parentid)
+                        path = self.get_node_path(parentid, visit)
                         if path is not None:
                             path.append(basename)
                             return path
