@@ -587,7 +587,10 @@ class KeepNoteWindow (gtk.Window):
         """Opens a new notebook"""
         
         if self.viewer.get_notebook() is not None:
-            self.close_notebook()
+            # open notebook in new window
+            win = self._app.new_window()
+            return win.open_notebook(filename)
+
         
         # make sure filename is unicode
         filename = ensure_unicode(filename, FS_ENCODING)
