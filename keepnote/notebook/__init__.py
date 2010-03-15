@@ -327,7 +327,7 @@ def attach_file(filename, node, index=None):
 
 
 #=============================================================================
-# classes
+# errors
 
 class NoteBookError (StandardError):
     """Exception that occurs when manipulating NoteBook's"""
@@ -357,11 +357,15 @@ class NoteBookVersionError (NoteBookError):
         self.notebook_version = notebook_version
         self.readable_version = readable_version
 
+
+#=============================================================================
+# notebook attributes
+
 # TODO: finish
 
-class NoteBookAttr (object):
+class AttrDef (object):
     """
-    A NoteBookAttr is a metadata attribute that can be associated to
+    A AttrDef is a metadata attribute that can be associated to
     nodes in a NoteBook.
     """
 
@@ -395,13 +399,13 @@ class NoteBookAttr (object):
 
         # default function
         if default is None:
-            self.default = lambda: ""
-        else:
             self.default = datatype
+        else:
+            self.default = default
         
 
 class UnknownAttr (object):
-    """A value that belongs to an unknown NoteBookAttr"""
+    """A value that belongs to an unknown AttrDef"""
 
     def __init__(self, value):
         self.value = value
@@ -420,36 +424,36 @@ class NoteBookTable (object):
 
 # mapping for old style of saving sort order
 _sort_info_backcompat = {"0": "order",
-                          "1": "order",
-                          "2": "title",
-                          "3": "created_time",
-                          "4": "modified_time"} 
+                         "1": "order",
+                         "2": "title",
+                         "3": "created_time",
+                         "4": "modified_time"} 
 def read_info_sort(key):
     return _sort_info_backcompat.get(key, key)
 
 
-title_attr = NoteBookAttr("Title", unicode, "title")
-created_time_attr = NoteBookAttr("Created", int, "created_time", default=get_timestamp)
-modified_time_attr = NoteBookAttr("Modified", int, "modified_time", default=get_timestamp)
+title_attr = AttrDef("Title", unicode, "title")
+created_time_attr = AttrDef("Created", int, "created_time", default=get_timestamp)
+modified_time_attr = AttrDef("Modified", int, "modified_time", default=get_timestamp)
 
-g_default_attrs = [
+g_default_attr_defs = [
     title_attr,
-    NoteBookAttr("Content type", unicode, "content_type",
+    AttrDef("Content type", unicode, "content_type",
                  default=lambda: CONTENT_TYPE_DIR),
-    NoteBookAttr("Order", int, "order", default=lambda: sys.maxint),
+    AttrDef("Order", int, "order", default=lambda: sys.maxint),
     created_time_attr,
     modified_time_attr,
-    NoteBookAttr("Expaned", bool, "expanded", default=lambda: True),
-    NoteBookAttr("Expanded2", bool, "expanded2", default=lambda: True),
-    NoteBookAttr("Folder Sort", unicode, "info_sort", read=read_info_sort,
+    AttrDef("Expaned", bool, "expanded", default=lambda: True),
+    AttrDef("Expanded2", bool, "expanded2", default=lambda: True),
+    AttrDef("Folder Sort", unicode, "info_sort", read=read_info_sort,
                  default=lambda: "order"),
-    NoteBookAttr("Folder Sort Direction", int, "info_sort_dir", 
+    AttrDef("Folder Sort Direction", int, "info_sort_dir", 
                  default=lambda: 1),
-    NoteBookAttr("Node ID", unicode, "nodeid", default=new_nodeid),
-    NoteBookAttr("Icon", unicode, "icon"),
-    NoteBookAttr("Icon Open", unicode, "icon_open"),
-    NoteBookAttr("Filename", unicode, "payload_filename"),
-    NoteBookAttr("Duplicate of", unicode, "duplicate_of")
+    AttrDef("Node ID", unicode, "nodeid", default=new_nodeid),
+    AttrDef("Icon", unicode, "icon"),
+    AttrDef("Icon Open", unicode, "icon_open"),
+    AttrDef("Filename", unicode, "payload_filename"),
+    AttrDef("Duplicate of", unicode, "duplicate_of")
 ]
 
 
@@ -468,6 +472,9 @@ default_notebook_table = NoteBookTable("default", attrs=[title_attr,
 
 
 
+
+#=============================================================================
+# Notebook nodes
 
 class NoteBookNode (object):
     """A general base class for all nodes in a NoteBook"""
@@ -491,12 +498,11 @@ class NoteBookNode (object):
     def is_valid(self):
         """Returns True if node is valid (not deleted)"""
         return self._valid
-        
-
+    
     def get_version(self):
         """Returns the format version of this node"""
         return self._version
-
+    
     def get_notebook(self):
         """Returns the notebook that owns this node"""
         return self._notebook
@@ -592,8 +598,7 @@ class NoteBookNode (object):
         # TODO: should have additional test that attr needs to be saved
         # this test is added for the icon_loaded attr, which is not needed to
         # to be saved
-        if name in self._notebook.notebook_attrs and \
-           value != oldvalue:
+        if name in self._notebook.attr_defs and value != oldvalue:
             self._set_dirty(True)
 
     def has_attr(self, name):
@@ -608,7 +613,7 @@ class NoteBookNode (object):
         if name in self._attr:
             del self._attr[name]
 
-        if name in self._notebook.notebook_attrs:
+        if name in self._notebook.attr_defs:
             self._set_dirty(True)
         
 
@@ -658,53 +663,7 @@ class NoteBookNode (object):
         # TODO: move to NoteBookPage
         if self._attr["content_type"] == CONTENT_TYPE_PAGE:
             self.write_empty_data_file()
-
-    
-    def move(self, parent, index=None):
-        """Move this node to be the child of another node 'parent'"""
-        
-        # TODO: if parent is in another notebook, index updates need to be
-        # done for whole subtree.  Also accessory data like icons might need
-        # to be transferred.
-
-        assert self != parent
-        path = self.get_path()
-        old_parent = self._parent
-        
-        # perform on-disk move if new parent
-        if old_parent != parent:
-            path2 = os.path.join(parent.get_path(), self._basename)
-            parent_path = os.path.dirname(path2)
-            path2 = get_valid_unique_filename(parent_path, self._attr["title"])
-            
-            try:
-                os.rename(path, path2)
-                self._notebook._index.add_node(self)
-            except OSError, e:
-                raise NoteBookError(_("Do not have permission for move"), e)
-        
-            self._set_basename(path2)
-
-        # perform move in data structure
-        self._parent._remove_child(self)
-        if self._parent != parent:
-            self._parent._set_child_order()
-            self._parent = parent
-            self._parent._add_child(self, index)
-        else:
-            if self._attr["order"] < index:
-                index -= 1
-            self._parent._add_child(self, index)
-        self._set_dirty(True)
-        self.save(True)
-
-        # notify listeners
-        if parent != old_parent:
-            self.notify_changes([old_parent, parent], True)
-        else:
-            old_parent.notify_change(True)
-
-        
+       
     
     def delete(self):
         """Deletes this node from the notebook"""
@@ -765,6 +724,51 @@ class NoteBookNode (object):
         return False
     
     
+    def move(self, parent, index=None):
+        """Move this node to be the child of another node 'parent'"""
+        
+        # TODO: if parent is in another notebook, index updates need to be
+        # done for whole subtree.  Also accessory data like icons might need
+        # to be transferred.
+
+        assert self != parent
+        path = self.get_path()
+        old_parent = self._parent
+        
+        # perform on-disk move if new parent
+        if old_parent != parent:
+            path2 = os.path.join(parent.get_path(), self._basename)
+            parent_path = os.path.dirname(path2)
+            path2 = get_valid_unique_filename(parent_path, self._attr["title"])
+            
+            try:
+                os.rename(path, path2)
+                self._notebook._index.add_node(self)
+            except OSError, e:
+                raise NoteBookError(_("Do not have permission for move"), e)
+        
+            self._set_basename(path2)
+
+        # perform move in data structure
+        self._parent._remove_child(self)
+        if self._parent != parent:
+            self._parent._set_child_order()
+            self._parent = parent
+            self._parent._add_child(self, index)
+        else:
+            if self._attr["order"] < index:
+                index -= 1
+            self._parent._add_child(self, index)
+        self._set_dirty(True)
+        self.save(True)
+
+        # notify listeners
+        if parent != old_parent:
+            self.notify_changes([old_parent, parent], True)
+        else:
+            old_parent.notify_change(True)
+
+
     def rename(self, title):
         """Renames the title of the node"""
         
@@ -849,6 +853,8 @@ class NoteBookNode (object):
 
 
 
+    #==================================
+    # child management
 
     def get_children(self):
         """Returns all children of this node"""
@@ -866,8 +872,6 @@ class NoteBookNode (object):
             return True
         except StopIteration:
             return False
-        
-
     
     
     def _get_children(self):
@@ -923,6 +927,7 @@ class NoteBookNode (object):
 
 
     def add_child(self, child, index=None):
+        """Add node as a child"""
         self._add_child(child, index)
         self.notify_change(True)
         
@@ -997,6 +1002,8 @@ class NoteBookNode (object):
 
         for line in read_data_as_plain_text(infile):
             yield line
+
+        infile.close()
             
     
     def write_empty_data_file(self):
@@ -1026,29 +1033,12 @@ class NoteBookNode (object):
     def set_meta_data(self, attr):
         self._version = attr.get("version", NOTEBOOK_FORMAT_VERSION)
         
-        # TODO: can I generalize this out of this function?
-        # Could I call some get_default() function?
         # set defaults
-
-        necessary_attrs = ["nodeid", "created_time", "modified_time"]
-        
-        for key in necessary_attrs:
+        for key in self._notebook.get_necessary_attrs():
             if key not in attr:
-                attr[key] = self._notebook.notebook_attrs[key].default()
+                attr[key] = self._notebook.attr_defs[key].default()
                 self._set_dirty(True)
-
-        '''
-        if "created_time" not in attr:
-            attr["created_time"] = get_timestamp()
-            self._set_dirty(True)
-        if "modified_time" not in attr:
-            attr["modified_time"] = get_timestamp()
-            self._set_dirty(True)            
-        if "nodeid" not in attr:
-            attr["nodeid"] = new_nodeid()
-            self._set_dirty(True)            
-        '''
-
+        
         self._attr.update(attr)
 
 
@@ -1213,6 +1203,7 @@ class NoteBookTrash (NoteBookDir):
         raise NoteBookError(_("The Trash folder cannot be deleted."))
 
 
+
 class NoteBookPreferences (object):
     """Preference data structure for a NoteBook"""
     def __init__(self):
@@ -1293,7 +1284,8 @@ class NoteBook (NoteBookDir):
         self._trash = None
         self._index = None
         self._node_factory = None
-        #self._meta = NoteBookNodeMetaData()
+        self.attr_defs ={}
+        self._necessary_attrs = []
         
         self._attr["order"] = 0
 
@@ -1316,9 +1308,10 @@ class NoteBook (NoteBookDir):
     def _init_default_attr(self):
         """Initialize default notebook attributes"""
         
-        self.notebook_attrs = {}
-        for attr in g_default_attrs:
-            self.notebook_attrs[attr.key] = attr
+        self._necessary_attrs = ["nodeid", "created_time", "modified_time"]
+        self.clear_attr_defs()
+        for attr in g_default_attr_defs:
+            self.add_attr_def(attr)
         
         
     def _init_default_node_types(self):
@@ -1342,6 +1335,14 @@ class NoteBook (NoteBookDir):
             lambda path, parent, notebook, attr:
             NoteBookTrash(TRASH_NAME, notebook))
 
+
+    def add_attr_def(self, attr):
+        """Adds a new attribute definition to the notebook"""
+        self.attr_defs[attr.key] = attr
+    
+    def clear_attr_defs(self):
+        """Clears all attribute definitions from the notebook"""
+        self.attr_defs.clear()
 
     def get_children(self):
         """Returns all children of this node"""
@@ -1385,7 +1386,7 @@ class NoteBook (NoteBookDir):
             else:
                 raise NoteBookError(_("Cannot find notebook '%s'" % filename))
             
-            self._trash_path = get_trash_dir(self.get_path())
+        self._trash_path = get_trash_dir(self.get_path())
         self.read_meta_data()
         self.read_preferences()
 
@@ -1458,22 +1459,30 @@ class NoteBook (NoteBookDir):
     def write_meta_data(self):
         self._node_factory.write_meta_data(self.get_meta_file(),
                                            self,
-                                           self.notebook_attrs)
+                                           self.attr_defs)
 
     def read_meta_data(self):
         attr = self._node_factory.read_meta_data(self.get_meta_file(),
-                                                 self.notebook_attrs)
+                                                 self.attr_defs)
         self.set_meta_data(attr)
 
     def write_node_meta_data(self, node):
         self._node_factory.write_meta_data(node.get_meta_file(),
                                            node,
-                                           self.notebook_attrs)
+                                           self.attr_defs)
 
     def read_node_meta_data(self, node):
         attr = self._node_factory.read_meta_data(node.get_meta_file(),
-                                                 self.notebook_attrs)
+                                                 self.attr_defs)
         node.set_meta_data(attr)
+
+
+    #=====================================
+    # attrs
+
+    def get_necessary_attrs(self):
+        return self._necessary_attrs
+
 
     #=====================================
     # trash functions
@@ -1744,7 +1753,7 @@ class NoteBookNodeFactory (object):
             return None
 
         try:
-            attr = self.read_meta_data(metafile, notebook.notebook_attrs)
+            attr = self.read_meta_data(metafile, notebook.attr_defs)
         except IOError, e:
             # ignore directory, not a NoteBook directory            
             return None
@@ -1779,7 +1788,7 @@ class NoteBookNodeFactory (object):
             return None
 
    
-    def write_meta_data(self, filename, node, notebook_attrs):
+    def write_meta_data(self, filename, node, attr_defs):
         """Write a node meta data file"""
         
         try:
@@ -1789,7 +1798,7 @@ class NoteBookNodeFactory (object):
                       "<version>%s</version>\n" % node.get_version())
             
             for key, val in node.iter_attr():
-                attr = notebook_attrs.get(key, None)
+                attr = attr_defs.get(key, None)
                 
                 if attr is not None:
                     out.write('<attr key="%s">%s</attr>\n' %
@@ -1812,7 +1821,7 @@ class NoteBookNodeFactory (object):
 
 
 
-    def read_meta_data(self, filename, notebook_attrs):
+    def read_meta_data(self, filename, attr_defs):
         """Read a node meta data file"""
 
         attr = {}
@@ -1834,7 +1843,7 @@ class NoteBookNodeFactory (object):
             elif child.tag == "attr":
                 key = child.get("key", None)
                 if key is not None:
-                    attr_parser = notebook_attrs.get(key, None)
+                    attr_parser = attr_defs.get(key, None)
                     if attr_parser is not None:
                         attr[key] = attr_parser.read(child.text)
                     else:

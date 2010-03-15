@@ -550,8 +550,6 @@ class ThreePaneViewer (Viewer):
                                     notebooklib.DEFAULT_PAGE_NAME,
                                     index)
 
-        print "new", node
-
         self._view_new_node(node, widget)
 
         
