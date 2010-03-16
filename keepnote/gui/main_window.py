@@ -80,6 +80,7 @@ from keepnote.gui import \
     update_file_preview
 from keepnote.gui.icon_menu import IconMenu
 from keepnote.gui.three_pane_viewer import ThreePaneViewer
+from keepnote.gui.tabbed_viewer import TabbedViewer
 
 
 _ = keepnote.translate
@@ -208,7 +209,8 @@ class KeepNoteWindow (gtk.Window):
     def new_viewer(self):
         """Creates a new viewer for this window"""
 
-        viewer = ThreePaneViewer(self._app, self)
+        #viewer = ThreePaneViewer(self._app, self)
+        viewer = TabbedViewer(self._app, self)
         viewer.connect("error", lambda w,m,e: self.error(m, e, None))
         viewer.connect("status", lambda w,m,b: self.set_status(m, b))
         viewer.connect("window-request", self._on_window_request)

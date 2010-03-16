@@ -601,6 +601,8 @@ class EditorMenus (gobject.GObject):
         gobject.GObject.__init__(self)
         
         self._editor = editor
+        self._action_group = None
+        self._uis = []
         self._font_ui_signals = []     # list of font ui widgets
         self.spell_check_toggle = None
 

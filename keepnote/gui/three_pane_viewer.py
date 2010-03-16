@@ -1,7 +1,7 @@
 """
 
     KeepNote
-    Graphical User Interface for KeepNote Application
+    Classic three-paned viewer for KeepNote.
 
 """
 
@@ -79,7 +79,7 @@ class ThreePaneViewer (Viewer):
 
     def __init__(self, app, main_window):
         Viewer.__init__(self, app, main_window)
-
+        self._ui_ready = False
 
         # node selections        
         self._current_page = None     # current page in editor
@@ -224,8 +224,9 @@ class ThreePaneViewer (Viewer):
         self.editor_menus.enable_spell_check(self._app.pref.spell_check)
 
         # reload ui
-        self.remove_ui(self._main_window)
-        self.add_ui(self._main_window)
+        if self._ui_ready:
+            self.remove_ui(self._main_window)
+            self.add_ui(self._main_window)
 
         
         
@@ -747,6 +748,7 @@ class ThreePaneViewer (Viewer):
 
         assert window == self._main_window
         
+        self._ui_ready = True
         self._action_group = gtk.ActionGroup("Viewer")
         self._uis = []
         add_actions(self._action_group, self._get_actions())
@@ -823,6 +825,7 @@ class ThreePaneViewer (Viewer):
 
         assert self._main_window == window
 
+        self._ui_ready = False
         self.editor_menus.remove_ui(self._main_window)
 
         for ui in reversed(self._uis):
