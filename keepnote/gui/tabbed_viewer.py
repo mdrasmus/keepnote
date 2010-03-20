@@ -96,7 +96,9 @@ class TabbedViewer (Viewer):
         self._tabs.append_page(viewer, gtk.Label(_("(Untitled)")))
         self._tabs.set_tab_reorderable(viewer, True)
         viewer.show_all()
-        self._callbacks[viewer] = [viewer.connect("set-title", self.on_tab_set_title)]
+        self._callbacks[viewer] = [
+            viewer.connect("current-node", self.on_tab_current_node),
+            viewer.connect("modified", self.on_tab_modified)]
         viewer.load_preferences(self._app.pref, True)        
 
         self._tabs.set_current_page(self._tabs.get_n_pages() - 1)
@@ -153,6 +155,16 @@ class TabbedViewer (Viewer):
         self._current_viewer = self._tabs.get_nth_page(page_num)
         self._current_viewer.add_ui(self._main_window)
 
+        # notify listeners of new current tab
+        def func():
+            self.emit("current-node", self._current_viewer.get_current_page())
+            notebook = self._current_viewer.get_notebook()
+            if notebook:
+                self.emit("modified", notebook.save_needed())
+            else:
+                self.emit("modified", False)
+        gobject.idle_add(func)
+
 
     def _on_tab_added(self, tabs, child, page_num):
         self._tabs.set_show_tabs(self._tabs.get_n_pages() > 1)
@@ -161,15 +173,35 @@ class TabbedViewer (Viewer):
         self._tabs.set_show_tabs(self._tabs.get_n_pages() > 1)
 
 
-    def on_tab_set_title(self, viewer, title):
+    def on_tab_current_node(self, viewer, node):
         """Callback for when a viewer wants to set its title"""
 
+        # get node title
+        if node is None:
+            if viewer.get_notebook():
+                title = viewer.get_notebook().get_attr("title")
+            else:
+                title = _("(Untitled)")
+        else:
+            title = node.get_attr("title")
+
+        # truncate title
         MAX_TITLE = 20
         if len(title) > MAX_TITLE - 3:
             title = title[:MAX_TITLE-3] + "..."
 
+        # set tab label with node title
         self._tabs.set_tab_label_text(viewer, title)
                 
+        # propogate current-node signal
+        self.emit("current-node", node)
+
+
+    def on_tab_modified(self, viewer, modified):
+        """Callback for when viewer contains modified data"""
+        # propogate modified signal
+        self.emit("modified", modified)
+
 
     #==============================================
 

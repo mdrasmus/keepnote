@@ -275,8 +275,8 @@ class ThreePaneViewer (Viewer):
     def on_notebook_node_changed(self, nodes, recurse):
         """Callback for when notebook node is changed"""
 
-        if self._current_page in nodes:
-            self.emit("set-title", self._current_page.get_title())
+        #if self._current_page in nodes:
+        #    self.emit("current-node", self._current_page)
         self.emit("modified", True)
 
 
@@ -470,14 +470,8 @@ class ThreePaneViewer (Viewer):
         # remember the selected node
         if len(pages) == 1:
             self._current_page = pages[0]
-            self.emit("set-title", self._current_page.get_title())
         else:
             self._current_page = None
-            if self._notebook is not None:
-                self.emit("set-title", self._notebook.get_title())
-            else:
-                self.emit("set-title", _("(Untitled)"))
-        
 
         try:
             self.editor.view_pages(pages)
@@ -485,6 +479,9 @@ class ThreePaneViewer (Viewer):
             self.emit("error", 
                       "Could not load page '%s'." % pages[0].get_title(),
                       e, sys.exc_info()[2])
+
+        self.emit("current-node", self._current_page)
+
 
     def on_goto_node(self, widget, node):
         """Focus view on a node"""

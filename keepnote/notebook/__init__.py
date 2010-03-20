@@ -1053,6 +1053,9 @@ class NoteBookNode (object):
         """Returns True if node needs saving"""
         return self._notebook._is_dirty_node(self)
         
+    def mark_modified(self):
+        """Marks a node as modified or dirty"""
+        self._notebook._set_dirty_node(self, True)
 
     #===============================================
     # listeners

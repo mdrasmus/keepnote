@@ -272,10 +272,10 @@ class KeepNoteEditor (gtk.VBox):
         """Callback for textview modification"""
         self.emit("modified", self._page, modified)
         
-        # make notebook node a modified
+        # make notebook node modified
         if modified:
+            self._page.mark_modified()
             self._page.notify_change(False)
-
 
     def _on_child_activated(self, textview, child):
         """Callback for activation of textview child widget"""

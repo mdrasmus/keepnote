@@ -214,6 +214,8 @@ class KeepNoteWindow (gtk.Window):
         viewer.connect("error", lambda w,m,e: self.error(m, e, None))
         viewer.connect("status", lambda w,m,b: self.set_status(m, b))
         viewer.connect("window-request", self._on_window_request)
+        viewer.connect("current-node", self._on_current_node)
+        viewer.connect("modified", self._on_viewer_modified)
 
         return viewer
 
@@ -549,8 +551,8 @@ class KeepNoteWindow (gtk.Window):
                 self.set_status(_("Error saving notebook"))
                 return
 
-        self.on_notebook_modified(False)
-
+        #self.on_notebook_modified(False)
+        self.update_title()
         
             
     
@@ -646,7 +648,8 @@ class KeepNoteWindow (gtk.Window):
         if not new:
             self.set_status(_("Loaded '%s'") % self.viewer.get_notebook().get_title())
         
-        self.on_notebook_modified(False)
+        #self.on_notebook_modified(False)
+        self.update_title()
 
         # setup auto-saving
         self.begin_auto_save()
@@ -709,16 +712,6 @@ class KeepNoteWindow (gtk.Window):
 
     def set_notebook(self, notebook):
         """Set the NoteBook for the window"""
-        
-        # TODO: need to generalize
-        # windows don't own only one notebook
-
-        if self.viewer.get_notebook():
-            self.viewer.get_notebook().node_changed.remove(
-                self.on_notebook_node_changed)
-
-        if notebook:
-            notebook.node_changed.add(self.on_notebook_node_changed)
         self.viewer.set_notebook(notebook)
 
 
@@ -752,24 +745,33 @@ class KeepNoteWindow (gtk.Window):
 
 
     #=====================================================
-    # Notebook callbacks
+    # viewer callbacks
     
-    def on_notebook_node_changed(self, nodes, recurse):
-        """Callback for when the notebook changes"""
-        self.on_notebook_modified(True)
-        
-    
-    def on_notebook_modified(self, modified):
+    def update_title(self):
         """Set the modification state of the notebook"""
+
+        notebook = self.viewer.get_notebook()
         
-        if self.viewer.get_notebook() is None:
+        if notebook is None:
             self.set_title(keepnote.PROGRAM_NAME)
         else:
+            title = notebook.get_attr("title")
+            modified = notebook.save_needed()
             if modified:
-                self.set_title("* %s" % self.viewer.get_notebook().get_title())
+                self.set_title("* %s" % title)
                 self.set_status(_("Notebook modified"))
             else:
-                self.set_title("%s" % self.viewer.get_notebook().get_title())
+                self.set_title(title)
+
+
+    def _on_current_node(self, viewer, node):
+        """Callback for when viewer changes the current node"""
+        self.update_title()
+
+
+    def _on_viewer_modified(self, viewer, modified):
+        """Callback for when viewer has a modified notebook"""
+        self.update_title()
     
 
     #===========================================================
