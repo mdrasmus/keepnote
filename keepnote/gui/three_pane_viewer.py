@@ -184,6 +184,14 @@ class ThreePaneViewer (Viewer):
         if self._notebook is not None:
             self._app.unref_notebook(self._notebook)
 
+        # setup listeners
+        if self._notebook:
+            self._notebook.node_changed.remove(
+                self.on_notebook_node_changed)
+        if notebook:
+            notebook.node_changed.add(self.on_notebook_node_changed)
+
+        # set notebook
         self._notebook = notebook
         self.editor.set_notebook(notebook)
         self.listview.set_notebook(notebook)
@@ -206,7 +214,7 @@ class ThreePaneViewer (Viewer):
                      if node is not None]
             self.listview.select_nodes(nodes)
 
-
+        # put focus on treeview
         self.treeview.grab_focus()
 
 
@@ -263,6 +271,14 @@ class ThreePaneViewer (Viewer):
                 for node in self.listview.get_selected_nodes()]
             self._notebook.set_preferences_dirty()
         
+
+    def on_notebook_node_changed(self, nodes, recurse):
+        """Callback for when notebook node is changed"""
+
+        if self._current_page in nodes:
+            self.emit("set-title", self._current_page.get_title())
+        self.emit("modified", True)
+
 
     def undo(self):
         """Undo the last action in the viewer"""
@@ -454,9 +470,15 @@ class ThreePaneViewer (Viewer):
         # remember the selected node
         if len(pages) == 1:
             self._current_page = pages[0]
+            self.emit("set-title", self._current_page.get_title())
         else:
             self._current_page = None
+            if self._notebook is not None:
+                self.emit("set-title", self._notebook.get_title())
+            else:
+                self.emit("set-title", _("(Untitled)"))
         
+
         try:
             self.editor.view_pages(pages)
         except RichTextError, e:

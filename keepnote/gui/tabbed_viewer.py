@@ -81,6 +81,7 @@ class TabbedViewer (Viewer):
         self.pack_start(self._tabs, True, True, 0)
 
         self._current_viewer = None
+        self._callbacks = {}
 
         self.new_tab()
 
@@ -95,8 +96,9 @@ class TabbedViewer (Viewer):
         self._tabs.append_page(viewer, gtk.Label(_("(Untitled)")))
         self._tabs.set_tab_reorderable(viewer, True)
         viewer.show_all()
-        viewer.load_preferences(self._app.pref, True)
-        
+        self._callbacks[viewer] = [viewer.connect("set-title", self.on_tab_set_title)]
+        viewer.load_preferences(self._app.pref, True)        
+
         self._tabs.set_current_page(self._tabs.get_n_pages() - 1)
 
 
@@ -111,6 +113,9 @@ class TabbedViewer (Viewer):
 
         viewer = self._tabs.get_nth_page(pos)
         viewer.set_notebook(None)
+        for callid in self._callbacks[viewer]:
+            viewer.disconnect(callid)
+        del self._callbacks[viewer]
 
         if pos == self._tabs.get_current_page():
             viewer.remove_ui(self._main_window)
@@ -154,6 +159,17 @@ class TabbedViewer (Viewer):
 
     def _on_tab_removed(self, tabs, child, page_num):
         self._tabs.set_show_tabs(self._tabs.get_n_pages() > 1)
+
+
+    def on_tab_set_title(self, viewer, title):
+        """Callback for when a viewer wants to set its title"""
+
+        MAX_TITLE = 20
+        if len(title) > MAX_TITLE - 3:
+            title = title[:MAX_TITLE-3] + "..."
+
+        self._tabs.set_tab_label_text(viewer, title)
+                
 
     #==============================================
 

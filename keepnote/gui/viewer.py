@@ -143,4 +143,8 @@ gobject.signal_new("history-changed", Viewer, gobject.SIGNAL_RUN_LAST,
     gobject.TYPE_NONE, (object,))
 gobject.signal_new("window-request", Viewer, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (str,))
+gobject.signal_new("modified", Viewer, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (bool,))
+gobject.signal_new("set-title", Viewer, gobject.SIGNAL_RUN_LAST, 
+    gobject.TYPE_NONE, (str,))
 
