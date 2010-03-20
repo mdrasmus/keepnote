@@ -43,6 +43,8 @@ import gobject
 import keepnote
 from keepnote import unicode_gtk, KeepNoteError
 from keepnote import notebook as notebooklib
+from keepnote.gui import \
+    add_actions, Action
 from keepnote.gui.three_pane_viewer import ThreePaneViewer
 from keepnote.gui.viewer import Viewer
 
@@ -70,23 +72,51 @@ class TabbedViewer (Viewer):
         # layout
         self._tabs = gtk.Notebook()
         self._tabs.show()
+        self._tabs.set_property("show-border", False)
+        self._tabs.set_property("homogeneous", True)
+        self._tabs.set_property("scrollable", True)
         self._tabs.connect("switch-page", self._on_switch_tab)
+        self._tabs.connect("page-added", self._on_tab_added)
+        self._tabs.connect("page-removed", self._on_tab_removed)
         self.pack_start(self._tabs, True, True, 0)
 
         self._current_viewer = None
 
         self.new_tab()
-        self.new_tab()
-
 
         # TODO: maybe add close_viewer() function
 
 
     def new_tab(self, viewer=None):
         """Open a new tab with a viewer"""
+        
         if viewer is None:
             viewer = self._default_viewer(self._app, self._main_window)
-        self._tabs.append_page(viewer, gtk.Label("tab"))
+        self._tabs.append_page(viewer, gtk.Label(_("(Untitled)")))
+        self._tabs.set_tab_reorderable(viewer, True)
+        viewer.show_all()
+        viewer.load_preferences(self._app.pref, True)
+        
+        self._tabs.set_current_page(self._tabs.get_n_pages() - 1)
+
+
+    def close_tab(self, pos=None):
+        """Close a tab"""
+
+        if self._tabs.get_n_pages() <= 1:
+            return
+
+        if pos is None:
+            pos = self._tabs.get_current_page()
+
+        viewer = self._tabs.get_nth_page(pos)
+        viewer.set_notebook(None)
+
+        if pos == self._tabs.get_current_page():
+            viewer.remove_ui(self._main_window)
+            self._current_viewer = None
+
+        self._tabs.remove_page(pos)
 
 
     def get_current_viewer(self):
@@ -118,6 +148,13 @@ class TabbedViewer (Viewer):
         self._current_viewer = self._tabs.get_nth_page(page_num)
         self._current_viewer.add_ui(self._main_window)
 
+
+    def _on_tab_added(self, tabs, child, page_num):
+        self._tabs.set_show_tabs(self._tabs.get_n_pages() > 1)
+
+    def _on_tab_removed(self, tabs, child, page_num):
+        self._tabs.set_show_tabs(self._tabs.get_n_pages() > 1)
+
     #==============================================
 
     def set_notebook(self, notebook):
@@ -137,14 +174,13 @@ class TabbedViewer (Viewer):
 
     def save_preferences(self, app_pref):
         """Save application preferences"""
-
-        for viewer in self.iter_viewers():
-            viewer.save_preferences(app_pref)
+        self.get_current_viewer().save_preferences(app_pref)
 
 
     def save(self):
         """Save the current notebook"""
-        return self.get_current_viewer().save()
+        for viewer in self.iter_viewers():
+            viewer.save()
         
 
     def undo(self):
@@ -204,7 +240,21 @@ class TabbedViewer (Viewer):
         """Add the view's UI to a window"""
         assert window == self._main_window
         self._ui_ready = True
-        self.get_current_viewer().add_ui(window)        
+        self._action_group = gtk.ActionGroup("Tabbed Viewer")
+        self._uis = []
+        add_actions(self._action_group, self._get_actions())
+        self._main_window.get_uimanager().insert_action_group(
+            self._action_group, 0)
+
+        for s in self._get_ui():
+            self._uis.append(
+                self._main_window.get_uimanager().add_ui_from_string(s))
+
+        uimanager = self._main_window.get_uimanager()
+        uimanager.ensure_update()
+
+
+        self.get_current_viewer().add_ui(window)     
 
 
     def remove_ui(self, window):
@@ -213,5 +263,43 @@ class TabbedViewer (Viewer):
         self._ui_ready = False
         self.get_current_viewer().remove_ui(window)
 
+        for ui in reversed(self._uis):
+            self._main_window.get_uimanager().remove_ui(ui)
+        self._uis = []
 
+        self._main_window.get_uimanager().remove_action_group(self._action_group)
+        self._action_group = None
+        self._main_window.get_uimanager().ensure_update()
+
+
+
+    def _get_ui(self):
+
+        return ["""
+<ui>
+
+<!-- main window menu bar -->
+<menubar name="main_menu_bar">
+  <menu action="File">
+    <placeholder name="Viewer Window">
+      <menuitem action="New Tab"/>
+      <menuitem action="Close Tab"/>
+    </placeholder>
+  </menu>
+</menubar>
+</ui>
+"""]
+
+
+    def _get_actions(self):
+
+        actions = map(lambda x: Action(*x), [
+            ("New Tab", None, _("New _Tab"),
+             "<shift><control>T", _("Open a new tab"),
+             lambda w: self.new_tab()),
+            ("Close Tab", None, _("Close _Tab"),
+             "<shift><control>W", _("Close a tab"),
+             lambda w: self.close_tab())
+            ])
+        return actions
 

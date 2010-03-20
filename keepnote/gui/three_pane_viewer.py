@@ -178,7 +178,12 @@ class ThreePaneViewer (Viewer):
 
     def set_notebook(self, notebook):
         """Set the notebook for the viewer"""
-        
+
+        # add/remove reference to notebook
+        self._app.ref_notebook(notebook)
+        if self._notebook is not None:
+            self._app.unref_notebook(self._notebook)
+
         self._notebook = notebook
         self.editor.set_notebook(notebook)
         self.listview.set_notebook(notebook)
@@ -248,14 +253,15 @@ class ThreePaneViewer (Viewer):
 
         self.editor.save()
 
-        # save selections
-        self._notebook.pref.selected_treeview_nodes = [
-            node.get_attr("nodeid")
-            for node in self.treeview.get_selected_nodes()]
-        self._notebook.pref.selected_listview_nodes = [
-            node.get_attr("nodeid")
-            for node in self.listview.get_selected_nodes()]
-        self._notebook.set_preferences_dirty()
+        if self._notebook is not None:
+            # save selections
+            self._notebook.pref.selected_treeview_nodes = [
+                node.get_attr("nodeid")
+                for node in self.treeview.get_selected_nodes()]
+            self._notebook.pref.selected_listview_nodes = [
+                node.get_attr("nodeid")
+                for node in self.listview.get_selected_nodes()]
+            self._notebook.set_preferences_dirty()
         
 
     def undo(self):

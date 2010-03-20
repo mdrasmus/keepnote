@@ -851,7 +851,12 @@ class KeepNote (object):
 
     def close_notebook(self, notebook):
         """Close notebook"""
-        if notebook in self._notebook_count:
+
+        if self.has_ref_notebook(notebook):
+            self.unref_notebook(notebook)
+
+        '''
+        if notebook in self._notebook_count:            
             # reduce ref count
             self._notebook_count[notebook] -= 1
 
@@ -865,6 +870,7 @@ class KeepNote (object):
                         break
 
                 notebook.close()
+        '''
 
 
     def get_notebook(self, filename, window=None):
@@ -878,12 +884,39 @@ class KeepNote (object):
         if filename not in self._notebooks:
             notebook = self.open_notebook(filename, window)
             self._notebooks[filename] = notebook
-            self._notebook_count[notebook] = 1
+            self.ref_notebook(notebook)
+            #self._notebook_count[notebook] = 1
         else:
             notebook = self._notebooks[filename]
-            self._notebook_count[notebook] +=1 
+            self.ref_notebook(notebook)
+            #self._notebook_count[notebook] +=1 
 
         return notebook
+
+
+    def ref_notebook(self, notebook):
+        if notebook not in self._notebook_count:
+            self._notebook_count[notebook] = 1
+        else:
+            self._notebook_count[notebook] += 1
+
+
+    def unref_notebook(self, notebook):
+        self._notebook_count[notebook] -= 1 
+
+        # close if refcount is zero
+        if self._notebook_count[notebook] == 0:
+            del self._notebook_count[notebook]
+
+            for key, val in self._notebooks.iteritems():
+                if val == notebook:
+                    del self._notebooks[key]
+                    break
+
+            notebook.close()
+
+    def has_ref_notebook(self, notebook):
+        return notebook in self._notebook_count
 
 
     def iter_notebooks(self):

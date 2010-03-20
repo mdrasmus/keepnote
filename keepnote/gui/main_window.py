@@ -339,6 +339,16 @@ class KeepNoteWindow (gtk.Window):
         self.deiconify()
         self.present()
 
+
+    def on_new_window(self):
+        """Open a new window"""
+
+        win = self._app.new_window()
+        notebook = self.get_notebook()
+        if notebook:
+            self._app.ref_notebook(notebook)
+            win.set_notebook(notebook)
+
     
     #==============================================
     # Application preferences     
@@ -424,13 +434,6 @@ class KeepNoteWindow (gtk.Window):
            
     #=============================================
     # Notebook open/save/close UI
-
-    def on_new_window(self):
-        """Open a new window"""
-
-        win = self._app.new_window()
-        win.set_notebook(self.get_notebook())
-
 
     def on_new_notebook(self):
         """Launches New NoteBook dialog"""
@@ -527,13 +530,16 @@ class KeepNoteWindow (gtk.Window):
     def save_notebook(self, silent=False):
         """Saves the current notebook"""
 
-        if self.viewer.get_notebook() is None:
-            return
+        #if self.viewer.get_notebook() is None:
+        #    return
         
         try:
             # TODO: should this be outside exception?
             self.viewer.save()
-            self.viewer.get_notebook().save()
+
+            # TODO: notebook saving should be the job of the viewer
+            if self.viewer.get_notebook():
+                self.viewer.get_notebook().save()
             
             self.set_status(_("Notebook saved"))
             
@@ -543,7 +549,7 @@ class KeepNoteWindow (gtk.Window):
                 self.set_status(_("Error saving notebook"))
                 return
 
-        self.set_notebook_modified(False)
+        self.on_notebook_modified(False)
 
         
             
@@ -640,7 +646,7 @@ class KeepNoteWindow (gtk.Window):
         if not new:
             self.set_status(_("Loaded '%s'") % self.viewer.get_notebook().get_title())
         
-        self.set_notebook_modified(False)
+        self.on_notebook_modified(False)
 
         # setup auto-saving
         self.begin_auto_save()
@@ -663,15 +669,10 @@ class KeepNoteWindow (gtk.Window):
         if notebook is not None:
             if save:
                 self.save_notebook()
-            
-            #notebook.node_changed.remove(self.on_notebook_node_changed)
-            
+                        
             self.set_notebook(None)
             self.set_status(_("Notebook closed"))
-
-            # TODO: will need to check that notebook is not opened by 
-            # another window
-            #notebook.close()
+            
             self._app.close_notebook(notebook)
 
 
@@ -696,16 +697,22 @@ class KeepNoteWindow (gtk.Window):
         if not self._auto_saving:
             return False
 
-        if self.viewer.get_notebook() is not None:
-            self.save_notebook(True)
-            return self._app.pref.autosave
-        else:
-            return False
+        self.save_notebook(True)
+        return self._app.pref.autosave
+
+        #if self.viewer.get_notebook() is not None:
+        #    self.save_notebook(True)
+        #    return self._app.pref.autosave
+        #else:
+        #    return False
     
 
     def set_notebook(self, notebook):
         """Set the NoteBook for the window"""
         
+        # TODO: need to generalize
+        # windows don't own only one notebook
+
         if self.viewer.get_notebook():
             self.viewer.get_notebook().node_changed.remove(
                 self.on_notebook_node_changed)
@@ -749,10 +756,10 @@ class KeepNoteWindow (gtk.Window):
     
     def on_notebook_node_changed(self, nodes, recurse):
         """Callback for when the notebook changes"""
-        self.set_notebook_modified(True)
+        self.on_notebook_modified(True)
         
     
-    def set_notebook_modified(self, modified):
+    def on_notebook_modified(self, modified):
         """Set the modification state of the notebook"""
         
         if self.viewer.get_notebook() is None:
@@ -1419,6 +1426,7 @@ class KeepNoteWindow (gtk.Window):
 <menubar name="main_menu_bar">
   <menu action="File">
      <menuitem action="New Window"/>
+     <placeholder name="Viewer Window"/>
      <separator/>
      <menuitem action="New Notebook"/>
      <placeholder name="Viewer"/>
