@@ -430,16 +430,17 @@ DEFAULT_EXTERNAL_APPS = [
 
 def get_external_app_defaults():
     if get_platform() == "windows":
-        files = os.environ.get("PROGRAMFILES", u"C:\\Program Files")
+        files = ensure_unicode(
+            os.environ.get(u"PROGRAMFILES", u"C:\\Program Files"), FS_ENCODING)
 
         return [
-            ExternalApp("file_launcher", "File Launcher", "explorer.exe"),
+            ExternalApp("file_launcher", "File Launcher", u"explorer.exe"),
             ExternalApp("web_browser", "Web Browser",
                         files + u"\\Internet Explorer\\iexplore.exe"),
-            ExternalApp("file_explorer", "File Explorer", "explorer.exe"),
+            ExternalApp("file_explorer", "File Explorer", u"explorer.exe"),
             ExternalApp("text_editor", "Text Editor",
                         files + u"\\Windows NT\\Accessories\\wordpad.exe"),
-            ExternalApp("image_editor", "Image Editor", "mspaint.exe"),
+            ExternalApp("image_editor", "Image Editor", u"mspaint.exe"),
             ExternalApp("image_viewer", "Image Viewer",
                         files + u"\\Internet Explorer\\iexplore.exe"),
             ExternalApp("screen_shot", "Screen Shot", "")

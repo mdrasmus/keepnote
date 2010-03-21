@@ -477,8 +477,7 @@ class ThreePaneViewer (Viewer):
             self.editor.view_pages(pages)
         except RichTextError, e:
             self.emit("error", 
-                      "Could not load page '%s'." % pages[0].get_title(),
-                      e, sys.exc_info()[2])
+                      "Could not load page '%s'." % pages[0].get_title(), e)
 
         self.emit("current-node", self._current_page)
 
@@ -537,8 +536,7 @@ class ThreePaneViewer (Viewer):
         try:
             notebooklib.attach_file(uri, parent, index)
         except Exception, e:
-            self.error(_("Error while attaching file '%s'." % uri),
-                       e, sys.exc_info()[2])
+            self.emit("error",_("Error while attaching file '%s'." % uri), e)
 
 
 

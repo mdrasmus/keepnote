@@ -66,6 +66,7 @@ class TabbedViewer (Viewer):
         Viewer.__init__(self, app, main_window)        
         self._default_viewer = default_viewer
         self._current_viewer = None
+        self._callbacks = {}
         self._ui_ready = False
         self._null_viewer = Viewer(app, main_window)
         
@@ -80,9 +81,6 @@ class TabbedViewer (Viewer):
         self._tabs.connect("page-removed", self._on_tab_removed)
         self.pack_start(self._tabs, True, True, 0)
 
-        self._current_viewer = None
-        self._callbacks = {}
-
         self.new_tab()
 
         # TODO: maybe add close_viewer() function
@@ -96,10 +94,17 @@ class TabbedViewer (Viewer):
         self._tabs.append_page(viewer, gtk.Label(_("(Untitled)")))
         self._tabs.set_tab_reorderable(viewer, True)
         viewer.show_all()
+
+        # setup viewer
         self._callbacks[viewer] = [
             viewer.connect("current-node", self.on_tab_current_node),
             viewer.connect("modified", self.on_tab_modified)]
         viewer.load_preferences(self._app.pref, True)        
+
+        # replicate current view
+        if self._current_viewer is not None:
+            viewer.set_notebook(self._current_viewer.get_notebook())
+            viewer.goto_node(self._current_viewer.get_current_page())
 
         self._tabs.set_current_page(self._tabs.get_n_pages() - 1)
 
@@ -202,6 +207,14 @@ class TabbedViewer (Viewer):
         # propogate modified signal
         self.emit("modified", modified)
 
+
+    def switch_tab(self, step):
+        """Switches to the next or previous tab"""
+
+        pos = self._tabs.get_current_page()
+        pos = (pos + step) % self._tabs.get_n_pages()
+        self._tabs.set_current_page(pos)
+        
 
     #==============================================
 
@@ -334,6 +347,13 @@ class TabbedViewer (Viewer):
       <menuitem action="Close Tab"/>
     </placeholder>
   </menu>
+  <menu action="Go">
+    <placeholder name="Viewer">
+      <menuitem action="Next Tab"/>
+      <menuitem action="Previous Tab"/>
+      <separator/>
+    </placeholder>
+  </menu>
 </menubar>
 </ui>
 """]
@@ -347,7 +367,14 @@ class TabbedViewer (Viewer):
              lambda w: self.new_tab()),
             ("Close Tab", None, _("Close _Tab"),
              "<shift><control>W", _("Close a tab"),
-             lambda w: self.close_tab())
+             lambda w: self.close_tab()),
+            ("Next Tab", None, _("_Next Tab"),
+             "<control>Page_Down", _("Switch to next tab"),
+             lambda w: self.switch_tab(1)),
+            ("Previous Tab", None, _("_Previous Tab"),
+             "<control>Page_Up", _("Swtch to previous tab"),
+             lambda w: self.switch_tab(-1))
+
             ])
         return actions
 
