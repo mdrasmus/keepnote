@@ -102,10 +102,14 @@ class TabbedViewer (Viewer):
         viewer.load_preferences(self._app.pref, True)        
 
         # replicate current view
-        if self._current_viewer is not None:
-            viewer.set_notebook(self._current_viewer.get_notebook())
-            viewer.goto_node(self._current_viewer.get_current_page())
+        old_viewer = self.get_current_viewer()
+        if old_viewer is not None:
+            viewer.set_notebook(old_viewer.get_notebook())
+            node = old_viewer.get_current_page()
+            if node:
+                viewer.goto_node(node)
 
+        # switch to the new tab
         self._tabs.set_current_page(self._tabs.get_n_pages() - 1)
 
 
