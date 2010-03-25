@@ -731,6 +731,8 @@ class NoteBookNode (object):
         # done for whole subtree.  Also accessory data like icons might need
         # to be transferred.
 
+        #print "move '%s' '%s'" % (parent.get_title(), self.get_title())
+
         assert self != parent
         path = self.get_path()
         old_parent = self._parent

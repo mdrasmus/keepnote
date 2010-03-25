@@ -992,6 +992,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             return
         
         # determine if drop is allowed
+        #print "recieved", source_nodes
         for source_node in source_nodes:
             if not self._drop_allowed(source_node, target_node, drop_position):
                 drag_context.finish(False, False, eventtime)
