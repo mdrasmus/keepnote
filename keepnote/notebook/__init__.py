@@ -737,6 +737,9 @@ class NoteBookNode (object):
         path = self.get_path()
         old_parent = self._parent
         
+        # make sure new parents children are loaded
+        parent.get_children()
+
         # perform on-disk move if new parent
         if old_parent != parent:
             path2 = os.path.join(parent.get_path(), self._basename)
