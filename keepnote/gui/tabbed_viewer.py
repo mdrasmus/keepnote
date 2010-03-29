@@ -47,6 +47,7 @@ from keepnote.gui import \
     add_actions, Action
 from keepnote.gui.three_pane_viewer import ThreePaneViewer
 from keepnote.gui.viewer import Viewer
+from keepnote.gui.icons import get_node_icon
 
 _ = keepnote.translate
 
@@ -89,9 +90,11 @@ class TabbedViewer (Viewer):
     def new_tab(self, viewer=None):
         """Open a new tab with a viewer"""
         
+        # TODO: make new tab appear next to existing tab
+
         if viewer is None:
             viewer = self._default_viewer(self._app, self._main_window)
-        self._tabs.append_page(viewer, gtk.Label(_("(Untitled)")))
+        self._tabs.append_page(viewer, TabLabel(None, _("(Untitled)")))
         self._tabs.set_tab_reorderable(viewer, True)
         viewer.show_all()
 
@@ -189,10 +192,13 @@ class TabbedViewer (Viewer):
         if node is None:
             if viewer.get_notebook():
                 title = viewer.get_notebook().get_attr("title")
+                icon = None
             else:
                 title = _("(Untitled)")
+                icon = None
         else:
             title = node.get_attr("title")
+            icon = get_node_icon(node, expand=False)
 
         # truncate title
         MAX_TITLE = 20
@@ -200,7 +206,9 @@ class TabbedViewer (Viewer):
             title = title[:MAX_TITLE-3] + "..."
 
         # set tab label with node title
-        self._tabs.set_tab_label_text(viewer, title)
+        tab = self._tabs.get_tab_label(viewer)
+        tab.set_text(title)
+        tab.set_icon(icon)
                 
         # propogate current-node signal
         self.emit("current-node", node)
@@ -381,4 +389,31 @@ class TabbedViewer (Viewer):
 
             ])
         return actions
+
+
+
+
+
+class TabLabel (gtk.HBox):
+
+    def __init__(self, icon, text):
+        gtk.HBox.__init__(self, False, 2)
+
+        self.icon = gtk.Image()
+        self.pack_start(self.icon, False, False, 0)
+        if icon:
+            self.icon.set_from_pixbuf(icon)
+        self.icon.show()
+
+        self.label = gtk.Label(text)
+        self.label.set_alignment(0, .5)
+        self.pack_start(self.label, True, True, 0)
+        self.label.show()
+
+
+    def set_text(self, text):
+        self.label.set_label(text)
+
+    def set_icon(self, pixbuf):
+        self.icon.set_from_pixbuf(pixbuf)
 
