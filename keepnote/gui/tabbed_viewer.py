@@ -280,7 +280,7 @@ class TabbedViewer (Viewer):
         return self.get_current_viewer().get_selected_nodes()
 
 
-    def goto_node(self, node, direct=True):
+    def goto_node(self, node, direct=False):
         """Move view focus to a particular node"""
         return self.get_current_viewer().goto_node(node, direct)
                     

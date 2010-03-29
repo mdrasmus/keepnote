@@ -622,7 +622,7 @@ class ThreePaneViewer (Viewer):
             self.treeview.edit_node(nodes[0])
 
 
-    def goto_node(self, node, direct=True):
+    def goto_node(self, node, direct=False):
         """Move view focus to a particular node"""
 
         if node is None:

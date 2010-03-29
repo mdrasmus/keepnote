@@ -96,7 +96,7 @@ class Viewer (gtk.VBox):
         # TODO: choose a more general interface (i.e. deal with widget param)
         pass
 
-    def goto_node(self, node, direct=True):
+    def goto_node(self, node, direct=False):
         pass
 
     def visit_history(self, offset):
