@@ -807,6 +807,7 @@ class NoteBookNode (object):
     def new_child(self, content_type, title, index=None):
         """Add a new node under this node"""
         
+        self.get_children()
         path = self.get_path()
         newpath = get_valid_unique_filename(path, title)
         node = self._notebook.new_node(content_type, newpath, self, {})
@@ -815,19 +816,36 @@ class NoteBookNode (object):
         self._add_child(node, index)
         node.save(True)
         self.notify_change(True)
-        return node    
+        return node
     
+
+    def _new_child(self, content_type, title, index=None):
+        """Add a new node under this node
+           Private method.  Does not notify listeners.
+        """
+        
+        self.get_children()
+        path = self.get_path()
+        newpath = get_valid_unique_filename(path, title)
+        node = self._notebook.new_node(content_type, newpath, self, {})
+
+        node.create()
+        self._add_child(node, index)
+        node.save(True)
+        return node
     
-    def duplicate(self, parent, index=None, recurse=False):
+
+    
+    def duplicate(self, parent, index=None, recurse=False, notify=True):
         """Duplicate a node to a new parent"""
 
         # NOTE: we must be able to handle the case where the root node is
         # duplicated.
-        
+
         # create new node
-        node = parent.new_child(self.get_attr("content_type"),
-                                self.get_attr("title"),
-                                index=index)
+        node = parent._new_child(self.get_attr("content_type"),
+                                 self.get_attr("title"),
+                                 index=index)
 
         # record the nodeid of the original node
         node._attr["duplicate_of"] = self.get_attr("nodeid")
@@ -850,10 +868,17 @@ class NoteBookNode (object):
             if os.path.isfile(fullname):
                 shutil.copy(fullname, fullname2)
 
+        self._notebook._index.add_node(node)
+        node.write_meta_data()
+
+        # TODO: prevent loops, copy paste within same tree.
 
         if recurse:
             for child in self.get_children():
-                child.duplicate(node, recurse=True)
+                child.duplicate(node, recurse=True, notify=False)
+
+        if notify:
+            parent.notify_change(True)
 
         return node
 
