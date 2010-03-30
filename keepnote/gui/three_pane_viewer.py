@@ -374,7 +374,7 @@ class ThreePaneViewer (Viewer):
     def _on_history_changed(self, viewer, history):
         """Callback for when node browse history changes"""
         
-        if self.back_button:
+        if self._ui_ready and self.back_button:
             self.back_button.set_sensitive(history.has_back())
             self.forward_button.set_sensitive(history.has_forward())
 
@@ -431,6 +431,9 @@ class ThreePaneViewer (Viewer):
     
     def _on_editor_view_node(self, editor, node):
         """Callback for when editor views a node"""
+
+        # TODO: add to history for all nodes, not just pages
+
         self._history.add(node.get_attr("nodeid"))
         self.emit("history-changed", self._history)
 

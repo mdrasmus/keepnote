@@ -291,6 +291,11 @@ class TabbedViewer (Viewer):
     def goto_node(self, node, direct=False):
         """Move view focus to a particular node"""
         return self.get_current_viewer().goto_node(node, direct)
+
+
+    def visit_history(self, offset):
+        """Visit a node in the viewer's history"""
+        self.get_current_viewer.visit_history(offset)
                     
 
     #============================================

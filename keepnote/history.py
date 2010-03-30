@@ -37,6 +37,7 @@ class NodeHistory (object):
         
 
     def add(self, nodeid):
+        
         if self._suspend == 0:
             # truncate list to current position
             if self._list:
