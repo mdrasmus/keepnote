@@ -100,6 +100,7 @@ class ThreePaneViewer (Viewer):
         self.treeview.connect("error", lambda w,t,e: self.emit("error", t, e))
         self.treeview.connect("edit-title", self._on_edit_title)
         self.treeview.connect("goto-node", self.on_goto_node)
+        self.treeview.connect("activate-node", self.on_activate_node)
         self.treeview.connect("drop-file", self._on_attach_file)
         
         # listview
@@ -940,15 +941,15 @@ class ThreePaneViewer (Viewer):
 
         <menubar name="popup_menus">
           <menu action="treeview_popup">
-            <menuitem action="Cut"/>
-            <menuitem action="Copy"/>
-            <menuitem action="Copy Tree"/>
-            <menuitem action="Paste"/>
-            <separator/>
             <menuitem action="New Page"/>
             <menuitem action="New Child Page"/>
             <menuitem action="New Folder"/>
             <menuitem action="Attach File"/>
+            <separator/>
+            <menuitem action="Cut"/>
+            <menuitem action="Copy"/>
+            <menuitem action="Copy Tree"/>
+            <menuitem action="Paste"/>
             <separator/>
             <menuitem action="Delete Note"/>
             <menuitem action="Rename Note"/>
@@ -961,11 +962,6 @@ class ThreePaneViewer (Viewer):
           </menu>
 
           <menu action="listview_popup">
-            <menuitem action="Cut"/>
-            <menuitem action="Copy"/>
-            <menuitem action="Copy Tree"/>
-            <menuitem action="Paste"/>
-            <separator/>
             <menuitem action="Go to Note"/>
             <menuitem action="Go to Parent Note"/>
             <separator/>
@@ -973,6 +969,11 @@ class ThreePaneViewer (Viewer):
             <menuitem action="New Child Page"/>
             <menuitem action="New Folder"/>
             <menuitem action="Attach File"/>
+            <separator/>
+            <menuitem action="Cut"/>
+            <menuitem action="Copy"/>
+            <menuitem action="Copy Tree"/>
+            <menuitem action="Paste"/>
             <separator/>
             <menuitem action="Delete Note"/>
             <menuitem action="Rename Note"/>
