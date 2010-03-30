@@ -1496,6 +1496,11 @@ class KeepNoteWindow (gtk.Window):
   <toolitem action="Search Box Tool"/>
   <toolitem action="Search Button Tool"/>
 </toolbar>
+
+<!-- popup menus -->
+<menubar name="popup_menus">
+</menubar>
+
 </ui>
 """]
 

@@ -725,6 +725,14 @@ class ThreePaneViewer (Viewer):
         return nodes
 
 
+    def on_copy_tree(self):
+        """Callback for copy on whole tree"""
+        widget = self._main_window.get_focus()
+        if gobject.signal_lookup("copy-tree-clipboard", widget) != 0:
+            widget.emit("copy-tree-clipboard")
+
+
+
     #============================================
     # Search
 
@@ -932,6 +940,11 @@ class ThreePaneViewer (Viewer):
 
         <menubar name="popup_menus">
           <menu action="treeview_popup">
+            <menuitem action="Cut"/>
+            <menuitem action="Copy"/>
+            <menuitem action="Copy Tree"/>
+            <menuitem action="Paste"/>
+            <separator/>
             <menuitem action="New Page"/>
             <menuitem action="New Child Page"/>
             <menuitem action="New Folder"/>
@@ -948,6 +961,11 @@ class ThreePaneViewer (Viewer):
           </menu>
 
           <menu action="listview_popup">
+            <menuitem action="Cut"/>
+            <menuitem action="Copy"/>
+            <menuitem action="Copy Tree"/>
+            <menuitem action="Paste"/>
+            <separator/>
             <menuitem action="Go to Note"/>
             <menuitem action="Go to Parent Note"/>
             <separator/>
@@ -979,6 +997,9 @@ class ThreePaneViewer (Viewer):
             ("treeview_popup", None, "", "", None, lambda w: None),
             ("listview_popup", None, "", "", None, lambda w: None),
 
+            ("Copy Tree", gtk.STOCK_COPY, _("Copy _Tree"),
+             "<control><shift>C", _("Copy entire tree"),
+             lambda w: self.on_copy_tree()),
             
             ("New Page", gtk.STOCK_NEW, _("New _Page"),
              "<control>N", _("Create a new page"),

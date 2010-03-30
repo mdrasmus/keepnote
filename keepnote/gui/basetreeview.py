@@ -50,6 +50,7 @@ _ = keepnote.translate
 
 CLIPBOARD_NAME = "CLIPBOARD"     
 MIME_NODE_COPY = "application/x-keepnote-node-copy"
+MIME_TREE_COPY = "application/x-keepnote-tree-copy"
 MIME_NODE_CUT = "application/x-keepnote-node-cut"
 
 # treeview drag and drop config
@@ -134,6 +135,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
         # clipboard
         self.connect("copy-clipboard", self._on_copy_node)
+        self.connect("copy-tree-clipboard", self._on_copy_tree)
         self.connect("cut-clipboard", self._on_cut_node)
         self.connect("paste-clipboard", self._on_paste_node)
 
@@ -559,7 +561,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
     def _on_copy_node(self, widget):
         """Copy a node onto the clipboard"""
         
-        nodes = widget.get_selected_nodes()
+        nodes = self.get_selected_nodes()
         if len(nodes) > 0:
             clipboard = self.get_clipboard(selection=CLIPBOARD_NAME)
             
@@ -570,6 +572,22 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             clipboard.set_with_data(targets, self._get_selection_data, 
                                     self._clear_selection_data,
                                     nodes)
+
+    def _on_copy_tree(self, widget):
+
+        nodes = self.get_selected_nodes()
+        if len(nodes) > 0:
+            clipboard = self.get_clipboard(selection=CLIPBOARD_NAME)
+            
+            targets = [(MIME_TREE_COPY, gtk.TARGET_SAME_APP, -1),
+                       (MIME_NODE_COPY, gtk.TARGET_SAME_APP, -1),
+                       ("text/html", 0, -1),
+                       ("text/plain", 0, -1)]
+            
+            clipboard.set_with_data(targets, self._get_selection_data, 
+                                    self._clear_selection_data,
+                                    nodes)        
+
 
     def _on_cut_node(self, widget):
         """Copy a node onto the clipboard"""
@@ -604,6 +622,10 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             # request KEEPNOTE node objects
             clipboard.request_contents(MIME_NODE_CUT, self._do_paste_nodes)
 
+        elif MIME_TREE_COPY in targets:
+            # request KEEPNOTE node objects
+            clipboard.request_contents(MIME_TREE_COPY, self._do_paste_nodes)
+
         elif MIME_NODE_COPY in targets:
             # request KEEPNOTE node objects
             clipboard.request_contents(MIME_NODE_COPY, self._do_paste_nodes)
@@ -615,6 +637,12 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         if MIME_NODE_CUT in selection_data.target:
             # set nodes
             selection_data.set(MIME_NODE_CUT, 8, 
+                               ";".join([node.get_attr("nodeid") 
+                                         for node in nodes]))
+
+        elif MIME_TREE_COPY in selection_data.target:
+            # set nodes
+            selection_data.set(MIME_TREE_COPY, 8, 
                                ";".join([node.get_attr("nodeid") 
                                          for node in nodes]))
 
@@ -666,6 +694,14 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                         node.move(parent)
                 except:
                     pass
+
+        elif selection_data.target == MIME_TREE_COPY:
+            for node in nodes:
+                try:
+                    if node is not None:
+                        node.duplicate(parent, recurse=True)
+                except Exception, e:
+                    print e
 
         elif selection_data.target == MIME_NODE_COPY:
             for node in nodes:
@@ -1056,6 +1092,9 @@ gobject.signal_new("delete-node", KeepNoteBaseTreeView, gobject.SIGNAL_RUN_LAST,
 gobject.signal_new("goto-parent-node", KeepNoteBaseTreeView,
                    gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())
 gobject.signal_new("copy-clipboard", KeepNoteBaseTreeView,
+                   gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, ())
+gobject.signal_new("copy-tree-clipboard", KeepNoteBaseTreeView,
                    gobject.SIGNAL_RUN_LAST, 
                    gobject.TYPE_NONE, ())
 gobject.signal_new("cut-clipboard", KeepNoteBaseTreeView,

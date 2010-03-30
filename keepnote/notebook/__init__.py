@@ -823,11 +823,7 @@ class NoteBookNode (object):
 
         # NOTE: we must be able to handle the case where the root node is
         # duplicated.
-
-        # TODO: allow recursive and non-recursive copy
-
-        assert not recurse
-
+        
         # create new node
         node = parent.new_child(self.get_attr("content_type"),
                                 self.get_attr("title"),
@@ -853,6 +849,11 @@ class NoteBookNode (object):
             fullname2 = os.path.join(path2, filename)
             if os.path.isfile(fullname):
                 shutil.copy(fullname, fullname2)
+
+
+        if recurse:
+            for child in self.get_children():
+                child.duplicate(node, recurse=True)
 
         return node
 
