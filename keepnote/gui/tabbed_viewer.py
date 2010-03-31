@@ -100,9 +100,11 @@ class TabbedViewer (Viewer):
 
         # setup viewer
         self._callbacks[viewer] = [
+            viewer.connect("window-request", lambda w,t: 
+                            self.emit("window-request", t)),
             viewer.connect("current-node", self.on_tab_current_node),
             viewer.connect("modified", self.on_tab_modified)]
-        viewer.load_preferences(self._app.pref, True)        
+        viewer.load_preferences(self._app.pref, True)
 
         # replicate current view
         old_viewer = self.get_current_viewer()

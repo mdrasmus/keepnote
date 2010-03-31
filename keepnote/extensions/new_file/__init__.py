@@ -150,10 +150,11 @@ class Extension (extension.Extension):
 
     def on_add_ui(self, window):
         """Initialize extension for a particular window"""
-
+        
         # add menu options
         self._action_groups[window] = gtk.ActionGroup("MainWindow")
         self._action_groups[window].add_actions([
+            #("treeview_popup", None, None),
             ("New File", None, _("New _File"))
             ])
         window.get_uimanager().insert_action_group(self._action_groups[window], 0)
@@ -168,10 +169,21 @@ class Extension (extension.Extension):
                   </placeholder>
                </menu>
             </menubar>
+
+            <!--
+            <menubar name="popup_menus">
+               <menu action="treeview_popup">
+                  <placeholder action="New">
+                     <menuitem action="New File"/>
+                  </placeholder>
+               </menu>
+            </menubar>
+            -->
+
             </ui>
             """)
 
-        self.set_new_file_menu(window)
+        self.set_new_file_menus(window)
 
     def on_remove_ui(self, window):        
 
@@ -208,10 +220,21 @@ class Extension (extension.Extension):
         pass
 
 
-    def set_new_file_menu(self, window):
+    def set_new_file_menus(self, window):
         """Set the recent notebooks in the file menu"""
 
         menu = window.get_uimanager().get_widget("/main_menu_bar/File/New/New File")
+        if menu:
+            self.set_new_file_menu(window, menu)
+
+
+        menu = window.get_uimanager().get_widget("/popup_menus/treeview_popup/New/New File")
+        if menu:
+            self.set_new_file_menu(window, menu)
+
+
+    def set_new_file_menu(self, window, menu):
+        """Set the recent notebooks in the file menu"""
 
         # init menu
         if menu.get_submenu() is None:

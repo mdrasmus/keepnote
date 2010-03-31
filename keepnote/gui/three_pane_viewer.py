@@ -942,12 +942,14 @@ class ThreePaneViewer (Viewer):
           </placeholder>
         </toolbar>
 
+
         <menubar name="popup_menus">
           <menu action="treeview_popup">
             <menuitem action="New Page"/>
             <menuitem action="New Child Page"/>
             <menuitem action="New Folder"/>
             <menuitem action="Attach File"/>
+            <placeholder name="New"/>
             <separator/>
             <menuitem action="Cut"/>
             <menuitem action="Copy"/>
@@ -972,6 +974,7 @@ class ThreePaneViewer (Viewer):
             <menuitem action="New Child Page"/>
             <menuitem action="New Folder"/>
             <menuitem action="Attach File"/>
+            <placeholder name="New"/>
             <separator/>
             <menuitem action="Cut"/>
             <menuitem action="Copy"/>
