@@ -1432,6 +1432,7 @@ class KeepNoteWindow (gtk.Window):
      <separator/>
      <menuitem action="New Notebook"/>
      <placeholder name="Viewer"/>
+     <placeholder name="New"/>
      <separator/>
      <menuitem action="Open Notebook"/>
      <menuitem action="Open Recent Notebook"/>

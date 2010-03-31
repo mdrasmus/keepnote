@@ -686,7 +686,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         nodes = [self._notebook.get_node_by_id(nodeid)
                  for nodeid in nodeids]
 
-
+        
         if selection_data.target == MIME_NODE_CUT:
             for node in nodes:
                 try:
@@ -701,15 +701,15 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                     if node is not None:
                         node.duplicate(parent, recurse=True)
                 except Exception, e:
-                    print e
+                    print "error", e
 
         elif selection_data.target == MIME_NODE_COPY:
             for node in nodes:
                 try:
                     if node is not None:
                         node.duplicate(parent)
-                except:
-                    pass
+                except Exception, e:
+                    print "error", e
             
 
 

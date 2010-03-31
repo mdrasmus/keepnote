@@ -293,7 +293,7 @@ def attach_file(filename, node, index=None):
 
     # cannot attach directories (yet)
     if os.path.isdir(filename):
-        return False
+        return None
 
     # determine content-type
     content_type = mimetypes.guess_type(filename)[0]
@@ -316,7 +316,7 @@ def attach_file(filename, node, index=None):
         child.set_payload(filename, new_filename)            
         child.save(True)
 
-        return True
+        return child
 
     except Exception, e:
         # remove child
@@ -730,9 +730,7 @@ class NoteBookNode (object):
         # TODO: if parent is in another notebook, index updates need to be
         # done for whole subtree.  Also accessory data like icons might need
         # to be transferred.
-
-        #print "move '%s' '%s'" % (parent.get_title(), self.get_title())
-
+        
         assert self != parent
         path = self.get_path()
         old_parent = self._parent
@@ -841,6 +839,8 @@ class NoteBookNode (object):
 
         # NOTE: we must be able to handle the case where the root node is
         # duplicated.
+
+        print "duplicate", parent.get_title(), self.get_title()
 
         # create new node
         node = parent._new_child(self.get_attr("content_type"),
@@ -1167,19 +1167,28 @@ class NoteBookDir (NoteBookNode):
 class NoteBookGenericFile (NoteBookNode):
     """Class that generic file in NoteBook"""
     
-    def __init__(self, path, filename, title=None, content_type=None,
+    def __init__(self, path, filename=None, title=None, content_type=None,
                  parent=None, notebook=None):
 
-        if title is None:
-            title = os.path.basename(filename)
+        if filename:
+            if title is None:
+                title = os.path.basename(filename)
 
-        if content_type is None:
-            content_type = mimetypes.guess_type(filename)[0]
+            if content_type is None:
+                content_type = mimetypes.guess_type(filename)[0]
+
+        else:
+            title = _("New File")
+
+            if content_type is None:
+                content_type = "application/octet-stream"
         
         NoteBookNode.__init__(self, path, title, parent, notebook,
                               content_type=content_type)
 
-        self._attr["payload_filename"] = filename
+        if filename:
+            self._attr["payload_filename"] = filename
+        
 
 
     def set_payload(self, filename, new_filename=None):
@@ -1486,8 +1495,10 @@ class NoteBook (NoteBookDir):
 
     def new_node(self, content_type, path, parent, attr):
         """Create a new NodeBookNode"""        
-        return self._node_factory.new_node(content_type, path,
+        node = self._node_factory.new_node(content_type, path,
                                            parent, self, attr)
+        #self._index.add_node(node)
+        return node
 
 
     def write_meta_data(self):
@@ -1811,15 +1822,20 @@ class NoteBookNodeFactory (object):
             # test for generic file
             node = NoteBookGenericFile(path, 
                                        filename=attr["payload_filename"],
-                                       title=attr.get("title", "New File"),
+                                       title=attr.get("title", _("New File")),
                                        content_type=content_type,
                                        parent=parent, notebook=notebook)
             node.set_meta_data(attr)
             return node
         
         else:
-            # TODO: return unknown node here
-            return None
+            # return unintialized generic file
+            node = NoteBookGenericFile(path, 
+                                       title=attr.get("title", _("New File")),
+                                       content_type=content_type,
+                                       parent=parent, notebook=notebook)
+            node.set_meta_data(attr)
+            return node
 
    
     def write_meta_data(self, filename, node, attr_defs):
