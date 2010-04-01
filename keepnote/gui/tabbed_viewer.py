@@ -100,6 +100,8 @@ class TabbedViewer (Viewer):
 
         # setup viewer
         self._callbacks[viewer] = [
+            viewer.connect("error", lambda w,m,e: self.emit("error", m, e)),
+            viewer.connect("status", lambda w,m,b: self.emit("status", m, b)),
             viewer.connect("window-request", lambda w,t: 
                             self.emit("window-request", t)),
             viewer.connect("current-node", self.on_tab_current_node),

@@ -78,7 +78,9 @@ class Extension (extension.Extension):
         self._file_types = []
         self._default_file_types = [
             FileType("Text File (txt)", "untitled.txt", "plain_text.txt"),
-            FileType("Spreadsheet (xls)", "untitled.xls", "spreadsheet.xls")]
+            FileType("Spreadsheet (xls)", "untitled.xls", "spreadsheet.xls"),
+            FileType("Word Document (doc)", "untitled.doc", "document.doc")
+            ]
 
         self.enabled.add(self.on_enabled)
 
