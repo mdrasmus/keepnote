@@ -331,10 +331,15 @@ def main(argv):
         main_proc = True
         cmd_exec = CommandExecutor()
     else:
-        main_proc, cmd_exec = get_command_executor(
-            lambda app, argv: gui_exec(
-                lambda: execute_command(app, argv)),
-            port=options.port)
+        try:
+            main_proc, cmd_exec = get_command_executor(
+                lambda app, argv: gui_exec(
+                    lambda: execute_command(app, argv)),
+                port=options.port)
+        except:
+            # backup if error is encountered acquiring lock
+            main_proc = True
+            cmd_exec = CommandExecutor()
     
 
     if main_proc:

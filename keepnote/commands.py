@@ -343,6 +343,8 @@ class CommandExecutor (object):
                     except Exception:
                         # ignore failure to close fd
                         pass
+
+                    # may raise exception
                     os.remove(lock_file)
 
         raise Exception("cannot get lock")
