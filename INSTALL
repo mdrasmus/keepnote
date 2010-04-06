@@ -105,7 +105,8 @@ Windows Build
     pycario-1.4.12-1.win32-py2.5.exe
     py2exe-0.6.6.win32-py2.5.exe
     isetup-5.2.3.exe  (Inno Setup)
-  
+    pywin32-210.win32-py2.5.exe
+
   NOTE: pygtk-2.12.1-2.win32-py2.5.exe (notice the -2) seems to have a bug
   with get_source_widget()
 

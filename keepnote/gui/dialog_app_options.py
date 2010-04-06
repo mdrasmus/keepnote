@@ -354,7 +354,7 @@ class HelperAppsSection (Section):
 
         # set icon
         try:
-            self.icon = keepnote.gui.get_pixbuf(get_icon_filename(gtk.STOCK_EXECUTE))
+            self.icon = keepnote.gui.get_pixbuf(get_icon_filename(gtk.STOCK_EXECUTE), size=(15, 15))
         except:
             pass
 
@@ -564,7 +564,7 @@ class ExtensionsSection (Section):
 
         # set icon
         try:
-            self.icon = keepnote.gui.get_pixbuf(get_icon_filename(gtk.STOCK_ADD))
+            self.icon = keepnote.gui.get_pixbuf(get_icon_filename(gtk.STOCK_ADD), size=(15, 15))
         except:
             pass
 
@@ -732,7 +732,6 @@ class ApplicationOptionsDialog (object):
         self.parent = None
 
         self._sections = []
-        self.tree2section = {}
         
         self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                  "app_options_dialog", keepnote.GETTEXT_DOMAIN)
@@ -768,7 +767,7 @@ class ApplicationOptionsDialog (object):
         self.add_default_sections()
 
     
-    def show(self, parent):
+    def show(self, parent, section=None):
         """Display application options"""
         
         self.parent = parent
@@ -795,6 +794,13 @@ class ApplicationOptionsDialog (object):
         self.load_options(self.app)
 
         self.dialog.show()
+
+        if section:
+            try:
+                self.overview.set_cursor(self.get_section_path(section))
+            except:
+                pass
+
 
     def finish(self):
 
@@ -893,29 +899,24 @@ class ApplicationOptionsDialog (object):
         it = self.overview_store.append(it, [section.label, section, pixbuf])
         path = self.overview_store.get_path(it)
         self.overview.expand_to_path(path)
-        self.tree2section[path] = section
 
         return section
 
 
     def remove_section(self, key):
         
-        # TODO: may need to update tree2section, when other pages slide in position
-
-        path = self.get_section_path(key)
-
-        if path is None:
-            return
-
         # remove from tabs
-        section = self.tree2section[path]
-        self.tabs.remove_page(self._sections.index(section))
-        del self.tree2section[path]
+        section = self.get_section(key)
+        if section:
+            self.tabs.remove_page(self._sections.index(section))
+            self._sections.remove(section)
 
         # remove from tree
-        self.overview_store.remove(self.overview_store.get_iter(path))
+        path = self.get_section_path(key)
+        if path is not None:
+            self.overview_store.remove(self.overview_store.get_iter(path))
 
-        self._sections.remove(section)
+
 
 
     def get_section(self, key):
@@ -924,6 +925,7 @@ class ApplicationOptionsDialog (object):
         for section in self._sections:
             if section.key == key:
                 return section
+        return None
 
             
     def get_section_path(self, key):
@@ -955,7 +957,7 @@ class ApplicationOptionsDialog (object):
         """Callback for changing topic in overview"""
         row, col = overview.get_cursor()
         if row is not None:
-            section = self.tree2section[row]
+            section = self.overview_store[row][1]
             self.tabs.set_current_page(self._sections.index(section))
 
 

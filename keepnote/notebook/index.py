@@ -242,8 +242,12 @@ class NoteBookIndex (object):
         """Close connection to index"""
         
         if self.con is not None:
-            self.con.commit()
-            self.con.close()
+            try:
+                self.con.commit()
+                self.con.close()
+            except:
+                # close should always happen without propogating errors
+                pass
             self.con = None
             self.cur = None
     
