@@ -31,7 +31,7 @@ import os
 import shutil
 import subprocess
 import sys
-
+import time
 
 
 # pygtk imports
@@ -1071,27 +1071,41 @@ class KeepNoteWindow (gtk.Window):
         # clear listview        
         self.viewer.start_search_result()
 
+
+        from Queue import Queue
+        queue = Queue()
+
+        # update gui with search result
         def search(task):
-            # do search in another thread
+            def gui_update():
+                maxstep = 10
+                for i in xrange(maxstep):
+                    # check if search is aborted
+                    if task.aborted():
+                        task.finish()
+                        return False
+                    
+                    if not queue.empty():
+                        node = queue.get()
+                        if node is None:
+                            # no more nodes left, finish
+                            task.finish()
+                            return False
+                        else:
+                            # add result to gui
+                            self.viewer.add_search_result(node)
+                return True
+            
+            gobject.idle_add(gui_update)
 
-            def gui_update(node):
-                def func():
-                    gtk.gdk.threads_enter()
-                    self.viewer.add_search_result(node)
-                    gtk.gdk.threads_leave()
-                return func
-
+            # do search in thread
             for node in nodes:
-                # terminate if search is canceled
-                if task.aborted():
-                    break
-                gobject.idle_add(gui_update(node))
-                
-            task.finish()
-
+                queue.put(node)
+            queue.put(None)
+        
         # launch task
         self.wait_dialog(_("Searching notebook"), _("Searching..."),
-                         tasklib.Task(search))
+                         tasklib.Task(search, False))
 
 
     def focus_on_search_box(self):

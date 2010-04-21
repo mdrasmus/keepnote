@@ -39,13 +39,14 @@ STOPPING = 2
 
 class Task (object):
 
-    def __init__(self, func=None):
+    def __init__(self, func=None, autofinish=True):
         self._lock = threading.Lock()
         self._messages = []
         self._percent = None
         self._state = STOPPED
         self._result = None
         self._func = func
+        self._autofinish = autofinish
         self._exc_info = (None, None, None)
         self._aborted = False
         self._proc = None
@@ -122,6 +123,9 @@ class Task (object):
                 self._proc = threading.Thread(target=self._new_thread)
             else:
                 self._func(self)
+                if self._autofinish:
+                    self.finish()
+                return
         
         self._lock.release()
 
@@ -137,7 +141,8 @@ class Task (object):
     def _new_thread(self):
         try:            
             self._func(self)
-            self.finish()
+            if self._autofinish:
+                self.finish()
             
         except Exception, e:
             

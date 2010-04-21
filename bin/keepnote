@@ -28,6 +28,8 @@ import optparse
 import thread
 import traceback
 
+# debug
+#import pdb; pdb.set_trace()
 
 
 #=============================================================================
