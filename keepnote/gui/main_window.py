@@ -96,11 +96,12 @@ class KeepNoteWindow (gtk.Window):
         self._app = app # application object
 
         # window state
-        self._maximized = False   # True if window is maximized
+        self._maximized = False     # True if window is maximized
         self._was_maximized = False # True if iconified and was maximized
-        self._iconified = False   # True if window is minimized
-        self._tray_icon = None
-        self._auto_saving = False
+        self._iconified = False     # True if window is minimized
+        self._tray_icon = None      # True if tray icon is present        
+        self._auto_saving = False   # True if autosave is on
+        self._auto_save_pause = False # True if autosave is paused
 
         self._uimanager = UIManager()
         self._accel_group = self._uimanager.get_accel_group()
@@ -696,9 +697,12 @@ class KeepNoteWindow (gtk.Window):
         """Callback for autosaving"""
 
         # NOTE: return True to activate next timeout callback
-        
         if not self._auto_saving:
             return False
+
+        # don't do autosave if it is paused
+        if self._auto_save_pause:
+            return True
 
         self.save_notebook(True)
         return self._app.pref.autosave
@@ -1168,8 +1172,14 @@ class KeepNoteWindow (gtk.Window):
     def wait_dialog(self, title, text, task):
         """Display a wait dialog"""
 
+        # NOTE: pause autosave while performing long action
+
+        self._auto_save_pause = True
+        
         dialog = dialog_wait.WaitDialog(self)
-        dialog.show(title, text, task)       
+        dialog.show(title, text, task)
+        dialog.dialog.connect("destroy",
+                       lambda x: setattr(self, "_auto_save_pause", False))
 
         
     
