@@ -206,7 +206,7 @@ def import_ncd_file(window,file):
     if len(nodes) == 1:
         parent = nodes[0]    
     else:
-        parent = obj._notebook
+        parent = window.get_notebook()
     if pos == "sibling" and parent.get_parent() is not None:
         index = parent.get_attr("order") + 1
         parent = parent.get_parent()
