@@ -139,11 +139,14 @@ DEFAULT_AUTOSAVE_TIME = 10 * 1000 # 10 sec (in msec)
 # TODO: cleanup, make get/set_basedir symmetrical
 
 def get_basedir():
-    return os.path.dirname(__file__)
+    return unicode(os.path.dirname(__file__))
 
 def set_basedir(basedir):
     global BASEDIR
-    BASEDIR = basedir
+    if basedir is None:
+        BASEDIR = get_basedir()
+    else:
+        BASEDIR = basedir
     keepnote.trans.set_local_dir(get_locale_dir())
 
 

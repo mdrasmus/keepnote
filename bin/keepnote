@@ -28,8 +28,6 @@ import optparse
 import thread
 import traceback
 
-# debug
-#import pdb; pdb.set_trace()
 
 
 #=============================================================================
@@ -73,6 +71,9 @@ bin_path = os.path.dirname(sys.argv[0])
     dir/rc
 
 """
+
+
+
 
 
 # try to infer keepnote lib path from program path

@@ -193,23 +193,15 @@ def search_manual(node, words):
         
         if i == 0 and match_words(node2, words):
             yield node2
+        else:
+            # return frequently so that search does not block long
+            yield None
 
         if i >= len(node2.get_children()):
             stack.pop()
         else:
             stack[-1][1] += 1
             stack.append([node2.get_children()[i], 0])
-
-    '''
-    def walk(node2):
-        if match_words(node2, words):
-            nodes.append(node2)
-        for child in node2.get_children():
-            walk(child)
-    walk(node)
-    
-    return nodes
-    '''
         
 
     

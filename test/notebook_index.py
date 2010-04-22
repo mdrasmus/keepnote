@@ -74,6 +74,8 @@ class TestCaseNotebookIndex (unittest.TestCase):
         nodea.move(parenta)
         print "back path:", nodea.get_path()
 
+        book.close()
+
 
 
     def test_notebook_title(self):
@@ -86,7 +88,7 @@ class TestCaseNotebookIndex (unittest.TestCase):
 
         print book._index.search_titles("STRESS")
         print book._index.search_titles("aaa")
-        
+
 
     def test_notebook_threads(self):
 
@@ -121,8 +123,52 @@ class TestCaseNotebookIndex (unittest.TestCase):
         task.join()
 
         book.save()
+        book.close()
 
-        
+
+    def test_notebook_threads2(self):
+
+        test = self
+        error = False
+
+        print
+        book = notebook.NoteBook()
+        book.load("test/data/notebook-v3")
+        book.save()
+
+        nodeid = "0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"
+
+        def walk(node):
+            for child in node.get_children():
+                walk(child)
+
+
+        class Task (threading.Thread):
+
+            def run(self):
+                try:
+                    print "loading..."                    
+                    #node = book.get_node_by_id(nodeid)
+                    walk(book)
+
+                except Exception, e:
+                    error = True
+                    print "ERROR:"
+                    traceback.print_exception(type(e), e, sys.exc_info()[2])
+                    raise e
+                
+        #node = book.get_node_by_id(nodeid)
+
+        task = Task()
+        task.start()
+        task.join()
+
+        walk(book)
+
+        #book.save()
+        book.close()
+
+        self.assert_(not error)
 
         
 notebook_index_suite = unittest.defaultTestLoader.loadTestsFromTestCase(

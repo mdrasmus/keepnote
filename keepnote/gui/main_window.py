@@ -702,12 +702,6 @@ class KeepNoteWindow (gtk.Window):
 
         self.save_notebook(True)
         return self._app.pref.autosave
-
-        #if self.viewer.get_notebook() is not None:
-        #    self.save_notebook(True)
-        #    return self._app.pref.autosave
-        #else:
-        #    return False
     
 
     def set_notebook(self, notebook):
@@ -1048,95 +1042,6 @@ class KeepNoteWindow (gtk.Window):
         menu.append(item)
 
   
-
-    #======================================================
-    # Search
-
-    # TODO: make a separate search widget.
-
-    def on_search_nodes(self):
-        """Search nodes"""
-
-        # do nothing if notebook is not defined
-        if not self.viewer.get_notebook():
-            return
-
-        # get words
-        words = [x.lower() for x in
-                 unicode_gtk(self.search_box.get_text()).strip().split()]
-        
-        # prepare search iterator
-        nodes = keepnote.search.search_manual(self.viewer.get_notebook(), words)
-
-        # clear listview        
-        self.viewer.start_search_result()
-
-
-        from Queue import Queue
-        queue = Queue()
-
-        # update gui with search result
-        def search(task):
-            def gui_update():
-                maxstep = 10
-                for i in xrange(maxstep):
-                    # check if search is aborted
-                    if task.aborted():
-                        task.finish()
-                        return False
-                    
-                    if not queue.empty():
-                        node = queue.get()
-                        if node is None:
-                            # no more nodes left, finish
-                            task.finish()
-                            return False
-                        else:
-                            # add result to gui
-                            self.viewer.add_search_result(node)
-                return True
-            
-            gobject.idle_add(gui_update)
-
-            # do search in thread
-            for node in nodes:
-                queue.put(node)
-            queue.put(None)
-        
-        # launch task
-        self.wait_dialog(_("Searching notebook"), _("Searching..."),
-                         tasklib.Task(search, False))
-
-
-    def focus_on_search_box(self):
-        """Place cursor in search box"""
-        self.search_box.grab_focus()
-
-
-    def _on_search_box_text_changed(self, url_text):
-
-        if not self._ignore_text:
-            self.search_box_update_completion()
-
-    def search_box_update_completion(self):
-
-        text = unicode_gtk(self.search_box.get_text())
-        
-        self.search_box_list.clear()
-        if len(text) > 0:
-            results = self.viewer.get_notebook().search_node_titles(text)[:10]
-            for nodeid, title in results:
-                self.search_box_list.append([title, nodeid])
-
-    def _on_search_box_completion_match(self, completion, model, iter):
-        
-        nodeid = model[iter][1]
-
-        node = self.viewer.get_notebook().get_node_by_id(nodeid)
-        if node:
-            self.viewer.goto_node(node, False)
-        
-
     
     #=====================================================
     # Cut/copy/paste    
@@ -1353,7 +1258,7 @@ class KeepNoteWindow (gtk.Window):
             
             ("Search All Notes", gtk.STOCK_FIND, _("_Search All Notes"),
              "<control>K", None,
-             lambda w: self.focus_on_search_box()),
+             lambda w: self.search_box.grab_focus()),
 
             #=======================================
             ("Go", None, _("_Go")),
@@ -1420,7 +1325,7 @@ class KeepNoteWindow (gtk.Window):
             Action("Search Box Tool", None, None, "", _("Search All Notes")),
             Action("Search Button Tool", gtk.STOCK_FIND, None, "", 
                    _("Search All Notes"),
-                   lambda w: self.on_search_nodes())]
+                   lambda w: self.search_box.on_search_nodes())]
 
 
         # make sure recent notebooks is always visible
@@ -1567,22 +1472,8 @@ class KeepNoteWindow (gtk.Window):
 
 
         # search box
-        self.search_box = gtk.Entry()
-        self.search_box.connect("changed", self._on_search_box_text_changed)
-        self.search_box.connect("activate",
-                                lambda w: self.on_search_nodes())        
-
-        self.search_box_list = gtk.ListStore(gobject.TYPE_STRING, 
-                                             gobject.TYPE_STRING)
-        self.search_box_completion = gtk.EntryCompletion()
-        self.search_box_completion.connect("match-selected", 
-                                           self._on_search_box_completion_match)
-        self.search_box_completion.set_match_func(lambda c, k, i: True)
-        self.search_box_completion.set_model(self.search_box_list)
-        self.search_box_completion.set_text_column(0)
-        self.search_box.set_completion(self.search_box_completion)
+        self.search_box = SearchBox(self)
         self.search_box.show()
-        self._ignore_text = False
         w = self._uimanager.get_widget("/main_tool_bar/Search Box Tool")
         w.remove(w.child)
         w.add(self.search_box)
@@ -1593,3 +1484,128 @@ class KeepNoteWindow (gtk.Window):
 gobject.type_register(KeepNoteWindow)
 gobject.signal_new("error", KeepNoteWindow, gobject.SIGNAL_RUN_LAST, 
     gobject.TYPE_NONE, (str, object, object))
+
+
+
+
+class SearchBox (gtk.Entry):
+
+    def __init__(self, window):
+        gtk.Entry.__init__(self)
+
+        self._window = window
+
+        self.connect("changed", self._on_search_box_text_changed)
+        self.connect("activate", lambda w: self.on_search_nodes())
+
+        self.search_box_list = gtk.ListStore(gobject.TYPE_STRING, 
+                                             gobject.TYPE_STRING)
+        self.search_box_completion = gtk.EntryCompletion()
+        self.search_box_completion.connect("match-selected", 
+                                           self._on_search_box_completion_match)
+        self.search_box_completion.set_match_func(lambda c, k, i: True)
+        self.search_box_completion.set_model(self.search_box_list)
+        self.search_box_completion.set_text_column(0)
+        self.set_completion(self.search_box_completion)
+        
+
+        
+
+    def on_search_nodes(self):
+        """Search nodes"""
+
+        # do nothing if notebook is not defined
+        if not self._window.get_notebook():
+            return
+
+        # TODO: add parsing grammar
+        # get words
+        words = [x.lower() for x in
+                 unicode_gtk(self.get_text()).strip().split()]
+        
+        # prepare search iterator
+        nodes = keepnote.search.search_manual(self._window.get_notebook(), words)
+
+        # clear listview        
+        self._window.get_viewer().start_search_result()
+
+        # queue for sending results between threads
+        from threading import Lock
+        from Queue import Queue
+        queue = Queue()
+        lock = Lock()
+
+        # update gui with search result
+        def search(task):
+            def gui_update():
+                maxstep = 10
+                for i in xrange(maxstep):
+                    # check if search is aborted
+                    if task.aborted():
+                        task.finish()
+                        return False
+                    
+                    if not queue.empty():
+                        node = queue.get()
+                        if node is None:
+                            # no more nodes left, finish
+                            task.finish()
+                            return False
+                        else:
+                            # add result to gui
+                            lock.acquire()
+                            self._window.get_viewer().add_search_result(node)
+                            lock.release()
+                    else:
+                        break
+                return True
+            
+            gobject.idle_add(gui_update)
+
+            # do search in thread
+            lock.acquire()
+            for node in nodes:
+                lock.release()
+                if task.aborted():
+                    break
+                if node:
+                    queue.put(node)
+                lock.acquire()
+            queue.put(None)
+            lock.release()
+
+        
+        # launch task
+        self._window.wait_dialog(_("Searching notebook"), _("Searching..."),
+                                 tasklib.Task(search, False))
+
+
+    def focus_on_search_box(self):
+        """Place cursor in search box"""
+        self.grab_focus()
+
+
+    def _on_search_box_text_changed(self, url_text):
+
+        self.search_box_update_completion()
+
+    def search_box_update_completion(self):
+
+        text = unicode_gtk(self.get_text())
+        
+        self.search_box_list.clear()
+        if len(text) > 0:
+            results = self._window.get_notebook().search_node_titles(text)[:10]
+            for nodeid, title in results:
+                self.search_box_list.append([title, nodeid])
+
+    def _on_search_box_completion_match(self, completion, model, iter):
+        
+        nodeid = model[iter][1]
+
+        node = self._window.get_notebook().get_node_by_id(nodeid)
+        if node:
+            self._window.get_viewer().goto_node(node, False)
+        
+
+
