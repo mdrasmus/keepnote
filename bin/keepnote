@@ -73,6 +73,9 @@ bin_path = os.path.dirname(sys.argv[0])
 """
 
 
+
+
+
 # try to infer keepnote lib path from program path
 pkgdir = dirname(dirname(realpath(sys.argv[0])))
 if os.path.exists(os.path.join(pkgdir, "keepnote", "__init__.py")):

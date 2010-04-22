@@ -61,14 +61,13 @@ class WaitDialog (object):
         self.dialog.set_title(title)
         self.text.set_text(message)
         self._task = task
-        self._task.run()
 
         cancel_button = self.xml.get_widget("cancel_button")
         cancel_button.set_sensitive(cancel)
 
         self.dialog.show()
-        proc = threading.Thread(target=self._on_idle)
-        proc.start()
+        self._task.run()
+        self._on_idle()
         self.dialog.run()
         self._task.join()
 
@@ -80,9 +79,11 @@ class WaitDialog (object):
         pulse_rate = 0.5 # seconds per sweep
 
         def gui_update():
-            #print "GDK entering..."
-            gtk.gdk.threads_enter()
-            #print "GDK enter"
+
+            if self._task.is_stopped():
+                self.dialog.destroy()
+                return False
+            
             percent = self._task.get_percent()
             if percent is None:
                 t = time.time()
@@ -105,22 +106,10 @@ class WaitDialog (object):
             if len(details) > 0:
                 self.progressbar.set_text(details[-1][1])
 
-            #print "GDK leaving..."
-            gtk.gdk.threads_leave()
-            #print "GDK left"
+            return True
 
-            return not self._task.is_stopped()
-
-        gobject.idle_add(gui_update)
-
-        while not self._task.is_stopped():
-            #print "tick"
-            time.sleep(.2)
-        
-        # kill dialog and stop idling
-        gobject.idle_add(lambda: self.dialog.destroy())
-        
-
+        gobject.timeout_add(50, gui_update)
+            
 
     def _on_task_update(self):
         pass
