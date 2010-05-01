@@ -50,6 +50,9 @@ try:
 except ImportError:
     gtkspell = None
 
+# keepnote import
+from keepnote import log_error
+
 
 # textbuffer_tools imports
 from keepnote.gui.richtext.textbuffer_tools import \
@@ -851,9 +854,7 @@ class RichTextView (gtk.TextView):
         """Paste HTML into buffer"""
         
         html = parse_utf(selection_data.data)        
-
-        print html
-
+        
         try:
             self._textbuffer.begin_user_action()
             self._textbuffer.delete_selection(False, True)
@@ -862,7 +863,7 @@ class RichTextView (gtk.TextView):
         
             self.scroll_mark_onscreen(self._textbuffer.get_insert())
         except Exception, e:
-            print e
+            log_error(e, sys.exc_info()[2])
     
     def _do_paste_image(self, clipboard, selection_data, data):
         """Paste image into buffer"""
