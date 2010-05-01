@@ -849,15 +849,20 @@ class RichTextView (gtk.TextView):
 
     def _do_paste_html(self, clipboard, selection_data, data):
         """Paste HTML into buffer"""
-
-        # TODO: figure out right way to parse selection.data
-        html = parse_utf(selection_data.data)        
-        self._textbuffer.begin_user_action()
-        self._textbuffer.delete_selection(False, True)
-        self.insert_html(html)
-        self._textbuffer.end_user_action()
         
-        self.scroll_mark_onscreen(self._textbuffer.get_insert())
+        html = parse_utf(selection_data.data)        
+
+        print html
+
+        try:
+            self._textbuffer.begin_user_action()
+            self._textbuffer.delete_selection(False, True)
+            self.insert_html(html)
+            self._textbuffer.end_user_action()
+        
+            self.scroll_mark_onscreen(self._textbuffer.get_insert())
+        except Exception, e:
+            print e
     
     def _do_paste_image(self, clipboard, selection_data, data):
         """Paste image into buffer"""
@@ -1105,10 +1110,14 @@ class RichTextView (gtk.TextView):
             # download images included in html
             if kind == "anchor" and isinstance(param[0], RichTextImage):
                 img = param[0]
-                if img.get_filename().startswith("http:") or \
-                   img.get_filename().startswith("file:"):
-                    # TODO: protect this with exceptions
-                    img.set_from_url(img.get_filename(), "image.png")
+                filename = img.get_filename()
+                if filename and (filename.startswith("http:") or 
+                                 filename.startswith("file:")):
+                    try:
+                        img.set_from_url(filename, "image.png")
+                    except:
+                        # Be robust to errors from loading from the web.
+                        pass
         
         # add to buffer
         self._textbuffer.insert_contents(contents)

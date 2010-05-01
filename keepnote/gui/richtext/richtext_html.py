@@ -32,6 +32,8 @@ from xml.sax.saxutils import escape
 import urllib
 
 # keepnote imports
+from keepnote import log_error, log_message
+
 from keepnote.gui.richtext.textbuffer_tools import \
      iter_buffer_contents, \
      buffer_contents_iter_to_offset, \
@@ -224,7 +226,7 @@ def unnest_indent_tags(contents):
                 yield item
 
         else:
-                yield item
+            yield item
                 
 
 def find_paragraphs(contents):
@@ -313,52 +315,59 @@ def parse_css_style(stylestr):
     for statement in stylestr.split(";"):
         statement = statement.strip()            
 
-        if statement.startswith("font-size"):
-            # font size
-            size = int("".join(filter(lambda x: x.isdigit(),
-                               statement.split(":")[1])))
-            yield "size " + str(size)
+        try:
 
-        elif statement.startswith("font-family"):
-            # font family
-            yield "family " + statement.split(":")[1].strip()
+            if statement.startswith("font-size"):
+                # font size
+                size = int("".join(filter(lambda x: x.isdigit(),
+                                          statement.split(":")[1])))
+                yield "size " + str(size)
 
-        elif statement.startswith("text-align"):
-            # text justification
-            align = statement.split(":")[1].strip()
+            elif statement.startswith("font-family"):
+                # font family
+                yield "family " + statement.split(":")[1].strip()
 
-            if align not in JUSTIFY_VALUES:
-                raise HtmlError("unknown justification '%s'" % align)
+            elif statement.startswith("text-align"):
+                # text justification
+                align = statement.split(":")[1].strip()
 
-            if align == "justify":
-                yield "fill"
-            else:
-                yield align
+                #if align not in JUSTIFY_VALUES:
+                #    raise HtmlError("unknown justification '%s'" % align)
 
-        elif statement.startswith("color"):
-            # foreground color
-            fg_color = statement.split(":")[1].strip()
+                if align == "justify":
+                    yield "fill"
+                else:
+                    yield align
 
-            if fg_color.startswith("#"):
-                if len(fg_color) == 4:
-                    x, a, b, c = fg_color
-                    fg_color = x + a + a + b + b+ c + c
+            elif statement.startswith("color"):
+                # foreground color
+                fg_color = statement.split(":")[1].strip()
 
-                if len(fg_color) == 7:
-                    yield "fg_color " + fg_color
+                if fg_color.startswith("#"):
+                    if len(fg_color) == 4:
+                        x, a, b, c = fg_color
+                        fg_color = x + a + a + b + b+ c + c
+
+                    if len(fg_color) == 7:
+                        yield "fg_color " + fg_color
 
 
-        elif statement.startswith("background-color"):
-            # background color
-            bg_color = statement.split(":")[1].strip()
+            elif statement.startswith("background-color"):
+                # background color
+                bg_color = statement.split(":")[1].strip()
 
-            if bg_color.startswith("#"):
-                if len(bg_color) == 4:
-                    x, a, b, c = bg_color
-                    bg_color = x + a + a + b + b+ c + c
+                if bg_color.startswith("#"):
+                    if len(bg_color) == 4:
+                        x, a, b, c = bg_color
+                        bg_color = x + a + a + b + b + c + c
 
-                if len(bg_color) == 7:
+                    if len(bg_color) == 7:
                         yield "bg_color " + bg_color
+
+        except:
+            # ignore css statements that we cannot parse
+            pass
+
 
         
 
@@ -614,14 +623,16 @@ class HtmlTagListItemReader (HtmlTagReader):
         for key, value in attrs:
             if key == "style":
                 for statement in value.split(";"):
-                    key2, value2 = statement.split(":")
-                    value2 = value2.strip()
+                    tokens = statement.split(":")
+                    if len(tokens) == 2:
+                        key2, value2 = tokens
+                        value2 = value2.strip()
 
-                    if key2.strip() == "list-style-type":
-                        if value2 == "disc":
-                            par_type = "bullet"
-                        elif value2 == "none":
-                            par_type = "none"
+                        if key2.strip() == "list-style-type":
+                            if value2 == "disc":
+                                par_type = "bullet"
+                            elif value2 == "none":
+                                par_type = "none"
 
         tag = TagNameDom("li %s" % par_type)
         self._io.append_child(tag, True)
@@ -667,11 +678,9 @@ class HtmlTagUnorderedListWriter (HtmlTagWriter):
         
     def write_tag_begin(self, out, dom, xhtml):
         out.write("<ul>")
-        #out.write("<ol>")
 
     def write_tag_end(self, out, dom, xhtml):
         out.write("</ul>\n")
-        #out.write("</ol>\n")
 
 class HtmlTagBulletWriter (HtmlTagWriter):
     
@@ -875,7 +884,9 @@ class HtmlBuffer (HTMLParser):
             self.close()
             
         except Exception, e:
+            log_error(e, sys.exc_info()[2])
             # reraise error if not ignored
+            self.close()
             if not ignore_errors:
                 raise
         
@@ -1100,8 +1111,7 @@ class HtmlBuffer (HTMLParser):
                 return
         
         # warning
-        #TODO:
-        print "unknown anchor element", anchor
+        log_message("unknown anchor element", anchor)
 
     
     def write_tag_begin(self, dom, xhtml=True):
