@@ -26,6 +26,7 @@
 
 
 # python imports
+import sys
 import re
 from HTMLParser import HTMLParser
 from xml.sax.saxutils import escape
@@ -879,6 +880,7 @@ class HtmlBuffer (HTMLParser):
         self._tag_stack = [(None, self._dom)]
 
         try:
+            self.reset()
             for line in infile:
                 self.feed(line)                
             self.close()

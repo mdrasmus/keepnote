@@ -38,6 +38,11 @@ import tempfile
 import traceback
 import zipfile
 
+
+# work around pygtk changing default encoding
+DEFAULT_ENCODING = sys.getdefaultencoding()
+FS_ENCODING = sys.getfilesystemencoding()
+
 # keepnote imports
 from keepnote.notebook import \
     NoteBookError, \
@@ -178,7 +183,6 @@ def is_url(text):
     return re.match("^[^:]+://", text) is not None
 
 
-FS_ENCODING = sys.getfilesystemencoding()
 def ensure_unicode(text, encoding="utf8"):
     """Ensures a string is unicode"""
 
@@ -242,7 +246,7 @@ def get_user_pref_dir(home=None):
         return keepnote.xdg.get_config_file(USER_PREF_DIR, default=True)
 
     elif p == "windows":
-        appdata = ensure_unicode(os.getenv(u"APPDATA"), FS_ENCODING)
+        appdata = ensure_unicode(os.getenv("APPDATA"), DEFAULT_ENCODING)
         if appdata is None:
             raise EnvError("APPDATA environment variable must be specified")
         return os.path.join(appdata, USER_PREF_DIR)
@@ -436,7 +440,7 @@ DEFAULT_EXTERNAL_APPS = [
 def get_external_app_defaults():
     if get_platform() == "windows":
         files = ensure_unicode(
-            os.environ.get(u"PROGRAMFILES", u"C:\\Program Files"), FS_ENCODING)
+            os.environ.get(u"PROGRAMFILES", u"C:\\Program Files"),FS_ENCODING)
 
         return [
             ExternalApp("file_launcher", "File Launcher", u"explorer.exe"),
