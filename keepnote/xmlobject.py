@@ -377,9 +377,9 @@ class XmlObject (object):
             out = filename
             need_close = False
         
-        out.write("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
+        out.write(u"<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
         self._root_tag.write(obj, out)
-        out.write("\n")
+        out.write(u"\n")
         if need_close:
             out.close()
         

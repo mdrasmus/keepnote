@@ -85,6 +85,7 @@ from keepnote.gui.tabbed_viewer import TabbedViewer
 
 _ = keepnote.translate
 
+CLIPBOARD_NAME = "CLIPBOARD"
 
 
 class KeepNoteWindow (gtk.Window):
@@ -506,6 +507,12 @@ class KeepNoteWindow (gtk.Window):
         """Callback for window close"""
 
         try:
+            # TODO: decide if a clipboard action is needed before
+            # closing down.
+            #clipboard = self.get_clipboard(selection=CLIPBOARD_NAME)
+            #clipboard.set_can_store(None)
+            #clipboard.store()
+
             self.save_preferences()
             self.close_notebook()
             if self._tray_icon:

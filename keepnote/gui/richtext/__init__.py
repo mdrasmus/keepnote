@@ -589,38 +589,6 @@ class RichTextView (gtk.TextView):
         if target:
             textview.drag_dest_set_target_list([(target, 0, 0)])
 
-        '''
-        # in preference order
-        accepted_targets = MIME_IMAGES + \
-                           ["text/uri-list",
-                            "text/html",
-                            "text/plain"]
-
-        for target in accepted_targets:
-            if target in drag_context.targets:
-                textview.drag_dest_set_target_list([(target, 0, 0)])
-                break
-        '''
-
-        '''
-        # check for image targets
-        img_target = self.drag_dest_find_target(drag_context, 
-                                                [(x, 0, 0)
-                                                 for x in MIME_IMAGES])
-
-             
-        if img_target is not None and img_target != "NONE":
-            textview.drag_dest_set_target_list([(img_target, 0, 0)])
-            
-        elif "application/pdf" in drag_context.targets:
-            textview.drag_dest_set_target_list([("application/pdf", 0, 0)])
-
-        elif "text/html" in drag_context.targets:
-            textview.drag_dest_set_target_list([("text/html", 0, 0)])
-            
-        else:
-            textview.drag_dest_set_target_list([("text/plain", 0, 0)])
-        '''
     
     
     def on_drag_data_received(self, widget, drag_context, x, y,
@@ -731,6 +699,8 @@ class RichTextView (gtk.TextView):
     def copy_clipboard(self, clipboard):
         """Callback for copy event"""
 
+        #clipboard.set_can_store(None)
+
         if not self._textbuffer:
             return
     
@@ -821,7 +791,6 @@ class RichTextView (gtk.TextView):
     def paste_clipboard_as_text(self):
         """Callback for paste action"""    
         clipboard = self.get_clipboard(selection=CLIPBOARD_NAME)
-        #self.paste_clipboard(clipboard, None, self.get_editable())
 
         if not self._textbuffer:
             return
@@ -896,6 +865,7 @@ class RichTextView (gtk.TextView):
     def _get_selection_data(self, clipboard, selection_data, info, data):
         """Callback for when Clipboard needs selection data"""
 
+        
         global _g_clipboard_contents
 
         contents, text = data
@@ -1146,8 +1116,6 @@ class RichTextView (gtk.TextView):
 
     #==========================================================
     # Find/Replace
-
-    # TODO: add wrapping to search
     
     def forward_search(self, it, text, case_sensitive, wrap=True):
         """Finds next occurrence of 'text' searching forwards"""

@@ -285,7 +285,7 @@ def get_user_documents(home=None):
         return home
     
     elif p == "windows":
-        return mswin.get_my_documents()
+        return unicode(mswin.get_my_documents(), FS_ENCODING)
     
     else:
         return u""

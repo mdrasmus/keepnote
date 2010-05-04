@@ -776,7 +776,7 @@ class EditorMenus (gobject.GObject):
             self._uis.append(window.get_uimanager().add_ui_from_string(s))
         window.get_uimanager().ensure_update()
 
-        self.setup_menu(window.get_uimanager())
+        self.setup_menu(window, window.get_uimanager())
 
 
 
@@ -1102,7 +1102,7 @@ class EditorMenus (gobject.GObject):
             return None
 
 
-    def setup_menu(self, uimanager):
+    def setup_menu(self, window, uimanager):
 
         u = uimanager
 
@@ -1241,6 +1241,7 @@ class EditorMenus (gobject.GObject):
             uimanager.get_widget("/main_menu_bar/Tools/Viewer/Spell Check")
         self.spell_check_toggle.set_sensitive(
             self._editor.get_textview().can_spell_check())
+        self.spell_check_toggle.set_active(window.get_app().pref.spell_check)
 
     
 
