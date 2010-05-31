@@ -313,7 +313,7 @@ def get_user_error_log(pref_dir=None, home=None):
     return os.path.join(pref_dir, USER_ERROR_LOG)
 
 
-def get_win_env(key, default):
+def get_win_env(key):
     """Returns a windows environment variable"""
     # try both encodings
     try:

@@ -196,7 +196,7 @@ class FileChooserDialog (gtk.FileChooserDialog):
         
         if self._app and self._persistent_path:
             path = getattr(self._app.pref, self._persistent_path)
-            if os.path.exists(path):
+            if path and os.path.exists(path):
                 self.set_current_folder(path)
 
 
