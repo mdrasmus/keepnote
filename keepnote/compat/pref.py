@@ -97,7 +97,7 @@ def get_old_user_pref_dir(home=None):
             return xdg.get_config_file(OLD_USER_PREF_DIR, default=True)
 
     elif p == "windows":
-        appdata = keepnote.ensure_unicode(os.getenv("APPDATA"), keepnote.DEFAULT_ENCODING)
+        appdata = keepnote.get_win_env("APPDATA")
         if appdata is None:
             raise keepnote.EnvError("APPDATA environment variable must be specified")
         return os.path.join(appdata, OLD_USER_PREF_DIR)
@@ -117,7 +117,7 @@ def get_new_user_pref_dir(home=None):
         return xdg.get_config_file(USER_PREF_DIR, default=True)
 
     elif p == "windows":
-        appdata = keepnote.ensure_unicode(os.getenv("APPDATA"), keepnote.DEFAULT_ENCODING)
+        appdata = keepnote.get_win_env("APPDATA")
         if appdata is None:
             raise keepnote.EnvError("APPDATA environment variable must be specified")
         return os.path.join(appdata, USER_PREF_DIR)

@@ -246,7 +246,7 @@ def get_user_pref_dir(home=None):
         return keepnote.xdg.get_config_file(USER_PREF_DIR, default=True)
 
     elif p == "windows":
-        appdata = ensure_unicode(os.getenv("APPDATA"), DEFAULT_ENCODING)
+        appdata = get_win_env("APPDATA")
         if appdata is None:
             raise EnvError("APPDATA environment variable must be specified")
         return os.path.join(appdata, USER_PREF_DIR)
@@ -311,6 +311,15 @@ def get_user_error_log(pref_dir=None, home=None):
     if pref_dir is None:
         pref_dir = get_user_pref_dir(home)
     return os.path.join(pref_dir, USER_ERROR_LOG)
+
+
+def get_win_env(key, default):
+    """Returns a windows environment variable"""
+    # try both encodings
+    try:
+        return ensure_unicode(os.getenv(key), DEFAULT_ENCODING)
+    except UnicodeDecodeError:
+        return ensure_unicode(os.getenv(key), FS_ENCODING)
 
 
 #=============================================================================
