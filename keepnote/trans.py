@@ -39,7 +39,7 @@ except:
 
 # global translation object
 GETTEXT_DOMAIN = 'keepnote'
-_locale_dir = u""
+_locale_dir = u"."
 _translation = None
 _lang = None
 

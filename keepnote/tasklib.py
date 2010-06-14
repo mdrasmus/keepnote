@@ -40,7 +40,7 @@ STOPPING = 2
 class Task (object):
 
     def __init__(self, func=None, autofinish=True):
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._messages = []
         self._percent = None
         self._state = STOPPED
@@ -153,7 +153,6 @@ class Task (object):
             self._lock.release()
 
             self.change_event.notify()
-                
 
 
     def stop(self):

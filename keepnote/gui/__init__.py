@@ -33,7 +33,7 @@ import os
 import subprocess
 import sys
 import tempfile
-
+import thread
 
 # pygtk imports
 import pygtk
@@ -390,19 +390,21 @@ class KeepNote (keepnote.KeepNote):
         return self._windows
 
 
-    def open_notebook(self, filename, window=None):
+    def open_notebook(self, filename, window=None, task=None):
         """Open notebook"""
 
         from keepnote.gui import dialog_update_notebook
 
         version = notebooklib.get_notebook_version(filename)
-            
+        
+        
         if version < notebooklib.NOTEBOOK_FORMAT_VERSION:
             dialog = dialog_update_notebook.UpdateNoteBookDialog(self, window)
-            if not dialog.show(filename, version=version):
+            if not dialog.show(filename, version=version, task=task):
                 self.error(_("Cannot open notebook (version too old)"))
                 return None
-
+        
+            
         # try to open notebook
         try:
             notebook = notebooklib.NoteBook()
@@ -429,7 +431,6 @@ class KeepNote (keepnote.KeepNote):
                        e, sys.exc_info()[2])
             return None
 
-
         # install default quick pick icons
         if len(notebook.pref.get_quick_pick_icons()) == 0:
             notebook.pref.set_quick_pick_icons(
@@ -439,6 +440,7 @@ class KeepNote (keepnote.KeepNote):
             # TODO: use listeners to invoke saving
             notebook.write_preferences()
 
+            
         return notebook
 
 

@@ -61,6 +61,7 @@ class WaitDialog (object):
         self.dialog.set_title(title)
         self.text.set_text(message)
         self._task = task
+        self._task.change_event.add(self._on_task_update)
 
         cancel_button = self.xml.get_widget("cancel_button")
         cancel_button.set_sensitive(cancel)
@@ -71,6 +72,8 @@ class WaitDialog (object):
         self.dialog.run()
         self._task.join()
 
+        self._task.change_event.remove(self._on_task_update)
+
 
     def _on_idle(self):
         """Idle thread"""
@@ -80,10 +83,13 @@ class WaitDialog (object):
 
         def gui_update():
 
+            # close dialog if task is stopped
             if self._task.is_stopped():
                 self.dialog.destroy()
+                # do not repeat this timeout function
                 return False
-            
+
+            # update progress bar
             percent = self._task.get_percent()
             if percent is None:
                 t = time.time()
@@ -101,11 +107,13 @@ class WaitDialog (object):
             texts = filter(lambda (a,b): a == "text", messages)
             details = filter(lambda (a,b): a == "detail", messages)
 
+            # update text
             if len(texts) > 0:
                 self.text.set_text(texts[-1][1])
             if len(details) > 0:
                 self.progressbar.set_text(details[-1][1])
 
+            # repeat this timeout function
             return True
 
         gobject.timeout_add(50, gui_update)
@@ -114,9 +122,9 @@ class WaitDialog (object):
     def _on_task_update(self):
         pass
 
-
     def _on_close(self, window):
-        pass
+        
+        self._task.stop()
 
     def on_cancel_button_clicked(self, button):
         """Attempt to stop the task"""

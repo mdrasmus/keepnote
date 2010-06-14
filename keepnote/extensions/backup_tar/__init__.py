@@ -333,7 +333,7 @@ class Extension (extension.Extension):
 
             except Exception, e:
                 window.set_status("")
-                window.error("unknown error", e, trackbk)
+                window.error("unknown error", e, tracebk)
                 return
 
             # open new notebook

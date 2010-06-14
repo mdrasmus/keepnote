@@ -861,7 +861,7 @@ class KeepNote (object):
     #==================================
     # actions
 
-    def open_notebook(self, filename, window=None):
+    def open_notebook(self, filename, window=None, task=None):
         """Open a new notebook"""
         
         notebook = keepnote.notebook.NoteBook()
@@ -892,7 +892,7 @@ class KeepNote (object):
         '''
 
 
-    def get_notebook(self, filename, window=None):
+    def get_notebook(self, filename, window=None, task=None):
         """
         Returns a an opened notebook referenced by filename
         
@@ -901,15 +901,15 @@ class KeepNote (object):
 
         filename = os.path.realpath(filename)
         if filename not in self._notebooks:
-            notebook = self.open_notebook(filename, window)
+            notebook = self.open_notebook(filename, window, task=task)
+            if notebook is None:
+                return None
             self._notebooks[filename] = notebook
             self.ref_notebook(notebook)
-            #self._notebook_count[notebook] = 1
         else:
             notebook = self._notebooks[filename]
             self.ref_notebook(notebook)
-            #self._notebook_count[notebook] +=1 
-
+            
         return notebook
 
 

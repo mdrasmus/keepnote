@@ -26,7 +26,7 @@
 
 
 # python imports
-import os, sys, threading, time, traceback, shutil, gettext
+import os, sys, threading, time, traceback, shutil, gettext, thread
 
 
 # pygtk imports
@@ -58,7 +58,7 @@ class UpdateNoteBookDialog (object):
         self.app = app
 
     
-    def show(self, notebook_filename, version=None):
+    def show(self, notebook_filename, version=None, task=None):
 
         self.xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                  "update_notebook_dialog", 
@@ -80,6 +80,8 @@ class UpdateNoteBookDialog (object):
                            (version,
                             notebooklib.NOTEBOOK_FORMAT_VERSION))
 
+
+
         ret = False
         response = self.dialog.run()
         
@@ -91,12 +93,16 @@ class UpdateNoteBookDialog (object):
                     self.dialog.destroy()
                     return False
 
+            self.dialog.destroy()
+
             # do update
             def func(task):
                 update.update_notebook(
                     notebook_filename,
                     notebooklib.NOTEBOOK_FORMAT_VERSION)
                     
+
+            # TODO: reuse existing task
             task = tasklib.Task(func)
             dialog2 = dialog_wait.WaitDialog(self.main_window)
             dialog2.show(_("Updating Notebook"),
@@ -108,20 +114,14 @@ class UpdateNoteBookDialog (object):
             if err:
                 self.main_window.error(_("Error while updating."), err, tb)
                 ret = False
-        
-        self.dialog.destroy()
+        else:
+            self.dialog.destroy()
 
         if ret:
-            dialog = gtk.MessageDialog(self.main_window, 
-            flags= gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
-            type=gtk.MESSAGE_INFO, 
-            buttons=gtk.BUTTONS_OK, 
-            message_format=_("Notebook updated successfully"))
-            dialog.set_title(_("Notebook Update Complete"))
-            dialog.run()
-            dialog.destroy()
-
-
+            self.app.message(_("Notebook updated successfully"),
+                             _("Notebook Update Complete"),
+                             self.main_window)
+        
         return ret
 
 

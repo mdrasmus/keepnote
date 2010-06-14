@@ -32,6 +32,7 @@ import shutil
 import subprocess
 import sys
 import time
+import thread
 
 
 # pygtk imports
@@ -620,22 +621,42 @@ class KeepNoteWindow (gtk.Window):
 
 
         def update(task):
-            # open notebook
-            notebook = self._app.get_notebook(filename, self)
+            # open notebook in GUI thread
+            notebook = [None]
+            loaded = [False]
+            def func():
+                # NOTE: according to the GTK API, these thread calls should 
+                # not be needed, since all my GKT calls on in the main thread.
+                # But I needed them in order to prevent the main event loop
+                # from stalling while returning from several nested dialogs.
+                gtk.gdk.threads_enter()
+                notebook[0] = self._app.get_notebook(filename, self, 
+                                                     task=task)
+                gtk.gdk.threads_leave()
+                loaded[0] = True
+                return False
+            gobject.idle_add(func)
 
+            # wait for notebook to be loaded
+            while not loaded[0]: pass
+            
             # preload certain nodes
-            def walk(node):
-                if node.get_attr("expanded"):
-                    for child in node.get_children():
-                        walk(child)
-            walk(notebook)
+            if notebook[0]:
+                def walk(node):
+                    if node.get_attr("expanded"):
+                        for child in node.get_children():
+                            walk(child)
+                walk(notebook[0])
 
             # send notebook back to main thread
-            task.set_result(notebook)
+            task.set_result(notebook[0])
+
 
         # open notebook
         task = tasklib.Task(update)
-        self.wait_dialog(_("Opening notebook"), _("Loading..."), task)
+        self.wait_dialog(_("Opening notebook"), _("Loading..."), task,
+                         cancel=False)
+        
 
         # detect errors
         if task.aborted():
@@ -1176,7 +1197,7 @@ class KeepNoteWindow (gtk.Window):
         self._app.error(text, error, tracebk)
 
 
-    def wait_dialog(self, title, text, task):
+    def wait_dialog(self, title, text, task, cancel=True):
         """Display a wait dialog"""
 
         # NOTE: pause autosave while performing long action
@@ -1184,7 +1205,9 @@ class KeepNoteWindow (gtk.Window):
         self._auto_save_pause = True
         
         dialog = dialog_wait.WaitDialog(self)
-        dialog.show(title, text, task)
+        dialog.show(title, text, task, cancel=cancel)
+        
+        # TODO: make sure this is set before calling dialog.show()
         dialog.dialog.connect("destroy",
                        lambda x: setattr(self, "_auto_save_pause", False))
 

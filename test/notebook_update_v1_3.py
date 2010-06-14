@@ -19,7 +19,7 @@ class TestCaseNoteBookUpdate (unittest.TestCase):
         pass
 
 
-    def test1(self):
+    def _test1(self):
         """test notebook update from version 1 to 3"""
 
         old_notebook_filename = "test/data/notebook-v1"
@@ -80,7 +80,7 @@ class TestCaseNoteBookUpdate (unittest.TestCase):
                         new_notebook_filename)
 
         self.assertEquals(
-            os.system("bin/keepnote %s" % new_notebook_filename), 0)
+            os.system("bin/keepnote --newproc %s" % new_notebook_filename), 0)
 
 
         
