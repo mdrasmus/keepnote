@@ -126,10 +126,11 @@ def get_resource_image(*path_list):
     img.set_from_file(filename)
     return img
 
-def get_resource_pixbuf(*path_list):
+def get_resource_pixbuf(*path_list, **options):
     """Returns cached pixbuf from resource path"""
     # raises GError
-    return pixbufs.get_pixbuf(get_resource(keepnote.IMAGE_DIR, *path_list))
+    return pixbufs.get_pixbuf(get_resource(keepnote.IMAGE_DIR, *path_list),
+                              **options)
 
 
 def fade_pixbuf(pixbuf, alpha=128):

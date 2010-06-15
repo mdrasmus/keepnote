@@ -874,6 +874,9 @@ class ApplicationOptionsDialog (object):
     def add_section(self, section, parent=None):
         """Add a section to the Options Dialog"""
         
+        # icon size
+        size = (15, 15)
+
         # determine parent section
         if parent is not None:
             path = self.get_section_path(parent)
@@ -891,7 +894,7 @@ class ApplicationOptionsDialog (object):
             icon = icon="note.png"
         
         if isinstance(icon, basestring):
-            pixbuf = keepnote.gui.get_resource_pixbuf(icon)
+            pixbuf = keepnote.gui.get_resource_pixbuf(icon, size=size)
         else:
             pixbuf = icon
 
