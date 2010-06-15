@@ -113,6 +113,14 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
         self._menu = None
 
+        # TODO: style
+        #print self.style #"vertical-separator"
+        #print self.style_get_property("vertical-separator")
+        #style = self.get_modifier_style()        
+        #self.modify_style(style)
+        #print self.style_get_property("vertical-separator")
+
+
         # selection
         self.get_selection().connect("changed", self.__on_select_changed)
         self.get_selection().connect("changed", self.on_select_changed)

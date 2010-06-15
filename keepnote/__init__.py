@@ -874,23 +874,6 @@ class KeepNote (object):
         if self.has_ref_notebook(notebook):
             self.unref_notebook(notebook)
 
-        '''
-        if notebook in self._notebook_count:            
-            # reduce ref count
-            self._notebook_count[notebook] -= 1
-
-            # close if refcount is zero
-            if self._notebook_count[notebook] == 0:
-                del self._notebook_count[notebook]
-
-                for key, val in self._notebooks.iteritems():
-                    if val == notebook:
-                        del self._notebooks[key]
-                        break
-
-                notebook.close()
-        '''
-
 
     def get_notebook(self, filename, window=None, task=None):
         """

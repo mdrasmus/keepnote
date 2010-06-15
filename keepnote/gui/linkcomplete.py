@@ -38,6 +38,8 @@ class LinkPicker (gtk.TreeView):
         
         self.maxlinks = 10
 
+        
+
 
     def set_links(self, urls):
         
@@ -45,7 +47,7 @@ class LinkPicker (gtk.TreeView):
         for nodeid, url, icon in urls[:self.maxlinks]:
             self.list.append([icon, url, nodeid])
 
-        
+
 
 class LinkPickerPopup (PopupWindow):
 
@@ -54,6 +56,8 @@ class LinkPickerPopup (PopupWindow):
         
         self._link_picker = LinkPicker()
         self._link_picker.show()
+        self._link_picker.get_selection().connect("changed", self.on_select_changed)
+        self._cursor_move = False
 
         self._shown = False
 
@@ -86,10 +90,11 @@ class LinkPickerPopup (PopupWindow):
         """Callback for key press events"""
 
         model, sel = self._link_picker.get_selection().get_selected()
-
         
-        if event.keyval == gtk.keysyms.Down:
+        if event.keyval == gtk.keysyms.Down:            
             # move selection down
+            self._cursor_move = True
+
             if sel is None:
                 self._link_picker.set_cursor((0,))
             else:
@@ -102,6 +107,8 @@ class LinkPickerPopup (PopupWindow):
 
         elif event.keyval == gtk.keysyms.Up:
             # move selection up            
+            self._cursor_move = True
+
             if sel is None:
                 n = model.iter_n_children(None)
                 self._link_picker.set_cursor((n-1,))
@@ -125,6 +132,24 @@ class LinkPickerPopup (PopupWindow):
 
 
         return False
+
+
+
+    def on_select_changed(self, treeselect):
+        
+        if not self._cursor_move:
+            model, sel = self._link_picker.get_selection().get_selected()
+            if sel:
+                icon, title, nodeid = model[sel]
+                self.emit("pick-link", unicode_gtk(title), nodeid)
+        
+        self._cursor_move = False
+
+        #model, paths = treeselect.get_selected_rows()
+        #self.__sel_nodes = [self.model.get_value(self.model.get_iter(path),
+        #                                         self._node_col)
+        #                    for path in paths]
+        
 
 
 gobject.type_register(LinkPickerPopup)

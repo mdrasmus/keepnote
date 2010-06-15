@@ -1208,8 +1208,10 @@ class KeepNoteWindow (gtk.Window):
         dialog.show(title, text, task, cancel=cancel)
         
         # TODO: make sure this is set before calling dialog.show()
-        dialog.dialog.connect("destroy",
-                       lambda x: setattr(self, "_auto_save_pause", False))
+        #dialog.dialog.connect("destroy",
+        #               lambda x: setattr(self, "_auto_save_pause", False))
+
+        self._auto_save_pause = False
 
         
     
