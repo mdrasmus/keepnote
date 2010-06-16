@@ -1283,14 +1283,11 @@ class RichTextView (gtk.TextView):
         """Toggles a link tag"""
 
         tag, start, end = self.get_link()
-        
         if not tag:
             tag = self._textbuffer.tag_table.lookup(
                 RichTextLinkTag.tag_name(""))
-        
-        #print tag in self._textbuffer.get_current_tags()
         self._textbuffer.toggle_tag_selected(tag)
-        #print tag in self._textbuffer.get_current_tags()
+
 
     
     def set_font_family(self, family):

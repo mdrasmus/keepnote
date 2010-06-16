@@ -182,9 +182,8 @@ class FontHandler (gobject.GObject):
         
         self._buf.end_user_action()
 
-        #print "a", tag in self._current_tags
         self.emit("font-change", self.get_font())
-        #print "a", tag in self._current_tags
+
 
 
     def apply_tag_selected(self, tag, start=None, end=None):
@@ -289,7 +288,7 @@ class FontHandler (gobject.GObject):
 
     def get_font(self, font=None):
         """Returns the active font under the cursor"""
-        
+
         # get iter for retrieving font
         it2 = self._buf.get_selection_bounds()
         

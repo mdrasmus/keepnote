@@ -606,14 +606,15 @@ class RichTextFont (RichTextBaseFont):
             elif isinstance(tag, RichTextBGColorTag):
                 self.bg_color = tag.get_color()
 
-            elif isinstance(tag, RichTextLinkTag):
-                self.link = tag
                 
         # set indentation info
         for tag in chain(tags, current_tags):
             if isinstance(tag, RichTextIndentTag):
                 self.indent = tag.get_indent()
                 self.par_type = tag.get_par_indent()
+
+            elif isinstance(tag, RichTextLinkTag):
+                self.link = tag
 
             
         

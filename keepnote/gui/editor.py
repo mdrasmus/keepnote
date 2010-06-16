@@ -323,6 +323,7 @@ class KeepNoteEditor (gtk.VBox):
 
         # get link
         tag, start, end = self.get_link()
+        
 
         if tag is not None and popup:
             # perform node search
@@ -410,10 +411,10 @@ class KeepNoteEditor (gtk.VBox):
         """Get link near textview cursor"""
 
         tag, start, end = self._textview.get_link()
-        if tag is None:
-            it = self._textview.get_buffer().get_insert_iter()
-            it.backward_chars(1)
-            tag, start, end = self._textview.get_link(it)
+        #if tag is None:
+        #    it = self._textview.get_buffer().get_insert_iter()
+        #    it.backward_chars(1)
+        #    tag, start, end = self._textview.get_link(it)
         return tag, start, end            
 
 

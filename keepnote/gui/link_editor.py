@@ -177,13 +177,13 @@ class LinkEditor (gtk.Frame):
         if start is not None:
             if url == "":
                 self.textview.set_link(None, start, end)
-            else:
+            elif tag.get_href() != url:
                 self.textview.set_link(url, start, end)
                               
 
     def on_font_change(self, editor, font):
         """Callback for when font changes under richtext cursor"""
-
+        
         if font.link:
             self.active = True
             self.url_text.set_width_chars(-1)
