@@ -643,7 +643,7 @@ class EditorMenus (gobject.GObject):
         textview = self._editor.get_textview()
         textview.toggle_link()
         tag, start, end = textview.get_link()
-
+        
         if tag is not None:
             url = start.get_text(end)
             if tag.get_href() == "" and is_url(url):

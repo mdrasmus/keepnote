@@ -35,6 +35,7 @@ import re
 import random
 import urllib2
 import StringIO
+from itertools import chain
 
 
 # pygtk imports
@@ -565,9 +566,9 @@ class RichTextView (gtk.TextView):
             return
 
         if it is None:            
-            it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
+            it = self._textbuffer.get_insert_iter()
 
-        for tag in it.get_tags():
+        for tag in chain(it.get_tags(), it.get_toggled_tags(False)):
             if isinstance(tag, RichTextLinkTag):
                 self.emit("visit-url", tag.get_href())
                 return True
@@ -1282,11 +1283,14 @@ class RichTextView (gtk.TextView):
         """Toggles a link tag"""
 
         tag, start, end = self.get_link()
+        
         if not tag:
             tag = self._textbuffer.tag_table.lookup(
                 RichTextLinkTag.tag_name(""))
         
+        #print tag in self._textbuffer.get_current_tags()
         self._textbuffer.toggle_tag_selected(tag)
+        #print tag in self._textbuffer.get_current_tags()
 
     
     def set_font_family(self, family):

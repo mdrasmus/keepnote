@@ -605,6 +605,9 @@ class RichTextFont (RichTextBaseFont):
                 self.fg_color = tag.get_color()
             elif isinstance(tag, RichTextBGColorTag):
                 self.bg_color = tag.get_color()
+
+            elif isinstance(tag, RichTextLinkTag):
+                self.link = tag
                 
         # set indentation info
         for tag in chain(tags, current_tags):
@@ -612,8 +615,7 @@ class RichTextFont (RichTextBaseFont):
                 self.indent = tag.get_indent()
                 self.par_type = tag.get_par_indent()
 
-            elif isinstance(tag, RichTextLinkTag):
-                self.link = tag
+            
         
         
 
@@ -670,7 +672,7 @@ class RichTextBuffer (RichTextBaseBuffer):
         """Inserts a content stream into the TextBuffer at iter 'it'"""
 
         if it is None:
-            it = self.get_iter_at_mark(self.get_insert())
+            it = self.get_insert_iter()
 
         self.begin_user_action()        
         insert_buffer_contents(self, it,
@@ -873,7 +875,7 @@ class RichTextBuffer (RichTextBaseBuffer):
         
         # insert image into buffer
         self.begin_user_action()
-        it = self.get_iter_at_mark(self.get_insert())
+        it = self.get_insert_iter()
         self.add_child(it, image)
         image.show()
         self.end_user_action()
@@ -883,7 +885,7 @@ class RichTextBuffer (RichTextBaseBuffer):
         """Insert Horizontal Rule"""
         self.begin_user_action()
 
-        it = self.get_iter_at_mark(self.get_insert())
+        it = self.get_insert_iter()
         hr = RichTextHorizontalRule()
         self.add_child(it, hr)
         
@@ -957,9 +959,9 @@ class RichTextBuffer (RichTextBaseBuffer):
             if len(sel) > 0:
                 it = sel[0]
             else:
-                it = self.get_iter_at_mark(self.get_insert())
+                it = self.get_insert_iter()
 
-        for tag in it.get_tags():
+        for tag in chain(it.get_tags(), it.get_toggled_tags(False)):
             if isinstance(tag, RichTextLinkTag):
                 start, end = self.get_tag_region(it, tag)
                 return tag, start, end

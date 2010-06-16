@@ -182,7 +182,9 @@ class FontHandler (gobject.GObject):
         
         self._buf.end_user_action()
 
+        #print "a", tag in self._current_tags
         self.emit("font-change", self.get_font())
+        #print "a", tag in self._current_tags
 
 
     def apply_tag_selected(self, tag, start=None, end=None):
@@ -309,6 +311,7 @@ class FontHandler (gobject.GObject):
         # create font object and return
         if font is None:
             font = self.get_font_class()()
+        
         font.set_font(attr, tags, current_tags, self._buf.tag_table)
         return font
 
