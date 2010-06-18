@@ -1194,17 +1194,20 @@ class NoteBookGenericFile (NoteBookNode):
     def set_payload(self, filename, new_filename=None):
         """Copy file into NoteBook directory"""
 
+        # determine new file name
         if new_filename is None:
             new_filename = os.path.basename(filename)
-
         new_filename = get_valid_unique_filename(self.get_path(), new_filename)
         
         try:
+            # attempt url parse
             parts = urlparse.urlparse(filename)
             
             if os.path.exists(filename) or parts[0] == "":
+                # perform local copy
                 shutil.copy(filename, new_filename)
             else:
+                # perform download
                 out = open(new_filename, "w")
                 infile = urllib2.urlopen(filename)
                 while True:
@@ -1217,6 +1220,7 @@ class NoteBookGenericFile (NoteBookNode):
         except IOError, e:
             raise NoteBookError(_("Cannot copy file '%s'" % filename), e)
 
+        # set attr
         self._attr["payload_filename"] = os.path.basename(new_filename)
         
 

@@ -47,11 +47,13 @@ import keepnote
 from keepnote import log_error
 import keepnote.gui.richtext.richtext_tags
 from keepnote import get_resource, ensure_unicode, get_platform, unicode_gtk
+from keepnote import tasklib
 from keepnote.notebook import \
      NoteBookError
 import keepnote.notebook as notebooklib
 import keepnote.gui.dialog_app_options
 import keepnote.gui.dialog_node_icon
+import keepnote.gui.dialog_wait
 import keepnote.gui
 from keepnote.gui.icons import \
     DEFAULT_QUICK_PICK_ICONS
@@ -554,13 +556,30 @@ class KeepNote (keepnote.KeepNote):
         if response == gtk.RESPONSE_OK:
             if dialog.get_filename():
                 filename = unicode_gtk(dialog.get_filename())
-                try:
-                    notebooklib.attach_file(filename, node)
-                except Exception, e:
-                    self.error(_("Error while attaching file '%s'." % filename),
-                               e, sys.exc_info()[2])
+                self.attach_file(filename, node,
+                                 parent_window=parent_window)
 
         dialog.destroy()
+
+
+    def attach_file(self, filename, parent, index=None, 
+                    parent_window=None):
+
+        if parent_window is None:
+            parent_window = self.get_current_window()
+
+
+        def func(task):
+            notebooklib.attach_file(filename, parent, index)
+        task = tasklib.Task(func)
+
+        try:
+            dialog = keepnote.gui.dialog_wait.WaitDialog(parent_window)
+            dialog.show(_("Attach File"), _("Attaching file to notebook."), 
+                        task, cancel=False)
+        except Exception, e:
+            self.error(_("Error while attaching file '%s'." % filename),
+                       e, sys.exc_info()[2])
 
 
     #==================================

@@ -4,6 +4,7 @@
 
 
 PYTHON_FILES:=$(shell find keepnote -name '*.py')
+SRC_FILES=$(PYTHON_FILES) keepnote/rc/keepnote.glade.h
 INTLTOOL_EXTRACT:=$(shell which intltool || echo /usr/share/intltool-debian/intltool-extract)
 LOCALE_DIR=keepnote/rc/locale
 
@@ -12,9 +13,8 @@ LOCALE_DIR=keepnote/rc/locale
 
 # make messages file, extracts all strings in _()
 extract:
-	$(INTLTOOL_EXTRACT) --type=gettext/glade keepnote/rc/keepnote.glade
 	xgettext --from-code=utf-8 -k_ -kN_ \
-	-o gettext/messages.pot $(PYTHON_FILES) keepnote/rc/keepnote.glade.h
+	-o gettext/messages.pot $(SRC_FILES)
 
 
 # make a new translation
@@ -29,4 +29,10 @@ update:
 make:
 	mkdir -p $(LOCALE_DIR)/$(LANG)/LC_MESSAGES/
 	msgfmt gettext/$(LANG).po -o $(LOCALE_DIR)/$(LANG)/LC_MESSAGES/keepnote.mo
+
+#=============================================================================
+# depends
+
+keepnote/rc/keepnote.glade.h: keepnote/rc/keepnote.glade
+	$(INTLTOOL_EXTRACT) --type=gettext/glade keepnote/rc/keepnote.glade
 

@@ -1,7 +1,8 @@
 #!/bin/sh
 
 
-LANGS="fr_FR.UTF8 tr_TR.UTF8 es_ES.UTF8"
+#LANGS="fr_FR.UTF8 tr_TR.UTF8 es_ES.UTF8"
+LANGS=$(ls gettext/*.po | (while read x; do basename $x | sed 's/.po//'; done))
 
 # extract new strings
 make -f Makefile.gettext extract

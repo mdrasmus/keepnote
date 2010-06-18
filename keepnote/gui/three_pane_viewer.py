@@ -414,6 +414,7 @@ class ThreePaneViewer (Viewer):
                 else:
                     widget.select_nodes([parent])
             else:
+                widget = self.get_focused_widget()
                 widget.select_nodes([])
 
             # perform delete
@@ -537,10 +538,11 @@ class ThreePaneViewer (Viewer):
     def _on_attach_file(self, widget, parent, index, uri):
         """Attach document"""
 
-        try:
-            notebooklib.attach_file(uri, parent, index)
-        except Exception, e:
-            self.emit("error",_("Error while attaching file '%s'." % uri), e)
+        self._app.attach_file(uri, parent, index)
+        #try:
+        #    notebooklib.attach_file(uri, parent, index)
+        #except Exception, e:
+        #    self.emit("error",_("Error while attaching file '%s'." % uri), e)
 
 
 
