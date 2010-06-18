@@ -268,7 +268,11 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             return False
         
         path = path[0]
-        self.get_selection().select_path(path)
+
+        if not self.get_selection().path_is_selected(path):
+            self.get_selection().unselect_all()
+            self.get_selection().select_path(path)
+
         self._menu.popup(None, None, None, button, time)
         self._menu.show()
         return True
