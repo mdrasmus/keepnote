@@ -320,6 +320,7 @@ def attach_file(filename, node, index=None):
 
     except Exception, e:
         # remove child
+        keepnote.log_error(e)
         if child:
             child.delete()
         raise e

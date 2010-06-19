@@ -545,6 +545,7 @@ class KeepNote (keepnote.KeepNote):
             app=self,
             persistent_path="attach_file_path")
         dialog.set_default_response(gtk.RESPONSE_OK)
+        dialog.set_select_multiple(True)
 
         # setup preview
         preview = gtk.Image()
@@ -554,15 +555,20 @@ class KeepNote (keepnote.KeepNote):
         response = dialog.run()
 
         if response == gtk.RESPONSE_OK:
-            if dialog.get_filename():
-                filename = unicode_gtk(dialog.get_filename())
-                self.attach_file(filename, node,
-                                 parent_window=parent_window)
+            if len(dialog.get_filenames()) > 0:
+                filenames = map(unicode_gtk, dialog.get_filenames())
+                self.attach_files(filenames, node,
+                                  parent_window=parent_window)
 
         dialog.destroy()
 
 
     def attach_file(self, filename, parent, index=None, 
+                    parent_window=None):
+        self.attach_files([filename], parent, index, parent_window)
+
+
+    def attach_files(self, filenames, parent, index=None, 
                     parent_window=None):
 
         if parent_window is None:
@@ -570,15 +576,28 @@ class KeepNote (keepnote.KeepNote):
 
 
         def func(task):
-            notebooklib.attach_file(filename, parent, index)
+            for filename in filenames:
+                print filename
+                notebooklib.attach_file(filename, parent, index)
+                if not task.is_running():
+                    task.abort()
         task = tasklib.Task(func)
 
         try:
             dialog = keepnote.gui.dialog_wait.WaitDialog(parent_window)
-            dialog.show(_("Attach File"), _("Attaching file to notebook."), 
+            dialog.show(_("Attach File"), _("Attaching files to notebook."), 
                         task, cancel=False)
+
+            if task.aborted():
+                raise task.exc_info()[1]
+            
         except Exception, e:
-            self.error(_("Error while attaching file '%s'." % filename),
+            if len(filenames) > 1:
+                self.error(_("Error while attaching files %s." % 
+                             ", ".join(["'%s'" % f for f in filenames])),
+                           e, sys.exc_info()[2])
+            else:
+                self.error(_("Error while attaching file '%s'." % filenames[0]),
                        e, sys.exc_info()[2])
 
 
