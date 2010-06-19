@@ -835,18 +835,26 @@ class NoteBookNode (object):
     
 
     
-    def duplicate(self, parent, index=None, recurse=False, notify=True):
+    def duplicate(self, parent, index=None, recurse=False, notify=True,
+                  skip=None):
         """Duplicate a node to a new parent"""
 
         # NOTE: we must be able to handle the case where the root node is
         # duplicated.
+        
+        # initialize skip set to prevent double copying
+        if skip is None:
+            skip = set()
 
-        print "duplicate", parent.get_title(), self.get_title()
+        # check skip set
+        if self in skip:
+            return None
 
         # create new node
         node = parent._new_child(self.get_attr("content_type"),
                                  self.get_attr("title"),
                                  index=index)
+        skip.add(node)
 
         # record the nodeid of the original node
         node._attr["duplicate_of"] = self.get_attr("nodeid")
@@ -876,7 +884,8 @@ class NoteBookNode (object):
 
         if recurse:
             for child in self.get_children():
-                child.duplicate(node, recurse=True, notify=False)
+                child.duplicate(node, recurse=True, notify=False,
+                                skip=skip)
 
         if notify:
             parent.notify_change(True)

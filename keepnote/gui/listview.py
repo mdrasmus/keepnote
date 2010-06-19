@@ -248,7 +248,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
     def on_button_press(self, widget, event):
         if event.button == 3:            
             # popup menu
-            self.popup_menu(event.x, event.y, event.button, event.time)
+            return self.popup_menu(event.x, event.y, event.button, event.time)
             
 
         if event.button == 1 and event.type == gtk.gdk._2BUTTON_PRESS:

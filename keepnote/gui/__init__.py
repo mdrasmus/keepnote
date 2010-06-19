@@ -577,7 +577,8 @@ class KeepNote (keepnote.KeepNote):
 
         def func(task):
             for filename in filenames:
-                print filename
+                task.set_message(("detail", _("attaching %s") % 
+                                  os.path.basename(filename)))
                 notebooklib.attach_file(filename, parent, index)
                 if not task.is_running():
                     task.abort()
