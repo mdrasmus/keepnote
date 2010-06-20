@@ -845,9 +845,8 @@ class NoteBookNode (object):
         # initialize skip set to prevent double copying
         if skip is None:
             skip = set()
-
-        # check skip set
         if self in skip:
+            # skip this node if it has just been copied
             return None
 
         # create new node

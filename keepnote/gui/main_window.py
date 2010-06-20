@@ -1091,6 +1091,12 @@ class KeepNoteWindow (gtk.Window):
         if gobject.signal_lookup("copy-clipboard", widget) != 0:
             widget.emit("copy-clipboard")
 
+    def on_copy(self):
+        """Copy tree callback"""
+        widget = self.get_focus()
+        if gobject.signal_lookup("copy-tree-clipboard", widget) != 0:
+            widget.emit("copy-tree-clipboard")
+
     def on_paste(self):
         """Paste callback"""
         widget = self.get_focus()
@@ -1279,6 +1285,10 @@ class KeepNoteWindow (gtk.Window):
              "<control>C", None,
              lambda w: self.on_copy()),
 
+            ("Copy Tree", gtk.STOCK_COPY, None,
+             "<control><shift>C", None,
+             lambda w: self.on_copy_tree()),
+
             ("Paste", gtk.STOCK_PASTE, None,
              "<control>V", None,
              lambda w: self.on_paste()),
@@ -1418,6 +1428,7 @@ class KeepNoteWindow (gtk.Window):
     <separator/>
     <menuitem action="Cut"/>
     <menuitem action="Copy"/>
+    <menuitem action="Copy Tree"/>
     <menuitem action="Paste"/>
     <separator/>
     <placeholder name="Viewer"/>
