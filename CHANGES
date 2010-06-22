@@ -1,8 +1,22 @@
 KeepNote Change Log
 -------------------
 
-keepnote-0.6.2
+
+keepnote-0.6.3
 --------------
+- added tabbed browsing
+- copy/cut/paste in treeview/listview
+- multiple selection in treeview/listview
+- added "New File" extension
+- file attachment
+  - multiple file attachment
+  - background thread
+- new translations
+  - Chinese, Japanese, Italian
+
+
+keepnote-0.6.2 (2010.2.19)
+--------------------------
 - added install/uninstall extension support
 - added "new window"
 - added python_prompt extension

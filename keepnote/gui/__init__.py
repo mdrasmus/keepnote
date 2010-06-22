@@ -339,13 +339,16 @@ class KeepNote (keepnote.KeepNote):
         self._windows = []
 
 
+        self._tag_table = keepnote.gui.richtext.richtext_tags.RichTextTagTable()
+        self.app_options_dialog = keepnote.gui.dialog_app_options.ApplicationOptionsDialog(self)
+        self.node_icon_dialog = keepnote.gui.dialog_node_icon.NodeIconDialog(self)
+
+
+
     def init(self):
         """Initialize application from disk"""
         keepnote.KeepNote.init(self)
-
-        self.app_options_dialog = keepnote.gui.dialog_app_options.ApplicationOptionsDialog(self)
-        self.node_icon_dialog = keepnote.gui.dialog_node_icon.NodeIconDialog(self)
-        self._tag_table = keepnote.gui.richtext.richtext_tags.RichTextTagTable()
+        
 
         
     def set_lang(self):

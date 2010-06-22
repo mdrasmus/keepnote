@@ -36,6 +36,7 @@ class TestCaseNotebookIndex (unittest.TestCase):
     def test_notebook_read_icons2(self):        
         
         app = keepnote.gui.KeepNote()
+        app.init()
         book = app.get_notebook("test/data/notebook-v3")
 
         print book.pref.get_quick_pick_icons()
@@ -45,6 +46,7 @@ class TestCaseNotebookIndex (unittest.TestCase):
     def test_notebook_read_icons3(self):        
 
         app = keepnote.gui.KeepNote()
+        app.init()
         win = app.new_window()
         book = win.open_notebook("test/data/notebook-v3")
 

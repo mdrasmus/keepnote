@@ -107,6 +107,7 @@ TRANSLATOR_CREDITS = (
     "French: tb <thibaut.bethune@gmail.com>\n"
     "German: Jan Rimmek <jan.rimmek@mhinac.de>\n"
     "Japanese: Toshiharu Kudoh <toshi.kd2@gmail.com>\n"
+    "Italian: Davide Melan <davide.melan@gmail.com>\n"
     "Russian: Hikiko Mori <hikikomori.dndz@gmail.com>\n"
     "Spanish: Klemens Hackel <click3d at linuxmail (dot) org>\n"
     "Turkish: Yuce Tekol <yucetekol@gmail.com>\n"

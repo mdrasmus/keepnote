@@ -348,7 +348,7 @@ class HelperAppsSection (Section):
         self.entries = {}
         w = self.get_default_widget()
         
-        self.table = gtk.Table(len(app.pref.external_apps), 2)
+        self.table = gtk.Table(max(len(app.pref.external_apps), 1), 2)
         self.table.show()
         w.add(self.table)
 
