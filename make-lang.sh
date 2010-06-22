@@ -24,7 +24,7 @@ for L in $LANGS; do
 	echo "warning: $EMPTY strings are empty"
     fi
 
-    DEL=$(egrep '^#~' gettext/$L.po | wc -l)
+    DEL=$(egrep '^#~ msgid' gettext/$L.po | wc -l)
     if [ $DEL -gt 0 ]; then
 	echo "warning: $DEL deleted strings"
     fi

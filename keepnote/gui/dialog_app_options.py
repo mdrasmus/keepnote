@@ -692,7 +692,7 @@ class ExtensionWidget (gtk.EventBox):
         v.pack_start(h, True, True, 0)
 
         # enable button
-        self.enable_check = gtk.CheckButton("Enabled")
+        self.enable_check = gtk.CheckButton(_("Enabled"))
         self.enable_check.set_active(self.enabled)
         self.enable_check.show()
         self.enable_check.connect(
@@ -704,7 +704,7 @@ class ExtensionWidget (gtk.EventBox):
         h.pack_start(l, False, True, 0)
 
         # uninstall button        
-        self.uninstall_button = gtk.Button("Uninstall")
+        self.uninstall_button = gtk.Button(_("Uninstall"))
         self.uninstall_button.set_relief(gtk.RELIEF_NONE)
         self.uninstall_button.set_sensitive(app.can_uninstall(ext))
         self.uninstall_button.show()
