@@ -313,7 +313,7 @@ def attach_file(filename, node, index=None):
                  "title": new_filename})
         child.create()
         node.add_child(child, index)
-        child.set_payload(filename, new_filename)            
+        child.set_payload(filename, new_filename)
         child.save(True)
 
         return child

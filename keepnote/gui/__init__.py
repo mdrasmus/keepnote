@@ -572,28 +572,31 @@ class KeepNote (keepnote.KeepNote):
 
 
     def attach_files(self, filenames, parent, index=None, 
-                    parent_window=None):
+                     parent_window=None):
 
         if parent_window is None:
             parent_window = self.get_current_window()
 
 
-        def func(task):
-            for filename in filenames:
-                task.set_message(("detail", _("attaching %s") % 
-                                  os.path.basename(filename)))
-                notebooklib.attach_file(filename, parent, index)
-                if not task.is_running():
-                    task.abort()
-        task = tasklib.Task(func)
+        #def func(task):
+        #    for filename in filenames:
+        #        task.set_message(("detail", _("attaching %s") % 
+        #                          os.path.basename(filename)))
+        #        notebooklib.attach_file(filename, parent, index)
+        #        if not task.is_running():
+        #            task.abort()
+        #task = tasklib.Task(func)
 
         try:
-            dialog = keepnote.gui.dialog_wait.WaitDialog(parent_window)
-            dialog.show(_("Attach File"), _("Attaching files to notebook."), 
-                        task, cancel=False)
+            for file in filenames:
+                notebooklib.attach_file(filename, parent, index)
+            
+            #dialog = keepnote.gui.dialog_wait.WaitDialog(parent_window)
+            #dialog.show(_("Attach File"), _("Attaching files to notebook."), 
+            #            task, cancel=False)
 
-            if task.aborted():
-                raise task.exc_info()[1]
+            #if task.aborted():
+            #    raise task.exc_info()[1]
             
         except Exception, e:
             if len(filenames) > 1:
