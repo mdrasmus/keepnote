@@ -932,19 +932,7 @@ class KeepNoteWindow (gtk.Window):
             return
 
         image_path = os.path.join(current_page.get_path(), image_filename)
-        viewer = self._app.pref.get_external_app("image_viewer")
-        
-        # TODO: this should be an external app call
-
-        if viewer is not None:
-            try:
-                proc = subprocess.Popen([viewer.prog, image_path])
-            except OSError, e:
-                self.emit("error", _("Could not open Image Viewer."), 
-                           e, sys.exc_info()[2])
-        else:
-            self.emit("error", _("You must specify an Image Viewer in Application Options."), None, None)
-
+        self._app.run_external_app("image_viewer", image_path)
 
 
     def _on_view_image(self, menuitem):
@@ -965,17 +953,8 @@ class KeepNoteWindow (gtk.Window):
         
         # get image filename
         image_filename = menuitem.get_parent().get_child().get_filename()
-
         image_path = os.path.join(current_page.get_path(), image_filename)
-        editor = self._app.pref.get_external_app("image_editor")
-    
-        if editor is not None:
-            try:
-                proc = subprocess.Popen([editor.prog, image_path])
-            except OSError, e:
-                self.emit("error", _("Could not open Image Editor."), e, None)
-        else:
-            self.emit("error", _("You must specify an Image Editor in Application Options."), None, None)
+        self._app.run_external_app("image_editor", image_path)
 
 
     def _on_resize_image(self, menuitem):
