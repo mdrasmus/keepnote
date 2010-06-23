@@ -1091,7 +1091,7 @@ class KeepNoteWindow (gtk.Window):
         if gobject.signal_lookup("copy-clipboard", widget) != 0:
             widget.emit("copy-clipboard")
 
-    def on_copy(self):
+    def on_copy_tree(self):
         """Copy tree callback"""
         widget = self.get_focus()
         if gobject.signal_lookup("copy-tree-clipboard", widget) != 0:
