@@ -374,6 +374,7 @@ def log_error(error, tracebk=None, out=None):
 
     out.write("\n")
     traceback.print_exception(type(error), error, tracebk, file=out)
+    out.flush()
 
 
 def log_message(message, out=None):
@@ -382,6 +383,7 @@ def log_message(message, out=None):
     if out is None:
         out = sys.stderr
     out.write(message)
+    out.flush()
 
 
 

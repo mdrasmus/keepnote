@@ -27,7 +27,7 @@
 
 import sys
 
-
+import keepnote
 from keepnote import notebook as notebooklib
 from keepnote.notebook import NoteBook
 
@@ -167,11 +167,14 @@ def match_words(node, words):
             matches[word] = True            
 
     if node.get_attr("content_type") == notebooklib.CONTENT_TYPE_PAGE:
-        for line in node.read_data_as_plain_text():
-            line = line.lower()
-            for word in words:
-                if word in line:
-                    matches[word] = True
+        try:
+            for line in node.read_data_as_plain_text():
+                line = line.lower()
+                for word in words:
+                    if word in line:
+                        matches[word] = True
+        except Exception, e:
+            keepnote.log_error(e)
 
     # return True if all words are found (AND)
     for val in matches.itervalues():
@@ -202,7 +205,6 @@ def search_manual(node, words):
         else:
             stack[-1][1] += 1
             stack.append([node2.get_children()[i], 0])
-        
 
     
         

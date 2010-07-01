@@ -588,7 +588,7 @@ class KeepNote (keepnote.KeepNote):
         #task = tasklib.Task(func)
 
         try:
-            for file in filenames:
+            for filename in filenames:
                 notebooklib.attach_file(filename, parent, index)
             
             #dialog = keepnote.gui.dialog_wait.WaitDialog(parent_window)

@@ -36,7 +36,8 @@ def prune(path):
 include(find_path("windows/system32/mfc71.dll"), dest+"mfc71.dll")
 
 # needed for sqlite on Windows 7
-include("pkg/win/sqlite3.dll", dest+"sqlite3.dll")
+#include("pkg/win/sqlite3.dll", dest+"sqlite3.dll")
+# doesn't work yet, breaks search
 
         
 include(find_path("GTK/lib/gtk-2.0/2.10.0/engines"), dest+"lib/gtk-2.0/2.10.0/engines")

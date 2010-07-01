@@ -750,8 +750,6 @@ class KeepNoteWindow (gtk.Window):
         self.end_auto_save()
 
         def update(task):
-            # do search in another thread
-
             # erase database first
             # NOTE: I do this right now so that corrupt databases can be
             # cleared out of the way.
@@ -1554,7 +1552,7 @@ class SearchBox (gtk.Entry):
         # get words
         words = [x.lower() for x in
                  unicode_gtk(self.get_text()).strip().split()]
-        
+
         # prepare search iterator
         nodes = keepnote.search.search_manual(self._window.get_notebook(), words)
 
@@ -1567,49 +1565,55 @@ class SearchBox (gtk.Entry):
         queue = Queue()
         lock = Lock()
 
+
         # update gui with search result
         def search(task):
             def gui_update():
-                maxstep = 10
-                for i in xrange(maxstep):
-                    # check if search is aborted
-                    if task.aborted():
-                        task.finish()
-                        return False
-                    
-                    if not queue.empty():
-                        node = queue.get()
-                        if node is None:
-                            # no more nodes left, finish
-                            task.finish()
+                try:
+                    maxstep = 10
+                    for i in xrange(maxstep):
+                        # check if search is aborted
+                        if task.aborted():
                             return False
+
+                        if not queue.empty():
+                            node = queue.get()
+                            if node is None:
+                                # no more nodes left, finish
+                                return False
+                            else:
+                                # add result to gui
+                                lock.acquire()
+                                self._window.get_viewer().add_search_result(node)
+                                lock.release()
                         else:
-                            # add result to gui
-                            lock.acquire()
-                            self._window.get_viewer().add_search_result(node)
-                            lock.release()
-                    else:
-                        break
-                return True
+                            break
+                    return True
+                except Exception, e:
+                    self.error(_("Unexpected error"), e)
+                    return False
             
             gobject.idle_add(gui_update)
 
             # do search in thread
-            lock.acquire()
-            for node in nodes:
-                lock.release()
-                if task.aborted():
-                    break
-                if node:
-                    queue.put(node)
+            try:
                 lock.acquire()
-            queue.put(None)
-            lock.release()
+                for node in nodes:
+                    if task.aborted():
+                        break
+                    lock.release()
+                    if node:
+                        queue.put(node)
+                    lock.acquire()
+                queue.put(None)
+                lock.release()
+            except Exception, e:
+                self.error(_("Unexpected error"), e)
 
         
         # launch task
         self._window.wait_dialog(_("Searching notebook"), _("Searching..."),
-                                 tasklib.Task(search, False))
+                                 tasklib.Task(search), cancel=False)
 
 
     def focus_on_search_box(self):
@@ -1623,6 +1627,9 @@ class SearchBox (gtk.Entry):
 
     def search_box_update_completion(self):
 
+        if not self._window.get_notebook():
+            return
+
         text = unicode_gtk(self.get_text())
         
         self.search_box_list.clear()
@@ -1632,6 +1639,9 @@ class SearchBox (gtk.Entry):
                 self.search_box_list.append([title, nodeid])
 
     def _on_search_box_completion_match(self, completion, model, iter):
+
+        if not self._window.get_notebook():
+            return
         
         nodeid = model[iter][1]
 
