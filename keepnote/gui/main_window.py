@@ -1613,7 +1613,7 @@ class SearchBox (gtk.Entry):
         
         # launch task
         self._window.wait_dialog(_("Searching notebook"), _("Searching..."),
-                                 tasklib.Task(search), cancel=False)
+                                 tasklib.Task(search))
 
 
     def focus_on_search_box(self):
