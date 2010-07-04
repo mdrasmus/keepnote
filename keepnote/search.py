@@ -174,7 +174,8 @@ def match_words(node, words):
                     if word in line:
                         matches[word] = True
         except Exception, e:
-            keepnote.log_error(e)
+            #keepnote.log_error(e)
+            pass
 
     # return True if all words are found (AND)
     for val in matches.itervalues():

@@ -504,7 +504,8 @@ class KeepNoteEditor (gtk.VBox):
         dialog.set_preview_widget(preview)
         dialog.connect("update-preview", update_file_preview, preview)
 
-        if os.path.exists(self._app.pref.insert_image_path):
+        if self._app.pref.insert_image_path is not None and \
+           os.path.exists(self._app.pref.insert_image_path):
             dialog.set_current_folder(self._app.pref.insert_image_path)        
             
             

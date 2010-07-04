@@ -10,7 +10,6 @@ keepnote-0.6.3
 - added "New File" extension
 - file attachment
   - multiple file attachment
-  - background thread
 - new translations
   - Chinese, Japanese, Italian
 

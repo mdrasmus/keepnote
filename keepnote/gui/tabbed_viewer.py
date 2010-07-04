@@ -87,7 +87,7 @@ class TabbedViewer (Viewer):
         # TODO: maybe add close_viewer() function
 
 
-    def new_tab(self, viewer=None):
+    def new_tab(self, viewer=None, init="current_node"):
         """Open a new tab with a viewer"""
         
         # TODO: make new tab appear next to existing tab
@@ -108,13 +108,18 @@ class TabbedViewer (Viewer):
             viewer.connect("modified", self.on_tab_modified)]
         viewer.load_preferences(self._app.pref, True)
 
-        # replicate current view
-        old_viewer = self.get_current_viewer()
-        if old_viewer is not None:
-            viewer.set_notebook(old_viewer.get_notebook())
-            node = old_viewer.get_current_page()
-            if node:
-                viewer.goto_node(node)
+        if init == "current_node":
+            # replicate current view
+            old_viewer = self.get_current_viewer()
+            if old_viewer is not None:
+                viewer.set_notebook(old_viewer.get_notebook())
+                node = old_viewer.get_current_page()
+                if node:
+                    viewer.goto_node(node)
+        elif init == "none":
+            pass
+        else:
+            raise Exception("unknown init")
 
         # switch to the new tab
         self._tabs.set_current_page(self._tabs.get_n_pages() - 1)
