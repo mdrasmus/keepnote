@@ -2,7 +2,7 @@
     KeepNote Extension 
     backup_tar
 
-    Tar file notebook backup
+    Command-line basic commands
 """
 
 #

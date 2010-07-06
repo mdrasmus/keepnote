@@ -59,11 +59,6 @@ from keepnote.trans import GETTEXT_DOMAIN
 from keepnote import extension
 
 
-# import screenshot so that py2exe discovers it
-try:
-    import mswin.screenshot
-except ImportError:
-    pass
 
 
 #=============================================================================
@@ -79,6 +74,13 @@ import base64
 import string
 import random
 
+# import screenshot so that py2exe discovers it
+try:
+    import mswin.screenshot
+except ImportError:
+    pass
+
+
 
 #=============================================================================
 # globals / constants
@@ -86,7 +88,7 @@ import random
 PROGRAM_NAME = u"KeepNote"
 PROGRAM_VERSION_MAJOR = 0
 PROGRAM_VERSION_MINOR = 6
-PROGRAM_VERSION_RELEASE = 3
+PROGRAM_VERSION_RELEASE = 4
 PROGRAM_VERSION = (PROGRAM_VERSION_MAJOR,
                    PROGRAM_VERSION_MINOR,
                    PROGRAM_VERSION_RELEASE)
