@@ -103,11 +103,11 @@ class Extension (extension.Extension):
     def on_uninstall_extension(self, app, args):
         
         for extname in args[1:]:
-            ext = app.get_extension(extname)
-            if ext is None:
-                app.error("unknown extension '%s'" % extname)
-            else:
-                app.uninstall_extension(ext)
+            #ext = app.get_extension(extname)
+            #if ext is None:
+            #    app.error("unknown extension '%s'" % extname)
+            #else:
+            app.uninstall_extension(extname)
 
 
     def on_install_extension(self, app, args):

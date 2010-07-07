@@ -754,14 +754,14 @@ class KeepNote (keepnote.KeepNote):
 
 
 
-    def uninstall_extension(self, ext):
+    def uninstall_extension(self, ext_key):
         """Install a new extension"""
 
         if self.ask_yes_no(_("Do you want to uninstall the extension \"%s\"?") %
-                           ext.name, _("Extension Uninstall")):
-            if keepnote.KeepNote.uninstall_extension(self, ext):
+                           ext_key, _("Extension Uninstall")):
+            if keepnote.KeepNote.uninstall_extension(self, ext_key):
                 self.message(_("Extension \"%s\" is now uninstalled.") %
-                             ext.name, 
+                             ext_key, 
                              _("Uninstall Sucessful"))
                 return True
 

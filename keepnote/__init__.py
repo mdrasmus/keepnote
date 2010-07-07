@@ -1210,25 +1210,30 @@ class KeepNote (object):
         return new_exts
 
 
-    def uninstall_extension(self, ext):
+    def uninstall_extension(self, ext_key):
         """Uninstall an extension"""
 
         # retrieve information about extension
-        entry = self._extensions.get(ext.key, None)
-        if entry is None:
+        entry = self._extensions.get(ext_key, None)
+
+        if entry is None:            
             self.error(_("Unable to uninstall unknown extension '%s'.") % ext.key)
             return False
 
         # cannot uninstall system extensions
-        if ext.type == "system":
+        if entry.ext_type == "system":
             self.error(_("KeepNote cannot uninstall system extensions"))
             return False
 
-        # disable extension
-        ext.enable(False)
+        # if extension is imported, make sure it is disabled, unregistered
+        ext = entry.ext
+        if ext:
+            # disable extension
+            ext.enable(False)
 
-        # unregister extension from app
-        del self._extensions[ext.key]
+            # unregister extension from app
+            del self._extensions[ext.key]
+
 
         # delete extension from filesystem
         try:      
