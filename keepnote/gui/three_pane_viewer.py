@@ -770,13 +770,9 @@ class ThreePaneViewer (Viewer):
         
     def goto_editor(self):
         """Switch focus to Editor"""
-        self.editor.get_textview().grab_focus()
+        self.editor.grab_focus()
 
-    def goto_link(self):
-        """Visit link under cursor"""        
-        self.editor.get_textview().click_iter()
-
-
+    
     #===========================================
     # ui
     
@@ -925,7 +921,7 @@ class ThreePaneViewer (Viewer):
               <menuitem action="Go to Tree View"/>
               <menuitem action="Go to List View"/>
               <menuitem action="Go to Editor"/>
-              <menuitem action="Go to Link"/>
+              <placeholder name="Editor"/>
             </placeholder>
           </menu>
           <menu action="Tools">
@@ -1075,11 +1071,7 @@ class ThreePaneViewer (Viewer):
             ("Go to Editor", None, _("Go to _Editor"),
              "<control>D", None,
              lambda w: self.goto_editor()),
-            
-            ("Go to Link", None, _("Go to Lin_k"),
-             "<control>space", None,
-             lambda w: self.goto_link()),
-        
+                    
             ("Delete Note", gtk.STOCK_DELETE, _("_Delete"),
              "", None, 
              lambda w: self.on_delete_node()),

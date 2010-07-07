@@ -158,6 +158,10 @@ class KeepNoteEditor (gtk.VBox):
         """Return True if text editor has focus"""
         return self._textview.is_focus()
 
+    def grab_focus(self):
+        """Pass focus to textview"""
+        self._textview.grab_focus()
+
 
     def clear_view(self):
         """Clear editor view"""
@@ -762,7 +766,6 @@ class EditorMenus (gobject.GObject):
         self.enable_spell_check(widget.get_active())
 
 
-
     #=====================================================
     # toolbar and menus
 
@@ -941,7 +944,12 @@ class EditorMenus (gobject.GObject):
             ("Choose Font", None, _("Choose _Font"), 
              "<control><shift>F", None,
              lambda w: self._on_choose_font(),
-             "font.png")
+             "font.png"),
+
+            ("Go to Link", None, _("Go to Lin_k"),
+             "<control>space", None,
+             lambda w: self._editor.get_textview().click_iter()),
+
          ]) +  
                 
          [ToggleAction("Spell Check", None, _("_Spell Check"), 
@@ -1003,6 +1011,14 @@ class EditorMenus (gobject.GObject):
               </menu>
             </placeholder>
           </placeholder>
+
+          <menu action="Go">
+            <placeholder name="Viewer">
+              <placeholder name="Editor">
+                <menuitem action="Go to Link"/>
+              </placeholder> 
+            </placeholder>
+          </menu>
 
           <menu action="Tools">
             <placeholder name="Viewer">
