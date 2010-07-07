@@ -62,6 +62,9 @@ class Extension (extension.Extension):
             AppCommand("uninstall", self.on_uninstall_extension,
                        metavar="EXTENSION_NAME",
                        help="uninstall an extension"),
+            AppCommand("tmp_ext", self.on_temp_extension,
+                       metavar="FILENAME",
+                       help="add an extension just for this session"),
             AppCommand("quit", lambda app, args: app.quit(),
                        help="close all KeepNote windows"),
 
@@ -76,7 +79,7 @@ class Extension (extension.Extension):
 
 
     def get_depends(self):
-        return [("keepnote", ">=", (0, 6, 2))]
+        return [("keepnote", ">=", (0, 6, 4))]
 
 
     def on_enabled(self, enabled):
@@ -103,10 +106,6 @@ class Extension (extension.Extension):
     def on_uninstall_extension(self, app, args):
         
         for extname in args[1:]:
-            #ext = app.get_extension(extname)
-            #if ext is None:
-            #    app.error("unknown extension '%s'" % extname)
-            #else:
             app.uninstall_extension(extname)
 
 
@@ -114,6 +113,17 @@ class Extension (extension.Extension):
         
         for filename in args[1:]:
             app.install_extension(filename)
+
+            
+    def on_temp_extension(self, app, args):
+
+        for filename in args[1:]:
+            entry = app.add_extension_entry(filename, "temp")
+            ext = app.get_extension(entry.get_key())
+            if ext:
+                app.init_extensions_windows(windows=None, exts=[ext])
+                ext.enable(True)
+            
 
 
     def on_screenshot(self, app, args):

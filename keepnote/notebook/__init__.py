@@ -809,7 +809,8 @@ class NoteBookNode (object):
         self.get_children()
         path = self.get_path()
         newpath = get_valid_unique_filename(path, title)
-        node = self._notebook.new_node(content_type, newpath, self, {})
+        node = self._notebook.new_node(content_type, newpath, self, 
+                                       {"title": title})
 
         node.create()
         self._add_child(node, index)
@@ -826,7 +827,8 @@ class NoteBookNode (object):
         self.get_children()
         path = self.get_path()
         newpath = get_valid_unique_filename(path, title)
-        node = self._notebook.new_node(content_type, newpath, self, {})
+        node = self._notebook.new_node(content_type, newpath, self, 
+                                       {"title": title})
 
         node.create()
         self._add_child(node, index)
