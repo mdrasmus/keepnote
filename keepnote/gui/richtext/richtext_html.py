@@ -40,6 +40,7 @@ from keepnote.gui.richtext.textbuffer_tools import \
      buffer_contents_iter_to_offset, \
      normalize_tags, \
      insert_buffer_contents, \
+     sanitize_text, \
      buffer_contents_apply_tags, \
      TextBufferDom, \
      TextDom, \
@@ -1004,11 +1005,11 @@ class HtmlBuffer (HTMLParser):
             return
 
         if self._newline:
-            data = re.sub("^\n[\n ]*", "", data)
-            data = re.sub("[\n ]+", " ", data)
+            data = re.sub("^\r?\n[\r\n ]*", "", data)
+            data = re.sub("[\r\n ]+", " ", data)
             self._newline = False
         else:
-            data = re.sub("[\n ]+", " ", data)
+            data = re.sub("[\r\n ]+", " ", data)
         
         if len(data) > 0:
             self.append_text(data)

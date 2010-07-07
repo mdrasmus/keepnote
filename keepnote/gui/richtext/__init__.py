@@ -57,7 +57,7 @@ from keepnote import log_error
 
 # textbuffer_tools imports
 from keepnote.gui.richtext.textbuffer_tools import \
-     iter_buffer_contents
+     iter_buffer_contents, sanitize_text
 
 # richtextbuffer imports
 from keepnote.gui.richtext.richtextbuffer import \
@@ -812,10 +812,10 @@ class RichTextView (gtk.TextView):
     
     def _do_paste_text(self, clipboard, text, data):
         """Paste text into buffer"""
-        
+
         self._textbuffer.begin_user_action()
         self._textbuffer.delete_selection(False, True)
-        self._textbuffer.insert_at_cursor(text)
+        self._textbuffer.insert_at_cursor(sanitize_text(text))
         self._textbuffer.end_user_action()
 
         self.scroll_mark_onscreen(self._textbuffer.get_insert())

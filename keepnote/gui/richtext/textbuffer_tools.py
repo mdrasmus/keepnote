@@ -360,6 +360,12 @@ def buffer_contents_apply_tags(textbuffer, contents):
             textbuffer.apply_tag(param, start, end)
 
 
+def sanitize_text(text):
+    if "\r\n" in text:
+        # windows line feed
+        return text.replace("\r\n", "\n")
+    else:
+        return text
 
 
 #=============================================================================
