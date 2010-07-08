@@ -73,7 +73,6 @@ from keepnote.gui.icons import \
 import keepnote.search
 from keepnote.gui import richtext
 from keepnote.gui import \
-    dialog_image_resize, \
     dialog_image_new, \
     dialog_drag_drop_test, \
     dialog_wait, \
@@ -137,10 +136,7 @@ class KeepNoteWindow (gtk.Window):
         #====================================
         # Dialogs
         
-        self.drag_test = dialog_drag_drop_test.DragDropTestDialog(self)
-        self.image_resize_dialog = \
-            dialog_image_resize.ImageResizeDialog(self, self._app.pref)
-        
+        self.drag_test = dialog_drag_drop_test.DragDropTestDialog(self)        
 
         self.viewer = self.new_viewer()
         
@@ -360,7 +356,7 @@ class KeepNoteWindow (gtk.Window):
     
     def load_preferences(self, first_open=False):
         """Load preferences"""        
-
+        
         if first_open:
             self.resize(*self._app.pref.window_size)
             if self._app.pref.window_maximized:
@@ -921,139 +917,6 @@ class KeepNoteWindow (gtk.Window):
         except KeepNoteError, e:
             self.emit("error", e.msg, e, sys.exc_info()[2])
 
-
-    #=================================================
-    # Image context menu
-
-    # TODO: where does this belong?
-
-    def view_image(self, image_filename):
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-
-        image_path = os.path.join(current_page.get_path(), image_filename)
-        self._app.run_external_app("image_viewer", image_path)
-
-
-    def _on_view_image(self, menuitem):
-        """View image in Image Viewer"""
-        
-        # get image filename
-        image_filename = menuitem.get_parent().get_child().get_filename()
-        self.view_image(image_filename)
-        
-
-
-    def _on_edit_image(self, menuitem):
-        """Edit image in Image Editor"""
-
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-        
-        # get image filename
-        image_filename = menuitem.get_parent().get_child().get_filename()
-        image_path = os.path.join(current_page.get_path(), image_filename)
-        self._app.run_external_app("image_editor", image_path)
-
-
-    def _on_resize_image(self, menuitem):
-        """Resize image"""
-
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-        
-        image = menuitem.get_parent().get_child()
-        self.image_resize_dialog.on_resize(image)
-
-
-    def _on_new_image(self):
-        """New image"""
-
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-        
-        dialog = dialog_image_new.NewImageDialog(self, self._app)
-        dialog.show()
-
-
-    def _on_save_image_as(self, menuitem):
-        """Save image as a new file"""
-
-        current_page = self.get_current_page()
-        if current_page is None:
-            return
-        
-        # get image filename
-        image = menuitem.get_parent().get_child()
-        image_filename = image.get_filename()
-        image_path = os.path.join(current_page.get_path(), image_filename)
-
-        dialog = FileChooserDialog(
-            _("Save Image As..."), self, 
-            action=gtk.FILE_CHOOSER_ACTION_SAVE,
-            buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
-                     _("Save"), gtk.RESPONSE_OK),
-            app=self._app,
-            persistent_path="save_image_path")
-        dialog.set_default_response(gtk.RESPONSE_OK)
-        response = dialog.run()        
-
-        if response == gtk.RESPONSE_OK:
-
-            if not dialog.get_filename():
-                self.emit("error", _("Must specify a filename for the image."),
-                          None, None)
-            else:
-                filename = unicode_gtk(dialog.get_filename())
-                try:                
-                    image.write(filename)
-                except Exception, e:
-                    self.error(_("Could not save image '%s'.") % filename)
-
-        dialog.destroy()
-    
-
-    def make_image_menu(self, menu):
-        """image context menu"""
-
-        # TODO: where does this belong?
-        # TODO: convert into UIManager?
-
-
-        menu.set_accel_group(self.get_accel_group())
-        menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
-        item = gtk.SeparatorMenuItem()
-        item.show()
-        menu.append(item)
-            
-        # image/edit
-        item = gtk.MenuItem(_("_View Image..."))
-        item.connect("activate", self._on_view_image)
-        item.child.set_markup_with_mnemonic(_("<b>_View Image...</b>"))
-        item.show()
-        menu.append(item)
-        
-        item = gtk.MenuItem(_("_Edit Image..."))
-        item.connect("activate", self._on_edit_image)
-        item.show()
-        menu.append(item)
-
-        item = gtk.MenuItem(_("_Resize Image..."))
-        item.connect("activate", self._on_resize_image)
-        item.show()
-        menu.append(item)
-
-        # image/save
-        item = gtk.ImageMenuItem(_("_Save Image As..."))
-        item.connect("activate", self._on_save_image_as)
-        item.show()
-        menu.append(item)
-
-  
     
     #=====================================================
     # Cut/copy/paste    

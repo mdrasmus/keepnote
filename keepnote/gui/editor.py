@@ -56,6 +56,7 @@ from keepnote.gui.richtext import \
 from keepnote.gui.richtext.richtext_tags import \
     RichTextTagTable, RichTextLinkTag
 from keepnote.gui import \
+     FileChooserDialog, \
      get_pixbuf, \
      get_resource, \
      get_resource_image, \
@@ -63,7 +64,9 @@ from keepnote.gui import \
      Action, \
      ToggleAction, \
      add_actions, \
-     update_file_preview
+     update_file_preview, \
+     CONTEXT_MENU_ACCEL_PATH, \
+     dialog_image_resize
 from keepnote.gui.icons import \
     get_node_icon, lookup_icon_filename
 from keepnote.gui.font_selector import FontSelector
@@ -78,13 +81,68 @@ _ = keepnote.translate
 
 
 
+
 class KeepNoteEditor (gtk.VBox):
+    """
+    Base class for all KeepNoteEditors
+    """
 
     def __init__(self, app):
         gtk.VBox.__init__(self, False, 0)
         self._app = app
         self._notebook = None
+        self.show_all()
+
+
+    def set_notebook(self, notebook):
+        """Set notebook for editor"""
+
+    def get_textview(self):
+        """Return the textview"""
+        raise Exception("not implemented")
         
+    def is_focus(self):
+        """Return True if text editor has focus"""
+        return False
+
+    def grab_focus(self):
+        """Pass focus to textview"""
+
+    def clear_view(self):
+        """Clear editor view"""
+        self._page = None
+    
+    def view_pages(self, pages):
+        """View a page in the editor"""
+    
+    def save(self):
+        """Save the loaded page"""
+        
+    def save_needed(self):
+        """Returns True if textview is modified"""
+        return False
+
+    def load_preferences(self, app_pref, first_open=False):
+        """Load application preferences"""
+
+    def save_preferences(self, app_pref):
+        """Save application preferences"""
+
+    def add_ui(self, window, use_minitoolbar=False):
+        pass
+
+    def remove_ui(self, window):
+        pass
+
+
+
+class RichTextEditor (KeepNoteEditor):
+
+    def __init__(self, app):
+        KeepNoteEditor.__init__(self, app)
+        self._app = app
+        self._notebook = None
+
         self._link_picker = None
         self._maxlinks = 10 # maximum number of links to show in link picker
                 
@@ -95,7 +153,7 @@ class KeepNoteEditor (gtk.VBox):
         self._page_cursors = {}
         self._textview_io = RichTextIO()
         
-        # self
+        # editor
         self.connect("make-link", self._on_make_link)
         
         # textview and its callbacks
@@ -120,9 +178,16 @@ class KeepNoteEditor (gtk.VBox):
         # link editor
         self._link_editor = LinkEditor()
         self._link_editor.set_textview(self._textview)
+        self._link_editor.set_search_nodes(self._search_nodes)
         self.connect("font-change", self._link_editor.on_font_change)
         self.pack_start(self._link_editor, False, True, 0)
-        self._link_editor.set_search_nodes(self.search_nodes)
+
+        self.make_image_menu(self._textview.get_image_menu())
+
+
+        # menus
+        self.editor_menus = EditorMenus(self)
+        self.connect("font-change", self.editor_menus.on_font_change)
 
         # find dialog
         self.find_dialog = dialog_find.KeepNoteFindDialog(self)
@@ -158,6 +223,20 @@ class KeepNoteEditor (gtk.VBox):
 
         self._textview.set_default_font(self._notebook.pref.default_font)
     
+        
+    
+    def load_preferences(self, app_pref, first_open=False):
+        """Load application preferences"""
+
+        self.editor_menus.enable_spell_check(self._app.pref.spell_check)        
+
+
+    def save_preferences(self, app_pref):
+        """Save application preferences"""
+
+        # record state in preferences
+        app_pref.spell_check = self._textview.is_spell_check_enabled()
+
 
     def get_textview(self):
         """Return the textview"""
@@ -178,6 +257,13 @@ class KeepNoteEditor (gtk.VBox):
         self._page = None
         self._textview.disable()
     
+    def undo(self):
+        """Undo the last action in the viewer"""
+        self._textview.undo()
+
+    def redo(self):
+        """Redo the last action in the viewer"""
+        self._textview.redo()
     
     def view_pages(self, pages):
         """View a page in the editor"""
@@ -266,27 +352,21 @@ class KeepNoteEditor (gtk.VBox):
             except NoteBookError, e:
                 self.emit("error", e.msg, e)
 
-            
-    
 
     def save_needed(self):
         """Returns True if textview is modified"""
         return self._textview.is_modified()
 
 
-    def search_nodes(self, text):
-        """Return nodes with titles containing 'text'"""
-
-        # TODO: make proper interface
-        nodes = [(nodeid, title) 
-                for nodeid, title in self._notebook._index.search_titles(text)]
-        return nodes
+    def add_ui(self, window, use_minitoolbar):
+        
+        self.editor_menus.add_ui(window,
+                                 use_minitoolbar=self._app.pref.use_minitoolbar)
 
 
-    def _on_make_link(self, editor):
-        """Callback from editor to make a link"""
-        self._link_editor.edit()
-
+    def remove_ui(self, window):
+        
+        self.editor_menus.remove_ui(window)
 
     #===========================================
     # callbacks for textview
@@ -294,7 +374,7 @@ class KeepNoteEditor (gtk.VBox):
     def _on_font_callback(self, textview, font):
         """Callback for textview font changed"""
         self.emit("font-change", font)
-        self.check_link(False)
+        self._check_link(False)
     
     def _on_modified_callback(self, textview, modified):
         """Callback for textview modification"""
@@ -311,7 +391,7 @@ class KeepNoteEditor (gtk.VBox):
 
     def _on_text_changed(self, textview):
         """Callback for textview text change"""
-        self.check_link()
+        self._check_link()
 
 
     def _on_key_press_event(self, textview, event):
@@ -341,16 +421,33 @@ class KeepNoteEditor (gtk.VBox):
                 self._app.open_webpage(url)
             except KeepNoteError, e:
                 self.emit("error", e.msg, e)
+
+                
+    def _on_make_link(self, editor):
+        """Callback from editor to make a link"""
+        self._link_editor.edit()
+
         
+    #=====================================
+    # callback for link editor
+
+    def _search_nodes(self, text):
+        """Return nodes with titles containing 'text'"""
+
+        # TODO: make proper interface
+        nodes = [(nodeid, title) 
+                for nodeid, title in self._notebook._index.search_titles(text)]
+        return nodes
+
 
     #======================================
     # link auto-complete
 
-    def check_link(self, popup=True):
+    def _check_link(self, popup=True):
         """Check whether complete should be shown for link under cursor"""
 
         # get link
-        tag, start, end = self.get_link()
+        tag, start, end = self._textview.get_link()
         
 
         if tag is not None and popup:
@@ -408,7 +505,7 @@ class KeepNoteEditor (gtk.VBox):
         """Callback for when link autocomplete has choosen a link"""
         
         # get current link
-        tag, start, end = self.get_link()
+        tag, start, end = self._textview.get_link()
 
         # make new link tag
         tagname = RichTextLinkTag.tag_name(url)
@@ -433,17 +530,6 @@ class KeepNoteEditor (gtk.VBox):
         # exit link mode
         self._textview.get_buffer().font_handler.clear_current_tag_class(tag)
 
-
-
-    def get_link(self):
-        """Get link near textview cursor"""
-
-        tag, start, end = self._textview.get_link()
-        #if tag is None:
-        #    it = self._textview.get_buffer().get_insert_iter()
-        #    it.backward_chars(1)
-        #    tag, start, end = self._textview.get_link(it)
-        return tag, start, end            
 
 
     #==================================================
@@ -578,6 +664,143 @@ class KeepNoteEditor (gtk.VBox):
         img = RichTextImage()
         img.set_from_pixbuf(gdk.pixbuf_new_from_file(filename))
         self._textview.insert_image(img, savename)
+
+
+
+    #=================================================
+    # Image context menu
+
+    # TODO: where does this belong?
+
+    def view_image(self, image_filename):
+        current_page = self._page
+        if current_page is None:
+            return
+
+        image_path = os.path.join(current_page.get_path(), image_filename)
+        self._app.run_external_app("image_viewer", image_path)
+
+
+    def _on_view_image(self, menuitem):
+        """View image in Image Viewer"""
+        
+        # get image filename
+        image_filename = menuitem.get_parent().get_child().get_filename()
+        self.view_image(image_filename)
+        
+
+
+    def _on_edit_image(self, menuitem):
+        """Edit image in Image Editor"""
+
+        current_page = self._page
+        if current_page is None:
+            return
+        
+        # get image filename
+        image_filename = menuitem.get_parent().get_child().get_filename()
+        image_path = os.path.join(current_page.get_path(), image_filename)
+        self._app.run_external_app("image_editor", image_path)
+
+
+    def _on_resize_image(self, menuitem):
+        """Resize image"""
+
+        current_page = self._page
+        if current_page is None:
+            return
+        
+        image = menuitem.get_parent().get_child()
+        image_resize_dialog = \
+            dialog_image_resize.ImageResizeDialog(self.get_toplevel(), 
+                                                  self._app.pref)
+        image_resize_dialog.on_resize(image)
+
+
+    def _on_new_image(self):
+        """New image"""
+
+        current_page = self._page
+        if current_page is None:
+            return
+        
+        dialog = dialog_image_new.NewImageDialog(self, self._app)
+        dialog.show()
+
+
+    def _on_save_image_as(self, menuitem):
+        """Save image as a new file"""
+
+        current_page = self._page
+        if current_page is None:
+            return
+        
+        # get image filename
+        image = menuitem.get_parent().get_child()
+        image_filename = image.get_filename()
+        image_path = os.path.join(current_page.get_path(), image_filename)
+
+        dialog = FileChooserDialog(
+            _("Save Image As..."), self.get_toplevel(), 
+            action=gtk.FILE_CHOOSER_ACTION_SAVE,
+            buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
+                     _("Save"), gtk.RESPONSE_OK),
+            app=self._app,
+            persistent_path="save_image_path")
+        dialog.set_default_response(gtk.RESPONSE_OK)
+        response = dialog.run()        
+
+        if response == gtk.RESPONSE_OK:
+
+            if not dialog.get_filename():
+                self.emit("error", _("Must specify a filename for the image."),
+                          None, None)
+            else:
+                filename = unicode_gtk(dialog.get_filename())
+                try:                
+                    image.write(filename)
+                except Exception, e:
+                    self.error(_("Could not save image '%s'.") % filename)
+
+        dialog.destroy()
+    
+
+    def make_image_menu(self, menu):
+        """image context menu"""
+
+        # TODO: convert into UIManager?
+        # TODO: move to EditorMenus?
+        # TODO: add accelerators back
+        #menu.set_accel_group(self.get_accel_group())
+        menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
+        item = gtk.SeparatorMenuItem()
+        item.show()
+        menu.append(item)
+            
+        # image/edit
+        item = gtk.MenuItem(_("_View Image..."))
+        item.connect("activate", self._on_view_image)
+        item.child.set_markup_with_mnemonic(_("<b>_View Image...</b>"))
+        item.show()
+        menu.append(item)
+        
+        item = gtk.MenuItem(_("_Edit Image..."))
+        item.connect("activate", self._on_edit_image)
+        item.show()
+        menu.append(item)
+
+        item = gtk.MenuItem(_("_Resize Image..."))
+        item.connect("activate", self._on_resize_image)
+        item.show()
+        menu.append(item)
+
+        # image/save
+        item = gtk.ImageMenuItem(_("_Save Image As..."))
+        item.connect("activate", self._on_save_image_as)
+        item.show()
+        menu.append(item)
+
+  
 
 
 

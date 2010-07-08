@@ -61,7 +61,7 @@ from keepnote.gui import richtext
 from keepnote.gui.richtext import RichTextView, RichTextImage, RichTextError
 from keepnote.gui.treeview import KeepNoteTreeView
 from keepnote.gui.listview import KeepNoteListView
-from keepnote.gui.editor import KeepNoteEditor, EditorMenus
+from keepnote.gui.editor import KeepNoteEditor, RichTextEditor
 from keepnote.gui.icon_menu import IconMenu
 from keepnote import notebook as notebooklib
 from keepnote.gui.treemodel import iter_children
@@ -117,12 +117,11 @@ class ThreePaneViewer (Viewer):
         self.listview.on_status = self.set_status  # TODO: clean up
         
         # editor
-        self.editor = KeepNoteEditor(self._app)
-        self.editor_menus = EditorMenus(self.editor)
+        self.editor = RichTextEditor(self._app)
+        #self.editor = KeepNoteEditor(self._app)
         self.editor.connect("view-node", self._on_editor_view_node)
         self.editor.connect("child-activated", self._on_child_activated)
         self.editor.connect("visit-node", lambda w, n: self.goto_node(n, False))
-        self.editor.connect("font-change", self.editor_menus.on_font_change)
         self.editor.connect("error", lambda w,t,e: self.emit("error", t, e))
         self.editor.connect("window-request", lambda w,t: 
                             self.emit("window-request", t))
@@ -131,7 +130,6 @@ class ThreePaneViewer (Viewer):
         self.editor_pane = gtk.VBox(False, 5)
         self.editor_pane.pack_start(self.editor, True, True, 0)
 
-        self._main_window.make_image_menu(self.editor.get_textview().get_image_menu())
 
         #=====================================
         # layout
@@ -227,16 +225,13 @@ class ThreePaneViewer (Viewer):
                                        app_pref.treeview_lines)
         except:
             pass
-
-        self.editor_menus.enable_spell_check(self._app.pref.spell_check)
-
+        
+        self.editor.load_preferences(app_pref, first_open)
+        
         # reload ui
         if self._ui_ready:
             self.remove_ui(self._main_window)
             self.add_ui(self._main_window)
-
-        
-        
 
 
     def save_preferences(self, app_pref):
@@ -244,10 +239,8 @@ class ThreePaneViewer (Viewer):
         
         app_pref.vsash_pos = self.paned2.get_position()
         app_pref.hsash_pos = self.hpaned.get_position()
-        
-        # record state in preferences
-        app_pref.spell_check = self.editor.get_textview().is_spell_check_enabled()
 
+        self.editor.save_preferences(app_pref)
 
 
     def save(self):
@@ -276,11 +269,11 @@ class ThreePaneViewer (Viewer):
 
     def undo(self):
         """Undo the last action in the viewer"""
-        self.editor.get_textview().undo()
+        self.editor.undo()        
 
     def redo(self):
         """Redo the last action in the viewer"""
-        self.editor.get_textview().redo()
+        self.editor.redo()
 
 
     def set_status(self, text, bar="status"):
@@ -780,8 +773,9 @@ class ThreePaneViewer (Viewer):
 
 
         # setup editor
-        self.editor_menus.add_ui(window,
-                                 use_minitoolbar=self._app.pref.use_minitoolbar)
+        self.editor.add_ui(window,
+                           use_minitoolbar=self._app.pref.use_minitoolbar)
+        
         
         # TODO: Try to add accellerator to popup menu
         #menu = viewer.editor.get_textview().get_popup_menu()
@@ -838,7 +832,7 @@ class ThreePaneViewer (Viewer):
         assert self._main_window == window
 
         self._ui_ready = False
-        self.editor_menus.remove_ui(self._main_window)
+        self.editor.remove_ui(self._main_window)
 
         for ui in reversed(self._uis):
             self._main_window.get_uimanager().remove_ui(ui)
