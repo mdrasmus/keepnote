@@ -427,8 +427,8 @@ class KeepNoteWindow (gtk.Window):
         if filename in self._app.pref.recent_notebooks:
             self._app.pref.recent_notebooks.remove(filename)
         
-        self._app.pref.recent_notebooks = \
-            [filename] + self._app.pref.recent_notebooks[:keepnote.gui.MAX_RECENT_NOTEBOOKS]
+        self._app.pref.recent_notebooks = [filename] + \
+            self._app.pref.recent_notebooks[:keepnote.gui.MAX_RECENT_NOTEBOOKS]
 
         self._app.pref.changed.notify()
 
@@ -821,15 +821,16 @@ class KeepNoteWindow (gtk.Window):
         # TODO: move to app?
         # TODO: add note names to dialog
         # TODO: assume one node is selected
-        node = nodes[0]
+        
+        for node in nodes:
+            if isinstance(node, NoteBookTrash):
+                self.error(_("The Trash folder cannot be deleted."), None)
+                return False
+            elif node.get_parent() == None:
+                self.error(_("The top-level folder cannot be deleted."), None)
+                return False
 
-        if isinstance(node, NoteBookTrash):
-            self.error(_("The Trash folder cannot be deleted."), None)
-            return False
-        elif node.get_parent() == None:
-            self.error(_("The top-level folder cannot be deleted."), None)
-            return False
-        elif len(node.get_children()) > 0:
+        if len(nodes) > 1 or len(nodes[0].get_children()) > 0:
             message = _("Do you want to delete this note and all of its children?")
         else:
             message = _("Do you want to delete this note?")
@@ -858,9 +859,7 @@ class KeepNoteWindow (gtk.Window):
 
     def on_attach_file(self):
         """Callback for attach file action"""
-
-        # TODO: attach file action could go into application
-
+        
         if self.get_notebook() is None:
             return
 
@@ -1339,11 +1338,8 @@ class KeepNoteWindow (gtk.Window):
         # return menu bar
         menubar = self._uimanager.get_widget('/main_menu_bar')
         
-
         return menubar
        
-            
-
     
     def make_toolbar(self):
         
@@ -1359,13 +1355,11 @@ class KeepNoteWindow (gtk.Window):
             toolbar.set_property("icon-size", gtk.ICON_SIZE_SMALL_TOOLBAR)
         except:
             pass
-        
-        
+                
         # separator (is there a better way to do this?)
         spacer = self._uimanager.get_widget("/main_tool_bar/Main Spacer Tool")
         spacer.remove(spacer.child)
         spacer.set_expand(True)
-
 
         # search box
         self.search_box = SearchBox(self)
