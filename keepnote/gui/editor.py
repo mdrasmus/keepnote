@@ -72,6 +72,7 @@ from keepnote.gui.richtext.richtext_tags import color_tuple_to_string
 from keepnote.gui import dialog_find
 from keepnote.gui.popupwindow import PopupWindow
 from keepnote.gui.linkcomplete import LinkPickerPopup
+from keepnote.gui.link_editor import LinkEditor
 
 _ = keepnote.translate
 
@@ -94,6 +95,8 @@ class KeepNoteEditor (gtk.VBox):
         self._page_cursors = {}
         self._textview_io = RichTextIO()
         
+        # self
+        self.connect("make-link", self._on_make_link)
         
         # textview and its callbacks
         self._textview = RichTextView(RichTextBuffer(
@@ -114,6 +117,13 @@ class KeepNoteEditor (gtk.VBox):
         self._sw.add(self._textview)
         self.pack_start(self._sw)
         
+        # link editor
+        self._link_editor = LinkEditor()
+        self._link_editor.set_textview(self._textview)
+        self.connect("font-change", self._link_editor.on_font_change)
+        self.pack_start(self._link_editor, False, True, 0)
+        self._link_editor.set_search_nodes(self.search_nodes)
+
         # find dialog
         self.find_dialog = dialog_find.KeepNoteFindDialog(self)
 
@@ -262,6 +272,20 @@ class KeepNoteEditor (gtk.VBox):
     def save_needed(self):
         """Returns True if textview is modified"""
         return self._textview.is_modified()
+
+
+    def search_nodes(self, text):
+        """Return nodes with titles containing 'text'"""
+
+        # TODO: make proper interface
+        nodes = [(nodeid, title) 
+                for nodeid, title in self._notebook._index.search_titles(text)]
+        return nodes
+
+
+    def _on_make_link(self, editor):
+        """Callback from editor to make a link"""
+        self._link_editor.edit()
 
 
     #===========================================

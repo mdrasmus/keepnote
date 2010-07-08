@@ -63,7 +63,6 @@ from keepnote.gui.treeview import KeepNoteTreeView
 from keepnote.gui.listview import KeepNoteListView
 from keepnote.gui.editor import KeepNoteEditor, EditorMenus
 from keepnote.gui.icon_menu import IconMenu
-from keepnote.gui.link_editor import LinkEditor
 from keepnote import notebook as notebooklib
 from keepnote.gui.treemodel import iter_children
 from keepnote.gui.viewer import Viewer
@@ -92,7 +91,8 @@ class ThreePaneViewer (Viewer):
 
         #=========================================
         # widgets
-        
+
+
         # treeview
         self.treeview = KeepNoteTreeView()
         self.treeview.connect("select-nodes", self._on_tree_select)
@@ -119,7 +119,7 @@ class ThreePaneViewer (Viewer):
         # editor
         self.editor = KeepNoteEditor(self._app)
         self.editor_menus = EditorMenus(self.editor)
-        self.editor.connect("make-link", self._on_make_link)
+        self.editor.connect("view-node", self._on_editor_view_node)
         self.editor.connect("child-activated", self._on_child_activated)
         self.editor.connect("visit-node", lambda w, n: self.goto_node(n, False))
         self.editor.connect("font-change", self.editor_menus.on_font_change)
@@ -130,13 +130,6 @@ class ThreePaneViewer (Viewer):
         
         self.editor_pane = gtk.VBox(False, 5)
         self.editor_pane.pack_start(self.editor, True, True, 0)
-
-        self.link_editor = LinkEditor()
-        self.link_editor.set_textview(self.editor.get_textview())
-        self.editor.connect("font-change", self.link_editor.on_font_change)
-        self.editor.connect("view-node", self._on_editor_view_node)
-        self.editor_pane.pack_start(self.link_editor, False, True, 0)
-        self.link_editor.set_search_nodes(self.search_nodes)
 
         self._main_window.make_image_menu(self.editor.get_textview().get_image_menu())
 
@@ -423,11 +416,6 @@ class ThreePaneViewer (Viewer):
                     node.trash()
             except NoteBookError, e:
                 self.emit("error", e.msg, e)
-
-
-    def _on_make_link(self, editor):
-        """Callback from editor to make a link"""
-        self.link_editor.edit()
     
     
     def _on_editor_view_node(self, editor, node):
@@ -720,15 +708,6 @@ class ThreePaneViewer (Viewer):
                 widget.collapse_all_beneath(path)
             else:
                 widget.collapse_row(path)
-
-
-    def search_nodes(self, text):
-        """Return nodes with titles containing 'text'"""
-
-        # TODO: make proper interface
-        nodes = [(nodeid, title) 
-                for nodeid, title in self._notebook._index.search_titles(text)]
-        return nodes
 
 
     def on_copy_tree(self):
