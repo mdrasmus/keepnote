@@ -44,7 +44,6 @@ from keepnote import \
      KeepNoteError, is_url, unicode_gtk
 from keepnote.notebook import \
      NoteBookError, \
-     NoteBookVersionError, \
      get_node_url, \
      parse_node_url, \
      is_node_url
@@ -56,6 +55,7 @@ from keepnote.gui.richtext import \
 from keepnote.gui.richtext.richtext_tags import \
     RichTextTagTable, RichTextLinkTag
 from keepnote.gui import \
+     CONTEXT_MENU_ACCEL_PATH, \
      FileChooserDialog, \
      get_pixbuf, \
      get_resource, \
@@ -65,14 +65,13 @@ from keepnote.gui import \
      ToggleAction, \
      add_actions, \
      update_file_preview, \
-     CONTEXT_MENU_ACCEL_PATH, \
-     dialog_image_resize
+    dialog_find, \
+    dialog_image_resize
 from keepnote.gui.icons import \
     get_node_icon, lookup_icon_filename
 from keepnote.gui.font_selector import FontSelector
 from keepnote.gui.colortool import FgColorTool, BgColorTool
 from keepnote.gui.richtext.richtext_tags import color_tuple_to_string
-from keepnote.gui import dialog_find
 from keepnote.gui.popupwindow import PopupWindow
 from keepnote.gui.linkcomplete import LinkPickerPopup
 from keepnote.gui.link_editor import LinkEditor
