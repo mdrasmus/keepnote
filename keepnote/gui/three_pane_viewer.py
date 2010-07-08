@@ -61,7 +61,8 @@ from keepnote.gui import richtext
 from keepnote.gui.richtext import RichTextView, RichTextImage, RichTextError
 from keepnote.gui.treeview import KeepNoteTreeView
 from keepnote.gui.listview import KeepNoteListView
-from keepnote.gui.editor import KeepNoteEditor, RichTextEditor
+from keepnote.gui.editor import KeepNoteEditor
+from keepnote.gui.editor_richtext import RichTextEditor
 from keepnote.gui.icon_menu import IconMenu
 from keepnote import notebook as notebooklib
 from keepnote.gui.treemodel import iter_children
