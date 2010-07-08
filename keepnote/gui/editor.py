@@ -359,7 +359,8 @@ class RichTextEditor (KeepNoteEditor):
 
 
     def add_ui(self, window, use_minitoolbar):
-        
+        self._textview.get_image_menu().set_accel_group(window.get_accel_group())
+
         self.editor_menus.add_ui(window,
                                  use_minitoolbar=self._app.pref.use_minitoolbar)
 
@@ -770,8 +771,7 @@ class RichTextEditor (KeepNoteEditor):
 
         # TODO: convert into UIManager?
         # TODO: move to EditorMenus?
-        # TODO: add accelerators back
-        #menu.set_accel_group(self.get_accel_group())
+        # TODO: add accelerators back        
         menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
         item = gtk.SeparatorMenuItem()
         item.show()
