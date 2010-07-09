@@ -987,10 +987,15 @@ class EditorMenus (gobject.GObject):
             ("Insert Image", None, _("Insert _Image..."),
              "", None,
              lambda w: self._editor.on_insert_image()),
+
+            ("Insert New Image", None, _("Insert _New Image..."),
+             "", _("Insert a new image"),
+             lambda w: self._on_new_image()),
             
             ("Insert Screenshot", None, _("Insert _Screenshot..."),
              "<control>Insert", None,
              lambda w: self._editor.on_screenshot()),
+            
 
 
             # finding

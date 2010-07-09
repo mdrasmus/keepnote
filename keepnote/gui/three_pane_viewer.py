@@ -327,7 +327,7 @@ class ThreePaneViewer (Viewer):
         return self._current_page
 
 
-    def get_selected_nodes(self): #, widget="focus"):
+    def get_selected_nodes(self):
         """
         Returns  a list of selected nodes.
         """
@@ -501,12 +501,16 @@ class ThreePaneViewer (Viewer):
 
     def _on_attach_file(self, widget, parent, index, uri):
         """Attach document"""
-
         self._app.attach_file(uri, parent, index)
-        #try:
-        #    notebooklib.attach_file(uri, parent, index)
-        #except Exception, e:
-        #    self.emit("error",_("Error while attaching file '%s'." % uri), e)
+
+
+    def _on_attach_file_menu(self):
+        """Callback for attach file action"""
+        
+        nodes = self.get_selected_nodes()
+        if len(nodes) > 0:
+            node = nodes[0]
+            self._app.on_attach_file(node, self.get_toplevel())
 
 
 
@@ -976,6 +980,10 @@ class ThreePaneViewer (Viewer):
              "<control><shift>M", _("Create a new folder"),
              lambda w: self.on_new_dir(),
              "folder-new.png"),
+            
+            ("Attach File", gtk.STOCK_ADD, _("_Attach File..."),
+             "", _("Attach a file to the notebook"),
+             lambda w: self._on_attach_file_menu()),
 
 
             ("Back", gtk.STOCK_GO_BACK, _("_Back"), "", None,

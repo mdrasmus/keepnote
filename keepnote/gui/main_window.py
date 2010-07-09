@@ -818,6 +818,7 @@ class KeepNoteWindow (gtk.Window):
         # TODO: move to app?
         # TODO: add note names to dialog
         # TODO: assume one node is selected
+        # could make this a stand alone function/dialog box
         
         for node in nodes:
             if isinstance(node, NoteBookTrash):
@@ -853,16 +854,6 @@ class KeepNoteWindow (gtk.Window):
     
     #=================================================
     # action callbacks
-
-    def on_attach_file(self):
-        """Callback for attach file action"""
-        
-        nodes = self.get_selected_nodes()
-        if len(nodes) > 0:
-            node = nodes[0]
-            self._app.on_attach_file(node, self)
-        
-
 
     def on_view_node_external_app(self, app, node=None, kind=None):
         """View a node with an external app"""
@@ -1128,14 +1119,6 @@ class KeepNoteWindow (gtk.Window):
             ("Paste", gtk.STOCK_PASTE, None,
              "<control>V", None,
              lambda w: self.on_paste()),
-
-            ("Insert New Image", None, _("Insert _New Image..."),
-             "", _("Insert a new image"),
-             lambda w: self._on_new_image()),
-            
-            ("Attach File", gtk.STOCK_ADD, _("_Attach File..."),
-             "", _("Attach a file to the notebook"),
-             lambda w: self.on_attach_file()),
 
             ("Empty Trash", gtk.STOCK_DELETE, _("Empty _Trash"),
              "", None,
