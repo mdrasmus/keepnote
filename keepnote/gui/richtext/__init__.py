@@ -98,7 +98,7 @@ DEFAULT_FONT = "Sans 10"
 TEXTVIEW_MARGIN = 5
 CLIPBOARD_NAME = "CLIPBOARD"
 RICHTEXT_ID = -3    # application defined integer for the clipboard
-
+CONTEXT_MENU_ACCEL_PATH = "<main>/richtext_context_menu"
 
 # mime types
 # keepnote mime type is process specific
@@ -356,6 +356,7 @@ class RichTextView (gtk.TextView):
         self._blank_buffer = RichTextBuffer()
         self._popup_menu = None
         self._html_buffer = HtmlBuffer()
+        self._accel_group = None
         self.dragdrop = RichTextDragDrop(MIME_IMAGES + \
                                              ["text/uri-list",
                                               "text/html",
@@ -396,6 +397,7 @@ class RichTextView (gtk.TextView):
 
         #self.connect("button-press-event", self.on_button_press)
         self.connect("populate-popup", self.on_popup)
+
         
         # popup menus
         self.init_menus()
@@ -471,6 +473,10 @@ class RichTextView (gtk.TextView):
             
             # add all deferred anchors
             self._textbuffer.add_deferred_anchors(self)
+
+    def set_accel_group(self, accel_group):
+        self._accel_group = accel_group
+
 
     #======================================================
     # keyboard callbacks
@@ -958,40 +964,25 @@ class RichTextView (gtk.TextView):
     
     def on_popup(self, textview, menu):
         """Popup menu for RichTextView"""
-
-        self._popup_menu = menu
+        
+        self._popup_menu = menu        
 
         # insert "paste as plain text" after paste
         item = gtk.ImageMenuItem(stock_id=gtk.STOCK_PASTE,
                                  accel_group=None)        
         item.child.set_text(_("Paste As Plain Text"))
         item.connect("activate", lambda item: self.paste_clipboard_as_text())
+        #item.add_accelerator("activate", self._accel_group, ord("V"),
+        #                     gtk.gdk.CONTROL_MASK | gtk.gdk.SHIFT_MASK,
+        #                     gtk.ACCEL_VISIBLE)
         item.show()
         menu.insert(item, 3)
 
-    '''
-        menu.foreach(lambda item: menu.remove(item))
 
-        # Create the menu item
-        copy_item = gtk.MenuItem("Copy")
-        copy_item.connect("activate", self.on_copy)
-        menu.add(copy_item)
-        
-        accel_group = menu.get_accel_group()
-        print "accel", accel_group
-        if accel_group == None:
-            accel_group = gtk.AccelGroup()
-            menu.set_accel_group(accel_group)
-            print "get", menu.get_accel_group()
+        menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
+        if self._accel_group:
+            menu.set_accel_group(self._accel_group)
 
-
-        # Now add the accelerator to the menu item. Note that since we created
-        # the menu item with a label the AccelLabel is automatically setup to 
-        # display the accelerators.
-        copy_item.add_accelerator("activate", accel_group, ord("C"),
-                                  gtk.gdk.CONTROL_MASK, gtk.ACCEL_VISIBLE)
-        copy_item.show()
-    '''
     
 
     def _on_child_popup_menu(self, textbuffer, child, button, activate_time):

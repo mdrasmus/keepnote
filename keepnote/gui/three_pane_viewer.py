@@ -118,8 +118,8 @@ class ThreePaneViewer (Viewer):
         self.listview.on_status = self.set_status  # TODO: clean up
         
         # editor
-        self.editor = RichTextEditor(self._app)
         #self.editor = KeepNoteEditor(self._app)
+        self.editor = RichTextEditor(self._app)
         self.editor.connect("view-node", self._on_editor_view_node)
         self.editor.connect("child-activated", self._on_child_activated)
         self.editor.connect("visit-node", lambda w, n: self.goto_node(n, False))
