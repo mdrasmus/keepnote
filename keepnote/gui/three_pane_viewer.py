@@ -327,35 +327,17 @@ class ThreePaneViewer (Viewer):
         return self._current_page
 
 
-    def get_selected_nodes(self, widget="focus"):
+    def get_selected_nodes(self): #, widget="focus"):
         """
-        Returns (nodes, widget) where 'nodes' are a list of selected nodes
-        in widget 'widget'
-
-        Wiget can be
-           listview -- nodes selected in listview
-           treeview -- nodes selected in treeview
-           focus    -- nodes selected in widget with focus
+        Returns  a list of selected nodes.
         """
-        
-        if widget == "focus":
-            if self.listview.is_focus():
-                widget = "listview"
-            elif self.treeview.is_focus():
-                widget = "treeview"
-            elif self.editor.is_focus():
-                widget = "listview"
-            else:
-                return ([], "")
 
-        if widget == "treeview":
-            nodes = self.treeview.get_selected_nodes()
-        elif widget == "listview":
-            nodes = self.listview.get_selected_nodes()
+        if self.listview.is_focus():
+            return self.listview.get_selected_nodes()
+        elif self.treeview.is_focus():
+            return self.treeview.get_selected_nodes()
         else:
-            raise Exception("unknown widget '%s'" % widget)
-
-        return (nodes, widget)
+            return []
 
 
     def _on_history_changed(self, viewer, history):
@@ -377,12 +359,12 @@ class ThreePaneViewer (Viewer):
             return default
     
 
-    def on_delete_node(self, widget="focus", nodes=None):
+    def on_delete_node(self, widget, nodes=None):
         """Callback for deleting a node"""
         
         # get node to delete
         if nodes is None:
-            nodes, widget = self.get_selected_nodes()
+            nodes = self.get_selected_nodes()
             
         if len(nodes) == 0:
             return
@@ -495,7 +477,7 @@ class ThreePaneViewer (Viewer):
         """Focus view on a node's parent"""
 
         if node is None:
-            nodes, widget = self.get_selected_nodes()
+            nodes = self.get_selected_nodes()
             if len(nodes) == 0:
                 return
             node = nodes[0]
@@ -528,7 +510,7 @@ class ThreePaneViewer (Viewer):
 
 
 
-    def new_node(self, kind, widget, pos):
+    def new_node(self, kind, pos):
         """Add a new node to the notebook"""
         
         # TODO: think about where this goes
@@ -539,7 +521,7 @@ class ThreePaneViewer (Viewer):
         self.treeview.cancel_editing()
         self.listview.cancel_editing()
 
-        nodes, widget = self.get_selected_nodes(widget)
+        nodes = self.get_selected_nodes()
         
         if len(nodes) == 1:
             parent = nodes[0]
@@ -562,52 +544,53 @@ class ThreePaneViewer (Viewer):
                                     notebooklib.DEFAULT_PAGE_NAME,
                                     index)
 
-        self._view_new_node(node, widget)
+        self._view_new_node(node)
 
         
-    def on_new_dir(self, widget="focus"):
+    def on_new_dir(self):
         """Add new folder near selected nodes"""
-        self.new_node(notebooklib.CONTENT_TYPE_DIR, widget, "sibling")
+        self.new_node(notebooklib.CONTENT_TYPE_DIR, "sibling")
         
     
-    def on_new_page(self, widget="focus"):
+    def on_new_page(self):
         """Add new page near selected nodes"""
-        self.new_node(notebooklib.CONTENT_TYPE_PAGE, widget, "sibling")
+        self.new_node(notebooklib.CONTENT_TYPE_PAGE, "sibling")
     
 
-    def on_new_child_page(self, widget="focus"):
+    def on_new_child_page(self):
         """Add new page as child of selected nodes"""
-        self.new_node(notebooklib.CONTENT_TYPE_PAGE, widget, "child")
+        self.new_node(notebooklib.CONTENT_TYPE_PAGE, "child")
 
 
-    def _view_new_node(self, node, widget):
+    def _view_new_node(self, node):
         """View a node particular widget"""
         
         self._new_page_occurred = True
         
-        if widget == "treeview":
+        widget = self.get_focused_widget()
+        
+        if widget == self.treeview:
             self.treeview.expand_node(node.get_parent())
             self.treeview.edit_node(node)
-        elif widget == "listview":
+        elif widget == self.listview:
             self.listview.expand_node(node.get_parent())
             self.listview.edit_node(node)
-        elif widget == "":
-            pass
-        else:
-            raise Exception("unknown widget '%s'" % widget)
+
 
 
     def _on_rename_node(self):
         """Callback for renaming a node"""
-        nodes, widget = self.get_selected_nodes()
+        nodes = self.get_selected_nodes()
 
         if len(nodes) == 0:
             return
 
-        if widget == "listview":
-            self.listview.edit_node(nodes[0])
-        elif widget == "treeview":
+        widget = self.get_focused_widget()
+        
+        if widget == self.treeview:
             self.treeview.edit_node(nodes[0])
+        elif widget == self.listview:
+            self.listview.edit_node(nodes[0])
 
 
     def goto_node(self, node, direct=False):
@@ -1047,8 +1030,7 @@ class ThreePaneViewer (Viewer):
              lambda w: self.goto_editor()),
                     
             ("Delete Note", gtk.STOCK_DELETE, _("_Delete"),
-             "", None, 
-             lambda w: self.on_delete_node()),
+             "", None, self.on_delete_node),
 
             ("Rename Note", gtk.STOCK_EDIT, _("_Rename"),
              "", None, 

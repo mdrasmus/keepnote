@@ -284,15 +284,10 @@ class TabbedViewer (Viewer):
         return self.get_current_viewer().get_current_page()
 
 
-    def get_selected_nodes(self, widget="focus"):
+    def get_selected_nodes(self):
         """
         Returns (nodes, widget) where 'nodes' are a list of selected nodes
         in widget 'widget'
-
-        Wiget can be
-           listview -- nodes selected in listview
-           treeview -- nodes selected in treeview
-           focus    -- nodes selected in widget with focus
         """
         return self.get_current_viewer().get_selected_nodes()
 

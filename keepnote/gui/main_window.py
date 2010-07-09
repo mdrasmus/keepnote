@@ -770,7 +770,7 @@ class KeepNoteWindow (gtk.Window):
     #=====================================================
     # viewer callbacks
     
-    def update_title(self):
+    def update_title(self, node=None):
         """Set the modification state of the notebook"""
 
         notebook = self.viewer.get_notebook()
@@ -779,9 +779,14 @@ class KeepNoteWindow (gtk.Window):
             self.set_title(keepnote.PROGRAM_NAME)
         else:
             title = notebook.get_attr("title")
+            if node is None:
+                node = self.get_current_page()
+            if node is not None:
+                title += u": " + node.get_attr("title")
+
             modified = notebook.save_needed()
             if modified:
-                self.set_title("* %s" % title)
+                self.set_title(u"* %s" % title)
                 self.set_status(_("Notebook modified"))
             else:
                 self.set_title(title)
@@ -789,7 +794,7 @@ class KeepNoteWindow (gtk.Window):
 
     def _on_current_node(self, viewer, node):
         """Callback for when viewer changes the current node"""
-        self.update_title()
+        self.update_title(node)
 
 
     def _on_viewer_modified(self, viewer, modified):
@@ -800,19 +805,11 @@ class KeepNoteWindow (gtk.Window):
     #===========================================================
     # page and folder actions
 
-    def get_selected_nodes(self, widget="focus"):
+    def get_selected_nodes(self):
         """
-        Returns (nodes, widget) where 'nodes' are a list of selected nodes
-        in widget 'widget'
-
-        Wiget can be
-           listview -- nodes selected in listview
-           treeview -- nodes selected in treeview
-           focus    -- nodes selected in widget with focus
+        Returns list of selected nodes
         """
-        
-        # TODO: see whether I always use focus now.
-        return self.viewer.get_selected_nodes(widget)
+        return self.viewer.get_selected_nodes()
         
 
     def confirm_delete_nodes(self, nodes):
@@ -860,13 +857,10 @@ class KeepNoteWindow (gtk.Window):
     def on_attach_file(self):
         """Callback for attach file action"""
         
-        if self.get_notebook() is None:
-            return
-
-        nodes, widget = self.get_selected_nodes()
-        node = nodes[0]
-
-        self._app.on_attach_file(node, self)
+        nodes = self.get_selected_nodes()
+        if len(nodes) > 0:
+            node = nodes[0]
+            self._app.on_attach_file(node, self)
         
 
 
@@ -880,7 +874,7 @@ class KeepNoteWindow (gtk.Window):
         
         # determine node to view
         if node is None:
-            nodes, widget = self.get_selected_nodes()
+            nodes = self.get_selected_nodes()
             if len(nodes) == 0:
                 self.emit("error", _("No notes are selected."), None, None)
                 return            

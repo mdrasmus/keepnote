@@ -89,11 +89,10 @@ class Viewer (gtk.VBox):
     def get_current_page(self):
         return None
 
-    def get_selected_nodes(self, widget="focus"):
+    def get_selected_nodes(self):
         pass
 
-    def new_node(self, kind, widget, pos):
-        # TODO: choose a more general interface (i.e. deal with widget param)
+    def new_node(self, kind, pos):
         pass
 
     def goto_node(self, node, direct=False):

@@ -260,7 +260,7 @@ class Extension (extension.Extension):
         if notebook is None:
             return
 
-        nodes, widget = window.get_selected_nodes()
+        nodes = window.get_selected_nodes()
         if len(nodes) == 0:
             parent = notebook
         else:
