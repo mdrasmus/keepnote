@@ -357,6 +357,7 @@ class RichTextView (gtk.TextView):
         self._popup_menu = None
         self._html_buffer = HtmlBuffer()
         self._accel_group = None
+        self._accel_path = CONTEXT_MENU_ACCEL_PATH
         self.dragdrop = RichTextDragDrop(MIME_IMAGES + \
                                              ["text/uri-list",
                                               "text/html",
@@ -474,8 +475,13 @@ class RichTextView (gtk.TextView):
             # add all deferred anchors
             self._textbuffer.add_deferred_anchors(self)
 
+
     def set_accel_group(self, accel_group):
         self._accel_group = accel_group
+
+
+    def set_accel_path(self, accel_path):
+        self._accel_path = accel_path
 
 
     #======================================================
@@ -979,7 +985,7 @@ class RichTextView (gtk.TextView):
         menu.insert(item, 3)
 
 
-        menu.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
+        menu.set_accel_path(self._accel_path)
         if self._accel_group:
             menu.set_accel_group(self._accel_group)
 

@@ -305,6 +305,7 @@ class RichTextEditor (KeepNoteEditor):
 
     def add_ui(self, window, use_minitoolbar):
         self._textview.set_accel_group(window.get_accel_group())
+        self._textview.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
         self._textview.get_image_menu().set_accel_group(window.get_accel_group())
 
         self.editor_menus.add_ui(window,
