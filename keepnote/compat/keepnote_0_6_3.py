@@ -37,10 +37,6 @@ import subprocess
 import tempfile
 import traceback
 import zipfile
-try:
-    import xml.etree.cElementTree as ET
-except ImportError:
-    import xml.etree.elementtree.ElementTree as ET
 
 
 # work around pygtk changing default encoding
@@ -61,8 +57,8 @@ from keepnote import mswin
 import keepnote.trans
 from keepnote.trans import GETTEXT_DOMAIN
 from keepnote import extension
-from keepnote import plist
-from keepnote import safefile
+from keepnote import orderdict
+
 
 
 
@@ -242,7 +238,6 @@ def get_home():
     home = ensure_unicode(os.getenv(u"HOME"), FS_ENCODING)
     if home is None:
         raise EnvError("HOME environment variable must be specified")
-    return home
 
 
 def get_user_pref_dir(home=None):
@@ -573,8 +568,6 @@ class KeepNotePreferences (object):
         # window presentation options
         data["window_size"] = self.window_size
         data["window_maximized"] = self.window_maximized
-
-        # viewer
         data["vsash_pos"] = self.vsash_pos
         data["hsash_pos"] = self.hsash_pos
         data["view_mode"] = self.view_mode
@@ -668,7 +661,7 @@ class KeepNotePreferences (object):
         self.recent_notebooks = data.get("recent_notebook", [])[:]
 
         # dialog chooser paths
-        doc = get_user_documents()
+        docs = get_user_documents()
         self.default_paths = data.get("default_paths", {
             "new_notebook_path": doc,
             "archive_notebook_path": doc,
@@ -684,7 +677,7 @@ class KeepNotePreferences (object):
         for app in data.get("external_apps", []):
             if "key" not in app:
                 continue
-            app2 = ExternalApp(app["key"], 
+            app2 = ExternalApp(app.get["key"], 
                                app.get("title", ""), 
                                app.get("prog", ""), 
                                app.get("args", ""))
@@ -718,32 +711,13 @@ class KeepNotePreferences (object):
         self.external_apps = []
         self._external_apps_lookup = {}
 
-
+        # read xml preference file
         try:
-            tree = ET.ElementTree(
-                file=get_user_pref_file(self._pref_dir))
-        except Exception, e:
+            g_keepnote_pref_parser.read(self,
+                                        get_user_pref_file(self._pref_dir))
+        except IOError, e:
             raise KeepNotePreferenceError("Cannot read preferences", e)
-            
-        # check tree structure matches current version
-        root = tree.getroot()
-        if root.tag == "keepnote":
-            p = root.find("pref")
-            if not p:
-                import keepnote.compat.keepnote_0_6_3 as old_keepnote
-                old_pref = old_keepnote.KeepNotePreferences()
-                old_pref.read()
-                data = old_pref._get_data()
-            else:
-                d = p.find("dict")
-                if d:
-                    data = plist.load_etree(d)
-                else:
-                    data = orderdict.OrderDict()
 
-            self._set_data(data)
-
-        self.write2()
 
         # setup id
         if self.id is None:
@@ -793,28 +767,6 @@ class KeepNotePreferences (object):
                                          get_user_pref_file(self._pref_dir))
         except (IOError, OSError), e:
             raise NoteBookError(_("Cannot save preferences"), e)
-
- 
-    def write2(self):
-        """Write preferences to file"""        
-
-        try:
-            if not os.path.exists(self._pref_dir):
-                init_user_pref_dir(self._pref_dir)
-
-            out = sys.stdout
-            out.write(u'<?xml version="1.0" encoding="UTF-8"?>\n'
-                      u'<keepnote>\n'
-                      u'<pref>\n')
-            plist.dump(self._get_data(), out, indent=4, depth=4)
-            out.write(u'</pref>\n'
-                      u'</keepnote>')
-            
-            out.close()
-                                         
-        except (IOError, OSError), e:
-            raise NoteBookError(_("Cannot save preferences"), e)
-
 
 
         
