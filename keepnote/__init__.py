@@ -409,33 +409,9 @@ class ExternalApp (object):
         self.prog = prog
         self.args = args
 
-class AppCommand (object):
-    """Application Command"""
-
-    def __init__(self, name, func=lambda app, args: None, 
-                 metavar="", help=""):
-        self.name = name
-        self.func = func
-        self.metavar = metavar
-        self.help = help
-
 
 class KeepNotePreferenceError (StandardError):
     """Exception that occurs when manipulating preferences"""
-    
-    def __init__(self, msg, error=None):
-        StandardError.__init__(self)
-        self.msg = msg
-        self.error = error
-        
-    def __str__(self):
-        if self.error:
-            return str(self.error) + "\n" + self.msg
-        else:
-            return self.msg
-
-class EnvError (StandardError):
-    """Exception that occurs when environment variables are ill-defined"""
     
     def __init__(self, msg, error=None):
         StandardError.__init__(self)
@@ -760,7 +736,6 @@ class KeepNotePreferences (object):
             if not os.path.exists(self._pref_dir):
                 init_user_pref_dir(self._pref_dir)
             
-            #out = sys.stdout
             out = safefile.open(get_user_pref_file(self._pref_dir), "w", 
                                 codec="utf-8")
             out.write(u'<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -781,7 +756,22 @@ class KeepNotePreferences (object):
 #=============================================================================
 # Application class
 
+
+class EnvError (StandardError):
+    """Exception that occurs when environment variables are ill-defined"""
+    
+    def __init__(self, msg, error=None):
+        StandardError.__init__(self)
+        self.msg = msg
+        self.error = error
         
+    def __str__(self):
+        if self.error:
+            return str(self.error) + "\n" + self.msg
+        else:
+            return self.msg
+
+
 class KeepNoteError (StandardError):
     def __init__(self, msg, error=None):
         StandardError.__init__(self, msg)
@@ -808,6 +798,17 @@ class ExtensionEntry (object):
 
     def get_key(self):
         return os.path.basename(self.filename)
+
+
+class AppCommand (object):
+    """Application Command"""
+
+    def __init__(self, name, func=lambda app, args: None, 
+                 metavar="", help=""):
+        self.name = name
+        self.func = func
+        self.metavar = metavar
+        self.help = help
 
 
 class KeepNote (object):
