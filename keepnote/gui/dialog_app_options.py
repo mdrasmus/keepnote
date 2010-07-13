@@ -267,7 +267,7 @@ class LookAndFeelSection (Section):
         self.use_stock_icons_check.set_active(app.pref.use_stock_icons)
         self.use_minitoolbar.set_active(app.pref.use_minitoolbar)
 
-        if app.pref.view_mode == "horizontal":
+        if app.pref.get_viewer_pref("three_pane_viewer").get("view_mode", "") == "horizontal":
             self.listview_layout.set_active(1)
         else:
             self.listview_layout.set_active(0)
@@ -281,7 +281,7 @@ class LookAndFeelSection (Section):
         app.pref.use_stock_icons = self.use_stock_icons_check.get_active()
         app.pref.use_minitoolbar = self.use_minitoolbar.get_active()
 
-        app.pref.view_mode = ["vertical", "horizontal"][
+        app.pref.get_viewer_pref("three_pane_viewer")["view_mode"] = ["vertical", "horizontal"][
             self.listview_layout.get_active()]
  
 

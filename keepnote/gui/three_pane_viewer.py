@@ -73,6 +73,11 @@ from keepnote.gui.icons import \
 _ = keepnote.translate
 
 
+DEFAULT_VSASH_POS = 200
+DEFAULT_HSASH_POS = 200
+DEFAULT_VIEW_MODE = "vertical"
+
+
 
 class ThreePaneViewer (Viewer):
     """A viewer with a treeview, listview, and editor"""
@@ -87,6 +92,7 @@ class ThreePaneViewer (Viewer):
         self._queue_list_select = []  # nodes to select in listview after treeview change
         self._new_page_occurred = False
         self.back_button = None
+        self._view_mode = DEFAULT_VIEW_MODE
 
         self.connect("history-changed", self._on_history_changed)
 
@@ -140,13 +146,13 @@ class ThreePaneViewer (Viewer):
         # create a horizontal paned widget
         self.hpaned = gtk.HPaned()
         self.pack_start(self.hpaned, True, True, 0)
-        self.hpaned.set_position(keepnote.DEFAULT_HSASH_POS)
+        self.hpaned.set_position(DEFAULT_HSASH_POS)
 
                 
         # layout major widgets
         self.paned2 = gtk.VPaned()
         self.hpaned.add2(self.paned2)
-        self.paned2.set_position(keepnote.DEFAULT_VSASH_POS)
+        self.paned2.set_position(DEFAULT_VSASH_POS)
         
         # treeview and scrollbars
         sw = gtk.ScrolledWindow()
@@ -214,9 +220,11 @@ class ThreePaneViewer (Viewer):
     def load_preferences(self, app_pref, first_open=False):
         """Load application preferences"""
 
-        self.set_view_mode(app_pref.view_mode)
-        self.paned2.set_position(app_pref.vsash_pos)
-        self.hpaned.set_position(app_pref.hsash_pos)
+        p = app_pref.get_viewer_pref("three_pane_viewer")
+        self.set_view_mode(p.get("view_mode", DEFAULT_VIEW_MODE))
+        self.paned2.set_position(p.get("vsash_pos", DEFAULT_VSASH_POS))
+        self.hpaned.set_position(p.get("hsash_pos", DEFAULT_HSASH_POS))
+
 
         self.listview.set_date_formats(app_pref.timestamp_formats)
         self.listview.set_rules_hint(app_pref.listview_rules)        
@@ -238,8 +246,10 @@ class ThreePaneViewer (Viewer):
     def save_preferences(self, app_pref):
         """Save application preferences"""
         
-        app_pref.vsash_pos = self.paned2.get_position()
-        app_pref.hsash_pos = self.hpaned.get_position()
+        p = app_pref.get_viewer_pref("three_pane_viewer")
+        p["view_mode"] = self._view_mode
+        p["vsash_pos"] = self.paned2.get_position()
+        p["hsash_pos"] = self.hpaned.get_position()
 
         self.editor.save_preferences(app_pref)
 
@@ -303,7 +313,7 @@ class ThreePaneViewer (Viewer):
             # create a horizontal paned widget
             self.paned2 = gtk.HPaned()
                     
-        self.paned2.set_position(self._app.pref.vsash_pos)
+        self.paned2.set_position(self._app.pref.get_viewer_pref("three_pane_viewer").get("vsash_pos", DEFAULT_VSASH_POS))
         self.paned2.show()        
         
         self.hpaned.add2(self.paned2)
@@ -313,9 +323,7 @@ class ThreePaneViewer (Viewer):
         self.paned2.add2(self.editor_pane)
 
         # record preference
-        if mode != self._app.pref.view_mode:
-            self._app.pref.view_mode = mode
-            self._app.pref.changed.notify()
+        self._view_mode = mode
 
 
     #===============================================

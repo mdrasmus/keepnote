@@ -139,9 +139,6 @@ USER_EXTENSIONS_DATA_DIR = u"extensions_data"
 
 DEFAULT_WINDOW_SIZE = (1024, 600)
 DEFAULT_WINDOW_POS = (-1, -1)
-DEFAULT_VSASH_POS = 200
-DEFAULT_HSASH_POS = 200
-DEFAULT_VIEW_MODE = "vertical"
 DEFAULT_AUTOSAVE_TIME = 10 * 1000 # 10 sec (in msec)
 
 
@@ -504,83 +501,13 @@ class KeepNotePreferences (object):
             app = None
         return app
 
+    def get_viewer_pref(self, viewer):
+        return self._viewer_pref.get(viewer)
+        
+
     
     #=========================================
     # Input/Output
-
-    def _get_data(self, data=None):
-
-        if data is None:
-            data = orderdict.OrderDict()
-
-        
-        data["id"] = self.id
-
-        # language
-        data["language"] = self.language
-
-        # autosave
-        data["autosave"] = self.autosave
-        data["autosave_time"] = self.autosave_time
-        
-        data["default_notebook"] = self.default_notebook
-        data["use_last_notebook"] = self.use_last_notebook
-        data["recent_notebooks"] = self.recent_notebooks
-        data["timestamp_formats"] = self.timestamp_formats
-
-        # window presentation options
-        data["window"] = {"window_size": self.window_size,
-                          "window_maximized": self.window_maximized,
-                          "use_systray": self.use_systray,
-                          "skip_taskbar": self.skip_taskbar
-                          }
-
-        # editor
-        data["editors"] = {
-            "general": {
-                "spell_check": self.spell_check,
-                "image_size_snap": self.image_size_snap,
-                "image_size_snap_amount": self.image_size_snap_amount
-                }
-            }
-        
-
-        # viewer
-        data["viewers"] = {
-            "three_pane_viewer": {
-                "vsash_pos": self.vsash_pos,
-                "hsash_pos": self.hsash_pos,
-                "view_mode": self.view_mode
-                }
-            }
-        
-        # look and feel
-        data["look_and_feel"] = {
-            "treeview_lines": self.treeview_lines,
-            "listview_rules": self.listview_rules,
-            "use_stock_icons": self.use_stock_icons,
-            "use_minitoolbar": self.use_minitoolbar
-            }
-
-        # dialog chooser paths
-        data["default_paths"] = self.default_paths
-
-        # external apps
-        data["external_apps"] = [
-            {"key": app.key,
-             "title": app.title,
-             "prog": app.prog,
-             "args": app.args}
-            for app in self.external_apps]
-
-        # extensions
-        data["extension_info"] = {
-            "disabled": self.disabled_extensions
-            }
-        data["extensions"] = {}
-
-
-        return data
 
 
     def _set_data(self, data={}):
@@ -610,10 +537,8 @@ class KeepNotePreferences (object):
 
 
         # three pane viewer options
+        self._viewer_pref = data.get("viewers", orderdict.OrderDict())
         v = data.get("viewers", {}).get("three_pane_viewer", {})
-        self.vsash_pos = v.get("vsash_pos", DEFAULT_VSASH_POS)
-        self.hsash_pos = v.get("hsash_pos", DEFAULT_HSASH_POS)
-        self.view_mode = v.get("view_mode", DEFAULT_VIEW_MODE)
 
         e = data.get("editors", {}).get("general", {})
         self.spell_check = e.get("spell_check", True)
@@ -681,6 +606,75 @@ class KeepNotePreferences (object):
         top = len(DEFAULT_EXTERNAL_APPS)
         self.external_apps.sort(key=lambda x: (lookup.get(x.key, top), x.key))
     
+
+
+    def _get_data(self, data=None):
+
+        if data is None:
+            data = orderdict.OrderDict()
+
+        
+        data["id"] = self.id
+
+        # language
+        data["language"] = self.language
+
+        # autosave
+        data["autosave"] = self.autosave
+        data["autosave_time"] = self.autosave_time
+        
+        data["default_notebook"] = self.default_notebook
+        data["use_last_notebook"] = self.use_last_notebook
+        data["recent_notebooks"] = self.recent_notebooks
+        data["timestamp_formats"] = self.timestamp_formats
+
+        # window presentation options
+        data["window"] = {"window_size": self.window_size,
+                          "window_maximized": self.window_maximized,
+                          "use_systray": self.use_systray,
+                          "skip_taskbar": self.skip_taskbar
+                          }
+
+        # editor
+        data["editors"] = {
+            "general": {
+                "spell_check": self.spell_check,
+                "image_size_snap": self.image_size_snap,
+                "image_size_snap_amount": self.image_size_snap_amount
+                }
+            }
+        
+
+        # viewer
+        data["viewers"] = self._viewer_pref
+        
+        # look and feel
+        data["look_and_feel"] = {
+            "treeview_lines": self.treeview_lines,
+            "listview_rules": self.listview_rules,
+            "use_stock_icons": self.use_stock_icons,
+            "use_minitoolbar": self.use_minitoolbar
+            }
+
+        # dialog chooser paths
+        data["default_paths"] = self.default_paths
+
+        # external apps
+        data["external_apps"] = [
+            {"key": app.key,
+             "title": app.title,
+             "prog": app.prog,
+             "args": app.args}
+            for app in self.external_apps]
+
+        # extensions
+        data["extension_info"] = {
+            "disabled": self.disabled_extensions
+            }
+        data["extensions"] = {}
+        
+        return data
+
 
     def read(self):
         """Read preferences from file"""
