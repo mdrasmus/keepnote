@@ -504,58 +504,6 @@ class KeepNotePreferences (object):
             self._pref_dir = pref_dir
 
         self._set_data()
-
-        '''
-        # external apps
-        self.external_apps = []
-        self._external_apps_lookup = {}
-
-        self.id = None
-
-        # extensions
-        self.disabled_extensions = []
-
-        # window presentation options
-        self.window_size = DEFAULT_WINDOW_SIZE
-        self.window_maximized = True
-        self.vsash_pos = DEFAULT_VSASH_POS
-        self.hsash_pos = DEFAULT_HSASH_POS
-        self.view_mode = DEFAULT_VIEW_MODE
-        
-        # look and feel
-        self.treeview_lines = True
-        self.listview_rules = True
-        self.use_stock_icons = False
-        self.use_minitoolbar = False
-
-        # autosave
-        self.autosave = True
-        self.autosave_time = DEFAULT_AUTOSAVE_TIME
-        
-        self.default_notebook = ""
-        self.use_last_notebook = True
-        self.timestamp_formats = dict(keepnote.timestamp.DEFAULT_TIMESTAMP_FORMATS)
-        self.spell_check = True
-        self.image_size_snap = True
-        self.image_size_snap_amount = 50
-        self.use_systray = True
-        self.skip_taskbar = False
-        self.recent_notebooks = []
-
-        self.language = ""
-
-
-        '''
-        
-        # TODO: refactor these away
-        # dialog chooser paths
-        docs = get_user_documents()
-        self.new_notebook_path = docs
-        self.archive_notebook_path = docs
-        self.insert_image_path = docs
-        self.save_image_path = docs
-        self.attach_file_path = docs
-        
         
         # listener
         self.changed = Listeners()

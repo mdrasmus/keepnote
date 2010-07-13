@@ -177,14 +177,13 @@ class Extension (extension.Extension):
     def on_restore_notebook(self, window):
         """Callback from gui for restoring a notebook from an archive"""
 
-        dialog = gtk.FileChooserDialog("Chose Archive To Restore", window, 
+        dialog = FileChooserDialog(
+            "Chose Archive To Restore", window, 
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
-                     "Restore", gtk.RESPONSE_OK))
-
-        if os.path.exists(self.app.pref.archive_notebook_path):
-            dialog.set_current_folder(self.app.pref.archive_notebook_path)
-
+                     "Restore", gtk.RESPONSE_OK),
+            app=self.app,
+            persistent_path="archive_notebook_path")
 
         file_filter = gtk.FileFilter()
         file_filter.add_pattern("*.tar.gz")
@@ -201,12 +200,6 @@ class Extension (extension.Extension):
 
         if response == gtk.RESPONSE_OK and dialog.get_filename():
             archive_filename = unicode_gtk(dialog.get_filename())
-
-            if dialog.get_current_folder():
-                self.app.pref.archive_notebook_path = \
-                    unicode_gtk(dialog.get_current_folder())
-                self.app.pref.changed.notify()
-
             dialog.destroy()
 
         elif response == gtk.RESPONSE_CANCEL:
