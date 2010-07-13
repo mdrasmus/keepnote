@@ -39,7 +39,7 @@ from keepnote.notebook import NoteBookError, get_valid_unique_filename
 from keepnote import notebook as notebooklib
 from keepnote import tasklib
 from keepnote import tarfile
-from keepnote.gui import extension
+from keepnote.gui import extension, FileChooserDialog
 
 # pygtk imports
 try:
@@ -123,15 +123,19 @@ class Extension (extension.Extension):
         if notebook is None:
             return
 
-        dialog = gtk.FileChooserDialog("Backup Notebook", window, 
+        dialog = FileChooserDialog(
+            "Backup Notebook", window, 
             action=gtk.FILE_CHOOSER_ACTION_SAVE,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
-                     "Backup", gtk.RESPONSE_OK))
+                     "Backup", gtk.RESPONSE_OK),
+            app=self.app,
+            persistent_path="archive_notebook_path")
 
-        if os.path.exists(self.app.pref.archive_notebook_path):
-            dialog.set_current_folder(self.app.pref.archive_notebook_path)
+        if ("archive_notebook_path" in self.app.pref.default_paths and 
+            os.path.exists(
+                self.app.pref.default_paths["archive_notebook_path"])):
             filename = notebooklib.get_unique_filename(
-                self.app.pref.archive_notebook_path,
+                self.app.pref.default_paths["archive_notebook_path"],
                 os.path.basename(notebook.get_path()) +
                 time.strftime("-%Y-%m-%d"), ".tar.gz", ".")
         else: 
@@ -155,12 +159,6 @@ class Extension (extension.Extension):
 
         if response == gtk.RESPONSE_OK and dialog.get_filename():
             filename = unicode_gtk(dialog.get_filename())
-
-            if dialog.get_current_folder():
-                self.app.pref.archive_notebook_path = \
-                    unicode_gtk(dialog.get_current_folder())
-                self.app.pref.changed.notify()
-
             dialog.destroy()
 
             if u"." not in filename:
@@ -217,12 +215,13 @@ class Extension (extension.Extension):
 
 
         # choose new notebook name
-        dialog = gtk.FileChooserDialog("Choose New Notebook Name", window, 
+        dialog = FileChooserDialog(
+            "Choose New Notebook Name", window, 
             action=gtk.FILE_CHOOSER_ACTION_SAVE,
             buttons=("Cancel", gtk.RESPONSE_CANCEL,
-                     "New", gtk.RESPONSE_OK))
-        if os.path.exists(self.app.pref.new_notebook_path):
-            dialog.set_current_folder(self.app.pref.new_notebook_path)
+                     "New", gtk.RESPONSE_OK),
+            app=self.app,
+            persistent_path="new_notebook_path")
 
         file_filter = gtk.FileFilter()
         file_filter.add_pattern("*.nbk")
@@ -243,12 +242,6 @@ class Extension (extension.Extension):
 
         if response == gtk.RESPONSE_OK and dialog.get_filename():
             notebook_filename = unicode_gtk(dialog.get_filename())
-
-            if dialog.get_current_folder():
-                self.app.pref.new_notebook_path = \
-                    os.path.dirname(unicode_gtk(dialog.get_current_folder()))
-                self.app.pref.changed.notify()
-
             dialog.destroy()
 
             window.set_status("Restoring...")

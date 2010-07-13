@@ -215,6 +215,8 @@ def unicode_gtk(text):
 
     Note: pygtk can accept either unicode or utf8 encoded byte strings.
     """
+    if text is None:
+        return None
     return unicode(text, "utf8")
 
 
@@ -501,9 +503,11 @@ class KeepNotePreferences (object):
         else:
             self._pref_dir = pref_dir
 
+        self._set_data()
+
+        '''
         # external apps
         self.external_apps = []
-        self._external_apps = []
         self._external_apps_lookup = {}
 
         self.id = None
@@ -540,6 +544,10 @@ class KeepNotePreferences (object):
 
         self.language = ""
 
+
+        '''
+        
+        # TODO: refactor these away
         # dialog chooser paths
         docs = get_user_documents()
         self.new_notebook_path = docs
@@ -549,15 +557,32 @@ class KeepNotePreferences (object):
         self.attach_file_path = docs
         
         
-
-        # temp variables for parsing
-        self._last_timestamp_name = ""
-        self._last_timestamp_format = ""
-
         # listener
         self.changed = Listeners()
         self.changed.add(self._on_changed)
 
+
+
+    def get_pref_dir(self):
+        """Returns preference directory"""
+        return self._pref_dir
+
+
+    def _on_changed(self):
+        """Listener for preference changes"""
+        self.write()
+
+    
+    def get_external_app(self, key):
+        """Return an external application by its key name"""
+        app = self._external_apps_lookup.get(key, None)
+        if app == "":
+            app = None
+        return app
+
+    
+    #=========================================
+    # Input/Output
 
     def _get_data(self, data=None):
 
@@ -570,44 +595,51 @@ class KeepNotePreferences (object):
         # language
         data["language"] = self.language
 
-        # window presentation options
-        data["window_size"] = self.window_size
-        data["window_maximized"] = self.window_maximized
-
-        # viewer
-        data["vsash_pos"] = self.vsash_pos
-        data["hsash_pos"] = self.hsash_pos
-        data["view_mode"] = self.view_mode
-        
-        # look and feel
-        data["treeview_lines"] = self.treeview_lines
-        data["listview_rules"] = self.listview_rules
-        data["use_stock_icons"] = self.use_stock_icons
-        data["use_minitoolbar"] = self.use_minitoolbar
-
         # autosave
         data["autosave"] = self.autosave
         data["autosave_time"] = self.autosave_time
         
         data["default_notebook"] = self.default_notebook
         data["use_last_notebook"] = self.use_last_notebook
-
-
+        data["recent_notebooks"] = self.recent_notebooks
         data["timestamp_formats"] = self.timestamp_formats
 
-        data["spell_check"] = self.spell_check
-        data["image_size_snap"] = self.image_size_snap
-        data["image_size_snap_amount"] = self.image_size_snap_amount
-        data["use_systray"] = self.use_systray
-        data["skip_taskbar"] = self.skip_taskbar
+        # window presentation options
+        data["window"] = {"window_size": self.window_size,
+                          "window_maximized": self.window_maximized,
+                          "use_systray": self.use_systray,
+                          "skip_taskbar": self.skip_taskbar
+                          }
+
+        # editor
+        data["editors"] = {
+            "general": {
+                "spell_check": self.spell_check,
+                "image_size_snap": self.image_size_snap,
+                "image_size_snap_amount": self.image_size_snap_amount
+                }
+            }
         
 
-        data["recent_notebook"] = self.recent_notebooks
-
-        # extensions
-        data["extensions"] = {
-            "disabled": self.disabled_extensions
+        # viewer
+        data["viewers"] = {
+            "three_pane_viewer": {
+                "vsash_pos": self.vsash_pos,
+                "hsash_pos": self.hsash_pos,
+                "view_mode": self.view_mode
+                }
             }
+        
+        # look and feel
+        data["look_and_feel"] = {
+            "treeview_lines": self.treeview_lines,
+            "listview_rules": self.listview_rules,
+            "use_stock_icons": self.use_stock_icons,
+            "use_minitoolbar": self.use_minitoolbar
+            }
+
+        # dialog chooser paths
+        data["default_paths"] = self.default_paths
 
         # external apps
         data["external_apps"] = [
@@ -616,15 +648,12 @@ class KeepNotePreferences (object):
              "prog": app.prog,
              "args": app.args}
             for app in self.external_apps]
-        
-        # dialog chooser paths
-        data["default_paths"] = {
-            "new_notebook_path": self.new_notebook_path,
-            "archive_notebook_path": self.archive_notebook_path,
-            "insert_image_path": self.insert_image_path,
-            "save_image_path": self.save_image_path,
-            "attach_file_path": self.attach_file_path
+
+        # extensions
+        data["extension_info"] = {
+            "disabled": self.disabled_extensions
             }
+        data["extensions"] = {}
 
 
         return data
@@ -637,35 +666,45 @@ class KeepNotePreferences (object):
         # language
         self.language = data.get("language", "")
 
-        # window presentation options
-        self.window_size = data.get("window_size", DEFAULT_WINDOW_SIZE)
-        self.window_maximized = data.get("window_maximized", True)
-
-        # three pane viewer options
-        self.vsash_pos = data.get("vsash_pos", DEFAULT_VSASH_POS)
-        self.hsash_pos = data.get("hsash_pos", DEFAULT_HSASH_POS)
-        self.view_mode = data.get("view_mode", DEFAULT_VIEW_MODE)
-        
-        # look and feel
-        self.treeview_lines = data.get("treeview_lines", True)
-        self.listview_rules = data.get("listview_rules", True)
-        self.use_stock_icons = data.get("use_sttock_icons", False)
-        self.use_minitoolbar = data.get("use_minitoolbar", False)
-
         # autosave
         self.autosave = data.get("autosave", True)
         self.autosave_time = data.get("autosave_time", DEFAULT_AUTOSAVE_TIME)
-        
-        self.default_notebook = data.get("default_notebook", "")
-        self.use_last_notebook = data.get("use_last_notebook", True)
         self.timestamp_formats = data.get("timestamp_formats",
                          dict(keepnote.timestamp.DEFAULT_TIMESTAMP_FORMATS))
-        self.spell_check = data.get("spell_check", True)
-        self.image_size_snap = data.get("image_size_snap", True)
-        self.image_size_snap_amount = data.get("image_size_snap_amount", 50)
-        self.use_systray = data.get("use_systray", True)
-        self.skip_taskbar = data.get("skip_taskbar", False)
-        self.recent_notebooks = data.get("recent_notebook", [])[:]
+
+        # notebook
+        self.default_notebook = data.get("default_notebook", "")
+        self.use_last_notebook = data.get("use_last_notebook", True)
+        self.recent_notebooks = data.get("recent_notebooks", [])[:]
+
+        # window presentation options
+        win = data.get("window", {})
+        self.window_size = win.get("window_size", DEFAULT_WINDOW_SIZE)
+        self.window_maximized = win.get("window_maximized", True)
+        self.use_systray = win.get("use_systray", True)
+        self.skip_taskbar = win.get("skip_taskbar", False)
+
+
+        # three pane viewer options
+        v = data.get("viewers", {}).get("three_pane_viewer", {})
+        self.vsash_pos = v.get("vsash_pos", DEFAULT_VSASH_POS)
+        self.hsash_pos = v.get("hsash_pos", DEFAULT_HSASH_POS)
+        self.view_mode = v.get("view_mode", DEFAULT_VIEW_MODE)
+
+        e = data.get("editors", {}).get("general", {})
+        self.spell_check = e.get("spell_check", True)
+        self.image_size_snap = e.get("image_size_snap", True)
+        self.image_size_snap_amount = e.get("image_size_snap_amount", 50)
+
+        
+        # look and feel
+        l = data.get("lookup_and_feel", {})
+        self.treeview_lines = l.get("treeview_lines", True)
+        self.listview_rules = l.get("listview_rules", True)
+        self.use_stock_icons = l.get("use_sttock_icons", False)
+        self.use_minitoolbar = l.get("use_minitoolbar", False)
+
+
 
         # dialog chooser paths
         doc = get_user_documents()
@@ -677,10 +716,11 @@ class KeepNotePreferences (object):
             "attach_file_path": doc
             })
 
-        self.disabled_extensions = data.get(
-            "extensions", {"disabled": []}).get("disabled", [])
+        self.disabled_extensions = data.get("extension_info", 
+                                            {}).get("disabled", [])
 
         # external apps
+        self.external_apps = []
         for app in data.get("external_apps", []):
             if "key" not in app:
                 continue
@@ -689,67 +729,19 @@ class KeepNotePreferences (object):
                                app.get("prog", ""), 
                                app.get("args", ""))
             self.external_apps.append(app2)
+
+
+        self._post_process_data()
+
     
+    def _post_process_data(self):
         
-
-    def get_pref_dir(self):
-        """Returns preference directory"""
-        return self._pref_dir
-    
-
-    def _on_changed(self):
-        """Listener for preference changes"""
-        self.write()
-        
-
-    def read(self):
-        """Read preferences from file"""
-
-        # ensure preference file exists
-        if not os.path.exists(get_user_pref_file(self._pref_dir)):
-            # write default
-            try:
-                init_user_pref_dir(self._pref_dir)
-                self.write()
-            except Exception, e:
-                raise KeepNotePreferenceError("Cannot initialize preferences", e)
-
-        # clear external apps vars
-        self.external_apps = []
-        self._external_apps_lookup = {}
-
-
-        try:
-            tree = ET.ElementTree(
-                file=get_user_pref_file(self._pref_dir))
-        except Exception, e:
-            raise KeepNotePreferenceError("Cannot read preferences", e)
-            
-        # check tree structure matches current version
-        root = tree.getroot()
-        if root.tag == "keepnote":
-            p = root.find("pref")
-            if not p:
-                import keepnote.compat.keepnote_0_6_3 as old_keepnote
-                old_pref = old_keepnote.KeepNotePreferences()
-                old_pref.read()
-                data = old_pref._get_data()
-            else:
-                d = p.find("dict")
-                if d:
-                    data = plist.load_etree(d)
-                else:
-                    data = orderdict.OrderDict()
-
-            self._set_data(data)
-
-        self.write2()
-
         # setup id
         if self.id is None:
             self.id = str(uuid.uuid4())
         
         # make lookup
+        self._external_apps_lookup = {}
         for app in self.external_apps:
             self._external_apps_lookup[app.key] = app
 
@@ -764,45 +756,65 @@ class KeepNotePreferences (object):
         lookup = dict((x.key, i) for i, x in enumerate(DEFAULT_EXTERNAL_APPS))
         top = len(DEFAULT_EXTERNAL_APPS)
         self.external_apps.sort(key=lambda x: (lookup.get(x.key, top), x.key))
+    
 
+    def read(self):
+        """Read preferences from file"""
 
-        # initialize user extensions directory
-        extension.init_user_extensions(self._pref_dir)
+        # ensure preference file exists
+        if not os.path.exists(get_user_pref_file(self._pref_dir)):
+            # write default
+            try:
+                init_user_pref_dir(self._pref_dir)
+                self.write()
+            except Exception, e:
+                raise KeepNotePreferenceError("Cannot initialize preferences", e)
+        
+
+        try:
+            # read preferences xml
+            tree = ET.ElementTree(
+                file=get_user_pref_file(self._pref_dir))
+            
+            # parse xml
+            # check tree structure matches current version
+            root = tree.getroot()
+            if root.tag == "keepnote":
+                p = root.find("pref")
+                if not p:
+                    # convert from old preference version
+                    import keepnote.compat.pref as old
+                    old_pref = old.KeepNotePreferences()
+                    old_pref.read(get_user_pref_file(self._pref_dir))
+                    data = old_pref._get_data()
+                else:
+                    # get data object from xml
+                    d = p.find("dict")
+                    if d:
+                        data = plist.load_etree(d)
+                    else:
+                        data = orderdict.OrderDict()
+
+                # set data
+                self._set_data(data)
+        except Exception, e:
+            raise KeepNotePreferenceError("Cannot read preferences", e)
+        
                 
         # notify listeners
         self.changed.notify()
 
-
-        
-    def get_external_app(self, key):
-        """Return an external application by its key name"""
-        app = self._external_apps_lookup.get(key, None)
-        if app == "":
-            app = None
-        return app
-
-    
-    def write(self):
-        """Write preferences to file"""
-        
-        try:
-            if not os.path.exists(self._pref_dir):
-                init_user_pref_dir(self._pref_dir)
-        
-            g_keepnote_pref_parser.write(self,
-                                         get_user_pref_file(self._pref_dir))
-        except (IOError, OSError), e:
-            raise NoteBookError(_("Cannot save preferences"), e)
-
  
-    def write2(self):
+    def write(self):
         """Write preferences to file"""        
 
         try:
             if not os.path.exists(self._pref_dir):
                 init_user_pref_dir(self._pref_dir)
-
-            out = sys.stdout
+            
+            #out = sys.stdout
+            out = safefile.open(get_user_pref_file(self._pref_dir), "w", 
+                                codec="utf-8")
             out.write(u'<?xml version="1.0" encoding="UTF-8"?>\n'
                       u'<keepnote>\n'
                       u'<pref>\n')
@@ -813,144 +825,8 @@ class KeepNotePreferences (object):
             out.close()
                                          
         except (IOError, OSError), e:
+            log_error(e, sys.exc_info()[2])
             raise NoteBookError(_("Cannot save preferences"), e)
-
-
-
-        
-
-g_keepnote_pref_parser = xmlo.XmlObject(
-    xmlo.Tag("keepnote", tags=[
-        xmlo.Tag("id", attr=("id", None, None)),
-        xmlo.Tag("language", attr=("language", None, None)),
-
-        xmlo.Tag("default_notebook",
-                 attr=("default_notebook", None, None)),
-        xmlo.Tag("use_last_notebook",
-                 attr=("use_last_notebook", xmlo.str2bool, xmlo.bool2str)),
-
-        # window presentation options
-        xmlo.Tag("view_mode",
-                 attr=("view_mode", None, None)),
-        xmlo.Tag("window_size",
-                 attr=("window_size",
-                       lambda x: tuple(map(int, x.split(","))),
-                       lambda x: "%d,%d" % x)),
-        xmlo.Tag("window_maximized",
-                 attr=("window_maximized", xmlo.str2bool, xmlo.bool2str)), 
-        xmlo.Tag("vsash_pos",
-                 attr=("vsash_pos", int, compose(str, int))),
-        xmlo.Tag("hsash_pos",
-                 attr=("hsash_pos", int, compose(str, int))),
-
-        
-        xmlo.Tag("treeview_lines",
-                 attr=("treeview_lines", xmlo.str2bool, xmlo.bool2str)),
-        xmlo.Tag("listview_rules",
-                 attr=("listview_rules", xmlo.str2bool, xmlo.bool2str)),
-        xmlo.Tag("use_stock_icons",
-                 attr=("use_stock_icons", xmlo.str2bool, xmlo.bool2str)),
-        xmlo.Tag("use_minitoolbar",
-                 attr=("use_minitoolbar", xmlo.str2bool, xmlo.bool2str)),
-
-
-        # image resize
-        xmlo.Tag("image_size_snap",
-                 attr=("image_size_snap", xmlo.str2bool, xmlo.bool2str)),
-        xmlo.Tag("image_size_snap_amount",
-                 attr=("image_size_snap_amount", int, compose(str, int))),
-
-        xmlo.Tag("use_systray",
-                 attr=("use_systray", xmlo.str2bool, xmlo.bool2str)),
-        xmlo.Tag("skip_taskbar",
-                 attr=("skip_taskbar", xmlo.str2bool, xmlo.bool2str)),
-                 
-        # misc options
-        xmlo.Tag("spell_check",
-                 attr=("spell_check", xmlo.str2bool, xmlo.bool2str)),
-
-        xmlo.Tag("autosave",
-                 attr=("autosave", xmlo.str2bool, xmlo.bool2str)),
-        xmlo.Tag("autosave_time",
-                 attr=("autosave_time", int, compose(str, int))),
-                 
-        # default paths
-        xmlo.Tag("new_notebook_path",
-                 attr=("new_notebook_path", None, None)),        
-        xmlo.Tag("archive_notebook_path",
-                 attr=("archive_notebook_path", None, None)),
-        xmlo.Tag("insert_image_path",
-                 attr=("insert_image_path", None, None)),
-        xmlo.Tag("save_image_path",
-                 attr=("save_image_path", None, None)),
-        xmlo.Tag("attach_file_path",
-                 attr=("attach_file_path", None, None)),
-        
-
-        # recent notebooks
-        xmlo.Tag("recent_notebooks", tags=[
-           xmlo.TagMany("notebook",
-                iterfunc=lambda s: range(len(s.recent_notebooks)),
-                get=lambda (s, i), x: s.recent_notebooks.append(x),
-                set=lambda (s, i): s.recent_notebooks[i]
-                        )
-           ]),
-
-        # disabled extensions
-        xmlo.Tag("extensions", tags=[
-            xmlo.Tag("disabled", tags=[
-                xmlo.TagMany("extension",
-                iterfunc=lambda s: range(len(s.disabled_extensions)),
-                get=lambda (s, i), x: s.disabled_extensions.append(x),
-                set=lambda (s, i): s.disabled_extensions[i]
-                        )
-                ]),
-            ]),
-
-
-        xmlo.Tag("external_apps", tags=[
-
-           xmlo.TagMany("app",
-                iterfunc=lambda s: range(len(s.external_apps)),
-                before=lambda (s,i):
-                        s.external_apps.append(ExternalApp("", "", "")),
-                tags=[
-                    xmlo.Tag("title",
-                        get=lambda (s,i),x:
-                             setattr(s.external_apps[i], "title", x),
-                        set=lambda (s,i): s.external_apps[i].title),
-                    xmlo.Tag("name",
-                        get=lambda (s,i),x:
-                             setattr(s.external_apps[i], "key", x),
-                        set=lambda (s,i): s.external_apps[i].key),
-                    xmlo.Tag("program",                             
-                        get=lambda (s,i),x:
-                             setattr(s.external_apps[i], "prog", x),
-                        set=lambda (s,i): s.external_apps[i].prog)]
-           )]
-          
-        ),
-        xmlo.Tag("timestamp_formats", tags=[
-            xmlo.TagMany("timestamp_format",
-                iterfunc=lambda s: range(len(s.timestamp_formats)),
-                before=lambda (s,i): setattr(s, "_last_timestamp_name", "") or
-                                     setattr(s, "_last_timestamp_format", ""),
-                after=lambda (s,i):
-                    s.timestamp_formats.__setitem__(
-                        s._last_timestamp_name,
-                        s._last_timestamp_format),
-                tags=[
-                    xmlo.Tag("name",
-                        get=lambda (s,i),x: setattr(s, "_last_timestamp_name", x),
-                        set=lambda (s,i): s.timestamp_formats.keys()[i]),
-                    xmlo.Tag("format",
-                        get=lambda (s,i),x: setattr(s, "_last_timestamp_format", x),
-                        set=lambda (s,i): s.timestamp_formats.values()[i])
-                    ]
-            )]
-        )
-    ]))
-
 
 
 

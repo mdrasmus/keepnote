@@ -488,14 +488,9 @@ class KeepNoteWindow (gtk.Window):
         response = dialog.run()
         
         if response == gtk.RESPONSE_OK:
-            # make sure start in parent directory
-            if dialog.get_current_folder():
-                self._app.pref.new_notebook_path = \
-                    os.path.dirname(unicode_gtk(dialog.get_current_folder()))
-
-            if dialog.get_filename():
-                notebook_file = unicode_gtk(dialog.get_filename())
-            self.open_notebook(notebook_file)
+            notebook_file = unicode_gtk(dialog.get_filename())
+            if notebook_file:
+                self.open_notebook(notebook_file)
 
         dialog.destroy()
 

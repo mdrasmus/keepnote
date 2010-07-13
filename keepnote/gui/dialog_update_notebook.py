@@ -42,7 +42,7 @@ from keepnote.gui import dialog_wait
 from keepnote import tasklib
 from keepnote.notebook import update
 from keepnote import notebook as notebooklib
-from keepnote.gui import get_resource
+from keepnote.gui import get_resource, FileChooserDialog
 
 _ = keepnote.translate
 
@@ -127,14 +127,14 @@ class UpdateNoteBookDialog (object):
 
     def backup(self, notebook_filename):
         
-        dialog = gtk.FileChooserDialog(_("Choose Backup Notebook Name"),
+        dialog = FileChooserDialog(
+            _("Choose Backup Notebook Name"),
             self.main_window, 
             action=gtk.FILE_CHOOSER_ACTION_SAVE, #CREATE_FOLDER,
             buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
-                     _("Backup"), gtk.RESPONSE_OK))
-
-        if os.path.exists(self.app.pref.new_notebook_path):
-            dialog.set_current_folder(self.app.pref.new_notebook_path)
+                     _("Backup"), gtk.RESPONSE_OK),
+            app=self.app,
+            persistent_path="new_notebook_path")
         
         response = dialog.run()
         

@@ -536,11 +536,13 @@ class RichTextEditor (KeepNoteEditor):
             return
                 
   
-        dialog = gtk.FileChooserDialog(
+        dialog = FileChooserDialog(
             _("Insert Image From File"), self.get_toplevel(), 
             action=gtk.FILE_CHOOSER_ACTION_OPEN,
             buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
-                     _("Insert"), gtk.RESPONSE_OK))
+                     _("Insert"), gtk.RESPONSE_OK),
+            app=self._app,
+            persistent_path="insert_image_path")
 
         # add image filters
         filter = gtk.FileFilter()
@@ -565,33 +567,26 @@ class RichTextEditor (KeepNoteEditor):
         preview = gtk.Image()
         dialog.set_preview_widget(preview)
         dialog.connect("update-preview", update_file_preview, preview)
-
-        if self._app.pref.insert_image_path is not None and \
-           os.path.exists(self._app.pref.insert_image_path):
-            dialog.set_current_folder(self._app.pref.insert_image_path)        
             
             
         # run dialog
         response = dialog.run()
 
         if response == gtk.RESPONSE_OK:
-            folder = dialog.get_current_folder()
-            if folder:
-                self._app.pref.insert_image_path = unicode_gtk(folder)
-            
-            filename = dialog.get_filename()
+            filename = unicode_gtk(dialog.get_filename())
             dialog.destroy()
-
             if filename is None:
                 return 
-            filename = unicode_gtk(filename)
-                        
+            
             # TODO: do I need this?
             imgname, ext = os.path.splitext(os.path.basename(filename))
             if ext.lower() in (u".jpg", u".jpeg"):
-                imgname = imgname + u".jpg"
+                ext = u".jpg"
             else:
-                imgname = imgname + u".png"
+                ext = u".png"
+            
+            imgname = notebooklib.get_valid_unique_filename(
+                self._page.get_path(), imgname, ext=ext)
             
             try:
                 self.insert_image(filename, imgname)
@@ -617,9 +612,7 @@ class RichTextEditor (KeepNoteEditor):
 
     #=================================================
     # Image context menu
-
-    # TODO: where does this belong?
-
+    
     def view_image(self, image_filename):
         current_page = self._page
         if current_page is None:

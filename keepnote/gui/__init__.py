@@ -198,7 +198,7 @@ class FileChooserDialog (gtk.FileChooserDialog):
         self._persistent_path = persistent_path
         
         if self._app and self._persistent_path:
-            path = getattr(self._app.pref, self._persistent_path)
+            path = self._app.pref.default_paths.get(self._persistent_path, "")
             if path and os.path.exists(path):
                 self.set_current_folder(path)
 
@@ -208,8 +208,8 @@ class FileChooserDialog (gtk.FileChooserDialog):
 
         if (response == gtk.RESPONSE_OK and 
             self._app and self._persistent_path):
-            setattr(self._app.pref, self._persistent_path,
-                    unicode_gtk(self.get_current_folder()))
+            self._app.pref.default_paths[self._persistent_path] = \
+                    unicode_gtk(self.get_current_folder())
             
         return response
 
