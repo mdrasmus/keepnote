@@ -180,20 +180,23 @@ class GeneralSection (Section):
 
         # populate autosave
         self.xml.get_widget("autosave_check").set_active(
-            app.pref.autosave)
+            app.pref.get("autosave"))
         self.xml.get_widget("autosave_entry").set_text(
-            str(int(app.pref.autosave_time / 1000)))
+            str(int(app.pref.get("autosave_time") / 1000)))
 
         self.xml.get_widget("autosave_entry").set_sensitive(
-            app.pref.autosave)
+            app.pref.get("autosave"))
         self.xml.get_widget("autosave_label").set_sensitive(
-            app.pref.autosave)
+            app.pref.get("autosave"))
 
 
         # use systray icon
-        self.xml.get_widget("systray_check").set_active(app.pref.use_systray)
-        self.xml.get_widget("skip_taskbar_check").set_active(app.pref.skip_taskbar)
-        self.xml.get_widget("skip_taskbar_check").set_sensitive(app.pref.use_systray)
+        self.xml.get_widget("systray_check").set_active(
+            app.pref.get("window", "use_systray"))
+        self.xml.get_widget("skip_taskbar_check").set_active(
+            app.pref.get("window", "skip_taskbar"))
+        self.xml.get_widget("skip_taskbar_check").set_sensitive(
+            app.pref.get("window", "use_systray"))
 
 
     def save_options(self, app):
@@ -209,17 +212,19 @@ class GeneralSection (Section):
 
 
         # save autosave
-        app.pref.autosave = \
-            self.xml.get_widget("autosave_check").get_active()
+        app.pref.set("autosave", 
+            self.xml.get_widget("autosave_check").get_active())
         try:
-            app.pref.autosave_time = \
-                int(self.xml.get_widget("autosave_entry").get_text()) * 1000
+            app.pref.set("autosave_time",
+                int(self.xml.get_widget("autosave_entry").get_text()) * 1000)
         except:
             pass
 
         # use systray icon
-        app.pref.use_systray = self.xml.get_widget("systray_check").get_active()
-        app.pref.skip_taskbar = self.xml.get_widget("skip_taskbar_check").get_active()
+        app.pref.set("window", "use_systray", 
+                     self.xml.get_widget("systray_check").get_active())
+        app.pref.set("window", "skip_taskbar", 
+                     self.xml.get_widget("skip_taskbar_check").get_active())
 
 
 class LookAndFeelSection (Section):
@@ -267,7 +272,7 @@ class LookAndFeelSection (Section):
         self.use_stock_icons_check.set_active(app.pref.use_stock_icons)
         self.use_minitoolbar.set_active(app.pref.use_minitoolbar)
 
-        if app.pref.get_viewer_pref("three_pane_viewer").get("view_mode", "") == "horizontal":
+        if app.pref.get("viewers", "three_pane_viewer", "view_mode", default="") == "horizontal":
             self.listview_layout.set_active(1)
         else:
             self.listview_layout.set_active(0)
@@ -281,8 +286,9 @@ class LookAndFeelSection (Section):
         app.pref.use_stock_icons = self.use_stock_icons_check.get_active()
         app.pref.use_minitoolbar = self.use_minitoolbar.get_active()
 
-        app.pref.get_viewer_pref("three_pane_viewer")["view_mode"] = ["vertical", "horizontal"][
-            self.listview_layout.get_active()]
+        app.pref.set("viewers", "three_pane_viewer", "view_mode", 
+                     ["vertical", "horizontal"][
+                self.listview_layout.get_active()])
  
 
 class LanguageSection (Section):
@@ -576,7 +582,7 @@ class ExtensionsSection (Section):
         self.extlist.foreach(self.extlist.remove)
         
         def callback(ext):
-            return lambda w: self._on_uninstall(ext)
+            return lambda w: self._on_uninstall(ext.key)
 
         # populate extension list
         exts = list(app.iter_extensions())

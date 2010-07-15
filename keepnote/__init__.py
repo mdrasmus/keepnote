@@ -476,6 +476,8 @@ class KeepNotePreferences (object):
         else:
             self._pref_dir = pref_dir
 
+        self._docs = get_user_documents()
+        self._data = orderdict.OrderDict()
         self._set_data()
         
         # listener
@@ -493,7 +495,38 @@ class KeepNotePreferences (object):
         """Listener for preference changes"""
         self.write()
 
-    
+
+    def get(self, *args, **kargs):
+        """Get config value from preferences"""
+        
+        if len(args) == 0:
+            return self._data
+
+        d = self._data
+        for arg in args[:-1]:
+            if arg not in d:
+                d[arg] = orderdict.OrderDict()
+            d = d[arg]
+
+        if "default" in kargs:
+            d = d.get(args[-1], kargs["default"])
+        else:
+            arg = args[-1]
+            if arg not in d:
+                d[arg] = orderdict.OrderDict()
+            d = d[arg]
+
+        return d
+
+
+    def set(self, *args):
+        """Set config value in preferences"""
+        
+        keys = args[:-1]
+        val = args[-1]
+        self.get(*keys[:-1])[keys[-1]] = val
+
+
     def get_external_app(self, key):
         """Return an external application by its key name"""
         app = self._external_apps_lookup.get(key, None)
@@ -501,44 +534,36 @@ class KeepNotePreferences (object):
             app = None
         return app
 
-    def get_viewer_pref(self, viewer):
-        return self._viewer_pref.get(viewer)
-        
+
+    def get_default_path(self, name):
+        return self.get("default_paths", name, default=self._docs)
+
+    def set_default_path(self, name, path):
+        self.set("default_paths", name, path)
 
     
     #=========================================
     # Input/Output
 
 
-    def _set_data(self, data={}):
+    def _set_data(self, data=None):
 
+        if data is None:
+            data = orderdict.OrderDict()
+        self._data = data
+        
         self.id = data.get("id", None)
         
         # language
         self.language = data.get("language", "")
 
-        # autosave
-        self.autosave = data.get("autosave", True)
-        self.autosave_time = data.get("autosave_time", DEFAULT_AUTOSAVE_TIME)
         self.timestamp_formats = data.get("timestamp_formats",
                          dict(keepnote.timestamp.DEFAULT_TIMESTAMP_FORMATS))
 
         # notebook
         self.default_notebook = data.get("default_notebook", "")
         self.use_last_notebook = data.get("use_last_notebook", True)
-        self.recent_notebooks = data.get("recent_notebooks", [])[:]
 
-        # window presentation options
-        win = data.get("window", {})
-        self.window_size = win.get("window_size", DEFAULT_WINDOW_SIZE)
-        self.window_maximized = win.get("window_maximized", True)
-        self.use_systray = win.get("use_systray", True)
-        self.skip_taskbar = win.get("skip_taskbar", False)
-
-
-        # three pane viewer options
-        self._viewer_pref = data.get("viewers", orderdict.OrderDict())
-        v = data.get("viewers", {}).get("three_pane_viewer", {})
 
         e = data.get("editors", {}).get("general", {})
         self.spell_check = e.get("spell_check", True)
@@ -565,6 +590,8 @@ class KeepNotePreferences (object):
             "attach_file_path": doc
             })
 
+        
+        # extensions
         self.disabled_extensions = data.get("extension_info", 
                                             {}).get("disabled", [])
 
@@ -611,7 +638,7 @@ class KeepNotePreferences (object):
     def _get_data(self, data=None):
 
         if data is None:
-            data = orderdict.OrderDict()
+            data = self._data
 
         
         data["id"] = self.id
@@ -619,21 +646,9 @@ class KeepNotePreferences (object):
         # language
         data["language"] = self.language
 
-        # autosave
-        data["autosave"] = self.autosave
-        data["autosave_time"] = self.autosave_time
-        
         data["default_notebook"] = self.default_notebook
         data["use_last_notebook"] = self.use_last_notebook
-        data["recent_notebooks"] = self.recent_notebooks
         data["timestamp_formats"] = self.timestamp_formats
-
-        # window presentation options
-        data["window"] = {"window_size": self.window_size,
-                          "window_maximized": self.window_maximized,
-                          "use_systray": self.use_systray,
-                          "skip_taskbar": self.skip_taskbar
-                          }
 
         # editor
         data["editors"] = {
@@ -643,10 +658,6 @@ class KeepNotePreferences (object):
                 "image_size_snap_amount": self.image_size_snap_amount
                 }
             }
-        
-
-        # viewer
-        data["viewers"] = self._viewer_pref
         
         # look and feel
         data["look_and_feel"] = {
@@ -871,8 +882,11 @@ class KeepNote (object):
     def open_notebook(self, filename, window=None, task=None):
         """Open a new notebook"""
         
-        notebook = keepnote.notebook.NoteBook()
-        notebook.load(filename)
+        try:
+            notebook = keepnote.notebook.NoteBook()
+            notebook.load(filename)
+        except Exception:
+            return None
         return notebook
 
     def close_notebook(self, notebook):
@@ -889,7 +903,11 @@ class KeepNote (object):
         Open a new notebook if it is not already opened.
         """
 
-        filename = os.path.realpath(filename)
+        try:
+            filename = os.path.realpath(filename)
+        except:
+            return None
+
         if filename not in self._notebooks:
             notebook = self.open_notebook(filename, window, task=task)
             if notebook is None:
@@ -1235,12 +1253,12 @@ class KeepNote (object):
 
     def uninstall_extension(self, ext_key):
         """Uninstall an extension"""
-
+        
         # retrieve information about extension
         entry = self._extensions.get(ext_key, None)
 
         if entry is None:            
-            self.error(_("Unable to uninstall unknown extension '%s'.") % ext.key)
+            self.error(_("Unable to uninstall unknown extension '%s'.") % ext_key)
             return False
 
         # cannot uninstall system extensions

@@ -74,7 +74,7 @@ class Extension (extension.Extension):
 
 
     def get_depends(self):
-        return [("keepnote", ">=", (0, 6, 1))]
+        return [("keepnote", ">=", (0, 6, 4))]
 
 
     def on_add_ui(self, window):
@@ -131,11 +131,10 @@ class Extension (extension.Extension):
             app=self.app,
             persistent_path="archive_notebook_path")
 
-        if ("archive_notebook_path" in self.app.pref.default_paths and 
-            os.path.exists(
-                self.app.pref.default_paths["archive_notebook_path"])):
+        path = self.app.pref.get_default_path("archive_notebook_path")
+        if os.path.exists(path):
             filename = notebooklib.get_unique_filename(
-                self.app.pref.default_paths["archive_notebook_path"],
+                path,
                 os.path.basename(notebook.get_path()) +
                 time.strftime("-%Y-%m-%d"), ".tar.gz", ".")
         else: 

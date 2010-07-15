@@ -220,7 +220,7 @@ class ThreePaneViewer (Viewer):
     def load_preferences(self, app_pref, first_open=False):
         """Load application preferences"""
 
-        p = app_pref.get_viewer_pref("three_pane_viewer")
+        p = app_pref.get("viewers", "three_pane_viewer")
         self.set_view_mode(p.get("view_mode", DEFAULT_VIEW_MODE))
         self.paned2.set_position(p.get("vsash_pos", DEFAULT_VSASH_POS))
         self.hpaned.set_position(p.get("hsash_pos", DEFAULT_HSASH_POS))
@@ -246,7 +246,7 @@ class ThreePaneViewer (Viewer):
     def save_preferences(self, app_pref):
         """Save application preferences"""
         
-        p = app_pref.get_viewer_pref("three_pane_viewer")
+        p = app_pref.get("viewers", "three_pane_viewer")
         p["view_mode"] = self._view_mode
         p["vsash_pos"] = self.paned2.get_position()
         p["hsash_pos"] = self.hpaned.get_position()
@@ -300,6 +300,8 @@ class ThreePaneViewer (Viewer):
             "horizontal"
         """
 
+        vsash = self.paned2.get_position()
+
         # detach widgets
         self.paned2.remove(self.listview_sw)
         self.paned2.remove(self.editor_pane)
@@ -312,8 +314,8 @@ class ThreePaneViewer (Viewer):
         else:
             # create a horizontal paned widget
             self.paned2 = gtk.HPaned()
-                    
-        self.paned2.set_position(self._app.pref.get_viewer_pref("three_pane_viewer").get("vsash_pos", DEFAULT_VSASH_POS))
+        
+        self.paned2.set_position(vsash)
         self.paned2.show()        
         
         self.hpaned.add2(self.paned2)

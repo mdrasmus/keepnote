@@ -103,6 +103,7 @@ class KeepNoteWindow (gtk.Window):
         self._tray_icon = None      # True if tray icon is present        
         self._auto_saving = False   # True if autosave is on
         self._auto_save_pause = False # True if autosave is paused
+        self._recent_notebooks = []
 
         self._uimanager = UIManager()
         self._accel_group = self._uimanager.get_accel_group()
@@ -199,7 +200,9 @@ class KeepNoteWindow (gtk.Window):
                 self._tray_icon.set_tooltip(keepnote.PROGRAM_NAME)
                 self._tray_icon.connect("activate", self._on_tray_icon_activate)
 
-            self._tray_icon.set_property("visible", self._app.pref.use_systray)
+            self._tray_icon.set_property(
+                "visible", self._app.pref.get("window", "use_systray", 
+                                              default=True))
             
         else:
             self._tray_icon = None
@@ -285,7 +288,7 @@ class KeepNoteWindow (gtk.Window):
 
         # record window size if it is not maximized or minimized
         if not self._maximized and not self._iconified:
-            self._app.pref.window_size = self.get_size()
+            self._app.pref.get("window")["window_size"] = self.get_size()
 
 
     def _on_app_options_changed(self):
@@ -355,41 +358,51 @@ class KeepNoteWindow (gtk.Window):
     # Application preferences     
     
     def load_preferences(self, first_open=False):
-        """Load preferences"""        
+        """Load preferences"""  
+
+        p = self._app.pref
+        window_size = p.get("window", "window_size", 
+                            default=keepnote.DEFAULT_WINDOW_SIZE)
+        window_maximized = p.get("window", "window_maximized", default=True)
         
         if first_open:
-            self.resize(*self._app.pref.window_size)
-            if self._app.pref.window_maximized:
+            self.resize(*window_size)
+            if window_maximized:
                 self.maximize()
 
         self.setup_systray()
+        if p.get("window", "use_systray", default=True):
+            self.set_property("skip-taskbar-hint", 
+                              p.get("window", "skip_taskbar", default=False))
 
-        if self._app.pref.use_systray:
-            self.set_property("skip-taskbar-hint", self._app.pref.skip_taskbar)
+        p.get("autosave", default=True)
+        p.get("autosave_time", default=keepnote.DEFAULT_AUTOSAVE_TIME)
         
-        self.set_recent_notebooks_menu(self._app.pref.recent_notebooks)
+        self._recent_notebooks = p.get("recent_notebooks", default=[])
+        self.set_recent_notebooks_menu(self._recent_notebooks)
 
-        self._uimanager.set_force_stock(self._app.pref.use_stock_icons)
-
+        self._uimanager.set_force_stock(p.get("use_stock_icons", default=False))
         self.viewer.load_preferences(self._app.pref, first_open)
     
 
     def save_preferences(self):
         """Save preferences"""
 
-        self._app.pref.window_maximized = self._maximized
+        p = self._app.pref
+        p.get("window")["window_maximized"] = self._maximized
         self.viewer.save_preferences(self._app.pref)
-        self._app.pref.last_treeview_name_path = []
 
-        if self._app.pref.use_last_notebook and self.viewer.get_notebook():
-            self._app.pref.default_notebook = self.viewer.get_notebook().get_path()
+        if (p.get("use_last_notebook", default=False) and 
+            self.viewer.get_notebook()):
+            p.set("default_notebook", self.viewer.get_notebook().get_path())
+        p.set("recent_notebooks", self._recent_notebooks)
         
         self._app.pref.write()
         
         
     def set_recent_notebooks_menu(self, recent_notebooks):
         """Set the recent notebooks in the file menu"""
-
+        
         menu = self._uimanager.get_widget("/main_menu_bar/File/Open Recent Notebook")
 
         # init menu
@@ -424,13 +437,13 @@ class KeepNoteWindow (gtk.Window):
     def add_recent_notebook(self, filename):
         """Add recent notebook"""
         
-        if filename in self._app.pref.recent_notebooks:
-            self._app.pref.recent_notebooks.remove(filename)
+        if filename in self._recent_notebooks:
+            self._recent_notebooks.remove(filename)
         
-        self._app.pref.recent_notebooks = [filename] + \
-            self._app.pref.recent_notebooks[:keepnote.gui.MAX_RECENT_NOTEBOOKS]
+        self._recent_notebooks = [filename] + \
+            self._recent_notebooks[:keepnote.gui.MAX_RECENT_NOTEBOOKS]
 
-        self._app.pref.changed.notify()
+        self.set_recent_notebooks_menu(self._recent_notebooks)
 
            
     #=============================================
@@ -459,21 +472,22 @@ class KeepNoteWindow (gtk.Window):
     def on_open_notebook(self):
         """Launches Open NoteBook dialog"""
         
-        dialog = FileChooserDialog(
+        dialog = gtk.FileChooserDialog(
             _("Open Notebook"), self, 
             action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER, 
             buttons=(_("Cancel"), gtk.RESPONSE_CANCEL,
-                     _("Open"), gtk.RESPONSE_OK),
-            app=self._app,
-            persistent_path="new_notebook_path")
+                     _("Open"), gtk.RESPONSE_OK))
 
         def on_folder_changed(filechooser):
             folder = unicode_gtk(filechooser.get_current_folder())
-            
             if os.path.exists(os.path.join(folder, notebooklib.PREF_FILE)):
                 filechooser.response(gtk.RESPONSE_OK)
                         
         dialog.connect("current-folder-changed", on_folder_changed)
+
+        path = self._app.pref.get_default_path("new_notebook_path")
+        if os.path.exists(path):
+            dialog.set_current_folder(path)
         
         file_filter = gtk.FileFilter()
         file_filter.add_pattern("*.nbk")
@@ -488,6 +502,10 @@ class KeepNoteWindow (gtk.Window):
         response = dialog.run()
         
         if response == gtk.RESPONSE_OK:
+            path = dialog.get_current_folder()
+            if path:
+                self._app.pref.set("default_paths", "new_notebook_path", path)
+
             notebook_file = unicode_gtk(dialog.get_filename())
             if notebook_file:
                 self.open_notebook(notebook_file)
@@ -624,8 +642,7 @@ class KeepNoteWindow (gtk.Window):
                 # But I needed them in order to prevent the main event loop
                 # from stalling while returning from several nested dialogs.
                 gtk.gdk.threads_enter()
-                notebook[0] = self._app.get_notebook(filename, self, 
-                                                     task=task)
+                notebook[0] = self._app.get_notebook(filename, self, task=task)
                 gtk.gdk.threads_leave()
                 loaded[0] = True
                 return False
@@ -705,9 +722,10 @@ class KeepNoteWindow (gtk.Window):
     def begin_auto_save(self):
         """Begin autosave callbacks"""
 
-        if self._app.pref.autosave:
+        if self._app.pref.get("autosave"):
             self._auto_saving = True
-            gobject.timeout_add(self._app.pref.autosave_time, self.auto_save)
+            gobject.timeout_add(self._app.pref.get("autosave_time"), 
+                                self.auto_save)
         
     def end_auto_save(self):
         """Stop autosave"""
@@ -727,7 +745,7 @@ class KeepNoteWindow (gtk.Window):
             return True
 
         self.save_notebook(True)
-        return self._app.pref.autosave
+        return self._app.pref.get("autosave")
     
 
     def set_notebook(self, notebook):

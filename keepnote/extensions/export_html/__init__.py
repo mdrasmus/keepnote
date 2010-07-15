@@ -83,13 +83,12 @@ class Extension (extension.Extension):
 
 
     def get_depends(self):
-        return [("keepnote", ">=", (0, 6, 1))]
+        return [("keepnote", ">=", (0, 6, 4))]
 
 
     def on_add_ui(self, window):
         """Initialize extension for a particular window"""
-
-        # TODO: ACTION GROUP MUST BE PER WINDOW
+        
         # add menu options
         self._action_groups[window] = gtk.ActionGroup("MainWindow")
         self._action_groups[window].add_actions([
@@ -141,7 +140,7 @@ class Extension (extension.Extension):
         basename = time.strftime(os.path.basename(notebook.get_path()) +
                                  "-%Y-%m-%d")
 
-        path = self.app.pref.default_paths.get("archive_notebook_path," "")
+        path = self.app.pref.get_default_path("archive_notebook_path")
         if path and os.path.exists(path):
             filename = notebooklib.get_unique_filename(
                 path, basename, "", ".")

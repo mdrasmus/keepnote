@@ -198,7 +198,7 @@ class FileChooserDialog (gtk.FileChooserDialog):
         self._persistent_path = persistent_path
         
         if self._app and self._persistent_path:
-            path = self._app.pref.default_paths.get(self._persistent_path, "")
+            path = self._app.pref.get_default_path(self._persistent_path)
             if path and os.path.exists(path):
                 self.set_current_folder(path)
 
@@ -208,8 +208,8 @@ class FileChooserDialog (gtk.FileChooserDialog):
 
         if (response == gtk.RESPONSE_OK and 
             self._app and self._persistent_path):
-            self._app.pref.default_paths[self._persistent_path] = \
-                    unicode_gtk(self.get_current_folder())
+            self._app.pref.set_default_path(
+                self._persistent_path, unicode_gtk(self.get_current_folder()))
             
         return response
 
@@ -401,7 +401,12 @@ class KeepNote (keepnote.KeepNote):
 
         from keepnote.gui import dialog_update_notebook
 
-        version = notebooklib.get_notebook_version(filename)
+        try:
+            version = notebooklib.get_notebook_version(filename)
+        except Exception, e:
+            self.error(_("Could not load notebook '%s'.") % filename,
+                       e, sys.exc_info()[2])
+            return None
         
         
         if version < notebooklib.NOTEBOOK_FORMAT_VERSION:
