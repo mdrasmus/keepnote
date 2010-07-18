@@ -344,10 +344,8 @@ class ThreePaneViewer (Viewer):
 
         if self.listview.is_focus():
             return self.listview.get_selected_nodes()
-        elif self.treeview.is_focus():
+        else: # self.treeview.is_focus():
             return self.treeview.get_selected_nodes()
-        else:
-            return []
 
 
     def _on_history_changed(self, viewer, history):

@@ -353,7 +353,7 @@ class HelperAppsSection (Section):
         self.entries = {}
         w = self.get_default_widget()
         
-        self.table = gtk.Table(max(len(app.pref.external_apps), 1), 2)
+        self.table = gtk.Table(max(len(list(app.iter_external_apps())), 1), 2)
         self.table.show()
         w.add(self.table)
 
@@ -369,9 +369,9 @@ class HelperAppsSection (Section):
 
         # clear table, resize
         self.table.foreach(lambda x: self.table.remove(x))
-        self.table.resize(len(app.pref.external_apps), 2)
+        self.table.resize(len(list(app.iter_external_apps())), 2)
 
-        for i, app in enumerate(app.pref.external_apps):
+        for i, app in enumerate(app.iter_external_apps()):
             key = app.key
             app_title = app.title
             prog = app.prog
@@ -418,9 +418,9 @@ class HelperAppsSection (Section):
 
         # save external app options
         for key, entry in self.entries.iteritems():
-            if key in app.pref._external_apps_lookup:
-                app.pref._external_apps_lookup[key].prog = unicode_gtk(
-                    entry.get_text())
+            ext_app = app.get_external_app(key)
+            if ext_app:
+                ext_app.prog = unicode_gtk(entry.get_text())
 
 
 

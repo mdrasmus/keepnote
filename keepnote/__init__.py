@@ -519,23 +519,47 @@ class PrefValues (orderdict.OrderDict):
             return val
     
 
+class Pref2 (object):
+    
+    def __init__(self):
+        pass
+
+    def get_value(self):
+        return orderdict.OrderDict()
+
+    def set_value(self, data):
+        pass
+
+
 class Pref (object):
     
     def __init__(self):
+        self._parent = None
         self._children = {}
+        self._data = PrefValues()
 
 
-    def get_data(self, data):
+    def load(self, data):
         pass
 
-    def set_data(self, data):
+    def store(self, data):
         pass
+
+    def get_data(self):
+        return self._data
 
     #============================
     # children functions
 
-    def add_child(self, key, child):
+    def get_parent(self):
+        return self._parent
+
+    def add_child(self, key, child, init=True):
+        child._parent = self
+        child._data = self._data
         self._children[key] = child
+        if init:
+            child.load(self._data)
         return child
 
     def remove_child(self, key):
@@ -544,6 +568,9 @@ class Pref (object):
     
     def get_child(self, key):
         return self._children[key]
+
+    def has_child(self, key):
+        return key in self._children
 
     def clear_children(self):
         self._children.clear()
@@ -567,7 +594,7 @@ class KeepNotePreferences (Pref):
 
         self._docs = get_user_documents()
         self._data = PrefValues()
-        self.set_data()
+        self.load()
         
         # listener
         self.changed = Listeners()
@@ -598,27 +625,12 @@ class KeepNotePreferences (Pref):
         """Set config value in preferences"""
         return self._data.set(*args)
 
-
-    def get_external_app(self, key):
-        """Return an external application by its key name"""
-        app = self._external_apps_lookup.get(key, None)
-        if app == "":
-            app = None
-        return app
-
-
-    def get_default_path(self, name):
-        return self.get("default_paths", name, default=self._docs)
-
-    def set_default_path(self, name, path):
-        self.set("default_paths", name, path)
-
     
     #=========================================
     # Input/Output
 
 
-    def set_data(self, data=None):
+    def load(self, data=None):
         
         if data is None:
             self._data.clear()
@@ -649,43 +661,21 @@ class KeepNotePreferences (Pref):
         l = data.get("lookup_and_feel", define=True)
         self.treeview_lines = l.get("treeview_lines", True)
         self.listview_rules = l.get("listview_rules", True)
-        self.use_stock_icons = l.get("use_sttock_icons", False)
+        self.use_stock_icons = l.get("use_stock_icons", False)
         self.use_minitoolbar = l.get("use_minitoolbar", False)
-
-
-
-        # dialog chooser paths
-        doc = get_user_documents()
-        self.default_paths = data.get("default_paths", default={
-            "new_notebook_path": doc,
-            "archive_notebook_path": doc,
-            "insert_image_path": doc,
-            "save_image_path": doc,
-            "attach_file_path": doc
-            })
-
+        
         
         # extensions
         self.disabled_extensions = data.get("extension_info", "disabled", 
                                             default=[])
 
-        # external apps
-        self.external_apps = []
-        for app in data.get("external_apps", default=[]):
-            if "key" not in app:
-                continue
-            app2 = ExternalApp(app["key"], 
-                               app.get("title", ""), 
-                               app.get("prog", ""), 
-                               app.get("args", ""))
-            self.external_apps.append(app2)
 
 
         self._post_process_data()
 
         # recurse
-        for key, child in self.iter_children():
-            child.set_data(data)
+        #for key, child in self.iter_children():
+        #    child.load(data, self)
         
             
 
@@ -696,26 +686,10 @@ class KeepNotePreferences (Pref):
         if self.id is None:
             self.id = str(uuid.uuid4())
         
-        # make lookup
-        self._external_apps_lookup = {}
-        for app in self.external_apps:
-            self._external_apps_lookup[app.key] = app
-
-        # add default programs
-        lst = get_external_app_defaults()
-        for defapp in lst:
-            if defapp.key not in self._external_apps_lookup:
-                self.external_apps.append(defapp)
-                self._external_apps_lookup[defapp.key] = defapp
-
-        # place default apps first
-        lookup = dict((x.key, i) for i, x in enumerate(DEFAULT_EXTERNAL_APPS))
-        top = len(DEFAULT_EXTERNAL_APPS)
-        self.external_apps.sort(key=lambda x: (lookup.get(x.key, top), x.key))
     
 
 
-    def get_data(self, data=None):
+    def store(self, data=None):
 
         if data is None:
             data = self._data.get()
@@ -747,16 +721,6 @@ class KeepNotePreferences (Pref):
             "use_minitoolbar": self.use_minitoolbar
             }
 
-        # dialog chooser paths
-        data["default_paths"] = self.default_paths
-
-        # external apps
-        data["external_apps"] = [
-            {"key": app.key,
-             "title": app.title,
-             "prog": app.prog,
-             "args": app.args}
-            for app in self.external_apps]
 
         # extensions
         data["extension_info"] = {
@@ -765,8 +729,8 @@ class KeepNotePreferences (Pref):
         data["extensions"] = {}
         
         # recurse
-        for key, child in self.iter_children():
-            child.get_data(data)
+        #for key, child in self.iter_children():
+        #    child.store(data)
 
         return data
 
@@ -808,7 +772,7 @@ class KeepNotePreferences (Pref):
                         data = None
 
                 # set data
-                self.set_data(data)
+                self.load(data)
         except Exception, e:
             raise
             #raise KeepNotePreferenceError("Cannot read preferences", e)
@@ -830,7 +794,7 @@ class KeepNotePreferences (Pref):
             out.write(u'<?xml version="1.0" encoding="UTF-8"?>\n'
                       u'<keepnote>\n'
                       u'<pref>\n')
-            plist.dump(self.get_data(), out, indent=4, depth=4)
+            plist.dump(self.store(), out, indent=4, depth=4)
             out.write(u'</pref>\n'
                       u'</keepnote>\n')
             
@@ -924,6 +888,9 @@ class KeepNote (object):
         # set of registered extensions for this application
         self._extensions = {}
 
+        self._external_apps = []
+        self._external_apps_lookup = {}
+        self._docs = get_user_documents()
         #self.pref.changed.add(self.load_preferences)
 
 
@@ -948,10 +915,50 @@ class KeepNote (object):
         
         self.set_lang()
 
+        
+        # external apps
+        data = self.pref.get()
+        self._external_apps = []
+        for app in data.get("external_apps", default=[]):
+            if "key" not in app:
+                continue
+            app2 = ExternalApp(app["key"], 
+                               app.get("title", ""), 
+                               app.get("prog", ""), 
+                               app.get("args", ""))
+            self._external_apps.append(app2)
 
-    def save_preferneces(self):
-        """TODO: not used yet"""
-        pass
+        # make lookup
+        self._external_apps_lookup = {}
+        for app in self._external_apps:
+            self._external_apps_lookup[app.key] = app
+
+        # add default programs
+        lst = get_external_app_defaults()
+        for defapp in lst:
+            if defapp.key not in self._external_apps_lookup:
+                self._external_apps.append(defapp)
+                self._external_apps_lookup[defapp.key] = defapp
+
+        # place default apps first
+        lookup = dict((x.key, i) for i, x in enumerate(DEFAULT_EXTERNAL_APPS))
+        top = len(DEFAULT_EXTERNAL_APPS)
+        self._external_apps.sort(key=lambda x: (lookup.get(x.key, top), x.key))
+
+
+
+    def save_preferences(self):
+        """Save information into preferences"""
+        
+        data = self.pref.get()
+        
+        # external apps
+        data["external_apps"] = [
+            {"key": app.key,
+             "title": app.title,
+             "prog": app.prog,
+             "args": app.args}
+            for app in self._external_apps]
 
 
     def set_lang(self):                
@@ -1035,11 +1042,22 @@ class KeepNote (object):
         
         return self._notebooks.itervalues()
 
+
+    def get_external_app(self, key):
+        """Return an external application by its key name"""
+        app = self._external_apps_lookup.get(key, None)
+        if app == "":
+            app = None
+        return app
+
+    def iter_external_apps(self):
+        return iter(self._external_apps)
+
     
     def run_external_app(self, app_key, filename, wait=False):
         """Runs a registered external application on a file"""
 
-        app = self.pref.get_external_app(app_key)
+        app = self.get_external_app(app_key)
         
         if app is None or app.prog == "":
             if app:
@@ -1129,7 +1147,16 @@ class KeepNote (object):
 
 
     def quit(self):
-        pass
+        self.save_preferences()
+        self.pref.write()
+
+
+    def get_default_path(self, name):
+        return self.pref.get("default_paths", name, default=self._docs)
+
+    def set_default_path(self, name, path):
+        self.pref.set("default_paths", name, path)
+
 
     #================================
     # commands

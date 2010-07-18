@@ -140,7 +140,7 @@ class Extension (extension.Extension):
         basename = time.strftime(os.path.basename(notebook.get_path()) +
                                  "-%Y-%m-%d")
 
-        path = self.app.pref.get_default_path("archive_notebook_path")
+        path = self.app.get_default_path("archive_notebook_path")
         if path and os.path.exists(path):
             filename = notebooklib.get_unique_filename(
                 path, basename, "", ".")

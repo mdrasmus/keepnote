@@ -87,12 +87,54 @@ _ = keepnote.translate
 
 CLIPBOARD_NAME = "CLIPBOARD"
 
-
+'''
 class WindowPref (keepnote.Pref):
 
     def __init__(self):
-        pass
+        keepnote.Pref.__init__(self)
+        self.load(None)
 
+
+    def load(self, data):
+        if data is None:
+            data = keepnote.PrefValues()
+                
+        self.window_size = data.get("window", "window_size", 
+                                    default=keepnote.DEFAULT_WINDOW_SIZE)
+        self.window_maximized = data.get("window", "window_maximized", 
+                                         default=True)
+        
+        self.use_systray = data.get("window", "use_systray", default=True)
+        self.skip_taskbar = data.get("window", "skip_taskbar", default=False)
+
+        self.autosave = data.get("autosave", default=True)
+        self.autosave_time = data.get("autosave_time", 
+                                      default=keepnote.DEFAULT_AUTOSAVE_TIME)
+        
+        self.recent_notebooks = data.get("recent_notebooks", default=[])
+        self.use_stock_icons = data.get("look_and_feel", "use_stock_icons", 
+                                        default=False)
+
+        print self.window_maximized
+
+
+    def store(self, data):
+        if data is None:
+            data = keepnote.PrefValues()
+
+        data.set("window", "window_size", self.window_size)
+        data.set("window", "window_maximized", self.window_maximized)
+                
+        data.set("window", "use_systray", self.use_systray)
+        data.set("window", "skip_taskbar", self.skip_taskbar)
+
+        data.set("autosave", self.autosave)
+        data.set("autosave_time", self.autosave_time)
+        
+        data.set("recent_notebooks", self.recent_notebooks[:])
+        data.set("look_and_feel", "use_stock_icons", 
+                 self.use_stock_icons)
+'''
 
 
 class KeepNoteWindow (gtk.Window):
@@ -121,6 +163,9 @@ class KeepNoteWindow (gtk.Window):
         self.setup_systray()
 
         # load preferences for the first time
+        #if not self._app.pref.has_child("window"):
+        #    self._app.pref.add_child("window", WindowPref())
+        #self._pref = self._app.pref.get_child("window")
         self.load_preferences(True)
         
 
@@ -492,7 +537,7 @@ class KeepNoteWindow (gtk.Window):
                         
         dialog.connect("current-folder-changed", on_folder_changed)
 
-        path = self._app.pref.get_default_path("new_notebook_path")
+        path = self._app.get_default_path("new_notebook_path")
         if os.path.exists(path):
             dialog.set_current_folder(path)
         

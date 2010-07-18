@@ -198,7 +198,7 @@ class FileChooserDialog (gtk.FileChooserDialog):
         self._persistent_path = persistent_path
         
         if self._app and self._persistent_path:
-            path = self._app.pref.get_default_path(self._persistent_path)
+            path = self._app.get_default_path(self._persistent_path)
             if path and os.path.exists(path):
                 self.set_current_folder(path)
 
@@ -208,7 +208,7 @@ class FileChooserDialog (gtk.FileChooserDialog):
 
         if (response == gtk.RESPONSE_OK and 
             self._app and self._persistent_path):
-            self._app.pref.set_default_path(
+            self._app.set_default_path(
                 self._persistent_path, unicode_gtk(self.get_current_folder()))
             
         return response
@@ -681,7 +681,8 @@ class KeepNote (keepnote.KeepNote):
 
     def quit(self):
         """Quit the gtk event loop"""
-        
+        keepnote.KeepNote.quit(self)
+
         gtk.accel_map_save(get_accel_file())
         gtk.main_quit()
 

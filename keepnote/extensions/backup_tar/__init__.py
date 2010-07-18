@@ -131,7 +131,7 @@ class Extension (extension.Extension):
             app=self.app,
             persistent_path="archive_notebook_path")
 
-        path = self.app.pref.get_default_path("archive_notebook_path")
+        path = self.app.get_default_path("archive_notebook_path")
         if os.path.exists(path):
             filename = notebooklib.get_unique_filename(
                 path,
