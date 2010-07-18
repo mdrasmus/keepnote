@@ -638,11 +638,7 @@ class KeepNotePreferences (Pref):
             self._data.set(data)
         data = self._data
         
-        self.id = data.get("id", default=None)
         
-        # language
-        self.language = data.get("language", default="")
-
         self.timestamp_formats = data.get("timestamp_formats",
                    default=dict(keepnote.timestamp.DEFAULT_TIMESTAMP_FORMATS))
 
@@ -671,22 +667,9 @@ class KeepNotePreferences (Pref):
 
 
 
-        self._post_process_data()
-
         # recurse
         #for key, child in self.iter_children():
         #    child.load(data, self)
-        
-            
-
-    
-    def _post_process_data(self):
-        
-        # setup id
-        if self.id is None:
-            self.id = str(uuid.uuid4())
-        
-    
 
 
     def store(self, data=None):
@@ -695,11 +678,6 @@ class KeepNotePreferences (Pref):
             data = self._data.get()
 
         
-        data["id"] = self.id
-
-        # language
-        data["language"] = self.language
-
         data["default_notebook"] = self.default_notebook
         data["use_last_notebook"] = self.use_last_notebook
         data["timestamp_formats"] = self.timestamp_formats
@@ -878,6 +856,8 @@ class KeepNote (object):
         # load application preferences
         self.pref = KeepNotePreferences()
 
+        self.id = None
+
         # list of possible application commands
         self._commands = {}
 
@@ -912,12 +892,20 @@ class KeepNote (object):
 
     def load_preferences(self):
         """Load information from preferences"""
+
+        data = self.pref.get()
         
+        self.language = data.get("language", default="")
         self.set_lang()
+
+        # setup id
+        self.id = data.get("id", default=None)
+        if self.id is None:
+            self.id = str(uuid.uuid4())
+            data.set("id", self.id)
 
         
         # external apps
-        data = self.pref.get()
         self._external_apps = []
         for app in data.get("external_apps", default=[]):
             if "key" not in app:
@@ -951,7 +939,10 @@ class KeepNote (object):
         """Save information into preferences"""
         
         data = self.pref.get()
-        
+
+        # language
+        data["language"] = self.language        
+
         # external apps
         data["external_apps"] = [
             {"key": app.key,
@@ -964,7 +955,7 @@ class KeepNote (object):
     def set_lang(self):                
         """Set the language based on preference"""
 
-        keepnote.trans.set_lang(self.pref.get("language", default=""))
+        keepnote.trans.set_lang(self.language)
 
 
     #==================================

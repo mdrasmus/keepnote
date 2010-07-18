@@ -333,10 +333,10 @@ class LanguageSection (Section):
     def save_options(self, app):
         
         if self.language_box.get_active() > 0:
-            app.pref.language = lang = self.language_box.get_active_text()
+            app.language = lang = self.language_box.get_active_text()
         else:
             # set default
-            app.pref.language = ""
+            app.language = ""
 
         # XXX: may be I should not change translation during execution
         #if app.pref.language != keepnote.trans.get_lang():
