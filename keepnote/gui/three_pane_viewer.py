@@ -226,12 +226,15 @@ class ThreePaneViewer (Viewer):
         self.hpaned.set_position(p.get("hsash_pos", DEFAULT_HSASH_POS))
 
 
-        self.listview.set_date_formats(app_pref.timestamp_formats)
-        self.listview.set_rules_hint(app_pref.listview_rules)        
+        self.listview.set_date_formats(self._app.timestamp_formats)
+        self.listview.set_rules_hint(
+            app_pref.get("look_and_feel", "listview_rules",
+                         default=True))
         try:
             # if this version of GTK doesn't have tree-lines, ignore it
-            self.treeview.set_property("enable-tree-lines",
-                                       app_pref.treeview_lines)
+            self.treeview.set_property(
+                "enable-tree-lines",
+                app_pref.get("look_and_feel", "treeview_lines", default=True))
         except:
             pass
         
@@ -770,7 +773,10 @@ class ThreePaneViewer (Viewer):
 
         # setup editor
         self.editor.add_ui(window,
-                           use_minitoolbar=self._app.pref.use_minitoolbar)
+                           use_minitoolbar=
+                           self._app.pref.get("look_and_feel", 
+                                              "use_minitoolbar",
+                                              default=False))
         
         
         # TODO: Try to add accellerator to popup menu

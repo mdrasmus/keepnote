@@ -173,14 +173,17 @@ class RichTextEditor (KeepNoteEditor):
     def load_preferences(self, app_pref, first_open=False):
         """Load application preferences"""
 
-        self.editor_menus.enable_spell_check(self._app.pref.spell_check)        
+        self.editor_menus.enable_spell_check(
+            self._app.pref.get("editors", "general", "spell_check",
+                               default=True))
 
 
     def save_preferences(self, app_pref):
         """Save application preferences"""
 
         # record state in preferences
-        app_pref.spell_check = self._textview.is_spell_check_enabled()
+        app_pref.set("editors", "general", "spell_check", 
+                     self._textview.is_spell_check_enabled())
 
 
     def get_textview(self):
@@ -309,7 +312,10 @@ class RichTextEditor (KeepNoteEditor):
         self._textview.get_image_menu().set_accel_group(window.get_accel_group())
 
         self.editor_menus.add_ui(window,
-                                 use_minitoolbar=self._app.pref.use_minitoolbar)
+                                 use_minitoolbar=
+                                 self._app.pref.get("look_and_feel", 
+                                                    "use_minitoolbar",
+                                                    default=False))
 
 
     def remove_ui(self, window):
@@ -1427,7 +1433,8 @@ class EditorMenus (gobject.GObject):
             uimanager.get_widget("/main_menu_bar/Tools/Viewer/Spell Check")
         self.spell_check_toggle.set_sensitive(
             self._editor.get_textview().can_spell_check())
-        self.spell_check_toggle.set_active(window.get_app().pref.spell_check)
+        self.spell_check_toggle.set_active(window.get_app().pref.get(
+                "editors", "general", "spell_check", default=True))
 
     
 

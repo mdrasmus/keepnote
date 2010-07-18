@@ -54,8 +54,10 @@ class ImageResizeDialog (object):
         self.init_width, self.init_height = None, None
         self.ignore_width_changed = 0
         self.ignore_height_changed = 0
-        self.snap_size = self.app_pref.image_size_snap_amount
-        self.snap_enabled = self.app_pref.image_size_snap
+        self.snap_size = self.app_pref.get(
+            "editors", "general", "image_size_snap_amount", default=50)
+        self.snap_enabled = self.app_pref.get(
+            "editors", "general", "image_size_snap", default=True)
 
         # widgets
         self.size_width_scale = None
@@ -137,8 +139,9 @@ class ImageResizeDialog (object):
         if response == gtk.RESPONSE_OK:
             width, height = self.get_size()
 
-            self.app_pref.image_size_snap = self.snap_enabled
-            self.app_pref.image_size_snap_amount = self.snap_size
+            p = self.app_pref.get("editors", "general")
+            p["image_size_snap"] = self.snap_enabled
+            p["image_size_snap_amount"] = self.snap_size
             
             if width is not None:
                 self.image.scale(width, height)

@@ -167,14 +167,14 @@ class GeneralSection (Section):
             self.notebook = win.get_notebook()
 
         # populate default notebook        
-        if app.pref.use_last_notebook:
+        if app.pref.get("use_last_notebook", default=True):
             self.xml.get_widget("last_notebook_radio").set_active(True)
-        elif app.pref.default_notebook == "":
+        elif app.pref.get("default_notebook", default="") == "":
             self.xml.get_widget("no_default_notebook_radio").set_active(True)
         else:
             self.xml.get_widget("default_notebook_radio").set_active(True)
             self.xml.get_widget("default_notebook_entry").\
-                set_text(app.pref.default_notebook)
+                set_text(app.pref.get("default_notebook", default=""))
 
 
         # populate autosave
@@ -200,14 +200,15 @@ class GeneralSection (Section):
 
     def save_options(self, app):
         if self.xml.get_widget("last_notebook_radio").get_active():
-            app.pref.use_last_notebook = True
+            app.pref.set("use_last_notebook", True)
         elif self.xml.get_widget("default_notebook_radio").get_active():
-            app.pref.use_last_notebook = False
-            app.pref.default_notebook = \
-                unicode_gtk(self.xml.get_widget("default_notebook_entry").get_text())
+            app.pref.set("use_last_notebook", False)
+            app.pref.set("default_notebook", 
+                         unicode_gtk(
+                    self.xml.get_widget("default_notebook_entry").get_text()))
         else:
-            app.pref.use_last_notebook = False
-            app.pref.default_notebook = ""
+            app.pref.set("use_last_notebook", False)
+            app.pref.set("default_notebook", "")
 
 
         # save autosave
@@ -266,10 +267,11 @@ class LookAndFeelSection (Section):
 
     def load_options(self, app):
 
-        self.treeview_lines_check.set_active(app.pref.treeview_lines)
-        self.listview_rules_check.set_active(app.pref.listview_rules)
-        self.use_stock_icons_check.set_active(app.pref.use_stock_icons)
-        self.use_minitoolbar.set_active(app.pref.use_minitoolbar)
+        l = app.pref.get("look_and_feel")
+        self.treeview_lines_check.set_active(l.get("treeview_lines"))
+        self.listview_rules_check.set_active(l.get("listview_rules"))
+        self.use_stock_icons_check.set_active(l.get("use_stock_icons"))
+        self.use_minitoolbar.set_active(l.get("use_minitoolbar"))
 
         if app.pref.get("viewers", "three_pane_viewer", "view_mode", default="") == "horizontal":
             self.listview_layout.set_active(1)
@@ -280,10 +282,11 @@ class LookAndFeelSection (Section):
 
     def save_options(self, app):
         
-        app.pref.treeview_lines = self.treeview_lines_check.get_active()
-        app.pref.listview_rules = self.listview_rules_check.get_active()
-        app.pref.use_stock_icons = self.use_stock_icons_check.get_active()
-        app.pref.use_minitoolbar = self.use_minitoolbar.get_active()
+        l = app.pref.get("look_and_feel")
+        l["treeview_lines"] = self.treeview_lines_check.get_active()
+        l["listview_rules"] = self.listview_rules_check.get_active()
+        l["use_stock_icons"] = self.use_stock_icons_check.get_active()
+        l["use_minitoolbar"] = self.use_minitoolbar.get_active()
 
         app.pref.set("viewers", "three_pane_viewer", "view_mode", 
                      ["vertical", "horizontal"][
@@ -321,11 +324,11 @@ class LanguageSection (Section):
     def load_options(self, app):
 
         # set default
-        if app.pref.language == "":
+        if app.language == "":
             self.language_box.set_active(0)
         else:
             for i, row in enumerate(self.language_box.get_model()):
-                if app.pref.language == row[0]:
+                if app.language == row[0]:
                     self.language_box.set_active(i)
                     break
 
@@ -439,12 +442,12 @@ class DatesSection (Section):
     def load_options(self, app):
         for name in ["same_day", "same_month", "same_year", "diff_year"]:
             self.date_xml.get_widget("date_%s_entry" % name).\
-                set_text(app.pref.timestamp_formats[name])
+                set_text(app.timestamp_formats[name])
 
     def save_options(self, app):
         # save date formatting
         for name in ["same_day", "same_month", "same_year", "diff_year"]:
-            app.pref.timestamp_formats[name] = unicode_gtk(
+            app.timestamp_formats[name] = unicode_gtk(
                 self.date_xml.get_widget("date_%s_entry" % name).get_text())
         
 

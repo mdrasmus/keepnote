@@ -465,136 +465,17 @@ def get_external_app_defaults():
         
 
 
-class PrefValues (orderdict.OrderDict):
-
-    def __init__(self, *args, **kargs):
-        orderdict.OrderDict.__init__(self, *args, **kargs)
-        
-
-    def get(self, *args, **kargs):
-        """
-        Get config value from preferences
-
-        default -- set a default value if it does not exist
-        define  -- create a new dict if the key does not exist
-        """
-        
-        if len(args) == 0:
-            return self
-
-        try:
-            d = self
-            if "default" in kargs or "define" in kargs:
-                for arg in args[:-1]:
-                    if arg not in d:
-                        d[arg] = orderdict.OrderDict()
-                    d = d[arg]
-                if kargs.get("define", False):
-                    if args[-1] not in d:
-                        d[args[-1]] = orderdict.OrderDict()
-                    d = d[args[-1]]
-                else:
-                    d = d.setdefault(args[-1], kargs["default"])
-            else:
-                for arg in args:
-                    d = d[arg]
-            return d
-
-        except KeyError:
-            raise Exception("unknown config value")
-
-
-    def set(self, *args):
-        """Set config value in preferences"""
-        
-        if len(args) == 0:
-            retrun
-        elif len(args) == 1:
-            self.clear()
-            self.update(args[0])
-        else:
-            keys = args[:-1]
-            val = args[-1]
-            self.get(*keys[:-1])[keys[-1]] = val
-            return val
-    
-
-class Pref2 (object):
-    
-    def __init__(self):
-        pass
-
-    def get_value(self):
-        return orderdict.OrderDict()
-
-    def set_value(self, data):
-        pass
-
-
-class Pref (object):
-    
-    def __init__(self):
-        self._parent = None
-        self._children = {}
-        self._data = PrefValues()
-
-
-    def load(self, data):
-        pass
-
-    def store(self, data):
-        pass
-
-    def get_data(self):
-        return self._data
-
-    #============================
-    # children functions
-
-    def get_parent(self):
-        return self._parent
-
-    def add_child(self, key, child, init=True):
-        child._parent = self
-        child._data = self._data
-        self._children[key] = child
-        if init:
-            child.load(self._data)
-        return child
-
-    def remove_child(self, key):
-        if key in self._children:
-            del self._children[key]
-    
-    def get_child(self, key):
-        return self._children[key]
-
-    def has_child(self, key):
-        return key in self._children
-
-    def clear_children(self):
-        self._children.clear()
-
-    def iter_children(self):
-        for key, child in self._children.iteritems():
-            yield key, child
-
-
-
-class KeepNotePreferences (Pref):
+class KeepNotePreferences (object):
     """Preference data structure for the KeepNote application"""
     
-    def __init__(self, pref_dir=None):
-        Pref.__init__(self)
-        
+    def __init__(self, pref_dir=None):       
         if pref_dir is None:
             self._pref_dir = get_user_pref_dir()
         else:
             self._pref_dir = pref_dir
 
         self._docs = get_user_documents()
-        self._data = PrefValues()
-        self.load()
+        self._data = orderdict.OrderDict()
         
         # listener
         self.changed = Listeners()
@@ -611,6 +492,7 @@ class KeepNotePreferences (Pref):
         self.write()
 
 
+
     def get(self, *args, **kargs):
         """
         Get config value from preferences
@@ -618,100 +500,62 @@ class KeepNotePreferences (Pref):
         default -- set a default value if it does not exist
         define  -- create a new dict if the key does not exist
         """
-        return self._data.get(*args, **kargs)
+        
+        if len(args) == 0:
+            return self._data
+
+        try:
+            d = self._data
+            parent = None
+            if "default" in kargs or "define" in kargs:
+                # set default values when needed
+                # define keyword causes default value to be a OrderDict()
+                # all keys are expected to be present
+
+                for arg in args[:-1]:
+                    if arg not in d:
+                        d[arg] = orderdict.OrderDict()
+                        d = d[arg]
+                    else:
+                        c = d[arg]
+                        # ensure child value c is a dict
+                        if not isinstance(c, dict):
+                            c = d[arg] = orderdict.OrderDict()
+                        d = c
+                if kargs.get("define", False):
+                    if args[-1] not in d:
+                        d[args[-1]] = orderdict.OrderDict()
+                    d = d[args[-1]]
+                else:
+                    d = d.setdefault(args[-1], kargs["default"])
+            else:
+                # no default or define specified
+                # all keys are expected to be present
+                for arg in args:
+                    d = d[arg]
+            return d
+
+        except KeyError:
+            raise Exception("unknown config value")
 
 
     def set(self, *args):
         """Set config value in preferences"""
-        return self._data.set(*args)
-
+        
+        if len(args) == 0:
+            return
+        elif len(args) == 1:
+            self._data.clear()
+            self._data.update(args[0])
+        else:
+            keys = args[:-1]
+            val = args[-1]
+            self.get(*keys[:-1])[keys[-1]] = val
+            return val
+    
     
     #=========================================
     # Input/Output
-
-
-    def load(self, data=None):
-        
-        if data is None:
-            self._data.clear()
-        else:
-            self._data.set(data)
-        data = self._data
-        
-        
-        self.timestamp_formats = data.get("timestamp_formats",
-                   default=dict(keepnote.timestamp.DEFAULT_TIMESTAMP_FORMATS))
-
-        # notebook
-        self.default_notebook = data.get("default_notebook", default="")
-        self.use_last_notebook = data.get("use_last_notebook", default=True)
-
-
-        e = data.get("editors", "general", define=True)
-        self.spell_check = e.get("spell_check", True)
-        self.image_size_snap = e.get("image_size_snap", True)
-        self.image_size_snap_amount = e.get("image_size_snap_amount", 50)
-
-        
-        # look and feel
-        l = data.get("lookup_and_feel", define=True)
-        self.treeview_lines = l.get("treeview_lines", True)
-        self.listview_rules = l.get("listview_rules", True)
-        self.use_stock_icons = l.get("use_stock_icons", False)
-        self.use_minitoolbar = l.get("use_minitoolbar", False)
-        
-        
-        # extensions
-        self.disabled_extensions = data.get("extension_info", "disabled", 
-                                            default=[])
-
-
-
-        # recurse
-        #for key, child in self.iter_children():
-        #    child.load(data, self)
-
-
-    def store(self, data=None):
-
-        if data is None:
-            data = self._data.get()
-
-        
-        data["default_notebook"] = self.default_notebook
-        data["use_last_notebook"] = self.use_last_notebook
-        data["timestamp_formats"] = self.timestamp_formats
-
-        # editor
-        data["editors"] = {
-            "general": {
-                "spell_check": self.spell_check,
-                "image_size_snap": self.image_size_snap,
-                "image_size_snap_amount": self.image_size_snap_amount
-                }
-            }
-        
-        # look and feel
-        data["look_and_feel"] = {
-            "treeview_lines": self.treeview_lines,
-            "listview_rules": self.listview_rules,
-            "use_stock_icons": self.use_stock_icons,
-            "use_minitoolbar": self.use_minitoolbar
-            }
-
-
-        # extensions
-        data["extension_info"] = {
-            "disabled": self.disabled_extensions
-            }
-        data["extensions"] = {}
-        
-        # recurse
-        #for key, child in self.iter_children():
-        #    child.store(data)
-
-        return data
-
 
     def read(self):
         """Read preferences from file"""
@@ -750,7 +594,8 @@ class KeepNotePreferences (Pref):
                         data = None
 
                 # set data
-                self.load(data)
+                self._data.clear()
+                self._data.update(data)
         except Exception, e:
             raise
             #raise KeepNotePreferenceError("Cannot read preferences", e)
@@ -772,7 +617,7 @@ class KeepNotePreferences (Pref):
             out.write(u'<?xml version="1.0" encoding="UTF-8"?>\n'
                       u'<keepnote>\n'
                       u'<pref>\n')
-            plist.dump(self.store(), out, indent=4, depth=4)
+            plist.dump(self._data, out, indent=4, depth=4)
             out.write(u'</pref>\n'
                       u'</keepnote>\n')
             
@@ -858,6 +703,8 @@ class KeepNote (object):
 
         self.id = None
 
+        self.timestamp_formats = {}
+
         # list of possible application commands
         self._commands = {}
 
@@ -867,6 +714,7 @@ class KeepNote (object):
         
         # set of registered extensions for this application
         self._extensions = {}
+        self._disabled_extensions = []
 
         self._external_apps = []
         self._external_apps_lookup = {}
@@ -893,7 +741,7 @@ class KeepNote (object):
     def load_preferences(self):
         """Load information from preferences"""
 
-        data = self.pref.get()
+        data = self.pref
         
         self.language = data.get("language", default="")
         self.set_lang()
@@ -903,6 +751,11 @@ class KeepNote (object):
         if self.id is None:
             self.id = str(uuid.uuid4())
             data.set("id", self.id)
+
+
+        self.timestamp_formats = data.get(
+            "timestamp_formats",
+            default=dict(keepnote.timestamp.DEFAULT_TIMESTAMP_FORMATS))
 
         
         # external apps
@@ -934,6 +787,12 @@ class KeepNote (object):
         self._external_apps.sort(key=lambda x: (lookup.get(x.key, top), x.key))
 
 
+        # extensions
+        self._disabled_extensions = data.get("extension_info", "disabled", 
+                                             default=[])
+        data.get("extensions", define=True)
+
+
 
     def save_preferences(self):
         """Save information into preferences"""
@@ -943,6 +802,8 @@ class KeepNote (object):
         # language
         data["language"] = self.language        
 
+        data["timestamp_formats"] = self.timestamp_formats
+
         # external apps
         data["external_apps"] = [
             {"key": app.key,
@@ -950,6 +811,14 @@ class KeepNote (object):
              "prog": app.prog,
              "args": app.args}
             for app in self._external_apps]
+
+
+        # extensions
+        data["extension_info"] = {
+            "disabled": self._disabled_extensions[:]
+            }
+        
+
 
 
     def set_lang(self):                
@@ -1229,7 +1098,7 @@ class KeepNote (object):
         for ext in self.iter_extensions():
             # enable extension
             try:
-                if ext.key not in self.pref.disabled_extensions:
+                if ext.key not in self._disabled_extensions:
                     log_message(_("enabling extension '%s'\n") % ext.key)
                     enabled = ext.enable(True)
 
@@ -1303,11 +1172,11 @@ class KeepNote (object):
 
         # update user preference on which extensions are disabled
         if enabled:
-            if ext.key in self.pref.disabled_extensions:
-                self.pref.disabled_extensions.remove(ext.key)
+            if ext.key in self._disabled_extensions:
+                self._disabled_extensions.remove(ext.key)
         else:
-            if ext.key not in self.pref.disabled_extensions:
-                self.pref.disabled_extensions.append(ext.key)
+            if ext.key not in self._disabled_extensions:
+                self._disabled_extensions.append(ext.key)
     
 
     def install_extension(self, filename):

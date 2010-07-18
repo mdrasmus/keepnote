@@ -413,6 +413,8 @@ class KeepNoteWindow (gtk.Window):
         """Load preferences"""  
 
         p = self._app.pref
+
+        # notebook
         window_size = p.get("window", "window_size", 
                             default=keepnote.DEFAULT_WINDOW_SIZE)
         window_maximized = p.get("window", "window_maximized", default=True)
@@ -427,13 +429,14 @@ class KeepNoteWindow (gtk.Window):
             self.set_property("skip-taskbar-hint", 
                               p.get("window", "skip_taskbar", default=False))
 
-        p.get("autosave", default=True)
+        use_autosave = p.get("autosave", default=True)
         p.get("autosave_time", default=keepnote.DEFAULT_AUTOSAVE_TIME)
         
         self._recent_notebooks = p.get("recent_notebooks", default=[])
         self.set_recent_notebooks_menu(self._recent_notebooks)
 
-        self._uimanager.set_force_stock(p.get("use_stock_icons", default=False))
+        self._uimanager.set_force_stock(
+            p.get("look_and_feel", "use_stock_icons", default=False))
         self.viewer.load_preferences(self._app.pref, first_open)
     
 
