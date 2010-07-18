@@ -88,6 +88,13 @@ _ = keepnote.translate
 CLIPBOARD_NAME = "CLIPBOARD"
 
 
+class WindowPref (keepnote.Pref):
+
+    def __init__(self):
+        pass
+
+
+
 class KeepNoteWindow (gtk.Window):
     """Main windows for KeepNote"""
 

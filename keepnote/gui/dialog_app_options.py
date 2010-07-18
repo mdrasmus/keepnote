@@ -177,7 +177,6 @@ class GeneralSection (Section):
                 set_text(app.pref.default_notebook)
 
 
-
         # populate autosave
         self.xml.get_widget("autosave_check").set_active(
             app.pref.get("autosave"))
@@ -768,7 +767,6 @@ class ApplicationOptionsDialog (object):
         column.pack_start(cell_text, True)
         column.add_attribute(cell_text, 'text', 0)
         
-
         # add tabs
         self.add_default_sections()
 

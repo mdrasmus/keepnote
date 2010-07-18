@@ -65,7 +65,7 @@ class OrderDict (dict):
     def setdefault(self, key, value):
         if key not in self:
             self._order.append(key)
-        dict.setdefault(self, key, value)
+        return dict.setdefault(self, key, value)
     
     def clear(self):
         self._order = []

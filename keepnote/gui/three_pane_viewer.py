@@ -220,7 +220,7 @@ class ThreePaneViewer (Viewer):
     def load_preferences(self, app_pref, first_open=False):
         """Load application preferences"""
 
-        p = app_pref.get("viewers", "three_pane_viewer")
+        p = app_pref.get("viewers", "three_pane_viewer", define=True)
         self.set_view_mode(p.get("view_mode", DEFAULT_VIEW_MODE))
         self.paned2.set_position(p.get("vsash_pos", DEFAULT_VSASH_POS))
         self.hpaned.set_position(p.get("hsash_pos", DEFAULT_HSASH_POS))

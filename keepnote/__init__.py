@@ -465,25 +465,113 @@ def get_external_app_defaults():
         
 
 
+class PrefValues (orderdict.OrderDict):
 
-class KeepNotePreferences (object):
+    def __init__(self, *args, **kargs):
+        orderdict.OrderDict.__init__(self, *args, **kargs)
+        
+
+    def get(self, *args, **kargs):
+        """
+        Get config value from preferences
+
+        default -- set a default value if it does not exist
+        define  -- create a new dict if the key does not exist
+        """
+        
+        if len(args) == 0:
+            return self
+
+        try:
+            d = self
+            if "default" in kargs or "define" in kargs:
+                for arg in args[:-1]:
+                    if arg not in d:
+                        d[arg] = orderdict.OrderDict()
+                    d = d[arg]
+                if kargs.get("define", False):
+                    if args[-1] not in d:
+                        d[args[-1]] = orderdict.OrderDict()
+                    d = d[args[-1]]
+                else:
+                    d = d.setdefault(args[-1], kargs["default"])
+            else:
+                for arg in args:
+                    d = d[arg]
+            return d
+
+        except KeyError:
+            raise Exception("unknown config value")
+
+
+    def set(self, *args):
+        """Set config value in preferences"""
+        
+        if len(args) == 0:
+            retrun
+        elif len(args) == 1:
+            self.clear()
+            self.update(args[0])
+        else:
+            keys = args[:-1]
+            val = args[-1]
+            self.get(*keys[:-1])[keys[-1]] = val
+            return val
+    
+
+class Pref (object):
+    
+    def __init__(self):
+        self._children = {}
+
+
+    def get_data(self, data):
+        pass
+
+    def set_data(self, data):
+        pass
+
+    #============================
+    # children functions
+
+    def add_child(self, key, child):
+        self._children[key] = child
+        return child
+
+    def remove_child(self, key):
+        if key in self._children:
+            del self._children[key]
+    
+    def get_child(self, key):
+        return self._children[key]
+
+    def clear_children(self):
+        self._children.clear()
+
+    def iter_children(self):
+        for key, child in self._children.iteritems():
+            yield key, child
+
+
+
+class KeepNotePreferences (Pref):
     """Preference data structure for the KeepNote application"""
     
     def __init__(self, pref_dir=None):
-
+        Pref.__init__(self)
+        
         if pref_dir is None:
             self._pref_dir = get_user_pref_dir()
         else:
             self._pref_dir = pref_dir
 
         self._docs = get_user_documents()
-        self._data = orderdict.OrderDict()
-        self._set_data()
+        self._data = PrefValues()
+        self.set_data()
         
         # listener
         self.changed = Listeners()
         self.changed.add(self._on_changed)
-
 
 
     def get_pref_dir(self):
@@ -497,34 +585,18 @@ class KeepNotePreferences (object):
 
 
     def get(self, *args, **kargs):
-        """Get config value from preferences"""
-        
-        if len(args) == 0:
-            return self._data
+        """
+        Get config value from preferences
 
-        d = self._data
-        for arg in args[:-1]:
-            if arg not in d:
-                d[arg] = orderdict.OrderDict()
-            d = d[arg]
-
-        if "default" in kargs:
-            d = d.get(args[-1], kargs["default"])
-        else:
-            arg = args[-1]
-            if arg not in d:
-                d[arg] = orderdict.OrderDict()
-            d = d[arg]
-
-        return d
+        default -- set a default value if it does not exist
+        define  -- create a new dict if the key does not exist
+        """
+        return self._data.get(*args, **kargs)
 
 
     def set(self, *args):
         """Set config value in preferences"""
-        
-        keys = args[:-1]
-        val = args[-1]
-        self.get(*keys[:-1])[keys[-1]] = val
+        return self._data.set(*args)
 
 
     def get_external_app(self, key):
@@ -546,33 +618,35 @@ class KeepNotePreferences (object):
     # Input/Output
 
 
-    def _set_data(self, data=None):
-
-        if data is None:
-            data = orderdict.OrderDict()
-        self._data = data
+    def set_data(self, data=None):
         
-        self.id = data.get("id", None)
+        if data is None:
+            self._data.clear()
+        else:
+            self._data.set(data)
+        data = self._data
+        
+        self.id = data.get("id", default=None)
         
         # language
-        self.language = data.get("language", "")
+        self.language = data.get("language", default="")
 
         self.timestamp_formats = data.get("timestamp_formats",
-                         dict(keepnote.timestamp.DEFAULT_TIMESTAMP_FORMATS))
+                   default=dict(keepnote.timestamp.DEFAULT_TIMESTAMP_FORMATS))
 
         # notebook
-        self.default_notebook = data.get("default_notebook", "")
-        self.use_last_notebook = data.get("use_last_notebook", True)
+        self.default_notebook = data.get("default_notebook", default="")
+        self.use_last_notebook = data.get("use_last_notebook", default=True)
 
 
-        e = data.get("editors", {}).get("general", {})
+        e = data.get("editors", "general", define=True)
         self.spell_check = e.get("spell_check", True)
         self.image_size_snap = e.get("image_size_snap", True)
         self.image_size_snap_amount = e.get("image_size_snap_amount", 50)
 
         
         # look and feel
-        l = data.get("lookup_and_feel", {})
+        l = data.get("lookup_and_feel", define=True)
         self.treeview_lines = l.get("treeview_lines", True)
         self.listview_rules = l.get("listview_rules", True)
         self.use_stock_icons = l.get("use_sttock_icons", False)
@@ -582,7 +656,7 @@ class KeepNotePreferences (object):
 
         # dialog chooser paths
         doc = get_user_documents()
-        self.default_paths = data.get("default_paths", {
+        self.default_paths = data.get("default_paths", default={
             "new_notebook_path": doc,
             "archive_notebook_path": doc,
             "insert_image_path": doc,
@@ -592,12 +666,12 @@ class KeepNotePreferences (object):
 
         
         # extensions
-        self.disabled_extensions = data.get("extension_info", 
-                                            {}).get("disabled", [])
+        self.disabled_extensions = data.get("extension_info", "disabled", 
+                                            default=[])
 
         # external apps
         self.external_apps = []
-        for app in data.get("external_apps", []):
+        for app in data.get("external_apps", default=[]):
             if "key" not in app:
                 continue
             app2 = ExternalApp(app["key"], 
@@ -608,6 +682,12 @@ class KeepNotePreferences (object):
 
 
         self._post_process_data()
+
+        # recurse
+        for key, child in self.iter_children():
+            child.set_data(data)
+        
+            
 
     
     def _post_process_data(self):
@@ -635,10 +715,10 @@ class KeepNotePreferences (object):
     
 
 
-    def _get_data(self, data=None):
+    def get_data(self, data=None):
 
         if data is None:
-            data = self._data
+            data = self._data.get()
 
         
         data["id"] = self.id
@@ -684,6 +764,10 @@ class KeepNotePreferences (object):
             }
         data["extensions"] = {}
         
+        # recurse
+        for key, child in self.iter_children():
+            child.get_data(data)
+
         return data
 
 
@@ -698,7 +782,6 @@ class KeepNotePreferences (object):
                 self.write()
             except Exception, e:
                 raise KeepNotePreferenceError("Cannot initialize preferences", e)
-        
 
         try:
             # read preferences xml
@@ -722,12 +805,13 @@ class KeepNotePreferences (object):
                     if d:
                         data = plist.load_etree(d)
                     else:
-                        data = orderdict.OrderDict()
+                        data = None
 
                 # set data
-                self._set_data(data)
+                self.set_data(data)
         except Exception, e:
-            raise KeepNotePreferenceError("Cannot read preferences", e)
+            raise
+            #raise KeepNotePreferenceError("Cannot read preferences", e)
         
                 
         # notify listeners
@@ -746,9 +830,9 @@ class KeepNotePreferences (object):
             out.write(u'<?xml version="1.0" encoding="UTF-8"?>\n'
                       u'<keepnote>\n'
                       u'<pref>\n')
-            plist.dump(self._get_data(), out, indent=4, depth=4)
+            plist.dump(self.get_data(), out, indent=4, depth=4)
             out.write(u'</pref>\n'
-                      u'</keepnote>')
+                      u'</keepnote>\n')
             
             out.close()
                                          
@@ -821,7 +905,7 @@ class KeepNote (object):
 
     
     def __init__(self, basedir=None):
-
+        
         # base directory of keepnote library
         if basedir is not None:
             set_basedir(basedir)
@@ -840,7 +924,7 @@ class KeepNote (object):
         # set of registered extensions for this application
         self._extensions = {}
 
-        self.pref.changed.add(self.load_preferences)
+        #self.pref.changed.add(self.load_preferences)
 
 
     def init(self):
@@ -848,7 +932,7 @@ class KeepNote (object):
         
         # read preferences
         self.pref.read()
-        self.set_lang()
+        self.load_preferences()
         
         # scan extensions
         self.clear_extensions()
@@ -861,19 +945,19 @@ class KeepNote (object):
 
     def load_preferences(self):
         """Load information from preferences"""
-        pass
+        
+        self.set_lang()
 
 
     def save_preferneces(self):
         """TODO: not used yet"""
         pass
 
-        #self._app.pref.write()
 
     def set_lang(self):                
         """Set the language based on preference"""
 
-        keepnote.trans.set_lang(self.pref.language)
+        keepnote.trans.set_lang(self.pref.get("language", default=""))
 
 
     #==================================
