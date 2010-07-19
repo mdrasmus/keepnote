@@ -579,7 +579,7 @@ class KeepNotePreferences (object):
             root = tree.getroot()
             if root.tag == "keepnote":
                 p = root.find("pref")
-                if not p:
+                if p is None:
                     # convert from old preference version
                     import keepnote.compat.pref as old
                     old_pref = old.KeepNotePreferences()
@@ -588,7 +588,7 @@ class KeepNotePreferences (object):
                 else:
                     # get data object from xml
                     d = p.find("dict")
-                    if d:
+                    if d is not None:
                         data = plist.load_etree(d)
                     else:
                         data = None

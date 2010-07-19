@@ -48,7 +48,6 @@ from keepnote.timestamp import get_timestamp
 from keepnote import safefile
 from keepnote import uuid
 from keepnote import trans
-from keepnote.notebook import index as notebook_index
 from keepnote import orderdict
 from keepnote import plist
 import keepnote
@@ -257,7 +256,7 @@ def get_notebook_version(filename):
         filename = get_pref_file(filename)
 
     try:
-        tree = ElementTree.ElementTree(file=filename)
+        tree = ElementTree.ElementTree(file=filename)            
     except IOError, e:
         raise NoteBookError(_("Cannot read notebook preferences"), e)
     except Exception, e:
@@ -273,8 +272,7 @@ def get_notebook_version_etree(tree):
     if root.tag == "notebook":
         p = root.find("version")
         if p is None:
-            # assume latest version
-            return NOTEBOOK_FORMAT_VERSION
+            raise NoteBookError(_("No version tag found"))
 
         if not p.text.isdigit():
             raise NoteBookError(_("Unknown version string"))
@@ -1317,7 +1315,7 @@ class NoteBookPreferences (object):
         data["quick_pick_icons"] = self._quick_pick_icons[:]
 
         return data
-
+    
 
     def clear(self):
         
@@ -1340,9 +1338,59 @@ class NoteBookPreferences (object):
         self.quick_pick_icons_changed.notify()
     
 
+def write_new_preferences(pref, filename):
+    """Writes the NoteBooks preferences to the file-system"""
+    try:
+        data = pref.get_data()
+
+        out = safefile.open(filename, "w", codec="utf-8")
+        out.write(u'<?xml version="1.0" encoding="UTF-8"?>\n'
+                  u'<notebook>\n'
+                  u'<version>%d</version>\n'
+                  u'<pref>\n' % data["version"])
+        plist.dump(data, out, indent=4, depth=4)
+        out.write(u'</pref>\n'
+                  u'</notebook>\n')
+        out.close()
+
+    except (IOError, OSError), e:
+        raise NoteBookError(_("Cannot save notebook preferences"), e)
+
+
+        
+
     
 #=============================================================================
 # NoteBook type
+
+
+# file format for NoteBook preferences
+g_notebook_pref_parser = xmlo.XmlObject(
+    xmlo.Tag("notebook", tags=[
+        xmlo.Tag("version",
+            attr=("version", int, str)),
+        xmlo.Tag("default_font",
+            attr=("default_font", None, None)),
+        xmlo.Tag("index_dir",
+            attr=("index_dir", None, None)),
+
+        xmlo.Tag("selected_treeview_nodes",
+                 attr=("selected_treeview_nodes", 
+                       lambda x: x.split(","), 
+                       lambda x: ",".join(x))),
+        xmlo.Tag("selected_listview_nodes",
+                 attr=("selected_listview_nodes",
+                       lambda x: x.split(","), 
+                       lambda x: ",".join(x))),
+
+        xmlo.Tag("quick_pick_icons", tags=[
+            xmlo.TagMany("icon",
+                iterfunc=lambda s: range(len(s._quick_pick_icons)),
+                get=lambda (s,i),x:
+                    s._quick_pick_icons.append(x),
+                set=lambda (s,i): s._quick_pick_icons[i])
+        ]),
+    ]))
 
 
 class NoteBook (NoteBookDir):
@@ -1469,7 +1517,7 @@ class NoteBook (NoteBookDir):
         self.read_meta_data()
         self.read_preferences()
 
-        self._init_index()
+        #self._init_index()
 
         self.notify_change(True)
     
@@ -1481,7 +1529,7 @@ class NoteBook (NoteBookDir):
             self.write_meta_data()            
             self.write_preferences()
 
-        self._index.save()
+        #self._index.save()
 
         self._set_dirty(False)
 
@@ -1497,10 +1545,10 @@ class NoteBook (NoteBookDir):
 
     def _init_index(self):
         """Initialize the index"""
-        self._index = notebook_index.NoteBookIndex(self)
-        self._index.add_attr(notebook_index.AttrIndex("icon", "TEXT"))
-        self._index.add_attr(notebook_index.AttrIndex("title", "TEXT",
-                                                      index_value=True))
+        #self._index = notebook_index.NoteBookIndex(self)
+        #self._index.add_attr(notebook_index.AttrIndex("icon", "TEXT"))
+        #self._index.add_attr(notebook_index.AttrIndex("title", "TEXT",
+        #                                              index_value=True))
 
         
 
@@ -1773,21 +1821,10 @@ class NoteBook (NoteBookDir):
             if not os.path.exists(self.get_icon_dir()):
                 os.mkdir(self.get_icon_dir())
 
-            data = self.pref.get_data()
-
-            out = safefile.open(self.get_pref_file(), "w", codec="utf-8")
-            out.write(u'<?xml version="1.0" encoding="UTF-8"?>\n'
-                      u'<notebook>\n'
-                      u'<version>%d</version>\n'
-                      u'<pref>\n' % data["version"])
-            plist.dump(data, out, indent=4, depth=4)
-            out.write(u'</pref>\n'
-                      u'</notebook>\n')
-            out.close()
-
+            g_notebook_pref_parser.write(self.pref, self.get_pref_file())
         except (IOError, OSError), e:
             raise NoteBookError(_("Cannot save notebook preferences"), e)
-        except Exception, e:
+        except xmlo.XmlError, e:
             raise NoteBookError(_("File format error"), e)
 
     
@@ -1807,23 +1844,22 @@ class NoteBook (NoteBookDir):
             raise NoteBookVersionError(version,
                                        NOTEBOOK_FORMAT_VERSION)
 
-        root = tree.getroot()
-        if root.tag == "notebook":
-            p = root.find("pref")
-            if p is not None:
-                d = p.find("dict")
-                if d is not None:
-                    data = plist.load_etree(d)
-                else:
-                    data = orderdict.OrderDict()
-            else:
-                data = orderdict.OrderDict()
+        #root = tree.getroot()
+        #if root.tag == "notebook":
+        #    p = root.find("pref")
+        #    if p is None:
+        #        print "old version"
 
-        self.pref.set_data(data)
-      
+        self.pref.clear()
+        g_notebook_pref_parser.read(self.pref, self.get_pref_file())
 
-        
-        
+
+        # read old format
+        #old_pref = NoteBookPreferences2()
+        #g_notebook_pref_parser.read(old_pref, self.get_pref_file())
+
+        #self.pref.set_data(old_pref.get_data())
+        #self.write_preferences2()
         
 
 
