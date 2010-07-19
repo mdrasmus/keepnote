@@ -401,7 +401,12 @@ class KeepNote (keepnote.KeepNote):
 
         from keepnote.gui import dialog_update_notebook
 
-        version = notebooklib.get_notebook_version(filename)
+        try:
+            version = notebooklib.get_notebook_version(filename)
+        except Exception, e:
+            self.error(_("Could not load notebook '%s'.") % filename,
+                       e, sys.exc_info()[2])
+            return None
         
         
         if version < notebooklib.NOTEBOOK_FORMAT_VERSION:

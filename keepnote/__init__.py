@@ -867,8 +867,11 @@ class KeepNote (object):
     def open_notebook(self, filename, window=None, task=None):
         """Open a new notebook"""
         
-        notebook = keepnote.notebook.NoteBook()
-        notebook.load(filename)
+        try:
+            notebook = keepnote.notebook.NoteBook()
+            notebook.load(filename)
+        except Expection:
+            return None
         return notebook
 
     def close_notebook(self, notebook):
@@ -885,7 +888,11 @@ class KeepNote (object):
         Open a new notebook if it is not already opened.
         """
 
-        filename = os.path.realpath(filename)
+        try:
+            filename = os.path.realpath(filename)
+        except:
+            return None
+
         if filename not in self._notebooks:
             notebook = self.open_notebook(filename, window, task=task)
             if notebook is None:
