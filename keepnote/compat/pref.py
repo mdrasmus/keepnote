@@ -214,7 +214,7 @@ class KeepNotePreferences (object):
         self._external_apps = []
         self._external_apps_lookup = {}
 
-        self.id = None
+        self.id = ""
 
         # extensions
         self.disabled_extensions = []

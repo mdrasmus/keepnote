@@ -591,7 +591,7 @@ class KeepNotePreferences (object):
                     if d is not None:
                         data = plist.load_etree(d)
                     else:
-                        data = None
+                        data = orderdict.OrderDict()
 
                 # set data
                 self._data.clear()
@@ -747,8 +747,8 @@ class KeepNote (object):
         self.set_lang()
 
         # setup id
-        self.id = data.get("id", default=None)
-        if self.id is None:
+        self.id = data.get("id", default="")
+        if self.id == "":
             self.id = str(uuid.uuid4())
             data.set("id", self.id)
 
