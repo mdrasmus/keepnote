@@ -1281,6 +1281,10 @@ class NoteBookTrash (NoteBookDir):
 
 
 
+#=============================================================================
+# Notebook preferences
+
+
 class NoteBookPreferences (object):
     """Preference data structure for a NoteBook"""
     def __init__(self):
@@ -1339,6 +1343,12 @@ class NoteBookPreferences (object):
         self._quick_pick_icons[:] = icons
         self.quick_pick_icons_changed.notify()
     
+    def get(self, *args, **kargs):
+        return keepnote.get_pref(self._data, *args, **kargs)
+
+    def set(self, *args):
+        return keepnote.set_pref(self._data, *args)
+        
 
     
 #=============================================================================

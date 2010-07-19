@@ -465,6 +465,69 @@ def get_external_app_defaults():
         
 
 
+def get_pref(pref, *args, **kargs):
+    """
+    Get config value from preferences
+
+    default -- set a default value if it does not exist
+    define  -- create a new dict if the key does not exist
+    """
+
+    if len(args) == 0:
+        return pref
+
+    try:
+        d = pref
+        parent = None
+        if "default" in kargs or "define" in kargs:
+            # set default values when needed
+            # define keyword causes default value to be a OrderDict()
+            # all keys are expected to be present
+
+            for arg in args[:-1]:
+                if arg not in d:
+                    d[arg] = orderdict.OrderDict()
+                    d = d[arg]
+                else:
+                    c = d[arg]
+                    # ensure child value c is a dict
+                    if not isinstance(c, dict):
+                        c = d[arg] = orderdict.OrderDict()
+                    d = c
+            if kargs.get("define", False):
+                if args[-1] not in d:
+                    d[args[-1]] = orderdict.OrderDict()
+                d = d[args[-1]]
+            else:
+                d = d.setdefault(args[-1], kargs["default"])
+        else:
+            # no default or define specified
+            # all keys are expected to be present
+            for arg in args:
+                d = d[arg]
+        return d
+
+    except KeyError:
+        raise Exception("unknown config value")
+
+
+def set_pref(pref, *args):
+    """Set config value in preferences"""
+
+    if len(args) == 0:
+        return
+    elif len(args) == 1:
+        pref.clear()
+        pref.update(args[0])
+    else:
+        keys = args[:-1]
+        val = args[-1]
+        get_pref(pref, *keys[:-1])[keys[-1]] = val
+        return val
+
+
+
+
 class KeepNotePreferences (object):
     """Preference data structure for the KeepNote application"""
     
@@ -500,58 +563,12 @@ class KeepNotePreferences (object):
         default -- set a default value if it does not exist
         define  -- create a new dict if the key does not exist
         """
-        
-        if len(args) == 0:
-            return self._data
-
-        try:
-            d = self._data
-            parent = None
-            if "default" in kargs or "define" in kargs:
-                # set default values when needed
-                # define keyword causes default value to be a OrderDict()
-                # all keys are expected to be present
-
-                for arg in args[:-1]:
-                    if arg not in d:
-                        d[arg] = orderdict.OrderDict()
-                        d = d[arg]
-                    else:
-                        c = d[arg]
-                        # ensure child value c is a dict
-                        if not isinstance(c, dict):
-                            c = d[arg] = orderdict.OrderDict()
-                        d = c
-                if kargs.get("define", False):
-                    if args[-1] not in d:
-                        d[args[-1]] = orderdict.OrderDict()
-                    d = d[args[-1]]
-                else:
-                    d = d.setdefault(args[-1], kargs["default"])
-            else:
-                # no default or define specified
-                # all keys are expected to be present
-                for arg in args:
-                    d = d[arg]
-            return d
-
-        except KeyError:
-            raise Exception("unknown config value")
+        return get_pref(self._data, *args, **kargs)
 
 
     def set(self, *args):
         """Set config value in preferences"""
-        
-        if len(args) == 0:
-            return
-        elif len(args) == 1:
-            self._data.clear()
-            self._data.update(args[0])
-        else:
-            keys = args[:-1]
-            val = args[-1]
-            self.get(*keys[:-1])[keys[-1]] = val
-            return val
+        return set_pref(self._data, *args)
     
     
     #=========================================
