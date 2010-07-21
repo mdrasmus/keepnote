@@ -817,10 +817,10 @@ class ThreePaneViewer (Viewer):
         iconmenu = IconMenu()
         iconmenu.connect("set-icon",
             lambda w, i: self._app.on_set_icon(
-                i, u"", self.get_selected_nodes()[0]))
+                i, u"", self.get_selected_nodes()))
         iconmenu.new_icon.connect("activate",
             lambda w: self._app.on_new_icon(
-                self.get_selected_nodes()[0], self._notebook, 
+                self.get_selected_nodes(), self._notebook, 
                 self._main_window))
         iconmenu.set_notebook(self._notebook)
 
