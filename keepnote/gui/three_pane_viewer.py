@@ -353,10 +353,14 @@ class ThreePaneViewer (Viewer):
         Returns  a list of selected nodes.
         """
 
-        if self.listview.is_focus():
-            return self.listview.get_selected_nodes()
-        else: # self.treeview.is_focus():
+        if self.treeview.is_focus():
             return self.treeview.get_selected_nodes()
+        else: # self.listview.is_focus():
+            nodes = self.listview.get_selected_nodes()
+            if len(nodes) == 0:
+                return self.treeview.get_selected_nodes()
+            else:
+                return nodes
 
 
     def _on_history_changed(self, viewer, history):

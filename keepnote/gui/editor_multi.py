@@ -58,6 +58,16 @@ class MultiEditor (KeepNoteEditor):
         self._window = None
         self._use_minitoolbar = False
 
+        self._signals = ["view-node", 
+                         "visit-node", 
+                         "modified", 
+                         "font-change", 
+                         "error", 
+                         "child-activated", 
+                         "window-request", 
+                         "make-link"]
+        self._signal_ids = []
+
 
     def set_editor(self, editor):
 
@@ -69,6 +79,7 @@ class MultiEditor (KeepNoteEditor):
         if self._editor:
             self._editor.view_pages([])
             self._editor.save_preferences(self._app.pref)
+            self._disconnect_signals(self._editor)
             if self._window:
                 self._editor.remove_ui(self._window)
             self._editor.set_notebook(None)
@@ -80,11 +91,26 @@ class MultiEditor (KeepNoteEditor):
         if self._editor:
             self.pack_start(self._editor, True, True, 0)
             self._editor.show()
+            self._connect_signals(self._editor)
             self._editor.set_notebook(self._notebook)
             if self._window:
                 self._editor.add_ui(self._window, self._use_minitoolbar)
             self._editor.load_preferences(self._app.pref)
             self._editor.view_pages(self._pages)
+
+
+    def _connect_signals(self, editor):
+
+        def make_callback(sig):
+            return lambda *args: self.emit(sig, *args[1:])
+
+        for sig in self._signals:
+            self._signal_ids.append(
+                editor.connect(sig, make_callback(sig)))
+    
+    def _disconnect_signals(self, editor):
+        for sigid in self._signal_ids:
+            editor.disconnect(sigid)
 
 
     #========================================

@@ -111,13 +111,10 @@ class TextEditor (KeepNoteEditor):
         self._page_cursors = {}
         self._textview_io = RichTextIO()
         
-        print SourceView
         
         # textview and its callbacks
         if SourceView:
             self._textview = SourceView(SourceBuffer())
-            print type(self._textview.get_buffer())
-            print dir(self._textview.get_buffer())
             self._textview.get_buffer().set_highlight_syntax(True)
             #self._textview.set_show_margin(True)
             #self._textview.disable()
@@ -241,12 +238,10 @@ class TextEditor (KeepNoteEditor):
                     
                     if SourceView:
                         manager = SourceLanguageManager()
-                        print dir(manager)
                         #print manager.get_language_ids()
                         #lang = manager.get_language_from_mime_type(
                         #    page.get_attr("content_type"))
                         lang = manager.get_language("python")
-                        print lang
                         self._textview.get_buffer().set_language(lang)
 
                 else:
@@ -327,7 +322,7 @@ class TextEditor (KeepNoteEditor):
                 self.emit("error", e.msg, e)
 
             except Exception, e:
-                print e
+                self.emit("error", str(e), e)
 
 
     def save_needed(self):
