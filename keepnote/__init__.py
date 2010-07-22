@@ -996,7 +996,7 @@ class KeepNote (object):
             mswin.screenshot.take_screenshot(imgfile)
         else:
             # use external app for screen shot
-            screenshot = self.pref.get_external_app("screen_shot")
+            screenshot = self.get_external_app("screen_shot")
             if screenshot is None or screenshot.prog == "":
                 raise Exception(_("You must specify a Screen Shot program in Application Options"))
 
