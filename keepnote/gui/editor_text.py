@@ -135,7 +135,7 @@ class TextEditor (KeepNoteEditor):
         
         
         # menus
-        #self.editor_menus = EditorMenus(self)
+        #self.editor_menus = EditorMenus(self._app, self)
 
         # find dialog
         #self.find_dialog = dialog_find.KeepNoteFindDialog(self)
@@ -332,7 +332,7 @@ class TextEditor (KeepNoteEditor):
         return False
 
 
-    def add_ui(self, window, use_minitoolbar):
+    def add_ui(self, window):
         if not SourceView:
             self._textview.set_accel_group(window.get_accel_group())
             self._textview.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
@@ -381,9 +381,10 @@ class TextEditor (KeepNoteEditor):
 
 class EditorMenus (gobject.GObject):
 
-    def __init__(self, editor):
+    def __init__(self, app, editor):
         gobject.GObject.__init__(self)
         
+        self._app = app
         self._editor = editor
         self._action_group = None
         self._uis = []
@@ -418,7 +419,7 @@ class EditorMenus (gobject.GObject):
     #=====================================================
     # toolbar and menus
 
-    def add_ui(self, window, use_minitoolbar=False):
+    def add_ui(self, window):
         
         self._action_group = gtk.ActionGroup("Editor")
         self._uis = []
@@ -426,7 +427,7 @@ class EditorMenus (gobject.GObject):
         window.get_uimanager().insert_action_group(
             self._action_group, 0)
 
-        for s in self.get_ui(use_minitoolbar=use_minitoolbar):
+        for s in self.get_ui():
             self._uis.append(window.get_uimanager().add_ui_from_string(s))
         window.get_uimanager().ensure_update()
 
@@ -482,7 +483,7 @@ class EditorMenus (gobject.GObject):
         )
         
 
-    def get_ui(self, use_minitoolbar=False):
+    def get_ui(self):
 
         ui = ["""
         <ui>
@@ -525,21 +526,7 @@ class EditorMenus (gobject.GObject):
      </ui>
         """]
 
-
-        if use_minitoolbar:
-            ui.append("""
-        <ui>
-        <toolbar name="main_tool_bar">
-          <placeholder name="Viewer">
-            <placeholder name="Editor">
-            </placeholder>
-          </placeholder>
-        </toolbar>
-
-        </ui>
-        """)
-        else:
-            ui.append("""
+        ui.append("""
         <ui>
         <toolbar name="main_tool_bar">
           <placeholder name="Viewer">

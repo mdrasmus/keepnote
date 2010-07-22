@@ -56,7 +56,6 @@ class MultiEditor (KeepNoteEditor):
         self._pages = []
         self._editor = None
         self._window = None
-        self._use_minitoolbar = False
 
         self._signals = ["view-node", 
                          "visit-node", 
@@ -94,7 +93,7 @@ class MultiEditor (KeepNoteEditor):
             self._connect_signals(self._editor)
             self._editor.set_notebook(self._notebook)
             if self._window:
-                self._editor.add_ui(self._window, self._use_minitoolbar)
+                self._editor.add_ui(self._window)
             self._editor.load_preferences(self._app.pref)
             self._editor.view_pages(self._pages)
 
@@ -168,11 +167,10 @@ class MultiEditor (KeepNoteEditor):
             return self._editor.save_preferences(app_pref)
         
 
-    def add_ui(self, window, use_minitoolbar=False):
+    def add_ui(self, window):
         self._window = window
-        self._use_minitoolbar = use_minitoolbar
         if self._editor:
-            return self._editor.add_ui(window, use_minitoolbar)
+            return self._editor.add_ui(window)
 
 
     def remove_ui(self, window):

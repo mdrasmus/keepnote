@@ -784,11 +784,7 @@ class ThreePaneViewer (Viewer):
 
 
         # setup editor
-        self.editor.add_ui(window,
-                           use_minitoolbar=
-                           self._app.pref.get("look_and_feel", 
-                                              "use_minitoolbar",
-                                              default=False))
+        self.editor.add_ui(window)
         
         
         # TODO: Try to add accellerator to popup menu

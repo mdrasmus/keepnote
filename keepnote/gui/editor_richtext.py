@@ -131,7 +131,7 @@ class RichTextEditor (KeepNoteEditor):
 
 
         # menus
-        self.editor_menus = EditorMenus(self)
+        self.editor_menus = EditorMenus(self._app, self)
         self.connect("font-change", self.editor_menus.on_font_change)
 
         # find dialog
@@ -302,16 +302,12 @@ class RichTextEditor (KeepNoteEditor):
         return self._textview.is_modified()
 
 
-    def add_ui(self, window, use_minitoolbar):
+    def add_ui(self, window):
         self._textview.set_accel_group(window.get_accel_group())
         self._textview.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
         self._textview.get_image_menu().set_accel_group(window.get_accel_group())
 
-        self.editor_menus.add_ui(window,
-                                 use_minitoolbar=
-                                 self._app.pref.get("look_and_feel", 
-                                                    "use_minitoolbar",
-                                                    default=False))
+        self.editor_menus.add_ui(window)
 
 
     def remove_ui(self, window):
@@ -768,10 +764,11 @@ class FontUI (object):
 
 class EditorMenus (gobject.GObject):
 
-    def __init__(self, editor):
+    def __init__(self, app, editor):
         gobject.GObject.__init__(self)
         
         self._editor = editor
+        self._app = app
         self._action_group = None
         self._uis = []
         self._font_ui_signals = []     # list of font ui widgets
@@ -934,7 +931,7 @@ class EditorMenus (gobject.GObject):
     #=====================================================
     # toolbar and menus
 
-    def add_ui(self, window, use_minitoolbar=False):
+    def add_ui(self, window):
         
         self._action_group = gtk.ActionGroup("Editor")
         self._uis = []
@@ -942,7 +939,7 @@ class EditorMenus (gobject.GObject):
         window.get_uimanager().insert_action_group(
             self._action_group, 0)
 
-        for s in self.get_ui(use_minitoolbar=use_minitoolbar):
+        for s in self.get_ui():
             self._uis.append(window.get_uimanager().add_ui_from_string(s))
         window.get_uimanager().ensure_update()
 
@@ -1128,7 +1125,11 @@ class EditorMenus (gobject.GObject):
         )
         
 
-    def get_ui(self, use_minitoolbar=False):
+    def get_ui(self):
+
+        use_minitoolbar = self._app.pref.get("look_and_feel", 
+                                             "use_minitoolbar",
+                                             default=False)
 
         ui = ["""
         <ui>

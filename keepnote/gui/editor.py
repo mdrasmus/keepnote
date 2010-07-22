@@ -81,7 +81,7 @@ class KeepNoteEditor (gtk.VBox):
     def save_preferences(self, app_pref):
         """Save application preferences"""
 
-    def add_ui(self, window, use_minitoolbar=False):
+    def add_ui(self, window):
         pass
 
     def remove_ui(self, window):
