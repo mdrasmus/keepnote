@@ -87,6 +87,12 @@ class KeepNoteEditor (gtk.VBox):
     def remove_ui(self, window):
         pass
 
+    def undo(self):
+        pass
+
+    def redo(self):
+        pass
+
 
 # add new signals to KeepNoteEditor
 gobject.type_register(KeepNoteEditor)

@@ -63,6 +63,8 @@ from keepnote.gui.treeview import KeepNoteTreeView
 from keepnote.gui.listview import KeepNoteListView
 from keepnote.gui.editor import KeepNoteEditor
 from keepnote.gui.editor_richtext import RichTextEditor
+from keepnote.gui.editor_text import TextEditor
+from keepnote.gui.editor_multi import ContentEditor
 from keepnote.gui.icon_menu import IconMenu
 from keepnote import notebook as notebooklib
 from keepnote.gui.treemodel import iter_children
@@ -125,7 +127,13 @@ class ThreePaneViewer (Viewer):
         
         # editor
         #self.editor = KeepNoteEditor(self._app)
-        self.editor = RichTextEditor(self._app)
+        #self.editor = RichTextEditor(self._app)
+        self.editor = ContentEditor(self._app)
+        rich_editor = RichTextEditor(self._app)
+        self.editor.add_editor("text/xhtml+xml", rich_editor)
+        self.editor.add_editor("text", TextEditor(self._app))
+        self.editor.set_default_editor(rich_editor)
+
         self.editor.connect("view-node", self._on_editor_view_node)
         self.editor.connect("child-activated", self._on_child_activated)
         self.editor.connect("visit-node", lambda w, n: self.goto_node(n, False))

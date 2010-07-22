@@ -143,31 +143,15 @@ class RichTextEditor (KeepNoteEditor):
     def set_notebook(self, notebook):
         """Set notebook for editor"""
 
-        # remove listener for old notebook
-        if self._notebook:
-            self._notebook.node_changed.remove(self._on_notebook_changed)
-
         # set new notebook
         self._notebook = notebook
 
         if self._notebook:
-            # add listener and read default font
-            self._notebook.node_changed.add(self._on_notebook_changed)
+            # read default font
             self._textview.set_default_font(self._notebook.pref.default_font)
         else:
             # no new notebook, clear the view
             self.clear_view()
-    
-
-    def _on_notebook_changed(self, node, recurse):
-        """Reconfigure based on notebook preference changes"""
-
-        # clear view if current page has been deleted
-        if self._page and not self._page.is_valid():
-            self.clear_view()
-
-        self._textview.set_default_font(self._notebook.pref.default_font)
-    
         
     
     def load_preferences(self, app_pref, first_open=False):
@@ -176,6 +160,9 @@ class RichTextEditor (KeepNoteEditor):
         self.editor_menus.enable_spell_check(
             self._app.pref.get("editors", "general", "spell_check",
                                default=True))
+
+        if self._notebook:
+            self._textview.set_default_font(self._notebook.pref.default_font)
 
 
     def save_preferences(self, app_pref):
@@ -223,15 +210,7 @@ class RichTextEditor (KeepNoteEditor):
 
         # save current page before changing pages
         self.save()
-
-        if self._page is not None:
-            it = self._textview.get_buffer().get_insert_iter()
-            self._page_cursors[self._page] = it.get_offset()
-            
-            x, y = self._textview.window_to_buffer_coords(gtk.TEXT_WINDOW_TEXT, 0, 0)
-            it = self._textview.get_iter_at_location(x, y)
-            self._page_scrolls[self._page] = it.get_offset()
-            
+        self._save_cursor()
 
         pages = [node for node in pages
                  if node.get_attr("content_type") ==
@@ -249,23 +228,9 @@ class RichTextEditor (KeepNoteEditor):
                 self._textview_io.load(self._textview,
                                        self._textview.get_buffer(),
                                        self._page.get_data_file())
+                self._load_cursor()
 
-                # place cursor in last location
-                if self._page in self._page_cursors:
-                    offset = self._page_cursors[self._page]
-                    it = self._textview.get_buffer().get_iter_at_offset(offset)
-                    self._textview.get_buffer().place_cursor(it)
-
-                # place scroll in last position
-                if self._page in self._page_scrolls:
-                    offset = self._page_scrolls[self._page]
-                    buf = self._textview.get_buffer()
-                    it = buf.get_iter_at_offset(offset)
-                    mark = buf.create_mark(None, it, True)
-                    self._textview.scroll_to_mark(mark,
-                        0.49, use_align=True, xalign=0.0)
-                    buf.delete_mark(mark)
-
+ 
             except RichTextError, e:
                 self.clear_view()                
                 self.emit("error", e.msg, e)
@@ -275,7 +240,38 @@ class RichTextEditor (KeepNoteEditor):
 
         if len(pages) > 0:
             self.emit("view-node", pages[0])
-                
+    
+
+    def _save_cursor(self):
+        if self._page is not None:
+            it = self._textview.get_buffer().get_insert_iter()
+            self._page_cursors[self._page] = it.get_offset()
+            
+            x, y = self._textview.window_to_buffer_coords(
+                gtk.TEXT_WINDOW_TEXT, 0, 0)
+            it = self._textview.get_iter_at_location(x, y)
+            self._page_scrolls[self._page] = it.get_offset()
+
+
+    def _load_cursor(self):
+        
+        # place cursor in last location
+        if self._page in self._page_cursors:
+            offset = self._page_cursors[self._page]
+            it = self._textview.get_buffer().get_iter_at_offset(offset)
+            self._textview.get_buffer().place_cursor(it)
+
+        # place scroll in last position
+        if self._page in self._page_scrolls:
+            offset = self._page_scrolls[self._page]
+            buf = self._textview.get_buffer()
+            it = buf.get_iter_at_offset(offset)
+            mark = buf.create_mark(None, it, True)
+            self._textview.scroll_to_mark(mark,
+                0.49, use_align=True, xalign=0.0)
+            buf.delete_mark(mark)
+
+            
     
     def save(self):
         """Save the loaded page"""
