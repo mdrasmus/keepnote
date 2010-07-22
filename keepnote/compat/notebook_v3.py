@@ -1786,7 +1786,7 @@ class NoteBook (NoteBookDir):
         if save:
             self.save()
 
-        self._index.close()
+        #self._index.close()
 
 
     #===============================================
