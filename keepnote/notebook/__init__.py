@@ -1746,10 +1746,9 @@ class NoteBook (NoteBookDir):
 
     def close(self, save=True):
         """Close notebook"""
-
+        
         if save:
             self.save()
-
         self._index.close()
 
 

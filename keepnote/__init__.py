@@ -853,11 +853,7 @@ class KeepNote (object):
         try:
             notebook = keepnote.notebook.NoteBook()
             notebook.load(filename)
-<<<<<<< HEAD:keepnote/__init__.py
         except Exception:
-=======
-        except Expection:
->>>>>>> master:keepnote/__init__.py
             return None
         return notebook
 
