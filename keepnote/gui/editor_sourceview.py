@@ -39,6 +39,16 @@ import gtk.glade
 import gobject
 
 
+try:
+    raise ImportError()
+
+    from gtksourceview2 import View as SourceView
+    from gtksourceview2 import Buffer as SourceBuffer
+    from gtksourceview2 import LanguageManager as SourceLanguageManager
+except ImportError:
+    SourceView = None
+
+
 # keepnote imports
 import keepnote
 from keepnote import \
@@ -53,17 +63,32 @@ from keepnote import safefile
 from keepnote.gui import richtext
 from keepnote.gui.richtext import \
      RichTextView, RichTextBuffer, \
-     RichTextIO, RichTextError
+     RichTextIO, RichTextError, RichTextImage
+from keepnote.gui.richtext.richtext_tags import \
+    RichTextTagTable, RichTextLinkTag
 from keepnote.gui import \
      CONTEXT_MENU_ACCEL_PATH, \
      FileChooserDialog, \
+     get_pixbuf, \
      get_resource, \
+     get_resource_image, \
+     get_resource_pixbuf, \
      Action, \
      ToggleAction, \
      add_actions, \
-     dialog_find
+     update_file_preview, \
+    dialog_find, \
+    dialog_image_resize
+from keepnote.gui.icons import \
+    get_node_icon, lookup_icon_filename
+from keepnote.gui.font_selector import FontSelector
+from keepnote.gui.colortool import FgColorTool, BgColorTool
+from keepnote.gui.richtext.richtext_tags import color_tuple_to_string
+from keepnote.gui.popupwindow import PopupWindow
+from keepnote.gui.linkcomplete import LinkPickerPopup
+from keepnote.gui.link_editor import LinkEditor
 from keepnote.gui.editor import KeepNoteEditor
-
+from keepnote.gui.editor_richtext import ComboToolItem
 
 _ = keepnote.translate
 
@@ -74,7 +99,11 @@ class TextEditor (KeepNoteEditor):
     def __init__(self, app):
         KeepNoteEditor.__init__(self, app)
         self._app = app
-        self._notebook = None                
+        self._notebook = None
+
+        self._link_picker = None
+        self._maxlinks = 10 # maximum number of links to show in link picker
+                
 
         # state
         self._page = None                  # current NoteBookPage
@@ -84,11 +113,17 @@ class TextEditor (KeepNoteEditor):
         
         
         # textview and its callbacks
-        self._textview = RichTextView(RichTextBuffer(
-                self._app.get_richtext_tag_table()))    # textview
-        self._textview.disable()        
-        self._textview.connect("modified", self._on_modified_callback)
-        self._textview.connect("visit-url", self._on_visit_url)
+        if SourceView:
+            self._textview = SourceView(SourceBuffer())
+            self._textview.get_buffer().set_highlight_syntax(True)
+            #self._textview.set_show_margin(True)
+            #self._textview.disable()
+        else:
+            self._textview = RichTextView(RichTextBuffer(
+                    self._app.get_richtext_tag_table()))    # textview
+            self._textview.disable()        
+            self._textview.connect("modified", self._on_modified_callback)
+            self._textview.connect("visit-url", self._on_visit_url)
         
 
         # scrollbars
@@ -103,10 +138,10 @@ class TextEditor (KeepNoteEditor):
         #self.pack_start(self._socket)
         
         # menus
-        self.editor_menus = EditorMenus(self._app, self)
+        #self.editor_menus = EditorMenus(self._app, self)
 
         # find dialog
-        self.find_dialog = dialog_find.KeepNoteFindDialog(self)
+        #self.find_dialog = dialog_find.KeepNoteFindDialog(self)
 
         self.show_all()
 
@@ -128,19 +163,20 @@ class TextEditor (KeepNoteEditor):
     def load_preferences(self, app_pref, first_open=False):
         """Load application preferences"""
 
-        self.editor_menus.enable_spell_check(
-            self._app.pref.get("editors", "general", "spell_check",
-                               default=True))
+        #self.editor_menus.enable_spell_check(
+        #    self._app.pref.get("editors", "general", "spell_check",
+        #                       default=True))
 
-        self._textview.set_default_font("Monospace 10")
+        if not SourceView:
+            self._textview.set_default_font("Monospace 10")
 
 
     def save_preferences(self, app_pref):
         """Save application preferences"""
 
         # record state in preferences
-        app_pref.set("editors", "general", "spell_check", 
-                     self._textview.is_spell_check_enabled())
+        #app_pref.set("editors", "general", "spell_check", 
+        #             self._textview.is_spell_check_enabled())
 
 
     def get_textview(self):
@@ -160,7 +196,8 @@ class TextEditor (KeepNoteEditor):
     def clear_view(self):
         """Clear editor view"""
         self._page = None
-        self._textview.disable()
+        if not SourceView:
+            self._textview.disable()
     
     def undo(self):
         """Undo the last action in the viewer"""
@@ -189,7 +226,8 @@ class TextEditor (KeepNoteEditor):
         else:
             page = pages[0]
             self._page = page
-            self._textview.enable()
+            if not SourceView:
+                self._textview.enable()
 
             try:
                 if page.has_attr("payload_filename"):
@@ -199,7 +237,16 @@ class TextEditor (KeepNoteEditor):
                         codec="utf-8").read()
                     self._textview.get_buffer().set_text(text)
                     self._load_cursor()
+
                     
+                    if SourceView:
+                        manager = SourceLanguageManager()
+                        #print manager.get_language_ids()
+                        #lang = manager.get_language_from_mime_type(
+                        #    page.get_attr("content_type"))
+                        lang = manager.get_language("python")
+                        self._textview.get_buffer().set_language(lang)
+
                 else:
                     self.clear_view()
 
@@ -252,7 +299,8 @@ class TextEditor (KeepNoteEditor):
         
         if self._page is not None and \
            self._page.is_valid() and \
-           self._textview.is_modified():
+           (SourceView or 
+            self._textview.is_modified()):
 
             try:
                 # save text data
@@ -282,18 +330,31 @@ class TextEditor (KeepNoteEditor):
 
     def save_needed(self):
         """Returns True if textview is modified"""
-        return self._textview.is_modified()
+        if not SourceView:
+            return self._textview.is_modified()
         return False
 
 
     def add_ui(self, window):
-        self._textview.set_accel_group(window.get_accel_group())
-        self._textview.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
-        self.editor_menus.add_ui(window)
+        if not SourceView:
+            self._textview.set_accel_group(window.get_accel_group())
+            self._textview.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
+        
+        #if hasattr(self, "_socket"):
+        #    print "id", self._socket.get_id()
+        #    self._socket.add_id(0x480001f)
+        
+
+        #self.editor_menus.add_ui(window,
+        #                         use_minitoolbar=
+        #                         self._app.pref.get("look_and_feel", 
+        #                                            "use_minitoolbar",
+        #                                            default=False))
 
 
     def remove_ui(self, window):
-        self.editor_menus.remove_ui(window)
+        pass
+        #self.editor_menus.remove_ui(window)
 
     #===========================================
     # callbacks for textview

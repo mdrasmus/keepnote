@@ -110,6 +110,7 @@ class MultiEditor (KeepNoteEditor):
     def _disconnect_signals(self, editor):
         for sigid in self._signal_ids:
             editor.disconnect(sigid)
+        self._signal_ids = []
 
 
     #========================================

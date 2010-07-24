@@ -1389,6 +1389,8 @@ class NoteBook (NoteBookDir):
         
         # listeners
         self.node_changed = Listeners()  # signature = (node, recurse)
+        self.on_close_event = Listeners()
+        self.close_event = Listeners()
 
         # add node types
         self._init_default_node_types()
