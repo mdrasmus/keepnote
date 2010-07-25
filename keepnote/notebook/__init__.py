@@ -1389,7 +1389,7 @@ class NoteBook (NoteBookDir):
         
         # listeners
         self.node_changed = Listeners()  # signature = (node, recurse)
-        self.on_close_event = Listeners()
+        self.closing_event = Listeners()
         self.close_event = Listeners()
 
         # add node types
@@ -1749,7 +1749,9 @@ class NoteBook (NoteBookDir):
         
         if save:
             self.save()
+        self.closing_event.notify()
         self._index.close()
+        self.close_event.notify()
 
 
     #===============================================

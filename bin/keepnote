@@ -290,10 +290,11 @@ def execute_command(app, argv):
         else:
             # no arguments        
 
-            if options.default_notebook and app.pref.default_notebook != "":
+            if options.default_notebook and app.pref.get("default_notebook",
+                                                         default="") != "":
                 # open default notebook
                 win = app.new_window()
-                win.open_notebook(app.pref.default_notebook)
+                win.open_notebook(app.pref.get("default_notebook"))
             else:
                 # open empty window
                 app.new_window()

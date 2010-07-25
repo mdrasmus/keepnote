@@ -559,7 +559,8 @@ class KeepNoteWindow (gtk.Window):
         if response == gtk.RESPONSE_OK:
             path = dialog.get_current_folder()
             if path:
-                self._app.pref.set("default_paths", "new_notebook_path", path)
+                self._app.pref.set("default_paths", "new_notebook_path", 
+                                   os.path.dirname(path))
 
             notebook_file = unicode_gtk(dialog.get_filename())
             if notebook_file:
