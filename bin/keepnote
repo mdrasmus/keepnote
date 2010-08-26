@@ -268,7 +268,12 @@ def execute_command(app, argv):
             command.func(app, args)
         else:
             raise Exception(_("Unknown command '%s'") % args[0])
-            
+        
+        # start first window
+        if not options.no_gui:
+            if len(app.get_windows()) == 0:
+                app.new_window()
+
     else:
         # process a non-command
 

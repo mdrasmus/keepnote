@@ -73,7 +73,9 @@ def iter_extensions(extensions_dir):
     """Iterate through the extensions in directory"""
 
     for filename in os.listdir(extensions_dir):
-        yield os.path.join(extensions_dir, filename)
+        path = os.path.join(extensions_dir, filename)
+        if os.path.isdir(path):
+            yield path
 
 
 

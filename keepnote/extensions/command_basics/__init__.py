@@ -33,10 +33,11 @@ import sys
 import keepnote
 from keepnote import AppCommand
 import keepnote.notebook
-from keepnote.gui import extension
+import keepnote.extension
+import keepnote.gui.extension
 
 
-class Extension (extension.Extension):
+class Extension (keepnote.gui.extension.Extension):
     
     version = (1, 0)
     name = "Basic Commands"
@@ -47,7 +48,7 @@ class Extension (extension.Extension):
     def __init__(self, app):
         """Initialize extension"""
         
-        extension.Extension.__init__(self, app)
+        keepnote.gui.extension.Extension.__init__(self, app)
         self.app = app
         self.enabled.add(self.on_enabled)
 
@@ -65,6 +66,9 @@ class Extension (extension.Extension):
             AppCommand("tmp_ext", self.on_temp_extension,
                        metavar="FILENAME",
                        help="add an extension just for this session"),
+            AppCommand("ext_path", self.on_extension_path,
+                       metavar="PATH",
+                       help="add an extension path for this session"),
             AppCommand("quit", lambda app, args: app.quit(),
                        help="close all KeepNote windows"),
 
@@ -124,6 +128,20 @@ class Extension (extension.Extension):
                 app.init_extensions_windows(windows=None, exts=[ext])
                 ext.enable(True)
             
+
+    def on_extension_path(self, app, args):
+
+        exts = []
+        for extensions_dir in args[1:]:
+            for filename in keepnote.extension.iter_extensions(extensions_dir):
+                entry = app.add_extension_entry(filename, "temp")
+                ext = app.get_extension(entry.get_key())
+                if ext:
+                    exts.append(ext)
+
+        app.init_extensions_windows(windows=None, exts=exts)
+        for ext in exts:
+            ext.enable(True)
 
 
     def on_screenshot(self, app, args):
