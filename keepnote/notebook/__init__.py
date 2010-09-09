@@ -959,7 +959,7 @@ class NoteBookNode (object):
         try:
             files = os.listdir(path)
         except OSError, e:
-            raise NoteBookError(_("Do not have permission to read folder contents"), e)
+            raise NoteBookError(_("Do not have permission to read folder contents: %s") % path, e)
         
         for filename in files:
             path2 = os.path.join(path, filename)
@@ -1259,8 +1259,8 @@ class NoteBookGenericFile (NoteBookNode):
 class NoteBookTrash (NoteBookDir):
     """Class represents the Trash Folder in a NoteBook"""
 
-    def __init__(self, name, notebook):
-        NoteBookDir.__init__(self, get_trash_dir(notebook.get_path()), 
+    def __init__(self, path, name, notebook):
+        NoteBookDir.__init__(self, path, 
                              name, parent=notebook, notebook=notebook)
         self.set_attr("content_type", CONTENT_TYPE_TRASH)
         
@@ -1301,9 +1301,6 @@ class NoteBookPreferences (object):
         self.default_font = data.get("default_font", DEFAULT_FONT)
         self.index_dir = data.get("index_dir", u"")
         
-        self.selected_treeview_nodes = data.get("selected_treeview_nodes", [])
-        self.selected_listview_nodes = data.get("selected_listview_nodes", [])
-
         self._quick_pick_icons = data.get("quick_pick_icons")
         
 
@@ -1314,10 +1311,7 @@ class NoteBookPreferences (object):
         data["version"] = self.version
         data["default_font"] = self.default_font
         data["index_dir"] = self.index_dir
-
-        data["selected_treeview_nodes"] = self.selected_treeview_nodes[:]
-        data["selected_listview_nodes"] = self.selected_listview_nodes[:]
-
+        
         data["quick_pick_icons"] = self._quick_pick_icons[:]
 
         return data
@@ -1329,8 +1323,8 @@ class NoteBookPreferences (object):
         self.default_font = DEFAULT_FONT
         self.index_dir = u""
         
-        self.selected_treeview_nodes = []
-        self.selected_listview_nodes = []
+        self._data["selected_treeview_nodes"] = []
+        self._data["selected_listview_nodes"] = []
 
         self._quick_pick_icons = []
         self.quick_pick_icons_changed.notify()
@@ -1424,7 +1418,7 @@ class NoteBook (NoteBookDir):
         self._node_factory.add_node_type(
             CONTENT_TYPE_TRASH,
             lambda path, parent, notebook, attr:
-            NoteBookTrash(TRASH_NAME, notebook))
+            NoteBookTrash(path, TRASH_NAME, notebook))
 
 
     def add_attr_def(self, attr):
@@ -1594,13 +1588,15 @@ class NoteBook (NoteBookDir):
             if self.is_trash_dir(child):
                 self._trash = child
                 break
-
+        
         # if no trash folder, create it
         if self._trash is None:
             try:
-                self._trash = NoteBookTrash(TRASH_NAME, self)
+                self._trash = NoteBookTrash(get_trash_dir(self.get_path()),
+                                            TRASH_NAME, self)
                 self._trash.create()
                 self._add_child(self._trash)
+
             except NoteBookError, e:
                 raise NoteBookError(_("Cannot create Trash folder"), e)
 
@@ -1609,7 +1605,8 @@ class NoteBook (NoteBookDir):
     
     def is_trash_dir(self, child):
         """Returns True if child node is the Trash Folder"""
-        return child.get_path() == self._trash_path
+        return child.get_attr("content_type") == CONTENT_TYPE_TRASH
+        #path() == self._trash_path
 
 
     def empty_trash(self):

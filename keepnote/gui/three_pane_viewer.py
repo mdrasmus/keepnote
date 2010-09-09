@@ -212,12 +212,14 @@ class ThreePaneViewer (Viewer):
         if self._notebook:
             nodes = [node for node in (
                     self._notebook.get_node_by_id(i)
-                    for i in self._notebook.pref.selected_treeview_nodes)
+                    for i in self._notebook.pref.get(
+                        "selected_treeview_nodes", default=[]))
                      if node is not None]
             self.treeview.select_nodes(nodes)
             nodes = [node for node in (
                     self._notebook.get_node_by_id(i)
-                    for i in self._notebook.pref.selected_listview_nodes)
+                    for i in self._notebook.pref.get(
+                        "selected_listview_nodes", default=[]))
                      if node is not None]
             self.listview.select_nodes(nodes)
 
@@ -272,12 +274,12 @@ class ThreePaneViewer (Viewer):
 
         if self._notebook is not None:
             # save selections
-            self._notebook.pref.selected_treeview_nodes = [
+            self._notebook.pref.set("selected_treeview_nodes", [
                 node.get_attr("nodeid")
-                for node in self.treeview.get_selected_nodes()]
-            self._notebook.pref.selected_listview_nodes = [
+                for node in self.treeview.get_selected_nodes()])
+            self._notebook.pref.set("selected_listview_nodes", [
                 node.get_attr("nodeid")
-                for node in self.listview.get_selected_nodes()]
+                for node in self.listview.get_selected_nodes()])
             self._notebook.set_preferences_dirty()
         
 
@@ -355,7 +357,7 @@ class ThreePaneViewer (Viewer):
 
         if self.treeview.is_focus():
             return self.treeview.get_selected_nodes()
-        else: # self.listview.is_focus():
+        else:
             nodes = self.listview.get_selected_nodes()
             if len(nodes) == 0:
                 return self.treeview.get_selected_nodes()

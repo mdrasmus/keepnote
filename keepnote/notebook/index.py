@@ -554,3 +554,5 @@ class NoteBookIndex (object):
         # display error
         keepnote.log_error(error, tracebk)
 
+        # TODO: reload database?
+        
