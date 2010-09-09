@@ -46,7 +46,7 @@ INDEX_VERSION = 1
 def get_index_file(notebook):
     """Get the index filename for a notebook"""
 
-    index_dir = notebook.pref.get("index_dir", u"")
+    index_dir = notebook.pref.get("index_dir", default=u"")
 
     if not index_dir or not os.path.exists(index_dir):
         index_dir = notebook.get_pref_dir()

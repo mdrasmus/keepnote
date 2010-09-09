@@ -51,6 +51,7 @@ from keepnote import trans
 from keepnote.notebook import index as notebook_index
 from keepnote import orderdict
 from keepnote import plist
+from keepnote.pref import Pref
 import keepnote
 
 
@@ -1285,11 +1286,11 @@ class NoteBookTrash (NoteBookDir):
 # Notebook preferences
 
 
-class NoteBookPreferences (object):
+class NoteBookPreferences (Pref):
     """Preference data structure for a NoteBook"""
     def __init__(self):
-
-        self._data = orderdict.OrderDict()
+        keepnote.Pref.__init__(self)
+        
         self.quick_pick_icons_changed = Listeners()
         self.clear()
 
@@ -1314,12 +1315,6 @@ class NoteBookPreferences (object):
     def set_quick_pick_icons(self, icons):
         self._data["quick_pick_icons"] = list(icons)
         self.quick_pick_icons_changed.notify()
-    
-    def get(self, *args, **kargs):
-        return keepnote.get_pref(self._data, *args, **kargs)
-
-    def set(self, *args):
-        return keepnote.set_pref(self._data, *args)
         
 
     
