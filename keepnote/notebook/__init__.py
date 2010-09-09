@@ -1296,45 +1296,23 @@ class NoteBookPreferences (object):
 
     def set_data(self, data):
         self._data = data
-        
-        self.version = data.get("version", NOTEBOOK_FORMAT_VERSION)
-        self.default_font = data.get("default_font", DEFAULT_FONT)
-        self.index_dir = data.get("index_dir", u"")
-        
-        self._quick_pick_icons = data.get("quick_pick_icons")
-        
 
     def get_data(self):
-        
-        data =  orderdict.OrderDict()
-        
-        data["version"] = self.version
-        data["default_font"] = self.default_font
-        data["index_dir"] = self.index_dir
-        
-        data["quick_pick_icons"] = self._quick_pick_icons[:]
-
-        return data
+        return self._data
 
 
     def clear(self):
-        
-        self.version = NOTEBOOK_FORMAT_VERSION
-        self.default_font = DEFAULT_FONT
-        self.index_dir = u""
-        
-        self._data["selected_treeview_nodes"] = []
-        self._data["selected_listview_nodes"] = []
+        self._data["version"] = NOTEBOOK_FORMAT_VERSION
+        self._data["quick_pick_icons"] = []
 
-        self._quick_pick_icons = []
         self.quick_pick_icons_changed.notify()
 
 
     def get_quick_pick_icons(self):
-        return self._quick_pick_icons
+        return self._data["quick_pick_icons"]
 
     def set_quick_pick_icons(self, icons):
-        self._quick_pick_icons[:] = icons
+        self._data["quick_pick_icons"] = list(icons)
         self.quick_pick_icons_changed.notify()
     
     def get(self, *args, **kargs):

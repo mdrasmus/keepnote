@@ -45,6 +45,8 @@ from keepnote.gui.icons import get_icon_filename
 import keepnote.trans
 import keepnote.gui.extension
 
+from keepnote.notebook import DEFAULT_FONT
+
 _ = keepnote.translate
 
 
@@ -501,12 +503,15 @@ class NoteBookSection (Section):
     def load_options(self, app):
         
         if self.notebook is not None:
-            font = self.notebook.pref.default_font
+            font = self.notebook.pref.get("default_font", 
+                                          default=DEFAULT_FONT)
             family, mods, size = keepnote.gui.richtext.parse_font(font)
             self.notebook_font_family.set_family(family)
             self.notebook_font_size.set_value(size)
 
-            self.notebook_index_dir.set_text(self.notebook.pref.index_dir)
+            self.notebook_index_dir.set_text(
+                self.notebook.pref.get("index_dir", 
+                                       default=u"", type=basestring))
 
 
     def save_options(self, app):
@@ -515,12 +520,12 @@ class NoteBookSection (Section):
             pref = self.notebook.pref
 
             # save notebook font        
-            pref.default_font = "%s %d" % (
-                self.notebook_font_family.get_family(),
-                self.notebook_font_size.get_value())
+            pref.set("default_font", "%s %d" % (
+                    self.notebook_font_family.get_family(),
+                    self.notebook_font_size.get_value()))
 
             # alternative index directory
-            pref.index_dir = self.notebook_index_dir.get_text()
+            pref.set("index_dir",  self.notebook_index_dir.get_text())
 
         
 

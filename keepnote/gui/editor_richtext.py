@@ -41,30 +41,31 @@ import gobject
 # keepnote imports
 import keepnote
 from keepnote import \
-     KeepNoteError, is_url, unicode_gtk
+    KeepNoteError, is_url, unicode_gtk
 from keepnote.notebook import \
-     NoteBookError, \
-     get_node_url, \
-     parse_node_url, \
-     is_node_url
+    DEFAULT_FONT, \
+    NoteBookError, \
+    get_node_url, \
+    parse_node_url, \
+    is_node_url
 from keepnote import notebook as notebooklib
 from keepnote.gui import richtext
 from keepnote.gui.richtext import \
-     RichTextView, RichTextBuffer, \
-     RichTextIO, RichTextError, RichTextImage
+    RichTextView, RichTextBuffer, \
+    RichTextIO, RichTextError, RichTextImage
 from keepnote.gui.richtext.richtext_tags import \
     RichTextTagTable, RichTextLinkTag
 from keepnote.gui import \
-     CONTEXT_MENU_ACCEL_PATH, \
-     FileChooserDialog, \
-     get_pixbuf, \
-     get_resource, \
-     get_resource_image, \
-     get_resource_pixbuf, \
-     Action, \
-     ToggleAction, \
-     add_actions, \
-     update_file_preview, \
+    CONTEXT_MENU_ACCEL_PATH, \
+    FileChooserDialog, \
+    get_pixbuf, \
+    get_resource, \
+    get_resource_image, \
+    get_resource_pixbuf, \
+    Action, \
+    ToggleAction, \
+    add_actions, \
+    update_file_preview, \
     dialog_find, \
     dialog_image_resize
 from keepnote.gui.icons import \
@@ -148,7 +149,9 @@ class RichTextEditor (KeepNoteEditor):
 
         if self._notebook:
             # read default font
-            self._textview.set_default_font(self._notebook.pref.default_font)
+            self._textview.set_default_font(
+                self._notebook.pref.get("default_font",
+                                        default=DEFAULT_FONT))
         else:
             # no new notebook, clear the view
             self.clear_view()
@@ -162,7 +165,9 @@ class RichTextEditor (KeepNoteEditor):
                                default=True))
 
         if self._notebook:
-            self._textview.set_default_font(self._notebook.pref.default_font)
+            self._textview.set_default_font(
+                self._notebook.pref.get("default_font",
+                                        default=DEFAULT_FONT))
 
 
     def save_preferences(self, app_pref):

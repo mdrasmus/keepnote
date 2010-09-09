@@ -46,9 +46,9 @@ INDEX_VERSION = 1
 def get_index_file(notebook):
     """Get the index filename for a notebook"""
 
-    if notebook.pref.index_dir and os.path.exists(notebook.pref.index_dir):
-        index_dir = notebook.pref.index_dir
-    else:
+    index_dir = notebook.pref.get("index_dir", u"")
+
+    if not index_dir or not os.path.exists(index_dir):
         index_dir = notebook.get_pref_dir()
 
     return os.path.join(index_dir, INDEX_FILE)

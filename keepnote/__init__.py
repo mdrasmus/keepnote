@@ -471,6 +471,7 @@ def get_pref(pref, *args, **kargs):
 
     default -- set a default value if it does not exist
     define  -- create a new dict if the key does not exist
+    type    -- ensure return value has this type, otherwise return/set default
     """
 
     if len(args) == 0:
@@ -505,10 +506,16 @@ def get_pref(pref, *args, **kargs):
             # all keys are expected to be present
             for arg in args:
                 d = d[arg]
+
+        # check type
+        if "type" in kargs and "default" in kargs:
+            if not isinstance(d, kargs["type"]):
+                args2 = args + (kargs["default"],)
+                return set_pref(pref, *args2)
         return d
 
     except KeyError:
-        raise Exception("unknown config value")
+        raise Exception("unknown config value '%s'" % ".".join(args))
 
 
 def set_pref(pref, *args):
@@ -519,6 +526,7 @@ def set_pref(pref, *args):
     elif len(args) == 1:
         pref.clear()
         pref.update(args[0])
+        return args[0]
     else:
         keys = args[:-1]
         val = args[-1]
