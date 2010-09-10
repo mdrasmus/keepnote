@@ -605,7 +605,7 @@ class KeepNoteWindow (gtk.Window):
 
     def save_notebook(self, silent=False):
         """Saves the current notebook"""
-        
+
         try:
             # TODO: should this be outside exception?
             self.viewer.save()
@@ -666,15 +666,6 @@ class KeepNoteWindow (gtk.Window):
     def open_notebook(self, filename, new=False):
         """Opens a new notebook"""
         
-        #if self.viewer.get_notebook() is not None:
-        #    # open notebook in new tab
-        #    if isinstance(self.viewer, TabbedViewer):
-        #        self.viewer.new_tab(init="none")
-            #win = self._app.new_window()
-            # return win.open_notebook(filename)
-            #return self.open_notebook(filename)
-
-        
         # make sure filename is unicode
         filename = ensure_unicode(filename, FS_ENCODING)
         
@@ -690,11 +681,12 @@ class KeepNoteWindow (gtk.Window):
             loaded = [False]
             def func():
                 # NOTE: according to the GTK API, these thread calls should 
-                # not be needed, since all my GKT calls on in the main thread.
+                # not be needed, since all my GTK calls are in the main thread.
                 # But I needed them in order to prevent the main event loop
                 # from stalling while returning from several nested dialogs.
                 gtk.gdk.threads_enter()
                 notebook[0] = self._app.get_notebook(filename, self, task=task)
+                
                 gtk.gdk.threads_leave()
                 loaded[0] = True
                 return False
@@ -742,9 +734,7 @@ class KeepNoteWindow (gtk.Window):
         #self.on_notebook_modified(False)
         self.update_title()
 
-        # setup auto-saving
-        self.begin_auto_save()
-        
+
         # save notebook to recent notebooks
         self.add_recent_notebook(filename)
 
@@ -752,12 +742,16 @@ class KeepNoteWindow (gtk.Window):
         if self.viewer.get_notebook()._index.index_needed():
             self.update_index()
 
+        # setup auto-saving
+        self.begin_auto_save()
+
         return self.viewer.get_notebook()
         
         
     def close_notebook(self, save=True):
         """Close the NoteBook"""
 
+        # TODO: think about how this interacts with tabbed notebook
         notebook = self.get_notebook()        
 
         if notebook is not None:
@@ -786,7 +780,7 @@ class KeepNoteWindow (gtk.Window):
 
     def auto_save(self):
         """Callback for autosaving"""
-
+        
         # NOTE: return True to activate next timeout callback
         if not self._auto_saving:
             return False

@@ -54,7 +54,7 @@ class OrderDict (dict):
     
     def __delitem__(self, key):
         self._order.remove(key)
-        dict.__delitem(self, key)
+        dict.__delitem__(self, key)
 
     def update(self, dct):
         for key in dct:

@@ -157,6 +157,14 @@ class TabbedViewer (Viewer):
             pos = self._tabs.get_current_page()
 
         viewer = self._tabs.get_nth_page(pos)
+
+        # remove viewer info
+        notebook = viewer.get_notebook()
+        if notebook:
+            info = notebook.pref.get("viewers", "ids")
+            if viewer.get_id() in info:
+                del info[viewer.get_id()]
+
         viewer.set_notebook(None)
         for callid in self._callbacks[viewer]:
             viewer.disconnect(callid)
@@ -167,6 +175,9 @@ class TabbedViewer (Viewer):
             self._current_viewer = None
 
         self._tabs.remove_page(pos)
+
+        
+        
 
 
     def get_current_viewer(self):
@@ -285,6 +296,8 @@ class TabbedViewer (Viewer):
                                 tab.get("viewerid", None))
                                   if viewer_type else None)
                         self.new_tab(viewer, init="none")
+                    else:
+                        viewer.set_id(tab.get("viewerid", None))
 
                     # set notebook and node
                     viewer.set_notebook(notebook)
@@ -326,7 +339,8 @@ class TabbedViewer (Viewer):
             notebook = viewer.get_notebook()
             if notebook:
                 notebooks.add(notebook)
-
+        
+            
         # clear tab info for all open notebooks
         for notebook in notebooks:
             tabs = notebook.pref.get("viewers", "tabbed_viewer", "tabs",

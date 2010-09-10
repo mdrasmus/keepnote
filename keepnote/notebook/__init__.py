@@ -1798,7 +1798,7 @@ class NoteBook (NoteBookDir):
                     data = orderdict.OrderDict()
             else:
                 data = orderdict.OrderDict()
-
+        
         self.pref.set_data(data)
       
 

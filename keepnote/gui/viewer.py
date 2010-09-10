@@ -66,6 +66,9 @@ class Viewer (gtk.VBox):
     def get_id(self):
         return self._viewerid
 
+    def set_id(self, viewerid):
+        self._viewerid = viewerid if viewerid else unicode(uuid.uuid4())
+
     def set_notebook(self, notebook):
         """Sets the current notebook for the viewer"""
         self._notebook = notebook
