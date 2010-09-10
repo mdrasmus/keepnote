@@ -605,9 +605,6 @@ class KeepNoteWindow (gtk.Window):
 
     def save_notebook(self, silent=False):
         """Saves the current notebook"""
-
-        #if self.viewer.get_notebook() is None:
-        #    return
         
         try:
             # TODO: should this be outside exception?
@@ -624,8 +621,7 @@ class KeepNoteWindow (gtk.Window):
                 self.error(_("Could not save notebook."), e, sys.exc_info()[2])
                 self.set_status(_("Error saving notebook"))
                 return
-
-        #self.on_notebook_modified(False)
+            
         self.update_title()
         
             
@@ -670,10 +666,10 @@ class KeepNoteWindow (gtk.Window):
     def open_notebook(self, filename, new=False):
         """Opens a new notebook"""
         
-        if self.viewer.get_notebook() is not None:
-            # open notebook in new tab
-            if isinstance(self.viewer, TabbedViewer):
-                self.viewer.new_tab(init="none")
+        #if self.viewer.get_notebook() is not None:
+        #    # open notebook in new tab
+        #    if isinstance(self.viewer, TabbedViewer):
+        #        self.viewer.new_tab(init="none")
             #win = self._app.new_window()
             # return win.open_notebook(filename)
             #return self.open_notebook(filename)
@@ -738,7 +734,6 @@ class KeepNoteWindow (gtk.Window):
         
         # setup notebook
         self.set_notebook(notebook)
-
         
         
         if not new:

@@ -84,8 +84,8 @@ DEFAULT_VIEW_MODE = "vertical"
 class ThreePaneViewer (Viewer):
     """A viewer with a treeview, listview, and editor"""
 
-    def __init__(self, app, main_window):
-        Viewer.__init__(self, app, main_window)
+    def __init__(self, app, main_window, viewerid=None):
+        Viewer.__init__(self, app, main_window, viewerid)
         self._ui_ready = False
 
         # node selections        
@@ -210,16 +210,20 @@ class ThreePaneViewer (Viewer):
 
         # restore selections
         if self._notebook:
+            info = self._notebook.pref.get("viewers", "ids", 
+                                           self._viewerid, define=True)
+
+            # save selections
             nodes = [node for node in (
                     self._notebook.get_node_by_id(i)
-                    for i in self._notebook.pref.get(
-                        "selected_treeview_nodes", default=[]))
+                    for i in info.get(
+                        "selected_treeview_nodes", []))
                      if node is not None]
             self.treeview.select_nodes(nodes)
             nodes = [node for node in (
                     self._notebook.get_node_by_id(i)
-                    for i in self._notebook.pref.get(
-                        "selected_listview_nodes", default=[]))
+                    for i in info.get(
+                        "selected_listview_nodes", []))
                      if node is not None]
             self.listview.select_nodes(nodes)
 
@@ -273,13 +277,16 @@ class ThreePaneViewer (Viewer):
         self.editor.save()
 
         if self._notebook is not None:
+            info = self._notebook.pref.get("viewers", "ids", 
+                                           self._viewerid, define=True)
+
             # save selections
-            self._notebook.pref.set("selected_treeview_nodes", [
+            info["selected_treeview_nodes"] = [
                 node.get_attr("nodeid")
-                for node in self.treeview.get_selected_nodes()])
-            self._notebook.pref.set("selected_listview_nodes", [
+                for node in self.treeview.get_selected_nodes()]
+            info["selected_listview_nodes"] = [
                 node.get_attr("nodeid")
-                for node in self.listview.get_selected_nodes()])
+                for node in self.listview.get_selected_nodes()]
             self._notebook.set_preferences_dirty()
         
 

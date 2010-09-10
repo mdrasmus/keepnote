@@ -46,6 +46,7 @@ from keepnote import KeepNoteError
 from keepnote.history import NodeHistory
 from keepnote import notebook as notebooklib
 from keepnote.gui.treemodel import iter_children
+from keepnote import uuid
 
 _ = keepnote.translate
 
@@ -53,15 +54,17 @@ _ = keepnote.translate
 
 class Viewer (gtk.VBox):
 
-    def __init__(self, app, parent):
+    def __init__(self, app, parent, viewerid=None):
         gtk.VBox.__init__(self, False, 0)
         self._app = app
         self._main_window = parent
+        self._viewerid = viewerid if viewerid else unicode(uuid.uuid4())
         
         self._notebook = None
         self._history = NodeHistory()
 
-
+    def get_id(self):
+        return self._viewerid
 
     def set_notebook(self, notebook):
         """Sets the current notebook for the viewer"""

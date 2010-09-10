@@ -43,7 +43,6 @@ import keepnote
 from keepnote import \
     KeepNoteError, is_url, unicode_gtk
 from keepnote.notebook import \
-    DEFAULT_FONT, \
     NoteBookError, \
     get_node_url, \
     parse_node_url, \
@@ -55,8 +54,18 @@ from keepnote.gui.richtext import \
     RichTextIO, RichTextError, RichTextImage
 from keepnote.gui.richtext.richtext_tags import \
     RichTextTagTable, RichTextLinkTag
+from keepnote.gui.icons import \
+    get_node_icon, lookup_icon_filename
+from keepnote.gui.font_selector import FontSelector
+from keepnote.gui.colortool import FgColorTool, BgColorTool
+from keepnote.gui.richtext.richtext_tags import color_tuple_to_string
+from keepnote.gui.popupwindow import PopupWindow
+from keepnote.gui.linkcomplete import LinkPickerPopup
+from keepnote.gui.link_editor import LinkEditor
+from keepnote.gui.editor import KeepNoteEditor
 from keepnote.gui import \
     CONTEXT_MENU_ACCEL_PATH, \
+    DEFAULT_FONT, \
     FileChooserDialog, \
     get_pixbuf, \
     get_resource, \
@@ -68,17 +77,10 @@ from keepnote.gui import \
     update_file_preview, \
     dialog_find, \
     dialog_image_resize
-from keepnote.gui.icons import \
-    get_node_icon, lookup_icon_filename
-from keepnote.gui.font_selector import FontSelector
-from keepnote.gui.colortool import FgColorTool, BgColorTool
-from keepnote.gui.richtext.richtext_tags import color_tuple_to_string
-from keepnote.gui.popupwindow import PopupWindow
-from keepnote.gui.linkcomplete import LinkPickerPopup
-from keepnote.gui.link_editor import LinkEditor
-from keepnote.gui.editor import KeepNoteEditor
+
 
 _ = keepnote.translate
+
 
 
 

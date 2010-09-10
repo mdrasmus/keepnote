@@ -83,9 +83,6 @@ TRASH_DIR = u"__TRASH__"
 TRASH_NAME = u"Trash"
 DEFAULT_PAGE_NAME = u"New Page"
 DEFAULT_DIR_NAME = u"New Folder"
-DEFAULT_FONT_FAMILY = "Sans"
-DEFAULT_FONT_SIZE = 10
-DEFAULT_FONT = "%s %d" % (DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE)
 
 # content types
 CONTENT_TYPE_PAGE = u"text/xhtml+xml"

@@ -42,6 +42,7 @@ from gtk import gdk
 import gtk.glade
 import gobject
 
+
 # keepnote imports
 import keepnote
 from keepnote import log_error
@@ -54,7 +55,6 @@ import keepnote.notebook as notebooklib
 import keepnote.gui.dialog_app_options
 import keepnote.gui.dialog_node_icon
 import keepnote.gui.dialog_wait
-import keepnote.gui
 from keepnote.gui.icons import \
     DEFAULT_QUICK_PICK_ICONS
     
@@ -62,11 +62,18 @@ _ = keepnote.translate
 
 
 
-
 # constants
 MAX_RECENT_NOTEBOOKS = 20
 ACCEL_FILE = "accel.txt"
 CONTEXT_MENU_ACCEL_PATH = "<main>/context_menu"
+
+# font constants
+DEFAULT_FONT_FAMILY = "Sans"
+DEFAULT_FONT_SIZE = 10
+DEFAULT_FONT = "%s %d" % (DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE)
+
+
+
 
 
 

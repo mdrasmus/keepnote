@@ -45,8 +45,6 @@ from keepnote.gui.icons import get_icon_filename
 import keepnote.trans
 import keepnote.gui.extension
 
-from keepnote.notebook import DEFAULT_FONT
-
 _ = keepnote.translate
 
 
@@ -504,7 +502,7 @@ class NoteBookSection (Section):
         
         if self.notebook is not None:
             font = self.notebook.pref.get("default_font", 
-                                          default=DEFAULT_FONT)
+                                          default=keepnote.gui.DEFAULT_FONT)
             family, mods, size = keepnote.gui.richtext.parse_font(font)
             self.notebook_font_family.set_family(family)
             self.notebook_font_size.set_value(size)

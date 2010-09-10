@@ -59,12 +59,31 @@ _ = keepnote.translate
 # maybe, autosaving should be app-wide thing.
 
 
+class TwoWayDict (object):
+
+    def __init__(self):
+
+        self._lookup1 = {}
+        self._lookup2 = {}
+
+    def add(self, item1, item2):
+        self._lookup1[item1] = item2
+        self._lookup2[item2] = item1
+
+    def get1(self, item1, default=None):
+        return self._lookup1.get(item1, default)
+
+    def get2(self, item2, default=None):
+        return self._lookup2.get(item2, default)
+
+
 
 class TabbedViewer (Viewer):
     """A viewer with a treeview, listview, and editor"""
 
-    def __init__(self, app, main_window, default_viewer=ThreePaneViewer):
-        Viewer.__init__(self, app, main_window)        
+    def __init__(self, app, main_window, viewerid=None,
+                 default_viewer=ThreePaneViewer):
+        Viewer.__init__(self, app, main_window, viewerid)
         self._default_viewer = default_viewer
         self._current_viewer = None
         self._callbacks = {}
@@ -85,6 +104,9 @@ class TabbedViewer (Viewer):
         self.new_tab()
 
         # TODO: maybe add close_viewer() function
+
+        self._viewer_lookup = TwoWayDict()
+        self._viewer_lookup.add("three_pane_viewer", ThreePaneViewer)
 
 
     def new_tab(self, viewer=None, init="current_node"):
@@ -241,7 +263,38 @@ class TabbedViewer (Viewer):
 
     def set_notebook(self, notebook):
         """Set the notebook for the viewer"""
-        return self.get_current_viewer().set_notebook(notebook)
+        
+        if notebook is None:
+            return self.get_current_viewer().set_notebook(notebook)
+        else:
+            # TODO: perhaps make this lookup by id
+            tabs = notebook.pref.get("viewers", "tabbed_viewer", "tabs",
+                                     default=[])
+
+            if len(tabs) > 0:
+                for tab in tabs:
+                    viewer_type = self._viewer_lookup.get1(
+                        tab.get("viewer_type", ""))
+                    viewer = self.get_current_viewer()
+                    
+                    if viewer.get_notebook() or type(viewer) != viewer_type:
+                        # create new tab if notebook already loaded or
+                        # viewer type does not match
+                        viewer = (viewer_type(
+                                self._app, self._main_window,
+                                tab.get("viewerid", None))
+                                  if viewer_type else None)
+                        self.new_tab(viewer, init="none")
+
+                    # set notebook and node
+                    viewer.set_notebook(notebook)
+
+            else:
+                if self.get_current_viewer().get_notebook():
+                    # create one new tab
+                    self.new_tab(init="none")
+                return self.get_current_viewer().set_notebook(notebook)
+
 
     def get_notebook(self):
         return self.get_current_viewer().get_notebook()
@@ -249,20 +302,47 @@ class TabbedViewer (Viewer):
 
     def load_preferences(self, app_pref, first_open=False):
         """Load application preferences"""
-
+        
         for viewer in self.iter_viewers():
             viewer.load_preferences(app_pref, first_open)
 
 
     def save_preferences(self, app_pref):
         """Save application preferences"""
+
+        # TODO: loop through all viewers to save app_pref
         self.get_current_viewer().save_preferences(app_pref)
 
 
     def save(self):
         """Save the current notebook"""
+
+        notebooks = set()
+
         for viewer in self.iter_viewers():
             viewer.save()
+
+            # add to list of all notebooks
+            notebook = viewer.get_notebook()
+            if notebook:
+                notebooks.add(notebook)
+
+        # clear tab info for all open notebooks
+        for notebook in notebooks:
+            tabs = notebook.pref.get("viewers", "tabbed_viewer", "tabs",
+                                     default=[])
+            tabs[:] = []
+
+        # record tab info
+        for viewer in self.iter_viewers():
+            notebook = viewer.get_notebook()
+            if notebook:
+                tabs = notebook.pref.get("viewers", "tabbed_viewer", "tabs")
+                node = viewer.get_current_page()
+                tabs.append(
+                    {"viewer_type": self._viewer_lookup.get2(type(viewer)),
+                     "viewerid": viewer.get_id()})
+
         
 
     def undo(self):
