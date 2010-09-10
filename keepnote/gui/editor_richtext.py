@@ -1107,12 +1107,12 @@ class EditorMenus (gobject.GObject):
 
             ("Apply Text Color", None, _("_Apply Text Color"), 
              "", None,
-             lambda w: self._on_color_set("fg"),
+             lambda w: self._on_color_set("fg", self.fg_color_button),
              "font-inc.png"),
             
             ("Apply Background Color", None, _("A_pply Background Color"), 
              "", None,
-             lambda w: self._on_color_set("bg"),
+             lambda w: self._on_color_set("bg", self.bg_color_button),
              "font-dec.png"),
                         
             ("Choose Font", None, _("Choose _Font"), 
@@ -1404,31 +1404,34 @@ class EditorMenus (gobject.GObject):
 
         # font fg color
         # TODO: code in proper default color
-        fg_color_button = FgColorTool(14, 15, (0, 0, 0))
-        fg_color_button.set_homogeneous(False)
-        fg_color_button.connect("set-color",
-            lambda w, color: self._on_color_set("fg", fg_color_button, color))
+        self.fg_color_button = FgColorTool(14, 15, (0, 0, 0))
+        self.fg_color_button.set_homogeneous(False)
+        self.fg_color_button.connect("set-color",
+            lambda w, color: self._on_color_set(
+                "fg", self.fg_color_button, color))
 
         w = uimanager.get_widget("/main_tool_bar/Viewer/Editor/Font Fg Color Tool")
         if w:
             self._removed_widgets.append(w.child)
             w.remove(w.child)
-            w.add(fg_color_button)
-            fg_color_button.show()
+            w.add(self.fg_color_button)
+            self.fg_color_button.show()
             w.set_homogeneous(False)
 
-            # font bg color
-            bg_color_button = BgColorTool(14, 15, (65535, 65535, 65535))
-
-            bg_color_button.connect("set-color",
-                lambda w, color: self._on_color_set("bg", bg_color_button, color))
+        # font bg color
+        self.bg_color_button = BgColorTool(14, 15, (65535, 65535, 65535))
+        self.bg_color_button.set_homogeneous(False)
+        self.bg_color_button.connect(
+            "set-color",
+            lambda w, color: self._on_color_set(
+                "bg", self.bg_color_button, color))
 
         w = uimanager.get_widget("/main_tool_bar/Viewer/Editor/Font Bg Color Tool")
         if w:
             self._removed_widgets.append(w.child)
             w.remove(w.child)
-            w.add(bg_color_button)
-            bg_color_button.show()
+            w.add(self.bg_color_button)
+            self.bg_color_button.show()
             w.set_homogeneous(False)
 
 
