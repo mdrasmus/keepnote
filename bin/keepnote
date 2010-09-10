@@ -146,19 +146,53 @@ def start_error_log(show_errors):
     """Starts KeepNote error log"""
 
     keepnote.init_error_log()
+        
+    # Test ability to write to file[-like] objects used to display errors.  
+    # - if stderr is unavailable, create error message, else add to stream
+    #   list. Do not exit.
+    # Note: this code-section is necessary to allow Linux-users the option of
+    #       launching KeepNote from a *.desktop file without having it  
+    #       run in a terminal (currently, KeepNote must be allowed to spawn
+    #       a terminal window when launching from a *.desktop file). In other
+    #       words, 'Terminal=false' can be safely added to the *.desktop file;
+    #       without this section, adding 'Terminal=false' to the *.desktop file
+    #       causes KeepNote launch failure.
+    
+    stream_list = []
+    stderr_test_str = "\n"
+    stderr_except_msg = ""
+    
+    try:
+        sys.stderr.write(stderr_test_str)
+    except IOError:
+        formatted_msg = traceback.format_exc().splitlines()
+        stderr_except_msg = ''.join(['** stderr - unavailable for messages - ',
+                                     formatted_msg[-1], "\n"])
+    else:
+        stream_list.append(sys.stderr)
+    
+    # if errorlog is unavailable, exit with error, else add to stream list.
+    try:
+        errorlog = open(keepnote.get_user_error_log(), "a")
+    except IOError:
+        sys.exit(traceback.print_exc())
+    else:
+        stream_list.append(errorlog)
+    
 
-    errorlog = open(keepnote.get_user_error_log(), "a")
     if show_errors:
-        sys.stderr = TeeFileStream([sys.stderr, errorlog],
+        sys.stderr = TeeFileStream(stream_list,
                                    autoflush=True)
     else:
         sys.stderr = errorlog
-    
+
 
     sys.stderr.write("==============================================\n"
                      "%s %s: %s\n" % (keepnote.PROGRAM_NAME,
                                       keepnote.PROGRAM_VERSION_TEXT,
                                       time.asctime()))
+    sys.stderr.write(stderr_except_msg)
+
 
 
 def parse_argv(argv):
