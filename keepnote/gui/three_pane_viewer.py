@@ -178,8 +178,7 @@ class ThreePaneViewer (Viewer):
         
         # layout editor
         self.paned2.add2(self.editor_pane)
-
-        #self.show_all()
+        
         self.treeview.grab_focus()
 
 
@@ -191,12 +190,20 @@ class ThreePaneViewer (Viewer):
         if self._notebook is not None:
             self._app.unref_notebook(self._notebook)
 
-        # setup listeners
+        # deregister last notebook, if it exists
         if self._notebook:
             self._notebook.node_changed.remove(
                 self.on_notebook_node_changed)
+
+            # remove viewer info
+            info = self._notebook.pref.get("viewers", "ids")
+            if self._viewerid in info:
+                del info[self._viewerid]
+
+        # setup listeners
         if notebook:
             notebook.node_changed.add(self.on_notebook_node_changed)
+
 
         # set notebook
         self._notebook = notebook

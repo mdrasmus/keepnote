@@ -157,14 +157,6 @@ class TabbedViewer (Viewer):
             pos = self._tabs.get_current_page()
 
         viewer = self._tabs.get_nth_page(pos)
-
-        # remove viewer info
-        notebook = viewer.get_notebook()
-        if notebook:
-            info = notebook.pref.get("viewers", "ids")
-            if viewer.get_id() in info:
-                del info[viewer.get_id()]
-
         viewer.set_notebook(None)
         for callid in self._callbacks[viewer]:
             viewer.disconnect(callid)
