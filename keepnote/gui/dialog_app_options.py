@@ -199,6 +199,20 @@ class GeneralSection (Section):
         self.xml.get_widget("skip_taskbar_check").set_sensitive(
             app.pref.get("window", "use_systray"))
 
+        print app.pref.get("window", "minimize_on_start")
+        self.xml.get_widget("minimize_on_start_check").set_active(
+            app.pref.get("window", "minimize_on_start"))
+        self.xml.get_widget("minimize_on_start_check").set_sensitive(
+            app.pref.get("window", "use_systray"))
+
+        self.xml.get_widget("window_keep_above_check").set_active(
+            app.pref.get("window", "keep_above"))
+            
+        
+        # set window 'always on top'
+        self.xml.get_widget("window_stick_check").set_active(
+            app.pref.get("window", "stick"))
+
 
     def save_options(self, app):
         if self.xml.get_widget("last_notebook_radio").get_active():
@@ -227,6 +241,20 @@ class GeneralSection (Section):
                      self.xml.get_widget("systray_check").get_active())
         app.pref.set("window", "skip_taskbar", 
                      self.xml.get_widget("skip_taskbar_check").get_active())
+
+        app.pref.set(
+            "window", "minimize_on_start", 
+            self.xml.get_widget("minimize_on_start_check").get_active())
+ 
+        # window 'always above'
+        app.pref.set(
+            "window", "keep_above", 
+            self.xml.get_widget("window_keep_above_check").get_active())
+
+        # window 'stick to all desktops'
+        app.pref.set(
+            "window", "stick",
+            self.xml.get_widget("window_stick_check").get_active())
 
 
 class LookAndFeelSection (Section):

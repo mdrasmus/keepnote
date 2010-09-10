@@ -250,7 +250,11 @@ class KeepNoteWindow (gtk.Window):
                 self._tray_icon = gtk.StatusIcon()
                 self._tray_icon.set_from_pixbuf(get_resource_pixbuf("keepnote-32x32.png"))
                 self._tray_icon.set_tooltip(keepnote.PROGRAM_NAME)
+                self._statusicon_menu = self.make_statusicon_menu()
                 self._tray_icon.connect("activate", self._on_tray_icon_activate)
+                self._tray_icon.connect('popup-menu',
+                                        self._on_systray_popup_menu)
+
 
             self._tray_icon.set_property(
                 "visible", self._app.pref.get("window", "use_systray", 
@@ -258,6 +262,10 @@ class KeepNoteWindow (gtk.Window):
             
         else:
             self._tray_icon = None
+
+
+    def _on_systray_popup_menu(self, status, button, time):
+        self._statusicon_menu.popup(None, None, None, button, time)
 
 
     def new_viewer(self):
@@ -418,16 +426,35 @@ class KeepNoteWindow (gtk.Window):
         window_size = p.get("window", "window_size", 
                             default=keepnote.DEFAULT_WINDOW_SIZE)
         window_maximized = p.get("window", "window_maximized", default=True)
-        
+
+
+        self.setup_systray()
+        use_systray = p.get("window", "use_systray", default=True)
+
+        # window config for first open
         if first_open:
             self.resize(*window_size)
             if window_maximized:
                 self.maximize()
+            
+            minimize = p.get("window", "minimize_on_start", default=False)
+            if use_systray and minimize:
+                self.iconify()
+ 
 
-        self.setup_systray()
-        if p.get("window", "use_systray", default=True):
-            self.set_property("skip-taskbar-hint", 
-                              p.get("window", "skip_taskbar", default=False))
+        skip = p.get("window", "skip_taskbar", default=False)
+        if use_systray:
+            self.set_property("skip-taskbar-hint", skip)
+                              
+
+        self.set_keep_above(p.get("window", "keep_above", 
+                                  default=False))
+
+        if p.get("window", "stick", default=False):
+            self.stick()
+        else:
+            self.unstick()
+
 
         use_autosave = p.get("autosave", default=True)
         p.get("autosave_time", default=keepnote.DEFAULT_AUTOSAVE_TIME)
@@ -444,7 +471,7 @@ class KeepNoteWindow (gtk.Window):
         """Save preferences"""
 
         p = self._app.pref
-        p.get("window")["window_maximized"] = self._maximized
+        p.set("window", "window_maximized", self._maximized)
         self.viewer.save_preferences(self._app.pref)
 
         if (p.get("use_last_notebook", default=False) and 
@@ -1265,27 +1292,6 @@ class KeepNoteWindow (gtk.Window):
         return actions
 
 
-    def get_actions_statusicon(self):
-        """Set actions for StatusIcon menu and return."""
-        actions = map(lambda x: Action(*x),
-                     [
-            ("KeepNote Preferences", gtk.STOCK_PREFERENCES, _("_Preferences"),
-             "", None,
-             lambda w: self._app.app_options_dialog.show(self)),
-            ("Update Notebook Index", None, _("_Update Notebook Index"),
-             "", None,
-             lambda w: self.update_index()),
-            ("Quit", gtk.STOCK_QUIT, _("_Quit"),
-             "<control>Q", _("Quit KeepNote"),
-             lambda w: self.close()),
-            ("About", gtk.STOCK_ABOUT, _("_About"),
-             "", None,
-             lambda w: self.on_about())
-            ]) 
-        
-        return actions
-
-
     def setup_menus(self, uimanager):
         pass
 
@@ -1377,14 +1383,32 @@ class KeepNoteWindow (gtk.Window):
 """]
 
 
+
+    def get_actions_statusicon(self):
+        """Set actions for StatusIcon menu and return."""
+        actions = map(lambda x: Action(*x),
+                      [
+            ("KeepNote Preferences", gtk.STOCK_PREFERENCES, _("_Preferences"),
+             "", None,
+             lambda w: self._app.app_options_dialog.show(self)),
+            ("Quit", gtk.STOCK_QUIT, _("_Quit"),
+             "<control>Q", _("Quit KeepNote"),
+             lambda w: self.close()),
+            ("About", gtk.STOCK_ABOUT, _("_About"),
+             "", None,
+             lambda w: self.on_about())
+            ])
+        
+        return actions
+
+
     def get_ui_statusicon(self):
         """Create UI xml-definition for StatusIcon menu and return.""" 
-        return["""
+        return ["""
 <ui>
   <!-- statusicon_menu -->
   <popup name="statusicon_menu">
     <menuitem action="KeepNote Preferences"/>
-    <menuitem action="Update Notebook Index"/>
     <menuitem action="About"/>
     <separator/>
     <menuitem action="Quit"/>
@@ -1453,7 +1477,7 @@ class KeepNoteWindow (gtk.Window):
         self._actiongroup_statusicon = gtk.ActionGroup('StatusIcon')
         self._tray_icon.uimanager = gtk.UIManager()
         self._tray_icon.uimanager.insert_action_group(
-                                            self._actiongroup_statusicon, 0)
+            self._actiongroup_statusicon, 0)
 
         # setup menu
         add_actions(self._actiongroup_statusicon,
@@ -1464,7 +1488,7 @@ class KeepNoteWindow (gtk.Window):
 
         # return menu
         statusicon_menu = self._tray_icon.uimanager.get_widget(
-                                                            '/statusicon_menu')
+            '/statusicon_menu')
 
         return statusicon_menu
 
