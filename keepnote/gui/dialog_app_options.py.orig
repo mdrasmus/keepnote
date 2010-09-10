@@ -148,12 +148,10 @@ class GeneralSection (Section):
 
 
     def on_systray_check_toggled(self, widget):
-        """Systray option controls sensitivity of sub-options"""
+        """Systray option controls sensitivity of skip taskbar"""
         self.xml.get_widget("skip_taskbar_check").set_sensitive(
             widget.get_active())
-        self.xml.get_widget("minimize_on_start_check").set_sensitive(
-            widget.get_active())
-
+        
     
     def on_set_default_notebook_button_clicked(self, widget):
 

@@ -34,6 +34,7 @@ char *s = N_("<b>This Notebook</b>");
 char *s = N_("<i>note: backup and upgrade may take a while for larger notebooks.</i>");
 char *s = N_("A literal \"%\" character");
 char *s = N_("Alternative index location:");
+char *s = N_("Always on top");
 char *s = N_("Autosave:");
 char *s = N_("Browse...");
 char *s = N_("Case _Sensitive");
@@ -58,6 +59,7 @@ char *s = N_("Locale's appropriate time representation");
 char *s = N_("Locale's equivalent of either AM or PM");
 char *s = N_("Locale's full month name");
 char *s = N_("Locale's full weekday name");
+char *s = N_("Minimize on start");
 char *s = N_("Minute as a decimal number [00,59]");
 char *s = N_("Month as a decimal number [01,12]");
 char *s = N_("New Icon");
@@ -79,7 +81,8 @@ char *s = N_("Standard Icons");
 char *s = N_("This notebook has format version 1 and must be updated to version 2 before openning.");
 char *s = N_("Time zone name (no characters if no time zone exists)");
 char *s = N_("Use current notebook");
-char *s = N_("Use sysem tray icon");
+char *s = N_("Use system tray icon");
+char *s = N_("Visible on all desktops");
 char *s = N_("Week number of the year (Monday as the first day of the week) \n"
              "as a decimal number [00,53]. All days in a new year preceding \n"
              "the first Monday are considered to be in week 0");

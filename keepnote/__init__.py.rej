@@ -1,0 +1,47 @@
+--- keepnote/__init__.py	Sat Aug 14 10:41:15 2010 -0400
++++ keepnote/__init__.py	Fri Aug 20 12:20:17 2010 -0400
+@@ -528,6 +528,9 @@
+         self.image_size_snap_amount = 50
+         self.use_systray = True
+         self.skip_taskbar = False
++        self.minimize_on_start = False
++        self.window_keep_above = False
++        self.window_stick = False
+         self.recent_notebooks = []
+ 
+         self.language = ""
+@@ -660,7 +663,8 @@
+                  attr=("vsash_pos", int, compose(str, int))),
+         xmlo.Tag("hsash_pos",
+                  attr=("hsash_pos", int, compose(str, int))),
+-
++        xmlo.Tag("hsash_pos",
++                 attr=("hsash_pos", int, compose(str, int))),
+         
+         xmlo.Tag("treeview_lines",
+                  attr=("treeview_lines", xmlo.str2bool, xmlo.bool2str)),
+@@ -668,8 +672,8 @@
+                  attr=("listview_rules", xmlo.str2bool, xmlo.bool2str)),
+         xmlo.Tag("use_stock_icons",
+                  attr=("use_stock_icons", xmlo.str2bool, xmlo.bool2str)),
+-        xmlo.Tag("use_minitoolbar",
+-                 attr=("use_minitoolbar", xmlo.str2bool, xmlo.bool2str)),
++        xmlo.Tag("window_keep_above",
++                 attr=("window_keep_above", xmlo.str2bool, xmlo.bool2str)),
+ 
+ 
+         # image resize
+@@ -678,10 +682,13 @@
+         xmlo.Tag("image_size_snap_amount",
+                  attr=("image_size_snap_amount", int, compose(str, int))),
+ 
++        # systray
+         xmlo.Tag("use_systray",
+                  attr=("use_systray", xmlo.str2bool, xmlo.bool2str)),
+         xmlo.Tag("skip_taskbar",
+                  attr=("skip_taskbar", xmlo.str2bool, xmlo.bool2str)),
++        xmlo.Tag("minimize_on_start",
++                 attr=("minimize_on_start", xmlo.str2bool, xmlo.bool2str)),
+                  
+         # misc options
+         xmlo.Tag("spell_check",

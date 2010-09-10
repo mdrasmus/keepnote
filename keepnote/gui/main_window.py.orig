@@ -1264,28 +1264,6 @@ class KeepNoteWindow (gtk.Window):
 
         return actions
 
-
-    def get_actions_statusicon(self):
-        """Set actions for StatusIcon menu and return."""
-        actions = map(lambda x: Action(*x),
-                     [
-            ("KeepNote Preferences", gtk.STOCK_PREFERENCES, _("_Preferences"),
-             "", None,
-             lambda w: self._app.app_options_dialog.show(self)),
-            ("Update Notebook Index", None, _("_Update Notebook Index"),
-             "", None,
-             lambda w: self.update_index()),
-            ("Quit", gtk.STOCK_QUIT, _("_Quit"),
-             "<control>Q", _("Quit KeepNote"),
-             lambda w: self.close()),
-            ("About", gtk.STOCK_ABOUT, _("_About"),
-             "", None,
-             lambda w: self.on_about())
-            ]) 
-        
-        return actions
-
-
     def setup_menus(self, uimanager):
         pass
 
@@ -1376,23 +1354,7 @@ class KeepNoteWindow (gtk.Window):
 </ui>
 """]
 
-
-    def get_ui_statusicon(self):
-        """Create UI xml-definition for StatusIcon menu and return.""" 
-        return["""
-<ui>
-  <!-- statusicon_menu -->
-  <popup name="statusicon_menu">
-    <menuitem action="KeepNote Preferences"/>
-    <menuitem action="Update Notebook Index"/>
-    <menuitem action="About"/>
-    <separator/>
-    <menuitem action="Quit"/>
-  </popup>
-</ui>
-"""]
     
-
     def make_menubar(self):
         """Initialize the menu bar"""
 
@@ -1442,32 +1404,6 @@ class KeepNoteWindow (gtk.Window):
         w.add(self.search_box)
                         
         return toolbar
-
-
-    def make_statusicon_menu(self):
-        """Initialize the StatusIcon menu."""
-
-        #===============================
-        # ui manager
-
-        self._actiongroup_statusicon = gtk.ActionGroup('StatusIcon')
-        self._tray_icon.uimanager = gtk.UIManager()
-        self._tray_icon.uimanager.insert_action_group(
-                                            self._actiongroup_statusicon, 0)
-
-        # setup menu
-        add_actions(self._actiongroup_statusicon,
-                    self.get_actions_statusicon())
-        for s in self.get_ui_statusicon():
-            self._tray_icon.uimanager.add_ui_from_string(s)
-        self.setup_menus(self._tray_icon.uimanager)
-
-        # return menu
-        statusicon_menu = self._tray_icon.uimanager.get_widget(
-                                                            '/statusicon_menu')
-
-        return statusicon_menu
-
 
 
 gobject.type_register(KeepNoteWindow)
