@@ -26,7 +26,7 @@
 
 
 # python imports
-import os, sys, shutil, time, re, traceback
+import os, sys, shutil, time, re, traceback, uuid
 
 # xml imports
 import xml.dom.minidom as xmldom
@@ -36,7 +36,7 @@ from xml.sax.saxutils import escape
 
 
 # keepnote imports
-import keepnote.xmlobject as xmlo
+import keepnote.compat.xmlobject_v3 as xmlo
 from keepnote.listening import Listeners
 from keepnote.timestamp import \
      DEFAULT_TIMESTAMP_FORMATS, \
@@ -44,7 +44,6 @@ from keepnote.timestamp import \
      get_localtime, \
      get_str_timestamp
 from keepnote import safefile
-from keepnote import uuid
 
 
 # NOTE: the <?xml ?> header is left off to keep it compatiable with IE,

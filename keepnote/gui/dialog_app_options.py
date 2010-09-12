@@ -199,7 +199,6 @@ class GeneralSection (Section):
         self.xml.get_widget("skip_taskbar_check").set_sensitive(
             app.pref.get("window", "use_systray"))
 
-        print app.pref.get("window", "minimize_on_start")
         self.xml.get_widget("minimize_on_start_check").set_active(
             app.pref.get("window", "minimize_on_start"))
         self.xml.get_widget("minimize_on_start_check").set_sensitive(

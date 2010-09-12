@@ -30,6 +30,7 @@ import gettext
 import os
 import subprocess
 import traceback
+import uuid
 
 
 # pygtk imports
@@ -46,7 +47,6 @@ from keepnote import KeepNoteError
 from keepnote.history import NodeHistory
 from keepnote import notebook as notebooklib
 from keepnote.gui.treemodel import iter_children
-from keepnote import uuid
 
 _ = keepnote.translate
 

@@ -27,6 +27,7 @@
 
 # python imports
 import gettext
+import mimetypes
 import os
 import sys
 import shutil
@@ -34,7 +35,7 @@ import re
 import traceback
 import urlparse
 import urllib2
-import mimetypes
+import uuid
 
 # xml imports
 from xml.sax.saxutils import escape
@@ -42,11 +43,10 @@ import xml.etree.cElementTree as ElementTree
 
 
 # keepnote imports
-import keepnote.xmlobject as xmlo
+import keepnote.compat.xmlobject_v3 as xmlo
 from keepnote.listening import Listeners
 from keepnote.timestamp import get_timestamp
 from keepnote import safefile
-from keepnote import uuid
 from keepnote import trans
 from keepnote import orderdict
 from keepnote import plist

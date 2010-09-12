@@ -168,9 +168,6 @@ class TabbedViewer (Viewer):
 
         self._tabs.remove_page(pos)
 
-        
-        
-
 
     def get_current_viewer(self):
         """Get currently focused viewer"""

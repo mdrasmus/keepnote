@@ -32,7 +32,7 @@ import keepnote
 from keepnote import FS_ENCODING
 from keepnote import xdg
 import keepnote.timestamp
-import keepnote.xmlobject as xmlo
+import keepnote.compat.xmlobject_v3 as xmlo
 from keepnote.util import compose
 from keepnote import orderdict
 

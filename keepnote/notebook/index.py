@@ -399,6 +399,9 @@ class NoteBookIndex (object):
     def add_node(self, node):
         """Add a node to the index"""               
 
+        # DEBUG
+        #return
+
         if self.con is None:
             return
         con, cur = self.con, self.cur

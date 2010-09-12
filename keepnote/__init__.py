@@ -36,6 +36,7 @@ import re
 import subprocess
 import tempfile
 import traceback
+import uuid
 import zipfile
 try:
     import xml.etree.cElementTree as ET
@@ -54,7 +55,6 @@ from keepnote.notebook import \
 import keepnote.timestamp
 import keepnote.notebook
 import keepnote.xdg
-from keepnote import xmlobject as xmlo
 from keepnote.listening import Listeners
 from keepnote.util import compose
 from keepnote import mswin
