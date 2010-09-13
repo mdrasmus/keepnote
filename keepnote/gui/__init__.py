@@ -353,7 +353,7 @@ class KeepNote (keepnote.KeepNote):
         # auto save
         self._auto_saving = False          # True if autosave is on
         self._auto_save_registered = False # True if autosave is registered
-        self._auto_save_pause = False      # True if autosave is paused
+        self._auto_save_pause = 0          # >0 if autosave is paused
 
 
 
@@ -483,13 +483,15 @@ class KeepNote (keepnote.KeepNote):
         
         # save all the windows
         for window in self._windows:
-            #print "save", window._winid
             window.save_notebook(silent=silent)
 
         # save all the notebooks
         for notebook in self._notebooks.itervalues():
-            #print "save", notebook.get_attr("title")
             notebook.save()
+
+        # let windows know about completed save
+        for window in self._windows:
+            window.update_title()
     
 
     #=====================================
@@ -527,7 +529,7 @@ class KeepNote (keepnote.KeepNote):
             return False
 
         # don't do autosave if it is paused
-        if self._auto_save_pause:
+        if self._auto_save_pause > 0:
             return True
 
         #self.save_notebook(True)
@@ -537,7 +539,8 @@ class KeepNote (keepnote.KeepNote):
     
 
     def pause_auto_save(self, pause):
-        self._auto_save_pause = pause
+        self._auto_save_pause += 1 if pause else -1
+        
 
     #===========================================
     # node icons
