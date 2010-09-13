@@ -77,7 +77,6 @@ from keepnote.gui import \
     dialog_image_new, \
     dialog_drag_drop_test, \
     dialog_wait, \
-    dialog_update_notebook, \
     update_file_preview
 from keepnote.gui.icon_menu import IconMenu
 from keepnote.gui.three_pane_viewer import ThreePaneViewer

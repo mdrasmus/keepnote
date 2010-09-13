@@ -60,7 +60,7 @@ def update_notebook(filename, desired_version, warn=lambda w: False,
             notebook.load(filename)
 
             # write new notebook preference file
-            notebook.pref.set("version", 3)
+            notebook.pref.version = 3
             notebook.write_preferences()
 
             # recursively upgrade notes
@@ -78,7 +78,7 @@ def update_notebook(filename, desired_version, warn=lambda w: False,
             walk(notebook)
             notebook.close()
 
-            version = notebook.pref.get("version")
+            version = notebook.pref.version
 
 
             # verify notebook updated successfully
@@ -98,8 +98,11 @@ def update_notebook(filename, desired_version, warn=lambda w: False,
             
             # try to load old notebook (may raise exceptions)
             notebook = old_notebooklib.NoteBook()
-            notebook.load(filename)            
-            notebook.pref.set("version", 4)
+            notebook.load(filename)
+            notebook.pref.version = 4
             old_notebooklib.write_new_preferences(notebook.pref, 
                                                   notebook.get_pref_file())
             notebook.close()
+            version = 4
+
+
