@@ -108,17 +108,17 @@ else:
                                       PROGRAM_VERSION_MINOR)
 
 WEBSITE = u"http://rasm.ods.org/keepnote"
-LICENSE_NAME = "GPL version 2"
-COPYRIGHT = "Copyright Matt Rasmussen 2010."
+LICENSE_NAME = u"GPL version 2"
+COPYRIGHT = u"Copyright Matt Rasmussen 2010."
 TRANSLATOR_CREDITS = (
-    "Chinese: hu dachuan <hdccn@sina.com>\n"
-    "French: tb <thibaut.bethune@gmail.com>\n"
-    "German: Jan Rimmek <jan.rimmek@mhinac.de>\n"
-    "Japanese: Toshiharu Kudoh <toshi.kd2@gmail.com>\n"
-    "Italian: Davide Melan <davide.melan@gmail.com>\n"
-    "Russian: Hikiko Mori <hikikomori.dndz@gmail.com>\n"
-    "Spanish: Klemens Hackel <click3d at linuxmail (dot) org>\n"
-    "Turkish: Yuce Tekol <yucetekol@gmail.com>\n"
+    u"Chinese: hu dachuan <hdccn@sina.com>\n"
+    u"French: tb <thibaut.bethune@gmail.com>\n"
+    u"German: Jan Rimmek <jan.rimmek@mhinac.de>\n"
+    u"Japanese: Toshiharu Kudoh <toshi.kd2@gmail.com>\n"
+    u"Italian: Davide Melan <davide.melan@gmail.com>\n"
+    u"Russian: Hikiko Mori <hikikomori.dndz@gmail.com>\n"
+    u"Spanish: Klemens Hackel <click3d at linuxmail (dot) org>\n"
+    u"Turkish: Yuce Tekol <yucetekol@gmail.com>\n"
 )
 
 

@@ -350,6 +350,11 @@ class KeepNote (keepnote.KeepNote):
         self.app_options_dialog = keepnote.gui.dialog_app_options.ApplicationOptionsDialog(self)
         self.node_icon_dialog = keepnote.gui.dialog_node_icon.NodeIconDialog(self)
 
+        # auto save
+        self._auto_saving = False          # True if autosave is on
+        self._auto_save_registered = False # True if autosave is registered
+        self._auto_save_pause = False      # True if autosave is paused
+
 
 
     def init(self):
@@ -367,6 +372,17 @@ class KeepNote (keepnote.KeepNote):
         gtk.glade.bindtextdomain(keepnote.GETTEXT_DOMAIN, 
                                  keepnote.get_locale_dir())
         gtk.glade.textdomain(keepnote.GETTEXT_DOMAIN)
+
+
+    def load_preferences(self):
+        keepnote.KeepNote.load_preferences(self)
+
+        # set defaults for auto save
+        p = self.pref
+        use_autosave = p.get("autosave", default=True)
+        p.get("autosave_time", default=keepnote.DEFAULT_AUTOSAVE_TIME)
+
+        self.begin_auto_save()
 
 
     #=================================
@@ -461,6 +477,67 @@ class KeepNote (keepnote.KeepNote):
             
         return notebook
 
+
+    def save(self, silent=False):
+        """Save all opened notebooks"""
+        
+        # save all the windows
+        for window in self._windows:
+            #print "save", window._winid
+            window.save_notebook(silent=silent)
+
+        # save all the notebooks
+        for notebook in self._notebooks.itervalues():
+            #print "save", notebook.get_attr("title")
+            notebook.save()
+    
+
+    #=====================================
+    # auto-save
+
+
+    def begin_auto_save(self):
+        """Begin autosave callbacks"""
+
+        if self.pref.get("autosave"):
+            self._auto_saving = True
+
+            if not self._auto_save_registered:
+                self._auto_save_registered = True
+                gobject.timeout_add(self.pref.get("autosave_time"), 
+                                    self.auto_save)
+        else:
+            self._auto_saving = False
+
+        
+    def end_auto_save(self):
+        """Stop autosave"""
+
+        self._auto_saving = False
+
+
+    def auto_save(self):
+        """Callback for autosaving"""
+        
+        self._auto_saving = self.pref.get("autosave")
+
+        # NOTE: return True to activate next timeout callback
+        if not self._auto_saving:
+            self._auto_save_registered = False
+            return False
+
+        # don't do autosave if it is paused
+        if self._auto_save_pause:
+            return True
+
+        #self.save_notebook(True)
+        self.save(True)
+
+        return True
+    
+
+    def pause_auto_save(self, pause):
+        self._auto_save_pause = pause
 
     #===========================================
     # node icons

@@ -103,8 +103,6 @@ class KeepNoteWindow (gtk.Window):
         self._was_maximized = False # True if iconified and was maximized
         self._iconified = False     # True if window is minimized
         self._tray_icon = None      # True if tray icon is present        
-        self._auto_saving = False   # True if autosave is on
-        self._auto_save_pause = False # True if autosave is paused
         self._recent_notebooks = []
 
         self._uimanager = UIManager()
@@ -403,10 +401,7 @@ class KeepNoteWindow (gtk.Window):
         else:
             self.unstick()
 
-        # other window wide properties
-        use_autosave = p.get("autosave", default=True)
-        p.get("autosave_time", default=keepnote.DEFAULT_AUTOSAVE_TIME)
-        
+        # other window wide properties        
         self._recent_notebooks = p.get("recent_notebooks", default=[])
         self.set_recent_notebooks_menu(self._recent_notebooks)
 
@@ -576,7 +571,7 @@ class KeepNoteWindow (gtk.Window):
 
     
     #===============================================
-    # Notebook actions    
+    # Notebook actions
 
     def save_notebook(self, silent=False):
         """Saves the current notebook"""
@@ -586,8 +581,8 @@ class KeepNoteWindow (gtk.Window):
             self.viewer.save()
 
             # TODO: notebook saving should be the job of the viewer
-            if self.viewer.get_notebook():
-                self.viewer.get_notebook().save()
+            #if self.viewer.get_notebook():
+            #    self.viewer.get_notebook().save()
             
             self.set_status(_("Notebook saved"))
             
@@ -597,9 +592,10 @@ class KeepNoteWindow (gtk.Window):
                 self.set_status(_("Error saving notebook"))
                 return
             
+        # TODO: need move elsewhere
         self.update_title()
         
-            
+        
     
     def reload_notebook(self):
         """Reload the current NoteBook"""
@@ -718,7 +714,7 @@ class KeepNoteWindow (gtk.Window):
             self.update_index()
 
         # setup auto-saving
-        self.begin_auto_save()
+        #self._app.begin_auto_save()
 
         return self.viewer.get_notebook()
         
@@ -732,41 +728,13 @@ class KeepNoteWindow (gtk.Window):
         if notebook is not None:
             if save:
                 self.save_notebook()
+                notebook.save()
                         
             self.set_notebook(None)
             self.set_status(_("Notebook closed"))
             
             self._app.close_notebook(notebook)
 
-
-    def begin_auto_save(self):
-        """Begin autosave callbacks"""
-
-        if self._app.pref.get("autosave"):
-            self._auto_saving = True
-            gobject.timeout_add(self._app.pref.get("autosave_time"), 
-                                self.auto_save)
-        
-    def end_auto_save(self):
-        """Stop autosave"""
-
-        self._auto_saving = False
-
-
-    def auto_save(self):
-        """Callback for autosaving"""
-        
-        # NOTE: return True to activate next timeout callback
-        if not self._auto_saving:
-            return False
-
-        # don't do autosave if it is paused
-        if self._auto_save_pause:
-            return True
-
-        self.save_notebook(True)
-        return self._app.pref.get("autosave")
-    
 
     def set_notebook(self, notebook):
         """Set the NoteBook for the window"""
@@ -778,8 +746,6 @@ class KeepNoteWindow (gtk.Window):
 
         if not self.viewer.get_notebook():
             return
-
-        self.end_auto_save()
 
         def update(task):
             # erase database first
@@ -796,8 +762,6 @@ class KeepNoteWindow (gtk.Window):
         # launch task
         self.wait_dialog(_("Indexing notebook"), _("Indexing..."),
                          tasklib.Task(update))
-
-        self.begin_auto_save()
 
 
     #=====================================================
@@ -894,7 +858,8 @@ class KeepNoteWindow (gtk.Window):
         # TODO: move this to gui.app
         # TODO: try to clean up
 
-        self.save_notebook()
+        #self.save_notebook()
+        self._app.save()
         
         # determine node to view
         if node is None:
@@ -1066,18 +1031,18 @@ class KeepNoteWindow (gtk.Window):
     def wait_dialog(self, title, text, task, cancel=True):
         """Display a wait dialog"""
 
+        # TODO: ensure that recursive wait dialogs do not turn on auto saving
+        # too soon.
+
+
         # NOTE: pause autosave while performing long action
 
-        self._auto_save_pause = True
+        self._app.pause_auto_save(True)
         
         dialog = dialog_wait.WaitDialog(self)
         dialog.show(title, text, task, cancel=cancel)
-        
-        # TODO: make sure this is set before calling dialog.show()
-        #dialog.dialog.connect("destroy",
-        #               lambda x: setattr(self, "_auto_save_pause", False))
 
-        self._auto_save_pause = False
+        self._app.pause_auto_save(False)
 
         
     
@@ -1112,7 +1077,7 @@ class KeepNoteWindow (gtk.Window):
             
             ("Save Notebook", gtk.STOCK_SAVE, _("_Save Notebook"),             
              "<control>S", _("Save the current notebook"),
-             lambda w: self.save_notebook()),
+             lambda w: self._app.save()),   #self.save_notebook()),
             
             ("Close Notebook", gtk.STOCK_CLOSE, _("_Close Notebook"),
              "", _("Close the current notebook"),
