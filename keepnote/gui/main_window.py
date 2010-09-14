@@ -577,25 +577,20 @@ class KeepNoteWindow (gtk.Window):
         """Saves the current notebook"""
 
         try:
-            self.viewer.save()
-
             # TODO: remove hard-coded viewer type
             #p = notebook.pref.get("windows", "ids", define=True)
             #p[self._winid] = {
             #    "viewer_type": "tabbed_viewer",
             #    "viewerid": self.viewer.get_id()}
             
+            self.viewer.save()            
             self.set_status(_("Notebook saved"))
             
         except Exception, e:
             if not silent:
                 self.error(_("Could not save notebook."), e, sys.exc_info()[2])
                 self.set_status(_("Error saving notebook"))
-                return
-            
-        # TODO: need move elsewhere
-        self.update_title()
-        
+                return        
         
     
     def reload_notebook(self):
@@ -1031,10 +1026,6 @@ class KeepNoteWindow (gtk.Window):
 
     def wait_dialog(self, title, text, task, cancel=True):
         """Display a wait dialog"""
-
-        # TODO: ensure that recursive wait dialogs do not turn on auto saving
-        # too soon.
-
 
         # NOTE: pause autosave while performing long action
 
