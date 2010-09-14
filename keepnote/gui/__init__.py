@@ -377,6 +377,8 @@ class KeepNote (keepnote.KeepNote):
     def load_preferences(self):
         keepnote.KeepNote.load_preferences(self)
 
+        #keepnote.log_message(_("loading preferences\n"))
+
         # set defaults for auto save
         p = self.pref
         use_autosave = p.get("autosave", default=True)

@@ -577,12 +577,13 @@ class KeepNoteWindow (gtk.Window):
         """Saves the current notebook"""
 
         try:
-            # TODO: should this be outside exception?
             self.viewer.save()
 
-            # TODO: notebook saving should be the job of the viewer
-            #if self.viewer.get_notebook():
-            #    self.viewer.get_notebook().save()
+            # TODO: remove hard-coded viewer type
+            #p = notebook.pref.get("windows", "ids", define=True)
+            #p[self._winid] = {
+            #    "viewer_type": "tabbed_viewer",
+            #    "viewerid": self.viewer.get_id()}
             
             self.set_status(_("Notebook saved"))
             
