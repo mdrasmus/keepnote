@@ -158,7 +158,7 @@ class TabbedViewer (Viewer):
 
         if init == "current_node":
             # replicate current view
-            old_viewer = self.get_current_viewer()
+            old_viewer = self._current_viewer
             if old_viewer is not None:
                 viewer.set_notebook(old_viewer.get_notebook())
                 node = old_viewer.get_current_page()
@@ -187,7 +187,7 @@ class TabbedViewer (Viewer):
         for callid in self._callbacks[viewer]:
             viewer.disconnect(callid)
         del self._callbacks[viewer]
-        del self._name_names[viewer]
+        del self._tab_names[viewer]
 
         if pos == self._tabs.get_current_page():
             viewer.remove_ui(self._main_window)
@@ -213,8 +213,9 @@ class TabbedViewer (Viewer):
     
     def _on_switch_tab(self, tabs, page, page_num):
         """Callback for switching between tabs"""
-
+        
         if not self._ui_ready:
+            self._current_viewer = self._tabs.get_nth_page(page_num)
             return
 
         # remove old tab ui
@@ -237,9 +238,15 @@ class TabbedViewer (Viewer):
 
 
     def _on_tab_added(self, tabs, child, page_num):
+        """Callback when a tab is added"""
+
+        # ensure that tabs are shown if npages > 1, else hidden
         self._tabs.set_show_tabs(self._tabs.get_n_pages() > 1)
 
     def _on_tab_removed(self, tabs, child, page_num):
+        """Callback when a tab is added"""
+
+        # ensure that tabs are shown if npages > 1, else hidden
         self._tabs.set_show_tabs(self._tabs.get_n_pages() > 1)
 
 
@@ -294,7 +301,7 @@ class TabbedViewer (Viewer):
         """Set the notebook for the viewer"""
         
         if notebook is None:
-            return self.get_current_viewer().set_notebook(notebook)
+            return self._current_viewer.set_notebook(notebook)
         else:
             # TODO: perhaps make this lookup by id
             # TODO: a notebook opened in two or more windows will stomp on the 
@@ -306,7 +313,7 @@ class TabbedViewer (Viewer):
                 for tab in tabs:
                     viewer_type = self._viewer_lookup.get1(
                         tab.get("viewer_type", ""))
-                    viewer = self.get_current_viewer()
+                    viewer = self._current_viewer
                     
                     if viewer.get_notebook() or type(viewer) != viewer_type:
                         # create new tab if notebook already loaded or
@@ -340,14 +347,14 @@ class TabbedViewer (Viewer):
 
 
             else:
-                if self.get_current_viewer().get_notebook():
+                if self._current_viewer.get_notebook():
                     # create one new tab
                     self.new_tab(init="none")
-                return self.get_current_viewer().set_notebook(notebook)
+                return self._current_viewer.set_notebook(notebook)
 
 
     def get_notebook(self):
-        return self.get_current_viewer().get_notebook()
+        return self._current_viewer.get_notebook()
 
 
     def load_preferences(self, app_pref, first_open=False):
@@ -361,7 +368,7 @@ class TabbedViewer (Viewer):
         """Save application preferences"""
 
         # TODO: loop through all viewers to save app_pref
-        self.get_current_viewer().save_preferences(app_pref)
+        self._current_viewer.save_preferences(app_pref)
 
 
     def save(self):
@@ -384,7 +391,7 @@ class TabbedViewer (Viewer):
                                      default=[])
             tabs[:] = []
 
-        current_viewer = self.get_current_viewer()
+        current_viewer = self._current_viewer
 
         # record tab info
         for viewer in self.iter_viewers():
@@ -406,12 +413,12 @@ class TabbedViewer (Viewer):
 
     def undo(self):
         """Undo the last action in the viewer"""
-        return self.get_current_viewer().undo()
+        return self._current_viewer.undo()
 
 
     def redo(self):
         """Redo the last action in the viewer"""
-        return self.get_current_viewer().redo()
+        return self._current_viewer.redo()
 
 
     #===============================================
@@ -420,7 +427,7 @@ class TabbedViewer (Viewer):
 
     def get_current_page(self):
         """Returns the currently focused page"""
-        return self.get_current_viewer().get_current_page()
+        return self._current_viewer.get_current_page()
 
 
     def get_selected_nodes(self):
@@ -428,17 +435,17 @@ class TabbedViewer (Viewer):
         Returns (nodes, widget) where 'nodes' are a list of selected nodes
         in widget 'widget'
         """
-        return self.get_current_viewer().get_selected_nodes()
+        return self._current_viewer.get_selected_nodes()
 
 
     def goto_node(self, node, direct=False):
         """Move view focus to a particular node"""
-        return self.get_current_viewer().goto_node(node, direct)
+        return self._current_viewer.goto_node(node, direct)
 
 
     def visit_history(self, offset):
         """Visit a node in the viewer's history"""
-        self.get_current_viewer.visit_history(offset)
+        self._current_viewer.visit_history(offset)
                     
 
     #============================================
@@ -446,12 +453,12 @@ class TabbedViewer (Viewer):
 
     def start_search_result(self):
         """Start a new search result"""
-        return self.get_current_viewer().start_search_result()
+        return self._current_viewer.start_search_result()
 
 
     def add_search_result(self, node):
         """Add a search result"""
-        return self.get_current_viewer().add_search_result(node)
+        return self._current_viewer.add_search_result(node)
 
 
     #===========================================
@@ -471,27 +478,21 @@ class TabbedViewer (Viewer):
             self._uis.append(
                 self._main_window.get_uimanager().add_ui_from_string(s))
 
-        uimanager = self._main_window.get_uimanager()
-        uimanager.ensure_update()
-
-
-        self.get_current_viewer().add_ui(window)     
+        self._current_viewer.add_ui(window)     
 
 
     def remove_ui(self, window):
         """Remove the view's UI from a window"""
         assert window == self._main_window
         self._ui_ready = False
-        self.get_current_viewer().remove_ui(window)
+        self._current_viewer.remove_ui(window)
 
         for ui in reversed(self._uis):
             self._main_window.get_uimanager().remove_ui(ui)
         self._uis = []
 
-        self._main_window.get_uimanager().remove_action_group(self._action_group)
-        self._action_group = None
-        self._main_window.get_uimanager().ensure_update()
-
+        self._main_window.get_uimanager().remove_action_group(
+            self._action_group)
 
 
     def _get_ui(self):

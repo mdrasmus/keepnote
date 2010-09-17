@@ -965,7 +965,7 @@ class EditorMenus (gobject.GObject):
         for ui in reversed(self._uis):
             window.get_uimanager().remove_ui(ui)
         self._uis = []
-        window.get_uimanager().ensure_update()
+        #window.get_uimanager().ensure_update()
 
         # remove action group
         window.get_uimanager().remove_action_group(self._action_group)

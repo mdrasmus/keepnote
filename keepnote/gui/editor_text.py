@@ -381,7 +381,6 @@ class EditorMenus (gobject.GObject):
         self.setup_menu(window, window.get_uimanager())
 
 
-
     def remove_ui(self, window):
         
         # remove ui

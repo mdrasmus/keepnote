@@ -73,7 +73,7 @@ class MultiEditor (KeepNoteEditor):
         # do nothing if editor is already set
         if editor == self._editor:
             return
-
+        
         # tear down old editor, if it exists
         if self._editor:
             self._editor.view_pages([])

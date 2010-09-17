@@ -777,7 +777,7 @@ class ThreePaneViewer (Viewer):
     
     def add_ui(self, window):
         """Add the view's UI to a window"""
-
+        
         assert window == self._main_window
         
         self._ui_ready = True
