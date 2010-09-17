@@ -1713,9 +1713,9 @@ class NoteBook (NoteBookDir):
     def close(self, save=True):
         """Close notebook"""
         
+        self.closing_event.notify()
         if save:
             self.save()
-        self.closing_event.notify()
         self._index.close()
         self.close_event.notify()
 
@@ -1798,6 +1798,7 @@ class NoteBook (NoteBookDir):
             else:
                 data = orderdict.OrderDict()
         
+        data["version"] = version
         self.pref.set_data(data)
       
 

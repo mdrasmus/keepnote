@@ -336,6 +336,10 @@ def add_actions(actiongroup, actions):
 # Application for GUI
 
 
+# TODO: implement 'close all' for notebook
+# requires listening for close.
+
+
 class KeepNote (keepnote.KeepNote):
     """GUI version of the KeepNote application instance"""
 

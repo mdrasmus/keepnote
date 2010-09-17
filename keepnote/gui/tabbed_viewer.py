@@ -291,6 +291,17 @@ class TabbedViewer (Viewer):
                     # set notebook and node
                     viewer.set_notebook(notebook)
 
+
+                # set tab focus
+                current_id = notebook.pref.get(
+                    "viewers", "tabbed_viewer",  "current_viewer", default="")
+                for i, viewer in enumerate(self.iter_viewers()):
+                    if viewer.get_id() == current_id:
+                        self._tabs.set_current_page(i)
+                        break
+                        
+
+
             else:
                 if self.get_current_viewer().get_notebook():
                     # create one new tab
@@ -336,6 +347,8 @@ class TabbedViewer (Viewer):
                                      default=[])
             tabs[:] = []
 
+        current_viewer = self.get_current_viewer()
+
         # record tab info
         for viewer in self.iter_viewers():
             notebook = viewer.get_notebook()
@@ -346,6 +359,10 @@ class TabbedViewer (Viewer):
                     {"viewer_type": self._viewer_lookup.get2(type(viewer)),
                      "viewerid": viewer.get_id()})
 
+                # mark current viewer
+                if viewer == current_viewer:
+                    notebook.pref.set("viewers", "tabbed_viewer", 
+                                      "current_viewer", viewer.get_id())
         
 
     def undo(self):

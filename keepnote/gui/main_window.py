@@ -731,9 +731,18 @@ class KeepNoteWindow (gtk.Window):
             
             self._app.close_notebook(notebook)
 
+            
+    def _on_close_notebook(self, notebook):
+        """Callback when notebook is closing"""
+        pass
+
 
     def set_notebook(self, notebook):
         """Set the NoteBook for the window"""
+
+        # TODO: install close event listener.
+        # still need to think about when to uninstall, though
+
         self.viewer.set_notebook(notebook)
 
 
