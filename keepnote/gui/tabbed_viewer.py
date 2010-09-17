@@ -77,7 +77,6 @@ class TwoWayDict (object):
         return self._lookup2.get(item2, default)
 
 
-
 class TabbedViewer (Viewer):
     """A viewer with a treeview, listview, and editor"""
 
@@ -298,6 +297,8 @@ class TabbedViewer (Viewer):
             return self.get_current_viewer().set_notebook(notebook)
         else:
             # TODO: perhaps make this lookup by id
+            # TODO: a notebook opened in two or more windows will stomp on the 
+            # viewer/tabbed_viewer/tabs config value
             tabs = notebook.pref.get("viewers", "tabbed_viewer", "tabs",
                                      default=[])
 
