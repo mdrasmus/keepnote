@@ -744,7 +744,7 @@ class KeepNoteWindow (gtk.Window):
                     if old_id in notebook.pref.get("viewers", "ids"):
                         del notebook.pref.get("viewers", "ids")[old_id]
 
-        else:
+        elif len(windows) > 1:
             items = iter(windows.items())
 
             # special case: reuse this window if no notebooks
