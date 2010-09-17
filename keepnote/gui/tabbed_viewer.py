@@ -89,6 +89,7 @@ class TabbedViewer (Viewer):
         self._callbacks = {}
         self._ui_ready = False
         self._null_viewer = Viewer(app, main_window)
+        self._tab_names = {}
         
         # layout
         self._tabs = gtk.Notebook()
@@ -101,6 +102,10 @@ class TabbedViewer (Viewer):
         self._tabs.connect("page-removed", self._on_tab_removed)
         self.pack_start(self._tabs, True, True, 0)
 
+
+        self._tabs.connect("button-press-event", self._on_button_press)
+            
+
         self.new_tab()
 
         # TODO: maybe add close_viewer() function
@@ -109,6 +114,24 @@ class TabbedViewer (Viewer):
         self._viewer_lookup.add("three_pane_viewer", ThreePaneViewer)
 
 
+    def _on_button_press(self, widget, event):
+        if event.button == 1 and event.type == gtk.gdk._2BUTTON_PRESS:
+            # double click, start tab name editing
+            label = self._tabs.get_tab_label(self._tabs.get_nth_page(
+                    self._tabs.get_current_page()))
+            label.start_editing()
+
+            
+    def _on_new_tab_name(self, viewer, name):
+        
+        if name == "":
+            name = None            
+        self._tab_names[viewer] = name
+
+        if name is None:
+            self.on_tab_current_node(viewer, viewer.get_current_page())
+    
+
     def new_tab(self, viewer=None, init="current_node"):
         """Open a new tab with a viewer"""
         
@@ -116,8 +139,12 @@ class TabbedViewer (Viewer):
 
         if viewer is None:
             viewer = self._default_viewer(self._app, self._main_window)
-        self._tabs.append_page(viewer, TabLabel(None, _("(Untitled)")))
+        label = TabLabel(None, _("(Untitled)"))
+        label.connect("new-name", lambda w, text: 
+                      self._on_new_tab_name(viewer, text))
+        self._tabs.append_page(viewer, label)
         self._tabs.set_tab_reorderable(viewer, True)
+        self._tab_names[viewer] = None
         viewer.show_all()
 
         # setup viewer
@@ -161,6 +188,7 @@ class TabbedViewer (Viewer):
         for callid in self._callbacks[viewer]:
             viewer.disconnect(callid)
         del self._callbacks[viewer]
+        del self._name_names[viewer]
 
         if pos == self._tabs.get_current_page():
             viewer.remove_ui(self._main_window)
@@ -218,7 +246,7 @@ class TabbedViewer (Viewer):
 
     def on_tab_current_node(self, viewer, node):
         """Callback for when a viewer wants to set its title"""
-
+        
         # get node title
         if node is None:
             if viewer.get_notebook():
@@ -238,7 +266,9 @@ class TabbedViewer (Viewer):
 
         # set tab label with node title
         tab = self._tabs.get_tab_label(viewer)
-        tab.set_text(title)
+        if self._tab_names[viewer] is None:
+            # only update tab title if it does not have a name already
+            tab.set_text(title)
         tab.set_icon(icon)
                 
         # propogate current-node signal
@@ -287,6 +317,12 @@ class TabbedViewer (Viewer):
                         self.new_tab(viewer, init="none")
                     else:
                         viewer.set_id(tab.get("viewerid", None))
+
+                    # set tab name
+                    name = tab.get("name", "")
+                    if name:
+                        self._tab_names[viewer] = name
+                        self._tabs.get_tab_label(viewer).set_text(name)
 
                     # set notebook and node
                     viewer.set_notebook(notebook)
@@ -355,9 +391,11 @@ class TabbedViewer (Viewer):
             if notebook:
                 tabs = notebook.pref.get("viewers", "tabbed_viewer", "tabs")
                 node = viewer.get_current_page()
+                name = self._tab_names[viewer]
                 tabs.append(
                     {"viewer_type": self._viewer_lookup.get2(type(viewer)),
-                     "viewerid": viewer.get_id()})
+                     "viewerid": viewer.get_id(),
+                     "name": name if name is not None else ""})
 
                 # mark current viewer
                 if viewer == current_viewer:
@@ -508,21 +546,71 @@ class TabLabel (gtk.HBox):
     def __init__(self, icon, text):
         gtk.HBox.__init__(self, False, 2)
 
+        #self.name = None
+
+        # icon
         self.icon = gtk.Image()
-        self.pack_start(self.icon, False, False, 0)
         if icon:
             self.icon.set_from_pixbuf(icon)
         self.icon.show()
 
+        # label
         self.label = gtk.Label(text)
         self.label.set_alignment(0, .5)
-        self.pack_start(self.label, True, True, 0)
         self.label.show()
+
+        # entry
+        self.entry = gtk.Entry()
+        self.entry.set_alignment(0)
+        self.entry.connect("focus-out-event", lambda w, e: self.stop_editing())
+        self.entry.connect("editing-done", self._done)
+        self._editing = False
+        
+        # layout
+        self.pack_start(self.icon, False, False, 0)
+        self.pack_start(self.label, True, True, 0)
+
+
+
+    def _done(self, widget):
+        
+        text = self.entry.get_text()
+        self.stop_editing()
+        self.label.set_label(text)
+        self.emit("new-name", text)
+        
+
+    def start_editing(self):
+        
+        if not self._editing:
+            self._editing = True
+            w, h = self.label.get_child_requisition()
+            self.remove(self.label)
+            self.entry.set_text(self.label.get_label())
+            self.pack_start(self.entry, True, True, 0)
+            self.entry.set_size_request(w, h)
+            self.entry.show()
+            self.entry.grab_focus()
+            self.entry.start_editing(gtk.gdk.Event(gtk.gdk.NOTHING))
+            
+
+    def stop_editing(self):
+        if self._editing:
+            self._editing = False
+            self.remove(self.entry)
+            self.pack_start(self.label, True, True, 0)
+            self.label.show()
 
 
     def set_text(self, text):
-        self.label.set_label(text)
+        if not self._editing:
+            self.label.set_text(text)
 
     def set_icon(self, pixbuf):
         self.icon.set_from_pixbuf(pixbuf)
 
+
+
+gobject.type_register(TabLabel)
+gobject.signal_new("new-name", TabLabel, gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, (object,))
