@@ -63,6 +63,10 @@ class Viewer (gtk.VBox):
         self._notebook = None
         self._history = NodeHistory()
 
+        # register viewer
+        self._main_window.add_viewer(self)
+        
+
     def get_id(self):
         return self._viewerid
 

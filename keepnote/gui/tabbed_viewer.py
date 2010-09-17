@@ -188,6 +188,7 @@ class TabbedViewer (Viewer):
             viewer.disconnect(callid)
         del self._callbacks[viewer]
         del self._tab_names[viewer]
+        self._main_window.remove_viewer(viewer)
 
         if pos == self._tabs.get_current_page():
             viewer.remove_ui(self._main_window)
@@ -303,11 +304,8 @@ class TabbedViewer (Viewer):
         if notebook is None:
             return self._current_viewer.set_notebook(notebook)
         else:
-            # TODO: perhaps make this lookup by id
-            # TODO: a notebook opened in two or more windows will stomp on the 
-            # viewer/tabbed_viewer/tabs config value
-            tabs = notebook.pref.get("viewers", "tabbed_viewer", "tabs",
-                                     default=[])
+            tabs = notebook.pref.get("viewers", "ids", self._viewerid,
+                                     "tabs", default=[])
 
             if len(tabs) > 0:
                 for tab in tabs:
@@ -338,7 +336,8 @@ class TabbedViewer (Viewer):
 
                 # set tab focus
                 current_id = notebook.pref.get(
-                    "viewers", "tabbed_viewer",  "current_viewer", default="")
+                    "viewers", "ids",  self._viewerid, 
+                    "current_viewer", default="")
                 for i, viewer in enumerate(self.iter_viewers()):
                     if viewer.get_id() == current_id:
                         self._tabs.set_current_page(i)
@@ -387,7 +386,7 @@ class TabbedViewer (Viewer):
             
         # clear tab info for all open notebooks
         for notebook in notebooks:
-            tabs = notebook.pref.get("viewers", "tabbed_viewer", "tabs",
+            tabs = notebook.pref.get("viewers", "ids", self._viewerid, "tabs",
                                      default=[])
             tabs[:] = []
 
@@ -397,7 +396,8 @@ class TabbedViewer (Viewer):
         for viewer in self.iter_viewers():
             notebook = viewer.get_notebook()
             if notebook:
-                tabs = notebook.pref.get("viewers", "tabbed_viewer", "tabs")
+                tabs = notebook.pref.get(
+                    "viewers", "ids", self._viewerid, "tabs")
                 node = viewer.get_current_page()
                 name = self._tab_names[viewer]
                 tabs.append(
@@ -407,7 +407,7 @@ class TabbedViewer (Viewer):
 
                 # mark current viewer
                 if viewer == current_viewer:
-                    notebook.pref.set("viewers", "tabbed_viewer", 
+                    notebook.pref.set("viewers", "ids", self._viewerid,
                                       "current_viewer", viewer.get_id())
         
 

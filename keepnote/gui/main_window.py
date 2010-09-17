@@ -57,6 +57,7 @@ from keepnote.notebook import \
      NoteBookTrash
 from keepnote import notebook as notebooklib
 from keepnote import tasklib
+from keepnote import orderdict
 from keepnote.gui import \
      get_resource, \
      get_resource_image, \
@@ -97,6 +98,7 @@ class KeepNoteWindow (gtk.Window):
         
         self._app = app # application object
         self._winid = winid if winid else unicode(uuid.uuid4())
+        self._viewers = []
 
         # window state
         self._maximized = False     # True if window is maximized
@@ -217,6 +219,9 @@ class KeepNoteWindow (gtk.Window):
         self._statusicon_menu.popup(None, None, None, button, time)
 
 
+    #==============================================
+    # viewers
+
     def new_viewer(self):
         """Creates a new viewer for this window"""
 
@@ -230,6 +235,24 @@ class KeepNoteWindow (gtk.Window):
 
         return viewer
 
+
+    def add_viewer(self, viewer):
+        
+        self._viewers.append(viewer)
+
+    def remove_viewer(self, viewer):
+
+        self._viewers.remove(self, viewer)
+
+    def get_all_viewers(self):
+
+        return self._viewers
+
+
+    def get_all_notebooks(self):
+
+        return set(filter(lambda v: v is not None,
+                          (v.get_notebook() for v in self._viewers)))
 
     #===============================================
     # accessors
@@ -577,11 +600,14 @@ class KeepNoteWindow (gtk.Window):
         """Saves the current notebook"""
 
         try:
-            # TODO: remove hard-coded viewer type
-            #p = notebook.pref.get("windows", "ids", define=True)
-            #p[self._winid] = {
-            #    "viewer_type": "tabbed_viewer",
-            #    "viewerid": self.viewer.get_id()}
+            for notebook in self.get_all_notebooks():
+                p = notebook.pref.get("windows", "ids", define=True)
+                p[self._winid] = {
+                        "viewer_type": "tabbed_viewer",
+                        "viewerid": self.viewer.get_id()}
+
+                # clear viewer info
+                notebook.pref.set("viewers", "ids", orderdict.OrderDict())
             
             self.viewer.save()            
             self.set_status(_("Notebook saved"))
@@ -691,6 +717,55 @@ class KeepNoteWindow (gtk.Window):
             if notebook is None:
                 return None
         
+
+        # determine whether to open new windows or use this one
+        windows = notebook.pref.get("windows", "ids", define=True)
+        notebook.pref.get("viewers", "ids", define=True)
+        if len(windows) == 1:
+            p = windows.values()[0]
+            old_id = p.get("viewerid", None)
+            if old_id is not None:
+                # use this window
+                if len(self.get_all_notebooks()) == 0:
+                    # no notebooks are open, so it is ok to reassign 
+                    # the viewer's id to match the notebook pref
+                    self._winid = windows.keys()[0]
+                    if old_id:
+                        self.viewer.set_id(old_id)
+                else:
+                    # notebooks are open, so reassign the notebook's pref to
+                    # macth the existing viewer
+                    p["viewerid"] = self.viewer.get_id()
+
+                    p2 = notebook.pref.get("viewers", "ids", old_id, 
+                                           define=True)
+                    notebook.pref.set("viewers", "ids", 
+                                      self.viewer.get_id(), p2)
+                    if old_id in notebook.pref.get("viewers", "ids"):
+                        del notebook.pref.get("viewers", "ids")[old_id]
+
+        else:
+            items = iter(windows.items())
+
+            # special case: reuse this window if no notebooks
+            if len(self.get_all_notebooks()) == 0:
+                windowid, win_pref = items.next()
+                viewerid = win_pref.get("viewerid", None)
+                if viewerid:
+                    self.viewer.set_id(viewerid)
+                self._winid = windowid
+                self.set_notebook(notebook)
+
+            for windowid, win_pref in items:
+                win = self._app.new_window()
+                viewerid = win_pref.get("viewerid", None)
+                if viewerid:
+                    win.get_viewer().set_id(viewerid)
+                self._app.ref_notebook(notebook)
+                win.set_notebook(notebook)
+
+
+
         # setup notebook
         self.set_notebook(notebook)
         
@@ -698,7 +773,6 @@ class KeepNoteWindow (gtk.Window):
         if not new:
             self.set_status(_("Loaded '%s'") % self.viewer.get_notebook().get_title())
         
-        #self.on_notebook_modified(False)
         self.update_title()
 
 
@@ -708,10 +782,7 @@ class KeepNoteWindow (gtk.Window):
 
         if self.viewer.get_notebook()._index.index_needed():
             self.update_index()
-
-        # setup auto-saving
-        #self._app.begin_auto_save()
-
+        
         return self.viewer.get_notebook()
         
         
@@ -739,10 +810,7 @@ class KeepNoteWindow (gtk.Window):
 
     def set_notebook(self, notebook):
         """Set the NoteBook for the window"""
-
-        # TODO: install close event listener.
-        # still need to think about when to uninstall, though
-
+        
         self.viewer.set_notebook(notebook)
 
 

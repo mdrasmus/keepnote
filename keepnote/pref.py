@@ -122,4 +122,3 @@ class Pref (object):
         """Set config value in preferences"""
         return set_pref(self._data, *args)
     
-

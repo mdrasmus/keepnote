@@ -52,6 +52,7 @@ from keepnote import tasklib
 from keepnote.notebook import \
      NoteBookError
 import keepnote.notebook as notebooklib
+from keepnote import orderdict
 import keepnote.gui.dialog_app_options
 import keepnote.gui.dialog_node_icon
 import keepnote.gui.dialog_wait
@@ -486,7 +487,12 @@ class KeepNote (keepnote.KeepNote):
 
     def save(self, silent=False):
         """Save all opened notebooks"""
-        
+
+        # all window info in notebooks
+        for notebook in self._notebooks.itervalues():
+            notebook.pref.get("windows", define=True)
+            notebook.pref.set("windows", "ids", orderdict.OrderDict())
+
         # save all the windows
         for window in self._windows:
             window.save_notebook(silent=silent)
