@@ -501,7 +501,8 @@ class NoteBookNode (object):
         self._notebook = notebook
         self._parent = parent
         self._basename = None
-        self._children = None        
+        self._children = None
+        self._has_children = None
         self._valid = True
         self._version = NOTEBOOK_FORMAT_VERSION
         
@@ -649,9 +650,7 @@ class NoteBookNode (object):
 
     def get_title(self):
         """Returns the display title of a node"""
-        if self._attr["title"] is None:
-            self.read_meta_data()
-        return self._attr["title"]
+        return self._attr.get("title", "")
     
     
     def get_parent(self):
@@ -925,11 +924,16 @@ class NoteBookNode (object):
     def has_children(self):
         """Return True if node has children"""
 
-        try:
-            self.iter_temp_children().next()
-            return True
-        except StopIteration:
-            return False
+        if self._children is None:
+            if self._has_children is None:
+                try:
+                    self.iter_temp_children().next()
+                    self._has_children = True
+                except StopIteration:
+                    self._has_children = False
+            return self._has_children
+        else:
+            return len(self._children) > 0
     
     
     def _get_children(self):
@@ -1921,7 +1925,7 @@ class NoteBookNodeFactory (object):
 
     def read_meta_data(self, filename, attr_defs):
         """Read a node meta data file"""
-
+        
         attr = {}
 
         try:

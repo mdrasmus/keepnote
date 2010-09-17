@@ -45,7 +45,7 @@ def open(filename, mode="r", tmp=None, codec=None):
     codec    -- preferred encoding
     """
     stream = SafeFile(filename, mode, tmp)
-
+    
     if codec:
         if "r" in mode:
             stream = codecs.getreader(codec)(stream)

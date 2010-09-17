@@ -298,7 +298,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
 
     def _on_node_changed_end(self, model, nodes):
-
+        
         # maintain proper expansion
         for node in nodes:
 
@@ -361,8 +361,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         #                    for path in paths]
 
         self.__sel_nodes = self.get_selected_nodes()
-
-
+        
         if self.__suppress_sel:
             self.get_selection().stop_emission("changed")
     
@@ -446,6 +445,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
     # selection
 
     def select_nodes(self, nodes):
+        """Select nodes in treeview"""
 
         # NOTE: for now only select one node
         if len(nodes) > 0:
@@ -463,18 +463,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
 
     def on_select_changed(self, treeselect): 
-        '''
-        model, paths = treeselect.get_selected_rows()
-        iters = []
-        for path in paths:
-            try:
-                iters.append(self.model.get_iter(path))
-            except:
-                pass
-
-        nodes = [self.model.get_value(it, self._node_col)
-                 for it in iters]
-        '''
+        """Callback for when selection changes"""
 
         nodes = self.get_selected_nodes()
         self.emit("select-nodes", nodes)
