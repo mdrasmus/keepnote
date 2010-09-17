@@ -5,8 +5,10 @@
 #
 
 PKG=keepnote
-#VERSION=0.6
 VERSION:=$(shell python -c 'import keepnote; print keepnote.PROGRAM_VERSION_TEXT')
+
+# build programs
+PYTHON=python2.5
 
 # release filenames
 SDIST_FILE=$(PKG)-$(VERSION).tar.gz
@@ -46,12 +48,12 @@ all: $(UPLOAD_FILES)
 # source distribution *.tar.gz
 sdist: $(SDIST)
 $(SDIST):
-	python setup.py sdist
+	$(PYTHON) setup.py sdist
 
 # RPM binary package
 rpm: $(RPM)
 $(RPM):
-	python setup.py bdist --format=rpm
+	$(PYTHON) setup.py bdist --format=rpm
 
 # Debian package
 deb: $(DEB)
@@ -90,7 +92,7 @@ $(WININSTALLER): $(WINEXE) $(WININSTALLER_SRC)
 	./wine.sh iscc $(WININSTALLER_SRC)
 
 $(WININSTALLER_SRC):
-	python pkg/win/make-win-installer-src.py \
+	$(PYTHON) pkg/win/make-win-installer-src.py \
 		pkg/win/installer-template.iss > $(WININSTALLER_SRC)
 
 winclean:
@@ -107,7 +109,7 @@ contribs:
 # upload
 
 pypi:
-	python setup.py register
+	$(PYTHON) setup.py register
 
 
 upload: $(UPLOAD_FILES)
