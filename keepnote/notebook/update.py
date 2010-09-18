@@ -76,7 +76,6 @@ def update_notebook(filename, desired_version, warn=lambda w: False,
                 for child in node.get_children():
                     walk(child)
             walk(notebook)
-            notebook.close()
 
             version = notebook.pref.version
 

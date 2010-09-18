@@ -1,7 +1,7 @@
 #!/bin/sh
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2010 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -18,12 +18,6 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
-. ./wine-env.sh
 
-echo 'set PATH=%PATH%;C:\GTK\\bin;C:\Python25;C:\Program Files\Inno Setup 5' > wine.bat
-echo $* >> wine.bat
-echo "pause" >> wine.bat
-
-#WINEDLLOVERRIDES="imagehlp,msimg=n" wine start wine.bat
-WINEDLLOVERRIDES="imagehlp,msimg=n" wineconsole --backend=curses wine.bat
+export WINEPREFIX=$HOME/sw/wine-keepnote
 

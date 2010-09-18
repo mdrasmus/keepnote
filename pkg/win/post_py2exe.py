@@ -35,6 +35,13 @@ def prune(path):
 # needed for win32ui
 include(find_path("windows/system32/mfc71.dll"), dest+"mfc71.dll")
 
+# needed for jpeg
+try:
+    include(find_path("windows/system32/jpeg62.dll"), dest+"jpeg62.dll")
+except:
+    include(find_path("GTK/bin/jpeg62.dll"), dest+"jpeg62.dll")
+
+
 # needed for sqlite on Windows 7
 #include("pkg/win/sqlite3.dll", dest+"sqlite3.dll")
 # doesn't work yet, breaks search
@@ -44,20 +51,7 @@ include(find_path("GTK/lib/gtk-2.0/2.10.0/engines"), dest+"lib/gtk-2.0/2.10.0/en
 include(find_path("GTK/lib/gtk-2.0/2.10.0/loaders"), dest+"lib/gtk-2.0/2.10.0/loaders")
 include(find_path("GTK/lib/pango"), dest+"lib/pango")
 
-# needed for jpeg
-include(find_path("GTK/bin/jpeg62.dll"), dest+"jpeg62.dll")
-
 include(find_path("GTK/etc"), dest+"etc")
-
-
-# OLD paths no long included
-#include(find_path("GTK/share/applications"), dest+"share/applications")
-#include(find_path("GTK/share/gettext"), dest+"share/gettext")
-#include(find_path("GTK/share/glib-2.0"), dest+"share/glib-2.0")
-#include(find_path("GTK/share/gtk-2.0"), dest+"share/gtk-2.0")
-#include(find_path("GTK/share/icons/hicolor/16x16/stock"), dest+"share/icons/hicolor/16x16/stock")
-
-
 include(find_path("GTK/share/glade3"), dest+"share/glade3")
 include(find_path("GTK/share/gtkthemeselector"), dest+"share/gtkthemeselector")
 include("share/icons/gnome/16x16/actions", dest+"share/icons/hicolor/16x16/actions")
