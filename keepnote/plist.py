@@ -117,11 +117,7 @@ def dump(elm, out=sys.stdout, indent=0, depth=0, suppress=False):
             if indent:
                 out.write(" " * (depth + indent))
             out.write(u"<key>%s</key>" % key)
-            #if indent:
-            #    out.write(u"\n")
             dump(val, out, indent, depth+indent, suppress=True)
-            #if indent:
-            #   out.write(u"\n")
         if indent:
             out.write(" " * depth)
         out.write(u"</dict>")

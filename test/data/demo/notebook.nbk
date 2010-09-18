@@ -1,35 +1,99 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <notebook>
-<version>3</version>
-<default_font>Sans 10</default_font>
-<index_dir></index_dir>
-<selected_treeview_nodes>ec653a9e-5d44-4400-a4de-ba376c3b4921</selected_treeview_nodes>
-<selected_listview_nodes>ec653a9e-5d44-4400-a4de-ba376c3b4921</selected_listview_nodes>
-<quick_pick_icons>
-<icon>folder.png</icon>
-<icon>folder-red.png</icon>
-<icon>folder-orange.png</icon>
-<icon>folder-yellow.png</icon>
-<icon>folder-green.png</icon>
-<icon>folder-blue.png</icon>
-<icon>folder-violet.png</icon>
-<icon>folder-grey.png</icon>
-<icon>note.png</icon>
-<icon>note-red.png</icon>
-<icon>note-orange.png</icon>
-<icon>note-yellow.png</icon>
-<icon>note-green.png</icon>
-<icon>note-blue.png</icon>
-<icon>note-violet.png</icon>
-<icon>note-grey.png</icon>
-<icon>star.png</icon>
-<icon>heart.png</icon>
-<icon>check.png</icon>
-<icon>x.png</icon>
-<icon>important.png</icon>
-<icon>question.png</icon>
-<icon>web.png</icon>
-<icon>note-unknown.png</icon>
-</quick_pick_icons>
+<version>4</version>
+<pref>
+    <dict>
+        <key>version</key><integer>4</integer>
+        <key>default_font</key><string>Sans 10</string>
+        <key>index_dir</key><string></string>
+        <key>selected_treeview_nodes</key><array>
+            <string>ec653a9e-5d44-4400-a4de-ba376c3b4921</string>
+        </array>
+        <key>selected_listview_nodes</key><array>
+            <string>ec653a9e-5d44-4400-a4de-ba376c3b4921</string>
+        </array>
+        <key>quick_pick_icons</key><array>
+            <string>folder.png</string>
+            <string>folder-red.png</string>
+            <string>folder-orange.png</string>
+            <string>folder-yellow.png</string>
+            <string>folder-green.png</string>
+            <string>folder-blue.png</string>
+            <string>folder-violet.png</string>
+            <string>folder-grey.png</string>
+            <string>note.png</string>
+            <string>note-red.png</string>
+            <string>note-orange.png</string>
+            <string>note-yellow.png</string>
+            <string>note-green.png</string>
+            <string>note-blue.png</string>
+            <string>note-violet.png</string>
+            <string>note-grey.png</string>
+            <string>star.png</string>
+            <string>heart.png</string>
+            <string>check.png</string>
+            <string>x.png</string>
+            <string>important.png</string>
+            <string>question.png</string>
+            <string>web.png</string>
+            <string>note-unknown.png</string>
+        </array>
+        <key>windows</key><dict>
+            <key>ids</key><dict>
+                <key>4159129d-ba51-46eb-b99e-9827f3c6ba38</key><dict>
+                    <key>viewerid</key><string>0321ce6a-e2df-4591-880c-27d9554777d1</string>
+                    <key>viewer_type</key><string>tabbed_viewer</string>
+                </dict>
+            </dict>
+        </dict>
+        <key>viewers</key><dict>
+            <key>ids</key><dict>
+                <key>7e24a4dc-bf3c-45cf-a9ed-4f3953d696d7</key><dict>
+                    <key>selected_treeview_nodes</key><array>
+                        <string>7095d0be-1014-4dc3-90e0-4e1d48f20440</string>
+                    </array>
+                    <key>selected_listview_nodes</key><array>
+                        <string>7095d0be-1014-4dc3-90e0-4e1d48f20440</string>
+                    </array>
+                </dict>
+                <key>b8b925ae-2398-4a60-a889-8be4f2dbc505</key><dict>
+                    <key>selected_treeview_nodes</key><array>
+                        <string>9e75f88d-a5d2-47ef-a2ac-23b9f30c11d5</string>
+                    </array>
+                    <key>selected_listview_nodes</key><array>
+                        <string>9e75f88d-a5d2-47ef-a2ac-23b9f30c11d5</string>
+                    </array>
+                </dict>
+                <key>f46d03c4-0ee7-4c81-8d5a-df65ab9a11ba</key><dict>
+                    <key>selected_treeview_nodes</key><array>
+                        <string>88b1ddf5-b02a-4f0c-930e-feacfa03c4f8</string>
+                    </array>
+                    <key>selected_listview_nodes</key><array>
+                        <string>88b1ddf5-b02a-4f0c-930e-feacfa03c4f8</string>
+                    </array>
+                </dict>
+                <key>0321ce6a-e2df-4591-880c-27d9554777d1</key><dict>
+                    <key>tabs</key><array>
+                        <dict>
+                            <key>viewerid</key><string>7e24a4dc-bf3c-45cf-a9ed-4f3953d696d7</string>
+                            <key>viewer_type</key><string>three_pane_viewer</string>
+                            <key>name</key><string>collaborators</string>
+                        </dict>
+                        <dict>
+                            <key>viewerid</key><string>b8b925ae-2398-4a60-a889-8be4f2dbc505</string>
+                            <key>viewer_type</key><string>three_pane_viewer</string>
+                            <key>name</key><string></string>
+                        </dict>
+                        <dict>
+                            <key>viewerid</key><string>f46d03c4-0ee7-4c81-8d5a-df65ab9a11ba</string>
+                            <key>viewer_type</key><string>three_pane_viewer</string>
+                            <key>name</key><string></string>
+                        </dict>
+                    </array>
+                    <key>current_viewer</key><string>7e24a4dc-bf3c-45cf-a9ed-4f3953d696d7</string>
+                </dict>
+            </dict>
+        </dict>
+    </dict>
+</pref>
 </notebook>
-

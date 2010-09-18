@@ -113,29 +113,27 @@ class TabbedViewer (Viewer):
         self._viewer_lookup.add("three_pane_viewer", ThreePaneViewer)
 
 
-    def _on_button_press(self, widget, event):
-        if event.button == 1 and event.type == gtk.gdk._2BUTTON_PRESS:
-            # double click, start tab name editing
-            label = self._tabs.get_tab_label(self._tabs.get_nth_page(
-                    self._tabs.get_current_page()))
-            label.start_editing()
+    def get_current_viewer(self):
+        """Get currently focused viewer"""
+        pos = self._tabs.get_current_page()
+        if pos == -1:
+            return self._null_viewer
+        else:
+            return self._tabs.get_nth_page(pos)
 
-            
-    def _on_new_tab_name(self, viewer, name):
-        
-        if name == "":
-            name = None            
-        self._tab_names[viewer] = name
 
-        if name is None:
-            self.on_tab_current_node(viewer, viewer.get_current_page())
-    
+    def iter_viewers(self):
+        """Iterate through all viewers"""
+        for i in xrange(self._tabs.get_n_pages()):            
+            yield self._tabs.get_nth_page(i)
+
 
     def new_tab(self, viewer=None, init="current_node"):
         """Open a new tab with a viewer"""
         
         # TODO: make new tab appear next to existing tab
 
+        # create viewer and add to notebook
         if viewer is None:
             viewer = self._default_viewer(self._app, self._main_window)
         label = TabLabel(None, _("(Untitled)"))
@@ -146,7 +144,7 @@ class TabbedViewer (Viewer):
         self._tab_names[viewer] = None
         viewer.show_all()
 
-        # setup viewer
+        # setup viewer signals
         self._callbacks[viewer] = [
             viewer.connect("error", lambda w,m,e: self.emit("error", m, e)),
             viewer.connect("status", lambda w,m,b: self.emit("status", m, b)),
@@ -154,8 +152,11 @@ class TabbedViewer (Viewer):
                             self.emit("window-request", t)),
             viewer.connect("current-node", self.on_tab_current_node),
             viewer.connect("modified", self.on_tab_modified)]
+        
+        # load app pref
         viewer.load_preferences(self._app.pref, True)
 
+        # set notebook and node, if requested
         if init == "current_node":
             # replicate current view
             old_viewer = self._current_viewer
@@ -176,13 +177,16 @@ class TabbedViewer (Viewer):
     def close_tab(self, pos=None):
         """Close a tab"""
 
+        # do not close last tab
         if self._tabs.get_n_pages() <= 1:
             return
 
+        # determine tab to close
         if pos is None:
             pos = self._tabs.get_current_page()
-
         viewer = self._tabs.get_nth_page(pos)
+
+        # clean up viewer
         viewer.set_notebook(None)
         for callid in self._callbacks[viewer]:
             viewer.disconnect(callid)
@@ -190,26 +194,13 @@ class TabbedViewer (Viewer):
         del self._tab_names[viewer]
         self._main_window.remove_viewer(viewer)
 
+        # clean up possible ui
         if pos == self._tabs.get_current_page():
             viewer.remove_ui(self._main_window)
             self._current_viewer = None
 
+        # perform removal from notebook
         self._tabs.remove_page(pos)
-
-
-    def get_current_viewer(self):
-        """Get currently focused viewer"""
-        pos = self._tabs.get_current_page()
-        if pos == -1:
-            return self._null_viewer
-        else:
-            return self._tabs.get_nth_page(pos)
-
-
-    def iter_viewers(self):
-        """Iterate through all viewers"""
-        for i in xrange(self._tabs.get_n_pages()):            
-            yield self._tabs.get_nth_page(i)
 
     
     def _on_switch_tab(self, tabs, page, page_num):
@@ -295,6 +286,29 @@ class TabbedViewer (Viewer):
         pos = (pos + step) % self._tabs.get_n_pages()
         self._tabs.set_current_page(pos)
         
+
+    def _on_button_press(self, widget, event):
+
+        # NOTE: we are not checking whether double click is actually
+        # on tab.  We could add this check.
+
+        if event.button == 1 and event.type == gtk.gdk._2BUTTON_PRESS:
+            # double click, start tab name editing
+            label = self._tabs.get_tab_label(self._tabs.get_nth_page(
+                    self._tabs.get_current_page()))
+            label.start_editing()
+
+            
+    def _on_new_tab_name(self, viewer, name):
+        """Callback for when a tab gets a new name"""
+        
+        if name == "":
+            name = None            
+        self._tab_names[viewer] = name
+
+        if name is None:
+            self.on_tab_current_node(viewer, viewer.get_current_page())
+    
 
     #==============================================
 

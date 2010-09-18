@@ -163,7 +163,8 @@ def start_error_log(show_errors):
     stderr_except_msg = ""
     
     try:
-        sys.stderr.write(stderr_test_str)
+        if show_errors:
+            sys.stderr.write(stderr_test_str)
     except IOError:
         formatted_msg = traceback.format_exc().splitlines()
         stderr_except_msg = ''.join(['** stderr - unavailable for messages - ',

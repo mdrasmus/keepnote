@@ -1,9 +1,30 @@
 KeepNote Change Log
 -------------------
 
-
-keepnote-0.6.3
+keepnote-0.6.5
 --------------
+- optional tab naming (double click to rename)
+- tab persistence
+- new window config options
+  - keep above
+  - minimize on start
+  - sticky
+- new translations
+  - Polish
+- fixed bugs
+  - fixed default notebook bug
+  - fixed rename trash bug
+  - fixed keepnote launching from *.desktop files
+  - fixed text color bug
+  - increased notebook opening speed
+
+
+keepnote-0.6.4 (2010.7.23)
+--------------------------
+- fixed notebook file note found bug
+
+keepnote-0.6.3 (2010.7.4)
+-------------------------
 - added tabbed browsing
 - copy/cut/paste in treeview/listview
 - multiple selection in treeview/listview
