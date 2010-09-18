@@ -242,7 +242,7 @@ class KeepNoteWindow (gtk.Window):
 
     def remove_viewer(self, viewer):
 
-        self._viewers.remove(self, viewer)
+        self._viewers.remove(viewer)
 
     def get_all_viewers(self):
 
