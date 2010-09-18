@@ -37,7 +37,7 @@ import sys
 
 try:
     from .orderdict import OrderDict
-except ImportError:
+except (ImportError, ValueError):
     OrderDict = dict
 
 
