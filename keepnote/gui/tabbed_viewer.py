@@ -316,54 +316,58 @@ class TabbedViewer (Viewer):
         """Set the notebook for the viewer"""
         
         if notebook is None:
+            # clear the notebook in the viewer
             return self._current_viewer.set_notebook(notebook)
-        else:
-            tabs = notebook.pref.get("viewers", "ids", self._viewerid,
-                                     "tabs", default=[])
+        
 
-            if len(tabs) > 0:
-                for tab in tabs:
-                    viewer_type = self._viewer_lookup.get1(
-                        tab.get("viewer_type", ""))
-                    viewer = self._current_viewer
-                    
-                    if viewer.get_notebook() or type(viewer) != viewer_type:
-                        # create new tab if notebook already loaded or
-                        # viewer type does not match
-                        viewer = (viewer_type(
-                                self._app, self._main_window,
-                                tab.get("viewerid", None))
-                                  if viewer_type else None)
-                        self.new_tab(viewer, init="none")
-                    else:
-                        viewer.set_id(tab.get("viewerid", None))
+        # restore saved tabs
+        tabs = notebook.pref.get("viewers", "ids", self._viewerid,
+                                 "tabs", default=[])
+        
+        if len(tabs) == 0:
+            # no tabs to restore
+            if self._current_viewer.get_notebook():
+                # create one new tab
+                self.new_tab(init="none")
+            return self._current_viewer.set_notebook(notebook)
+        
+        
+        for tab in tabs:
+            # TODO: add check for unknown type
+            viewer_type = self._viewer_lookup.get1(tab.get("viewer_type", ""))
+            viewer = self._current_viewer
 
-                    # set tab name
-                    name = tab.get("name", "")
-                    if name:
-                        self._tab_names[viewer] = name
-                        self._tabs.get_tab_label(viewer).set_text(name)
-
-                    # set notebook and node
-                    viewer.set_notebook(notebook)
-
-
-                # set tab focus
-                current_id = notebook.pref.get(
-                    "viewers", "ids",  self._viewerid, 
-                    "current_viewer", default="")
-                for i, viewer in enumerate(self.iter_viewers()):
-                    if viewer.get_id() == current_id:
-                        self._tabs.set_current_page(i)
-                        break
-                        
-
-
+            if viewer.get_notebook() or type(viewer) != viewer_type:
+                # create new tab if notebook already loaded or
+                # viewer type does not match
+                viewer = (viewer_type(
+                        self._app, self._main_window,
+                        tab.get("viewerid", None))
+                          if viewer_type else None)
+                self.new_tab(viewer, init="none")
             else:
-                if self._current_viewer.get_notebook():
-                    # create one new tab
-                    self.new_tab(init="none")
-                return self._current_viewer.set_notebook(notebook)
+                # no notebook loaded, so adopt viewerid
+                viewer.set_id(tab.get("viewerid", None))
+
+            # set notebook and node
+            viewer.set_notebook(notebook)
+
+            # set tab name
+            name = tab.get("name", "")
+            if name:
+                self._tab_names[viewer] = name
+                self._tabs.get_tab_label(viewer).set_text(name)
+
+
+        # set tab focus
+        current_id = notebook.pref.get(
+            "viewers", "ids",  self._viewerid, 
+            "current_viewer", default="")
+        for i, viewer in enumerate(self.iter_viewers()):
+            if viewer.get_id() == current_id:
+                self._tabs.set_current_page(i)
+                break
+
 
 
     def get_notebook(self):
