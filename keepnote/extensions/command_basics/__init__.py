@@ -29,6 +29,9 @@
 import os
 import sys
 
+# gtk imports
+import gobject
+
 # keepnote imports
 import keepnote
 from keepnote import AppCommand
@@ -69,7 +72,8 @@ class Extension (keepnote.gui.extension.Extension):
             AppCommand("ext_path", self.on_extension_path,
                        metavar="PATH",
                        help="add an extension path for this session"),
-            AppCommand("quit", lambda app, args: app.quit(),
+            AppCommand("quit", lambda app, args: 
+                       gobject.idle_add(app.quit),
                        help="close all KeepNote windows"),
 
             AppCommand("view", self.on_view_note,

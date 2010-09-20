@@ -621,7 +621,12 @@ class KeepNoteWindow (gtk.Window):
     
     def reload_notebook(self):
         """Reload the current NoteBook"""
-        
+
+        # TODO: selection is not preserved in reload.
+
+        # TODO: make sure to understand how this will be effected by
+        # close_notebook closing all opened views of a notebook.
+
         if self.viewer.get_notebook() is None:
             self.error(_("Reloading only works when a notebook is open."))
             return
