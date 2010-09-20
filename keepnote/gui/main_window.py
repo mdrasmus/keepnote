@@ -621,7 +621,12 @@ class KeepNoteWindow (gtk.Window):
     
     def reload_notebook(self):
         """Reload the current NoteBook"""
-        
+
+        # TODO: selection is not preserved in reload.
+
+        # TODO: make sure to understand how this will be effected by
+        # close_notebook closing all opened views of a notebook.
+
         if self.viewer.get_notebook() is None:
             self.error(_("Reloading only works when a notebook is open."))
             return
@@ -659,14 +664,8 @@ class KeepNoteWindow (gtk.Window):
     def open_notebook(self, filename, new=False):
         """Opens a new notebook"""
         
-        # make sure filename is unicode
-        filename = ensure_unicode(filename, FS_ENCODING)
-        
-        # TODO: should this be moved deeper?
-        # convert filenames to their directories
-        if os.path.isfile(filename):
-            filename = os.path.dirname(filename)
-
+        filename = notebooklib.normalize_notebook_dirname(
+            filename, longpath=False)
 
         def update(task):
             # open notebook in GUI thread

@@ -67,6 +67,9 @@ class Stream (object):
     def write(self, text):
         self._callback(text)
 
+    def flush(self):
+        pass
+
 
 
 class PythonDialog (object):

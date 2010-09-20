@@ -212,6 +212,34 @@ def get_trash_dir(nodepath):
     return os.path.join(nodepath, TRASH_DIR)
 
 
+def normalize_notebook_dirname(filename, longpath=None):
+    """
+    Normalize a notebook filename
+
+    If the filename contains 'path/to/the-notebook/notebook.nbk', then 
+    return 'path/to/the-notebook'.
+
+    If the platform is windows (or longpath=True), then return the long 
+    file name prefix '\\\\?\\'.
+    """
+
+    filename = keepnote.ensure_unicode(filename, keepnote.FS_ENCODING)
+
+    # allow long file paths in windows
+    if (longpath is True or 
+        (longpath is None and keepnote.get_platform() == "windows")):
+        filename = "\\\\?\\" + filename
+
+    # ensure filename points to notebook directory
+    if os.path.isdir(filename):
+        return filename
+    elif os.path.isfile(filename):
+        # filename may be 'path/to/the-notebook/notebook.nbk'
+        return os.path.dirname(filename)
+    else:
+        raise NoteBookError(_("Cannot find notebook '%s'" % filename))
+
+
 #=============================================================================
 # HTML functions
 
@@ -1418,7 +1446,6 @@ class NoteBook (NoteBookDir):
         """Returns all children of this node"""
 
         # ensure trash folder exists
-
         if self._children is None:
             self._get_children()        
             self._init_trash()
@@ -1445,21 +1472,15 @@ class NoteBook (NoteBookDir):
     def load(self, filename=None):
         """Load the NoteBook from the file-system"""
 
-        filename = keepnote.ensure_unicode(filename, keepnote.FS_ENCODING)
-
+        # ensure filename points to notebook directory
         if filename is not None:
-            if os.path.isdir(filename):
-                self._set_basename(filename)
-            elif os.path.isfile(filename):
-                filename = os.path.dirname(filename)
-                self._set_basename(filename)
-            else:
-                raise NoteBookError(_("Cannot find notebook '%s'" % filename))
-            
+            filename = normalize_notebook_dirname(filename, longpath=False)
+            self._set_basename(filename)
+        
+        # read basic info
         self._trash_path = get_trash_dir(self.get_path())
         self.read_meta_data()
         self.read_preferences()
-
         self._init_index()
 
         self.notify_change(True)
@@ -1471,9 +1492,6 @@ class NoteBook (NoteBookDir):
         if force or self in self._dirty:
             self.write_meta_data()            
             self.write_preferences()
-
-        self._index.save()
-
         self._set_dirty(False)
 
         if force:
@@ -1482,6 +1500,7 @@ class NoteBook (NoteBookDir):
         else:
             for node in list(self._dirty):
                 node.save()
+        self._index.save()
         
         self._dirty.clear()
 
