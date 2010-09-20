@@ -1462,7 +1462,7 @@ class NoteBook (NoteBookDir):
 
         # ensure filename points to notebook directory
         if filename is not None:
-            filename = normalize_notebook_dirname(filename)
+            filename = normalize_notebook_dirname(filename, longpath=False)
             self._set_basename(filename)
         
         # read basic info
