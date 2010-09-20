@@ -769,16 +769,14 @@ class KeepNoteWindow (gtk.Window):
         # setup notebook
         self.set_notebook(notebook)
         
-        
         if not new:
-            self.set_status(_("Loaded '%s'") % self.viewer.get_notebook().get_title())
-        
+            self.set_status(_("Loaded '%s'") % 
+                            self.viewer.get_notebook().get_title())
         self.update_title()
 
 
         # save notebook to recent notebooks
         self.add_recent_notebook(filename)
-
 
         if self.viewer.get_notebook()._index.index_needed():
             self.update_index()

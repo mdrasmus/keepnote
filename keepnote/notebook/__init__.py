@@ -977,7 +977,19 @@ class NoteBookNode (object):
                 traceback.print_exception(*sys.exc_info())
                 continue                
                 # TODO: raise warning, not all children read
-                            
+    
+    
+    def load_child(self, basename):
+        """
+        Load a child from his base name
+        """
+        
+        # TODO: need to think about to prevent multiple loads of the same
+        # node.
+        path = self.get_path()
+        path2 = os.path.join(path, basename)
+        return self._notebook.read_node(self, path2)
+
     
     def _set_child_order(self):
         """Ensures that child know their order in the children list"""
