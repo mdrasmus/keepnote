@@ -660,13 +660,9 @@ class KeepNoteWindow (gtk.Window):
         return self.open_notebook(filename, new=True)
         
         
-    
-    def open_notebook(self, filename, new=False):
-        """Opens a new notebook"""
+    def _load_notebook(self, filename):
+        """Loads notebook in background with progress bar"""
         
-        filename = notebooklib.normalize_notebook_dirname(
-            filename, longpath=False)
-
         def update(task):
             # open notebook in GUI thread
             notebook = [None]
@@ -716,7 +712,12 @@ class KeepNoteWindow (gtk.Window):
             if notebook is None:
                 return None
         
+        return notebook
 
+
+    def _restore_windows(self, notebook):
+        """Restore multiple windows for notebook"""
+        
         # determine whether to open new windows or use this one
         windows = notebook.pref.get("windows", "ids", define=True)
         notebook.pref.get("viewers", "ids", define=True)
@@ -746,8 +747,8 @@ class KeepNoteWindow (gtk.Window):
         elif len(windows) > 1:
             items = iter(windows.items())
 
-            # special case: reuse this window if no notebooks
             if len(self.get_all_notebooks()) == 0:
+                # special case: reuse this window if no notebooks
                 windowid, win_pref = items.next()
                 viewerid = win_pref.get("viewerid", None)
                 if viewerid:
@@ -755,6 +756,7 @@ class KeepNoteWindow (gtk.Window):
                 self._winid = windowid
                 self.set_notebook(notebook)
 
+            # open remaining windows
             for windowid, win_pref in items:
                 win = self._app.new_window()
                 viewerid = win_pref.get("viewerid", None)
@@ -763,9 +765,17 @@ class KeepNoteWindow (gtk.Window):
                 self._app.ref_notebook(notebook)
                 win.set_notebook(notebook)
 
-
-
+        
+    
+    def open_notebook(self, filename, new=False):
+        """Opens a new notebook"""
+        
+        filename = notebooklib.normalize_notebook_dirname(
+            filename, longpath=False)
+        notebook = self._load_notebook(filename)
+        
         # setup notebook
+        self._restore_windows(notebook)
         self.set_notebook(notebook)
         
         if not new:
@@ -777,10 +787,12 @@ class KeepNoteWindow (gtk.Window):
         # save notebook to recent notebooks
         self.add_recent_notebook(filename)
 
-        if self.viewer.get_notebook()._index.index_needed():
-            self.update_index()
+        # check for indexing
+        # TODO: is this the best place for checking?
+        if notebook._index.index_needed():
+            self.update_index(notebook)
         
-        return self.viewer.get_notebook()
+        return notebook
         
         
     def close_notebook(self, save=True):
@@ -811,19 +823,22 @@ class KeepNoteWindow (gtk.Window):
         self.viewer.set_notebook(notebook)
 
 
-    def update_index(self):
+    def update_index(self, notebook=None):
         """Update notebook index"""
 
-        if not self.viewer.get_notebook():
+        if notebook is None:
+            notebook = self.viewer.get_notebook()
+
+        if not notebook:
             return
 
         def update(task):
             # erase database first
             # NOTE: I do this right now so that corrupt databases can be
             # cleared out of the way.
-            self.viewer.get_notebook()._index.clear()
+            notebook._index.clear()
 
-            for node in self.viewer.get_notebook()._index.index_all():
+            for node in notebook._index.index_all():
                 # terminate if search is canceled
                 if task.aborted():
                     break
@@ -925,10 +940,6 @@ class KeepNoteWindow (gtk.Window):
     def on_view_node_external_app(self, app, node=None, kind=None):
         """View a node with an external app"""
         
-        # TODO: move this to gui.app
-        # TODO: try to clean up
-
-        #self.save_notebook()
         self._app.save()
         
         # determine node to view
@@ -940,32 +951,7 @@ class KeepNoteWindow (gtk.Window):
             node = nodes[0]
 
         try:
-            if node.get_attr("content_type") == notebooklib.CONTENT_TYPE_PAGE:
-
-                if kind == "dir":
-                    filename = node.get_path()
-                else:
-                    # get html file
-                    filename = node.get_data_file()
-
-            elif node.get_attr("content_type") == notebooklib.CONTENT_TYPE_DIR:
-                # get node dir
-                filename = node.get_path()
-                
-            elif node.has_attr("payload_filename"):
-
-                if kind == "dir":
-                    filename = node.get_path()
-                else:
-                    # get payload file
-                    filename = os.path.join(node.get_path(),
-                                            node.get_attr("payload_filename"))
-            else:
-                raise KeepNoteError(_("Unable to dertermine note type."))
-            
-
-            self._app.run_external_app(app, os.path.realpath(filename))
-        
+            self._app.run_external_app_node(app, node, kind)
         except KeepNoteError, e:
             self.emit("error", e.msg, e, sys.exc_info()[2])
 

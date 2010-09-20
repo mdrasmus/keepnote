@@ -52,8 +52,8 @@ FS_ENCODING = sys.getfilesystemencoding()
 from keepnote.notebook import \
     NoteBookError, \
     get_unique_filename_list
+import keepnote.notebook as notebooklib
 import keepnote.timestamp
-import keepnote.notebook
 import keepnote.xdg
 from keepnote.listening import Listeners
 from keepnote.util import compose
@@ -774,7 +774,7 @@ class KeepNote (object):
         """Open a new notebook"""
         
         try:
-            notebook = keepnote.notebook.NoteBook()
+            notebook = notebooklib.NoteBook()
             notebook.load(filename)
         except Exception:
             return None
@@ -795,7 +795,7 @@ class KeepNote (object):
         """
 
         try:
-            filename = keepnote.notebook.normalize_notebook_dirname(
+            filename = notebooklib.normalize_notebook_dirname(
                 filename, longpath=False)
             filename = os.path.realpath(filename)
         except:
@@ -897,6 +897,37 @@ class KeepNote (object):
         # NOTE: I do not wait for any program yet
         if wait:
             return proc.wait()
+
+
+    def run_external_app_node(self, app_key, node, kind, wait=False):
+        """Runs an external application on a node"""
+
+        if node.get_attr("content_type") == notebooklib.CONTENT_TYPE_PAGE:
+
+            if kind == "dir":
+                filename = node.get_path()
+            else:
+                # get html file
+                filename = node.get_data_file()
+
+        elif node.get_attr("content_type") == notebooklib.CONTENT_TYPE_DIR:
+            # get node dir
+            filename = node.get_path()
+
+        elif node.has_attr("payload_filename"):
+
+            if kind == "dir":
+                filename = node.get_path()
+            else:
+                # get payload file
+                filename = os.path.join(node.get_path(),
+                                        node.get_attr("payload_filename"))
+        else:
+            raise KeepNoteError(_("Unable to dertermine note type."))
+
+
+        self.run_external_app(app_key, os.path.realpath(filename), wait=wait)
+
 
 
     def open_webpage(self, url):
