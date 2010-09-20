@@ -40,5 +40,5 @@ class TeeFileStream (object):
 
     def flush(self):
         for stream in self._streams:
-            stream.flush()            
+            stream.flush()
 

@@ -1434,7 +1434,6 @@ class NoteBook (NoteBookDir):
         """Returns all children of this node"""
 
         # ensure trash folder exists
-
         if self._children is None:
             self._get_children()        
             self._init_trash()
@@ -1481,9 +1480,6 @@ class NoteBook (NoteBookDir):
         if force or self in self._dirty:
             self.write_meta_data()            
             self.write_preferences()
-
-        self._index.save()
-
         self._set_dirty(False)
 
         if force:
@@ -1492,6 +1488,7 @@ class NoteBook (NoteBookDir):
         else:
             for node in list(self._dirty):
                 node.save()
+        self._index.save()
         
         self._dirty.clear()
 
