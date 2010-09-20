@@ -795,6 +795,8 @@ class KeepNote (object):
         """
 
         try:
+            filename = keepnote.notebook.normalize_notebook_dirname(
+                filename, longpath=False)
             filename = os.path.realpath(filename)
         except:
             return None
