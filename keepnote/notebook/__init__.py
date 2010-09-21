@@ -521,6 +521,9 @@ default_notebook_table = NoteBookTable("default", attrs=[title_attr,
 #=============================================================================
 # Notebook nodes
 
+# TODO: find all path manipulation and restate in terms of connection API
+
+
 class NoteBookNode (object):
     """A general base class for all nodes in a NoteBook"""
 
@@ -562,6 +565,9 @@ class NoteBookNode (object):
     def get_path(self):
         """Returns the directory path of the node"""
         
+        if self._basename is None:
+            return None
+
         # TODO: think about multiple parents
         path_list = []
         ptr = self
@@ -575,6 +581,9 @@ class NoteBookNode (object):
 
     def get_name_path(self):
         """Returns list of basenames from root to node"""
+
+        if self._basename is None:
+            return None
 
         # TODO: think about multiple parents
         path_list = []
@@ -772,17 +781,10 @@ class NoteBookNode (object):
 
         # perform on-disk move if new parent
         if old_parent != parent:
-            path2 = os.path.join(parent.get_path(), self._basename)
-            parent_path = os.path.dirname(path2)
-            path2 = get_valid_unique_filename(parent_path, self._attr["title"])
+            new_path = self._notebook._conn.move_node(self, parent)
+            self._set_basename(new_path)
+            self._notebook._index.add_node(self)
             
-            try:
-                os.rename(path, path2)
-                self._notebook._index.add_node(self)
-            except OSError, e:
-                raise NoteBookError(_("Do not have permission for move"), e)
-        
-            self._set_basename(path2)
 
         # perform move in data structure
         self._parent._remove_child(self)
@@ -816,18 +818,14 @@ class NoteBookNode (object):
             # just change the title
             self._attr["title"] = title
             self._set_dirty(True)
-        else:        
-            # try to pick a path that closely resembles the title
-            path = self.get_path()
-            parent_path = os.path.dirname(path)
-            path2 = get_valid_unique_filename(parent_path, title)
+        else:
 
             try:
-                os.rename(path, path2)
+                path2 = self._notebook._conn.rename_node(self, title)
                 self._attr["title"] = title
                 self._set_basename(path2)
                 self.save(True)
-            except (OSError, NoteBookError), e:
+            except NoteBookError, e:
                 raise NoteBookError(_("Cannot rename '%s' to '%s'" % (path, path2)), e)
         
         self._notebook._index.add_node(self)
@@ -839,10 +837,8 @@ class NoteBookNode (object):
         
         self.get_children()
         path = self.get_path()
-        newpath = get_valid_unique_filename(path, title)
-        node = self._notebook.new_node(content_type, newpath, self, 
+        node = self._notebook.new_node(content_type, None, self, 
                                        {"title": title})
-
         node.create()
         self._add_child(node, index)
         node.save(True)
@@ -857,10 +853,8 @@ class NoteBookNode (object):
         
         self.get_children()
         path = self.get_path()
-        newpath = get_valid_unique_filename(path, title)
-        node = self._notebook.new_node(content_type, newpath, self, 
+        node = self._notebook.new_node(content_type, None, self, 
                                        {"title": title})
-
         node.create()
         self._add_child(node, index)
         node.save(True)
@@ -897,17 +891,7 @@ class NoteBookNode (object):
                 node._attr[key] = value
 
         # copy files
-        path = self.get_path()
-        path2 = node.get_path()
-        for filename in os.listdir(path):
-            # skip special files
-            if filename == NODE_META_FILE or filename.startswith("__"):
-                continue
-
-            fullname = os.path.join(path, filename)
-            fullname2 = os.path.join(path2, filename)
-            if os.path.isfile(fullname):
-                shutil.copy(fullname, fullname2)
+        self._notebook._conn.copy_node_files(self, node)
 
         self._notebook._index.add_node(node)
         node.write_meta_data()
@@ -971,27 +955,13 @@ class NoteBookNode (object):
            Returns temporary node objects
         """
 
-        path = self.get_path()
-        
-        try:
-            files = os.listdir(path)
-        except OSError, e:
-            raise NoteBookError(_("Do not have permission to read folder contents: %s") % path, e)
-        
-        for filename in files:
-            path2 = os.path.join(path, filename)
-            if not os.path.isdir(path2):
-                continue
-            
+        for path in self._notebook._conn.node_list_children(self):
             try:
-                node = self._notebook.read_node(self, path2)
-                if node:
-                    yield node
-                
+                yield self._notebook.read_node(self, path)
             except NoteBookError, e:
                 print >>sys.stderr, "error reading", path2
                 traceback.print_exception(*sys.exc_info())
-                continue                
+                continue
                 # TODO: raise warning, not all children read
     
     
@@ -1000,6 +970,8 @@ class NoteBookNode (object):
         Load a child from his base name
         """
         
+        # TODO: remove path manipulation code
+
         # TODO: need to think about to prevent multiple loads of the same
         # node.
         path = self.get_path()
@@ -1081,12 +1053,17 @@ class NoteBookNode (object):
             
     def get_data_file(self):
         """Returns filename of data/text/html/etc"""
+
+        # TODO: use connection
+
         return get_page_data_file(self.get_path())
 
 
     def read_data_as_plain_text(self):
         """Iterates over the lines of the data file as plain text"""
         
+        # TODO: use connection
+
         filename = self.get_data_file()
         infile = safefile.open(filename, "r", codec="utf-8")
 
@@ -1098,6 +1075,9 @@ class NoteBookNode (object):
     
     def write_empty_data_file(self):
         """Initializes an empty data file on file-system"""
+        
+        # TODO: use connection
+
         datafile = self.get_data_file()
         
         try:
@@ -1188,36 +1168,6 @@ class NoteBookPage (NoteBookNode):
         self.write_empty_data_file()
 
 
-# TODO: in progress
-class NoteBookPlainText (NoteBookNode):
-    """Class that represents a plain text Page in the NoteBook"""
-    
-    def __init__(self, path, title=DEFAULT_PAGE_NAME,
-                 parent=None, notebook=None):
-        NoteBookNode.__init__(self, path, title, parent, notebook,
-                              content_type="text/plain")
-
-    def get_data_file(self):
-        """Returns filename of data/text/html/etc"""
-        return get_plain_text_data_file(self.get_path())
-
-
-    def read_data_as_plain_text(self):
-        """Iterates over the lines of the data file as plain text"""
-        return iter(safefile.open(self.get_data_file(), "r", codec="utf-8"))
-            
-    
-    def write_empty_data_file(self):
-        """Initializes an empty data file on file-system"""
-        datafile = self.get_data_file()
-        
-        try:
-            out = safefile.open(datafile, "w", codec="utf-8")
-            out.close()
-        except IOError, e:
-            raise NoteBookError(_("Cannot initialize richtext file '%s'" % datafile), e)
-
-
 class NoteBookDir (NoteBookNode):
     """Class that represents Folders in NoteBook"""
     
@@ -1285,8 +1235,6 @@ class NoteBookGenericFile (NoteBookNode):
 
         # set attr
         self._attr["payload_filename"] = os.path.basename(new_filename)
-        
-
 
 
 class NoteBookTrash (NoteBookDir):
@@ -1311,6 +1259,38 @@ class NoteBookTrash (NoteBookDir):
         """Trash folder cannot be deleted"""
         
         raise NoteBookError(_("The Trash folder cannot be deleted."))
+
+
+'''
+# TODO: in progress
+class NoteBookPlainText (NoteBookNode):
+    """Class that represents a plain text Page in the NoteBook"""
+    
+    def __init__(self, path, title=DEFAULT_PAGE_NAME,
+                 parent=None, notebook=None):
+        NoteBookNode.__init__(self, path, title, parent, notebook,
+                              content_type="text/plain")
+
+    def get_data_file(self):
+        """Returns filename of data/text/html/etc"""
+        return get_plain_text_data_file(self.get_path())
+
+
+    def read_data_as_plain_text(self):
+        """Iterates over the lines of the data file as plain text"""
+        return iter(safefile.open(self.get_data_file(), "r", codec="utf-8"))
+            
+    
+    def write_empty_data_file(self):
+        """Initializes an empty data file on file-system"""
+        datafile = self.get_data_file()
+        
+        try:
+            out = safefile.open(datafile, "w", codec="utf-8")
+            out.close()
+        except IOError, e:
+            raise NoteBookError(_("Cannot initialize richtext file '%s'" % datafile), e)
+'''
 
 
 
@@ -1855,8 +1835,28 @@ class NoteBookConnection (object):
         os.path.isdir(filename)
 
 
-
+        
+    def node_list_files(self, node, path=None):
+        if path is None:
+            path = node.get_path()
+        
+        for filename in os.listdir(path):
+            if (filename != NODE_META_FILE and 
+                not filename.startswith("__")):
+                fullname = os.path.join(path, filename)
+                if os.path.isfile(fullname):
+                    yield fullname
     
+    def copy_node_files(self, node1, node2):
+        
+        path1 = node1.get_path()
+        path2 = node2.get_path()
+        for filename in self._notebook._conn.node_list_files(node1, path1):
+            fullname1 = os.path.join(path1, filename)
+            fullname2 = os.path.join(path2, filename)
+            shutil.copy(fullname1, fullname2)
+            
+
     def read_node(self, parent, path):
         """
         Reads a node from disk
@@ -1864,18 +1864,8 @@ class NoteBookConnection (object):
         Returns None if not a node directory
         """
         
-        filename = os.path.basename(path)
         metafile = get_node_meta_file(path)
-        
-        if not os.path.exists(metafile):
-            return None
-
-        try:
-            attr = self.read_meta_data(metafile, self._notebook.attr_defs)
-        except IOError, e:
-            # ignore directory, not a NoteBook directory            
-            return None
-
+        attr = self._read_meta_data(metafile, self._notebook.attr_defs)
         return self._node_factory.new_node(
             attr.get("content_type", CONTENT_TYPE_DIR),
             path, parent, self._notebook, attr)
@@ -1885,15 +1875,16 @@ class NoteBookConnection (object):
     def read_node_meta_data(self, node):
         """Read a node meta data file"""
         node.set_meta_data(
-            self.read_meta_data(node.get_meta_file(), self._notebook.attr_defs))
+            self._read_meta_data(node.get_meta_file(), 
+                                 self._notebook.attr_defs))
 
     def write_node_meta_data(self, node):
         """Write a node meta data file"""
-        self.write_meta_data(node.get_meta_file(), node, 
-                             self._notebook.attr_defs)
+        self._write_meta_data(node.get_meta_file(), node, 
+                              self._notebook.attr_defs)
     
 
-    def write_meta_data(self, filename, node, attr_defs):
+    def _write_meta_data(self, filename, node, attr_defs):
         """Write a node meta data file"""
         
         try:
@@ -1926,7 +1917,7 @@ class NoteBookConnection (object):
 
 
 
-    def read_meta_data(self, filename, attr_defs):
+    def _read_meta_data(self, filename, attr_defs):
         """Read a node meta data file"""
         
         attr = {}
@@ -1959,8 +1950,16 @@ class NoteBookConnection (object):
 
 
     def create_node(self, node):
+
+        path = node.get_path()
+        if path is None:
+            parent_path = node.get_parent().get_path()
+            path = get_valid_unique_filename(
+                parent_path, node.get_attr("title", _("New Page")))
+            node._set_basename(path)
+
         try:
-            os.mkdir(node.get_path())
+            os.mkdir(path)
             self.write_node_meta_data(node)
         except OSError, e:
             raise NoteBookError(_("Cannot create node"), e)
@@ -1971,6 +1970,51 @@ class NoteBookConnection (object):
         except OSError, e:
             raise NoteBookError(_("Do not have permission to delete"), e)
         
+
+    def move_node(self, node, new_parent):
+        
+        old_path = node.get_path()
+
+        new_path = os.path.join(new_parent.get_path(), node.get_basename())
+        new_parent_path = os.path.dirname(new_path)
+        new_path = get_valid_unique_filename(
+            new_parent_path, node.get_attr("title", _("New Page")))
+
+        try:
+            os.rename(old_path, new_path)
+        except OSError, e:
+            raise NoteBookError(_("Do not have permission for move"), e)
+
+        return new_path
+
+    def rename_node(self, node, title):
+        
+        # try to pick a path that closely resembles the title
+        path = node.get_path()
+        parent_path = os.path.dirname(path)
+        path2 = get_valid_unique_filename(parent_path, title)
+
+        try:
+            os.rename(path, path2)
+        except OSError, e:
+            raise NoteBookError(_("Cannot rename '%s' to '%s'" % (path, path2)), e)
+        
+        return path2
+
+
+    def node_list_children(self, node, path=None):
+        if path is None:
+            path = node.get_path()
+        
+        try:
+            files = os.listdir(path)
+        except OSError, e:
+            raise NoteBookError(_("Do not have permission to read folder contents: %s") % path, e)
+        
+        for filename in files:
+            path2 = os.path.join(path, filename)
+            if os.path.exists(get_node_meta_file(path2)):
+                yield path2
 
 
 #=============================================================================
