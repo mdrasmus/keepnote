@@ -557,63 +557,25 @@ class NoteBookNode (object):
         return self._notebook
 
 
-
-
     #==============================================
     # filesystem path functions
 
     def get_path(self):
         """Returns the directory path of the node"""
-        
-        if self._basename is None:
-            return None
-
-        # TODO: think about multiple parents
-        path_list = []
-        ptr = self
-        while ptr is not None:
-            path_list.append(ptr._basename)
-            ptr = ptr._parent
-        path_list.reverse()
-        
-        return os.path.join(* path_list)
-
+        return self._notebook._conn.get_node_path(self)
 
     def get_name_path(self):
         """Returns list of basenames from root to node"""
-
-        if self._basename is None:
-            return None
-
-        # TODO: think about multiple parents
-        path_list = []
-        ptr = self
-        while ptr is not None:
-            path_list.append(ptr._basename)
-            ptr = ptr._parent
-        path_list.pop()
-        path_list.reverse()
-        return path_list
-    
+        return self._notebook._conn.get_node_name_path(self)    
     
     def _set_basename(self, path):
         """Sets the basename directory of the node"""
+        self._notebook._conn.set_node_basename(self, path)
         
-        if self._parent is None:
-            # the root node can take a multiple directory path
-            self._basename = path
-        elif path is None:
-            self._basename = None
-        else:
-            # non-root nodes can only take the last directory as a basename
-            self._basename = os.path.basename(path)
-    
 
     def get_basename(self):
         """Returns the basename of the node"""
-
         return self._basename
-
 
     def get_url(self, host=""):
         """Returns URL for node"""
@@ -882,22 +844,23 @@ class NoteBookNode (object):
                                  index=index)
         skip.add(node)
 
-        # record the nodeid of the original node
-        node._attr["duplicate_of"] = self.get_attr("nodeid")
-
         # copy attributes
         for key, value in self.iter_attr():
             if key not in ("nodeid", "order"):
                 node._attr[key] = value
 
+        # record the nodeid of the original node
+        node._attr["duplicate_of"] = self.get_attr("nodeid")
+
+        node.write_meta_data()
+
         # copy files
         self._notebook._conn.copy_node_files(self, node)
 
+        # update index
         self._notebook._index.add_node(node)
-        node.write_meta_data()
 
         # TODO: prevent loops, copy paste within same tree.
-
         if recurse:
             for child in self.get_children():
                 child.duplicate(node, recurse=True, notify=False,
@@ -917,13 +880,11 @@ class NoteBookNode (object):
         """Returns all children of this node"""
         if self._children is None:
             self._get_children()
-        
         return self._children
 
 
     def has_children(self):
         """Return True if node has children"""
-
         if self._children is None:
             if self._has_children is None:
                 try:
@@ -954,7 +915,6 @@ class NoteBookNode (object):
         """Iterate through children
            Returns temporary node objects
         """
-
         for path in self._notebook._conn.node_list_children(self):
             try:
                 yield self._notebook.read_node(self, path)
@@ -965,23 +925,8 @@ class NoteBookNode (object):
                 # TODO: raise warning, not all children read
     
     
-    def load_child(self, basename):
-        """
-        Load a child from his base name
-        """
-        
-        # TODO: remove path manipulation code
-
-        # TODO: need to think about to prevent multiple loads of the same
-        # node.
-        path = self.get_path()
-        path2 = os.path.join(path, basename)
-        return self._notebook.read_node(self, path2)
-
-    
     def _set_child_order(self):
         """Ensures that child know their order in the children list"""
-
         for i, child in enumerate(self._children):
             if child._attr["order"] != i:
                 child._attr["order"] = i
@@ -1000,6 +945,7 @@ class NoteBookNode (object):
         # propogate notebook
         child._notebook = self._notebook
         
+        # determine insert location
         if self._children is None:
             self._get_children()
         
@@ -1007,9 +953,8 @@ class NoteBookNode (object):
             # insert child at index
             self._children.insert(index, child)
             self._set_child_order()
-        elif self._notebook and \
-             len(self._children) > 0 and \
-             self._children[-1] == self._notebook.get_trash():
+        elif (self._notebook and len(self._children) > 0 and 
+              self._children[-1] == self._notebook.get_trash()):
             # append child before trash
             self._children.insert(len(self._children)-1, child)
             self._set_child_order()
@@ -1018,9 +963,8 @@ class NoteBookNode (object):
             child._attr["order"] = len(self._children)
             self._children.append(child)
 
-        # notify index
+        # notify index and mark dirty
         self._notebook._index.add_node(child)
-
         child._set_dirty(True)
     
 
@@ -1046,11 +990,11 @@ class NoteBookNode (object):
     
     def save(self, force=False):
         """Save node if modified (dirty)"""
-        
         if (force or self._is_dirty()) and self._valid:
             self.write_meta_data()
             self._set_dirty(False)
             
+
     def get_data_file(self):
         """Returns filename of data/text/html/etc"""
 
@@ -1210,6 +1154,8 @@ class NoteBookGenericFile (NoteBookNode):
         # determine new file name
         if new_filename is None:
             new_filename = os.path.basename(filename)
+
+        # TODO: replace with conn
         new_filename = get_valid_unique_filename(self.get_path(), new_filename)
         
         try:
@@ -1218,9 +1164,11 @@ class NoteBookGenericFile (NoteBookNode):
             
             if os.path.exists(filename) or parts[0] == "":
                 # perform local copy
+                # TODO: replace with conn
                 shutil.copy(filename, new_filename)
             else:
                 # perform download
+                # TODO: replace with conn
                 out = open(new_filename, "w")
                 infile = urllib2.urlopen(filename)
                 while True:
@@ -1233,6 +1181,7 @@ class NoteBookGenericFile (NoteBookNode):
         except IOError, e:
             raise NoteBookError(_("Cannot copy file '%s'" % filename), e)
 
+        # TODO: replace with conn
         # set attr
         self._attr["payload_filename"] = os.path.basename(new_filename)
 
@@ -1338,6 +1287,9 @@ class NoteBookPreferences (Pref):
 
 class NoteBook (NoteBookDir):
     """Class represents a NoteBook"""
+
+    # TODO: should I make a base class with a filename argument?
+    # TODO: replace os.path.basename with conn
     
     def __init__(self, rootdir=None):
         """rootdir -- Root directory of notebook"""
@@ -1377,6 +1329,11 @@ class NoteBook (NoteBookDir):
 
         # add node types
         self._init_default_node_types()
+
+
+    def _set_basename(self, path):
+        """Sets the basename directory of the node"""
+        self._basename = path
 
 
     def _init_default_attr(self):
@@ -1435,6 +1392,7 @@ class NoteBook (NoteBookDir):
     def create(self):
         """Initialize NoteBook on the file-system"""
         
+        # TODO: replace with conn
         NoteBookDir.create(self)
         os.mkdir(self.get_pref_dir())
         os.mkdir(self.get_icon_dir())
@@ -1592,6 +1550,9 @@ class NoteBook (NoteBookDir):
 
     #==============================================
     # icons
+
+    # TODO: think about how to replace icon interface with connection
+    # this may not be necessary
 
     def get_icon_file(self, basename):
         """Lookup icon filename in notebook icon store"""
@@ -1811,6 +1772,9 @@ class NoteBook (NoteBookDir):
 #=============================================================================
 # Filesystem interface
 
+# TODO: think about how "mounts" should work
+
+
 class NoteBookConnection (object):
     def __init__(self, notebook, node_factory):
         self._notebook = notebook
@@ -1835,10 +1799,74 @@ class NoteBookConnection (object):
         os.path.isdir(filename)
 
 
+    #================================
+    # path API
+
+    def get_node_path(self, node):
+        """Returns the path key of the node"""
+        
+        if node._basename is None:
+            return None
+
+        # TODO: think about multiple parents
+        path_list = []
+        ptr = node
+        while ptr is not None:
+            path_list.append(ptr._basename)
+            ptr = ptr._parent
+        path_list.reverse()
+        
+        return os.path.join(* path_list)
+
+
+    def get_node_name_path(self, node):
+        """Returns list of basenames from root to node"""
+
+        if node._basename is None:
+            return None
+
+        # TODO: think about multiple parents
+        path_list = []
+        ptr = node
+        while ptr is not None:
+            path_list.append(ptr._basename)
+            ptr = ptr._parent
+        path_list.pop()
+        path_list.reverse()
+        return path_list
+    
+    
+    def set_node_basename(self, node, path):
+        """Sets the basename directory of the node"""
+        
+        if node._parent is None:
+            # the root node can take a multiple directory path
+            node._basename = path
+        elif path is None:
+            node._basename = None
+        else:
+            # non-root nodes can only take the last directory as a basename
+            node._basename = os.path.basename(path)
+
+
+
+
+    #===============
+    # file API
+
+    def get_node_file(self, node, filename, path=None):
+        if path is None:
+            path = self.get_node_path(node)
+        return os.path.join(path, filename)
+
         
     def node_list_files(self, node, path=None):
+        """
+        List data files in node
+        """
+
         if path is None:
-            path = node.get_path()
+            path = self.get_node_path(node)
         
         for filename in os.listdir(path):
             if (filename != NODE_META_FILE and 
@@ -1848,10 +1876,13 @@ class NoteBookConnection (object):
                     yield fullname
     
     def copy_node_files(self, node1, node2):
+        """
+        Copy all data files from node1 to node2
+        """
         
-        path1 = node1.get_path()
-        path2 = node2.get_path()
-        for filename in self._notebook._conn.node_list_files(node1, path1):
+        path1 = self.get_node_path(node1)
+        path2 = self.get_node_path(node2)
+        for filename in self.node_list_files(node1, path1):
             fullname1 = os.path.join(path1, filename)
             fullname2 = os.path.join(path2, filename)
             shutil.copy(fullname1, fullname2)
@@ -1949,14 +1980,16 @@ class NoteBookConnection (object):
         return attr
 
 
-    def create_node(self, node):
+    def create_node(self, node, path=None):
 
-        path = node.get_path()
         if path is None:
+            path = self.get_node_path(node)
+        if path is None:
+            # use title to set path
             parent_path = node.get_parent().get_path()
             path = get_valid_unique_filename(
                 parent_path, node.get_attr("title", _("New Page")))
-            node._set_basename(path)
+            self.set_node_basename(path)
 
         try:
             os.mkdir(path)
@@ -1973,10 +2006,8 @@ class NoteBookConnection (object):
 
     def move_node(self, node, new_parent):
         
-        old_path = node.get_path()
-
-        new_path = os.path.join(new_parent.get_path(), node.get_basename())
-        new_parent_path = os.path.dirname(new_path)
+        old_path = self.get_node_path(node)
+        new_parent_path = self.get_node_path(new_parent)
         new_path = get_valid_unique_filename(
             new_parent_path, node.get_attr("title", _("New Page")))
 
@@ -1990,7 +2021,7 @@ class NoteBookConnection (object):
     def rename_node(self, node, title):
         
         # try to pick a path that closely resembles the title
-        path = node.get_path()
+        path = self.get_node_path(node)
         parent_path = os.path.dirname(path)
         path2 = get_valid_unique_filename(parent_path, title)
 
@@ -2004,7 +2035,7 @@ class NoteBookConnection (object):
 
     def node_list_children(self, node, path=None):
         if path is None:
-            path = node.get_path()
+            path = self.get_node_path(node)
         
         try:
             files = os.listdir(path)
