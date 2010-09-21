@@ -692,32 +692,20 @@ class NoteBookNode (object):
 
     def create(self):
         """Initializes the node on disk (create required files/directories)"""
-        path = self.get_path()
-        
-        try:
-            os.mkdir(path)
-        except OSError, e:
-            raise NoteBookError(_("Cannot create node"), e)
-            
+
         self._attr["created_time"] = get_timestamp()
         self._attr["modified_time"] = get_timestamp()
-        self.write_meta_data()
+        self._notebook._conn.create_node(self)
         self._set_dirty(False)
-
-        # TODO: move to NoteBookPage
-        if self._attr["content_type"] == CONTENT_TYPE_PAGE:
-            self.write_empty_data_file()
        
     
     def delete(self):
         """Deletes this node from the notebook"""
 
-        path = self.get_path()
-        try:      
-            shutil.rmtree(path)
-        except OSError, e:
-            raise NoteBookError(_("Do not have permission to delete"), e)
+        # perform delete on disk
+        self._notebook._conn.delete_node(self)
         
+        # update data structure
         self._parent._remove_child(self)
         self._parent._set_child_order()
         self._valid = False
@@ -1195,6 +1183,10 @@ class NoteBookPage (NoteBookNode):
         NoteBookNode.__init__(self, path, title, parent, notebook,
                               content_type=CONTENT_TYPE_PAGE)
 
+    def create(self):
+        NoteBookNode.create(self)
+        self.write_empty_data_file()
+
 
 # TODO: in progress
 class NoteBookPlainText (NoteBookNode):
@@ -1371,8 +1363,11 @@ class NoteBook (NoteBookDir):
         """rootdir -- Root directory of notebook"""
         
         rootdir = keepnote.ensure_unicode(rootdir, keepnote.FS_ENCODING)
-
         NoteBookDir.__init__(self, rootdir, notebook=self)
+
+        self._node_factory = NoteBookNodeFactory()
+        self._conn = NoteBookConnection(self, self._node_factory)
+        
         self.pref = NoteBookPreferences()
         if rootdir is not None:
             self._attr["title"] = os.path.basename(rootdir)
@@ -1381,7 +1376,6 @@ class NoteBook (NoteBookDir):
         self._dirty = set()
         self._trash = None
         self._index = None
-        self._node_factory = None
         self.attr_defs ={}
         self._necessary_attrs = []
         
@@ -1417,7 +1411,7 @@ class NoteBook (NoteBookDir):
     def _init_default_node_types(self):
         """Initialize default node types for notebook"""
         
-        self._node_factory = NoteBookNodeFactory()
+        self._node_factory.clear()
         self._node_factory.add_node_type(
             CONTENT_TYPE_DIR,
             lambda path, parent, notebook, attr:
@@ -1536,38 +1530,31 @@ class NoteBook (NoteBookDir):
         return len(self._dirty) > 0
 
 
+
     def read_node(self, parent, path):
         """Read a NoteBookNode"""
-        return self._node_factory.read_node(self, parent, path)
+        return self._conn.read_node(parent, path)
 
 
     def new_node(self, content_type, path, parent, attr):
         """Create a new NodeBookNode"""        
         node = self._node_factory.new_node(content_type, path,
                                            parent, self, attr)
-        #self._index.add_node(node)
         return node
 
 
     def write_meta_data(self):
-        self._node_factory.write_meta_data(self.get_meta_file(),
-                                           self,
-                                           self.attr_defs)
+        self._conn.write_node_meta_data(self)
 
     def read_meta_data(self):
-        attr = self._node_factory.read_meta_data(self.get_meta_file(),
-                                                 self.attr_defs)
-        self.set_meta_data(attr)
+        self._conn.read_node_meta_data(self)
 
     def write_node_meta_data(self, node):
-        self._node_factory.write_meta_data(node.get_meta_file(),
-                                           node,
-                                           self.attr_defs)
+        self._conn.write_node_meta_data(node)
 
     def read_node_meta_data(self, node):
-        attr = self._node_factory.read_meta_data(node.get_meta_file(),
-                                                 self.attr_defs)
-        node.set_meta_data(attr)
+        self._conn.read_node_meta_data(node)
+        
 
 
     #=====================================
@@ -1612,7 +1599,6 @@ class NoteBook (NoteBookDir):
     def is_trash_dir(self, child):
         """Returns True if child node is the Trash Folder"""
         return child.get_attr("content_type") == CONTENT_TYPE_TRASH
-        #path() == self._trash_path
 
 
     def empty_trash(self):
@@ -1712,6 +1698,8 @@ class NoteBook (NoteBookDir):
 
     def get_node_by_id(self, nodeid):
         """Lookup node by nodeid"""
+
+        # TODO: could make this more efficient by not loading all uncles
 
         path = self._index.get_node_path(nodeid)
         if path is None:
@@ -1840,41 +1828,41 @@ class NoteBook (NoteBookDir):
       
 
         
-        
-        
-
-
-
-
 #=============================================================================
-# Meta Data Parsing
+# Filesystem interface
+
+class NoteBookConnection (object):
+    def __init__(self, notebook, node_factory):
+        self._notebook = notebook
+        self._node_factory = node_factory
+
+    def open(self, filename, mode="r", codec="utf-8"):
+        return safefile.open(filename, mode, codec=codec)
+
+    def mkdir(self, filename):
+        os.mkdir(filename)
+
+    def remove(self, filename):
+        os.remove(filename)
+
+    def listdir(self, filename):
+        os.listdir(filename)
+
+    def isfile(self, filename):
+        os.path.isfile(filename)
+
+    def isdir(self, filename):
+        os.path.isdir(filename)
 
 
-class NoteBookNodeFactory (object):
-    """
-    This is a factory class that creates NoteBookNode's.  
-    """
 
-    def __init__(self):
-        self._makers = {}
-        #self._meta = NoteBookNodeMetaData()
-
-
-    def add_node_type(self, content_type, make_func):
-        """
-        Adds a new node content_type to the factory.
-        Enables factory to build nodes of the given type by calling the
-        given function 'make_func'.
-
-        make_func must have the signature:
-           make_func(path, parent, notebook, attr_dict)
-        """
-        
-        self._makers[content_type] = make_func
-        
     
-    def read_node(self, notebook, parent, path):
-        """Reads a node from disk"""
+    def read_node(self, parent, path):
+        """
+        Reads a node from disk
+
+        Returns None if not a node directory
+        """
         
         filename = os.path.basename(path)
         metafile = get_node_meta_file(path)
@@ -1883,46 +1871,28 @@ class NoteBookNodeFactory (object):
             return None
 
         try:
-            attr = self.read_meta_data(metafile, notebook.attr_defs)
+            attr = self.read_meta_data(metafile, self._notebook.attr_defs)
         except IOError, e:
             # ignore directory, not a NoteBook directory            
             return None
 
-        # NOTE: node can be None
-        node = self.new_node(attr.get("content_type", CONTENT_TYPE_DIR),
-                             path, parent, notebook, attr)
-        return node
+        return self._node_factory.new_node(
+            attr.get("content_type", CONTENT_TYPE_DIR),
+            path, parent, self._notebook, attr)
 
 
-    def new_node(self, content_type, path, parent, notebook, attr):
-        """Creates a new node given a content_type"""
-        
-        maker = self._makers.get(content_type, None)
-        if maker:
-            node = maker(path, parent, notebook, attr)
-            node.set_meta_data(attr)
-            return node
-        
-        elif "payload_filename" in attr:
-            # test for generic file
-            node = NoteBookGenericFile(path, 
-                                       filename=attr["payload_filename"],
-                                       title=attr.get("title", _("New File")),
-                                       content_type=content_type,
-                                       parent=parent, notebook=notebook)
-            node.set_meta_data(attr)
-            return node
-        
-        else:
-            # return unintialized generic file
-            node = NoteBookGenericFile(path, 
-                                       title=attr.get("title", _("New File")),
-                                       content_type=content_type,
-                                       parent=parent, notebook=notebook)
-            node.set_meta_data(attr)
-            return node
 
-   
+    def read_node_meta_data(self, node):
+        """Read a node meta data file"""
+        node.set_meta_data(
+            self.read_meta_data(node.get_meta_file(), self._notebook.attr_defs))
+
+    def write_node_meta_data(self, node):
+        """Write a node meta data file"""
+        self.write_meta_data(node.get_meta_file(), node, 
+                             self._notebook.attr_defs)
+    
+
     def write_meta_data(self, filename, node, attr_defs):
         """Write a node meta data file"""
         
@@ -1986,3 +1956,77 @@ class NoteBookNodeFactory (object):
                         attr[key] = UnknownAttr(child.text)
 
         return attr
+
+
+    def create_node(self, node):
+        try:
+            os.mkdir(node.get_path())
+            self.write_node_meta_data(node)
+        except OSError, e:
+            raise NoteBookError(_("Cannot create node"), e)
+
+    def delete_node(self, node):
+        try:
+            shutil.rmtree(node.get_path())
+        except OSError, e:
+            raise NoteBookError(_("Do not have permission to delete"), e)
+        
+
+
+#=============================================================================
+# Meta Data Parsing
+
+
+class NoteBookNodeFactory (object):
+    """
+    This is a factory class that creates NoteBookNode's.  
+    """
+
+    def __init__(self):
+        self._makers = {}
+
+    def clear(self):
+        self._makers.clear()
+
+    def add_node_type(self, content_type, make_func):
+        """
+        Adds a new node content_type to the factory.
+        Enables factory to build nodes of the given type by calling the
+        given function 'make_func'.
+
+        make_func must have the signature:
+           make_func(path, parent, notebook, attr_dict)
+        """
+        
+        self._makers[content_type] = make_func
+        
+
+    def new_node(self, content_type, path, parent, notebook, attr):
+        """Creates a new node given a content_type"""
+        
+        maker = self._makers.get(content_type, None)
+        if maker:
+            node = maker(path, parent, notebook, attr)
+            node.set_meta_data(attr)
+            return node
+        
+        elif "payload_filename" in attr:
+            # test for generic file
+            node = NoteBookGenericFile(path, 
+                                       filename=attr["payload_filename"],
+                                       title=attr.get("title", _("New File")),
+                                       content_type=content_type,
+                                       parent=parent, notebook=notebook)
+            node.set_meta_data(attr)
+            return node
+        
+        else:
+            # return unintialized generic file
+            node = NoteBookGenericFile(path, 
+                                       title=attr.get("title", _("New File")),
+                                       content_type=content_type,
+                                       parent=parent, notebook=notebook)
+            node.set_meta_data(attr)
+            return node
+
+   
