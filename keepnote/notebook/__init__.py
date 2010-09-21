@@ -1332,17 +1332,19 @@ class NoteBookPreferences (Pref):
         keepnote.Pref.__init__(self)
         
         self.quick_pick_icons_changed = Listeners()
-        self.clear()
+        self.init()
 
 
     def set_data(self, data):
+        self.init()
         self._data = data
+
 
     def get_data(self):
         return self._data
 
 
-    def clear(self):
+    def init(self):
         self._data["version"] = NOTEBOOK_FORMAT_VERSION
         self._data["quick_pick_icons"] = []
 

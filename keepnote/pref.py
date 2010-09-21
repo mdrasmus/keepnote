@@ -122,3 +122,7 @@ class Pref (object):
         """Set config value in preferences"""
         return set_pref(self._data, *args)
     
+
+    def clear(self, *args):
+        """Clear the config value"""
+        get_pref(self._data, *args, define=True).clear()

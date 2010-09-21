@@ -57,7 +57,6 @@ from keepnote.notebook import \
      NoteBookTrash
 from keepnote import notebook as notebooklib
 from keepnote import tasklib
-from keepnote import orderdict
 from keepnote.gui import \
      get_resource, \
      get_resource_image, \
@@ -607,7 +606,7 @@ class KeepNoteWindow (gtk.Window):
                         "viewerid": self.viewer.get_id()}
 
                 # clear viewer info
-                notebook.pref.set("viewers", "ids", orderdict.OrderDict())
+                notebook.pref.clear("viewers", "ids")
             
             self.viewer.save()            
             self.set_status(_("Notebook saved"))
