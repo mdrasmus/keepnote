@@ -524,7 +524,7 @@ default_notebook_table = NoteBookTable("default", attrs=[title_attr,
 class NoteBookNode (object):
     """A general base class for all nodes in a NoteBook"""
 
-    def __init__(self, path, title=u"", parent=None, notebook=None,
+    def __init__(self, title=u"", parent=None, notebook=None,
                  content_type=CONTENT_TYPE_DIR, conn=None):
         self._notebook = notebook
         self._conn = conn if conn else self._notebook._conn
@@ -540,7 +540,6 @@ class NoteBookNode (object):
         # TODO: add a mechanism to register implict attrs that in turn do lookup
         # "parent", "nchildren"
         
-        self._set_basename(path)
         
     def is_valid(self):
         """Returns True if node is valid (not deleted)"""
@@ -732,7 +731,6 @@ class NoteBookNode (object):
         # to be transferred.
         
         assert self != parent
-        path = self.get_path()
         old_parent = self._parent
         
         # make sure new parents children are loaded
@@ -795,7 +793,6 @@ class NoteBookNode (object):
         """Add a new node under this node"""
         
         self.get_children()
-        path = self.get_path()
         node = self._notebook.new_node(content_type, None, self, 
                                        {"title": title})
         node.create()
@@ -811,7 +808,6 @@ class NoteBookNode (object):
         """
         
         self.get_children()
-        path = self.get_path()
         node = self._notebook.new_node(content_type, None, self, 
                                        {"title": title})
         node.create()
@@ -852,7 +848,12 @@ class NoteBookNode (object):
         node.write_meta_data()
 
         # copy files
-        self._conn.copy_node_files(self, node)
+        try:
+            self._conn.copy_node_files(self, node)
+        except Exception, e:
+            print e
+            # TODO: handle errors
+            pass
 
         # update index
         self._notebook._index.add_node(node)
@@ -1070,9 +1071,9 @@ class NoteBookNode (object):
 class NoteBookPage (NoteBookNode):
     """Class that represents a Page in the NoteBook"""
     
-    def __init__(self, path, title=DEFAULT_PAGE_NAME,
+    def __init__(self, title=DEFAULT_PAGE_NAME,
                  parent=None, notebook=None):
-        NoteBookNode.__init__(self, path, title, parent, notebook,
+        NoteBookNode.__init__(self, title, parent, notebook,
                               content_type=CONTENT_TYPE_PAGE)
 
 
@@ -1107,16 +1108,16 @@ class NoteBookPage (NoteBookNode):
 class NoteBookDir (NoteBookNode):
     """Class that represents Folders in NoteBook"""
     
-    def __init__(self, path, title=DEFAULT_DIR_NAME,
+    def __init__(self, title=DEFAULT_DIR_NAME,
                  parent=None, notebook=None):
-        NoteBookNode.__init__(self, path, title, parent, notebook,
+        NoteBookNode.__init__(self, title, parent, notebook,
                               content_type=CONTENT_TYPE_DIR)
 
 
 class NoteBookGenericFile (NoteBookNode):
     """Class that generic file in NoteBook"""
     
-    def __init__(self, path, filename=None, title=None, content_type=None,
+    def __init__(self, filename=None, title=None, content_type=None,
                  parent=None, notebook=None):
 
         if filename:
@@ -1132,7 +1133,7 @@ class NoteBookGenericFile (NoteBookNode):
             if content_type is None:
                 content_type = "application/octet-stream"
         
-        NoteBookNode.__init__(self, path, title, parent, notebook,
+        NoteBookNode.__init__(self, title, parent, notebook,
                               content_type=content_type)
 
         if filename:
@@ -1181,8 +1182,8 @@ class NoteBookGenericFile (NoteBookNode):
 class NoteBookTrash (NoteBookDir):
     """Class represents the Trash Folder in a NoteBook"""
 
-    def __init__(self, path, name, notebook):
-        NoteBookDir.__init__(self, path, 
+    def __init__(self, name, notebook):
+        NoteBookDir.__init__(self,  
                              name, parent=notebook, notebook=notebook)
         self.set_attr("content_type", CONTENT_TYPE_TRASH)
         
@@ -1256,17 +1257,18 @@ class NoteBook (NoteBookDir):
         """rootdir -- Root directory of notebook"""
 
         self._conn = None
-        rootdir = keepnote.ensure_unicode(rootdir, keepnote.FS_ENCODING)
-        NoteBookDir.__init__(self, rootdir, notebook=self)
-
+        NoteBookDir.__init__(self, notebook=self)
+        
         self._node_factory = NoteBookNodeFactory()
         self._conn = NoteBookConnection(self, self._node_factory)
-        
         self.pref = NoteBookPreferences()
+
+        rootdir = keepnote.ensure_unicode(rootdir, keepnote.FS_ENCODING)
         if rootdir is not None:
             self._attr["title"] = os.path.basename(rootdir)
         else:
             self._attr["title"] = None
+        self._basename = rootdir
         self._dirty = set()
         self._trash = None
         self._index = None
@@ -1313,20 +1315,18 @@ class NoteBook (NoteBookDir):
         self._node_factory.clear()
         self._node_factory.add_node_type(
             CONTENT_TYPE_DIR,
-            lambda path, parent, notebook, attr:
-            NoteBookDir(path,
-                        parent=parent,
+            lambda parent, notebook, attr:
+            NoteBookDir(parent=parent,
                         notebook=notebook))
         self._node_factory.add_node_type(
             CONTENT_TYPE_PAGE,
-            lambda path, parent, notebook, attr:
-            NoteBookPage(path,
-                         parent=parent,
+            lambda parent, notebook, attr:
+            NoteBookPage(parent=parent,
                          notebook=notebook))
         self._node_factory.add_node_type(
             CONTENT_TYPE_TRASH,
-            lambda path, parent, notebook, attr:
-            NoteBookTrash(path, TRASH_NAME, notebook))
+            lambda parent, notebook, attr:
+            NoteBookTrash(TRASH_NAME, notebook))
 
 
     def add_attr_def(self, attr):
@@ -1811,7 +1811,7 @@ class NoteBookConnection (object):
             codec=codec)
 
         
-    def node_list_files(self, node, path=None):
+    def node_listdir(self, node, path=None):
         """
         List data files in node
         """
@@ -1823,8 +1823,10 @@ class NoteBookConnection (object):
             if (filename != NODE_META_FILE and 
                 not filename.startswith("__")):
                 fullname = os.path.join(path, filename)
-                if os.path.isfile(fullname):
-                    yield fullname
+                if not os.path.exists(get_node_meta_file(fullname)):
+                    # ensure directory is not a node
+                    yield filename
+
     
     def copy_node_files(self, node1, node2):
         """
@@ -1833,11 +1835,33 @@ class NoteBookConnection (object):
         
         path1 = self.get_node_path(node1)
         path2 = self.get_node_path(node2)
-        for filename in self.node_list_files(node1, path1):
+
+        for filename in self.node_listdir(node1, path1):
             fullname1 = os.path.join(path1, filename)
             fullname2 = os.path.join(path2, filename)
-            shutil.copy(fullname1, fullname2)
+            
+            if os.path.isfile(fullname1):
+                shutil.copy(fullname1, fullname2)
+            elif os.path.isdir(fullname1):
+                shutil.copytree(fullname1, fullname2)
 
+    
+    def copy_node_file(self, node1, filename1, node2, filename2,
+                       path1=None, path2=None):
+        """
+        Copy a file between two nodes
+        """
+        if path1 is None:
+            path1 = self.get_node_path(node1)
+        if path2 is None:
+            path2 = self.get_node_path(node2)
+        fullname1 = os.path.join(path1, filename1)
+        fullname2 = os.path.join(path2, filename2)
+        if os.path.isfile(fullname1):
+            shutil.copy(fullname1, fullname2)
+        elif os.path.isdir(fullname1):
+            shutil.copytree(fullname1, fullname2)
+        
 
 
     #======================
@@ -1991,6 +2015,7 @@ class NoteBookConnection (object):
     def node_list_children(self, node, path=None):
         if path is None:
             path = self.get_node_path(node)
+            assert path is not None, node
         
         try:
             files = os.listdir(path)
@@ -2036,26 +2061,27 @@ class NoteBookNodeFactory (object):
         
         maker = self._makers.get(content_type, None)
         if maker:
-            node = maker(path, parent, notebook, attr)
+            node = maker(parent, notebook, attr)
+            node._set_basename(path)
             node.set_meta_data(attr)
             return node
         
         elif "payload_filename" in attr:
             # test for generic file
-            node = NoteBookGenericFile(path, 
-                                       filename=attr["payload_filename"],
+            node = NoteBookGenericFile(filename=attr["payload_filename"],
                                        title=attr.get("title", _("New File")),
                                        content_type=content_type,
                                        parent=parent, notebook=notebook)
+            node._set_basename(path)
             node.set_meta_data(attr)
             return node
         
         else:
             # return unintialized generic file
-            node = NoteBookGenericFile(path, 
-                                       title=attr.get("title", _("New File")),
+            node = NoteBookGenericFile(title=attr.get("title", _("New File")),
                                        content_type=content_type,
                                        parent=parent, notebook=notebook)
+            node._set_basename(path)
             node.set_meta_data(attr)
             return node
 
