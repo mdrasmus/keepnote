@@ -204,6 +204,7 @@ class RichTextIO (object):
     def __init__(self):
         self._html_buffer = HtmlBuffer()
 
+    # TODO: generalize filesystem manipulation
     
     def save(self, textbuffer, filename, title=None):
         """Save buffer contents to file"""
@@ -288,6 +289,8 @@ class RichTextIO (object):
     
     def _load_images(self, textbuffer, path):
         """Load images present in textbuffer"""
+        
+        # TODO: generalize filesystem manipulation
 
         for kind, it, param in iter_buffer_contents(textbuffer,
                                                     None, None,
@@ -305,6 +308,8 @@ class RichTextIO (object):
     
     def _save_images(self, textbuffer, path):
         """Save images present in text buffer"""
+
+        # TODO: generalize filesystem manipulation
         
         for kind, it, param in iter_buffer_contents(textbuffer,
                                                     None, None,

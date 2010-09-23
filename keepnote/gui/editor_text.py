@@ -193,10 +193,14 @@ class TextEditor (KeepNoteEditor):
 
             try:
                 if page.has_attr("payload_filename"):
-                    text = safefile.open(
-                        os.path.join(page.get_path(),
-                                     page.get_attr("payload_filename")),
-                        codec="utf-8").read()
+                    infile = page.open_file(
+                        page.get_attr("payload_filename"))
+                    text = infile.read()
+                    infile.close()
+                    #text = safefile.open(
+                    #    os.path.join(page.get_path(),
+                    #                 page.get_attr("payload_filename")),
+                    #    codec="utf-8").read()
                     self._textview.get_buffer().set_text(text)
                     self._load_cursor()
                     
@@ -259,10 +263,12 @@ class TextEditor (KeepNoteEditor):
                 buf = self._textview.get_buffer()
                 text = unicode_gtk(buf.get_text(buf.get_start_iter(),
                                                 buf.get_end_iter()))
-                out = safefile.open(
-                    os.path.join(self._page.get_path(),
-                                 self._page.get_attr("payload_filename")), "w",
-                    codec="utf-8")
+                #out = safefile.open(
+                #    os.path.join(self._page.get_path(),
+                #                 self._page.get_attr("payload_filename")), "w",
+                #    codec="utf-8")
+                out = self._page.open_file(
+                    self._page.get_attr("payload_filename"), "w")
                 out.write(text)
                 out.close()
                 
