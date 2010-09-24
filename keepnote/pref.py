@@ -125,4 +125,5 @@ class Pref (object):
 
     def clear(self, *args):
         """Clear the config value"""
-        get_pref(self._data, *args, define=True).clear()
+        kargs = {"define": True}
+        get_pref(self._data, *args, **kargs).clear()
