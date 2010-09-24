@@ -39,7 +39,7 @@ import uuid
 
 # xml imports
 from xml.sax.saxutils import escape
-import xml.etree.cElementTree as ElementTree
+import xml.etree.cElementTree as ET
 
 
 # keepnote imports
@@ -282,7 +282,7 @@ def get_notebook_version(filename):
         filename = get_pref_file(filename)
 
     try:
-        tree = ElementTree.ElementTree(file=filename)
+        tree = ET.ElementTree(file=filename)
     except IOError, e:
         raise NoteBookError(_("Cannot read notebook preferences"), e)
     except Exception, e:
@@ -348,6 +348,8 @@ def attach_file(filename, node, index=None):
     child = None
 
     try:
+        # TODO: fix.  Make sure extension is taken off first
+        # TODO: also use conn
         path = get_valid_unique_filename(node.get_path(), new_filename)
         child = node.get_notebook().new_node(
                 content_type, 
@@ -1147,9 +1149,8 @@ class NoteBookGenericFile (NoteBookNode):
         # determine new file name
         if new_filename is None:
             new_filename = os.path.basename(filename)
-
-        # TODO: replace with conn
-        new_filename = get_valid_unique_filename(self.get_path(), new_filename)
+        
+        new_filename = self._conn.new_filename(self, new_filename)
         
         try:
             # attempt url parse
@@ -1157,12 +1158,10 @@ class NoteBookGenericFile (NoteBookNode):
             
             if os.path.exists(filename) or parts[0] == "":
                 # perform local copy
-                # TODO: replace with conn
-                shutil.copy(filename, new_filename)
+                self._conn.copy_node_file(None, filename, self, new_filename)
             else:
                 # perform download
-                # TODO: replace with conn
-                out = open(new_filename, "w")
+                out = self.open_file(new_filename, "wb")
                 infile = urllib2.urlopen(filename)
                 while True:
                     data = infile.read(1024*4)
@@ -1173,10 +1172,9 @@ class NoteBookGenericFile (NoteBookNode):
                 out.close()
         except IOError, e:
             raise NoteBookError(_("Cannot copy file '%s'" % filename), e)
-
-        # TODO: replace with conn
+        
         # set attr
-        self._attr["payload_filename"] = os.path.basename(new_filename)
+        self._attr["payload_filename"] = new_filename
 
 
 class NoteBookTrash (NoteBookDir):
@@ -1518,17 +1516,20 @@ class NoteBook (NoteBookDir):
 
     def get_icon_file(self, basename):
         """Lookup icon filename in notebook icon store"""
-        filename = os.path.join(self.get_icon_dir(), basename)
-        if os.path.isfile(filename):
-            return filename
+
+        filename = self._conn.path_join(
+            NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR, basename)
+        if self._conn.isfile(self, filename):
+            return self._conn.get_node_file(self, filename)
         else:
             return None
 
 
     def get_icons(self):
         """Returns list of icons in notebook icon store"""
-        path = self.get_icon_dir()
-        filenames = os.listdir(path)
+        filename = self._conn.path_join(
+            NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR)
+        filenames = list(self._conn.node_listdir(self, filename))
         filenames.sort()
         return filenames
 
@@ -1536,31 +1537,44 @@ class NoteBook (NoteBookDir):
     def install_icon(self, filename):
         """Installs an icon into the notebook icon store"""
 
+        # TODO: test this function
+
         basename = os.path.basename(filename)
         basename, ext = os.path.splitext(basename)
-        newfilename = get_unique_filename(self.get_icon_dir(),
-                                          basename, ext, "-")
-        shutil.copy(filename, newfilename)
+        newfilename = self._conn.path_join(NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR,
+                                           basename)
 
-        return os.path.basename(newfilename)
+        newfilename = self._conn.new_filename(self, newfilename, ext, "-",
+                                              ensure_valid=False)
+
+        self._conn.copy_node_file(None, filename, self, newfilename)
+        return self._conn.path_basename(newfilename)
+
 
 
     def install_icons(self, filename, filename_open):
         """Installs an icon into the notebook icon store"""
 
+        # TODO: test this function
+
         basename = os.path.basename(filename)
         basename, ext = os.path.splitext(basename)
+        startname = self._conn.path_join(NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR,
+                                         basename)
+
+        nodepath = self.get_path()
 
         number = 2
         use_number = False
         while True:
-            newfilename, number = get_unique_filename(
-                self.get_icon_dir(), basename, ext, "-",
-                number=number, return_number=True, use_number=use_number)
+            newfilename, number = self._conn.new_filename(
+                self, startname, ext, "-",
+                number=number, return_number=True, use_number=use_number,
+                ensure_valid=False,
+                path=nodepath)
 
             # determine open icon filename
-            newfilename_open = os.path.join(
-                self.get_icon_dir(), basename)
+            newfilename_open = startname
             if number:
                 newfilename_open += "-" + str(number)
             else:
@@ -1568,28 +1582,31 @@ class NoteBook (NoteBookDir):
             newfilename_open += "-open" + ext
 
             # see if it already exists
-            if os.path.exists(newfilename_open):
+            if self._conn.path_exists(self, newfilename_open, path=nodepath):
                 number += 1
                 use_number = True
             else:
                 # we are done searching for names
                 break
             
-        shutil.copy(filename, newfilename)
-        shutil.copy(filename_open, newfilename_open)
+        self._conn.copy_node_file(None, filename, self, newfilename)
+        self._conn.copy_node_file(None, filename_open, self, newfilename_open)
 
-        return os.path.basename(newfilename), \
-               os.path.basename(newfilename_open)
+        return (self._conn.path_basename(newfilename), 
+                self._conn.path_basename(newfilename_open))
 
 
     def uninstall_icon(self, basename):
         """Removes an icon from the notebook icon store"""
         if len(basename) == 0:
             return
-
-        filename = self.get_icon_file(basename)
-        if filename:
-            os.remove(filename)
+        filename = self._conn.path_join(
+            NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR, basename)
+        self._conn.remove_node_file(self, filename)
+        
+        #filename = self.get_icon_file(basename)
+        #if filename:
+        #    os.remove(filename)
     
     
     def get_universal_root_id(self):
@@ -1653,15 +1670,16 @@ class NoteBook (NoteBookDir):
     
     def get_pref_file(self):
         """Gets the NoteBook's preference file"""
-        return get_pref_file(self.get_path())
+        return self._conn.get_node_file(self, PREF_FILE)
     
     def get_pref_dir(self):
         """Gets the NoteBook's preference directory"""
-        return get_pref_dir(self.get_path())
+        return self._conn.get_node_file(self, NOTEBOOK_META_DIR)
 
     def get_icon_dir(self):
         """Gets the NoteBook's icon directory"""
-        return get_icon_dir(self.get_path())
+        return self._conn.get_node_file(
+            self, self._conn.path_join(NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR))
     
 
     def set_preferences_dirty(self):
@@ -1673,16 +1691,16 @@ class NoteBook (NoteBookDir):
         """Writes the NoteBooks preferences to the file-system"""
         try:
             # ensure preference directory exists
-            if not os.path.exists(self.get_pref_dir()):
-                os.mkdir(self.get_pref_dir())
+            self._conn.mkdir(self, NOTEBOOK_META_DIR)
                 
             # ensure icon directory exists
-            if not os.path.exists(self.get_icon_dir()):
-                os.mkdir(self.get_icon_dir())
+            self._conn.mkdir(
+                self, self._conn.path_join(NOTEBOOK_META_DIR, 
+                                           NOTEBOOK_ICON_DIR))
 
             data = self.pref.get_data()
 
-            out = safefile.open(self.get_pref_file(), "w", codec="utf-8")
+            out = self.open_file(PREF_FILE, "w", codec="utf-8")
             out.write(u'<?xml version="1.0" encoding="UTF-8"?>\n'
                       u'<notebook>\n'
                       u'<version>%d</version>\n'
@@ -1700,12 +1718,19 @@ class NoteBook (NoteBookDir):
     
     def read_preferences(self):
         """Reads the NoteBook's preferneces from the file-system"""
+        
         try:
-            tree = ElementTree.ElementTree(file=self.get_pref_file())
+            infile = self.open_file(PREF_FILE, "r", codec="utf-8")
+            #tree = ElementTree.parse(infile)
+            #root = tree.getroot()
+            root = ET.fromstring(infile.read())
+            tree = ET.ElementTree(root)
         except IOError, e:
             raise NoteBookError(_("Cannot read notebook preferences"), e)
         except Exception, e:
             raise NoteBookError(_("Notebook preference data is corrupt"), e)
+        finally:
+            infile.close()
 
 
         # check version
@@ -1714,7 +1739,7 @@ class NoteBook (NoteBookDir):
             raise NoteBookVersionError(version,
                                        NOTEBOOK_FORMAT_VERSION)
 
-        root = tree.getroot()
+        
         if root.tag == "notebook":
             p = root.find("pref")
             if p is not None:
@@ -1798,26 +1823,91 @@ class NoteBookConnection (object):
     #===============
     # file API
 
+    def path_join(self, *parts):
+        return os.path.join(*parts)
+
     def get_node_file(self, node, filename, path=None):
         if path is None:
             path = self.get_node_path(node)
         return os.path.join(path, filename)
 
 
-    def open_node_file(self, node, filename, mode="r", codec=None):
+    def open_node_file(self, node, filename, mode="r", codec=None, path=None):
         """Open a file contained within a node"""
+        if path is None:
+            path = self.get_node_path(node)
         return safefile.open(
-            os.path.join(self.get_node_path(node), filename), mode,
-            codec=codec)
+            os.path.join(path, filename), mode, codec=codec)
+
+    def remove_node_file(self, node, filename, path=None):
+        """Open a file contained within a node"""
+        if path is None:
+            path = self.get_node_path(node)
+        os.remove(os.path.join(path, filename))
+
+
+    def new_filename(self, node, new_filename, ext=u"", sep=u" ", number=2, 
+                     return_number=False, use_number=False, ensure_valid=True,
+                     path=None):
+        if path is None:
+            path = self.get_node_path(node)
+
+        basename = os.path.basename(new_filename)
+        path2 = os.path.join(path, os.path.dirname(new_filename))
+
+        if ensure_valid:
+            fullname = get_valid_unique_filename(
+                path2, basename, ext, sep=sep, number=number)
+        else:
+            if return_number:
+                fullname, number = get_unique_filename(
+                    path2, basename, ext, sep=sep, number=number,
+                    return_number=return_number, use_number=use_number)
+            else:
+                fullname = get_unique_filename(
+                    path2, basename, ext, sep=sep, number=number,
+                    return_number=return_number, use_number=use_number)
+
+        if return_number:
+            return os.path.relpath(fullname, path), number
+        else:
+            return os.path.relpath(fullname, path)
+
+
+
+    def mkdir(self, node, filename, path=None):
+        if path is None:
+            path = self.get_node_path(node)
+        fullname = os.path.join(path, filename)
+        if not os.path.exists(fullname):
+            os.mkdir(fullname)
+
+    
+    def isfile(self, node, filename, path=None):
+        if path is None:
+            path = self.get_node_path(node)
+        return os.path.isfile(os.path.join(path, filename))
+
+
+    def path_exists(self, node, filename, path=None):
+        if path is None:
+            path = self.get_node_path(node)
+        return os.path.exists(os.path.join(path, filename))
+
+
+    def path_basename(self, filename):
+        return os.path.basename(filename)
 
         
-    def node_listdir(self, node, path=None):
+    def node_listdir(self, node, filename=None, path=None):
         """
         List data files in node
         """
 
         if path is None:
             path = self.get_node_path(node)
+        if filename is not None:
+            path = os.path.join(path, filename)
         
         for filename in os.listdir(path):
             if (filename != NODE_META_FILE and 
@@ -1850,13 +1940,24 @@ class NoteBookConnection (object):
                        path1=None, path2=None):
         """
         Copy a file between two nodes
+
+        if node is None, filename is assumed to be a local file
         """
-        if path1 is None:
-            path1 = self.get_node_path(node1)
-        if path2 is None:
-            path2 = self.get_node_path(node2)
-        fullname1 = os.path.join(path1, filename1)
-        fullname2 = os.path.join(path2, filename2)
+
+        if node1 is None:
+            fullname1 = filename1
+        else:
+            if path1 is None:
+                path1 = self.get_node_path(node1)
+            fullname1 = os.path.join(path1, filename1)
+
+        if node2 is None:
+            fullname2 = filename2
+        else:
+            if path2 is None:
+                path2 = self.get_node_path(node2)
+            fullname2 = os.path.join(path2, filename2)
+        
         if os.path.isfile(fullname1):
             shutil.copy(fullname1, fullname2)
         elif os.path.isdir(fullname1):
@@ -1933,7 +2034,7 @@ class NoteBookConnection (object):
         attr = {}
 
         try:
-            tree = ElementTree.ElementTree(file=filename)
+            tree = ET.ElementTree(file=filename)
         except Exception, e:
             raise NoteBookError(_("Error reading meta data file"), e)
 

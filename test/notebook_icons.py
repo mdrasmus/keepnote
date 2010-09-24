@@ -8,7 +8,7 @@ from keepnote import notebook
 
 
 
-class TestCaseNotebookIndex (unittest.TestCase):
+class Tests (unittest.TestCase):
     
     def setUp(self):      
         pass
@@ -17,16 +17,16 @@ class TestCaseNotebookIndex (unittest.TestCase):
     def test_notebook_read_icons(self):        
         
         book = notebook.NoteBook()
-        book.load("test/data/notebook-v3")
+        book.load("test/data/notebook-v4")
         book.pref.set_quick_pick_icons(["x.png"])
         book.set_preferences_dirty()
         book.save()
 
         self.assertEqual(book.pref.get_quick_pick_icons(), ["x.png"])
 
-        print open("test/data/notebook-v3/notebook.nbk").read()
+        print open("test/data/notebook-v4/notebook.nbk").read()
 
-        book.load("test/data/notebook-v3")
+        book.load("test/data/notebook-v4")
 
         self.assertEqual(book.pref.get_quick_pick_icons(), ["x.png"])
 
@@ -37,7 +37,7 @@ class TestCaseNotebookIndex (unittest.TestCase):
         
         app = keepnote.gui.KeepNote()
         app.init()
-        book = app.get_notebook("test/data/notebook-v3")
+        book = app.get_notebook("test/data/notebook-v4")
 
         print book.pref.get_quick_pick_icons()
 
@@ -48,7 +48,7 @@ class TestCaseNotebookIndex (unittest.TestCase):
         app = keepnote.gui.KeepNote()
         app.init()
         win = app.new_window()
-        book = win.open_notebook("test/data/notebook-v3")
+        book = win.open_notebook("test/data/notebook-v4")
 
         print book.pref.get_quick_pick_icons()
 
@@ -60,17 +60,56 @@ class TestCaseNotebookIndex (unittest.TestCase):
         print book.pref.get_quick_pick_icons()
         win.close_notebook()
 
-        print open("test/data/notebook-v3/notebook.nbk").read()
+        print open("test/data/notebook-v4/notebook.nbk").read()
 
         #gtk.main()
 
 
+    def test_install_icon(self):
+        
+        book = notebook.NoteBook("test/data/notebook-v4")
+        book.load()
+
+        icons = []
+
+        print "before", os.listdir("test/data/notebook-v4/__NOTEBOOK__/icons")
+        
+        book.install_icon("share/icons/gnome/16x16/mimetypes/zip.png")
+        book.install_icon("share/icons/gnome/16x16/mimetypes/zip.png")
+
+        book.install_icons(
+            "keepnote/images/node_icons/folder-orange.png",
+            "keepnote/images/node_icons/folder-orange-open.png")
+        book.install_icons(
+            "keepnote/images/node_icons/folder-orange.png",
+            "keepnote/images/node_icons/folder-orange-open.png")
+
+        book.save()
+
+        print "installed", os.listdir("test/data/notebook-v4/__NOTEBOOK__/icons")
+
+        icons = os.listdir("test/data/notebook-v4/__NOTEBOOK__/icons")
+
+        for icon in icons:
+            book.uninstall_icon(icon)
+
+        print "clean up", os.listdir("test/data/notebook-v4/__NOTEBOOK__/icons")
+
+        book.close()
 
 
         
-notebook_index_suite = unittest.defaultTestLoader.loadTestsFromTestCase(
-    TestCaseNotebookIndex)
+
+        
+        
+
+
+        
+#notebook_index_suite = unittest.defaultTestLoader.loadTestsFromTestCase(
+#    TestCaseNotebookIndex)
 
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=2).run(notebook_index_suite)
+    #unittest.TextTestRunner(verbosity=2).run(notebook_index_suite)
+
+    unittest.main()
 

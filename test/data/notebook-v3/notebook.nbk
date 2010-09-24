@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <notebook>
 <version>3</version>
-<default_font>Sans 10</default_font>
-<index_dir></index_dir>
-<selected_treeview_nodes>4ccfe0b3-0a5e-445f-83e9-e57fc8e70181</selected_treeview_nodes>
-<selected_listview_nodes>4ccfe0b3-0a5e-445f-83e9-e57fc8e70181</selected_listview_nodes>
-<quick_pick_icons>
-<icon>x.png</icon>
-</quick_pick_icons>
+<pref>
+    <dict>
+        <key>version</key><integer>3</integer>
+        <key>index_dir</key><string></string>
+        <key>quick_pick_icons</key><array>
+            <string>x.png</string>
+        </array>
+    </dict>
+</pref>
 </notebook>
-
