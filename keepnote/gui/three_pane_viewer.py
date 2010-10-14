@@ -864,9 +864,10 @@ class ThreePaneViewer (Viewer):
             self._main_window.get_uimanager().remove_ui(ui)
         self._uis = []
 
+        self._main_window.get_uimanager().ensure_update()
         self._main_window.get_uimanager().remove_action_group(self._action_group)
         self._action_group = None
-        self._main_window.get_uimanager().ensure_update()
+
 
 
     def _get_ui(self):

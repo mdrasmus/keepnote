@@ -326,8 +326,8 @@ def execute_command(app, argv):
                 win.open_notebook(args[0].rstrip("/"))
 
         else:
-            # no arguments        
-
+            # no arguments
+            
             if options.default_notebook and app.pref.get("default_notebook",
                                                          default="") != "":
                 # open default notebook
