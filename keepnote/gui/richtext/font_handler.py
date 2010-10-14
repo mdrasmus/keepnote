@@ -32,7 +32,7 @@ from gtk import gdk
 
 
 # import textbuffer tools
-from keepnote.gui.richtext.textbuffer_tools import \
+from .textbuffer_tools import \
      iter_buffer_contents, \
      buffer_contents_iter_to_offset, \
      normalize_tags, \
@@ -44,7 +44,7 @@ from keepnote.gui.richtext.textbuffer_tools import \
      paragraph_iter, \
      get_paragraphs_selected
 
-from keepnote.gui.richtext.undo_handler import \
+from .undo_handler import \
      UndoHandler, \
      Action, \
      InsertAction, \
@@ -53,7 +53,7 @@ from keepnote.gui.richtext.undo_handler import \
      TagAction
 
 # richtext imports
-from keepnote.gui.richtext.richtextbase_tags import \
+from .richtextbase_tags import \
      RichTextBaseTagTable, \
      RichTextTagClass, \
      RichTextTag

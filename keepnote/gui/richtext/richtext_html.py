@@ -35,7 +35,7 @@ import urllib
 # keepnote imports
 from keepnote import log_error, log_message
 
-from keepnote.gui.richtext.textbuffer_tools import \
+from .textbuffer_tools import \
      iter_buffer_contents, \
      buffer_contents_iter_to_offset, \
      normalize_tags, \
@@ -49,12 +49,12 @@ from keepnote.gui.richtext.textbuffer_tools import \
      TagNameDom
 
 
-from keepnote.gui.richtext.richtextbuffer import \
+from .richtextbuffer import \
      RichTextBuffer, \
      RichTextImage, \
      RichTextHorizontalRule
 
-from keepnote.gui.richtext.richtext_tags import \
+from .richtext_tags import \
      RichTextTag, \
      RichTextModTag, \
      RichTextFamilyTag, \

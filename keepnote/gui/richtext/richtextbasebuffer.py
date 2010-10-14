@@ -34,11 +34,11 @@ from gtk import gdk
 
 
 # import textbuffer tools
-from keepnote.gui.richtext.textbuffer_tools import \
+from .textbuffer_tools import \
      get_paragraph, \
      get_paragraphs_selected
 
-from keepnote.gui.richtext.undo_handler import \
+from .undo_handler import \
      UndoHandler, \
      Action, \
      InsertAction, \
@@ -48,7 +48,7 @@ from keepnote.gui.richtext.undo_handler import \
 
 
 # richtext imports
-from keepnote.gui.richtext.richtextbase_tags import \
+from .richtextbase_tags import \
      RichTextBaseTagTable, \
      RichTextTagClass, \
      RichTextTag

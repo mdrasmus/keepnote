@@ -33,7 +33,7 @@ from keepnote.undo import UndoStack
 from keepnote.listening import Listeners
 
 # import textbuffer tools
-from keepnote.gui.richtext.textbuffer_tools import \
+from .textbuffer_tools import \
      iter_buffer_contents, \
      buffer_contents_iter_to_offset, \
      normalize_tags, \
@@ -41,8 +41,7 @@ from keepnote.gui.richtext.textbuffer_tools import \
      buffer_contents_apply_tags
 
 # richtext imports
-from keepnote.gui.richtext.richtextbase_tags import \
-     RichTextTag
+from .richtextbase_tags import RichTextTag
 
 
 

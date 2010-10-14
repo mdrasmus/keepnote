@@ -34,7 +34,7 @@ from gtk import gdk
 import keepnote
 from keepnote.undo import UndoStack
 
-from keepnote.gui.richtext.textbuffer_tools import \
+from .textbuffer_tools import \
      move_to_start_of_line, \
      move_to_end_of_line, \
      paragraph_iter, \
@@ -45,11 +45,11 @@ from keepnote.gui.richtext.textbuffer_tools import \
      buffer_contents_apply_tags
 
 # import tags
-from keepnote.gui.richtext.richtext_tags import \
+from .richtext_tags import \
      RichTextIndentTag, \
      RichTextBulletTag
 
-from keepnote.gui.richtext.richtextbasebuffer import \
+from .richtextbasebuffer import \
      RichTextBaseBuffer, \
      add_child_to_buffer, \
      get_paragraph, \

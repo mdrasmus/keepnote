@@ -33,7 +33,7 @@ from gtk import gdk
 
 
 # richtext imports
-from keepnote.gui.richtext.richtextbase_tags import \
+from .richtextbase_tags import \
      RichTextBaseTagTable, \
      RichTextTagClass, \
      RichTextTag

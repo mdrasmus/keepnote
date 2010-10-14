@@ -37,12 +37,13 @@ pygtk.require('2.0')
 import gtk, gobject, pango
 from gtk import gdk
 
+# TODO: remove
 # keepnote imports
 import keepnote
 
 
 # textbuffer imports
-from keepnote.gui.richtext.textbuffer_tools import \
+from .textbuffer_tools import \
     move_to_start_of_line, \
     move_to_end_of_line, \
     iter_buffer_contents, \
@@ -52,17 +53,17 @@ from keepnote.gui.richtext.textbuffer_tools import \
     buffer_contents_apply_tags
 
 # richtext imports
-from keepnote.gui.richtext.richtextbasebuffer import \
+from .richtextbasebuffer import \
     RichTextBaseBuffer, \
     add_child_to_buffer, \
     RichTextAnchor
-from keepnote.gui.richtext.indent_handler import IndentHandler
-from keepnote.gui.richtext.font_handler import \
+from .indent_handler import IndentHandler
+from .font_handler import \
     FontHandler, RichTextBaseFont
 
 
 # richtext tags imports
-from keepnote.gui.richtext.richtext_tags import \
+from .richtext_tags import \
     RichTextTagTable, \
     RichTextTag, \
     RichTextModTag, \
@@ -408,7 +409,7 @@ class RichTextImage (RichTextAnchor):
 
         try:
             # make local temp file
-            f, imgfile = tempfile.mkstemp("", "keepnote")
+            f, imgfile = tempfile.mkstemp("", "image")
             os.close(f)
 
             if download_file(url, imgfile):

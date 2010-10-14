@@ -51,16 +51,13 @@ try:
 except ImportError:
     gtkspell = None
 
-# keepnote import
-from keepnote import log_error
-
 
 # textbuffer_tools imports
-from keepnote.gui.richtext.textbuffer_tools import \
+from .textbuffer_tools import \
      iter_buffer_contents, sanitize_text
 
 # richtextbuffer imports
-from keepnote.gui.richtext.richtextbuffer import \
+from .richtextbuffer import \
      ignore_tag, \
      add_child_to_buffer, \
      RichTextBuffer, \
@@ -68,7 +65,7 @@ from keepnote.gui.richtext.richtextbuffer import \
      RichTextIndentTag
 
 # tag imports
-from keepnote.gui.richtext.richtext_tags import \
+from .richtext_tags import \
      RichTextModTag, \
      RichTextJustifyTag, \
      RichTextFamilyTag, \
@@ -82,7 +79,7 @@ from keepnote.gui.richtext.richtext_tags import \
      set_text_scale
 
 # richtext io
-from keepnote.gui.richtext.richtext_html import HtmlBuffer, HtmlError
+from .richtext_html import HtmlBuffer, HtmlError
 
 from keepnote import safefile
 
@@ -101,8 +98,8 @@ RICHTEXT_ID = -3    # application defined integer for the clipboard
 CONTEXT_MENU_ACCEL_PATH = "<main>/richtext_context_menu"
 
 # mime types
-# keepnote mime type is process specific
-MIME_KEEPNOTE = "application/x-keepnote" + str(random.randint(1, 100000))
+# richtext mime type is process specific
+MIME_RICHTEXT = "application/x-richtext" + str(random.randint(1, 100000))
 MIME_IMAGES = ["image/png",
                "image/bmp",
                "image/jpeg",
@@ -736,7 +733,7 @@ class RichTextView (gtk.TextView):
            contents[0][0] == "anchor" and \
            isinstance(contents[0][2][0], RichTextImage):
             # copy image
-            targets = [(MIME_KEEPNOTE, gtk.TARGET_SAME_APP, RICHTEXT_ID),
+            targets = [(MIME_RICHTEXT, gtk.TARGET_SAME_APP, RICHTEXT_ID),
                        ("text/html", 0, RICHTEXT_ID)] + \
                       [(x, 0, RICHTEXT_ID) for x in MIME_IMAGES]
             
@@ -746,7 +743,7 @@ class RichTextView (gtk.TextView):
 
         else:
             # copy text
-            targets = [(MIME_KEEPNOTE, gtk.TARGET_SAME_APP, RICHTEXT_ID),
+            targets = [(MIME_RICHTEXT, gtk.TARGET_SAME_APP, RICHTEXT_ID),
                        ("text/html", 0, RICHTEXT_ID)] + \
                       [(x, 0, RICHTEXT_ID) for x in MIME_TEXT]
             
@@ -785,9 +782,9 @@ class RichTextView (gtk.TextView):
             return
 
         
-        if MIME_KEEPNOTE in targets:
-            # request KEEPNOTE contents object
-            clipboard.request_contents(MIME_KEEPNOTE, self._do_paste_object)
+        if MIME_RICHTEXT in targets:
+            # request RICHTEXT contents object
+            clipboard.request_contents(MIME_RICHTEXT, self._do_paste_object)
             
         elif "text/html" in targets:
             # request HTML
@@ -850,7 +847,7 @@ class RichTextView (gtk.TextView):
         
             self.scroll_mark_onscreen(self._textbuffer.get_insert())
         except Exception, e:
-            log_error(e, sys.exc_info()[2])
+            pass
     
     def _do_paste_image(self, clipboard, selection_data, data):
         """Paste image into buffer"""
@@ -891,9 +888,9 @@ class RichTextView (gtk.TextView):
         _g_clipboard_contents = contents
 
         
-        if MIME_KEEPNOTE in selection_data.target:
+        if MIME_RICHTEXT in selection_data.target:
             # set rich text
-            selection_data.set(MIME_KEEPNOTE, 8, "<keepnote>")
+            selection_data.set(MIME_RICHTEXT, 8, "<richtext>")
             
         elif "text/html" in selection_data.target:
             # set html
@@ -1442,7 +1439,7 @@ gobject.signal_new("visit-url", RichTextView, gobject.SIGNAL_RUN_LAST,
         self._textbuffer.begin_user_action()
         
         try:
-            f, imgfile = tempfile.mkstemp(".png", "keepnote")
+            f, imgfile = tempfile.mkstemp(".png", "pdf")
             os.close(f)
 
             out = os.popen("convert - %s" % imgfile, "wb")
