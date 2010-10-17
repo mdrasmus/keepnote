@@ -20,13 +20,12 @@ from keepnote.gui.richtext.textbuffer_tools import \
      TextBufferDom
 
 from richtext_html import \
-     display_item, \
-     TestCaseRichTextBufferBase
+     display_item, BufferBase
 
 
 
 
-class TestCaseRichTextBuffer (TestCaseRichTextBufferBase):      
+class TestCaseRichTextBuffer (BufferBase):      
 
     def test_dom(self):        
         self.buffer.insert_at_cursor("hi there")        

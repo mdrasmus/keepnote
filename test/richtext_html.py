@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 
 
+import time
 import sys
 import unittest
+from StringIO import StringIO
+from unittest import TestCase
+
 
 # keepnote imports
 from keepnote.gui.richtext.richtext_html import HtmlBuffer, nest_indent_tags, \
      find_paragraphs, P_TAG
+from keepnote.gui.richtext import RichTextIO
 
 import StringIO
 from keepnote.gui.richtext.richtextbuffer import RichTextBuffer, ignore_tag, \
@@ -33,7 +38,7 @@ def display_item(item):
         return item[0]
 
 
-class TestCaseRichTextBufferBase (unittest.TestCase):
+class BufferBase (TestCase):
 
     def setUp(self):
         self.buffer = RichTextBuffer()
@@ -57,10 +62,10 @@ class TestCaseRichTextBufferBase (unittest.TestCase):
 
     
 
-class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
+class Html (BufferBase):
     
     def setUp(self):
-        TestCaseRichTextBufferBase.setUp(self)
+        BufferBase.setUp(self)
         self.io = HtmlBuffer()
 
 
@@ -667,20 +672,28 @@ class TestCaseHtmlBuffer (TestCaseRichTextBufferBase):
 
     def test_body(self):
 
-        contents = list(self.io.read(["<html><head><title>title</title></head><body>Hello world</body></html>"], 
+        contents = list(self.io.read(StringIO.StringIO("<html><head><title>title</title></head><body>Hello world</body></html>"), 
                                      partial=False))
         self.assertEqual(contents, [('text', None, 'Hello world')])
 
-        contents = list(self.io.read(["Hello world"], 
+        contents = list(self.io.read(StringIO.StringIO("Hello world"), 
                                      partial=True))
         self.assertEqual(contents, [('text', None, 'Hello world')])
 
 
 
-        
-htmlbuffer_suite = unittest.defaultTestLoader.loadTestsFromTestCase(
-    TestCaseHtmlBuffer)
+class Speed (TestCase):
 
+    def test_speed(self):
+        buf = RichTextBuffer()
+        io = RichTextIO()
+
+        t = time.time()
+        io.load(None, buf, "test/data/notebook-v4/stress tests/A huge page of formatted text/page.html")
+        print time.time() - t
+
+        
 
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=2).run(htmlbuffer_suite)
+    unittest.main()
+

@@ -882,8 +882,9 @@ class HtmlBuffer (HTMLParser):
 
         try:
             self.reset()
-            for line in infile:
-                self.feed(line)                
+            #for line in infile:
+            #    self.feed(line)
+            self.feed(infile.read())
             self.close()
             
         except Exception, e:
@@ -897,6 +898,7 @@ class HtmlBuffer (HTMLParser):
         return unnest_indent_tags(self._dom.get_contents())
 
 
+
     def process_dom_read(self, dom):
         """Process a DOM after reading"""
 
@@ -907,7 +909,7 @@ class HtmlBuffer (HTMLParser):
                 if node.prev_sibling():
                     node.get_parent().insert_before(node, TextDom("\n"))
             
-            if isinstance(node, TagNameDom) and node.tagname.startswith("li "):
+            elif isinstance(node, TagNameDom) and node.tagname.startswith("li "):
                 # list items end with an implied newline
 
                 if not (isinstance(node.last_child(), TagNameDom) and \
@@ -916,15 +918,17 @@ class HtmlBuffer (HTMLParser):
             
             for child in list(node):
                 walk(child)
+
+            
+
         walk(dom)
 
     
     def append_text(self, text):
-        
         if len(text) > 0:
             last_child = self._dom_ptr.last_child()
             if isinstance(last_child, TextDom):
-                last_child.text += text
+                last_child.append(text)
             else:
                 self._dom_ptr.append_child(TextDom(text))
 
@@ -936,22 +940,13 @@ class HtmlBuffer (HTMLParser):
     
     def handle_starttag(self, htmltag, attrs):
         """Callback for parsing a starting HTML tag"""
-
+        
         self._newline = False
-
+        
         # start a new tag on htmltag stack
         self._tag_stack.append((htmltag, self._dom_ptr))
 
-
-        if htmltag == "html":
-            # ignore html tag
-            pass
-        
-        elif htmltag == "body":
-            # note that we are within the body tag
-            self._within_body = True
-
-        elif htmltag == "br":
+        if htmltag == "br":
             # insert newline
             self.append_text("\n")
             self._newline = True
@@ -959,16 +954,25 @@ class HtmlBuffer (HTMLParser):
         elif htmltag in self._tag_readers:
             # use tag parser
             self._tag_readers[htmltag].parse_starttag(htmltag, attrs)
+
+        elif htmltag == "html":
+            # ignore html tag
+            pass
+        
+        elif htmltag == "body":
+            # note that we are within the body tag
+            self._within_body = True
             
         else:
             # ingore other html tags
             pass
-        
+
+
         
 
     def handle_endtag(self, htmltag):
         """Callback for parsing a ending HTML tag"""
-
+        
         if not self._partial:
             if not self._within_body:
                 return
@@ -1003,16 +1007,22 @@ class HtmlBuffer (HTMLParser):
 
         if not self._partial and not self._within_body:
             return
-
+        
         if self._newline:
-            data = re.sub("^\r?\n[\r\n ]*", "", data)
-            data = re.sub("[\r\n ]+", " ", data)
+            #data = re.sub("^\r?\n[\r\n ]*", "", data)
+            #data = re.sub("[\r\n ]+", " ", data)
+            data = re.sub(self.remove_first_whitespace, "", data)
+            data = re.sub(self.remove_whitespace, " ", data)
             self._newline = False
         else:
-            data = re.sub("[\r\n ]+", " ", data)
+            #data = re.sub("[\r\n ]+", " ", data)
+            data = re.sub(self.remove_whitespace, " ", data)
         
         if len(data) > 0:
             self.append_text(data)
+
+    remove_first_whitespace = re.compile("^\r?\n[\r\n ]*")
+    remove_whitespace = re.compile("[\r\n ]+")
 
     
     def handle_entityref(self, name):
@@ -1074,7 +1084,7 @@ class HtmlBuffer (HTMLParser):
         """Write DOM"""
         for child in dom:
             if isinstance(child, TextDom):
-                self.write_text(child.text, xhtml=xhtml)
+                self.write_text(child.get(), xhtml=xhtml)
 
             elif isinstance(child, TagDom):                
                 self.write_tag_begin(child, xhtml=xhtml)
@@ -1215,15 +1225,15 @@ class HtmlBuffer (HTMLParser):
             if isinstance(node, AnchorDom) and \
                isinstance(node.anchor, RichTextHorizontalRule) and \
                isinstance(last_leaf[0], TextDom) and \
-               last_leaf[0].text.endswith("\n"):
-                last_leaf[0].text = last_leaf[0].text[:-1]
+               last_leaf[0].get().endswith("\n"):
+                last_leaf[0].set(last_leaf[0].get()[:-1])
 
             # delete preceding newline of <ol> <ul>
             if isinstance(node, TagDom) and \
                isinstance(node.tag, RichTextIndentTag) and \
                isinstance(last_leaf[0], TextDom) and \
-               last_leaf[0].text.endswith("\n"):
-                last_leaf[0].text = last_leaf[0].text[:-1]
+               last_leaf[0].get().endswith("\n"):
+                last_leaf[0].set(last_leaf[0].get()[:-1])
                 
             # delete preceding newline of </li>
             if isinstance(node, LiHtmlTagDom):
@@ -1239,8 +1249,8 @@ class HtmlBuffer (HTMLParser):
                         child = child.last_child()
                 
                 if isinstance(child, TextDom) and \
-                   child.text.endswith("\n"):
-                    child.text = child.text[:-1]
+                   child.get().endswith("\n"):
+                    child.set(child.get()[:-1])
             
             if node.is_leaf():
                 # process leaves
@@ -1249,8 +1259,8 @@ class HtmlBuffer (HTMLParser):
                 if isinstance(last_leaf[0], AnchorDom) and \
                    isinstance(last_leaf[0].anchor, RichTextHorizontalRule) and \
                    isinstance(node, TextDom) and \
-                   node.text.startswith("\n"):
-                    node.text = node.text[1:]
+                   node.get().startswith("\n"):
+                    node.set(node.get()[1:])
 
                 # empty tags are skiped as leaves
                 if not isinstance(node, TagDom):

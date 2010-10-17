@@ -232,9 +232,10 @@ class RichTextIO (object):
         
         # unhook expensive callbacks
         textbuffer.block_signals()
-        spell = textview.is_spell_check_enabled()
-        textview.enable_spell_check(False)
-        textview.set_buffer(None)
+        if textview:
+            spell = textview.is_spell_check_enabled()
+            textview.enable_spell_check(False)
+            textview.set_buffer(None)
 
 
         # clear buffer        
@@ -242,16 +243,10 @@ class RichTextIO (object):
         
         err = None
         try:
-            #from rasmus import util
-            #util.tic("read")
-            buffer_contents = list(self._html_buffer.read(
-                safefile.open(filename, "r", codec="utf-8")))
-            #util.toc()
-            
-            #util.tic("read2")            
+            buffer_contents = self._html_buffer.read(
+                safefile.open(filename, "r", codec="utf-8"))
             textbuffer.insert_contents(buffer_contents,
                                        textbuffer.get_start_iter())
-            #util.toc()
 
             # put cursor at begining
             textbuffer.place_cursor(textbuffer.get_start_iter())
@@ -261,20 +256,23 @@ class RichTextIO (object):
             
             # TODO: turn into function
             textbuffer.clear()
-            textview.set_buffer(textbuffer)
+            if textview:
+                textview.set_buffer(textbuffer)
             ret = False            
         else:
             # finish loading
             path = os.path.dirname(filename)
             self._load_images(textbuffer, path)
-            textview.set_buffer(textbuffer)
-            textview.show_all()
+            if textview:
+                textview.set_buffer(textbuffer)
+                textview.show_all()
             ret = True
         
         # rehook up callbacks
         textbuffer.unblock_signals()
-        textview.enable_spell_check(spell)
-        textview.enable()
+        if textview:
+            textview.enable_spell_check(spell)
+            textview.enable()
         
         textbuffer.set_modified(False)
         

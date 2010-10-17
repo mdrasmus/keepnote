@@ -492,13 +492,28 @@ class TextDom (Dom):
     """A text object in a DOM"""
     def __init__(self, text):
         Dom.__init__(self)
-        self.text = text
+        self.lst = [text]
+
+    def append(self, text):
+        self.lst.append(text)
+
+    def get(self):
+        if len(self.lst) == 1:
+            return self.lst[0]
+        else:
+            t = "".join(self.lst)
+            self.lst = [t]
+            return t
+        
+
+    def set(self, text):
+        self.lst = [text]
 
     def display(self, indent=0):
-        self.display_indent(indent, "TextDom '%s'" % self.text)
+        self.display_indent(indent, "TextDom '%s'" % self.get())
 
     def visit_contents(self, visit):
-        visit("text", None, self.text)
+        visit("text", None, self.get())
     
 
 class AnchorDom (Dom):
