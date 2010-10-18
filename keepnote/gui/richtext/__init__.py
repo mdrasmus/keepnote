@@ -1071,7 +1071,7 @@ class RichTextView (gtk.TextView):
         if not self._textbuffer:
             return
         
-        contents = list(self._html_buffer.read([html],
+        contents = list(self._html_buffer.read(StringIO.StringIO(html),
                                                partial=True,
                                                ignore_errors=True))
 
