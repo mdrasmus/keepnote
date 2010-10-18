@@ -393,19 +393,39 @@ def log_message(message, out=None):
     out.write(message)
     out.flush()
 
-
-
 #=============================================================================
-# Preference data structures
+# Exceptions
 
-class ExternalApp (object):
-    """Class represents the information needed for calling an external application"""
 
-    def __init__(self, key, title, prog, args=[]):
-        self.key = key
-        self.title = title
-        self.prog = prog
-        self.args = args
+class EnvError (StandardError):
+    """Exception that occurs when environment variables are ill-defined"""
+    
+    def __init__(self, msg, error=None):
+        StandardError.__init__(self)
+        self.msg = msg
+        self.error = error
+        
+    def __str__(self):
+        if self.error:
+            return str(self.error) + "\n" + self.msg
+        else:
+            return self.msg
+
+
+class KeepNoteError (StandardError):
+    def __init__(self, msg, error=None):
+        StandardError.__init__(self, msg)
+        self.msg = msg
+        self.error = error
+    
+    def __repr__(self):
+        if self.error:
+            return str(self.error) + "\n" + self.msg
+        else:
+            return self.msg
+
+    def __str__(self):
+        return self.msg
 
 
 class KeepNotePreferenceError (StandardError):
@@ -421,6 +441,20 @@ class KeepNotePreferenceError (StandardError):
             return str(self.error) + "\n" + self.msg
         else:
             return self.msg
+
+
+#=============================================================================
+# Preference data structures
+
+class ExternalApp (object):
+    """Class represents the information needed for calling an external application"""
+
+    def __init__(self, key, title, prog, args=[]):
+        self.key = key
+        self.title = title
+        self.prog = prog
+        self.args = args
+
 
 
 DEFAULT_EXTERNAL_APPS = [
@@ -477,8 +511,6 @@ class KeepNotePreferences (Pref):
         else:
             self._pref_dir = pref_dir
 
-        self._docs = get_user_documents()
-        
         # listener
         self.changed = Listeners()
         self.changed.add(self._on_changed)
@@ -537,8 +569,7 @@ class KeepNotePreferences (Pref):
                 self._data.clear()
                 self._data.update(data)
         except Exception, e:
-            raise
-            #raise KeepNotePreferenceError("Cannot read preferences", e)
+            raise KeepNotePreferenceError("Cannot read preferences", e)
         
                 
         # notify listeners
@@ -571,37 +602,6 @@ class KeepNotePreferences (Pref):
 
 #=============================================================================
 # Application class
-
-
-class EnvError (StandardError):
-    """Exception that occurs when environment variables are ill-defined"""
-    
-    def __init__(self, msg, error=None):
-        StandardError.__init__(self)
-        self.msg = msg
-        self.error = error
-        
-    def __str__(self):
-        if self.error:
-            return str(self.error) + "\n" + self.msg
-        else:
-            return self.msg
-
-
-class KeepNoteError (StandardError):
-    def __init__(self, msg, error=None):
-        StandardError.__init__(self, msg)
-        self.msg = msg
-        self.error = error
-    
-    def __repr__(self):
-        if self.error:
-            return str(self.error) + "\n" + self.msg
-        else:
-            return self.msg
-
-    def __str__(self):
-        return self.msg
 
 
 class ExtensionEntry (object):
@@ -643,22 +643,22 @@ class KeepNote (object):
 
         self.id = None
 
-        self.timestamp_formats = {}
-
-        # list of possible application commands
+        # list of registered application commands
         self._commands = {}
 
-        # list of application notebooks
+        # list of opened notebooks
         self._notebooks = {}
-        self._notebook_count = {}
+        self._notebook_count = {} # notebook ref counts
+
+        # external apps
+        self._external_apps = []
+        self._external_apps_lookup = {}
         
         # set of registered extensions for this application
         self._extensions = {}
         self._disabled_extensions = []
 
-        self._external_apps = []
-        self._external_apps_lookup = {}
-        self._docs = get_user_documents()
+
         #self.pref.changed.add(self.load_preferences)
 
 
@@ -692,39 +692,14 @@ class KeepNote (object):
             self.id = str(uuid.uuid4())
             data.set("id", self.id)
 
-
-        self.timestamp_formats = data.get(
+        # TODO: move to gui app?
+        # set default timestamp formats
+        data.get(
             "timestamp_formats",
             default=dict(keepnote.timestamp.DEFAULT_TIMESTAMP_FORMATS))
 
-        
         # external apps
-        self._external_apps = []
-        for app in data.get("external_apps", default=[]):
-            if "key" not in app:
-                continue
-            app2 = ExternalApp(app["key"], 
-                               app.get("title", ""), 
-                               app.get("prog", ""), 
-                               app.get("args", ""))
-            self._external_apps.append(app2)
-
-        # make lookup
-        self._external_apps_lookup = {}
-        for app in self._external_apps:
-            self._external_apps_lookup[app.key] = app
-
-        # add default programs
-        lst = get_external_app_defaults()
-        for defapp in lst:
-            if defapp.key not in self._external_apps_lookup:
-                self._external_apps.append(defapp)
-                self._external_apps_lookup[defapp.key] = defapp
-
-        # place default apps first
-        lookup = dict((x.key, i) for i, x in enumerate(DEFAULT_EXTERNAL_APPS))
-        top = len(DEFAULT_EXTERNAL_APPS)
-        self._external_apps.sort(key=lambda x: (lookup.get(x.key, top), x.key))
+        self._load_external_app_preferences()
 
 
         # extensions
@@ -742,8 +717,7 @@ class KeepNote (object):
         # language
         data["language"] = self.language        
 
-        data["timestamp_formats"] = self.timestamp_formats
-
+        
         # external apps
         data["external_apps"] = [
             {"key": app.key,
@@ -759,16 +733,38 @@ class KeepNote (object):
             }
         
 
-
-
     def set_lang(self):                
         """Set the language based on preference"""
 
         keepnote.trans.set_lang(self.language)
 
 
+    def error(self, text, error=None, tracebk=None):
+        """Display an error message"""
+
+        keepnote.log_message(text)
+        if error is not None:
+            keepnote.log_error(error, tracebk)
+
+
+    def quit(self):
+        """Stop the application"""
+        self.save_preferences()
+        self.pref.write()
+
+
+    def get_default_path(self, name):
+        """Returns a default path for saving/reading files"""
+        return self.pref.get("default_paths", name, 
+                             default=get_user_documents())
+
+    def set_default_path(self, name, path):
+        """Sets the default path for saving/reading files"""
+        self.pref.set("default_paths", name, path)
+
+
     #==================================
-    # actions
+    # Notebooks
 
     def open_notebook(self, filename, window=None, task=None):
         """Open a new notebook"""
@@ -841,10 +837,44 @@ class KeepNote (object):
 
     def iter_notebooks(self):
         """Iterate through open notebooks"""
-        
         return self._notebooks.itervalues()
 
 
+    #================================
+    # external apps
+
+
+    def _load_external_app_preferences(self):
+        
+        # external apps
+        self._external_apps = []
+        for app in self.pref.get("external_apps", default=[]):
+            if "key" not in app:
+                continue
+            app2 = ExternalApp(app["key"], 
+                               app.get("title", ""), 
+                               app.get("prog", ""), 
+                               app.get("args", ""))
+            self._external_apps.append(app2)
+
+        # make lookup
+        self._external_apps_lookup = {}
+        for app in self._external_apps:
+            self._external_apps_lookup[app.key] = app
+
+        # add default programs
+        lst = get_external_app_defaults()
+        for defapp in lst:
+            if defapp.key not in self._external_apps_lookup:
+                self._external_apps.append(defapp)
+                self._external_apps_lookup[defapp.key] = defapp
+
+        # place default apps first
+        lookup = dict((x.key, i) for i, x in enumerate(DEFAULT_EXTERNAL_APPS))
+        top = len(DEFAULT_EXTERNAL_APPS)
+        self._external_apps.sort(key=lambda x: (lookup.get(x.key, top), x.key))
+
+    
     def get_external_app(self, key):
         """Return an external application by its key name"""
         app = self._external_apps_lookup.get(key, None)
@@ -929,7 +959,6 @@ class KeepNote (object):
         self.run_external_app(app_key, os.path.realpath(filename), wait=wait)
 
 
-
     def open_webpage(self, url):
         """View a node with an external web browser"""
 
@@ -971,46 +1000,28 @@ class KeepNote (object):
         return imgfile  
 
 
-    def error(self, text, error=None, tracebk=None):
-        """Display an error message"""
-
-        keepnote.log_message(text)
-        if error is not None:
-            keepnote.log_error(error, tracebk)
-
-
-    def quit(self):
-        self.save_preferences()
-        self.pref.write()
-
-
-    def get_default_path(self, name):
-        return self.pref.get("default_paths", name, default=self._docs)
-
-    def set_default_path(self, name, path):
-        self.pref.set("default_paths", name, path)
-
 
     #================================
     # commands
 
     def get_command(self, command_name):
-
+        """Returns a command of the given name 'command_name'"""
         return self._commands.get(command_name, None)
 
     def get_commands(self):
+        """Returns a list of all registered commands"""
         return self._commands.values()
 
 
     def add_command(self, command):
-
+        """Adds a command to the application"""
         if command.name in self._commands:
             raise Exception(_("command '%s' already exists") % command.name)
 
         self._commands[command.name] = command
 
     def remove_command(self, command_name):
-        
+        """Removes a command from the application"""
         if command_name in self._commands:
             del self._commands[command_name]
 

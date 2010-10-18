@@ -346,10 +346,11 @@ class KeepNote (keepnote.KeepNote):
     def __init__(self, basedir=None):
         keepnote.KeepNote.__init__(self, basedir)
         
+        # window management
         self._current_window = None
         self._windows = []
 
-
+        # shared gui resources
         self._tag_table = keepnote.gui.richtext.richtext_tags.RichTextTagTable()
         self.app_options_dialog = keepnote.gui.dialog_app_options.ApplicationOptionsDialog(self)
         self.node_icon_dialog = keepnote.gui.dialog_node_icon.NodeIconDialog(self)
@@ -360,11 +361,9 @@ class KeepNote (keepnote.KeepNote):
         self._auto_save_pause = 0          # >0 if autosave is paused
 
 
-
     def init(self):
         """Initialize application from disk"""
-        keepnote.KeepNote.init(self)
-        
+        keepnote.KeepNote.init(self)        
 
         
     def set_lang(self):
@@ -380,9 +379,7 @@ class KeepNote (keepnote.KeepNote):
 
     def load_preferences(self):
         keepnote.KeepNote.load_preferences(self)
-
-        #keepnote.log_message(_("loading preferences\n"))
-
+        
         # set defaults for auto save
         p = self.pref
         use_autosave = p.get("autosave", default=True)
@@ -487,7 +484,7 @@ class KeepNote (keepnote.KeepNote):
     def save(self, silent=False):
         """Save all opened notebooks"""
 
-        # all window info in notebooks
+        # clear all window info in notebooks
         for notebook in self._notebooks.itervalues():
             notebook.pref.clear("windows", "ids")
 
@@ -507,7 +504,6 @@ class KeepNote (keepnote.KeepNote):
     #=====================================
     # auto-save
 
-
     def begin_auto_save(self):
         """Begin autosave callbacks"""
 
@@ -524,7 +520,6 @@ class KeepNote (keepnote.KeepNote):
         
     def end_auto_save(self):
         """Stop autosave"""
-
         self._auto_saving = False
 
 
@@ -549,6 +544,7 @@ class KeepNote (keepnote.KeepNote):
     
 
     def pause_auto_save(self, pause):
+        """Pauses autosaving"""
         self._auto_save_pause += 1 if pause else -1
         
 
@@ -639,7 +635,6 @@ class KeepNote (keepnote.KeepNote):
     #==================================
     # file attachment
 
-
     def on_attach_file(self, node=None, parent_window=None):
 
         dialog = FileChooserDialog(
@@ -715,7 +710,6 @@ class KeepNote (keepnote.KeepNote):
 
     def focus_windows(self):
         """Focus all open windows on desktop"""
-
         for window in self._windows:
             window.restore_window()
 
@@ -787,7 +781,6 @@ class KeepNote (keepnote.KeepNote):
     #===================================
     # callbacks
 
-
     def _on_window_close(self, window, event):
         """Callback for window close event"""
 
@@ -817,7 +810,6 @@ class KeepNote (keepnote.KeepNote):
 
     #====================================
     # extension methods
-
 
     def init_extensions_windows(self, windows=None, exts=None):
         """Initialize all extensions for a window"""
@@ -854,7 +846,6 @@ class KeepNote (keepnote.KeepNote):
                 return True
 
         return False
-
 
 
     def uninstall_extension(self, ext_key):

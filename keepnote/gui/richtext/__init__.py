@@ -260,6 +260,8 @@ class RichTextIO (object):
                 textview.set_buffer(textbuffer)
             ret = False            
         else:
+            # TODO: make better API for fetching images
+            # like a callback or something.
             # finish loading
             path = os.path.dirname(filename)
             self._load_images(textbuffer, path)

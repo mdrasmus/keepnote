@@ -471,13 +471,13 @@ class DatesSection (Section):
     def load_options(self, app):
         for name in ["same_day", "same_month", "same_year", "diff_year"]:
             self.date_xml.get_widget("date_%s_entry" % name).\
-                set_text(app.timestamp_formats[name])
+                set_text(app.pref.get("timestamp_formats", name))
 
     def save_options(self, app):
         # save date formatting
         for name in ["same_day", "same_month", "same_year", "diff_year"]:
-            app.timestamp_formats[name] = unicode_gtk(
-                self.date_xml.get_widget("date_%s_entry" % name).get_text())
+            app.pref.set("timestamp_formats", name, unicode_gtk(
+                self.date_xml.get_widget("date_%s_entry" % name).get_text()))
         
 
 class AllNoteBooksSection (Section):

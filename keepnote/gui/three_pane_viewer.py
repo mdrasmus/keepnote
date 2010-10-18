@@ -247,7 +247,7 @@ class ThreePaneViewer (Viewer):
         self.hpaned.set_position(p.get("hsash_pos", DEFAULT_HSASH_POS))
 
 
-        self.listview.set_date_formats(self._app.timestamp_formats)
+        self.listview.set_date_formats(app_pref.get("timestamp_formats"))
         self.listview.set_rules_hint(
             app_pref.get("look_and_feel", "listview_rules",
                          default=True))
