@@ -54,11 +54,12 @@ _ = keepnote.translate
 
 class Viewer (gtk.VBox):
 
-    def __init__(self, app, parent, viewerid=None):
+    def __init__(self, app, parent, viewerid=None, viewer_name="viewer"):
         gtk.VBox.__init__(self, False, 0)
         self._app = app
         self._main_window = parent
         self._viewerid = viewerid if viewerid else unicode(uuid.uuid4())
+        self._viewer_name = viewer_name
         
         self._notebook = None
         self._history = NodeHistory()
@@ -72,6 +73,9 @@ class Viewer (gtk.VBox):
 
     def set_id(self, viewerid):
         self._viewerid = viewerid if viewerid else unicode(uuid.uuid4())
+
+    def get_name(self):
+        return self._viewer_name
 
     def set_notebook(self, notebook):
         """Sets the current notebook for the viewer"""

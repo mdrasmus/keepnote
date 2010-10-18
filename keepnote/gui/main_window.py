@@ -602,7 +602,7 @@ class KeepNoteWindow (gtk.Window):
             for notebook in self.get_all_notebooks():
                 p = notebook.pref.get("windows", "ids", define=True)
                 p[self._winid] = {
-                        "viewer_type": "tabbed_viewer",
+                        "viewer_type": self.viewer.get_name(),
                         "viewerid": self.viewer.get_id()}
 
                 # clear viewer info

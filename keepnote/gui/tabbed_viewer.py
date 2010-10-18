@@ -82,13 +82,20 @@ class TabbedViewer (Viewer):
 
     def __init__(self, app, main_window, viewerid=None,
                  default_viewer=ThreePaneViewer):
-        Viewer.__init__(self, app, main_window, viewerid)
+        Viewer.__init__(self, app, main_window, viewerid, 
+                        viewer_name="tabbed_viewer")
         self._default_viewer = default_viewer
         self._current_viewer = None
         self._callbacks = {}
         self._ui_ready = False
         self._null_viewer = Viewer(app, main_window)
         self._tab_names = {}
+
+        # TODO: move to the app?
+        # viewer registry
+        self._viewer_lookup = TwoWayDict()
+        self._viewer_lookup.add(ThreePaneViewer(app, main_window).get_name(), 
+                                ThreePaneViewer)
         
         # layout
         self._tabs = gtk.Notebook()
@@ -99,18 +106,14 @@ class TabbedViewer (Viewer):
         self._tabs.connect("switch-page", self._on_switch_tab)
         self._tabs.connect("page-added", self._on_tab_added)
         self._tabs.connect("page-removed", self._on_tab_removed)
+        self._tabs.connect("button-press-event", self._on_button_press)
         self.pack_start(self._tabs, True, True, 0)
 
-
-        self._tabs.connect("button-press-event", self._on_button_press)
-            
-
+        # initialize with a single tab
         self.new_tab()
-
+        
         # TODO: maybe add close_viewer() function
 
-        self._viewer_lookup = TwoWayDict()
-        self._viewer_lookup.add("three_pane_viewer", ThreePaneViewer)
 
 
     def get_current_viewer(self):
@@ -419,7 +422,7 @@ class TabbedViewer (Viewer):
                 node = viewer.get_current_page()
                 name = self._tab_names[viewer]
                 tabs.append(
-                    {"viewer_type": self._viewer_lookup.get2(type(viewer)),
+                    {"viewer_type": viewer.get_name(),
                      "viewerid": viewer.get_id(),
                      "name": name if name is not None else ""})
 

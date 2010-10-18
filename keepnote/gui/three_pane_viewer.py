@@ -85,7 +85,8 @@ class ThreePaneViewer (Viewer):
     """A viewer with a treeview, listview, and editor"""
 
     def __init__(self, app, main_window, viewerid=None):
-        Viewer.__init__(self, app, main_window, viewerid)
+        Viewer.__init__(self, app, main_window, viewerid,
+                        viewer_name="three_pane_viewer")
         self._ui_ready = False
 
         # node selections        
