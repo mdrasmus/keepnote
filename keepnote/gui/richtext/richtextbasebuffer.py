@@ -154,6 +154,7 @@ class RichTextBaseBuffer (gtk.TextBuffer):
             self.connect("insert-child-anchor", self._on_insert_child_anchor),
             self.connect("apply-tag", self._on_apply_tag),
             self.connect("remove-tag", self._on_remove_tag),
+            self.connect("delete-range", self._on_delete_range),
 
             # undo handler events
             self.connect("insert-text", self._undo_handler.on_insert_text),
@@ -357,6 +358,10 @@ class RichTextBaseBuffer (gtk.TextBuffer):
         
         if tag.is_par_related():
             self.on_paragraph_change(start, end)
+
+
+    def _on_delete_range(self, textbuffer, start, end):
+        pass
 
 
     def on_after_changed(self, action):

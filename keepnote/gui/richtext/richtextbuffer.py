@@ -742,12 +742,13 @@ class RichTextBuffer (RichTextBaseBuffer):
         # let indent manager prepare the delete
         #if self.is_interactive():
         #    self._indent.prepare_delete_range(start, end)
-                
+        
         # call super class
         RichTextBaseBuffer._on_delete_range(self, textbuffer, start, end)
         
         # deregister any deleted anchors
-        for kind, offset, param in self._next_action.contents:
+        for kind, offset, param in iter_buffer_contents(
+            self, start, end, ignore_tag):
             if kind == "anchor":
                 self._anchors.remove(param[0])
 
