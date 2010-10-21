@@ -157,8 +157,6 @@ def iter_buffer_anchors(textbuffer, start=None, end=None):
         # yield anchor
         if anchor is not None:
             yield ("anchor", a, (anchor, anchor.get_widgets()))
-        else:
-            yield ("pixbuf", a, a.get_pixbuf())
 
         # advance it past anchor
         it = b

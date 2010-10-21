@@ -54,7 +54,7 @@ except ImportError:
 
 # textbuffer_tools imports
 from .textbuffer_tools import \
-     iter_buffer_contents, sanitize_text
+     iter_buffer_contents, iter_buffer_anchors, sanitize_text
 
 # richtextbuffer imports
 from .richtextbuffer import \
@@ -206,8 +206,7 @@ class RichTextIO (object):
     def save(self, textbuffer, filename, title=None):
         """Save buffer contents to file"""
         
-        path = os.path.dirname(filename)
-        self._save_images(textbuffer, path)
+        self._save_images(textbuffer, self._get_filename(filename))
         
         try:
             buffer_contents = iter_buffer_contents(textbuffer,
@@ -243,28 +242,27 @@ class RichTextIO (object):
         
         err = None
         try:
-            buffer_contents = self._html_buffer.read(
-                safefile.open(filename, "r", codec="utf-8"))
+            if hasattr(filename, "read"):
+                infile = filename
+            else:
+                infile = safefile.open(filename, "r", codec="utf-8")
+            buffer_contents = self._html_buffer.read(infile)
             textbuffer.insert_contents(buffer_contents,
                                        textbuffer.get_start_iter())
+            infile.close()
 
             # put cursor at begining
             textbuffer.place_cursor(textbuffer.get_start_iter())
             
         except (HtmlError, IOError, Exception), e:
             err = e
-            
-            # TODO: turn into function
             textbuffer.clear()
             if textview:
                 textview.set_buffer(textbuffer)
             ret = False            
         else:
-            # TODO: make better API for fetching images
-            # like a callback or something.
             # finish loading
-            path = os.path.dirname(filename)
-            self._load_images(textbuffer, path)
+            self._load_images(textbuffer, self._get_filename(filename))
             if textview:
                 textview.set_buffer(textbuffer)
                 textview.show_all()
@@ -284,43 +282,32 @@ class RichTextIO (object):
         
 
     
-    def _load_images(self, textbuffer, path):
+    def _load_images(self, textbuffer, get_filename):
         """Load images present in textbuffer"""
         
-        # TODO: generalize filesystem manipulation
-
-        for kind, it, param in iter_buffer_contents(textbuffer,
-                                                    None, None,
-                                                    ignore_tag):
-            if kind == "anchor":
-                child, widgets = param
-                    
-                if isinstance(child, RichTextImage):
-                    filename = child.get_filename()
-                    if is_relative_file(filename):
-                        filename = os.path.join(path, filename)
-                    
-                    child.set_from_file(filename)
+        for kind, it, param in iter_buffer_anchors(textbuffer, None, None):
+            child, widgets = param
+            if isinstance(child, RichTextImage):
+                child.set_from_file(get_filename(child.get_filename()))
 
     
-    def _save_images(self, textbuffer, path):
+    def _save_images(self, textbuffer, get_filename):
         """Save images present in text buffer"""
 
-        # TODO: generalize filesystem manipulation
-        
-        for kind, it, param in iter_buffer_contents(textbuffer,
-                                                    None, None,
-                                                    ignore_tag):
-            if kind == "anchor":
-                child, widgets = param
-                    
-                if isinstance(child, RichTextImage):
-                    filename = child.get_filename()
-                    if is_relative_file(filename):
-                        filename = os.path.join(path, filename)
-                        
-                    if child.save_needed():
-                        child.write(filename)
+        for kind, it, param in iter_buffer_anchors(textbuffer, None, None):
+            child, widgets = param
+            if (isinstance(child, RichTextImage) and child.save_needed()):
+                child.write(get_filename(child.get_filename()))
+
+
+    def _get_filename(self, html_filename):
+        path = os.path.dirname(html_filename)
+        def func(filename):
+            if is_relative_file(filename):
+                return os.path.join(path, filename)
+            return filename
+        return func
+
                     
 
 class RichTextDragDrop (object):

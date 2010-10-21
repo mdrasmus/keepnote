@@ -437,8 +437,7 @@ class ThreePaneViewer (Viewer):
     def _on_editor_view_node(self, editor, node):
         """Callback for when editor views a node"""
 
-        # TODO: add to history for all nodes, not just pages
-
+        # record node in history
         self._history.add(node.get_attr("nodeid"))
         self.emit("history-changed", self._history)
 

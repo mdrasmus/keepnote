@@ -258,8 +258,15 @@ class BaseImage (BaseWidget):
         self._img.set_from_stock(stock, size)
     
 
-# TODO: think about how a single anchor could manage multiple widgets in
-# multiple textviews
+
+def get_image_format(filename):
+    """Returns the image format for a filename"""
+    f, ext = os.path.splitext(filename)
+    ext = ext.replace(u".", "").lower()
+    if ext == "jpg":
+        ext = "jpeg"
+    return ext
+
 
 class RichTextImage (RichTextAnchor):
     """An Image child widget in a RichTextView"""
@@ -319,14 +326,9 @@ class RichTextImage (RichTextAnchor):
     
     def write(self, filename):
         """Write image to file"""
-
-        # TODO: move this to external function
-        f, ext = os.path.splitext(filename)
-        ext = ext.replace(u".", "").lower()
-        if ext == "jpg":
-            ext = "jpeg"
-
+        
         # TODO: make more checks on saving
+        ext = get_image_format(filename)
         self._pixbuf_original.save(filename, ext)
         self._save_needed = False
         
@@ -339,9 +341,6 @@ class RichTextImage (RichTextAnchor):
         img._size = list(self.get_size())
         
         if self._pixbuf:
-            # TODO: this loop will not be necessary when add_view() is complete
-            #for widget in img.get_all_widgets().itervalues():
-            #    widget.set_from_pixbuf(self._pixbuf)
             img._pixbuf = self._pixbuf
             img._pixbuf_original = self._pixbuf_original
         else:
