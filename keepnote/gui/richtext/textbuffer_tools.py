@@ -127,6 +127,44 @@ def iter_buffer_contents(textbuffer, start=None, end=None,
             yield ("end", end, tag)
 
 
+def iter_buffer_anchors(textbuffer, start=None, end=None):
+    """Iterate over the anchors of a textbuffer
+
+    textbuffer -- buffer to iterate over
+    start      -- starting position (TextIter)
+    end        -- ending position (TextIter)
+    """
+
+    # initialize iterators
+    if start is None:
+        it = textbuffer.get_start_iter()
+    else:
+        it = start.copy()
+
+    if end is None:
+        end = textbuffer.get_end_iter()
+        
+    while True:
+        # find next achor
+        ret = it.forward_search(ANCHOR_CHAR, (), end)
+        if not ret:                
+            break
+
+        # anchor found
+        a, b = ret
+        anchor = a.get_child_anchor()
+            
+        # yield anchor
+        if anchor is not None:
+            yield ("anchor", a, (anchor, anchor.get_widgets()))
+        else:
+            yield ("pixbuf", a, a.get_pixbuf())
+
+        # advance it past anchor
+        it = b
+
+
+
 def buffer_contents_iter_to_offset(contents):
     """Converts to iters of a content list to offsets"""
     

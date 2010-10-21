@@ -47,6 +47,7 @@ from .textbuffer_tools import \
     move_to_start_of_line, \
     move_to_end_of_line, \
     iter_buffer_contents, \
+    iter_buffer_anchors, \
     buffer_contents_iter_to_offset, \
     normalize_tags, \
     insert_buffer_contents, \
@@ -655,6 +656,7 @@ class RichTextBuffer (RichTextBaseBuffer):
         
         # set of all anchors in buffer
         self._anchors = set()
+        self._anchors_highlighted = set()
         #self._child_uninit = set()
 
         # anchors that still need to be added,
@@ -667,6 +669,7 @@ class RichTextBuffer (RichTextBaseBuffer):
         
         RichTextBaseBuffer.clear(self)
         self._anchors.clear()
+        self._anchors_highlighted.clear()
         self._anchors_deferred.clear()
 
 
@@ -750,7 +753,10 @@ class RichTextBuffer (RichTextBaseBuffer):
         for kind, offset, param in iter_buffer_contents(
             self, start, end, ignore_tag):
             if kind == "anchor":
-                self._anchors.remove(param[0])
+                child = param[0]
+                self._anchors.remove(child)
+                if child in self._anchors_highlighted:
+                    self._anchors_highlighted.remove(child)
 
     #=========================================
     # indentation interface
@@ -1023,34 +1029,33 @@ class RichTextBuffer (RichTextBaseBuffer):
         
         sel = self.get_selection_bounds()
         focus = None
-
-        # TODO: speed this up.  Don't process all children
         
         if len(sel) > 0:
-            
-            # selection exists, get range (a, b)
-            a = sel[0].get_offset()
-            b = sel[1].get_offset()
-            for child in self._anchors:
-                it = self.get_iter_at_child_anchor(child)
-                offset = it.get_offset()
-                if a <= offset < b:
-                    child.highlight()
-                else:
+            highlight = set(x[2][0] for x in 
+                            iter_buffer_anchors(self, sel[0], sel[1]))
+            for child in self._anchors_highlighted:
+                if child not in highlight:
                     child.unhighlight()
+            for child in highlight:
+                child.highlight()
+            self._anchors_highlighted = highlight
 
-                for w in child.get_all_widgets().itervalues():
-                    top = w.get_toplevel()
-                    if top and isinstance(top, gtk.Window):
-                        f = top.get_focus()
-                        if f:
-                            focus = f
-            if focus:
-                focus.grab_focus()
+            # Why is this needed
+            # maintain focus
+            #for child in self._anchors:
+            #    for w in child.get_all_widgets().itervalues():
+            #        top = w.get_toplevel()
+            #        if top and isinstance(top, gtk.Window):
+            #            f = top.get_focus()
+            #            if f:
+            #                focus = f
+            #if focus:
+            #    focus.grab_focus()
         else:
             # no selection, unselect all children
-            for child in self._anchors:
+            for child in self._anchors_highlighted:
                 child.unhighlight()
+            self._anchors_highlighted.clear()
 
 
 
