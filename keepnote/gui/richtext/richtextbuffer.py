@@ -1022,10 +1022,6 @@ class RichTextBuffer (RichTextBaseBuffer):
     
     def highlight_children(self):
         """Highlight any children that are within selection range"""
-
-        # TODO: I once had an exception that said an anchor in self._anchors
-        # was already deleted.  I do not know yet how this got out of
-        # sync, seeing as I listen for deletes.
         
         sel = self.get_selection_bounds()
         focus = None
@@ -1039,18 +1035,7 @@ class RichTextBuffer (RichTextBaseBuffer):
             for child in highlight:
                 child.highlight()
             self._anchors_highlighted = highlight
-
-            # Why is this needed
-            # maintain focus
-            #for child in self._anchors:
-            #    for w in child.get_all_widgets().itervalues():
-            #        top = w.get_toplevel()
-            #        if top and isinstance(top, gtk.Window):
-            #            f = top.get_focus()
-            #            if f:
-            #                focus = f
-            #if focus:
-            #    focus.grab_focus()
+            
         else:
             # no selection, unselect all children
             for child in self._anchors_highlighted:

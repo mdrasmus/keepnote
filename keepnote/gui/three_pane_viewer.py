@@ -446,8 +446,9 @@ class ThreePaneViewer (Viewer):
     def _on_child_activated(self, editor, textview, child):
         """Callback for when child widget in editor is activated"""
         
-        if isinstance(child, richtext.RichTextImage):
-            self._app.run_external_app("image_viewer", child.get_filename())
+        if self._current_page and isinstance(child, richtext.RichTextImage):
+            filename = self._current_page.get_file(child.get_filename())
+            self._app.run_external_app("image_viewer", filename)
 
         
     def _on_tree_select(self, treeview, nodes):
