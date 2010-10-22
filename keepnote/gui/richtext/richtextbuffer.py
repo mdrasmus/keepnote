@@ -332,6 +332,14 @@ class RichTextImage (RichTextAnchor):
         self._pixbuf_original.save(filename, ext)
         self._save_needed = False
         
+
+    def write_stream(self, stream, format):
+        def write(buf):
+            stream.write(buf)
+            return True
+        self._pixbuf_original.save_to_callback(write, format)
+        self._save_needed = False
+        
         
     def copy(self):
         """Returns a new copy of the image"""
@@ -371,6 +379,25 @@ class RichTextImage (RichTextAnchor):
             # successful image load, set its size
             self._pixbuf = self._pixbuf_original
             
+            if self.is_size_set():
+                self.scale(self._size[0], self._size[1], False)
+
+            for widget in self.get_all_widgets().itervalues():
+                widget.set_from_pixbuf(self._pixbuf)
+
+    def set_from_stream(self, stream):
+
+        loader = gtk.gdk.PixbufLoader()
+        try:
+            loader.write(stream.read())
+            loader.close()
+            self._pixbuf_original = loader.get_pixbuf()
+        except gobject.GError, e:
+            self.set_no_image()
+        else:
+            # successful image load, set its size
+            self._pixbuf = self._pixbuf_original
+
             if self.is_size_set():
                 self.scale(self._size[0], self._size[1], False)
 

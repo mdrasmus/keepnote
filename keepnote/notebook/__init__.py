@@ -331,6 +331,14 @@ def parse_node_url(url):
         raise Exception("bad node URL")
     
 
+def guess_file_mimetype(filename, default="application/octet-stream"):
+    """Guess the mimetype of a file by its filename"""
+    content_type = mimetypes.guess_type(filename)[0]
+    if content_type is None:
+        return default
+    else:
+        return content_type
+
 
 def attach_file(filename, node, index=None):
     """Attach a file to a node in a notebook"""
@@ -340,28 +348,13 @@ def attach_file(filename, node, index=None):
         return None
 
     # determine content-type
-    content_type = mimetypes.guess_type(filename)[0]
-    if content_type is None:
-        content_type = "application/octet-stream"
-
+    content_type = guess_file_mimetype(filename)
     new_filename = os.path.basename(filename)
-    child = None
 
     try:
-        # TODO: fix.  Make sure extension is taken off first
-        # TODO: also use conn
-        path = get_valid_unique_filename(node.get_path(), new_filename)
-        child = node.get_notebook().new_node(
-                content_type, 
-                path,
-                node,
-                {"payload_filename": new_filename,
-                 "title": new_filename})
-        child.create()
-        node.add_child(child, index)
+        child = node.new_child(content_type, new_filename, index)
         child.set_payload(filename, new_filename)
         child.save(True)
-
         return child
 
     except Exception, e:
@@ -1004,6 +997,14 @@ class NoteBookNode (object):
     def open_file(self, filename, mode="r", codec="utf-8"):
         return self._conn.open_node_file(
             self, filename, mode, codec=codec)
+
+    def new_filename(self, new_filename, ext=u"", sep=u" ", number=2, 
+                     return_number=False, use_number=False, ensure_valid=True):
+        return self._conn.new_filename(
+            self, new_filename, ext, sep, number, 
+            return_number=return_number, use_number=use_number, 
+            ensure_valid=ensure_valid)
+
         
     def get_meta_file(self):
         """Returns the meta file for the node"""
@@ -1150,7 +1151,7 @@ class NoteBookGenericFile (NoteBookNode):
         if new_filename is None:
             new_filename = os.path.basename(filename)
         
-        new_filename = self._conn.new_filename(self, new_filename)
+        new_filename = self._conn.new_filename(self, new_filename, None)
         
         try:
             # attempt url parse
@@ -1851,6 +1852,8 @@ class NoteBookConnection (object):
                      path=None):
         if path is None:
             path = self.get_node_path(node)
+        if ext is None:
+            new_filename, ext = os.path.splitext(new_filename)
 
         basename = os.path.basename(new_filename)
         path2 = os.path.join(path, os.path.dirname(new_filename))

@@ -769,10 +769,19 @@ class KeepNoteWindow (gtk.Window):
     def open_notebook(self, filename, new=False):
         """Opens a new notebook"""
         
-        filename = notebooklib.normalize_notebook_dirname(
-            filename, longpath=False)
-        notebook = self._load_notebook(filename)
+        try:
+            filename = notebooklib.normalize_notebook_dirname(
+                filename, longpath=False)
+        except Exception, e:
+            self.error(_("Could note find notebook '%s'.") % filename, e,
+                       sys.exc_info()[2])
+            notebook = None
+        else:
+            notebook = self._load_notebook(filename)
         
+        if notebook is None:
+            return
+
         # setup notebook
         self._restore_windows(notebook)
         self.set_notebook(notebook)

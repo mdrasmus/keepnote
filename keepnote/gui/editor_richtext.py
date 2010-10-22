@@ -28,7 +28,7 @@
 
 # python imports
 import gettext
-import sys, os
+import sys, os, re
 
 
 # pygtk imports
@@ -83,6 +83,38 @@ _ = keepnote.translate
 
 
 
+def is_relative_file(filename):
+    """Returns True if filename is relative"""
+    
+    return (not re.match("[^:/]+://", filename) and 
+            not os.path.isabs(filename))
+        
+
+class NodeIO (RichTextIO):
+    """Read/Writes the contents of a RichTextBuffer to disk"""
+
+    def __init__(self):
+        RichTextIO.__init__(self)
+        self._node = None
+
+    def set_node(self, node):
+        self._node = node
+
+    def _load_image(self, textbuffer, image, html_filename):
+        image.set_from_file(
+            self._get_filename(html_filename, image.get_filename()))
+
+    def _save_image(self, textbuffer, image, html_filename):
+        image.write(self._get_filename(html_filename, image.get_filename()))
+
+    def _get_filename(self, html_filename, filename):
+        path = os.path.dirname(html_filename)
+        if is_relative_file(filename):
+            return os.path.join(path, filename)
+        return filename
+
+
+
 
 class RichTextEditor (KeepNoteEditor):
 
@@ -99,7 +131,7 @@ class RichTextEditor (KeepNoteEditor):
         self._page = None                  # current NoteBookPage
         self._page_scrolls = {}            # remember scroll in each page
         self._page_cursors = {}
-        self._textview_io = RichTextIO()
+        self._textview_io = NodeIO()
         
         # editor
         self.connect("make-link", self._on_make_link)

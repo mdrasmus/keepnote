@@ -201,12 +201,11 @@ class RichTextIO (object):
     def __init__(self):
         self._html_buffer = HtmlBuffer()
 
-    # TODO: generalize filesystem manipulation
     
     def save(self, textbuffer, filename, title=None):
         """Save buffer contents to file"""
         
-        self._save_images(textbuffer, self._get_filename(filename))
+        self._save_images(textbuffer, filename)
         
         try:
             buffer_contents = iter_buffer_contents(textbuffer,
@@ -262,7 +261,7 @@ class RichTextIO (object):
             ret = False            
         else:
             # finish loading
-            self._load_images(textbuffer, self._get_filename(filename))
+            self._load_images(textbuffer, filename)
             if textview:
                 textview.set_buffer(textbuffer)
                 textview.show_all()
@@ -282,31 +281,36 @@ class RichTextIO (object):
         
 
     
-    def _load_images(self, textbuffer, get_filename):
+    def _load_images(self, textbuffer, html_filename):
         """Load images present in textbuffer"""
         
         for kind, it, param in iter_buffer_anchors(textbuffer, None, None):
             child, widgets = param
             if isinstance(child, RichTextImage):
-                child.set_from_file(get_filename(child.get_filename()))
+                self._load_image(textbuffer, child, html_filename)
 
     
-    def _save_images(self, textbuffer, get_filename):
+    def _save_images(self, textbuffer, html_filename):
         """Save images present in text buffer"""
 
         for kind, it, param in iter_buffer_anchors(textbuffer, None, None):
             child, widgets = param
             if (isinstance(child, RichTextImage) and child.save_needed()):
-                child.write(get_filename(child.get_filename()))
+                self._save_image(textbuffer, child, html_filename)
 
 
-    def _get_filename(self, html_filename):
+    def _load_image(self, textbuffer, image, html_filename):
+        image.set_from_file(
+            self._get_filename(html_filename, image.get_filename()))
+
+    def _save_image(self, textbuffer, image, html_filename):
+        image.write(self._get_filename(html_filename, image.get_filename()))
+
+    def _get_filename(self, html_filename, filename):
         path = os.path.dirname(html_filename)
-        def func(filename):
-            if is_relative_file(filename):
-                return os.path.join(path, filename)
-            return filename
-        return func
+        if is_relative_file(filename):
+            return os.path.join(path, filename)
+        return filename
 
                     
 
