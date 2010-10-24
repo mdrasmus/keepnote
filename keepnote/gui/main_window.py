@@ -720,7 +720,10 @@ class KeepNoteWindow (gtk.Window):
         # determine whether to open new windows or use this one
         windows = notebook.pref.get("windows", "ids", define=True)
         notebook.pref.get("viewers", "ids", define=True)
+        
         if len(windows) == 1:
+            # restore a single window
+
             p = windows.values()[0]
             old_id = p.get("viewerid", None)
             if old_id is not None:
@@ -733,7 +736,7 @@ class KeepNoteWindow (gtk.Window):
                         self.viewer.set_id(old_id)
                 else:
                     # notebooks are open, so reassign the notebook's pref to
-                    # macth the existing viewer
+                    # match the existing viewer
                     p["viewerid"] = self.viewer.get_id()
 
                     p2 = notebook.pref.get("viewers", "ids", old_id, 
@@ -807,8 +810,7 @@ class KeepNoteWindow (gtk.Window):
         """Close the NoteBook"""
 
         # TODO: think about how this interacts with tabbed notebook
-        notebook = self.get_notebook()        
-
+        notebook = self.get_notebook()
         if notebook is not None:
             if save:
                 self.save_notebook()
