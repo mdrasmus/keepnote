@@ -782,6 +782,18 @@ class KeepNote (object):
         if self.has_ref_notebook(notebook):
             self.unref_notebook(notebook)
 
+    def close_all_notebook(self, notebook):
+        """Close all instances of a notebook"""
+
+        del self._notebook_count[notebook]
+
+        for key, val in self._notebooks.iteritems():
+            if val == notebook:
+                del self._notebooks[key]
+                break
+
+        notebook.close()
+
 
     def get_notebook(self, filename, window=None, task=None):
         """
@@ -822,14 +834,7 @@ class KeepNote (object):
 
         # close if refcount is zero
         if self._notebook_count[notebook] == 0:
-            del self._notebook_count[notebook]
-
-            for key, val in self._notebooks.iteritems():
-                if val == notebook:
-                    del self._notebooks[key]
-                    break
-
-            notebook.close()
+            self.close_all_notebook(notebook)
 
     def has_ref_notebook(self, notebook):
         return notebook in self._notebook_count
@@ -899,11 +904,11 @@ class KeepNote (object):
 
         # build command arguments
         cmd = [app.prog] + app.args
-        if "%s" not in cmd:
+        if "%f" not in cmd:
             cmd.append(filename)
         else:
             for i in xrange(len(cmd)):
-                if cmd[i] == "%s":
+                if cmd[i] == "%f":
                     cmd[i] = filename
         
         # create proper encoding
@@ -931,29 +936,23 @@ class KeepNote (object):
 
     def run_external_app_node(self, app_key, node, kind, wait=False):
         """Runs an external application on a node"""
-
-        if node.get_attr("content_type") == notebooklib.CONTENT_TYPE_PAGE:
-
-            if kind == "dir":
-                filename = node.get_path()
-            else:
+        
+        if kind == "dir":
+            filename = node.get_path()
+        else:
+            if node.get_attr("content_type") == notebooklib.CONTENT_TYPE_PAGE:
                 # get html file
                 filename = node.get_data_file()
 
-        elif node.get_attr("content_type") == notebooklib.CONTENT_TYPE_DIR:
-            # get node dir
-            filename = node.get_path()
-
-        elif node.has_attr("payload_filename"):
-
-            if kind == "dir":
+            elif node.get_attr("content_type") == notebooklib.CONTENT_TYPE_DIR:
+                # get node dir
                 filename = node.get_path()
-            else:
+
+            elif node.has_attr("payload_filename"):
                 # get payload file
-                filename = os.path.join(node.get_path(),
-                                        node.get_attr("payload_filename"))
-        else:
-            raise KeepNoteError(_("Unable to dertermine note type."))
+                filename =node.get_file(node.get_attr("payload_filename"))
+            else:
+                raise KeepNoteError(_("Unable to dertermine note type."))
 
 
         self.run_external_app(app_key, os.path.realpath(filename), wait=wait)
