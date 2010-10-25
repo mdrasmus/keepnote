@@ -123,10 +123,16 @@ class NodeIO (RichTextIO):
     def _save_images(self, textbuffer, html_filename):
         """Save images present in text buffer"""
 
+        # reset saved image set
         self._saved_image_files.clear()
+        
+        # don't allow the html file to be deleted
+        self._saved_image_files.add(os.path.basename(html_filename))
+
         RichTextIO._save_images(self, textbuffer, html_filename)
         #print "saved", self._saved_image_files
 
+        # delete images not part of the saved set
         self._delete_images(html_filename, 
                             self._image_files - self._saved_image_files)
         self._image_files = set(self._saved_image_files)
@@ -136,6 +142,8 @@ class NodeIO (RichTextIO):
         
         for image_file in image_files:
             #print image_file, is_local_file(image_file)
+            
+            # only delete an image file if it is local
             if is_local_file(image_file):
                 try:
                     os.remove(self._get_filename(html_filename, image_file))
