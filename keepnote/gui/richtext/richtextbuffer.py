@@ -886,8 +886,7 @@ class RichTextBuffer (RichTextBaseBuffer):
 
 
     def _add_child_at_anchor(self, child, textview):
-        #print "add", child.get_widget()
-
+        
         # skip children whose insertion was rejected
         if child.get_deleted():
             return
@@ -897,13 +896,11 @@ class RichTextBuffer (RichTextBaseBuffer):
         textview.add_child_at_anchor(widget, child)
 
         child.show()
-        #widget.show_all()
-        #print "added", child.get_widget()
 
     
     def insert_image(self, image, filename="image.png"):
         """Inserts an image into the textbuffer at current position"""
-
+        
         # set default filename
         if image.get_filename() is None:
             image.set_filename(filename)

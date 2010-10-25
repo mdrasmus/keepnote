@@ -295,7 +295,7 @@ class RichTextIO (object):
 
         for kind, it, param in iter_buffer_anchors(textbuffer, None, None):
             child, widgets = param
-            if (isinstance(child, RichTextImage) and child.save_needed()):
+            if isinstance(child, RichTextImage):
                 self._save_image(textbuffer, child, html_filename)
 
 
@@ -304,7 +304,9 @@ class RichTextIO (object):
             self._get_filename(html_filename, image.get_filename()))
 
     def _save_image(self, textbuffer, image, html_filename):
-        image.write(self._get_filename(html_filename, image.get_filename()))
+        if child.save_needed():
+            print "save", image.get_filename()
+            image.write(self._get_filename(html_filename, image.get_filename()))
 
     def _get_filename(self, html_filename, filename):
         path = os.path.dirname(html_filename)

@@ -96,16 +96,66 @@ class NodeIO (RichTextIO):
     def __init__(self):
         RichTextIO.__init__(self)
         self._node = None
+        self._image_files = set()
+        self._saved_image_files = set()
 
     def set_node(self, node):
         self._node = node
+        
+    def save(self, textbuffer, filename, title=None):
+        """Save buffer contents to file"""
+        RichTextIO.save(self, textbuffer, filename, title)
+    
+    def load(self, textview, textbuffer, filename):
+        RichTextIO.load(self, textview, textbuffer, filename)
+
+    
+    def _load_images(self, textbuffer, html_filename):
+        """Load images present in textbuffer"""
+        
+        self._image_files.clear()
+        RichTextIO._load_images(self, textbuffer, html_filename)
+
+    
+    def _save_images(self, textbuffer, html_filename):
+        """Save images present in text buffer"""
+
+        self._saved_image_files.clear()
+        RichTextIO._save_images(self, textbuffer, html_filename)
+        
+        self._delete_images(html_filename, 
+                            self._image_files - self._saved_image_files)
+        self._image_files = self._saved_image_files
+
+
+    def _delete_images(self, html_filename, image_files):
+        
+        for image_file in image_files:
+            try:
+                os.remove(self._get_filename(html_filename, image_file))
+            except:
+                pass
+
 
     def _load_image(self, textbuffer, image, html_filename):
         image.set_from_file(
             self._get_filename(html_filename, image.get_filename()))
 
+        # record loaded images
+        self._image_files.add(image.get_filename())
+
+
     def _save_image(self, textbuffer, image, html_filename):
-        image.write(self._get_filename(html_filename, image.get_filename()))
+
+        filename = self._get_filename(html_filename, image.get_filename())
+
+        # write image if it is modified or its file does not exist
+        if image.save_needed() or not os.path.exists(filename):
+            image.write(filename)
+
+        # mark image as saved
+        self._saved_image_files.add(image.get_filename())
+
 
     def _get_filename(self, html_filename, filename):
         path = os.path.dirname(html_filename)
@@ -182,10 +232,7 @@ class RichTextEditor (KeepNoteEditor):
         self._notebook = notebook
 
         if self._notebook:
-            # read default font
-            self._textview.set_default_font(
-                self._notebook.pref.get("default_font",
-                                        default=DEFAULT_FONT))
+            self.load_notebook_preferences()
         else:
             # no new notebook, clear the view
             self.clear_view()
@@ -195,13 +242,10 @@ class RichTextEditor (KeepNoteEditor):
         """Load application preferences"""
 
         self.editor_menus.enable_spell_check(
-            self._app.pref.get("editors", "general", "spell_check",
-                               default=True))
+            app_pref.get("editors", "general", "spell_check",
+                         default=True))
 
-        if self._notebook:
-            self._textview.set_default_font(
-                self._notebook.pref.get("default_font",
-                                        default=DEFAULT_FONT))
+        self.load_notebook_preferences()
 
 
     def save_preferences(self, app_pref):
@@ -210,6 +254,15 @@ class RichTextEditor (KeepNoteEditor):
         # record state in preferences
         app_pref.set("editors", "general", "spell_check", 
                      self._textview.is_spell_check_enabled())
+
+    def load_notebook_preferences(self):
+        """Load notebook-specific preferences"""
+        
+        if self._notebook:
+            # read default font
+            self._textview.set_default_font(
+                self._notebook.pref.get("default_font",
+                                        default=DEFAULT_FONT))
 
 
     def get_textview(self):
@@ -264,6 +317,7 @@ class RichTextEditor (KeepNoteEditor):
             self._textview.enable()
 
             try:
+                self._textview_io.set_node(self._page)
                 self._textview_io.load(self._textview,
                                        self._textview.get_buffer(),
                                        self._page.get_data_file())
