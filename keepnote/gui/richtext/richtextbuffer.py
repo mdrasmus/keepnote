@@ -328,9 +328,10 @@ class RichTextImage (RichTextAnchor):
         """Write image to file"""
         
         # TODO: make more checks on saving
-        ext = get_image_format(filename)
-        self._pixbuf_original.save(filename, ext)
-        self._save_needed = False
+        if self._pixbuf:
+            ext = get_image_format(filename)
+            self._pixbuf_original.save(filename, ext)
+            self._save_needed = False
         
 
     def write_stream(self, stream, format):
@@ -372,7 +373,7 @@ class RichTextImage (RichTextAnchor):
         try:
             self._pixbuf_original = gdk.pixbuf_new_from_file(filename)
             
-        except gobject.GError, e:
+        except Exception:
             # use missing image instead
             self.set_no_image()
         else:

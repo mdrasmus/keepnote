@@ -305,7 +305,6 @@ class RichTextIO (object):
 
     def _save_image(self, textbuffer, image, html_filename):
         if child.save_needed():
-            print "save", image.get_filename()
             image.write(self._get_filename(html_filename, image.get_filename()))
 
     def _get_filename(self, html_filename, filename):

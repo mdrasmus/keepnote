@@ -89,6 +89,9 @@ def is_relative_file(filename):
     return (not re.match("[^:/]+://", filename) and 
             not os.path.isabs(filename))
         
+def is_local_file(filename):
+    return filename and ("/" not in filename) and ("\\" not in filename)
+
 
 class NodeIO (RichTextIO):
     """Read/Writes the contents of a RichTextBuffer to disk"""
@@ -122,19 +125,22 @@ class NodeIO (RichTextIO):
 
         self._saved_image_files.clear()
         RichTextIO._save_images(self, textbuffer, html_filename)
-        
+        #print "saved", self._saved_image_files
+
         self._delete_images(html_filename, 
                             self._image_files - self._saved_image_files)
-        self._image_files = self._saved_image_files
+        self._image_files = set(self._saved_image_files)
 
 
     def _delete_images(self, html_filename, image_files):
         
         for image_file in image_files:
-            try:
-                os.remove(self._get_filename(html_filename, image_file))
-            except:
-                pass
+            #print image_file, is_local_file(image_file)
+            if is_local_file(image_file):
+                try:
+                    os.remove(self._get_filename(html_filename, image_file))
+                except:
+                    pass
 
 
     def _load_image(self, textbuffer, image, html_filename):
