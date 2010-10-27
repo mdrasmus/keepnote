@@ -52,12 +52,6 @@ from keepnote.gui.icons import get_node_icon
 _ = keepnote.translate
 
 
-# TODO: be more careful about auto-saving
-# should save() save all viewers
-# I need to make sure that autosaves in two different windows never occur
-# at once on the same notebook.
-# maybe, autosaving should be app-wide thing.
-
 
 class TwoWayDict (object):
 
@@ -292,10 +286,9 @@ class TabbedViewer (Viewer):
 
     def _on_button_press(self, widget, event):
 
-        # NOTE: we are not checking whether double click is actually
-        # on tab.  We could add this check.
+        if (self.get_toplevel().get_focus() == self._tabs and 
+            event.button == 1 and event.type == gtk.gdk._2BUTTON_PRESS):
 
-        if event.button == 1 and event.type == gtk.gdk._2BUTTON_PRESS:
             # double click, start tab name editing
             label = self._tabs.get_tab_label(self._tabs.get_nth_page(
                     self._tabs.get_current_page()))
