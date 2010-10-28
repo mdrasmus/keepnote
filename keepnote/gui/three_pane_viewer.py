@@ -196,11 +196,6 @@ class ThreePaneViewer (Viewer):
             self._notebook.node_changed.remove(
                 self.on_notebook_node_changed)
 
-            # remove viewer info
-            info = self._notebook.pref.get("viewers", "ids")
-            if self._viewerid in info:
-                del info[self._viewerid]
-
         # setup listeners
         if notebook:
             notebook.node_changed.add(self.on_notebook_node_changed)
@@ -211,29 +206,13 @@ class ThreePaneViewer (Viewer):
         self.editor.set_notebook(notebook)
         self.listview.set_notebook(notebook)
         self.treeview.set_notebook(notebook)
-
+        
         if self.treeview.get_popup_menu():
             self.treeview.get_popup_menu().iconmenu.set_notebook(notebook)
             self.listview.get_popup_menu().iconmenu.set_notebook(notebook)
 
         # restore selections
-        if self._notebook:
-            info = self._notebook.pref.get("viewers", "ids", 
-                                           self._viewerid, define=True)
-
-            # save selections
-            nodes = [node for node in (
-                    self._notebook.get_node_by_id(i)
-                    for i in info.get(
-                        "selected_treeview_nodes", []))
-                     if node is not None]
-            self.treeview.select_nodes(nodes)
-            nodes = [node for node in (
-                    self._notebook.get_node_by_id(i)
-                    for i in info.get(
-                        "selected_listview_nodes", []))
-                     if node is not None]
-            self.listview.select_nodes(nodes)
+        self._load_selections()
 
         # put focus on treeview
         self.treeview.grab_focus()
@@ -283,20 +262,8 @@ class ThreePaneViewer (Viewer):
         """Save the current notebook"""
 
         self.editor.save()
-
-        if self._notebook is not None:
-            info = self._notebook.pref.get("viewers", "ids", 
-                                           self._viewerid, define=True)
-
-            # save selections
-            info["selected_treeview_nodes"] = [
-                node.get_attr("nodeid")
-                for node in self.treeview.get_selected_nodes()]
-            info["selected_listview_nodes"] = [
-                node.get_attr("nodeid")
-                for node in self.listview.get_selected_nodes()]
-            self._notebook.set_preferences_dirty()
-        
+        self._save_selections()
+               
 
     def on_notebook_node_changed(self, nodes, recurse):
         """Callback for when notebook node is changed"""
@@ -354,6 +321,45 @@ class ThreePaneViewer (Viewer):
 
         # record preference
         self._view_mode = mode
+
+
+
+    def _load_selections(self):
+        """Load previous node selections from notebook preferences"""
+        
+        if self._notebook:
+            info = self._notebook.pref.get("viewers", "ids", 
+                                           self._viewerid, define=True)
+
+            # load selections
+            nodes = [node for node in (
+                    self._notebook.get_node_by_id(i)
+                    for i in info.get(
+                        "selected_treeview_nodes", []))
+                     if node is not None]
+            self.treeview.select_nodes(nodes)
+            nodes = [node for node in (
+                    self._notebook.get_node_by_id(i)
+                    for i in info.get(
+                        "selected_listview_nodes", []))
+                     if node is not None]
+            self.listview.select_nodes(nodes)
+
+    def _save_selections(self):
+        """Save node selections into notebook preferences"""
+        
+        if self._notebook is not None:
+            info = self._notebook.pref.get("viewers", "ids", 
+                                           self._viewerid, define=True)
+            
+            # save selections
+            info["selected_treeview_nodes"] = [
+                node.get_attr("nodeid")
+                for node in self.treeview.get_selected_nodes()]
+            info["selected_listview_nodes"] = [
+                node.get_attr("nodeid")
+                for node in self.listview.get_selected_nodes()]
+            self._notebook.set_preferences_dirty()
 
 
     #===============================================

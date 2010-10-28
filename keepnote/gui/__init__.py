@@ -484,9 +484,10 @@ class KeepNote (keepnote.KeepNote):
     def save(self, silent=False):
         """Save all opened notebooks"""
 
-        # clear all window info in notebooks
+        # clear all window and viewer info in notebooks
         for notebook in self._notebooks.itervalues():
             notebook.pref.clear("windows", "ids")
+            notebook.pref.clear("viewers", "ids")
 
         # save all the windows
         for window in self._windows:
@@ -500,6 +501,21 @@ class KeepNote (keepnote.KeepNote):
         for window in self._windows:
             window.update_title()
     
+
+    def _on_closing_notebook(self, notebook, save):
+        """
+        Callback for when notebook is about to close
+        """
+        keepnote.KeepNote._on_closing_notebook(self, notebook, save)
+        
+        if save:
+            self.save()
+
+        for window in self._windows:
+            window.close_notebook(notebook)
+        
+
+
 
     #=====================================
     # auto-save

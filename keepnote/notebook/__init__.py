@@ -1659,11 +1659,11 @@ class NoteBook (NoteBookDir):
     def close(self, save=True):
         """Close notebook"""
         
-        self.closing_event.notify()
+        self.closing_event.notify(self, save)
         if save:
             self.save()
         self._index.close()
-        self.close_event.notify()
+        self.close_event.notify(self)
 
 
     #===============================================

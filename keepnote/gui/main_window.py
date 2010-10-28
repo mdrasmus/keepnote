@@ -118,6 +118,10 @@ class KeepNoteWindow (gtk.Window):
         self.load_preferences(True)
         
 
+    def get_id(self):
+        return self._winid
+    
+
     def init_layout(self):
         # init main window
         self.set_title(keepnote.PROGRAM_NAME)
@@ -599,15 +603,15 @@ class KeepNoteWindow (gtk.Window):
         """Saves the current notebook"""
 
         try:
+            # save window information for all notebooks associated with this
+            # window
             for notebook in self.get_all_notebooks():
                 p = notebook.pref.get("windows", "ids", define=True)
                 p[self._winid] = {
                         "viewer_type": self.viewer.get_name(),
                         "viewerid": self.viewer.get_id()}
 
-                # clear viewer info
-                notebook.pref.clear("viewers", "ids")
-            
+            # let the viewer save its information
             self.viewer.save()            
             self.set_status(_("Notebook saved"))
             
@@ -626,12 +630,13 @@ class KeepNoteWindow (gtk.Window):
         # TODO: make sure to understand how this will be effected by
         # close_notebook closing all opened views of a notebook.
 
-        if self.viewer.get_notebook() is None:
+        notebook = self.viewer.get_notebook()
+        if notebook is None:
             self.error(_("Reloading only works when a notebook is open."))
             return
         
-        filename = self.viewer.get_notebook().get_path()
-        self.close_notebook(False)
+        filename = notebook.get_path()
+        self._app.close_all_notebook(notebook, False)
         self.open_notebook(filename)
         
         self.set_status(_("Notebook reloaded"))
@@ -745,25 +750,54 @@ class KeepNoteWindow (gtk.Window):
                                       self.viewer.get_id(), p2)
                     if old_id in notebook.pref.get("viewers", "ids"):
                         del notebook.pref.get("viewers", "ids")[old_id]
+                self.set_notebook(notebook)
 
         elif len(windows) > 1:
-            items = iter(windows.items())
+            # get different kinds of window ids
+            win_lookup = dict((w.get_id(), w) for w in 
+                              self._app.get_windows())
+            restoring_ids = set(windows.keys())
+            openned_ids = set(w.get_id() for w in 
+                              self._app.get_windows())
+            abandoned_ids = openned_ids - restoring_ids
+            new_ids = restoring_ids - openned_ids
 
             if len(self.get_all_notebooks()) == 0:
-                # special case: reuse this window if no notebooks
-                windowid, win_pref = items.next()
+                # special case: if no notebooks opened, then make sure
+                # to reuse this window
+
+                if self._winid not in restoring_ids:
+                    # find a saved window that does not have a matching ID
+                    # and set it to this window
+                    if len(new_ids) > 0:
+                        self._winid = new_ids.pop()
+                    else:
+                        self._winid = iter(restoring_ids).next()
+                
+                restoring_ids.remove(self._winid)
+                win_pref = windows[self._winid]
                 viewerid = win_pref.get("viewerid", None)
                 if viewerid:
                     self.viewer.set_id(viewerid)
-                self._winid = windowid
                 self.set_notebook(notebook)
 
-            # open remaining windows
-            for windowid, win_pref in items:
-                win = self._app.new_window()
-                viewerid = win_pref.get("viewerid", None)
-                if viewerid:
-                    win.get_viewer().set_id(viewerid)
+            # restore remaining windows
+            while len(restoring_ids) > 0:
+                winid = restoring_ids.pop()
+
+                if winid in openned_ids:
+                    # open in existing window
+                    win = win_lookup[winid]
+                else:
+                    # open new window
+                    win = self._app.new_window()
+                    win._winid = winid
+                    win_pref = windows[winid]
+                    viewerid = win_pref.get("viewerid", None)
+                    if viewerid:
+                        win.get_viewer().set_id(viewerid)
+                
+                # set notebook
                 self._app.ref_notebook(notebook)
                 win.set_notebook(notebook)
 
@@ -787,11 +821,10 @@ class KeepNoteWindow (gtk.Window):
 
         # setup notebook
         self._restore_windows(notebook)
-        self.set_notebook(notebook)
-        
+        #self.set_notebook(notebook)
+
         if not new:
-            self.set_status(_("Loaded '%s'") % 
-                            self.viewer.get_notebook().get_title())
+            self.set_status(_("Loaded '%s'") % notebook.get_title())
         self.update_title()
 
 
@@ -806,20 +839,14 @@ class KeepNoteWindow (gtk.Window):
         return notebook
         
         
-    def close_notebook(self, save=True):
+    def close_notebook(self, notebook=None):
         """Close the NoteBook"""
 
-        # TODO: think about how this interacts with tabbed notebook
-        notebook = self.get_notebook()
-        if notebook is not None:
-            if save:
-                self.save_notebook()
-                notebook.save()
-                        
-            self.set_notebook(None)
-            self.set_status(_("Notebook closed"))
-            
-            self._app.close_notebook(notebook)
+        if notebook is None:
+            notebook = self.get_notebook()
+
+        self.viewer.close_notebook(notebook)
+        self.set_status(_("Notebook closed"))
 
             
     def _on_close_notebook(self, notebook):
@@ -1139,11 +1166,11 @@ class KeepNoteWindow (gtk.Window):
             
             ("Save Notebook", gtk.STOCK_SAVE, _("_Save Notebook"),             
              "<control>S", _("Save the current notebook"),
-             lambda w: self._app.save()),   #self.save_notebook()),
+             lambda w: self._app.save()),
             
             ("Close Notebook", gtk.STOCK_CLOSE, _("_Close Notebook"),
              "", _("Close the current notebook"),
-             lambda w: self.close_notebook()),
+             lambda w: self._app.close_all_notebook(self.get_notebook())),
             
             ("Export", None, _("_Export Notebook")),
 

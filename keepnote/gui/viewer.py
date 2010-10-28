@@ -84,6 +84,10 @@ class Viewer (gtk.VBox):
     def get_notebook(self):
         """Returns the current notebook for the viewer"""
         return self._notebook
+
+    def close_notebook(self, notebook):
+        if notebook == self.get_notebook():
+            self.set_notebook(None)
     
     def load_preferences(self, app_pref, first_open):
         pass

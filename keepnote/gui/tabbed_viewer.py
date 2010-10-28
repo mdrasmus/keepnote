@@ -370,6 +370,24 @@ class TabbedViewer (Viewer):
         return self._current_viewer.get_notebook()
 
 
+    def close_notebook(self, notebook):
+        
+        # progate close notebook
+        closed_tabs = []
+        for i, viewer in enumerate(self.iter_viewers()):
+            notebook2 = viewer.get_notebook()
+            viewer.close_notebook(notebook)
+            
+            if notebook2 is not None and viewer.get_notebook() is None:
+                closed_tabs.append(i)
+
+        # close tabs
+        for pos in reversed(closed_tabs):
+            self.close_tab(pos)
+
+        
+        
+
     def load_preferences(self, app_pref, first_open=False):
         """Load application preferences"""
         

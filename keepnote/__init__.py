@@ -782,9 +782,12 @@ class KeepNote (object):
         if self.has_ref_notebook(notebook):
             self.unref_notebook(notebook)
 
-    def close_all_notebook(self, notebook):
+    def close_all_notebook(self, notebook, save=True):
         """Close all instances of a notebook"""
 
+        notebook.close(save)
+
+        notebook.closing_event.remove(self._on_closing_notebook)
         del self._notebook_count[notebook]
 
         for key, val in self._notebooks.iteritems():
@@ -792,7 +795,11 @@ class KeepNote (object):
                 del self._notebooks[key]
                 break
 
-        notebook.close()
+    def _on_closing_notebook(self, notebook, save):
+        """
+        Callback for when notebook is about to close
+        """
+        pass
 
 
     def get_notebook(self, filename, window=None, task=None):
@@ -813,7 +820,10 @@ class KeepNote (object):
             notebook = self.open_notebook(filename, window, task=task)
             if notebook is None:
                 return None
+
+            # perform bookkeeping
             self._notebooks[filename] = notebook
+            notebook.closing_event.add(self._on_closing_notebook)
             self.ref_notebook(notebook)
         else:
             notebook = self._notebooks[filename]
