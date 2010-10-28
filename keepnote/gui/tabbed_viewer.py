@@ -534,12 +534,6 @@ class TabbedViewer (Viewer):
 
 <!-- main window menu bar -->
 <menubar name="main_menu_bar">
-  <menu action="File">
-    <placeholder name="Viewer Window">
-      <menuitem action="New Tab"/>
-      <menuitem action="Close Tab"/>
-    </placeholder>
-  </menu>
   <menu action="Go">
     <placeholder name="Viewer">
       <menuitem action="Next Tab"/>
@@ -547,6 +541,14 @@ class TabbedViewer (Viewer):
       <separator/>
     </placeholder>
   </menu>
+
+  <menu action="Window">
+    <placeholder name="Viewer Window">
+      <menuitem action="New Tab"/>
+      <menuitem action="Close Tab"/>
+    </placeholder>
+  </menu>
+
 </menubar>
 </ui>
 """]

@@ -595,6 +595,11 @@ class KeepNoteWindow (gtk.Window):
         self.destroy()
         
 
+    def on_quit(self):
+        """Quit the application"""
+        self._app.save()
+        self._app.quit()
+
     
     #===============================================
     # Notebook actions
@@ -624,12 +629,7 @@ class KeepNoteWindow (gtk.Window):
     
     def reload_notebook(self):
         """Reload the current NoteBook"""
-
-        # TODO: selection is not preserved in reload.
-
-        # TODO: make sure to understand how this will be effected by
-        # close_notebook closing all opened views of a notebook.
-
+        
         notebook = self.viewer.get_notebook()
         if notebook is None:
             self.error(_("Reloading only works when a notebook is open."))
@@ -1144,10 +1144,6 @@ class KeepNoteWindow (gtk.Window):
                       [
             ("File", None, _("_File")),
 
-            ("New Window", None, _("New Window"),
-             "", _("Open a new window"),
-             lambda w: self.on_new_window()),
-
             ("New Notebook", gtk.STOCK_NEW, _("_New Notebook..."),
              "", _("Start a new notebook"),
              lambda w: self.on_new_notebook()),
@@ -1178,7 +1174,7 @@ class KeepNoteWindow (gtk.Window):
 
             ("Quit", gtk.STOCK_QUIT, _("_Quit"),
              "<control>Q", _("Quit KeepNote"),
-             lambda w: self.close()),
+             lambda w: self.on_quit()),
 
             #=======================================
             ("Edit", None, _("_Edit")),
@@ -1261,6 +1257,18 @@ class KeepNoteWindow (gtk.Window):
              lambda w: self._app.app_options_dialog.show(self)),
 
             #=========================================
+            ("Window", None, _("Window")),
+            
+            ("New Window", None, _("New Window"),
+             "", _("Open a new window"),
+             lambda w: self.on_new_window()),
+
+            ("Close Window", None, _("Close Window"),
+             "", _("Close window"),
+             lambda w: self.close()),
+
+
+            #=========================================
             ("Help", None, _("_Help")),
             
             ("View Error Log...", gtk.STOCK_DIALOG_ERROR, _("View _Error Log..."),
@@ -1305,24 +1313,19 @@ class KeepNoteWindow (gtk.Window):
 <!-- main window menu bar -->
 <menubar name="main_menu_bar">
   <menu action="File">
-     <menuitem action="New Window"/>
-     <placeholder name="Viewer Window"/>
-     <separator/>
      <menuitem action="New Notebook"/>
      <placeholder name="Viewer"/>
      <placeholder name="New"/>
      <separator/>
      <menuitem action="Open Notebook"/>
      <menuitem action="Open Recent Notebook"/>
-     <menuitem action="Reload Notebook"/>
      <menuitem action="Save Notebook"/>
      <menuitem action="Close Notebook"/>
+     <menuitem action="Reload Notebook"/>
      <menuitem action="Empty Trash"/>
      <separator/>
-     <menu action="Export">
-     </menu>
-     <menu action="Import">
-     </menu>
+     <menu action="Export" />
+     <menu action="Import" />
      <separator/>
      <placeholder name="Extensions"/>
      <separator/>
@@ -1358,6 +1361,12 @@ class KeepNoteWindow (gtk.Window):
     <placeholder name="Viewer"/>
     <menuitem action="Update Notebook Index"/>
     <placeholder name="Extensions"/>
+  </menu>
+
+  <menu action="Window">
+     <menuitem action="New Window"/>
+     <menuitem action="Close Window"/>
+     <placeholder name="Viewer Window"/>
   </menu>
 
   <menu action="Help">
