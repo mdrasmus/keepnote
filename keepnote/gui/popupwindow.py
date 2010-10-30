@@ -36,6 +36,10 @@ class PopupWindow (gtk.Window):
     def move_on_parent(self, x, y, y2):
         """Move popup relative to parent widget"""
 
+        win = self._parent.get_parent_window()
+        if win is None:
+            return
+
         # remember coordinates
         self._x = x
         self._y = y
@@ -46,7 +50,7 @@ class PopupWindow (gtk.Window):
         screenh = gtk.gdk.screen_height()
 
         # account for window
-        wx, wy = self._parent.get_parent_window().get_origin()
+        wx, wy = win.get_origin()
         x3 = wx
         y3 = wy
 

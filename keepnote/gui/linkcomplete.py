@@ -12,8 +12,9 @@ from keepnote.gui.popupwindow import PopupWindow
 
 class LinkPicker (gtk.TreeView):
 
-    def __init__(self):
+    def __init__(self, maxwidth=450):
         gtk.TreeView.__init__(self)
+        self._maxwidth = maxwidth
 
         self.set_headers_visible(False)
 
@@ -42,17 +43,26 @@ class LinkPicker (gtk.TreeView):
 
 
     def set_links(self, urls):
-        
+
         self.list.clear()
         for nodeid, url, icon in urls[:self.maxlinks]:
             self.list.append([icon, url, nodeid])
+
+        self.column.queue_resize()
+
+        w, h = self.size_request()
+        if w > self._maxwidth:
+            self.set_size_request(self._maxwidth, -1)
+        else:
+            self.set_size_request(-1, -1)
 
 
 
 class LinkPickerPopup (PopupWindow):
 
-    def __init__(self, parent):
+    def __init__(self, parent, maxwidth=100):
         PopupWindow.__init__(self, parent)
+        self._maxwidth = maxwidth
         
         self._link_picker = LinkPicker()
         self._link_picker.show()
@@ -79,6 +89,7 @@ class LinkPickerPopup (PopupWindow):
         else:
             self.show()
             self._shown = True
+
 
             
     def shown(self):
