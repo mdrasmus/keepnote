@@ -962,7 +962,7 @@ class KeepNote (object):
                 # get payload file
                 filename =node.get_file(node.get_attr("payload_filename"))
             else:
-                raise KeepNoteError(_("Unable to dertermine note type."))
+                raise KeepNoteError(_("Unable to determine note type."))
 
 
         self.run_external_app(app_key, os.path.realpath(filename), wait=wait)

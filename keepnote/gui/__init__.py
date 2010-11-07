@@ -858,7 +858,7 @@ class KeepNote (keepnote.KeepNote):
 
             if len(new_exts) > 0:
                 self.message(_("Extension \"%s\" is now installed.") %
-                               filename, _("Install Sucessful"))
+                               filename, _("Install Successful"))
                 return True
 
         return False
@@ -872,7 +872,7 @@ class KeepNote (keepnote.KeepNote):
             if keepnote.KeepNote.uninstall_extension(self, ext_key):
                 self.message(_("Extension \"%s\" is now uninstalled.") %
                              ext_key, 
-                             _("Uninstall Sucessful"))
+                             _("Uninstall Successful"))
                 return True
 
         return False

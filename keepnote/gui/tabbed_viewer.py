@@ -567,7 +567,7 @@ class TabbedViewer (Viewer):
              "<control>Page_Down", _("Switch to next tab"),
              lambda w: self.switch_tab(1)),
             ("Previous Tab", None, _("_Previous Tab"),
-             "<control>Page_Up", _("Swtch to previous tab"),
+             "<control>Page_Up", _("Switch to previous tab"),
              lambda w: self.switch_tab(-1))
 
             ])
