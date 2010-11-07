@@ -135,7 +135,7 @@ USER_LOCK_FILE = u"lockfile"
 USER_ERROR_LOG = u"error-log.txt"
 USER_EXTENSIONS_DIR = u"extensions"
 USER_EXTENSIONS_DATA_DIR = u"extensions_data"
-
+PORTABLE_FILE = u"portable.txt"
 
 
 DEFAULT_WINDOW_SIZE = (1024, 600)
@@ -255,6 +255,11 @@ def get_user_pref_dir(home=None):
         return keepnote.xdg.get_config_file(USER_PREF_DIR, default=True)
 
     elif p == "windows":
+        # look for portable config
+        if os.path.exists(os.path.join(BASEDIR, PORTABLE_FILE)):
+            return os.path.join(BASEDIR, USER_PREF_DIR)
+
+        # otherwise, use application data dir
         appdata = get_win_env("APPDATA")
         if appdata is None:
             raise EnvError("APPDATA environment variable must be specified")

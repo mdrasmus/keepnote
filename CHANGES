@@ -1,8 +1,20 @@
 KeepNote Change Log
 -------------------
 
-keepnote-0.6.5
+keepnote-0.6.6
 --------------
+- multple window persistence
+- faster HTML loading
+- added separate close window and quit commands
+- fixed bugs
+  - prevent unintended tab renames
+  - remove images from disk when deleted in note
+  - fixed failed open notebook bug
+  - fixed view image bug
+
+
+keepnote-0.6.5 (2010.20.13)
+---------------------------
 - optional tab naming (double click to rename)
 - tab persistence
 - new window config options
