@@ -179,6 +179,26 @@ def get_unique_filename_list(filenames, filename, ext=u"", sep=u" ", number=2):
         i += 1
 
 
+def relpath(filename, start):
+    """
+    Returns the relative filename to start
+
+    This is implemented to provide python2.5 support.
+    """
+
+    filename = os.path.normpath(filename)
+    start = os.path.normpath(start)
+
+    if filename.startswith(start):
+        filename = filename[len(start):]
+        while filename.startswith(os.path.sep):
+            filename = filename[1:]
+        return filename
+    else:
+        raise Excpetion("unhandled case")
+        
+    
+
 #=============================================================================
 # File naming scheme
 
@@ -1871,9 +1891,9 @@ class NoteBookConnection (object):
                     return_number=return_number, use_number=use_number)
 
         if return_number:
-            return os.path.relpath(fullname, path), number
+            return relpath(fullname, path), number
         else:
-            return os.path.relpath(fullname, path)
+            return relpath(fullname, path)
 
 
 

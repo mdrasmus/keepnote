@@ -110,12 +110,16 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
     
         
     def on_key_released(self, widget, event):
-        """Process delete key"""
+        """Process key presses"""
         
-        if event.keyval == gtk.keysyms.Delete and \
-           not self.editing:
-            self.emit("delete-node", self.get_selected_nodes())#on_delete_node()
+        # no special processing while editing nodes
+        if self.editing:
+            return
+
+        if event.keyval == gtk.keysyms.Delete:
+            self.emit("delete-node", self.get_selected_nodes())
             self.stop_emission("key-release-event")
+            
 
     def on_button_press(self, widget, event):
         """Process context popup menu"""
@@ -126,16 +130,9 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
             
             
         if event.button == 1 and event.type == gtk.gdk._2BUTTON_PRESS:
-            # TODO: convert to get_selected_nodes()
-
-            model, paths = self.get_selection().get_selected_rows()
-            # double click --> goto node
-            if len(paths) > 0:
-                nodes = [self.model.get_value(self.model.get_iter(x),
-                                              self.rich_model.get_node_column_pos())
-                         for x in paths]
-
-                # NOTE: can only view one node
+            nodes = self.get_selected_nodes()
+            if len(nodes) > 0:
+                # double click --> goto node
                 self.emit("activate-node", nodes[0])
 
 
