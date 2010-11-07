@@ -726,7 +726,10 @@ class KeepNoteWindow (gtk.Window):
         windows = notebook.pref.get("windows", "ids", define=True)
         notebook.pref.get("viewers", "ids", define=True)
         
-        if len(windows) == 1:
+        if len(windows) == 0:
+            self.set_notebook(notebook)
+
+        elif len(windows) == 1:
             # restore a single window
 
             p = windows.values()[0]
@@ -750,7 +753,7 @@ class KeepNoteWindow (gtk.Window):
                                       self.viewer.get_id(), p2)
                     if old_id in notebook.pref.get("viewers", "ids"):
                         del notebook.pref.get("viewers", "ids")[old_id]
-                self.set_notebook(notebook)
+            self.set_notebook(notebook)
 
         elif len(windows) > 1:
             # get different kinds of window ids

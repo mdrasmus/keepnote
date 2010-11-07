@@ -82,8 +82,11 @@ class SafeFile (file):
     def close(self):
         """Closes file and moves temp file to final location"""
         
-        self.flush()
-        os.fsync(self.fileno())
+        try:
+            self.flush()
+            os.fsync(self.fileno())
+        except:
+            pass
         file.close(self)
 
         if self._tmp:

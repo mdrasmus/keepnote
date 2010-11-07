@@ -1484,8 +1484,7 @@ class NoteBook (NoteBookDir):
         # if no trash folder, create it
         if self._trash is None:
             try:
-                self._trash = NoteBookTrash(get_trash_dir(self.get_path()),
-                                            TRASH_NAME, self)
+                self._trash = NoteBookTrash(TRASH_NAME, self)
                 self._trash.create()
                 self._add_child(self._trash)
 
