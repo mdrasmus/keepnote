@@ -622,7 +622,7 @@ class ThreePaneViewer (Viewer):
         if widget == self.treeview:
             self.treeview.expand_node(node.get_parent())
             self.treeview.edit_node(node)
-        elif widget == self.listview:
+        else:
             self.listview.expand_node(node.get_parent())
             self.listview.edit_node(node)
 
@@ -639,7 +639,7 @@ class ThreePaneViewer (Viewer):
         
         if widget == self.treeview:
             self.treeview.edit_node(nodes[0])
-        elif widget == self.listview:
+        else:
             self.listview.edit_node(nodes[0])
 
 
