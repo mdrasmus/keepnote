@@ -689,12 +689,11 @@ class RichTextEditor (KeepNoteEditor):
                 ext = u".jpg"
             else:
                 ext = u".png"
-            
-            imgname = notebooklib.get_valid_unique_filename(
-                self._page.get_path(), imgname, ext=ext)
+
+            imgname2 = self._page.new_filename(imgname, ext=ext)
             
             try:
-                self.insert_image(filename, imgname)
+                self.insert_image(filename, imgname2)
             except Exception, e:
                 # TODO: make exception more specific
                 self.emit("error",
