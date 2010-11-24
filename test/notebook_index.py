@@ -1,11 +1,11 @@
 import os, shutil, unittest, thread, threading, traceback, sys
 
 # keepnote imports
-from keepnote import notebook
+from keepnote import notebook, safefile
 
 
 
-class TestCaseNotebookIndex (unittest.TestCase):
+class Index (unittest.TestCase):
     
     def setUp(self):      
         pass
@@ -164,16 +164,62 @@ class TestCaseNotebookIndex (unittest.TestCase):
         task.join()
 
         walk(book)
-
-        #book.save()
+        
         book.close()
 
         self.assert_(not error)
 
-        
-notebook_index_suite = unittest.defaultTestLoader.loadTestsFromTestCase(
-    TestCaseNotebookIndex)
 
+    def test_fts3(self):
+        
+        import sqlite3 as sqlite
+        
+        print sqlite.sqlite_version
+
+        con = sqlite.connect(":memory:")
+        con.execute("CREATE VIRTUAL TABLE email USING fts3(content TEXT);")
+
+        con.execute("INSERT INTO email VALUES ('hello there how are you');")
+        con.execute("INSERT INTO email VALUES ('this is tastier');")
+
+        print list(
+            con.execute("SELECT * FROM email WHERE content MATCH 'tast*';"))
+
+
+    def test_fulltext(self):
+        
+        import sqlite3 as sqlite
+        
+        print sqlite.sqlite_version
+
+        con = sqlite.connect(":memory:")
+        con.execute("""CREATE VIRTUAL TABLE notes USING 
+                     fts3(nodeid TEXT, content TEXT);""")
+
+        book = notebook.NoteBook()
+        book.load("test/data/notebook-v3")
+        
+        def walk(node):
+
+            if node.get_attr("content_type") == notebook.CONTENT_TYPE_PAGE:
+                text = "".join(notebook.read_data_as_plain_text(safefile.open(node.get_data_file(), codec="utf-8")))
+                
+                con.execute("INSERT INTO notes VALUES (?, ?)", 
+                            (node.get_attr("nodeid"), text))
+
+            for child in node.get_children():
+                walk(child)
+
+        walk(book)
+
+
+        print list(
+            con.execute("SELECT nodeid FROM notes WHERE content MATCH '*hello*';"))
+
+        book.close()
+
+
+        
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=2).run(notebook_index_suite)
+    unittest.main()
 

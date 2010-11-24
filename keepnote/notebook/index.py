@@ -67,49 +67,6 @@ def preorder(node):
             queue.append(child)
 
 
-class NoteBookIndexDummy (object):
-    """Index for a NoteBook"""
-
-    def __init__(self, notebook):
-        pass
-
-    def open(self):
-        """Open connection to index"""
-        pass
-
-    def get_con(self):
-        """Get connection for thread"""
-        pass
-
-    def close(self):
-        """Close connection to index"""
-        pass
-
-    def init_index(self):
-        """Initialize the tables in the index if they do not exist"""
-        pass
-            
-    def add_node(self, node):
-        """Add a node to the index"""
-        pass
-
-    def remove_node(self, node):
-        """Remove node from index"""
-        pass
-        
-    def get_node_path(self, nodeid):
-        """Get node path for a nodeid"""
-        return None
-
-    def search_titles(self, query, cols=[]):
-        """Return nodeids of nodes with matching titles"""
-        return []
-
-    def save(self):
-        """Save index"""
-        pass
-
-
 class AttrIndex (object):
     """Indexing information for an attribute"""
 
@@ -211,6 +168,7 @@ class NoteBookIndex (object):
         self._attrs = {}
         self._need_index = False
         self._corrupt = False
+        self._has_fulltext = False
         
         self.con = None
         self.cur = None        
@@ -306,6 +264,20 @@ class NoteBookIndex (object):
                            ON NodeGraph (parentid);""")
             
 
+            # full text table
+            try:
+                if not list(con.execute(u"""SELECT 1 FROM sqlite_master 
+                                   WHERE name == 'fulltext';""")):
+                    con.execute(u"""CREATE VIRTUAL TABLE 
+                                fulltext USING 
+                                fts3(nodeid TEXT UNIQUE, content TEXT);""")
+                self._has_fulltext = True
+            except Exception, e:
+                print e
+                self._has_fulltext = False
+
+            print "fulltext", self._has_fulltext
+
             # TODO: make an Attr table
             # this will let me query whether an attribute is currently being
             # indexed and in what table it is in.
@@ -398,10 +370,7 @@ class NoteBookIndex (object):
             
     def add_node(self, node):
         """Add a node to the index"""               
-
-        # DEBUG
-        #return
-
+        
         if self.con is None:
             return
         con, cur = self.con, self.cur
