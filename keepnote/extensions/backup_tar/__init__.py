@@ -35,7 +35,7 @@ import time
 
 import keepnote
 from keepnote import unicode_gtk
-from keepnote.notebook import NoteBookError, get_valid_unique_filename
+from keepnote.notebook import NoteBookError, get_unique_filename
 from keepnote import notebook as notebooklib
 from keepnote import tasklib
 from keepnote import tarfile
@@ -433,8 +433,8 @@ def restore_notebook(filename, path, rename, task=None):
     # create new dirctory, if needed
     if rename:
         if not os.path.exists(path):
-            tmppath = get_valid_unique_filename(os.path.dirname(path),
-                                                os.path.basename(path+"-tmp"))
+            tmppath = get_unique_filename(os.path.dirname(path),
+                                          os.path.basename(path+"-tmp"))
         else:
             raise NoteBookError("Notebook path already exists")
 

@@ -37,7 +37,7 @@ import xml.etree.cElementTree as etree
 
 import keepnote
 from keepnote import unicode_gtk
-from keepnote.notebook import NoteBookError, get_valid_unique_filename
+from keepnote.notebook import NoteBookError
 from keepnote import notebook as notebooklib
 from keepnote import tasklib
 from keepnote import tarfile

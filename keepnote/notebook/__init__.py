@@ -53,6 +53,9 @@ from keepnote import plist
 from keepnote.pref import Pref
 import keepnote
 
+# currently imported for extensions that expect this here
+from keepnote.notebook.connection_fs import get_valid_unique_filename
+
 
 _ = trans.translate
 
@@ -66,15 +69,11 @@ BLANK_NOTE = u"""\
 <html xmlns="http://www.w3.org/1999/xhtml"><body></body></html>
 """
 
-XML_HEADER = u"""\
-<?xml version="1.0" encoding="UTF-8"?>
-"""
 
 NOTEBOOK_FORMAT_VERSION = 4
 ELEMENT_NODE = 1
 NODE_META_FILE = u"node.xml"
 PAGE_DATA_FILE = u"page.html"
-PLAIN_TEXT_DATA_FILE = u"page.txt"
 PREF_FILE = u"notebook.nbk"
 NOTEBOOK_META_DIR = u"__NOTEBOOK__"
 NOTEBOOK_ICON_DIR = u"icons"
@@ -97,35 +96,7 @@ UNIVERSAL_ROOT = u"b810760f-f246-4e42-aebb-50ce51c3d1ed"
 
 
 #=============================================================================
-# filename creation functions
-
-REGEX_SLASHES = re.compile(ur"[/\\]")
-REGEX_BAD_CHARS = re.compile(ur"[\?'&<>|`:;]")
-REGEX_LEADING_UNDERSCORE = re.compile(ur"^__+")
-
-def get_valid_filename(filename, default=u"folder"):
-    """Converts a filename into a valid one
-    
-    Strips bad characters from filename
-    """
-    
-    filename = re.sub(REGEX_SLASHES, u"-", filename)
-    filename = re.sub(REGEX_BAD_CHARS, u"", filename)
-    filename = filename.replace(u"\t", " ")
-    filename = filename.strip(u" \t.")
-    
-    # don't allow files to start with two underscores
-    filename = re.sub(REGEX_LEADING_UNDERSCORE, u"", filename)
-    
-    # don't allow pure whitespace filenames
-    if filename == u"":
-        filename = default
-    
-    # use only lower case, some filesystems have trouble with mixed case
-    filename = filename.lower()
-    
-    return filename
-    
+# common filesystem functions
 
 def get_unique_filename(path, filename, ext=u"", sep=u" ", number=2,
                         return_number=False, use_number=False):
@@ -154,12 +125,6 @@ def get_unique_filename(path, filename, ext=u"", sep=u" ", number=2,
                 return newname
         i += 1
 
-
-def get_valid_unique_filename(path, filename, ext=u"", sep=u" ", number=2):
-    """Returns a valid and unique version of a filename for a given path"""
-    return get_unique_filename(path, get_valid_filename(filename), 
-                               ext, sep, number)
-    
 
 def get_unique_filename_list(filenames, filename, ext=u"", sep=u" ", number=2):
     """Returns a unique filename for a given list of existing files"""
@@ -202,34 +167,9 @@ def relpath(filename, start):
 #=============================================================================
 # File naming scheme
 
-
-def get_node_meta_file(nodepath):
-    """Returns the metadata file for a node"""
-    return os.path.join(nodepath, NODE_META_FILE)
-
-def get_page_data_file(pagepath):
-    """Returns the HTML data file for a page"""
-    return os.path.join(pagepath, PAGE_DATA_FILE)
-
-def get_plain_text_data_file(pagepath):
-    """Returns the plain text data file for a page"""
-    return os.path.join(pagepath, PLAIN_TEXT_DATA_FILE)
-
 def get_pref_file(nodepath):
     """Returns the filename of the notebook preference file"""
     return os.path.join(nodepath, PREF_FILE)
-
-def get_pref_dir(nodepath):
-    """Returns the directory of the notebook preference file"""
-    return os.path.join(nodepath, NOTEBOOK_META_DIR)
-
-def get_icon_dir(nodepath):
-    """Returns the directory of the notebook icons"""
-    return os.path.join(nodepath, NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR)
-
-def get_trash_dir(nodepath):
-    """Returns the trash directory of the notebook"""
-    return os.path.join(nodepath, TRASH_DIR)
 
 
 def normalize_notebook_dirname(filename, longpath=None):
@@ -431,13 +371,13 @@ class AttrDef (object):
 
     def __init__(self, name, datatype, key=None, write=None, read=None,
                  default=None):
-        if key == None:
+
+        self.name = name
+        self.datatype = datatype
+        if key is None:
             self.key = name
         else:
             self.key = key
-        self.name = name
-        self.datatype = datatype
-
         
         # writer function
         if write is None:
@@ -540,7 +480,8 @@ class NoteBookNode (object):
     """A general base class for all nodes in a NoteBook"""
 
     def __init__(self, title=u"", parent=None, notebook=None,
-                 content_type=CONTENT_TYPE_DIR, conn=None):
+                 content_type=CONTENT_TYPE_DIR, conn=None,
+                 init_attr=True):
         self._notebook = notebook
         self._conn = conn if conn else self._notebook._conn
         self._parent = parent
@@ -549,8 +490,10 @@ class NoteBookNode (object):
         self._has_children = None
         self._valid = True
         self._version = NOTEBOOK_FORMAT_VERSION
+        self._attr = {}
         
-        self.clear_attr(title=title, content_type=content_type)
+        if init_attr:
+            self.clear_attr(title=title, content_type=content_type)
 
         # TODO: add a mechanism to register implict attrs that in turn do lookup
         # "parent", "nchildren"
@@ -599,7 +542,7 @@ class NoteBookNode (object):
     
     def clear_attr(self, title="", content_type=CONTENT_TYPE_DIR):
         """Clear attributes (set them to defaults)"""
-
+        
         # TODO: generalize this
         # make clear method in attributes
         self._attr = {
@@ -1028,7 +971,7 @@ class NoteBookNode (object):
         
     def get_meta_file(self):
         """Returns the meta file for the node"""
-        return get_node_meta_file(self.get_path())
+        return self._conn.get_node_file(self, NODE_META_FILE)
 
     def write_meta_data(self):
         self._notebook.write_node_meta_data(self)
@@ -1132,9 +1075,10 @@ class NoteBookDir (NoteBookNode):
     """Class that represents Folders in NoteBook"""
     
     def __init__(self, title=DEFAULT_DIR_NAME,
-                 parent=None, notebook=None):
+                 parent=None, notebook=None, init_attr=True):
         NoteBookNode.__init__(self, title, parent, notebook,
-                              content_type=CONTENT_TYPE_DIR)
+                              content_type=CONTENT_TYPE_DIR,
+                              init_attr=init_attr)
 
 
 class NoteBookGenericFile (NoteBookNode):
@@ -1276,17 +1220,12 @@ class NoteBook (NoteBookDir):
         """rootdir -- Root directory of notebook"""
 
         self._conn = None
-        NoteBookDir.__init__(self, notebook=self)
+        NoteBookDir.__init__(self, notebook=self, init_attr=False)
         
         self._node_factory = NoteBookNodeFactory()
         self._conn = connection_fs.NoteBookConnection(self, self._node_factory)
         self.pref = NoteBookPreferences()
-
         rootdir = keepnote.ensure_unicode(rootdir, keepnote.FS_ENCODING)
-        if rootdir is not None:
-            self._attr["title"] = os.path.basename(rootdir)
-        else:
-            self._attr["title"] = None
         self._basename = rootdir
         self._dirty = set()
         self._trash = None
@@ -1294,16 +1233,17 @@ class NoteBook (NoteBookDir):
         self.attr_defs ={}
         self._necessary_attrs = []
         
-        self._attr["order"] = 0
 
         # init notebook attributes
         self._init_default_attr()
+        self.clear_attr()
 
-        # init trash
-        if rootdir:
-            self._trash_path = get_trash_dir(self.get_path())
+        self._attr["order"] = 0
+        if rootdir is not None:
+            self._attr["title"] = os.path.basename(rootdir)
         else:
-            self._trash_path = None
+            self._attr["title"] = None
+
         
         # listeners
         self.node_changed = Listeners()  # signature = (node, recurse)
@@ -1393,7 +1333,6 @@ class NoteBook (NoteBookDir):
             self._set_basename(filename)
         
         # read basic info
-        self._trash_path = get_trash_dir(self.get_path())
         self.read_meta_data()
         self.read_preferences()
         self._init_index()

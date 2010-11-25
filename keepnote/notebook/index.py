@@ -40,7 +40,7 @@ import keepnote
 
 # index filename
 INDEX_FILE = u"index.sqlite"
-INDEX_VERSION = 1
+INDEX_VERSION = 2
 
 
 def get_index_file(notebook):
@@ -86,14 +86,19 @@ class AttrIndex (object):
     def get_table_name(self):
         return self._table_name
 
-    def get_is_multivalue(self):
+    def is_multivalue(self):
         return self._multivalue
 
     def init(self, cur):
         """Initialize attribute index for database"""
+
+        # multivalue is not implemented yet
+        assert not self._multivalue
+
         cur.execute(u"""CREATE TABLE IF NOT EXISTS %s
                            (nodeid TEXT,
-                            value %s);
+                            value %s,
+                            UNIQUE(nodeid) ON CONFLICT REPLACE);
                         """ % (self._table_name, self._type))
         cur.execute(u"""CREATE INDEX IF NOT EXISTS %s
                            ON %s (nodeid);""" % (self._index_name,
@@ -137,26 +142,10 @@ class AttrIndex (object):
     def set(self, cur, nodeid, value):
         """Set the information for a node in the index"""
 
-        rows = list(cur.execute((u"SELECT 1 "
-                                 u"FROM %s "
-                                 u"WHERE nodeid = ?") % self._table_name, 
-                                (nodeid,)))
-        if rows:
-            row = rows[0]     
-
-            if row[0] != value:
-                # record update
-                ret = cur.execute((u"UPDATE %s SET "
-                                   u"value=? "
-                                   u"WHERE nodeid = ?") %
-                                  self._table_name,
-                                  (value, nodeid))
-        else:
-            # insert new row
-            cur.execute(u"""INSERT INTO %s VALUES 
-                            (?, ?)""" % self._table_name,
+        # insert new row
+        cur.execute(u"""INSERT INTO %s VALUES (?, ?)""" % self._table_name,
                         (nodeid, value))
-        
+
 
 
 class NoteBookIndex (object):
@@ -177,11 +166,11 @@ class NoteBookIndex (object):
 
         self.add_node(notebook)
 
+    #-----------------------------------------
+    # index connection
 
     def open(self):
-        """
-        Open connection to index
-        """
+        """Open connection to index"""
 
         try:
             index_file = get_index_file(self._notebook)
@@ -209,11 +198,26 @@ class NoteBookIndex (object):
             self.con = None
             self.cur = None
     
-    
-    def is_corrupt(self):
-        """Return True if database appear corrupt"""
-        return self._corrupt
 
+    def save(self):
+        """Save index"""
+
+        if self.con is not None:
+            self.con.commit()
+
+
+    def clear(self):
+        """Erases database file and reinitializes"""
+
+        self.close()
+        index_file = get_index_file(self._notebook)
+        if os.path.exists(index_file):
+            os.remove(index_file)
+        self.open()
+
+
+    #-----------------------------------------
+    # index initialization and versioning
 
     def _get_version(self):
         """Get version from database"""
@@ -255,7 +259,8 @@ class NoteBookIndex (object):
                            (nodeid TEXT,
                             parentid TEXT,
                             basename TEXT,
-                            symlink BOOLEAN);
+                            symlink BOOLEAN,
+                            UNIQUE(nodeid) ON CONFLICT REPLACE);
                         """)
 
             con.execute(u"""CREATE INDEX IF NOT EXISTS IdxNodeGraphNodeid 
@@ -294,18 +299,32 @@ class NoteBookIndex (object):
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
 
+    
+    def is_corrupt(self):
+        """Return True if database appear corrupt"""
+        return self._corrupt
+
+
+    def _on_corrupt(self, error, tracebk=None):
+
+        self._corrupt = True
+
+        # display error
+        keepnote.log_error(error, tracebk)
+
+        # TODO: reload database?
+
 
     def add_attr(self, attr):
+        """Add indexing for a node attribute using AttrIndex"""
         self._attrs[attr.get_name()] = attr
-
         if self.cur:
             attr.init(self.cur)
-
         return attr
 
 
     def _drop_tables(self):
-        """clear index"""
+        """drop NodeGraph tables"""
         self.con.execute(u"DROP TABLE IF EXISTS NodeGraph")
         self.con.execute(u"DROP INDEX IF EXISTS IdxNodeGraphNodeid")
         self.con.execute(u"DROP INDEX IF EXISTS IdxNodeGraphParentid")
@@ -315,16 +334,8 @@ class NoteBookIndex (object):
         """Returns True if indexing is needed"""
         return self._need_index
 
-    
-    def clear(self):
-        """Erases database file and reinitializes"""
-
-        self.close()
-        index_file = get_index_file(self._notebook)
-        if os.path.exists(index_file):
-            os.remove(index_file)
-        self.open()
-
+    #-------------------------------------
+    # add/remove nodes from index
 
     def index_all(self, root=None):
         """
@@ -370,15 +381,13 @@ class NoteBookIndex (object):
             
     def add_node(self, node):
         """Add a node to the index"""               
-        
+
+        # TODO: remove single parent assumption        
+
         if self.con is None:
             return
-        con, cur = self.con, self.cur
 
         try:
-
-            # TODO: remove single parent assumption
-
             # get info
             nodeid = node.get_attr("nodeid")
             parent = node.get_parent()
@@ -389,38 +398,14 @@ class NoteBookIndex (object):
                 parentid = self._uniroot
                 basename = u""
             symlink = False
-            title = node.get_title()
 
-            #------------------
-            # NodeGraph
-            rows = list(cur.execute(u"SELECT parentid, basename "
-                                    u"FROM NodeGraph "
-                                    u"WHERE nodeid = ?", (nodeid,)))
-            if rows:
-                row = rows[0]
-                if row[0] != parentid or row[1] != basename:
-                    # record update
-                    ret = cur.execute(u"UPDATE NodeGraph SET "
-                                      u"parentid=?, "
-                                      u"basename=?, "
-                                      u"symlink=? "
-                                      u"WHERE nodeid = ?",
-                                      (parentid, basename, symlink, nodeid))
-            else:
-                # insert new row
-                cur.execute(u"""
-                    INSERT INTO NodeGraph VALUES 
-                       (?, ?, ?, ?)""",
-                (nodeid,
-                 parentid,
-                 basename,
-                 symlink,
-                 ))
-
+            # update nodegraph
+            self.cur.execute(u"""INSERT INTO NodeGraph VALUES (?, ?, ?, ?)""", 
+                        (nodeid, parentid, basename, symlink))
 
             # update attrs
             for attr in self._attrs.itervalues():
-                attr.add_node(cur, node)
+                attr.add_node(self.cur, node)
 
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
@@ -431,31 +416,40 @@ class NoteBookIndex (object):
 
         if self.con is None:
             return
-        con, cur = self.con, self.cur
-
+        
         try:
             # get info
             nodeid = node.get_attr("nodeid")
 
             # delete node
-            cur.execute(
-                u"DELETE FROM NodeGraph WHERE nodeid=?", (nodeid,))
-            #con.commit()
+            self.cur.execute(u"DELETE FROM NodeGraph WHERE nodeid=?", (nodeid,))
 
             # update attrs
             for attr in self._attrs.itervalues():
-                attr.remove_node(cur, node)
+                attr.remove_node(self.cur, node)
 
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
 
+
+    def get_attr(self, nodeid, key):
+        """Query indexed attribute for a node"""
+        attr = self._attrs.get(key, None)
+        if attr:
+            return attr.get(self.cur, nodeid)
+        else:
+            return []
+
+    #-------------------------
+    # queries
         
     def get_node_path(self, nodeid, visit=None):
         """Get node path for a nodeid"""
         
-        # TODO: handle multiple parents
+        if self.con is None:
+            return None
 
-        con, cur = self.con, self.cur
+        # TODO: handle multiple parents
 
         if visit is None:
             visit = set()
@@ -463,10 +457,10 @@ class NoteBookIndex (object):
 
         try:
             def walk(nodeid):
-                cur.execute(u"""SELECT nodeid, parentid, basename
+                self.cur.execute(u"""SELECT nodeid, parentid, basename
                                 FROM NodeGraph
                                 WHERE nodeid=?""", (nodeid,))
-                row = cur.fetchone()
+                row = self.cur.fetchone()
 
                 if row:
                     nodeid, parentid, basename = row
@@ -503,28 +497,3 @@ class NoteBookIndex (object):
         
         return list(self.cur.fetchall())
 
-
-    def get_attr(self, nodeid, key):
-        attr = self._attrs.get(key, None)
-        if attr:
-            return attr.get(self.cur, nodeid)
-        else:
-            return []
-
-
-    def save(self):
-        """Save index"""
-
-        if self.con is not None:
-            self.con.commit()
-
-
-    def _on_corrupt(self, error, tracebk=None):
-
-        self._corrupt = True
-
-        # display error
-        keepnote.log_error(error, tracebk)
-
-        # TODO: reload database?
-        

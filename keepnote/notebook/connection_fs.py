@@ -49,9 +49,69 @@ import keepnote.notebook
 _ = trans.translate
 
 
-# TODO: move over more filesystem specific variables
+# constants
 
-# TODO: make base class for connection
+XML_HEADER = u"""\
+<?xml version="1.0" encoding="UTF-8"?>
+"""
+
+
+#=============================================================================
+# filenaming scheme
+
+
+def get_node_meta_file(nodepath):
+    """Returns the metadata file for a node"""
+    return os.path.join(nodepath, keepnote.notebook.NODE_META_FILE)
+
+def get_pref_file(nodepath):
+    """Returns the filename of the notebook preference file"""
+    return os.path.join(nodepath, keepnote.notebook.PREF_FILE)
+
+
+#=============================================================================
+# functions for ensuring valid filenames in notebooks
+
+REGEX_SLASHES = re.compile(ur"[/\\]")
+REGEX_BAD_CHARS = re.compile(ur"[\?'&<>|`:;]")
+REGEX_LEADING_UNDERSCORE = re.compile(ur"^__+")
+
+def get_valid_filename(filename, default=u"folder"):
+    """
+    Converts a filename into a valid one
+    
+    Strips bad characters from filename
+    """
+    
+    filename = re.sub(REGEX_SLASHES, u"-", filename)
+    filename = re.sub(REGEX_BAD_CHARS, u"", filename)
+    filename = filename.replace(u"\t", " ")
+    filename = filename.strip(u" \t.")
+    
+    # don't allow files to start with two underscores
+    filename = re.sub(REGEX_LEADING_UNDERSCORE, u"", filename)
+    
+    # don't allow pure whitespace filenames
+    if filename == u"":
+        filename = default
+    
+    # use only lower case, some filesystems have trouble with mixed case
+    filename = filename.lower()
+    
+    return filename
+    
+
+
+def get_valid_unique_filename(path, filename, ext=u"", sep=u" ", number=2):
+    """Returns a valid and unique version of a filename for a given path"""
+    return keepnote.notebook.get_unique_filename(
+        path, get_valid_filename(filename), ext, sep, number)
+    
+
+
+#=============================================================================
+# low-level functions
+
 
 def iter_child_node_paths(path):
     """Given a path to a node, return the paths of the child nodes"""
@@ -71,6 +131,9 @@ def last_node_change(path):
     return mtime
 
 
+#=============================================================================
+
+# TODO: make base class for connection
 
 class NoteBookConnection (object):
     def __init__(self, notebook, node_factory):
@@ -225,7 +288,7 @@ class NoteBookConnection (object):
             if (filename != NODE_META_FILE and 
                 not filename.startswith("__")):
                 fullname = os.path.join(path, filename)
-                if not os.path.exists(keepnote.notebook.get_node_meta_file(fullname)):
+                if not os.path.exists(get_node_meta_file(fullname)):
                     # ensure directory is not a node
                     yield filename
 
@@ -287,7 +350,7 @@ class NoteBookConnection (object):
         Returns None if not a node directory
         """
         
-        metafile = keepnote.notebook.get_node_meta_file(path)
+        metafile = get_node_meta_file(path)
         attr = self._read_meta_data(metafile, self._notebook.attr_defs)
         return self._node_factory.new_node(
             attr.get("content_type", keepnote.notebook.CONTENT_TYPE_DIR),
@@ -312,7 +375,7 @@ class NoteBookConnection (object):
         
         try:
             out = safefile.open(filename, "w", codec="utf-8")
-            out.write(keepnote.notebook.XML_HEADER)
+            out.write(XML_HEADER)
             out.write("<node>\n"
                       "<version>%s</version>\n" % node.get_version())
             
@@ -437,6 +500,6 @@ class NoteBookConnection (object):
         
         for filename in files:
             path2 = os.path.join(path, filename)
-            if os.path.exists(keepnote.notebook.get_node_meta_file(path2)):
+            if os.path.exists(get_node_meta_file(path2)):
                 yield path2
 
