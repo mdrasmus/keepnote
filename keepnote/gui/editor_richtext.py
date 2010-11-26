@@ -489,7 +489,7 @@ class RichTextEditor (KeepNoteEditor):
 
         # TODO: make proper interface
         nodes = [(nodeid, title) 
-                for nodeid, title in self._notebook._index.search_titles(text)]
+                for nodeid, title in self._notebook.search_node_titles(text)]
         return nodes
 
 

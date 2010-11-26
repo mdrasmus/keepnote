@@ -124,6 +124,12 @@ class AttrIndex (object):
                     (node.get_attr("nodeid"),))
 
 
+    def remove_nodeid(self, cur, nodeid):
+        """Remove node from index"""
+        cur.execute(u"DELETE FROM %s WHERE nodeid=?" % self._table_name, 
+                    (nodeid,))
+
+
     def get(self, cur, nodeid):
         """Get information for a node from the index"""
         cur.execute(u"""SELECT value FROM %s WHERE nodeid = ?""" % 
@@ -413,20 +419,27 @@ class NoteBookIndex (object):
 
     def remove_node(self, node):
         """Remove node from index"""
+        return self.remove_nodeid(node.get_attr("nodeid"))
+
+
+    def remove_nodeid(self, nodeid):
+        """Remove node from index using nodeid"""
 
         if self.con is None:
             return
         
         try:
-            # get info
-            nodeid = node.get_attr("nodeid")
-
             # delete node
             self.cur.execute(u"DELETE FROM NodeGraph WHERE nodeid=?", (nodeid,))
 
             # update attrs
             for attr in self._attrs.itervalues():
-                attr.remove_node(self.cur, node)
+                attr.remove_nodeid(self.cur, nodeid)
+
+            # delete children
+            for (childid,) in self.cur.execute(
+                u"SELECT nodeid FROM NodeGraph WHERE parentid=?", (nodeid,)):
+                self.remove_nodeid(childid)
 
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
@@ -486,7 +499,7 @@ class NoteBookIndex (object):
         """Return nodeids of nodes with matching titles"""
 
         if "title" not in self._attrs:
-            return
+            return []
 
         # order titles by exact matches and then alphabetically
         self.cur.execute(

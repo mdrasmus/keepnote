@@ -46,7 +46,6 @@ import xml.etree.cElementTree as ET
 from keepnote.listening import Listeners
 from keepnote.timestamp import get_timestamp
 from keepnote import trans
-from keepnote.notebook import index as notebook_index
 from keepnote.notebook import connection_fs
 from keepnote import orderdict
 from keepnote import plist
@@ -634,18 +633,13 @@ class NoteBookNode (object):
         # update data structure
         self._parent._remove_child(self)
         self._parent._set_child_order()
-        self._valid = False
         self._set_dirty(False)
         
         # make sure to recursively invalidate
         def walk(node):
-            """Uncache children list"""
-
-            self._notebook._index.remove_node(self)
-
+            node._valid = False
             if node._children is not None:
-                for child in node._children:
-                    child._valid = False
+                for child in node._children:                    
                     walk(child)
         walk(self)
 
@@ -696,10 +690,7 @@ class NoteBookNode (object):
 
         # perform on-disk move if new parent
         if old_parent != parent:
-            new_path = self._conn.move_node(self, parent)
-            self._set_basename(new_path)
-            self._notebook._index.add_node(self)
-            
+            new_path = self._conn.move_node(self, parent)            
 
         # perform move in data structure
         self._parent._remove_child(self)
@@ -734,16 +725,15 @@ class NoteBookNode (object):
             self._attr["title"] = title
             self._set_dirty(True)
         else:
-
+            oldtitle = self._attr["title"]
             try:
-                path2 = self._conn.rename_node(self, title)
                 self._attr["title"] = title
-                self._set_basename(path2)
+                path2 = self._conn.rename_node(self, title)
                 self.save(True)
             except NoteBookError, e:
+                self._attr["title"] = oldtitle
                 raise NoteBookError(_("Cannot rename '%s' to '%s'" % (path, path2)), e)
         
-        self._notebook._index.add_node(self)
         self.notify_change(False)
 
 
@@ -751,8 +741,7 @@ class NoteBookNode (object):
         """Add a new node under this node"""
         
         self.get_children()
-        node = self._notebook.new_node(content_type, None, self, 
-                                       {"title": title})
+        node = self._notebook.new_node(content_type, self, {"title": title})
         node.create()
         self._add_child(node, index)
         node.save(True)
@@ -766,8 +755,7 @@ class NoteBookNode (object):
         """
         
         self.get_children()
-        node = self._notebook.new_node(content_type, None, self, 
-                                       {"title": title})
+        node = self._notebook.new_node(content_type, self, {"title": title})
         node.create()
         self._add_child(node, index)
         node.save(True)
@@ -813,8 +801,8 @@ class NoteBookNode (object):
             # TODO: handle errors
             pass
 
-        # update index
-        self._notebook._index.add_node(node)
+        # update index for node attrs
+        self._conn.update_index_attrs(node)
 
         # TODO: prevent loops, copy paste within same tree.
         if recurse:
@@ -860,7 +848,9 @@ class NoteBookNode (object):
         for node in self.iter_temp_children():
             self._children.append(node)                    
             # notify index
-            self._notebook._index.add_node(node)
+            # TODO: ideally, I should be able to trust that the index is
+            # uptodate here.
+            self._conn.update_index_node(node)
 
         # assign orders
         self._children.sort(key=lambda x: x._attr["order"])
@@ -920,7 +910,7 @@ class NoteBookNode (object):
             self._children.append(child)
 
         # notify index and mark dirty
-        self._notebook._index.add_node(child)
+        self._conn.update_index_node(child)
         child._set_dirty(True)
     
 
@@ -1229,7 +1219,6 @@ class NoteBook (NoteBookDir):
         self._basename = rootdir
         self._dirty = set()
         self._trash = None
-        self._index = None
         self.attr_defs ={}
         self._necessary_attrs = []
         
@@ -1252,12 +1241,7 @@ class NoteBook (NoteBookDir):
 
         # add node types
         self._init_default_node_types()
-
-
-    def _set_basename(self, path):
-        """Sets the basename directory of the node"""
-        self._basename = path
-
+        
 
     def _init_default_attr(self):
         """Initialize default notebook attributes"""
@@ -1354,20 +1338,30 @@ class NoteBook (NoteBookDir):
         else:
             for node in list(self._dirty):
                 node.save()
-        self._index.save()
+        self._conn.save_index()
         
         self._dirty.clear()
 
 
+    def close(self, save=True):
+        """Close notebook"""
+        
+        self.closing_event.notify(self, save)
+        if save:
+            self.save()
+        self._conn.close_index()
+        self.close_event.notify(self)
+
+
     def _init_index(self):
         """Initialize the index"""
-        self._index = notebook_index.NoteBookIndex(self)
-        self._index.add_attr(notebook_index.AttrIndex("icon", "TEXT"))
-        self._index.add_attr(notebook_index.AttrIndex("title", "TEXT",
-                                                      index_value=True))
+        self._conn.init_index()
+        self._conn.index_attr("icon")
+        self._conn.index_attr("title", index_value=True)
 
-        
 
+    #--------------------------------------
+    # input/output
 
     def _set_dirty_node(self, node, dirty):
         """Mark a node to be dirty (needs saving) in NoteBook"""        
@@ -1394,11 +1388,9 @@ class NoteBook (NoteBookDir):
         return self._conn.read_node(parent, path)
 
 
-    def new_node(self, content_type, path, parent, attr):
+    def new_node(self, content_type, parent, attr):
         """Create a new NodeBookNode"""        
-        node = self._node_factory.new_node(content_type, path,
-                                           parent, self, attr)
-        return node
+        return self._node_factory.new_node(content_type, parent, self, attr)
 
 
     def write_meta_data(self):
@@ -1470,7 +1462,7 @@ class NoteBook (NoteBookDir):
     #==============================================
     # icons
 
-    # TODO: think about how to replace icon interface with connection
+    # TODO: think about how to replace icon interface with connection.
     # this may not be necessary
 
     def get_icon_file(self, basename):
@@ -1562,10 +1554,6 @@ class NoteBook (NoteBookDir):
         filename = self._conn.path_join(
             NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR, basename)
         self._conn.remove_node_file(self, filename)
-        
-        #filename = self.get_icon_file(basename)
-        #if filename:
-        #    os.remove(filename)
     
     
     def get_universal_root_id(self):
@@ -1577,51 +1565,28 @@ class NoteBook (NoteBookDir):
 
     def get_node_by_id(self, nodeid):
         """Lookup node by nodeid"""
-
-        # TODO: could make this more efficient by not loading all uncles
-
-        path = self._index.get_node_path(nodeid)
-        if path is None:
-            return None
-        
-        def walk(node, path):
-            if len(path) == 0:
-                return node
-
-            # search children
-            basename = path[0]
-            for child in node.get_children():
-                if child.get_basename() == basename:
-                    return walk(child, path[1:])
-            
-            # node not found
-            return None
-        return walk(self, path[1:])
-    
+        return self._conn.get_node_by_id(nodeid)
     
     def get_node_path_by_id(self, nodeid):
-        """Lookup node by nodeid"""
-        
-        path = self._index.get_node_path(nodeid)
-        if path is None:
-            return None
-        
-        return os.path.join(self.get_path(), *path[1:])
-
+        """Lookup node path by nodeid"""
+        return self._conn.get_node_path_by_id(nodeid)
 
     def search_node_titles(self, text):
         """Search nodes by title"""
-        return self._index.search_titles(text)
+        return self._conn.search_node_titles(text)
 
+    #----------------------------------------
+    # index interface (temparary until fully transparent)
+    
+    def index_needed(self):
+        return self._conn.index_needed()
 
-    def close(self, save=True):
-        """Close notebook"""
-        
-        self.closing_event.notify(self, save)
-        if save:
-            self.save()
-        self._index.close()
-        self.close_event.notify(self)
+    def clear_index(self):
+        return self._conn.clear_index()
+
+    def index_all(self):
+        for node in self._conn.index_all():
+            yield node
 
 
     #===============================================
@@ -1743,13 +1708,12 @@ class NoteBookNodeFactory (object):
         self._makers[content_type] = make_func
         
 
-    def new_node(self, content_type, path, parent, notebook, attr):
+    def new_node(self, content_type, parent, notebook, attr):
         """Creates a new node given a content_type"""
         
         maker = self._makers.get(content_type, None)
         if maker:
             node = maker(parent, notebook, attr)
-            node._set_basename(path)
             node.set_meta_data(attr)
             return node
         
@@ -1759,7 +1723,6 @@ class NoteBookNodeFactory (object):
                                        title=attr.get("title", _("New File")),
                                        content_type=content_type,
                                        parent=parent, notebook=notebook)
-            node._set_basename(path)
             node.set_meta_data(attr)
             return node
         
@@ -1768,7 +1731,6 @@ class NoteBookNodeFactory (object):
             node = NoteBookGenericFile(title=attr.get("title", _("New File")),
                                        content_type=content_type,
                                        parent=parent, notebook=notebook)
-            node._set_basename(path)
             node.set_meta_data(attr)
             return node
 

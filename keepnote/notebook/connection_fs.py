@@ -135,10 +135,13 @@ def last_node_change(path):
 
 # TODO: make base class for connection
 
+# TODO: move index into connection
+
 class NoteBookConnection (object):
     def __init__(self, notebook, node_factory):
         self._notebook = notebook
         self._node_factory = node_factory
+        self._index = None
     
 
     #================================
@@ -285,7 +288,7 @@ class NoteBookConnection (object):
             path = os.path.join(path, filename)
         
         for filename in os.listdir(path):
-            if (filename != NODE_META_FILE and 
+            if (filename != keepnote.notebook.NODE_META_FILE and 
                 not filename.startswith("__")):
                 fullname = os.path.join(path, filename)
                 if not os.path.exists(get_node_meta_file(fullname)):
@@ -352,9 +355,11 @@ class NoteBookConnection (object):
         
         metafile = get_node_meta_file(path)
         attr = self._read_meta_data(metafile, self._notebook.attr_defs)
-        return self._node_factory.new_node(
+        node = self._node_factory.new_node(
             attr.get("content_type", keepnote.notebook.CONTENT_TYPE_DIR),
-            path, parent, self._notebook, attr)
+            parent, self._notebook, attr)
+        self.set_node_basename(node, path)
+        return node
 
 
 
@@ -457,6 +462,8 @@ class NoteBookConnection (object):
             shutil.rmtree(node.get_path())
         except OSError, e:
             raise keepnote.notebook.NoteBookError(_("Do not have permission to delete"), e)
+
+        self._index.remove_node(node)
         
 
     def move_node(self, node, new_parent):
@@ -471,6 +478,11 @@ class NoteBookConnection (object):
         except OSError, e:
             raise keepnote.notebook.NoteBookError(_("Do not have permission for move"), e)
 
+        # update index
+        # basename is required for index
+        self.set_node_basename(node, new_path)
+        self._index.add_node(node)
+
         return new_path
 
     def rename_node(self, node, title):
@@ -484,7 +496,12 @@ class NoteBookConnection (object):
             os.rename(path, path2)
         except OSError, e:
             raise keepnote.notebook.NoteBookError(_("Cannot rename '%s' to '%s'" % (path, path2)), e)
-        
+
+        # update index
+        # basename is required for index
+        self.set_node_basename(node, path2)
+        self._index.add_node(node)
+
         return path2
 
 
@@ -503,3 +520,95 @@ class NoteBookConnection (object):
             if os.path.exists(get_node_meta_file(path2)):
                 yield path2
 
+
+    #---------------------------------
+    # indexing/querying
+    # NOTE: many of these functions are temparary until index is fully
+    # transparent
+    #
+
+    def init_index(self):
+        """Initialize the index"""
+        self._index = notebook_index.NoteBookIndex(self._notebook)
+
+    def save_index(self):
+        self._index.save()
+
+    def close_index(self):
+        self._index.close()
+
+    
+    def index_needed(self):
+        return self._index.index_needed()
+
+    def clear_index(self):
+        return self._index.clear()
+
+    def index_all(self):
+        for node in self._index.index_all():
+            yield node
+
+
+    def index_attr(self, key, index_value=False):
+        
+        datatype = self._notebook.attr_defs[key].datatype
+
+        if issubclass(datatype, basestring):
+            index_type = "TEXT"
+        elif issubclass(datatype, int):
+            index_type = "INTEGER"
+        elif issubclass(datatype, float):
+            index_type = "FLOAT"
+        else:
+            raise Exception("unknown attr datatype '%s'" % repr(datatype))
+
+        self._index.add_attr(notebook_index.AttrIndex(key, index_type, 
+                                                      index_value=index_value))
+
+
+    def search_node_titles(self, text):
+        """Search nodes by title"""
+        return self._index.search_titles(text)
+
+    
+    def update_index_attrs(self, node):
+        """Update only the attrs of a node in the index"""
+        self._index.add_node(node)
+
+
+    def update_index_node(self, node):
+        """Update a node in the index"""
+        self._index.add_node(node)
+
+
+    def get_node_by_id(self, nodeid):
+        """Lookup node by nodeid"""
+
+        # TODO: could make this more efficient by not loading all uncles
+
+        path = self._index.get_node_path(nodeid)
+        if path is None:
+            return None
+        
+        def walk(node, path):
+            if len(path) == 0:
+                return node
+
+            # search children
+            basename = path[0]
+            for child in node.get_children():
+                if child.get_basename() == basename:
+                    return walk(child, path[1:])
+            
+            # node not found
+            return None
+        return walk(self._notebook, path[1:])
+    
+    
+    def get_node_path_by_id(self, nodeid):
+        """Lookup node by nodeid"""
+        
+        path = self._index.get_node_path(nodeid)
+        if path is None:
+            return None
+        

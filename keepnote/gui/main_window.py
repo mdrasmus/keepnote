@@ -836,7 +836,7 @@ class KeepNoteWindow (gtk.Window):
 
         # check for indexing
         # TODO: is this the best place for checking?
-        if notebook._index.index_needed():
+        if notebook.index_needed():
             self.update_index(notebook)
         
         return notebook
@@ -876,9 +876,9 @@ class KeepNoteWindow (gtk.Window):
             # erase database first
             # NOTE: I do this right now so that corrupt databases can be
             # cleared out of the way.
-            notebook._index.clear()
+            notebook.clear_index()
 
-            for node in notebook._index.index_all():
+            for node in notebook.index_all():
                 # terminate if search is canceled
                 if task.aborted():
                     break
