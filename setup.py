@@ -9,7 +9,7 @@
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2010 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -39,9 +39,6 @@ KEEPNOTE_VERSION = keepnote.PROGRAM_VERSION_TEXT
 #=============================================================================
 # python and distutils imports
 import os, sys, shutil, itertools
-#from ez_setup import use_setuptools
-#use_setuptools()
-#from setuptools import setup, find_packages
 from distutils.core import setup
 
 # py2exe module (if building on windows)
@@ -177,8 +174,8 @@ setup(
     """,
     author='Matt Rasmussen',
     author_email='rasmus@mit.edu',
-    url='http://rasm.ods.org/keepnote/',
-    download_url='http://rasm.ods.org/keepnote/download/keepnote-%s.tar.gz' % KEEPNOTE_VERSION,
+    url='http://keepnote.org',
+    download_url='http://keepnote.org/keepnote/download/keepnote-%s.tar.gz' % KEEPNOTE_VERSION,
     
     classifiers=[
           'Development Status :: 5 - Production/Stable',

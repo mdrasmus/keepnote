@@ -93,8 +93,8 @@ except ImportError:
 
 PROGRAM_NAME = u"KeepNote"
 PROGRAM_VERSION_MAJOR = 0
-PROGRAM_VERSION_MINOR = 6
-PROGRAM_VERSION_RELEASE = 7
+PROGRAM_VERSION_MINOR = 7
+PROGRAM_VERSION_RELEASE = 0
 PROGRAM_VERSION = (PROGRAM_VERSION_MAJOR,
                    PROGRAM_VERSION_MINOR,
                    PROGRAM_VERSION_RELEASE)
@@ -107,7 +107,7 @@ else:
     PROGRAM_VERSION_TEXT = "%d.%d" % (PROGRAM_VERSION_MAJOR,
                                       PROGRAM_VERSION_MINOR)
 
-WEBSITE = u"http://rasm.ods.org/keepnote"
+WEBSITE = u"http://keepnote.org"
 LICENSE_NAME = u"GPL version 2"
 COPYRIGHT = u"Copyright Matt Rasmussen 2010."
 TRANSLATOR_CREDITS = (
