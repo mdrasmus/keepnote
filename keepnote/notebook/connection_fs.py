@@ -611,4 +611,9 @@ class NoteBookConnection (object):
         path = self._index.get_node_path(nodeid)
         if path is None:
             return None
-        
+
+    def get_attr_by_id(self, nodeid, key):
+        return self._index.get_attr(nodeid, key)
+
+    
+

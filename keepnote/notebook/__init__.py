@@ -1575,6 +1575,10 @@ class NoteBook (NoteBookDir):
         """Search nodes by title"""
         return self._conn.search_node_titles(text)
 
+    def get_attr_by_id(self, nodeid, key):
+        return self._conn.get_attr_by_id(nodeid, key)
+    
+
     #----------------------------------------
     # index interface (temparary until fully transparent)
     

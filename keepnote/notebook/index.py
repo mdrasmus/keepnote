@@ -30,9 +30,21 @@ import os
 import sys
 import traceback
 from thread import get_ident
-import sqlite3  as sqlite
+
+# import sqlite
+try:
+    import pysqlite2
+    print pysqlite2
+    import pysqlite2.dbapi2 as sqlite
+except Exception, e:
+    print "fallback", e
+    import sqlite3  as sqlite
 sqlite.enable_shared_cache(True)
 #sqlite.threadsafety = 0
+
+
+print sqlite.sqlite_version
+
 
 # keepnote imports
 import keepnote
@@ -189,6 +201,7 @@ class NoteBookIndex (object):
             self.init_index()
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
+            raise
 
 
     def close(self):

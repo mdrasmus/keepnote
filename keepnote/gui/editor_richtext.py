@@ -512,7 +512,7 @@ class RichTextEditor (KeepNoteEditor):
             for nodeid, title in self._notebook.search_node_titles(text)[:self._maxlinks]:
                 #node = self._notebook.get_node_by_id(nodeid)
                 #icon = get_node_icon(node)
-                icon = self._notebook._index.get_attr(nodeid, "icon")
+                icon = self._notebook.get_attr_by_id(nodeid, "icon")
                 if icon is None:
                     icon = "note.png"
                 icon = lookup_icon_filename(self._notebook, icon)
