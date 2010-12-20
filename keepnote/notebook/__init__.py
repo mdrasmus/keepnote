@@ -488,6 +488,8 @@ class NoteBookNode (object):
         self._children = None
         self._has_children = None
         self._valid = True
+
+        # TODO: make version an attr
         self._version = NOTEBOOK_FORMAT_VERSION
         self._attr = {}
         
@@ -542,18 +544,16 @@ class NoteBookNode (object):
     def clear_attr(self, title="", content_type=CONTENT_TYPE_DIR):
         """Clear attributes (set them to defaults)"""
         
-        # TODO: generalize this
-        # make clear method in attributes
-        self._attr = {
-            "title": title,
-            "content_type": content_type,
-            "order": sys.maxint,
-            "created_time": None,
-            "modified_time": None,
-            "expanded": True,
-            "expanded2": True,
-            "info_sort": "order",
-            "info_sort_dir": 1}
+        # TODO: get keys from a default attr list of some sort
+        self._attr.clear()
+        keys = ["order", "expanded", "expanded2", 
+                "info_sort", "info_sort_dir", "created_time", "modified_time"]
+        for key in keys:
+            self._attr[key] = self._notebook.attr_defs[key].default()
+
+        # set title and content_type
+        self._attr["title"] = title
+        self._attr["content_type"] = content_type
         
     
     def get_attr(self, name, default=None):
@@ -853,7 +853,7 @@ class NoteBookNode (object):
             self._conn.update_index_node(node)
 
         # assign orders
-        self._children.sort(key=lambda x: x._attr["order"])
+        self._children.sort(key=lambda x: x._attr.get("order", sys.maxint))
         self._set_child_order()
 
 
