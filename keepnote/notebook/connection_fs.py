@@ -247,9 +247,9 @@ class NoteBookConnection (object):
                     return_number=return_number, use_number=use_number)
 
         if return_number:
-            return relpath(fullname, path), number
+            return keepnote.notebook.relpath(fullname, path), number
         else:
-            return relpath(fullname, path)
+            return keepnote.notebook.relpath(fullname, path)
 
 
 
