@@ -850,6 +850,9 @@ class NoteBookNode (object):
             # notify index
             # TODO: ideally, I should be able to trust that the index is
             # uptodate here.
+
+            # I could check modification time to decide whether updating
+            # is necessary
             self._conn.update_index_node(node)
 
         # assign orders
@@ -861,6 +864,10 @@ class NoteBookNode (object):
         """Iterate through children
            Returns temporary node objects
         """
+
+        # TODO: If I trusted the index, I could load node from
+        # index first.
+
         for path in self._conn.node_list_children(self):
             try:
                 yield self._notebook.read_node(self, path)
@@ -869,6 +876,8 @@ class NoteBookNode (object):
                 traceback.print_exception(*sys.exc_info())
                 continue
                 # TODO: raise warning, not all children read
+
+    
     
     
     def _set_child_order(self):

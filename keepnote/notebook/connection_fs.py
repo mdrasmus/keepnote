@@ -125,17 +125,42 @@ def iter_child_node_paths(path):
 
 
 def last_node_change(path):
+    """Returns the last modification time underneath a path in the notebook"""
+
+    # NOTE: mtime is updated for a directory, whenever any of the files 
+    # within the directory are modified.
+    
     mtime = os.stat(path).st_mtime
     for child_path in iter_child_node_paths(path):
-        mtime = max(mtime, last_change(child_path))
+        mtime = max(mtime, last_node_change(child_path))
     return mtime
+
+
+def find_node_changes(path, last_mtime):
+    """Returns the last modification time underneath a path in the notebook"""
+
+    # NOTE: mtime is updated for a directory, whenever any of the files 
+    # within the directory are modified.
+    
+    queue = [path]
+
+    while len(queue) > 0:
+        path = queue.pop()
+
+        mtime = os.stat(path).st_mtime
+        if mtime > last_mtime:
+            yield path, mtime
+
+        for child_path in iter_child_node_paths(path):
+            queue.append(child_path)
+
+
 
 
 #=============================================================================
 
 # TODO: make base class for connection
 
-# TODO: move index into connection
 
 class NoteBookConnection (object):
     def __init__(self, notebook, node_factory):

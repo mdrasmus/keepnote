@@ -29,21 +29,20 @@
 import os
 import sys
 import traceback
-from thread import get_ident
 
 # import sqlite
 try:
     import pysqlite2
-    print pysqlite2
+    #print pysqlite2
     import pysqlite2.dbapi2 as sqlite
 except Exception, e:
-    print "fallback", e
+    #print "fallback", e
     import sqlite3  as sqlite
 sqlite.enable_shared_cache(True)
 #sqlite.threadsafety = 0
 
 
-print sqlite.sqlite_version
+#print sqlite.sqlite_version
 
 
 # keepnote imports
@@ -222,7 +221,10 @@ class NoteBookIndex (object):
         """Save index"""
 
         if self.con is not None:
-            self.con.commit()
+            try:
+                self.con.commit()
+            except:
+                self.open()
 
 
     def clear(self):
@@ -300,7 +302,7 @@ class NoteBookIndex (object):
                 print e
                 self._has_fulltext = False
 
-            print "fulltext", self._has_fulltext
+            #print "fulltext", self._has_fulltext
 
             # TODO: make an Attr table
             # this will let me query whether an attribute is currently being
