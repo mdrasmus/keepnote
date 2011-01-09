@@ -385,7 +385,19 @@ class KeepNote (keepnote.KeepNote):
         use_autosave = p.get("autosave", default=True)
         p.get("autosave_time", default=keepnote.DEFAULT_AUTOSAVE_TIME)
 
+        
+        # start autosave loop, if requested
         self.begin_auto_save()
+
+
+    def save_preferences(self):
+        """Save information into preferences"""
+
+        # let windows save their preferences
+        for window in self._windows:
+            window.save_preferences()
+
+        keepnote.KeepNote.save_preferences(self)
 
 
     #=================================
@@ -481,7 +493,7 @@ class KeepNote (keepnote.KeepNote):
         return notebook
 
 
-    def save(self, silent=False):
+    def save_notebooks(self, silent=False):
         """Save all opened notebooks"""
 
         # clear all window and viewer info in notebooks
@@ -553,7 +565,6 @@ class KeepNote (keepnote.KeepNote):
         if self._auto_save_pause > 0:
             return True
 
-        #self.save_notebook(True)
         self.save(True)
 
         return True

@@ -895,15 +895,27 @@ class ApplicationOptionsDialog (object):
     def save_options(self, app):
         """Save the options from each section"""
         
+        # let sections record their preferences
         for section in self._sections:
             section.save_options(self.app)
 
-        # notify application preference changes
-        self.app.pref.changed.notify()
+        # let app record its preferences
+        app.save_preferences()
 
         # save noteboook preference changes
+        #for notebook in self.app.iter_notebooks():
+        #    notebook.write_preferences()
+        #    notebook.notify_change(False)
+
+        # notify application preference changes
+        #self.app.pref.changed.notify()
+
+        # force a app and notebook preference save
+        app.save()
+
+        # notify changes
+        self.app.pref.changed.notify()
         for notebook in self.app.iter_notebooks():
-            notebook.write_preferences()
             notebook.notify_change(False)
 
 

@@ -736,6 +736,10 @@ class KeepNote (object):
         data["extension_info"] = {
             "disabled": self._disabled_extensions[:]
             }
+
+        
+        # save to disk
+        self.pref.write()
         
 
     def set_lang(self):                
@@ -755,7 +759,6 @@ class KeepNote (object):
     def quit(self):
         """Stop the application"""
         self.save_preferences()
-        self.pref.write()
 
 
     def get_default_path(self, name):
@@ -858,6 +861,21 @@ class KeepNote (object):
     def iter_notebooks(self):
         """Iterate through open notebooks"""
         return self._notebooks.itervalues()
+
+
+    def save_notebooks(self, silent=False):
+        """Save all opened notebooks"""
+
+        # save all the notebooks
+        for notebook in self._notebooks.itervalues():
+            notebook.save()
+
+
+    def save(self, silent=False):
+        
+        self.save_notebooks()
+
+        self.save_preferences()
 
 
     #================================
