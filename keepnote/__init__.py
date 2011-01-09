@@ -685,21 +685,19 @@ class KeepNote (object):
 
     def load_preferences(self):
         """Load information from preferences"""
-
-        data = self.pref
         
-        self.language = data.get("language", default="")
+        self.language = self.pref.get("language", default="")
         self.set_lang()
 
         # setup id
-        self.id = data.get("id", default="")
+        self.id = self.pref.get("id", default="")
         if self.id == "":
             self.id = str(uuid.uuid4())
-            data.set("id", self.id)
+            self.pref.set("id", self.id)
 
         # TODO: move to gui app?
         # set default timestamp formats
-        data.get(
+        self.pref.get(
             "timestamp_formats",
             default=dict(keepnote.timestamp.DEFAULT_TIMESTAMP_FORMATS))
 
@@ -708,34 +706,30 @@ class KeepNote (object):
 
 
         # extensions
-        self._disabled_extensions = data.get("extension_info", "disabled", 
-                                             default=[])
-        data.get("extensions", define=True)
+        self._disabled_extensions = self.pref.get(
+            "extension_info", "disabled", default=[])
+        self.pref.get("extensions", define=True)
 
 
 
     def save_preferences(self):
         """Save information into preferences"""
         
-        data = self.pref.get()
-
         # language
-        data["language"] = self.language        
-
+        self.pref.set("language", self.language)
         
         # external apps
-        data["external_apps"] = [
+        self.pref.set("external_apps", [
             {"key": app.key,
              "title": app.title,
              "prog": app.prog,
              "args": app.args}
-            for app in self._external_apps]
-
+            for app in self._external_apps])
 
         # extensions
-        data["extension_info"] = {
+        self.pref.set("extension_info", {
             "disabled": self._disabled_extensions[:]
-            }
+            })
         
 
     def set_lang(self):                
