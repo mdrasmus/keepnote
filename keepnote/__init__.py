@@ -518,7 +518,7 @@ class KeepNotePreferences (Pref):
 
         # listener
         self.changed = Listeners()
-        self.changed.add(self._on_changed)
+        #self.changed.add(self._on_changed)
 
 
     def get_pref_dir(self):
@@ -526,9 +526,9 @@ class KeepNotePreferences (Pref):
         return self._pref_dir
 
 
-    def _on_changed(self):
-        """Listener for preference changes"""
-        self.write()
+    #def _on_changed(self):
+    #    """Listener for preference changes"""
+    #    self.write()
         
     
     #=========================================
