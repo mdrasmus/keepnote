@@ -378,13 +378,19 @@ class KeepNote (keepnote.KeepNote):
 
 
     def load_preferences(self):
+        """Load information from preferences"""
+
         keepnote.KeepNote.load_preferences(self)
         
         # set defaults for auto save
         p = self.pref
         use_autosave = p.get("autosave", default=True)
         p.get("autosave_time", default=keepnote.DEFAULT_AUTOSAVE_TIME)
-
+        
+        # let windows load their preferences
+        for window in self._windows:
+            window.load_preferences()
+        
         
         # start autosave loop, if requested
         self.begin_auto_save()

@@ -136,7 +136,7 @@ class KeepNoteWindow (gtk.Window):
         self.connect("delete-event", lambda w,e: self._on_close())
         self.connect("window-state-event", self._on_window_state)
         self.connect("size-allocate", self._on_window_size)
-        self._app.pref.changed.add(self._on_app_options_changed)
+        #self._app.pref.changed.add(self._on_app_options_changed)
 
 
         #====================================
@@ -326,8 +326,8 @@ class KeepNoteWindow (gtk.Window):
             self._app.pref.get("window")["window_size"] = self.get_size()
 
 
-    def _on_app_options_changed(self):
-        self.load_preferences()
+    #def _on_app_options_changed(self):
+    #    self.load_preferences()
 
 
     def _on_tray_icon_activate(self, icon):

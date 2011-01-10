@@ -94,7 +94,7 @@ except ImportError:
 PROGRAM_NAME = u"KeepNote"
 PROGRAM_VERSION_MAJOR = 0
 PROGRAM_VERSION_MINOR = 6
-PROGRAM_VERSION_RELEASE = 6
+PROGRAM_VERSION_RELEASE = 8
 PROGRAM_VERSION = (PROGRAM_VERSION_MAJOR,
                    PROGRAM_VERSION_MINOR,
                    PROGRAM_VERSION_RELEASE)
@@ -107,9 +107,9 @@ else:
     PROGRAM_VERSION_TEXT = "%d.%d" % (PROGRAM_VERSION_MAJOR,
                                       PROGRAM_VERSION_MINOR)
 
-WEBSITE = u"http://rasm.ods.org/keepnote"
+WEBSITE = u"http://keepnote.org"
 LICENSE_NAME = u"GPL version 2"
-COPYRIGHT = u"Copyright Matt Rasmussen 2010."
+COPYRIGHT = u"Copyright Matt Rasmussen 2011."
 TRANSLATOR_CREDITS = (
     u"Chinese: hu dachuan <hdccn@sina.com>\n"
     u"French: tb <thibaut.bethune@gmail.com>\n"
@@ -645,6 +645,7 @@ class KeepNote (object):
         
         # load application preferences
         self.pref = KeepNotePreferences()
+        self.pref.changed.add(self._on_pref_changed)
 
         self.id = None
 
@@ -740,6 +741,11 @@ class KeepNote (object):
         
         # save to disk
         self.pref.write()
+
+    
+    def _on_pref_changed(self):
+        """Callback for when application preferences change"""
+        self.load_preferences()
         
 
     def set_lang(self):                
