@@ -109,7 +109,7 @@ else:
 
 WEBSITE = u"http://keepnote.org"
 LICENSE_NAME = u"GPL version 2"
-COPYRIGHT = u"Copyright Matt Rasmussen 2010."
+COPYRIGHT = u"Copyright Matt Rasmussen 2011."
 TRANSLATOR_CREDITS = (
     u"Chinese: hu dachuan <hdccn@sina.com>\n"
     u"French: tb <thibaut.bethune@gmail.com>\n"
@@ -518,7 +518,7 @@ class KeepNotePreferences (Pref):
 
         # listener
         self.changed = Listeners()
-        self.changed.add(self._on_changed)
+        #self.changed.add(self._on_changed)
 
 
     def get_pref_dir(self):
@@ -526,9 +526,9 @@ class KeepNotePreferences (Pref):
         return self._pref_dir
 
 
-    def _on_changed(self):
-        """Listener for preference changes"""
-        self.write()
+    #def _on_changed(self):
+    #    """Listener for preference changes"""
+    #    self.write()
         
     
     #=========================================
@@ -645,6 +645,7 @@ class KeepNote (object):
         
         # load application preferences
         self.pref = KeepNotePreferences()
+        self.pref.changed.add(self._on_pref_changed)
 
         self.id = None
 
@@ -664,7 +665,7 @@ class KeepNote (object):
         self._disabled_extensions = []
 
 
-        #self.pref.changed.add(self.load_preferences)
+
 
 
     def init(self):
@@ -730,6 +731,15 @@ class KeepNote (object):
         self.pref.set("extension_info", {
             "disabled": self._disabled_extensions[:]
             })
+
+        
+        # save to disk
+        self.pref.write()
+
+    
+    def _on_pref_changed(self):
+        """Callback for when application preferences change"""
+        self.load_preferences()
         
 
     def set_lang(self):                
@@ -749,7 +759,6 @@ class KeepNote (object):
     def quit(self):
         """Stop the application"""
         self.save_preferences()
-        self.pref.write()
 
 
     def get_default_path(self, name):
@@ -852,6 +861,21 @@ class KeepNote (object):
     def iter_notebooks(self):
         """Iterate through open notebooks"""
         return self._notebooks.itervalues()
+
+
+    def save_notebooks(self, silent=False):
+        """Save all opened notebooks"""
+
+        # save all the notebooks
+        for notebook in self._notebooks.itervalues():
+            notebook.save()
+
+
+    def save(self, silent=False):
+        
+        self.save_notebooks()
+
+        self.save_preferences()
 
 
     #================================
