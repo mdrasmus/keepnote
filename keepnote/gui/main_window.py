@@ -583,7 +583,7 @@ class KeepNoteWindow (gtk.Window):
             #clipboard.set_can_store(None)
             #clipboard.store()
 
-            self.save_preferences()
+            self._app.save()
             self.close_notebook()
             if self._tray_icon:
                 # turn off try icon
