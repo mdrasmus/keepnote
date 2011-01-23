@@ -60,12 +60,6 @@ except ImportError:
 
 class Extension (extension.Extension):
     
-    version = (1, 0)
-    name = "New File"
-    author = "Matt Rasmussen <rasmus@mit.edu>"
-    description = "Attaches a new (empty) file to a notebook"
-
-
     def __init__(self, app):
         """Initialize extension"""
         

@@ -744,13 +744,11 @@ class KeepNote (object):
 
     def set_lang(self):                
         """Set the language based on preference"""
-
         keepnote.trans.set_lang(self.language)
 
 
     def error(self, text, error=None, tracebk=None):
         """Display an error message"""
-
         keepnote.log_message(text)
         if error is not None:
             keepnote.log_error(error, tracebk)
@@ -766,6 +764,7 @@ class KeepNote (object):
         return self.pref.get("default_paths", name, 
                              default=get_user_documents())
 
+    
     def set_default_path(self, name, path):
         """Sets the default path for saving/reading files"""
         self.pref.set("default_paths", name, path)
@@ -872,6 +871,7 @@ class KeepNote (object):
 
 
     def save(self, silent=False):
+        """Save notebooks and preferences"""
         
         self.save_notebooks()
 

@@ -26,12 +26,21 @@
 import os
 import imp
 import sys
+try:
+    import xml.etree.cElementTree as ET
+except ImportError:
+    import xml.etree.elementtree.ElementTree as ET
+
 
 import keepnote
 from keepnote.listening import Listeners
+from keepnote import orderdict, plist
+
+
 
 # globals
-EXTENSION_EXT = ".kne"  # filename extension for KeepNote Extensions
+EXTENSION_EXT = u".kne"  # filename extension for KeepNote Extensions
+INFO_FILE = u"info.xml"
 
 
 class DependencyError (StandardError):
@@ -43,7 +52,8 @@ class DependencyError (StandardError):
 
 
     def __str__(self):
-        return "Extension '%s' has failed dependency %s" % (self.ext.key, self.dep)
+        return "Extension '%s' has failed dependency %s" % \
+            (self.ext.key, self.dep)
 
 
 #=============================================================================
@@ -82,8 +92,8 @@ def iter_extensions(extensions_dir):
 def import_extension(app, name, filename):
     """Import an Extension"""
 
-    filename2 = os.path.join(filename, "__init__.py")
-
+    filename2 = os.path.join(filename, u"__init__.py")
+    
     try:
         infile = open(filename2)
     except Exception, e:
@@ -95,6 +105,7 @@ def import_extension(app, name, filename):
                               (".py", "rb", imp.PY_SOURCE))
         ext = mod.Extension(app)
         ext.key = name
+        ext.read_info()
         infile.close()
         return ext
                 
@@ -102,6 +113,29 @@ def import_extension(app, name, filename):
         infile.close()
         raise keepnote.KeepNotePreferenceError("cannot load extension '%s'" %
                                                filename, e)
+
+
+def get_extension_info_file(filename):
+    """Returns an info for an extension file path"""
+    return os.path.join(filename, INFO_FILE)
+
+
+def read_extension_info(filename):
+    """Reads an extensions info"""
+    
+    tree = ET.ElementTree(file=get_extension_info_file(filename))
+            
+    # parse xml
+    # check tree structure matches current version
+    root = tree.getroot()
+    if root.tag != "extension":
+        raise keepnote.KeepNotePreferenceError("bad extension info format")
+    
+    p = root.find("dict")
+    if p is None:
+        raise keepnote.KeepNotePreferenceError("bad extension info format")
+
+    return plist.load_etree(p)    
 
 
 
@@ -133,6 +167,14 @@ def dependency_satisfied(ext, dep):
     return True
 
 
+def parse_extension_version(version_str):
+    return tuple(map(int, version_str.split(".")))
+
+
+def format_extension_version(version):
+    return ".".join(map(version, str))
+
+
 def is_extension_install_file(filename):
     """
     Returns True if file is an extension install file
@@ -147,7 +189,7 @@ class Extension (object):
     key = ""
     name = "untitled"
     author = "no author"
-    website = "http://rasm.ods.org/keepnote"
+    website = "http://keepnote.org"
     description = "base extension"
     visible = True
 
@@ -155,10 +197,29 @@ class Extension (object):
     def __init__(self, app):
         
         self._app = app
+        self._info = {}
         self._enabled = False
         self.type = "system"
         self.enabled = Listeners()
 
+
+    def read_info(self):
+        """Populate extension info"""
+
+        path = self.get_base_dir(False)
+        self._info = read_extension_info(path)
+
+        # populate info
+        self.version = parse_extension_version(self._info["version"])
+        self.name = self._info["name"]
+        self.author = self._info["author"]
+        self.website = self._info["website"]
+        self.description = self._info["description"]
+
+        
+    def get_info(self, key):
+        return self._info.get(key, None)
+        
 
     def enable(self, enable):
         """Enable/disable extension"""

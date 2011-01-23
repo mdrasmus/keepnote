@@ -9,6 +9,8 @@
     <string>Matt Rasmussen</string>
     <key>email</key>
     <string>rasmus@mit.edu</string>
+    <key>website</key>
+    <string>http://keepnote.org</string>
     <key>description</key>
     <string>Exports a notebook to HTML format</string>
   </dict>

@@ -57,12 +57,6 @@ import dialog_python
 
 
 class Extension (extension.Extension):
-    
-    version = (1, 0)
-    name = "Python Prompt"
-    author = "Matt Rasmussen <rasmus@mit.edu>"
-    description = "Allows the user to execute python within KeepNote"
-
 
     def __init__(self, app):
         """Initialize extension"""

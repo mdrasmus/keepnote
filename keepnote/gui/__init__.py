@@ -64,7 +64,7 @@ _ = keepnote.translate
 
 # constants
 MAX_RECENT_NOTEBOOKS = 20
-ACCEL_FILE = "accel.txt"
+ACCEL_FILE = u"accel.txt"
 CONTEXT_MENU_ACCEL_PATH = "<main>/context_menu"
 
 # font constants

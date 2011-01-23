@@ -9,6 +9,8 @@
     <string>Matt Rasmussen</string>
     <key>email</key>
     <string>rasmus@mit.edu</string>
+    <key>website</key>
+    <string>http://keepnote.org</string>
     <key>description</key>
     <string>Inserts the current date in the text editor</string>
   </dict>

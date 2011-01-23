@@ -66,12 +66,6 @@ except ImportError:
 
 class Extension (extension.Extension):
     
-    version = (1, 0)
-    name = "Export HTML"
-    author = "Matt Rasmussen <rasmus@mit.edu>"
-    description = "Exports a notebook to HTML format"
-
-
     def __init__(self, app):
         """Initialize extension"""
         
