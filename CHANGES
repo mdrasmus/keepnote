@@ -1,8 +1,19 @@
 KeepNote Change Log
 -------------------
 
-keepnote-0.6.6
+keepnote-0.6.8
 --------------
+- fixed save notebook on window close bug
+- fixed save preferences on close bug
+
+
+keepnote-0.6.7 (2010/11/23)
+---------------------------
+- fixed insert image bug
+
+
+keepnote-0.6.6 (2010/11/16)
+---------------------------
 - multple window persistence
 - faster HTML loading
 - added separate close window and quit commands
@@ -13,7 +24,7 @@ keepnote-0.6.6
   - fixed view image bug
 
 
-keepnote-0.6.5 (2010.20.13)
+keepnote-0.6.5 (2010/20/13)
 ---------------------------
 - optional tab naming (double click to rename)
 - tab persistence
@@ -31,11 +42,11 @@ keepnote-0.6.5 (2010.20.13)
   - increased notebook opening speed
 
 
-keepnote-0.6.4 (2010.7.23)
+keepnote-0.6.4 (2010/7/23)
 --------------------------
 - fixed notebook file note found bug
 
-keepnote-0.6.3 (2010.7.4)
+keepnote-0.6.3 (2010/7/4)
 -------------------------
 - added tabbed browsing
 - copy/cut/paste in treeview/listview
@@ -47,7 +58,7 @@ keepnote-0.6.3 (2010.7.4)
   - Chinese, Japanese, Italian
 
 
-keepnote-0.6.2 (2010.2.19)
+keepnote-0.6.2 (2010/2/19)
 --------------------------
 - added install/uninstall extension support
 - added "new window"
