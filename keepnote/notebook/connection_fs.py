@@ -372,18 +372,20 @@ class NoteBookConnection (object):
     # Node I/O API
 
     def read_node(self, parent, path):
-        """
-        Reads a node from disk
-
-        Returns None if not a node directory
-        """
+        """Reads a node from disk"""
+        
+        default_content_type = keepnote.notebook.CONTENT_TYPE_DIR
         
         metafile = get_node_meta_file(path)
         attr = self._read_meta_data(metafile, self._notebook.attr_defs)
         node = self._node_factory.new_node(
-            attr.get("content_type", keepnote.notebook.CONTENT_TYPE_DIR),
+            attr.get("content_type", default_content_type),
             parent, self._notebook, attr)
         self.set_node_basename(node, path)
+
+        # TODO: check mtime first
+        self.update_index_node(node)
+
         return node
 
 

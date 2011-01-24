@@ -690,7 +690,7 @@ class NoteBookNode (object):
 
         # perform on-disk move if new parent
         if old_parent != parent:
-            new_path = self._conn.move_node(self, parent)            
+            new_path = self._conn.move_node(self, parent)
 
         # perform move in data structure
         self._parent._remove_child(self)
@@ -793,6 +793,9 @@ class NoteBookNode (object):
 
         node.write_meta_data()
 
+        # update index for node attrs
+        self._conn.update_index_attrs(node)
+
         # copy files
         try:
             self._conn.copy_node_files(self, node)
@@ -801,8 +804,6 @@ class NoteBookNode (object):
             # TODO: handle errors
             pass
 
-        # update index for node attrs
-        self._conn.update_index_attrs(node)
 
         # TODO: prevent loops, copy paste within same tree.
         if recurse:
@@ -846,14 +847,7 @@ class NoteBookNode (object):
         self._children = []
 
         for node in self.iter_temp_children():
-            self._children.append(node)                    
-            # notify index
-            # TODO: ideally, I should be able to trust that the index is
-            # uptodate here.
-
-            # I could check modification time to decide whether updating
-            # is necessary
-            self._conn.update_index_node(node)
+            self._children.append(node)
 
         # assign orders
         self._children.sort(key=lambda x: x._attr.get("order", sys.maxint))
@@ -896,6 +890,9 @@ class NoteBookNode (object):
 
     def _add_child(self, child, index=None):
         """Add a node as a child"""
+
+        # TODO: it is strange that parent is not set here.  perhaps I should
+        # do that here
         
         # propogate notebook
         child._notebook = self._notebook
@@ -918,6 +915,7 @@ class NoteBookNode (object):
             child._attr["order"] = len(self._children)
             self._children.append(child)
 
+        # TODO: Ideally I would only need to notify the update of the attr
         # notify index and mark dirty
         self._conn.update_index_node(child)
         child._set_dirty(True)
@@ -973,10 +971,11 @@ class NoteBookNode (object):
         return self._conn.get_node_file(self, NODE_META_FILE)
 
     def write_meta_data(self):
-        self._notebook.write_node_meta_data(self)
+        self._conn.write_node_meta_data(self)
 
     def read_meta_data(self):
-        self._notebook.read_node_meta_data(self)
+        self._conn.read_node_meta_data(self)
+        
 
     def set_meta_data(self, attr):
         self._version = attr.get("version", NOTEBOOK_FORMAT_VERSION)
@@ -1407,13 +1406,6 @@ class NoteBook (NoteBookDir):
 
     def read_meta_data(self):
         self._conn.read_node_meta_data(self)
-
-    def write_node_meta_data(self, node):
-        self._conn.write_node_meta_data(node)
-
-    def read_node_meta_data(self, node):
-        self._conn.read_node_meta_data(node)
-        
 
 
     #=====================================
