@@ -426,7 +426,7 @@ class NoteBookIndex (object):
 
 
             
-    def add_node(self, node):
+    def add_node(self, node, mtime=None):
         """Add a node to the index"""               
 
         # TODO: remove single parent assumption        
@@ -447,7 +447,8 @@ class NoteBookIndex (object):
             symlink = False
 
             # TODO: refactor mtime
-            mtime = os.stat(node.get_path()).st_mtime
+            if mtime is None:
+                mtime = os.stat(node.get_path()).st_mtime
 
             # update nodegraph
             self.cur.execute(
@@ -580,11 +581,6 @@ class NoteBookIndex (object):
             (u"%" + query + u"%", query))
         
         return list(self.cur.fetchall())
-
-
-    def search_node_contents(self, text):
-        """Search nodes by content"""
-        return self._index.search_contents(text)
 
 
     def get_attr(self, nodeid, key):

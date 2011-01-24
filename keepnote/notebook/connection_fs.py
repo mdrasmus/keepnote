@@ -516,7 +516,7 @@ class NoteBookConnection (object):
         # update index
         # basename is required for index
         self.set_node_basename(node, new_path)
-        self._index.add_node(node)
+        self._index.add_node(node, mtime=get_path_mtime(new_path))
 
         return new_path
 
