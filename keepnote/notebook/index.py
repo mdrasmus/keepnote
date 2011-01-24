@@ -51,7 +51,7 @@ import keepnote
 
 # index filename
 INDEX_FILE = u"index.sqlite"
-INDEX_VERSION = 2
+INDEX_VERSION = 3
 
 
 def get_index_file(notebook):
@@ -275,11 +275,13 @@ class NoteBookIndex (object):
                 self._need_index = True
 
 
+            # TODO: add mtime in order to check against last index
             # init NodeGraph table
             con.execute(u"""CREATE TABLE IF NOT EXISTS NodeGraph 
                            (nodeid TEXT,
                             parentid TEXT,
                             basename TEXT,
+                            mtime FLOAT,
                             symlink BOOLEAN,
                             UNIQUE(nodeid) ON CONFLICT REPLACE);
                         """)
@@ -420,9 +422,13 @@ class NoteBookIndex (object):
                 basename = u""
             symlink = False
 
+            # TODO: refactor mtime
+            mtime = os.stat(node.get_path()).st_mtime
+
             # update nodegraph
-            self.cur.execute(u"""INSERT INTO NodeGraph VALUES (?, ?, ?, ?)""", 
-                        (nodeid, parentid, basename, symlink))
+            self.cur.execute(
+                u"""INSERT INTO NodeGraph VALUES (?, ?, ?, ?, ?)""", 
+                (nodeid, parentid, basename, mtime, symlink))
 
             # update attrs
             for attr in self._attrs.itervalues():
@@ -467,6 +473,7 @@ class NoteBookIndex (object):
             return attr.get(self.cur, nodeid)
         else:
             return []
+
 
     #-------------------------
     # queries

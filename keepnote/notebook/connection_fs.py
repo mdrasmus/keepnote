@@ -154,8 +154,8 @@ def find_node_changes(path, last_mtime):
         for child_path in iter_child_node_paths(path):
             queue.append(child_path)
 
-
-
+def get_path_mtime(path):
+    return os.stat(path).st_mtime
 
 #=============================================================================
 
