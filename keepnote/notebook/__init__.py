@@ -1140,13 +1140,12 @@ class NoteBookGenericFile (NoteBookNode):
         self._attr["payload_filename"] = new_filename
 
 
-class NoteBookTrash (NoteBookDir):
+class NoteBookTrash (NoteBookNode):
     """Class represents the Trash Folder in a NoteBook"""
 
     def __init__(self, name, notebook):
-        NoteBookDir.__init__(self,  
-                             name, parent=notebook, notebook=notebook)
-        self.set_attr("content_type", CONTENT_TYPE_TRASH)
+        NoteBookNode.__init__(self, name, parent=notebook, notebook=notebook,
+                              content_type=CONTENT_TYPE_TRASH)
         
         
     def move(self, parent, index=None):
@@ -1373,6 +1372,7 @@ class NoteBook (NoteBookDir):
 
     def _set_dirty_node(self, node, dirty):
         """Mark a node to be dirty (needs saving) in NoteBook"""        
+        
         if dirty:
             self._dirty.add(node)
         else:
@@ -1399,13 +1399,6 @@ class NoteBook (NoteBookDir):
     def new_node(self, content_type, parent, attr):
         """Create a new NodeBookNode"""        
         return self._node_factory.new_node(content_type, parent, self, attr)
-
-
-    def write_meta_data(self):
-        self._conn.write_node_meta_data(self)
-
-    def read_meta_data(self):
-        self._conn.read_node_meta_data(self)
 
 
     #=====================================

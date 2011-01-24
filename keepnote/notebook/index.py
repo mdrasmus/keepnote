@@ -401,6 +401,19 @@ class NoteBookIndex (object):
         # record index complete
         self._need_index = False
 
+
+    def get_node_mtime(self, node):
+        
+        nodeid = node.get_attr("nodeid")
+        self.cur.execute(u"""SELECT mtime FROM NodeGraph
+                             WHERE nodeid=?""", (nodeid,))
+        row = self.cur.fetchone()
+        if row:
+            return row[0]
+        else:
+            return 0.0
+
+
             
     def add_node(self, node):
         """Add a node to the index"""               

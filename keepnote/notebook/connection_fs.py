@@ -383,8 +383,12 @@ class NoteBookConnection (object):
             parent, self._notebook, attr)
         self.set_node_basename(node, path)
 
-        # TODO: check mtime first
-        self.update_index_node(node)
+        # if node has changed on disk (newer mtime), then re-index it
+        mtime = get_path_mtime(path)
+        index_mtime = self._index.get_node_mtime(node)
+        if mtime > index_mtime:
+            print mtime, index_mtime, node.get_title()
+            self._index.add_node(node)
 
         return node
 
