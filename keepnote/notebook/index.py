@@ -297,10 +297,12 @@ class NoteBookIndex (object):
                                    WHERE name == 'fulltext';""")):
                     con.execute(u"""CREATE VIRTUAL TABLE 
                                 fulltext USING 
-                                fts3(nodeid TEXT UNIQUE, content TEXT);""")
+                                fts3(nodeid TEXT, content TEXT,
+                                     tokenize=porter);""")
                 self._has_fulltext = True
             except Exception, e:
                 print e
+                raise
                 self._has_fulltext = False
 
             # TODO: make an Attr table
@@ -353,6 +355,11 @@ class NoteBookIndex (object):
     def index_needed(self):
         """Returns True if indexing is needed"""
         return self._need_index
+
+    
+    def has_fulltext(self):
+        return self._has_fulltext
+    
 
     #-------------------------------------
     # add/remove nodes from index
@@ -484,7 +491,8 @@ class NoteBookIndex (object):
 
         if node.get_attr("content_type") == keepnote.notebook.CONTENT_TYPE_PAGE:
             try:
-                text = "\n".join(node.read_data_as_plain_text())
+                text = node.get_title() + "\n" + "\n".join(
+                    node.read_data_as_plain_text())
             except Exception, e:
                 return
             self.insert_text(node, text)
@@ -493,9 +501,19 @@ class NoteBookIndex (object):
 
     def insert_text(self, node, text):
 
+        if not self._has_fulltext:
+            return
+
         nodeid = node.get_attr("nodeid")
-        self.cur.execute("INSERT INTO fulltext VALUES (?, ?);",
-                         (nodeid, text))
+
+        if list(self.cur.execute(u"SELECT 1 FROM fulltext WHERE nodeid = ?",
+                                 (nodeid,))):
+            self.cur.execute(
+                u"UPDATE fulltext SET content = ? WHERE nodeid = ?;",
+                (text, nodeid))
+        else:
+            self.cur.execute(u"INSERT INTO fulltext VALUES (?, ?);",
+                             (nodeid, text))
 
 
 
@@ -567,6 +585,9 @@ class NoteBookIndex (object):
 
 
     def query_text(self, text):
+        
+        if not self._has_fulltext:
+            return []
 
         res = self.cur.execute("""SELECT nodeid FROM fulltext 
                   WHERE content MATCH ?;""", (text,))
