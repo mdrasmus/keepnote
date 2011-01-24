@@ -177,8 +177,8 @@ setup(
     """,
     author='Matt Rasmussen',
     author_email='rasmus@mit.edu',
-    url='http://rasm.ods.org/keepnote/',
-    download_url='http://rasm.ods.org/keepnote/download/keepnote-%s.tar.gz' % KEEPNOTE_VERSION,
+    url='http://keepnote.org/keepnote/',
+    download_url='http://keepnote.org/keepnote/download/keepnote-%s.tar.gz' % KEEPNOTE_VERSION,
     
     classifiers=[
           'Development Status :: 5 - Production/Stable',
