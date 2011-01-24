@@ -1559,7 +1559,12 @@ class SearchBox (gtk.Entry):
                  unicode_gtk(self.get_text()).strip().split()]
 
         # prepare search iterator
-        nodes = keepnote.search.search_manual(self._window.get_notebook(), words)
+        #nodes = keepnote.search.search_manual(self._window.get_notebook(), words)
+        # TODO: make fully streamed
+        notebook = self._window.get_notebook()
+        nodes = (notebook.get_node_by_id(nodeid)
+            for nodeid in 
+                 list(notebook._conn._index.query_text(" ".join(words))))
 
         # clear listview        
         self._window.get_viewer().start_search_result()

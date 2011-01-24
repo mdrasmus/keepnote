@@ -274,8 +274,7 @@ class NoteBookIndex (object):
                 self._set_version()
                 self._need_index = True
 
-
-            # TODO: add mtime in order to check against last index
+            
             # init NodeGraph table
             con.execute(u"""CREATE TABLE IF NOT EXISTS NodeGraph 
                            (nodeid TEXT,
@@ -303,8 +302,6 @@ class NoteBookIndex (object):
             except Exception, e:
                 print e
                 self._has_fulltext = False
-
-            #print "fulltext", self._has_fulltext
 
             # TODO: make an Attr table
             # this will let me query whether an attribute is currently being
@@ -447,6 +444,10 @@ class NoteBookIndex (object):
             for attr in self._attrs.itervalues():
                 attr.add_node(self.cur, node)
 
+            # update fulltext
+            self.index_node_text(node)
+
+
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
 
@@ -479,13 +480,23 @@ class NoteBookIndex (object):
             self._on_corrupt(e, sys.exc_info()[2])
 
 
-    def get_attr(self, nodeid, key):
-        """Query indexed attribute for a node"""
-        attr = self._attrs.get(key, None)
-        if attr:
-            return attr.get(self.cur, nodeid)
-        else:
-            return []
+    def index_node_text(self, node):
+
+        if node.get_attr("content_type") == keepnote.notebook.CONTENT_TYPE_PAGE:
+            try:
+                text = "\n".join(node.read_data_as_plain_text())
+            except Exception, e:
+                return
+            self.insert_text(node, text)
+
+
+
+    def insert_text(self, node, text):
+
+        nodeid = node.get_attr("nodeid")
+        self.cur.execute("INSERT INTO fulltext VALUES (?, ?);",
+                         (nodeid, text))
+
 
 
     #-------------------------
@@ -545,3 +556,18 @@ class NoteBookIndex (object):
         
         return list(self.cur.fetchall())
 
+
+    def get_attr(self, nodeid, key):
+        """Query indexed attribute for a node"""
+        attr = self._attrs.get(key, None)
+        if attr:
+            return attr.get(self.cur, nodeid)
+        else:
+            return []
+
+
+    def query_text(self, text):
+
+        res = self.cur.execute("""SELECT nodeid FROM fulltext 
+                  WHERE content MATCH ?;""", (text,))
+        return (row[0] for row in res)

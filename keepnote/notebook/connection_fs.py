@@ -387,7 +387,6 @@ class NoteBookConnection (object):
         mtime = get_path_mtime(path)
         index_mtime = self._index.get_node_mtime(node)
         if mtime > index_mtime:
-            print mtime, index_mtime, node.get_title()
             self._index.add_node(node)
 
         return node
