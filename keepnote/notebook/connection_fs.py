@@ -396,14 +396,19 @@ class NoteBookConnection (object):
     def read_node_meta_data(self, node):
         """Read a node meta data file"""
         node.set_meta_data(
-            self._read_meta_data(node.get_meta_file(), 
+            self._read_meta_data(self._get_node_meta_file(node), 
                                  self._notebook.attr_defs))
 
     def write_node_meta_data(self, node):
         """Write a node meta data file"""
-        self._write_meta_data(node.get_meta_file(), node, 
+        self._write_meta_data(self._get_node_meta_file(node), node, 
                               self._notebook.attr_defs)
     
+
+    def _get_node_meta_file(self, node):
+        """Returns the meta file for the node"""
+        return self.get_node_file(node, keepnote.notebook.NODE_META_FILE)
+
 
     def _write_meta_data(self, filename, node, attr_defs):
         """Write a node meta data file"""
@@ -599,6 +604,10 @@ class NoteBookConnection (object):
     def search_node_titles(self, text):
         """Search nodes by title"""
         return self._index.search_titles(text)
+
+    def search_node_contents(self, text):
+        """Search nodes by content"""
+        return self._index.search_contents(text)
 
     
     def update_index_attrs(self, node):

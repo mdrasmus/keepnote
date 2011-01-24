@@ -1558,17 +1558,6 @@ class SearchBox (gtk.Entry):
         words = [x.lower() for x in
                  unicode_gtk(self.get_text()).strip().split()]
 
-        # prepare search iterator
-        notebook = self._window.get_notebook()
-        if notebook._conn._index.has_fulltext():
-            # TODO: make fully streamed
-            nodes = (notebook.get_node_by_id(nodeid)
-                for nodeid in 
-                     list(notebook._conn._index.query_text(" ".join(words))))
-        else:
-            # fallback
-            nodes = keepnote.search.search_manual(notebook, words)
-            
 
         # clear listview        
         self._window.get_viewer().start_search_result()
@@ -1608,6 +1597,18 @@ class SearchBox (gtk.Entry):
                     return False
             
             gobject.idle_add(gui_update)
+
+            # prepare search iterator
+            notebook = self._window.get_notebook()
+
+
+            # TODO: make fully streamed
+            # this main issue is that the get_node_by_id query 
+            # interupts the previous text query
+            # maybe I need multiple cursors?
+            nodes = (notebook.get_node_by_id(nodeid)
+                     for nodeid in 
+                     list(notebook.search_node_contents(" ".join(words))))
 
             # do search in thread
             try:

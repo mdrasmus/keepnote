@@ -790,8 +790,8 @@ class NoteBookNode (object):
 
         # record the nodeid of the original node
         node._attr["duplicate_of"] = self.get_attr("nodeid")
-
-        node.write_meta_data()
+        
+        self._conn.write_node_meta_data(node)
 
         # update index for node attrs
         self._conn.update_index_attrs(node)
@@ -938,12 +938,13 @@ class NoteBookNode (object):
     
     def load(self):
         """Load a node from filesystem"""
-        self.read_meta_data()
+        self._conn.read_node_meta_data(self)
+
         
     def save(self, force=False):
         """Save node if modified (dirty)"""
         if (force or self._is_dirty()) and self._valid:
-            self.write_meta_data()
+            self._conn.write_node_meta_data(self)
             self._set_dirty(False)
             
 
@@ -964,17 +965,6 @@ class NoteBookNode (object):
             self, new_filename, ext, sep, number, 
             return_number=return_number, use_number=use_number, 
             ensure_valid=ensure_valid)
-
-        
-    def get_meta_file(self):
-        """Returns the meta file for the node"""
-        return self._conn.get_node_file(self, NODE_META_FILE)
-
-    def write_meta_data(self):
-        self._conn.write_node_meta_data(self)
-
-    def read_meta_data(self):
-        self._conn.read_node_meta_data(self)
         
 
     def set_meta_data(self, attr):
@@ -1308,7 +1298,7 @@ class NoteBook (NoteBookDir):
         NoteBookDir.create(self)
         os.mkdir(self.get_pref_dir())
         os.mkdir(self.get_icon_dir())
-        self.write_meta_data()
+        self._conn.write_node_meta_data(self)
         self.write_preferences()
 
         # init index database
@@ -1324,7 +1314,7 @@ class NoteBook (NoteBookDir):
             self._set_basename(filename)
         
         # read basic info
-        self.read_meta_data()
+        self._conn.read_node_meta_data(self)
         self.read_preferences()
         self._init_index()
 
@@ -1335,7 +1325,7 @@ class NoteBook (NoteBookDir):
         """Recursively save any loaded nodes"""
 
         if force or self in self._dirty:
-            self.write_meta_data()            
+            self._conn.write_node_meta_data(self)
             self.write_preferences()
         self._set_dirty(False)
 
@@ -1569,7 +1559,12 @@ class NoteBook (NoteBookDir):
         """Search nodes by title"""
         return self._conn.search_node_titles(text)
 
+    def search_node_contents(self, text):
+        """Search nodes by content"""
+        return self._conn.search_node_contents(text)
+
     def get_attr_by_id(self, nodeid, key):
+        """Returns attr value for a node with id 'nodeid'"""
         return self._conn.get_attr_by_id(nodeid, key)
     
 

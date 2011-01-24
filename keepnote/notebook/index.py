@@ -47,6 +47,7 @@ sqlite.enable_shared_cache(True)
 
 # keepnote imports
 import keepnote
+#import keepnote.search
 
 
 # index filename
@@ -293,6 +294,10 @@ class NoteBookIndex (object):
 
             # full text table
             try:
+                # test for fts3 availability
+                con.execute("CREATE VIRTUAL TABLE fts3test USING fts3(col TEXT);")
+                con.execute("DROP TABLE fts3test;")
+
                 if not list(con.execute(u"""SELECT 1 FROM sqlite_master 
                                    WHERE name == 'fulltext';""")):
                     con.execute(u"""CREATE VIRTUAL TABLE 
@@ -302,8 +307,9 @@ class NoteBookIndex (object):
                 self._has_fulltext = True
             except Exception, e:
                 print e
-                raise
                 self._has_fulltext = False
+
+            #print "fulltext", self._has_fulltext
 
             # TODO: make an Attr table
             # this will let me query whether an attribute is currently being
@@ -350,6 +356,7 @@ class NoteBookIndex (object):
         self.con.execute(u"DROP TABLE IF EXISTS NodeGraph")
         self.con.execute(u"DROP INDEX IF EXISTS IdxNodeGraphNodeid")
         self.con.execute(u"DROP INDEX IF EXISTS IdxNodeGraphParentid")
+        self.con.execute(u"DROP TABLE IF EXISTS fulltext;")
         
     
     def index_needed(self):
@@ -575,6 +582,11 @@ class NoteBookIndex (object):
         return list(self.cur.fetchall())
 
 
+    def search_node_contents(self, text):
+        """Search nodes by content"""
+        return self._index.search_contents(text)
+
+
     def get_attr(self, nodeid, key):
         """Query indexed attribute for a node"""
         attr = self._attrs.get(key, None)
@@ -584,11 +596,16 @@ class NoteBookIndex (object):
             return []
 
 
-    def query_text(self, text):
+    def search_contents(self, text):
         
+        # fallback
         if not self._has_fulltext:
-            return []
+            words = [x.lower() for x in text.strip().split()]
+            return (node.get_attr("nodeid") for node in 
+                    keepnote.search.search_manual(self._notebook, words)
+                    if node is not None)
 
+        # search db with fts3
         res = self.cur.execute("""SELECT nodeid FROM fulltext 
                   WHERE content MATCH ?;""", (text,))
         return (row[0] for row in res)
