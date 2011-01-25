@@ -92,6 +92,13 @@ class PythonDialog (object):
 
     
     def show(self):
+
+        # setup environment
+        self.env = {"app": self.app,
+                    "window": self.main_window,
+                    "info": self.print_info}
+
+        # create dialog
         self.dialog = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.dialog.connect("delete-event", lambda d,r: self.dialog.destroy())
         self.dialog.ptr = self
@@ -186,9 +193,7 @@ class PythonDialog (object):
         text = start.get_text(end)
 
         # execute code
-        execute(text, {"app": self.app,
-                       "window": self.main_window}, 
-                self.outfile, self.errfile)
+        execute(text, self.env, self.outfile, self.errfile)
 
 
     def output_text(self, text, mode="normal"):
@@ -213,6 +218,19 @@ class PythonDialog (object):
             buf.place_cursor(buf.get_end_iter())
             self.output.scroll_mark_onscreen(mark)
 
+
+    def print_info(self):
+
+        print "COMMON INFORMATION"
+        print "=================="
+        print
+
+        keepnote.print_runtime_info(sys.stdout)
+
+        print "Open notebooks"
+        print "--------------"
+        print "\n".join(n.get_path() for n in self.app.iter_notebooks())
+        
 
 
 def execute(code, vars, stdout, stderr):

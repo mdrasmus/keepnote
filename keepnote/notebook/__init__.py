@@ -484,7 +484,6 @@ class NoteBookNode (object):
         self._notebook = notebook
         self._conn = conn if conn else self._notebook._conn
         self._parent = parent
-        self._basename = None
         self._children = None
         self._has_children = None
         self._valid = True
@@ -518,20 +517,11 @@ class NoteBookNode (object):
 
     def get_path(self):
         """Returns the directory path of the node"""
-        return self._conn.get_node_path(self)
-
-    #def get_name_path(self):
-    #    """Returns list of basenames from root to node"""
-    #    return self._conn.get_node_name_path(self)    
-    
-    def _set_basename(self, path):
-        """Sets the basename directory of the node"""
-        self._conn.set_node_basename(self, path)
-        
+        return self._conn.get_node_path(self)        
 
     def get_basename(self):
         """Returns the basename of the node"""
-        return self._basename
+        return self._conn.get_node_basename(self._attr["nodeid"])
 
     def get_url(self, host=""):
         """Returns URL for node"""
@@ -732,12 +722,12 @@ class NoteBookNode (object):
         else:
             oldtitle = self._attr["title"]
             try:
+                self._conn.rename_node(self._attr["nodeid"], title)
                 self._attr["title"] = title
-                path2 = self._conn.rename_node(self, title)
                 self.save(True)
             except NoteBookError, e:
                 self._attr["title"] = oldtitle
-                raise NoteBookError(_("Cannot rename '%s' to '%s'" % (path, path2)), e)
+                raise
         
         self.notify_change(False)
 
@@ -796,7 +786,7 @@ class NoteBookNode (object):
         # record the nodeid of the original node
         node._attr["duplicate_of"] = self.get_attr("nodeid")
         
-        self._conn.write_node_meta_data(node)
+        self._conn.write_node_attr(node._attr["nodeid"], node._attr)
 
         # update index for node attrs
         self._conn.update_index_attrs(node)
@@ -866,17 +856,15 @@ class NoteBookNode (object):
 
         # TODO: If I trusted the index, I could load node from
         # index first.
+        
+        default_content_type = keepnote.notebook.CONTENT_TYPE_DIR
 
-        for path in self._conn.node_list_children(self):
-            try:
-                yield self._notebook.read_node(self, path)
-            except NoteBookError, e:
-                print >>sys.stderr, "error reading", path2
-                traceback.print_exception(*sys.exc_info())
-                continue
-                # TODO: raise warning, not all children read
+        for attr in self._conn.node_list_children(self._attr["nodeid"]):
+            node = self._notebook._node_factory.new_node(
+                attr.get("content_type", default_content_type),
+                self, self._notebook, attr)
+            yield node
 
-    
     
     
     def _set_child_order(self):
@@ -940,29 +928,24 @@ class NoteBookNode (object):
 
     #==============================================
     # low-level input/output
-    
-    def load(self):
-        """Load a node from filesystem"""
-        self._conn.read_node_meta_data(self)
-
         
     def save(self, force=False):
         """Save node if modified (dirty)"""
         if (force or self._is_dirty()) and self._valid:
-            self._conn.write_node_meta_data(self)
+            self._conn.write_node_attr(self._attr["nodeid"], self._attr)
             self._set_dirty(False)
             
 
     def get_data_file(self):
         """Returns filename of data/text/html/etc"""
-        return self._conn.get_node_file(self, PAGE_DATA_FILE)
+        return self._conn.get_node_file(self._attr["nodeid"], PAGE_DATA_FILE)
 
     def get_file(self, filename):
-        return self._conn.get_node_file(self, filename)
+        return self._conn.get_node_file(self._attr["nodeid"], filename)
 
     def open_file(self, filename, mode="r", codec="utf-8"):
         return self._conn.open_node_file(
-            self, filename, mode, codec=codec)
+            self._attr["nodeid"], filename, mode, codec=codec)
 
     def new_filename(self, new_filename, ext=u"", sep=u" ", number=2, 
                      return_number=False, use_number=False, ensure_valid=True):
@@ -1039,7 +1022,7 @@ class NoteBookPage (NoteBookNode):
     def read_data_as_plain_text(self):
         """Iterates over the lines of the data file as plain text"""
         infile = self._conn.open_node_file(
-            self, PAGE_DATA_FILE, "r", codec="utf-8")
+            self._attr["nodeid"], PAGE_DATA_FILE, "r", codec="utf-8")
         for line in read_data_as_plain_text(infile):
             yield line
 
@@ -1050,7 +1033,7 @@ class NoteBookPage (NoteBookNode):
         """Initializes an empty data file on file-system"""
         try:
             out = self._conn.open_node_file(
-                self, PAGE_DATA_FILE, "w", codec="utf-8")
+                self._attr["nodeid"], PAGE_DATA_FILE, "w", codec="utf-8")
             out.write(BLANK_NOTE)
             out.close()
         except IOError, e:
@@ -1317,11 +1300,10 @@ class NoteBook (NoteBookDir):
         # ensure filename points to notebook directory
         if filename is not None:
             filename = normalize_notebook_dirname(filename, longpath=False)
-            self._set_basename(filename)
+            self._basename = filename
         
         # read basic info
-        #self._conn.read_node_meta_data(self)
-        attr = self._conn.read_root_meta_data(filename)
+        attr = self._conn.read_root_attr(filename)
         self.set_meta_data(attr)
         self.read_preferences()
         self._init_index()
@@ -1333,7 +1315,7 @@ class NoteBook (NoteBookDir):
         """Recursively save any loaded nodes"""
 
         if force or self in self._dirty:
-            self._conn.write_node_meta_data(self)
+            self._conn.write_node_attr(self._attr["nodeid"], self._attr)
             self.write_preferences()
         self._set_dirty(False)
 
@@ -1386,12 +1368,6 @@ class NoteBook (NoteBookDir):
     def save_needed(self):
         """Returns True if save is needed"""
         return len(self._dirty) > 0
-
-
-
-    def read_node(self, parent, path):
-        """Read a NoteBookNode"""
-        return self._conn.read_node(parent, path)
 
 
     def new_node(self, content_type, parent, attr):
@@ -1470,7 +1446,7 @@ class NoteBook (NoteBookDir):
         filename = self._conn.path_join(
             NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR, basename)
         if self._conn.isfile(self, filename):
-            return self._conn.get_node_file(self, filename)
+            return self._conn.get_node_file(self._attr["nodeid"], filename)
         else:
             return None
 
@@ -1578,6 +1554,9 @@ class NoteBook (NoteBookDir):
         """Search nodes by content"""
         return self._conn.search_node_contents(text)
 
+    def has_fulltext_search(self):
+        return self._conn.has_fulltext_search()
+
     def get_attr_by_id(self, nodeid, key):
         """Returns attr value for a node with id 'nodeid'"""
         return self._conn.get_attr_by_id(nodeid, key)
@@ -1602,16 +1581,17 @@ class NoteBook (NoteBookDir):
     
     def get_pref_file(self):
         """Gets the NoteBook's preference file"""
-        return self._conn.get_node_file(self, PREF_FILE)
+        return self._conn.get_node_file(self._attr["nodeid"], PREF_FILE)
     
     def get_pref_dir(self):
         """Gets the NoteBook's preference directory"""
-        return self._conn.get_node_file(self, NOTEBOOK_META_DIR)
+        return self._conn.get_node_file(self._attr["nodeid"], NOTEBOOK_META_DIR)
 
     def get_icon_dir(self):
         """Gets the NoteBook's icon directory"""
         return self._conn.get_node_file(
-            self, self._conn.path_join(NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR))
+            self._attr["nodeid"], 
+            self._conn.path_join(NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR))
     
 
     def set_preferences_dirty(self):

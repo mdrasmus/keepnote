@@ -235,6 +235,19 @@ class PathCache (object):
         
         return os.path.join(*path_list)
 
+    
+    def get_basename(self, nodeid):
+        return self._nodes[nodeid].basename
+
+
+    def get_parentid(self, nodeid):
+        
+        node = self._nodes.get(nodeid, None)
+        if node.parent:
+            return node.parent.nodeid
+        else:
+            return None
+
 
     def add(self, nodeid, basename, parentid):
         
@@ -284,10 +297,13 @@ class NoteBookConnection (object):
 
     #================================
     # path API
-
+    
     def get_node_path(self, node):
         """Returns the path of the node"""
         return self._get_node_path(node.get_attr("nodeid"))
+
+    def get_node_basename(self, nodeid):
+        return self._path_cache.get_basename(nodeid)
 
     
     def set_node_basename(self, node, path):
@@ -301,6 +317,15 @@ class NoteBookConnection (object):
         else:
             # non-root nodes can only take the last directory as a basename
             node._basename = os.path.basename(path)
+
+
+    def set_node_basename2(self, node):
+        """Sets the basename directory of the node"""
+
+        # XXX: this is a temp function during refactoring
+
+        node._basename = os.path.basename(
+            self._get_node_path(node.get_attr("nodeid")))
 
 
     def _get_node_path(self, nodeid):
@@ -367,20 +392,18 @@ class NoteBookConnection (object):
     def path_join(self, *parts):
         return os.path.join(*parts)
 
-    def get_node_file(self, node, filename, path=None):
-        if path is None:
-            path = self.get_node_path(node)
+    # TODO: returning a fullpath to a file is not fully portable
+    # will eventually need some kind of fetching mechanism
+
+    def get_node_file(self, nodeid, filename, _path=None):
+        path = self._get_node_path(nodeid) if _path is None else _path
         return os.path.join(path, filename)
 
-    def get_node_file2(self, nodeid, filename, path=None):
-        if path is None:
-            path = self._get_node_path(nodeid)
-        return os.path.join(path, filename)
-
-    def open_node_file(self, node, filename, mode="r", codec=None, path=None):
-        """Open a file contained within a node"""
-        if path is None:
-            path = self.get_node_path(node)
+    
+    def open_node_file(self, nodeid, filename, mode="r", 
+                        codec=None, _path=None):
+        """Open a file contained within a node"""        
+        path = self._get_node_path(nodeid) if _path is None else _path
         return safefile.open(
             os.path.join(path, filename), mode, codec=codec)
 
@@ -515,51 +538,11 @@ class NoteBookConnection (object):
     #======================
     # Node I/O API
 
-    # TODO: it would be better to read a node given a nodeid
-
-    def read_node(self, parent, path):
-        """Reads a node from disk"""
-        
-        default_content_type = keepnote.notebook.CONTENT_TYPE_DIR
-        
-        metafile = get_node_meta_file(path)
-        attr = self._read_meta_data(metafile, self._notebook.attr_defs)
-        node = self._node_factory.new_node(
-            attr.get("content_type", default_content_type),
-            parent, self._notebook, attr)
-        self.set_node_basename(node, path)
-
-        parentid = parent.get_attr("nodeid") if parent else None
-        self._path_cache.add(node.get_attr("nodeid"),  os.path.basename(path),
-                             parentid)
-
-        # if node has changed on disk (newer mtime), then re-index it
-        mtime = get_path_mtime(path)
-        index_mtime = self._index.get_node_mtime(node)
-        if mtime > index_mtime:
-            self._index.add_node(node)
-
-        return node
-
-
-
-    def read_node_meta_data(self, node):
-        """Read a node meta data file"""
-        node.set_meta_data(
-            self._read_meta_data(self._get_node_meta_file(node), 
-                                 self._notebook.attr_defs))
-        
-        parent = node.get_parent()
-        parentid = parent.get_attr("nodeid") if parent else None
-        self._path_cache.add(node.get_attr("nodeid"),  node._basename,
-                             parentid)
-        
-
-    def read_root_meta_data(self, filename):
+    def read_root_attr(self, filename):
         """Read root meta data"""
 
         meta_file = os.path.join(filename, keepnote.notebook.NODE_META_FILE)
-        attr = self._read_meta_data(meta_file, self._notebook.attr_defs)
+        attr = self._read_attr(meta_file, self._notebook.attr_defs)
 
         nodeid = attr.get("nodeid", None)
         if nodeid is None:
@@ -567,55 +550,45 @@ class NoteBookConnection (object):
         self._path_cache.add(nodeid, filename, None)
             
         return attr
-
-
-    def write_node_meta_data(self, node):
-        """Write a node meta data file"""
-        self._write_meta_data(self._get_node_meta_file(node), node, 
-                              self._notebook.attr_defs)
     
 
-    def _get_node_meta_file(self, node):
-        """Returns the meta file for the node"""
-        return self.get_node_file(node, keepnote.notebook.NODE_META_FILE)
-
-    
-    def _get_node_meta_file2(self, nodeid, path=None):
-        """Returns the meta file for the node"""
-        return self.get_node_file2(nodeid, keepnote.notebook.NODE_META_FILE,
-                                   path)
-
-
-    def _write_meta_data(self, filename, node, attr_defs):
+    def write_node_attr(self, nodeid, attr):
         """Write a node meta data file"""
+
+        path = self._path_cache.get_path(nodeid)
+
+        self._write_attr(self._get_node_attr_file(nodeid, path), 
+                         attr, self._notebook.attr_defs)
+
+        # update index
+        basename = os.path.basename(path)
+        parentid = self._path_cache.get_parentid(nodeid)
+        self._index.add_nodeid(nodeid, parentid, basename, attr, 
+                               mtime=get_path_mtime(path))
+
+
+    def _read_node(self, parentid, path):
+        """Reads a node from disk"""
         
-        try:
-            out = safefile.open(filename, "w", codec="utf-8")
-            out.write(XML_HEADER)
-            out.write("<node>\n"
-                      "<version>%s</version>\n" % node.get_version())
-            
-            for key, val in node.iter_attr():
-                attr = attr_defs.get(key, None)
-                
-                if attr is not None:
-                    out.write('<attr key="%s">%s</attr>\n' %
-                              (key, escape(attr.write(val))))
-                elif key == "version":
-                    # skip version attr
-                    pass
-                elif isinstance(val, keepnote.notebook.UnknownAttr):
-                    # write unknown attrs if they are strings
-                    out.write('<attr key="%s">%s</attr>\n' %
-                              (key, escape(val.value)))
-                else:
-                    # drop attribute
-                    pass
-                
-            out.write("</node>\n")
-            out.close()
-        except Exception, e:
-            raise keepnote.notebook.NoteBookError(_("Cannot write meta data"), e)
+        metafile = get_node_meta_file(path)
+        attr = self._read_attr(metafile, self._notebook.attr_defs)
+        nodeid = attr["nodeid"]
+        basename = os.path.basename(path)
+        self._path_cache.add(nodeid, basename, parentid)
+        
+        # if node has changed on disk (newer mtime), then re-index it
+        mtime = get_path_mtime(path)
+        index_mtime = self._index.get_nodeid_mtime(nodeid)
+        if mtime > index_mtime:
+            self._index.add_nodeid(nodeid, parentid, basename, attr, mtime)
+
+        return attr
+    
+    
+    def _get_node_attr_file(self, nodeid, path=None):
+        """Returns the meta file for the node"""
+        return self.get_node_file(nodeid, keepnote.notebook.NODE_META_FILE,
+                                  path)
 
 
     def _write_attr(self, filename, attr, attr_defs):
@@ -648,10 +621,11 @@ class NoteBookConnection (object):
             out.write("</node>\n")
             out.close()
         except Exception, e:
-            raise keepnote.notebook.NoteBookError(_("Cannot write meta data"), e)
+            raise keepnote.notebook.NoteBookError(
+                _("Cannot write meta data"), e)
 
 
-    def _read_meta_data(self, filename, attr_defs):
+    def _read_attr(self, filename, attr_defs):
         """Read a node meta data file"""
         
         attr = {}
@@ -683,6 +657,15 @@ class NoteBookConnection (object):
         return attr
 
 
+    def read_data_as_plain_text(self, nodeid):
+        """Iterates over the lines of the data file as plain text"""
+        infile = self.open_node_file(
+            nodeid, keepnote.notebook.PAGE_DATA_FILE, "r", codec="utf-8")
+        for line in keepnote.notebook.read_data_as_plain_text(infile):
+            yield line
+        infile.close()
+
+
     def create_node(self, nodeid, parentid, attr, _path=None):
 
         if nodeid is None:
@@ -703,7 +686,7 @@ class NoteBookConnection (object):
 
         try:
             os.mkdir(path)
-            self._write_attr(self._get_node_meta_file2(nodeid, path), 
+            self._write_attr(self._get_node_attr_file(nodeid, path), 
                              attr, self._notebook.attr_defs)
             self._path_cache.add(nodeid, basename, parentid)
         except OSError, e:
@@ -740,17 +723,16 @@ class NoteBookConnection (object):
             raise keepnote.notebook.NoteBookError(_("Do not have permission for move"), e)
 
         # update index
-        # basename is required for index
         basename = os.path.basename(new_path)
         self._path_cache.move(nodeid, basename, new_parentid)
         self._index.add_nodeid(nodeid, new_parentid, basename, attr, 
                                mtime=get_path_mtime(new_path))
 
 
-    def rename_node(self, node, title):
+    def rename_node(self, nodeid, title):
         
         # try to pick a path that closely resembles the title
-        path = self.get_node_path(node)
+        path = self._get_node_path(nodeid)
         parent_path = os.path.dirname(path)
         path2 = keepnote.notebook.get_valid_unique_filename(parent_path, title)
 
@@ -760,51 +742,36 @@ class NoteBookConnection (object):
             raise keepnote.notebook.NoteBookError(_("Cannot rename '%s' to '%s'" % (path, path2)), e)
 
         # update index
-        # basename is required for index
-        self.set_node_basename(node, path2)
-        self._path_cache.move(node.get_attr("nodeid"),
-                              node._basename,
-                              node.get_parent().get_attr("nodeid"))
-        self._index.add_node(node)
-
+        basename = os.path.basename(path2)
+        parentid = self._pach_cahce.get_parentid(nodeid)
+        self._path_cache.move(nodeid, basename, parentid)
+        self._index.add_nodeid(nodeid)
+        
         return path2
 
 
-    def node_list_children(self, node, path=None):
-        if path is None:
-            path = self.get_node_path(node)
-            assert path is not None, node
+    def node_list_children(self, nodeid, _path=None):
         
+        path = self._path_cache.get_path(nodeid) if _path is None else _path
+        assert path is not None
+
         try:
             files = os.listdir(path)
         except OSError, e:
-            raise keepnote.notebook.NoteBookError(_("Do not have permission to read folder contents: %s") % path, e)
+            raise keepnote.notebook.NoteBookError(
+                _("Do not have permission to read folder contents: %s") 
+                % path, e)
         
         for filename in files:
             path2 = os.path.join(path, filename)
             if os.path.exists(get_node_meta_file(path2)):
-                yield path2
-
-    
-    def __move_node_old(self, node, new_parent):
-        
-        old_path = self.get_node_path(node)
-        new_parent_path = self.get_node_path(new_parent)
-        new_path = keepnote.notebook.get_valid_unique_filename(
-            new_parent_path, node.get_attr("title", _("New Page")))
-
-        try:
-            os.rename(old_path, new_path)
-        except OSError, e:
-            raise keepnote.notebook.NoteBookError(_("Do not have permission for move"), e)
-
-        # update index
-        # basename is required for index
-        self.set_node_basename(node, new_path)
-        self._path_cache.move(node.get_attr("nodeid"),
-                              node._basename,
-                              new_parent.get_attr("nodeid"))
-        self._index.add_node(node, mtime=get_path_mtime(new_path))
+                try:
+                    yield self._read_node(nodeid, path2)
+                except keepnote.notebook.NoteBookError, e:
+                    print >>sys.stderr, "error reading", path2
+                    traceback.print_exception(*sys.exc_info())
+                    continue
+                    # TODO: raise warning, not all children read
 
 
 
@@ -861,6 +828,10 @@ class NoteBookConnection (object):
         """Search nodes by content"""
         return self._index.search_contents(text)
 
+
+    def has_fulltext_search(self):
+        return self._index.has_fulltext_search()
+
     
     def update_index_attrs(self, node):
         """Update only the attrs of a node in the index"""
@@ -870,6 +841,11 @@ class NoteBookConnection (object):
     def update_index_node(self, node):
         """Update a node in the index"""
         self._index.add_node(node)
+
+
+    def update_index_nodeid(self, nodeid):
+        """Update a node in the index"""
+        self._index.add_nodeid(nodeid)
 
 
     def get_node_by_id(self, nodeid):
@@ -888,7 +864,8 @@ class NoteBookConnection (object):
             # search children
             basename = path[0]
             for child in node.get_children():
-                if child.get_basename() == basename:
+                if (self._path_cache.get_basename(
+                        child.get_attr("nodeid")) == basename):
                     return walk(child, path[1:])
             
             # node not found

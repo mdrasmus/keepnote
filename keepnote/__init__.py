@@ -218,6 +218,56 @@ def unicode_gtk(text):
     return unicode(text, "utf8")
 
 
+def print_runtime_info(out=sys.stderr):
+    """Display runtime information"""
+
+    import keepnote
+
+    out.write("Python runtime\n"
+              "--------------\n"
+              +sys.version+"\n"
+              "PYTHONPATH="
+              "  "+"\n  ".join(sys.path)+"\n"
+              "\n"
+
+              "Imported libs\n"
+              "-------------\n"
+              "keepnote: " + keepnote.__file__+"\n")
+    try:
+        import gtk
+        out.write("gtk: "+ gtk.__file__+"\n")
+    except:
+        out.write("gtk: NOT PRESENT\n")
+    
+    from keepnote.notebook.index import sqlite
+    out.write("sqlite: " + sqlite.__file__+"\n"
+              "sqlite.version: " + sqlite.version+"\n"
+              "sqlite.sqlite_version: " + sqlite.sqlite_version+"\n"
+              "sqlite.fts3: " + str(test_fts3())+"\n")
+    
+    try:
+        import gtkspell
+        out.write("gtkspell: " + gtkspell.__file__+"\n")
+    except ImportError:
+        out.write("gtkspell: NOT PRESENT\n")
+    out.write("\n")
+
+
+def test_fts3():
+
+    from keepnote.notebook.index import sqlite
+    
+    con  = sqlite.connect(":memory:")
+    try:
+        con.execute("CREATE VIRTUAL TABLE fts3test USING fts3(col TEXT);")
+    except:
+        return False
+    finally:
+        con.close()
+    return True
+
+
+
 #=============================================================================
 # locale functions
 

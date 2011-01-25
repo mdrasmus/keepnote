@@ -372,7 +372,7 @@ class NoteBookIndex (object):
         return self._need_index
 
     
-    def has_fulltext(self):
+    def has_fulltext_search(self):
         return self._has_fulltext
     
 
@@ -433,6 +433,17 @@ class NoteBookIndex (object):
             return 0.0
 
 
+    def get_nodeid_mtime(self, nodeid):
+        
+        self.cur.execute(u"""SELECT mtime FROM NodeGraph
+                             WHERE nodeid=?""", (nodeid,))
+        row = self.cur.fetchone()
+        if row:
+            return row[0]
+        else:
+            return 0.0
+
+
             
     def add_node(self, node, mtime=None):
         """Add a node to the index"""               
@@ -468,7 +479,8 @@ class NoteBookIndex (object):
                 attr.add_node(self.cur, node)
 
             # update fulltext
-            self.index_node_text(node)
+            infile = self._notebook._conn.read_data_as_plain_text(nodeid)
+            self.index_nodeid_text(nodeid, node._attr, infile)
 
 
         except sqlite.DatabaseError, e:
@@ -498,6 +510,10 @@ class NoteBookIndex (object):
             # update attrs
             for attrindex in self._attrs.itervalues():
                 attrindex.add_nodeid(self.cur, nodeid, attr)
+
+            # update fulltext
+            infile = self._notebook._conn.read_data_as_plain_text(nodeid)
+            self.index_nodeid_text(nodeid, attr, infile)
 
 
         except sqlite.DatabaseError, e:
@@ -532,24 +548,22 @@ class NoteBookIndex (object):
             self._on_corrupt(e, sys.exc_info()[2])
 
 
-    def index_node_text(self, node):
+    def index_nodeid_text(self, nodeid, attr, infile):
 
-        if node.get_attr("content_type") == keepnote.notebook.CONTENT_TYPE_PAGE:
+        if (attr.get("content_type", None) == 
+            keepnote.notebook.CONTENT_TYPE_PAGE):
             try:
-                text = node.get_title() + "\n" + "\n".join(
-                    node.read_data_as_plain_text())
+                text = attr.get("title", "") + "\n" + "".join(infile)
             except Exception, e:
+                print e
                 return
-            self.insert_text(node, text)
+            self.insert_text(nodeid, text)
 
 
-
-    def insert_text(self, node, text):
+    def insert_text(self, nodeid, text):
 
         if not self._has_fulltext:
             return
-
-        nodeid = node.get_attr("nodeid")
 
         if list(self.cur.execute(u"SELECT 1 FROM fulltext WHERE nodeid = ?",
                                  (nodeid,))):
