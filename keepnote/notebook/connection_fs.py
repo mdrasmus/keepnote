@@ -302,31 +302,10 @@ class NoteBookConnection (object):
         """Returns the path of the node"""
         return self._get_node_path(node.get_attr("nodeid"))
 
+    
     def get_node_basename(self, nodeid):
         return self._path_cache.get_basename(nodeid)
-
     
-    def set_node_basename(self, node, path):
-        """Sets the basename directory of the node"""
-        
-        if node._parent is None:
-            # the root node can take a multiple directory path
-            node._basename = path
-        elif path is None:
-            node._basename = None
-        else:
-            # non-root nodes can only take the last directory as a basename
-            node._basename = os.path.basename(path)
-
-
-    def set_node_basename2(self, node):
-        """Sets the basename directory of the node"""
-
-        # XXX: this is a temp function during refactoring
-
-        node._basename = os.path.basename(
-            self._get_node_path(node.get_attr("nodeid")))
-
 
     def _get_node_path(self, nodeid):
         """Returns the path of the nodeid"""
@@ -336,7 +315,7 @@ class NoteBookConnection (object):
             # fallback to index
             path = os.path.join(* self._index.get_node_path(nodeid))
         if path is None:
-            raise Exception("unkown path")
+            raise Exception("unknown path")
         return path
 
 
@@ -348,43 +327,9 @@ class NoteBookConnection (object):
             # fallback to index
             path = self._index.get_node_path(nodeid)
         if path is None:
-            raise Exception("unkown path")
+            raise Exception("unknown path")
         return path
 
-    
-    def __get_node_path_old(self, node):
-        """Returns the path key of the node"""
-        
-        if node._basename is None:
-            return None
-
-        # TODO: think about multiple parents
-        path_list = []
-        ptr = node
-        while ptr is not None:
-            path_list.append(ptr._basename)
-            ptr = ptr._parent
-        path_list.reverse()
-        
-        return os.path.join(* path_list)
-
-
-    def __get_node_name_path_old(self, node):
-        """Returns list of basenames from root to node"""
-
-        if node._basename is None:
-            return None
-
-        # TODO: think about multiple parents
-        path_list = []
-        ptr = node
-        while ptr is not None:
-            path_list.append(ptr._basename)
-            ptr = ptr._parent
-        path_list.pop()
-        path_list.reverse()
-        return path_list
-    
 
     #===============
     # file API
@@ -407,18 +352,16 @@ class NoteBookConnection (object):
         return safefile.open(
             os.path.join(path, filename), mode, codec=codec)
 
-    def remove_node_file(self, node, filename, path=None):
+    def remove_node_file(self, nodeid, filename, _path=None):
         """Open a file contained within a node"""
-        if path is None:
-            path = self.get_node_path(node)
+        path = self._get_node_path(nodeid) if _path is None else _path
         os.remove(os.path.join(path, filename))
 
 
-    def new_filename(self, node, new_filename, ext=u"", sep=u" ", number=2, 
+    def new_filename(self, nodeid, new_filename, ext=u"", sep=u" ", number=2, 
                      return_number=False, use_number=False, ensure_valid=True,
-                     path=None):
-        if path is None:
-            path = self.get_node_path(node)
+                     _path=None):
+        path = self._get_node_path(nodeid) if _path is None else _path
         if ext is None:
             new_filename, ext = os.path.splitext(new_filename)
 
@@ -703,7 +646,8 @@ class NoteBookConnection (object):
         try:
             shutil.rmtree(self._get_node_path(nodeid))
         except OSError, e:
-            raise keepnote.notebook.NoteBookError(_("Do not have permission to delete"), e)
+            raise keepnote.notebook.NoteBookError(
+                _("Do not have permission to delete"), e)
 
         self._path_cache.remove(nodeid)
         self._index.remove_nodeid(nodeid)

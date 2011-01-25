@@ -948,7 +948,7 @@ class NoteBookNode (object):
     def new_filename(self, new_filename, ext=u"", sep=u" ", number=2, 
                      return_number=False, use_number=False, ensure_valid=True):
         return self._conn.new_filename(
-            self, new_filename, ext, sep, number, 
+            self._attr["nodeid"], new_filename, ext, sep, number, 
             return_number=return_number, use_number=use_number, 
             ensure_valid=ensure_valid)
         
@@ -1084,7 +1084,8 @@ class NoteBookGenericFile (NoteBookNode):
         if new_filename is None:
             new_filename = os.path.basename(filename)
         
-        new_filename = self._conn.new_filename(self, new_filename, None)
+        new_filename = self._conn.new_filename(self._attr["nodeid"], 
+                                               new_filename, None)
         
         try:
             # attempt url parse
@@ -1468,7 +1469,8 @@ class NoteBook (NoteBookDir):
         newfilename = self._conn.path_join(NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR,
                                            basename)
 
-        newfilename = self._conn.new_filename(self, newfilename, ext, "-",
+        newfilename = self._conn.new_filename(self._attr["nodeid"], 
+                                              newfilename, ext, "-",
                                               ensure_valid=False)
 
         self._conn.copy_node_file(None, filename, self, newfilename)
@@ -1492,7 +1494,7 @@ class NoteBook (NoteBookDir):
         use_number = False
         while True:
             newfilename, number = self._conn.new_filename(
-                self, startname, ext, "-",
+                self._attr["nodeid"], startname, ext, "-",
                 number=number, return_number=True, use_number=use_number,
                 ensure_valid=False,
                 path=nodepath)
@@ -1526,7 +1528,7 @@ class NoteBook (NoteBookDir):
             return
         filename = self._conn.path_join(
             NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR, basename)
-        self._conn.remove_node_file(self, filename)
+        self._conn.remove_node_file(self._attr["nodeid"], filename)
     
     
     def get_universal_root_id(self):
