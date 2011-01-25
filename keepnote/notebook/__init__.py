@@ -722,8 +722,9 @@ class NoteBookNode (object):
         else:
             oldtitle = self._attr["title"]
             try:
-                self._conn.rename_node(self._attr["nodeid"], title)
                 self._attr["title"] = title
+                self._conn.rename_node(self._attr["nodeid"], self._attr,
+                                       title)
                 self.save(True)
             except NoteBookError, e:
                 self._attr["title"] = oldtitle
@@ -787,10 +788,7 @@ class NoteBookNode (object):
         node._attr["duplicate_of"] = self.get_attr("nodeid")
         
         self._conn.write_node_attr(node._attr["nodeid"], node._attr)
-
-        # update index for node attrs
-        self._conn.update_index_attrs(node)
-
+        
         # copy files
         try:
             self._conn.copy_node_files(self, node)
@@ -910,7 +908,7 @@ class NoteBookNode (object):
 
         # TODO: Ideally I would only need to notify the update of the attr
         # notify index and mark dirty
-        self._conn.update_index_node(child)
+        self._conn.update_index_node(child._attr["nodeid"], child._attr)
         child._set_dirty(True)
     
 

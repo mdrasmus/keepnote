@@ -696,8 +696,7 @@ class NoteBookConnection (object):
 
 
     def create_root(self, filename, nodeid, attr):
-
-        self.create_node2(nodeid, None, attr, filename)
+        self.create_node(nodeid, None, attr, filename)
         
     
     def delete_node(self, nodeid):
@@ -729,7 +728,7 @@ class NoteBookConnection (object):
                                mtime=get_path_mtime(new_path))
 
 
-    def rename_node(self, nodeid, title):
+    def rename_node(self, nodeid, attr, title):
         
         # try to pick a path that closely resembles the title
         path = self._get_node_path(nodeid)
@@ -743,9 +742,9 @@ class NoteBookConnection (object):
 
         # update index
         basename = os.path.basename(path2)
-        parentid = self._pach_cahce.get_parentid(nodeid)
+        parentid = self._path_cache.get_parentid(nodeid)
         self._path_cache.move(nodeid, basename, parentid)
-        self._index.add_nodeid(nodeid)
+        self.update_index_node(nodeid, attr)
         
         return path2
 
@@ -831,27 +830,24 @@ class NoteBookConnection (object):
 
     def has_fulltext_search(self):
         return self._index.has_fulltext_search()
-
     
-    def update_index_attrs(self, node):
-        """Update only the attrs of a node in the index"""
-        self._index.add_node(node)
 
-
-    def update_index_node(self, node):
+    def update_index_node(self, nodeid, attr):
         """Update a node in the index"""
-        self._index.add_node(node)
-
-
-    def update_index_nodeid(self, nodeid):
-        """Update a node in the index"""
-        self._index.add_nodeid(nodeid)
+        
+        path = self._path_cache.get_path(nodeid)
+        basename = os.path.basename(path)
+        parentid = self._path_cache.get_parentid(nodeid)
+        self._index.add_nodeid(nodeid, parentid, basename, attr, 
+                               mtime=get_path_mtime(path))
 
 
     def get_node_by_id(self, nodeid):
         """Lookup node by nodeid"""
 
         # TODO: could make this more efficient by not loading all uncles
+        # TODO: Can I remove Node object from this function
+        # do I need a nodeid to node mapping within the notebook object?
 
         path = self._index.get_node_path(nodeid)
         if path is None:
