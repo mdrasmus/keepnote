@@ -520,9 +520,9 @@ class NoteBookNode (object):
         """Returns the directory path of the node"""
         return self._conn.get_node_path(self)
 
-    def get_name_path(self):
-        """Returns list of basenames from root to node"""
-        return self._conn.get_node_name_path(self)    
+    #def get_name_path(self):
+    #    """Returns list of basenames from root to node"""
+    #    return self._conn.get_node_name_path(self)    
     
     def _set_basename(self, path):
         """Sets the basename directory of the node"""
@@ -620,7 +620,11 @@ class NoteBookNode (object):
 
         self._attr["created_time"] = get_timestamp()
         self._attr["modified_time"] = get_timestamp()
-        self._conn.create_node(self)
+
+        self._attr["nodeid"] = self._conn.create_node(
+            self._attr.get("nodeid", None), 
+            self._parent._attr["nodeid"], 
+            self._attr)
         self._set_dirty(False)
        
     
@@ -628,7 +632,7 @@ class NoteBookNode (object):
         """Deletes this node from the notebook"""
 
         # perform delete on disk
-        self._conn.delete_node(self)
+        self._conn.delete_node(self._attr["nodeid"])
         
         # update data structure
         self._parent._remove_child(self)
@@ -690,7 +694,8 @@ class NoteBookNode (object):
 
         # perform on-disk move if new parent
         if old_parent != parent:
-            new_path = self._conn.move_node(self, parent)
+            self._conn.move_node(self._attr["nodeid"], parent._attr["nodeid"],
+                                 self._attr)
 
         # perform move in data structure
         self._parent._remove_child(self)
@@ -969,13 +974,8 @@ class NoteBookNode (object):
 
     def set_meta_data(self, attr):
         self._version = attr.get("version", NOTEBOOK_FORMAT_VERSION)
-        
-        # set defaults
-        for key in self._notebook.get_necessary_attrs():
-            if key not in attr:
-                attr[key] = self._notebook.attr_defs[key].default()
-                self._set_dirty(True)
-        
+        if self._notebook.set_attr_defaults(attr):
+            self._set_dirty(True)
         self._attr.update(attr)
 
 
@@ -1293,16 +1293,22 @@ class NoteBook (NoteBookDir):
     
     def create(self):
         """Initialize NoteBook on the file-system"""
+
+        self._attr["created_time"] = get_timestamp()
+        self._attr["modified_time"] = get_timestamp()
+        self._attr["nodeid"] = new_nodeid()
+
         
-        # TODO: replace with conn
-        NoteBookDir.create(self)
+        self._conn.create_root(self._basename, self._attr["nodeid"], 
+                                self._attr)
+
         os.mkdir(self.get_pref_dir())
         os.mkdir(self.get_icon_dir())
-        self._conn.write_node_meta_data(self)
         self.write_preferences()
 
         # init index database
         self._init_index()
+        self._set_dirty(False)
 
     
     def load(self, filename=None):
@@ -1314,7 +1320,9 @@ class NoteBook (NoteBookDir):
             self._set_basename(filename)
         
         # read basic info
-        self._conn.read_node_meta_data(self)
+        #self._conn.read_node_meta_data(self)
+        attr = self._conn.read_root_meta_data(filename)
+        self.set_meta_data(attr)
         self.read_preferences()
         self._init_index()
 
@@ -1398,6 +1406,15 @@ class NoteBook (NoteBookDir):
         return self._necessary_attrs
 
 
+    def set_attr_defaults(self, attr):
+        modified = False
+        for key in self._necessary_attrs:
+            if key not in attr:
+                attr[key] = self.attr_defs[key].default()
+                modified = True
+        return modified
+
+
     #=====================================
     # trash functions
 
@@ -1426,8 +1443,6 @@ class NoteBook (NoteBookDir):
             except NoteBookError, e:
                 raise NoteBookError(_("Cannot create Trash folder"), e)
 
-
-    
     
     def is_trash_dir(self, child):
         """Returns True if child node is the Trash Folder"""
@@ -1637,6 +1652,7 @@ class NoteBook (NoteBookDir):
         """Reads the NoteBook's preferneces from the file-system"""
         
         try:
+            infile = None
             infile = self.open_file(PREF_FILE, "r", codec="utf-8")
             #tree = ElementTree.parse(infile)
             #root = tree.getroot()
@@ -1647,7 +1663,8 @@ class NoteBook (NoteBookDir):
         except Exception, e:
             raise NoteBookError(_("Notebook preference data is corrupt"), e)
         finally:
-            infile.close()
+            if infile:
+                infile.close()
 
 
         # check version

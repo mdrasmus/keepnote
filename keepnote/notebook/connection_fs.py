@@ -161,18 +161,173 @@ def get_path_mtime(path):
 
 # TODO: make base class for connection
 
+# TODO: make connection work only with nodeid's.  Try to separate out the
+# node objects.
+# Let the notebook and node objects abstract on top of a simpler low-level
+# connection interface.
+
+# TODO: the main issue will be to cache nodeid's to paths
+# is the index.get_node_path fast enough?
+
+'''
+I should factor out the basename mechanism in node to a separate object
+maintained by the connection.  This will act as an in memory cache of
+nodeid's to filesystem node_paths.  Because of the tree structure,
+it also allow cheap moves of entire trees.
+
+By moving basename out of node, it will stop me from cheating, i.e. letting
+the connection to look inside the node object.
+
+'''
+
+class PathCacheNode (object):
+    def __init__(self, nodeid, basename, parent):
+        self.nodeid = nodeid
+        self.basename = basename
+        self.parent = parent
+
+
+class PathCache (object):
+    def __init__(self, rootid=None, rootpath=""):
+        self._nodes = {None: None}
+        
+        if rootid:
+            self.add(rootid, rootpath, None)
+
+
+    def clear(self):
+        self._nodes.clear()
+        self._nodes[None] = None
+
+
+    def get_path_list(self, nodeid):
+        
+        path_list = []
+        node = self._paths.get(nodeid, None)
+
+        # node is not in cache
+        if node is None:
+            return None
+
+        # node is in cache, return path list
+        while node is not None:
+            path_list.append(node.basename)
+            node = node.parent
+        path_list.reverse()
+        
+        return path_list
+
+
+    def get_path(self, nodeid):
+        
+        path_list = []
+        node = self._nodes.get(nodeid, None)
+
+        # node is not in cache
+        if node is None:
+            return None
+
+        # node is in cache, return path list
+        while node is not None:
+            path_list.append(node.basename)
+            node = node.parent
+        path_list.reverse()
+        
+        return os.path.join(*path_list)
+
+
+    def add(self, nodeid, basename, parentid):
+        
+        parent = self._nodes.get(parentid, 0)
+        if parent is 0:
+            print basename, parentid, self._nodes
+            raise Exception("unknown parent")
+        node = self._nodes.get(nodeid, None)
+        if node:
+            node.parent = parent
+            node.basename = basename
+        else:
+            self._nodes[nodeid] = PathCacheNode(nodeid, basename, parent)
+
+        
+    def remove(self, nodeid):
+        if nodeid in self._nodes:
+            del self._nodes[nodeid]
+
+
+    def move(self, nodeid, new_basename, parentid):
+        
+        node = self._nodes.get(nodeid, None)
+        parent = self._nodes.get(parentid, 0)
+        
+        if node is not None:
+            if parent is not 0:
+                # update cache
+                node.parent = parent
+                node.basename = new_basename
+            else:
+                # since new parent is not cached,
+                # remove node from cache
+                del self._nodes[nodeid]
+            
+                
+
+
 
 class NoteBookConnection (object):
     def __init__(self, notebook, node_factory):
         self._notebook = notebook
         self._node_factory = node_factory
         self._index = None
+        self._path_cache = PathCache()
     
 
     #================================
     # path API
 
     def get_node_path(self, node):
+        """Returns the path of the node"""
+        return self._get_node_path(node.get_attr("nodeid"))
+
+    
+    def set_node_basename(self, node, path):
+        """Sets the basename directory of the node"""
+        
+        if node._parent is None:
+            # the root node can take a multiple directory path
+            node._basename = path
+        elif path is None:
+            node._basename = None
+        else:
+            # non-root nodes can only take the last directory as a basename
+            node._basename = os.path.basename(path)
+
+
+    def _get_node_path(self, nodeid):
+        """Returns the path of the nodeid"""
+        
+        path = self._path_cache.get_path(nodeid)
+        if path is None and self._index:
+            # fallback to index
+            path = os.path.join(* self._index.get_node_path(nodeid))
+        if path is None:
+            raise Exception("unkown path")
+        return path
+
+
+    def _get_node_name_path(self, nodeid):
+        """Returns the path of the nodeid"""
+        
+        path = self._path_cache.get_path_list(nodeid)
+        if path is None and self._index:
+            # fallback to index
+            path = self._index.get_node_path(nodeid)
+        if path is None:
+            raise Exception("unkown path")
+        return path
+
+    
+    def __get_node_path_old(self, node):
         """Returns the path key of the node"""
         
         if node._basename is None:
@@ -189,7 +344,7 @@ class NoteBookConnection (object):
         return os.path.join(* path_list)
 
 
-    def get_node_name_path(self, node):
+    def __get_node_name_path_old(self, node):
         """Returns list of basenames from root to node"""
 
         if node._basename is None:
@@ -205,21 +360,6 @@ class NoteBookConnection (object):
         path_list.reverse()
         return path_list
     
-    
-    def set_node_basename(self, node, path):
-        """Sets the basename directory of the node"""
-        
-        if node._parent is None:
-            # the root node can take a multiple directory path
-            node._basename = path
-        elif path is None:
-            node._basename = None
-        else:
-            # non-root nodes can only take the last directory as a basename
-            node._basename = os.path.basename(path)
-
-
-
 
     #===============
     # file API
@@ -232,6 +372,10 @@ class NoteBookConnection (object):
             path = self.get_node_path(node)
         return os.path.join(path, filename)
 
+    def get_node_file2(self, nodeid, filename, path=None):
+        if path is None:
+            path = self._get_node_path(nodeid)
+        return os.path.join(path, filename)
 
     def open_node_file(self, node, filename, mode="r", codec=None, path=None):
         """Open a file contained within a node"""
@@ -371,6 +515,8 @@ class NoteBookConnection (object):
     #======================
     # Node I/O API
 
+    # TODO: it would be better to read a node given a nodeid
+
     def read_node(self, parent, path):
         """Reads a node from disk"""
         
@@ -382,6 +528,10 @@ class NoteBookConnection (object):
             attr.get("content_type", default_content_type),
             parent, self._notebook, attr)
         self.set_node_basename(node, path)
+
+        parentid = parent.get_attr("nodeid") if parent else None
+        self._path_cache.add(node.get_attr("nodeid"),  os.path.basename(path),
+                             parentid)
 
         # if node has changed on disk (newer mtime), then re-index it
         mtime = get_path_mtime(path)
@@ -398,6 +548,26 @@ class NoteBookConnection (object):
         node.set_meta_data(
             self._read_meta_data(self._get_node_meta_file(node), 
                                  self._notebook.attr_defs))
+        
+        parent = node.get_parent()
+        parentid = parent.get_attr("nodeid") if parent else None
+        self._path_cache.add(node.get_attr("nodeid"),  node._basename,
+                             parentid)
+        
+
+    def read_root_meta_data(self, filename):
+        """Read root meta data"""
+
+        meta_file = os.path.join(filename, keepnote.notebook.NODE_META_FILE)
+        attr = self._read_meta_data(meta_file, self._notebook.attr_defs)
+
+        nodeid = attr.get("nodeid", None)
+        if nodeid is None:
+            nodeid = keepnote.notebook.new_nodeid()
+        self._path_cache.add(nodeid, filename, None)
+            
+        return attr
+
 
     def write_node_meta_data(self, node):
         """Write a node meta data file"""
@@ -408,6 +578,12 @@ class NoteBookConnection (object):
     def _get_node_meta_file(self, node):
         """Returns the meta file for the node"""
         return self.get_node_file(node, keepnote.notebook.NODE_META_FILE)
+
+    
+    def _get_node_meta_file2(self, nodeid, path=None):
+        """Returns the meta file for the node"""
+        return self.get_node_file2(nodeid, keepnote.notebook.NODE_META_FILE,
+                                   path)
 
 
     def _write_meta_data(self, filename, node, attr_defs):
@@ -442,6 +618,38 @@ class NoteBookConnection (object):
             raise keepnote.notebook.NoteBookError(_("Cannot write meta data"), e)
 
 
+    def _write_attr(self, filename, attr, attr_defs):
+        """Write a node meta data file"""
+        
+        try:
+            out = safefile.open(filename, "w", codec="utf-8")
+            out.write(XML_HEADER)
+            out.write("<node>\n"
+                      "<version>%s</version>\n" % 
+                      keepnote.notebook.NOTEBOOK_FORMAT_VERSION)
+            
+            for key, val in attr.iteritems():
+                attr_def = attr_defs.get(key, None)
+                
+                if attr_def is not None:
+                    out.write('<attr key="%s">%s</attr>\n' %
+                              (key, escape(attr_def.write(val))))
+                elif key == "version":
+                    # skip version attr
+                    pass
+                elif isinstance(val, keepnote.notebook.UnknownAttr):
+                    # write unknown attrs if they are strings
+                    out.write('<attr key="%s">%s</attr>\n' %
+                              (key, escape(val.value)))
+                else:
+                    # drop attribute
+                    pass
+                
+            out.write("</node>\n")
+            out.close()
+        except Exception, e:
+            raise keepnote.notebook.NoteBookError(_("Cannot write meta data"), e)
+
 
     def _read_meta_data(self, filename, attr_defs):
         """Read a node meta data file"""
@@ -475,38 +683,56 @@ class NoteBookConnection (object):
         return attr
 
 
-    def create_node(self, node, path=None):
+    def create_node(self, nodeid, parentid, attr, _path=None):
 
-        if path is None:
-            path = self.get_node_path(node)
-        if path is None:
-            # use title to set path
-            parent_path = node.get_parent().get_path()
+        if nodeid is None:
+            nodeid = keepnote.notebook.new_nodeid()
+
+        # if no path, use title to set path
+        if _path is None:
+            title = attr.get("title", _("New Page"))
+            parent_path = self._get_node_path(parentid)
             path = keepnote.notebook.get_valid_unique_filename(
-                parent_path, node.get_attr("title", _("New Page")))
-            self.set_node_basename(node, path)
+                parent_path, title)
+        else:
+            path = _path
+        if parentid is not None:
+            basename = os.path.basename(path)
+        else:
+            basename = path
 
         try:
             os.mkdir(path)
-            self.write_node_meta_data(node)
+            self._write_attr(self._get_node_meta_file2(nodeid, path), 
+                             attr, self._notebook.attr_defs)
+            self._path_cache.add(nodeid, basename, parentid)
         except OSError, e:
             raise keepnote.notebook.NoteBookError(_("Cannot create node"), e)
 
-    def delete_node(self, node):
+        return nodeid
+
+
+    def create_root(self, filename, nodeid, attr):
+
+        self.create_node2(nodeid, None, attr, filename)
+        
+    
+    def delete_node(self, nodeid):
         try:
-            shutil.rmtree(node.get_path())
+            shutil.rmtree(self._get_node_path(nodeid))
         except OSError, e:
             raise keepnote.notebook.NoteBookError(_("Do not have permission to delete"), e)
 
-        self._index.remove_node(node)
+        self._path_cache.remove(nodeid)
+        self._index.remove_nodeid(nodeid)
         
 
-    def move_node(self, node, new_parent):
+    def move_node(self, nodeid, new_parentid, attr):
         
-        old_path = self.get_node_path(node)
-        new_parent_path = self.get_node_path(new_parent)
+        old_path = self._get_node_path(nodeid)
+        new_parent_path = self._get_node_path(new_parentid)
         new_path = keepnote.notebook.get_valid_unique_filename(
-            new_parent_path, node.get_attr("title", _("New Page")))
+            new_parent_path, attr.get("title", _("New Page")))
 
         try:
             os.rename(old_path, new_path)
@@ -515,10 +741,11 @@ class NoteBookConnection (object):
 
         # update index
         # basename is required for index
-        self.set_node_basename(node, new_path)
-        self._index.add_node(node, mtime=get_path_mtime(new_path))
+        basename = os.path.basename(new_path)
+        self._path_cache.move(nodeid, basename, new_parentid)
+        self._index.add_nodeid(nodeid, new_parentid, basename, attr, 
+                               mtime=get_path_mtime(new_path))
 
-        return new_path
 
     def rename_node(self, node, title):
         
@@ -535,6 +762,9 @@ class NoteBookConnection (object):
         # update index
         # basename is required for index
         self.set_node_basename(node, path2)
+        self._path_cache.move(node.get_attr("nodeid"),
+                              node._basename,
+                              node.get_parent().get_attr("nodeid"))
         self._index.add_node(node)
 
         return path2
@@ -554,6 +784,28 @@ class NoteBookConnection (object):
             path2 = os.path.join(path, filename)
             if os.path.exists(get_node_meta_file(path2)):
                 yield path2
+
+    
+    def __move_node_old(self, node, new_parent):
+        
+        old_path = self.get_node_path(node)
+        new_parent_path = self.get_node_path(new_parent)
+        new_path = keepnote.notebook.get_valid_unique_filename(
+            new_parent_path, node.get_attr("title", _("New Page")))
+
+        try:
+            os.rename(old_path, new_path)
+        except OSError, e:
+            raise keepnote.notebook.NoteBookError(_("Do not have permission for move"), e)
+
+        # update index
+        # basename is required for index
+        self.set_node_basename(node, new_path)
+        self._path_cache.move(node.get_attr("nodeid"),
+                              node._basename,
+                              new_parent.get_attr("nodeid"))
+        self._index.add_node(node, mtime=get_path_mtime(new_path))
+
 
 
     #---------------------------------

@@ -55,6 +55,9 @@ INDEX_FILE = u"index.sqlite"
 INDEX_VERSION = 3
 
 
+NULL = object()
+
+
 def get_index_file(notebook):
     """Get the index filename for a notebook"""
 
@@ -128,6 +131,11 @@ class AttrIndex (object):
         nodeid = node.get_attr("nodeid")
         value = node.get_attr(self._name)
         self.set(cur, nodeid, value)
+
+    def add_nodeid(self, cur, nodeid, attr):
+        val = attr.get(self._name, NULL)
+        if val is not NULL:
+            self.set(cur, nodeid, val)
 
 
     def remove_node(self, cur, node):
@@ -461,6 +469,35 @@ class NoteBookIndex (object):
 
             # update fulltext
             self.index_node_text(node)
+
+
+        except sqlite.DatabaseError, e:
+            self._on_corrupt(e, sys.exc_info()[2])
+
+
+    def add_nodeid(self, nodeid, parentid, basename, attr, mtime):
+        """Add a node to the index"""               
+
+        # TODO: remove single parent assumption        
+
+        if self.con is None:
+            return
+
+        try:
+            # get info
+            if parentid is None:
+                parentid = self._uniroot
+                basename = u""
+            symlink = False
+            
+            # update nodegraph
+            self.cur.execute(
+                u"""INSERT INTO NodeGraph VALUES (?, ?, ?, ?, ?)""", 
+                (nodeid, parentid, basename, mtime, symlink))
+
+            # update attrs
+            for attrindex in self._attrs.itervalues():
+                attrindex.add_nodeid(self.cur, nodeid, attr)
 
 
         except sqlite.DatabaseError, e:
