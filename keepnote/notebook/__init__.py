@@ -1543,7 +1543,26 @@ class NoteBook (NoteBookDir):
 
     def get_node_by_id(self, nodeid):
         """Lookup node by nodeid"""
-        return self._conn.get_node_by_id(nodeid)
+
+        # TODO: could make this more efficient by not loading all uncles
+
+        path = self._conn.get_node_path_by_id(nodeid)
+        if path is None:
+            return None
+        
+        def walk(node, path, i):
+            if i >= len(path):
+                return node
+
+            # search children
+            nodeid2 = path[i]
+            for child in node.get_children():
+                if child.get_attr("nodeid") == nodeid2:
+                    return walk(child, path, i+1)
+            
+            # node not found
+            return None
+        return walk(self._notebook, path[1:], 0)
     
     def get_node_path_by_id(self, nodeid):
         """Lookup node path by nodeid"""
@@ -1637,8 +1656,6 @@ class NoteBook (NoteBookDir):
         try:
             infile = None
             infile = self.open_file(PREF_FILE, "r", codec="utf-8")
-            #tree = ElementTree.parse(infile)
-            #root = tree.getroot()
             root = ET.fromstring(infile.read())
             tree = ET.ElementTree(root)
         except IOError, e:

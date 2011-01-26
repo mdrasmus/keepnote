@@ -606,12 +606,12 @@ class NoteBookIndex (object):
                     if parentid != self._uniroot:
                         path = self.get_node_path(parentid, visit)
                         if path is not None:
-                            path.append(basename)
+                            path.append(nodeid)
                             return path
                         else:
                             return None
                     else:
-                        return [basename]
+                        return [nodeid]
             return walk(nodeid)
 
         except sqlite.DatabaseError, e:

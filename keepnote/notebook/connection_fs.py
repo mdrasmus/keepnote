@@ -331,148 +331,6 @@ class NoteBookConnection (object):
         return path
 
 
-    #===============
-    # file API
-
-    def path_join(self, *parts):
-        return os.path.join(*parts)
-
-    # TODO: returning a fullpath to a file is not fully portable
-    # will eventually need some kind of fetching mechanism
-
-    def get_node_file(self, nodeid, filename, _path=None):
-        path = self._get_node_path(nodeid) if _path is None else _path
-        return os.path.join(path, filename)
-
-    
-    def open_node_file(self, nodeid, filename, mode="r", 
-                        codec=None, _path=None):
-        """Open a file contained within a node"""        
-        path = self._get_node_path(nodeid) if _path is None else _path
-        return safefile.open(
-            os.path.join(path, filename), mode, codec=codec)
-
-    def remove_node_file(self, nodeid, filename, _path=None):
-        """Open a file contained within a node"""
-        path = self._get_node_path(nodeid) if _path is None else _path
-        os.remove(os.path.join(path, filename))
-
-
-    def new_filename(self, nodeid, new_filename, ext=u"", sep=u" ", number=2, 
-                     return_number=False, use_number=False, ensure_valid=True,
-                     _path=None):
-        path = self._get_node_path(nodeid) if _path is None else _path
-        if ext is None:
-            new_filename, ext = os.path.splitext(new_filename)
-
-        basename = os.path.basename(new_filename)
-        path2 = os.path.join(path, os.path.dirname(new_filename))
-
-        if ensure_valid:
-            fullname = keepnote.notebook.get_valid_unique_filename(
-                path2, basename, ext, sep=sep, number=number)
-        else:
-            if return_number:
-                fullname, number = keepnote.notebook.get_unique_filename(
-                    path2, basename, ext, sep=sep, number=number,
-                    return_number=return_number, use_number=use_number)
-            else:
-                fullname = keepnote.notebook.get_unique_filename(
-                    path2, basename, ext, sep=sep, number=number,
-                    return_number=return_number, use_number=use_number)
-
-        if return_number:
-            return keepnote.notebook.relpath(fullname, path), number
-        else:
-            return keepnote.notebook.relpath(fullname, path)
-
-
-
-    def mkdir(self, nodeid, filename, _path=None):
-        path = self._get_node_path(nodeid) if _path is None else _path
-        fullname = os.path.join(path, filename)
-        if not os.path.exists(fullname):
-            os.mkdir(fullname)
-
-    
-    def isfile(self, nodeid, filename, _path=None):
-        path = self._get_node_path(nodeid) if _path is None else _path
-        return os.path.isfile(os.path.join(path, filename))
-
-
-    def path_exists(self, nodeid, filename, _path=None):
-        path = self._get_node_path(nodeid) if _path is None else _path
-        return os.path.exists(os.path.join(path, filename))
-
-
-    def path_basename(self, filename):
-        return os.path.basename(filename)
-
-        
-    def node_listdir(self, nodeid, filename=None, _path=None):
-        """
-        List data files in node
-        """
-
-        path = self._get_node_path(nodeid) if _path is None else _path
-        if filename is not None:
-            path = os.path.join(path, filename)
-        
-        for filename in os.listdir(path):
-            if (filename != keepnote.notebook.NODE_META_FILE and 
-                not filename.startswith("__")):
-                fullname = os.path.join(path, filename)
-                if not os.path.exists(get_node_meta_file(fullname)):
-                    # ensure directory is not a node
-                    yield filename
-
-    
-    def copy_node_files(self, nodeid1, nodeid2):
-        """
-        Copy all data files from node1 to node2
-        """
-        
-        path1 = self._get_node_path(nodeid1)
-        path2 = self._get_node_path(nodeid2)
-
-        for filename in self.node_listdir(nodeid1, path1):
-            fullname1 = os.path.join(path1, filename)
-            fullname2 = os.path.join(path2, filename)
-            
-            if os.path.isfile(fullname1):
-                shutil.copy(fullname1, fullname2)
-            elif os.path.isdir(fullname1):
-                shutil.copytree(fullname1, fullname2)
-
-    
-    def copy_node_file(self, nodeid1, filename1, nodeid2, filename2,
-                       path1=None, path2=None):
-        """
-        Copy a file between two nodes
-
-        if node is None, filename is assumed to be a local file
-        """
-
-        if node1 is None:
-            fullname1 = filename1
-        else:
-            if path1 is None:
-                path1 = self._get_node_path(nodeid1)
-            fullname1 = os.path.join(path1, filename1)
-
-        if node2 is None:
-            fullname2 = filename2
-        else:
-            if path2 is None:
-                path2 = self._get_node_path(nodeid2)
-            fullname2 = os.path.join(path2, filename2)
-        
-        if os.path.isfile(fullname1):
-            shutil.copy(fullname1, fullname2)
-        elif os.path.isdir(fullname1):
-            shutil.copytree(fullname1, fullname2)
-
-
     #======================
     # Node I/O API
 
@@ -713,6 +571,150 @@ class NoteBookConnection (object):
 
 
 
+    #===============
+    # file API
+
+    # XXX: is path_join needed?  or can I always specify paths with '/'?
+
+    def path_join(self, *parts):
+        return os.path.join(*parts)
+
+    # TODO: returning a fullpath to a file is not fully portable
+    # will eventually need some kind of fetching mechanism
+    
+    def get_node_file(self, nodeid, filename, _path=None):
+        path = self._get_node_path(nodeid) if _path is None else _path
+        return os.path.join(path, filename)
+
+    
+    def open_node_file(self, nodeid, filename, mode="r", 
+                        codec=None, _path=None):
+        """Open a file contained within a node"""        
+        path = self._get_node_path(nodeid) if _path is None else _path
+        return safefile.open(
+            os.path.join(path, filename), mode, codec=codec)
+
+    def remove_node_file(self, nodeid, filename, _path=None):
+        """Open a file contained within a node"""
+        path = self._get_node_path(nodeid) if _path is None else _path
+        os.remove(os.path.join(path, filename))
+
+
+    def new_filename(self, nodeid, new_filename, ext=u"", sep=u" ", number=2, 
+                     return_number=False, use_number=False, ensure_valid=True,
+                     _path=None):
+        path = self._get_node_path(nodeid) if _path is None else _path
+        if ext is None:
+            new_filename, ext = os.path.splitext(new_filename)
+
+        basename = os.path.basename(new_filename)
+        path2 = os.path.join(path, os.path.dirname(new_filename))
+
+        if ensure_valid:
+            fullname = keepnote.notebook.get_valid_unique_filename(
+                path2, basename, ext, sep=sep, number=number)
+        else:
+            if return_number:
+                fullname, number = keepnote.notebook.get_unique_filename(
+                    path2, basename, ext, sep=sep, number=number,
+                    return_number=return_number, use_number=use_number)
+            else:
+                fullname = keepnote.notebook.get_unique_filename(
+                    path2, basename, ext, sep=sep, number=number,
+                    return_number=return_number, use_number=use_number)
+
+        if return_number:
+            return keepnote.notebook.relpath(fullname, path), number
+        else:
+            return keepnote.notebook.relpath(fullname, path)
+
+
+
+    def mkdir(self, nodeid, filename, _path=None):
+        path = self._get_node_path(nodeid) if _path is None else _path
+        fullname = os.path.join(path, filename)
+        if not os.path.exists(fullname):
+            os.mkdir(fullname)
+
+    
+    def isfile(self, nodeid, filename, _path=None):
+        path = self._get_node_path(nodeid) if _path is None else _path
+        return os.path.isfile(os.path.join(path, filename))
+
+
+    def path_exists(self, nodeid, filename, _path=None):
+        path = self._get_node_path(nodeid) if _path is None else _path
+        return os.path.exists(os.path.join(path, filename))
+
+
+    def path_basename(self, filename):
+        return os.path.basename(filename)
+
+        
+    def node_listdir(self, nodeid, filename=None, _path=None):
+        """
+        List data files in node
+        """
+
+        path = self._get_node_path(nodeid) if _path is None else _path
+        if filename is not None:
+            path = os.path.join(path, filename)
+        
+        for filename in os.listdir(path):
+            if (filename != keepnote.notebook.NODE_META_FILE and 
+                not filename.startswith("__")):
+                fullname = os.path.join(path, filename)
+                if not os.path.exists(get_node_meta_file(fullname)):
+                    # ensure directory is not a node
+                    yield filename
+
+    
+    def copy_node_files(self, nodeid1, nodeid2):
+        """
+        Copy all data files from nodeid1 to nodeid2
+        """
+        
+        path1 = self._get_node_path(nodeid1)
+        path2 = self._get_node_path(nodeid2)
+
+        for filename in self.node_listdir(nodeid1, path1):
+            fullname1 = os.path.join(path1, filename)
+            fullname2 = os.path.join(path2, filename)
+            
+            if os.path.isfile(fullname1):
+                shutil.copy(fullname1, fullname2)
+            elif os.path.isdir(fullname1):
+                shutil.copytree(fullname1, fullname2)
+
+    
+    def copy_node_file(self, nodeid1, filename1, nodeid2, filename2,
+                       path1=None, path2=None):
+        """
+        Copy a file between two nodes
+
+        if node is None, filename is assumed to be a local file
+        """
+
+        if nodeid1 is None:
+            fullname1 = filename1
+        else:
+            if path1 is None:
+                path1 = self._get_node_path(nodeid1)
+            fullname1 = os.path.join(path1, filename1)
+
+        if nodeid2 is None:
+            fullname2 = filename2
+        else:
+            if path2 is None:
+                path2 = self._get_node_path(nodeid2)
+            fullname2 = os.path.join(path2, filename2)
+        
+        if os.path.isfile(fullname1):
+            shutil.copy(fullname1, fullname2)
+        elif os.path.isdir(fullname1):
+            shutil.copytree(fullname1, fullname2)
+
+
     #---------------------------------
     # indexing/querying
     # NOTE: many of these functions are temparary until index is fully
@@ -780,40 +782,11 @@ class NoteBookConnection (object):
         self._index.add_nodeid(nodeid, parentid, basename, attr, 
                                mtime=get_path_mtime(path))
 
-
-    def get_node_by_id(self, nodeid):
-        """Lookup node by nodeid"""
-
-        # TODO: could make this more efficient by not loading all uncles
-        # TODO: Can I remove Node object from this function
-        # do I need a nodeid to node mapping within the notebook object?
-
-        path = self._index.get_node_path(nodeid)
-        if path is None:
-            return None
-        
-        def walk(node, path):
-            if len(path) == 0:
-                return node
-
-            # search children
-            basename = path[0]
-            for child in node.get_children():
-                if (self._path_cache.get_basename(
-                        child.get_attr("nodeid")) == basename):
-                    return walk(child, path[1:])
-            
-            # node not found
-            return None
-        return walk(self._notebook, path[1:])
-    
     
     def get_node_path_by_id(self, nodeid):
         """Lookup node by nodeid"""
+        return self._index.get_node_path(nodeid)
         
-        path = self._index.get_node_path(nodeid)
-        if path is None:
-            return None
 
     def get_attr_by_id(self, nodeid, key):
         return self._index.get_attr(nodeid, key)
