@@ -296,7 +296,7 @@ class NoteBookConnection (object):
     
 
     #================================
-    # path API
+    # Filesystem-specific API (may not be supported by some connections)
     
     def get_node_path(self, node):
         """Returns the path of the node"""
@@ -306,6 +306,9 @@ class NoteBookConnection (object):
     def get_node_basename(self, nodeid):
         return self._path_cache.get_basename(nodeid)
     
+
+    #===========================
+    # Private path API
 
     def _get_node_path(self, nodeid):
         """Returns the path of the nodeid"""
@@ -331,6 +334,11 @@ class NoteBookConnection (object):
         return path
 
 
+    def _get_node_mtime(self, nodeid):
+        """mtime (modification time) for nodeid"""
+        return os.stat(self._get_node_path(nodeid)).st_mtime
+
+
     #======================
     # Node I/O API
 
@@ -347,8 +355,13 @@ class NoteBookConnection (object):
             
         return attr
 
+    def get_parentid(self, nodeid):
+        
+        # TODO: I could fallback to index for this too
+        return self._path_cache.get_parentid(nodeid)
+
     
-    def node_list_children(self, nodeid, _path=None):
+    def list_node_children(self, nodeid, _path=None):
         
         path = self._path_cache.get_path(nodeid) if _path is None else _path
         assert path is not None
@@ -383,8 +396,8 @@ class NoteBookConnection (object):
         # update index
         basename = os.path.basename(path)
         parentid = self._path_cache.get_parentid(nodeid)
-        self._index.add_nodeid(nodeid, parentid, basename, attr, 
-                               mtime=get_path_mtime(path))
+        self._index.add_node(nodeid, parentid, basename, attr, 
+                             mtime=get_path_mtime(path))
 
 
     def create_root(self, filename, nodeid, attr):
@@ -428,7 +441,7 @@ class NoteBookConnection (object):
                 _("Do not have permission to delete"), e)
 
         self._path_cache.remove(nodeid)
-        self._index.remove_nodeid(nodeid)
+        self._index.remove_node(nodeid)
         
 
     def move_node(self, nodeid, new_parentid, attr):
@@ -446,8 +459,8 @@ class NoteBookConnection (object):
         # update index
         basename = os.path.basename(new_path)
         self._path_cache.move(nodeid, basename, new_parentid)
-        self._index.add_nodeid(nodeid, new_parentid, basename, attr, 
-                               mtime=get_path_mtime(new_path))
+        self._index.add_node(nodeid, new_parentid, basename, attr, 
+                             mtime=get_path_mtime(new_path))
 
 
     def rename_node(self, nodeid, attr, title):
@@ -473,11 +486,14 @@ class NoteBookConnection (object):
 
     def read_data_as_plain_text(self, nodeid):
         """Iterates over the lines of the data file as plain text"""
-        infile = self.open_node_file(
-            nodeid, keepnote.notebook.PAGE_DATA_FILE, "r", codec="utf-8")
-        for line in keepnote.notebook.read_data_as_plain_text(infile):
-            yield line
-        infile.close()
+        try:
+            infile = self.open_node_file(
+                nodeid, keepnote.notebook.PAGE_DATA_FILE, "r", codec="utf-8")
+            for line in keepnote.notebook.read_data_as_plain_text(infile):
+                yield line
+            infile.close()
+        except:
+            pass
 
 
     def _read_node(self, parentid, path):
@@ -491,9 +507,9 @@ class NoteBookConnection (object):
         
         # if node has changed on disk (newer mtime), then re-index it
         mtime = get_path_mtime(path)
-        index_mtime = self._index.get_nodeid_mtime(nodeid)
+        index_mtime = self._index.get_node_mtime(nodeid)
         if mtime > index_mtime:
-            self._index.add_nodeid(nodeid, parentid, basename, attr, mtime)
+            self._index.add_node(nodeid, parentid, basename, attr, mtime)
 
         return attr
     
@@ -779,8 +795,8 @@ class NoteBookConnection (object):
         path = self._path_cache.get_path(nodeid)
         basename = os.path.basename(path)
         parentid = self._path_cache.get_parentid(nodeid)
-        self._index.add_nodeid(nodeid, parentid, basename, attr, 
-                               mtime=get_path_mtime(path))
+        self._index.add_node(nodeid, parentid, basename, attr, 
+                             mtime=get_path_mtime(path))
 
     
     def get_node_path_by_id(self, nodeid):

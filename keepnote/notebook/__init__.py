@@ -838,8 +838,8 @@ class NoteBookNode (object):
     
     def _get_children(self):
         """Load children list from filesystem"""
+        
         self._children = []
-
         for node in self.iter_temp_children():
             self._children.append(node)
 
@@ -858,7 +858,7 @@ class NoteBookNode (object):
         
         default_content_type = keepnote.notebook.CONTENT_TYPE_DIR
 
-        for attr in self._conn.node_list_children(self._attr["nodeid"]):
+        for attr in self._conn.list_node_children(self._attr["nodeid"]):
             node = self._notebook._node_factory.new_node(
                 attr.get("content_type", default_content_type),
                 self, self._notebook, attr)

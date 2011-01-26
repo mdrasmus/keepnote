@@ -69,6 +69,19 @@ def get_index_file(notebook):
     return os.path.join(index_dir, INDEX_FILE)
 
 
+def preorder2(conn, nodeid):
+    """Iterate through nodes in pre-order traversal"""
+
+    #queue = [nodeid, self._conn.]
+
+    while len(queue) > 0:
+        nodeid, attr = queue.pop()
+        yield nodeid, attr
+
+        for childid in node.iter_temp_children():
+            queue.append(childid)
+
+
 def preorder(node):
     """Iterate through nodes in pre-order traversal"""
 
@@ -125,26 +138,13 @@ class AttrIndex (object):
                                                 self._table_name))
             
 
-    def add_node(self, cur, node):
-        """Add a node's information to the index"""
-
-        nodeid = node.get_attr("nodeid")
-        value = node.get_attr(self._name)
-        self.set(cur, nodeid, value)
-
-    def add_nodeid(self, cur, nodeid, attr):
+    def add_node(self, cur, nodeid, attr):
         val = attr.get(self._name, NULL)
         if val is not NULL:
             self.set(cur, nodeid, val)
 
 
-    def remove_node(self, cur, node):
-        """Remove node from index"""
-        cur.execute(u"DELETE FROM %s WHERE nodeid=?" % self._table_name, 
-                    (node.get_attr("nodeid"),))
-
-
-    def remove_nodeid(self, cur, nodeid):
+    def remove_node(self, cur, nodeid):
         """Remove node from index"""
         cur.execute(u"DELETE FROM %s WHERE nodeid=?" % self._table_name, 
                     (nodeid,))
@@ -190,7 +190,11 @@ class NoteBookIndex (object):
 
         self.open()
 
-        self.add_node(notebook)
+        self.add_node(
+            notebook._attr["nodeid"], None, "", 
+            notebook._attr, 
+            self._notebook._conn._get_node_mtime(
+                notebook._attr["nodeid"]))
 
     #-----------------------------------------
     # index connection
@@ -385,6 +389,8 @@ class NoteBookIndex (object):
 
         This function returns an iterator which must be iterated to completion.
         """
+
+        # TODO: remove node object code
         
         if root is None:
             root = self._notebook
@@ -399,9 +405,16 @@ class NoteBookIndex (object):
                     queue.append(node)
         self._notebook.node_changed.add(changed_callback)
 
+        conn = self._notebook._conn
+        
         # perform indexing
         for node in preorder(root):
-            self.add_node(node)
+            nodeid = node._attr["nodeid"]
+            self.add_node(nodeid, 
+                          conn.get_parentid(nodeid), 
+                          conn.get_node_basename(nodeid), 
+                          node._attr, 
+                          conn._get_node_mtime(nodeid))
             visit.add(node)
             yield node
 
@@ -410,9 +423,14 @@ class NoteBookIndex (object):
             node = queue.pop()
             if node not in visit:
                 for node2 in preorder(node):
-                    self.add_node(node)
-                    visit.add(node)
-                    yield node
+                    nodeid = node2._attr["nodeid"]
+                    self.add_node(nodeid, 
+                                  conn.get_parentid(nodeid), 
+                                  conn._get_node_basename(nodeid), 
+                                  node2._attr, 
+                                  conn._get_node_mtime(nodeid))
+                    visit.add(node2)
+                    yield node2
 
         # remove callback for notebook changes
         self._notebook.node_changed.remove(changed_callback)
@@ -421,19 +439,7 @@ class NoteBookIndex (object):
         self._need_index = False
 
 
-    def get_node_mtime(self, node):
-        
-        nodeid = node.get_attr("nodeid")
-        self.cur.execute(u"""SELECT mtime FROM NodeGraph
-                             WHERE nodeid=?""", (nodeid,))
-        row = self.cur.fetchone()
-        if row:
-            return row[0]
-        else:
-            return 0.0
-
-
-    def get_nodeid_mtime(self, nodeid):
+    def get_node_mtime(self, nodeid):
         
         self.cur.execute(u"""SELECT mtime FROM NodeGraph
                              WHERE nodeid=?""", (nodeid,))
@@ -443,51 +449,8 @@ class NoteBookIndex (object):
         else:
             return 0.0
 
-
-            
-    def add_node(self, node, mtime=None):
-        """Add a node to the index"""               
-
-        # TODO: remove single parent assumption        
-
-        if self.con is None:
-            return
-
-        try:
-            # get info
-            nodeid = node.get_attr("nodeid")
-            parent = node.get_parent()
-            if parent:
-                parentid = parent.get_attr("nodeid")
-                basename = node.get_basename()
-            else:
-                parentid = self._uniroot
-                basename = u""
-            symlink = False
-
-            # TODO: refactor mtime
-            if mtime is None:
-                mtime = os.stat(node.get_path()).st_mtime
-
-            # update nodegraph
-            self.cur.execute(
-                u"""INSERT INTO NodeGraph VALUES (?, ?, ?, ?, ?)""", 
-                (nodeid, parentid, basename, mtime, symlink))
-
-            # update attrs
-            for attr in self._attrs.itervalues():
-                attr.add_node(self.cur, node)
-
-            # update fulltext
-            infile = self._notebook._conn.read_data_as_plain_text(nodeid)
-            self.index_nodeid_text(nodeid, node._attr, infile)
-
-
-        except sqlite.DatabaseError, e:
-            self._on_corrupt(e, sys.exc_info()[2])
-
-
-    def add_nodeid(self, nodeid, parentid, basename, attr, mtime):
+    
+    def add_node(self, nodeid, parentid, basename, attr, mtime):
         """Add a node to the index"""               
 
         # TODO: remove single parent assumption        
@@ -509,23 +472,18 @@ class NoteBookIndex (object):
 
             # update attrs
             for attrindex in self._attrs.itervalues():
-                attrindex.add_nodeid(self.cur, nodeid, attr)
+                attrindex.add_node(self.cur, nodeid, attr)
 
             # update fulltext
             infile = self._notebook._conn.read_data_as_plain_text(nodeid)
-            self.index_nodeid_text(nodeid, attr, infile)
+            self.index_node_text(nodeid, attr, infile)
 
 
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
 
 
-    def remove_node(self, node):
-        """Remove node from index"""
-        return self.remove_nodeid(node.get_attr("nodeid"))
-
-
-    def remove_nodeid(self, nodeid):
+    def remove_node(self, nodeid):
         """Remove node from index using nodeid"""
 
         if self.con is None:
@@ -537,18 +495,18 @@ class NoteBookIndex (object):
 
             # update attrs
             for attr in self._attrs.itervalues():
-                attr.remove_nodeid(self.cur, nodeid)
+                attr.remove_node(self.cur, nodeid)
 
             # delete children
             for (childid,) in self.cur.execute(
                 u"SELECT nodeid FROM NodeGraph WHERE parentid=?", (nodeid,)):
-                self.remove_nodeid(childid)
+                self.remove_node(childid)
 
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
 
 
-    def index_nodeid_text(self, nodeid, attr, infile):
+    def index_node_text(self, nodeid, attr, infile):
 
         if (attr.get("content_type", None) == 
             keepnote.notebook.CONTENT_TYPE_PAGE):
@@ -561,7 +519,7 @@ class NoteBookIndex (object):
 
 
     def insert_text(self, nodeid, text):
-
+        
         if not self._has_fulltext:
             return
 
@@ -579,7 +537,7 @@ class NoteBookIndex (object):
     #-------------------------
     # queries
         
-    def get_node_path(self, nodeid, visit=None):
+    def get_node_path(self, nodeid):
         """Get node path for a nodeid"""
         
         if self.con is None:
@@ -587,32 +545,36 @@ class NoteBookIndex (object):
 
         # TODO: handle multiple parents
 
-        if visit is None:
-            visit = set()
-        visit.add(nodeid)
+        visit = set([nodeid])
+        path = []
+        parentid = None
 
         try:
-            def walk(nodeid):
+            while parentid != self._uniroot:
+                # continue to walk up parent
+                path.append(nodeid)
+
                 self.cur.execute(u"""SELECT nodeid, parentid, basename
                                 FROM NodeGraph
                                 WHERE nodeid=?""", (nodeid,))
                 row = self.cur.fetchone()
 
-                if row:
-                    nodeid, parentid, basename = row
-                    if parentid in visit:
-                        return None
+                # nodeid is not index
+                if row is None:
+                    return None
 
-                    if parentid != self._uniroot:
-                        path = self.get_node_path(parentid, visit)
-                        if path is not None:
-                            path.append(nodeid)
-                            return path
-                        else:
-                            return None
-                    else:
-                        return [nodeid]
-            return walk(nodeid)
+                nodeid, parentid, basename = row
+
+                # parent has unexpected loop
+                if parentid in visit:
+                    self._on_corrupt(Exception("unexpect parent path loop"))
+                    return None
+                
+                # walk up
+                nodeid = parentid
+
+            path.reverse()
+            return path
 
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
@@ -645,7 +607,7 @@ class NoteBookIndex (object):
 
     def search_contents(self, text):
         
-        # fallback
+        # fallback if fts3 is not available
         if not self._has_fulltext:
             words = [x.lower() for x in text.strip().split()]
             return (node.get_attr("nodeid") for node in 

@@ -886,10 +886,13 @@ class KeepNoteWindow (gtk.Window):
             # cleared out of the way.
             notebook.clear_index()
 
-            for node in notebook.index_all():
-                # terminate if search is canceled
-                if task.aborted():
-                    break
+            try:
+                for node in notebook.index_all():
+                    # terminate if search is canceled
+                    if task.aborted():
+                        break
+            except Exception, e:
+                self.error(_("Error during index"), e, sys.exc_info()[2])
             task.finish()
 
         # launch task
