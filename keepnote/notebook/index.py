@@ -484,7 +484,9 @@ class NoteBookIndex (object):
             self.index_node_text(nodeid, attr, infile)
 
 
-        except sqlite.DatabaseError, e:
+        except Exception, e:
+            keepnote.log_error("error index node %s '%s'" % 
+                               nodeid, attr.get("title", ""))
             self._on_corrupt(e, sys.exc_info()[2])
 
 
