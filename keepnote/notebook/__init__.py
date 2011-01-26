@@ -791,7 +791,8 @@ class NoteBookNode (object):
         
         # copy files
         try:
-            self._conn.copy_node_files(self, node)
+            self._conn.copy_node_files(self._attr["nodeid"], 
+                                       node._attr["nodeid"])
         except Exception, e:
             print e
             # TODO: handle errors
@@ -1093,7 +1094,8 @@ class NoteBookGenericFile (NoteBookNode):
             
             if os.path.exists(filename) or parts[0] == "":
                 # perform local copy
-                self._conn.copy_node_file(None, filename, self, new_filename)
+                self._conn.copy_node_file(None, filename, 
+                                          self._attr["nodeid"], new_filename)
             else:
                 # perform download
                 out = self.open_file(new_filename, "wb")
@@ -1283,9 +1285,6 @@ class NoteBook (NoteBookDir):
         
         self._conn.create_root(self._basename, self._attr["nodeid"], 
                                 self._attr)
-
-        os.mkdir(self.get_pref_dir())
-        os.mkdir(self.get_icon_dir())
         self.write_preferences()
 
         # init index database
@@ -1444,7 +1443,7 @@ class NoteBook (NoteBookDir):
 
         filename = self._conn.path_join(
             NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR, basename)
-        if self._conn.isfile(self, filename):
+        if self._conn.isfile(self._attr["nodeid"], filename):
             return self._conn.get_node_file(self._attr["nodeid"], filename)
         else:
             return None
@@ -1454,7 +1453,8 @@ class NoteBook (NoteBookDir):
         """Returns list of icons in notebook icon store"""
         filename = self._conn.path_join(
             NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR)
-        filenames = list(self._conn.node_listdir(self, filename))
+        filenames = list(self._conn.node_listdir(self._attr["nodeid"], 
+                                                 filename))
         filenames.sort()
         return filenames
 
@@ -1473,7 +1473,8 @@ class NoteBook (NoteBookDir):
                                               newfilename, ext, "-",
                                               ensure_valid=False)
 
-        self._conn.copy_node_file(None, filename, self, newfilename)
+        self._conn.copy_node_file(None, filename, self._attr["nodeid"], 
+                                  newfilename)
         return self._conn.path_basename(newfilename)
 
 
@@ -1508,15 +1509,17 @@ class NoteBook (NoteBookDir):
             newfilename_open += "-open" + ext
 
             # see if it already exists
-            if self._conn.path_exists(self, newfilename_open, path=nodepath):
+            if self._conn.path_exists(self._attr["nodeid"], newfilename_open):
                 number += 1
                 use_number = True
             else:
                 # we are done searching for names
                 break
             
-        self._conn.copy_node_file(None, filename, self, newfilename)
-        self._conn.copy_node_file(None, filename_open, self, newfilename_open)
+        self._conn.copy_node_file(None, filename, self._attr["nodeid"], 
+                                  newfilename)
+        self._conn.copy_node_file(None, filename_open, self._attr["nodeid"], 
+                                  newfilename_open)
 
         return (self._conn.path_basename(newfilename), 
                 self._conn.path_basename(newfilename_open))
@@ -1603,12 +1606,12 @@ class NoteBook (NoteBookDir):
         """Writes the NoteBooks preferences to the file-system"""
         try:
             # ensure preference directory exists
-            self._conn.mkdir(self, NOTEBOOK_META_DIR)
+            self._conn.mkdir(self._attr["nodeid"], NOTEBOOK_META_DIR)
                 
             # ensure icon directory exists
-            self._conn.mkdir(
-                self, self._conn.path_join(NOTEBOOK_META_DIR, 
-                                           NOTEBOOK_ICON_DIR))
+            self._conn.mkdir(self._attr["nodeid"], 
+                             self._conn.path_join(NOTEBOOK_META_DIR, 
+                                                  NOTEBOOK_ICON_DIR))
 
             data = self.pref.get_data()
 

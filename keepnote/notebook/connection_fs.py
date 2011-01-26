@@ -301,7 +301,7 @@ class NoteBookConnection (object):
     def get_node_path(self, node):
         """Returns the path of the node"""
         return self._get_node_path(node.get_attr("nodeid"))
-
+    
     
     def get_node_basename(self, nodeid):
         return self._path_cache.get_basename(nodeid)
@@ -388,23 +388,20 @@ class NoteBookConnection (object):
 
 
 
-    def mkdir(self, node, filename, path=None):
-        if path is None:
-            path = self.get_node_path(node)
+    def mkdir(self, nodeid, filename, _path=None):
+        path = self._get_node_path(nodeid) if _path is None else _path
         fullname = os.path.join(path, filename)
         if not os.path.exists(fullname):
             os.mkdir(fullname)
 
     
-    def isfile(self, node, filename, path=None):
-        if path is None:
-            path = self.get_node_path(node)
+    def isfile(self, nodeid, filename, _path=None):
+        path = self._get_node_path(nodeid) if _path is None else _path
         return os.path.isfile(os.path.join(path, filename))
 
 
-    def path_exists(self, node, filename, path=None):
-        if path is None:
-            path = self.get_node_path(node)
+    def path_exists(self, nodeid, filename, _path=None):
+        path = self._get_node_path(nodeid) if _path is None else _path
         return os.path.exists(os.path.join(path, filename))
 
 
@@ -412,13 +409,12 @@ class NoteBookConnection (object):
         return os.path.basename(filename)
 
         
-    def node_listdir(self, node, filename=None, path=None):
+    def node_listdir(self, nodeid, filename=None, _path=None):
         """
         List data files in node
         """
 
-        if path is None:
-            path = self.get_node_path(node)
+        path = self._get_node_path(nodeid) if _path is None else _path
         if filename is not None:
             path = os.path.join(path, filename)
         
@@ -431,15 +427,15 @@ class NoteBookConnection (object):
                     yield filename
 
     
-    def copy_node_files(self, node1, node2):
+    def copy_node_files(self, nodeid1, nodeid2):
         """
         Copy all data files from node1 to node2
         """
         
-        path1 = self.get_node_path(node1)
-        path2 = self.get_node_path(node2)
+        path1 = self._get_node_path(nodeid1)
+        path2 = self._get_node_path(nodeid2)
 
-        for filename in self.node_listdir(node1, path1):
+        for filename in self.node_listdir(nodeid1, path1):
             fullname1 = os.path.join(path1, filename)
             fullname2 = os.path.join(path2, filename)
             
@@ -449,7 +445,7 @@ class NoteBookConnection (object):
                 shutil.copytree(fullname1, fullname2)
 
     
-    def copy_node_file(self, node1, filename1, node2, filename2,
+    def copy_node_file(self, nodeid1, filename1, nodeid2, filename2,
                        path1=None, path2=None):
         """
         Copy a file between two nodes
@@ -461,21 +457,20 @@ class NoteBookConnection (object):
             fullname1 = filename1
         else:
             if path1 is None:
-                path1 = self.get_node_path(node1)
+                path1 = self._get_node_path(nodeid1)
             fullname1 = os.path.join(path1, filename1)
 
         if node2 is None:
             fullname2 = filename2
         else:
             if path2 is None:
-                path2 = self.get_node_path(node2)
+                path2 = self._get_node_path(nodeid2)
             fullname2 = os.path.join(path2, filename2)
         
         if os.path.isfile(fullname1):
             shutil.copy(fullname1, fullname2)
         elif os.path.isdir(fullname1):
             shutil.copytree(fullname1, fullname2)
-        
 
 
     #======================
@@ -493,7 +488,31 @@ class NoteBookConnection (object):
         self._path_cache.add(nodeid, filename, None)
             
         return attr
+
     
+    def node_list_children(self, nodeid, _path=None):
+        
+        path = self._path_cache.get_path(nodeid) if _path is None else _path
+        assert path is not None
+
+        try:
+            files = os.listdir(path)
+        except OSError, e:
+            raise keepnote.notebook.NoteBookError(
+                _("Do not have permission to read folder contents: %s") 
+                % path, e)
+        
+        for filename in files:
+            path2 = os.path.join(path, filename)
+            if os.path.exists(get_node_meta_file(path2)):
+                try:
+                    yield self._read_node(nodeid, path2)
+                except keepnote.notebook.NoteBookError, e:
+                    print >>sys.stderr, "error reading", path2
+                    traceback.print_exception(*sys.exc_info())
+                    continue
+                    # TODO: raise warning, not all children read
+
 
     def write_node_attr(self, nodeid, attr):
         """Write a node meta data file"""
@@ -508,6 +527,99 @@ class NoteBookConnection (object):
         parentid = self._path_cache.get_parentid(nodeid)
         self._index.add_nodeid(nodeid, parentid, basename, attr, 
                                mtime=get_path_mtime(path))
+
+
+    def create_root(self, filename, nodeid, attr):
+        self.create_node(nodeid, None, attr, filename)
+    
+
+    def create_node(self, nodeid, parentid, attr, _path=None):
+
+        if nodeid is None:
+            nodeid = keepnote.notebook.new_nodeid()
+
+        # if no path, use title to set path
+        if _path is None:
+            title = attr.get("title", _("New Page"))
+            parent_path = self._get_node_path(parentid)
+            path = keepnote.notebook.get_valid_unique_filename(
+                parent_path, title)
+        else:
+            path = _path
+        if parentid is not None:
+            basename = os.path.basename(path)
+        else:
+            basename = path
+
+        try:
+            os.mkdir(path)
+            self._write_attr(self._get_node_attr_file(nodeid, path), 
+                             attr, self._notebook.attr_defs)
+            self._path_cache.add(nodeid, basename, parentid)
+        except OSError, e:
+            raise keepnote.notebook.NoteBookError(_("Cannot create node"), e)
+
+        return nodeid
+        
+    
+    def delete_node(self, nodeid):
+        try:
+            shutil.rmtree(self._get_node_path(nodeid))
+        except OSError, e:
+            raise keepnote.notebook.NoteBookError(
+                _("Do not have permission to delete"), e)
+
+        self._path_cache.remove(nodeid)
+        self._index.remove_nodeid(nodeid)
+        
+
+    def move_node(self, nodeid, new_parentid, attr):
+        
+        old_path = self._get_node_path(nodeid)
+        new_parent_path = self._get_node_path(new_parentid)
+        new_path = keepnote.notebook.get_valid_unique_filename(
+            new_parent_path, attr.get("title", _("New Page")))
+
+        try:
+            os.rename(old_path, new_path)
+        except OSError, e:
+            raise keepnote.notebook.NoteBookError(_("Do not have permission for move"), e)
+
+        # update index
+        basename = os.path.basename(new_path)
+        self._path_cache.move(nodeid, basename, new_parentid)
+        self._index.add_nodeid(nodeid, new_parentid, basename, attr, 
+                               mtime=get_path_mtime(new_path))
+
+
+    def rename_node(self, nodeid, attr, title):
+        
+        # try to pick a path that closely resembles the title
+        path = self._get_node_path(nodeid)
+        parent_path = os.path.dirname(path)
+        path2 = keepnote.notebook.get_valid_unique_filename(parent_path, title)
+
+        try:
+            os.rename(path, path2)
+        except OSError, e:
+            raise keepnote.notebook.NoteBookError(_("Cannot rename '%s' to '%s'" % (path, path2)), e)
+
+        # update index
+        basename = os.path.basename(path2)
+        parentid = self._path_cache.get_parentid(nodeid)
+        self._path_cache.move(nodeid, basename, parentid)
+        self.update_index_node(nodeid, attr)
+        
+        return path2
+
+
+    def read_data_as_plain_text(self, nodeid):
+        """Iterates over the lines of the data file as plain text"""
+        infile = self.open_node_file(
+            nodeid, keepnote.notebook.PAGE_DATA_FILE, "r", codec="utf-8")
+        for line in keepnote.notebook.read_data_as_plain_text(infile):
+            yield line
+        infile.close()
 
 
     def _read_node(self, parentid, path):
@@ -598,123 +710,6 @@ class NoteBookConnection (object):
                         attr[key] = keepnote.notebook.UnknownAttr(child.text)
 
         return attr
-
-
-    def read_data_as_plain_text(self, nodeid):
-        """Iterates over the lines of the data file as plain text"""
-        infile = self.open_node_file(
-            nodeid, keepnote.notebook.PAGE_DATA_FILE, "r", codec="utf-8")
-        for line in keepnote.notebook.read_data_as_plain_text(infile):
-            yield line
-        infile.close()
-
-
-    def create_node(self, nodeid, parentid, attr, _path=None):
-
-        if nodeid is None:
-            nodeid = keepnote.notebook.new_nodeid()
-
-        # if no path, use title to set path
-        if _path is None:
-            title = attr.get("title", _("New Page"))
-            parent_path = self._get_node_path(parentid)
-            path = keepnote.notebook.get_valid_unique_filename(
-                parent_path, title)
-        else:
-            path = _path
-        if parentid is not None:
-            basename = os.path.basename(path)
-        else:
-            basename = path
-
-        try:
-            os.mkdir(path)
-            self._write_attr(self._get_node_attr_file(nodeid, path), 
-                             attr, self._notebook.attr_defs)
-            self._path_cache.add(nodeid, basename, parentid)
-        except OSError, e:
-            raise keepnote.notebook.NoteBookError(_("Cannot create node"), e)
-
-        return nodeid
-
-
-    def create_root(self, filename, nodeid, attr):
-        self.create_node(nodeid, None, attr, filename)
-        
-    
-    def delete_node(self, nodeid):
-        try:
-            shutil.rmtree(self._get_node_path(nodeid))
-        except OSError, e:
-            raise keepnote.notebook.NoteBookError(
-                _("Do not have permission to delete"), e)
-
-        self._path_cache.remove(nodeid)
-        self._index.remove_nodeid(nodeid)
-        
-
-    def move_node(self, nodeid, new_parentid, attr):
-        
-        old_path = self._get_node_path(nodeid)
-        new_parent_path = self._get_node_path(new_parentid)
-        new_path = keepnote.notebook.get_valid_unique_filename(
-            new_parent_path, attr.get("title", _("New Page")))
-
-        try:
-            os.rename(old_path, new_path)
-        except OSError, e:
-            raise keepnote.notebook.NoteBookError(_("Do not have permission for move"), e)
-
-        # update index
-        basename = os.path.basename(new_path)
-        self._path_cache.move(nodeid, basename, new_parentid)
-        self._index.add_nodeid(nodeid, new_parentid, basename, attr, 
-                               mtime=get_path_mtime(new_path))
-
-
-    def rename_node(self, nodeid, attr, title):
-        
-        # try to pick a path that closely resembles the title
-        path = self._get_node_path(nodeid)
-        parent_path = os.path.dirname(path)
-        path2 = keepnote.notebook.get_valid_unique_filename(parent_path, title)
-
-        try:
-            os.rename(path, path2)
-        except OSError, e:
-            raise keepnote.notebook.NoteBookError(_("Cannot rename '%s' to '%s'" % (path, path2)), e)
-
-        # update index
-        basename = os.path.basename(path2)
-        parentid = self._path_cache.get_parentid(nodeid)
-        self._path_cache.move(nodeid, basename, parentid)
-        self.update_index_node(nodeid, attr)
-        
-        return path2
-
-
-    def node_list_children(self, nodeid, _path=None):
-        
-        path = self._path_cache.get_path(nodeid) if _path is None else _path
-        assert path is not None
-
-        try:
-            files = os.listdir(path)
-        except OSError, e:
-            raise keepnote.notebook.NoteBookError(
-                _("Do not have permission to read folder contents: %s") 
-                % path, e)
-        
-        for filename in files:
-            path2 = os.path.join(path, filename)
-            if os.path.exists(get_node_meta_file(path2)):
-                try:
-                    yield self._read_node(nodeid, path2)
-                except keepnote.notebook.NoteBookError, e:
-                    print >>sys.stderr, "error reading", path2
-                    traceback.print_exception(*sys.exc_info())
-                    continue
-                    # TODO: raise warning, not all children read
 
 
 
