@@ -289,10 +289,16 @@ class PathCache (object):
 
 class NoteBookConnection (object):
     def __init__(self, notebook, node_factory):
+        self._filename = None
         self._notebook = notebook
         self._node_factory = node_factory
         self._index = None
         self._path_cache = PathCache()
+        self._rootid = None
+
+        # NOTES:
+        # - I only use the notebook object for assesing attrdefs and
+        # for setuping up the index.
     
 
     #================================
@@ -342,18 +348,38 @@ class NoteBookConnection (object):
     #======================
     # Node I/O API
 
-    def read_root_attr(self, filename):
-        """Read root meta data"""
+    def connect(self, filename):
+        """Make a new connection"""
+        self._filename = filename
 
-        meta_file = os.path.join(filename, keepnote.notebook.NODE_META_FILE)
+        
+    def close(self):
+        """Close connection"""
+        self._filename = None
+        self._index.close()
+        
+
+    def save(self):
+        """Save any unsynced state"""
+        self._index.save()
+
+        
+    def read_root_attr(self):
+        """Read root node attr"""
+        assert self._filename is not None
+
+        meta_file = os.path.join(self._filename, 
+                                 keepnote.notebook.NODE_META_FILE)
         attr = self._read_attr(meta_file, self._notebook.attr_defs)
 
         nodeid = attr.get("nodeid", None)
         if nodeid is None:
             nodeid = keepnote.notebook.new_nodeid()
-        self._path_cache.add(nodeid, filename, None)
-            
+        self._path_cache.add(nodeid, self._filename, None)
+        self._rootid = nodeid
+        
         return attr
+
 
     def get_parentid(self, nodeid):
         
@@ -384,12 +410,19 @@ class NoteBookConnection (object):
                     continue
                     # TODO: raise warning, not all children read
 
-
-    def write_node_attr(self, nodeid, attr):
-        """Write a node meta data file"""
+    
+    def read_node_attr(self, nodeid):
+        """Read a node attr"""
 
         path = self._path_cache.get_path(nodeid)
+        parentid = self._path_cache.get_parentid()
+        return self._read_node(self, parentid, path)
 
+
+    def write_node_attr(self, nodeid, attr):
+        """Write node attr"""
+
+        path = self._path_cache.get_path(nodeid)
         self._write_attr(self._get_node_attr_file(nodeid, path), 
                          attr, self._notebook.attr_defs)
 
@@ -732,7 +765,7 @@ class NoteBookConnection (object):
 
 
     #---------------------------------
-    # indexing/querying
+    # index management
     # NOTE: many of these functions are temparary until index is fully
     # transparent
     #
@@ -740,13 +773,6 @@ class NoteBookConnection (object):
     def init_index(self):
         """Initialize the index"""
         self._index = notebook_index.NoteBookIndex(self._notebook)
-
-    def save_index(self):
-        self._index.save()
-
-    def close_index(self):
-        self._index.close()
-
     
     def index_needed(self):
         return self._index.index_needed()
@@ -758,6 +784,9 @@ class NoteBookConnection (object):
         for node in self._index.index_all():
             yield node
 
+
+    #---------------------------------
+    # indexing/querying
 
     def index_attr(self, key, index_value=False):
         

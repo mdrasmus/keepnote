@@ -179,21 +179,26 @@ class NoteBookIndex (object):
 
     def __init__(self, notebook):
         self._notebook = notebook
+        self._nconn = notebook.get_connection()
         self._uniroot = notebook.get_universal_root_id()
         self._attrs = {}
+
+        # index state/capabilities
         self._need_index = False
         self._corrupt = False
         self._has_fulltext = False
         
-        self.con = None
-        self.cur = None        
+        self.con = None # sqlite connection
+        self.cur = None # sqlite cursor
 
+        # start index
         self.open()
 
+        # initialize with root node
         self.add_node(
             notebook._attr["nodeid"], None, "", 
             notebook._attr, 
-            self._notebook._conn._get_node_mtime(
+            self._nconn._get_node_mtime(
                 notebook._attr["nodeid"]))
 
     #-----------------------------------------
@@ -405,7 +410,7 @@ class NoteBookIndex (object):
                     queue.append(node)
         self._notebook.node_changed.add(changed_callback)
 
-        conn = self._notebook._conn
+        conn = self._nconn
         
         # perform indexing
         for node in preorder(root):
@@ -475,7 +480,7 @@ class NoteBookIndex (object):
                 attrindex.add_node(self.cur, nodeid, attr)
 
             # update fulltext
-            infile = self._notebook._conn.read_data_as_plain_text(nodeid)
+            infile = self._nconn.read_data_as_plain_text(nodeid)
             self.index_node_text(nodeid, attr, infile)
 
 

@@ -1301,7 +1301,8 @@ class NoteBook (NoteBookDir):
             self._basename = filename
         
         # read basic info
-        attr = self._conn.read_root_attr(filename)
+        self._conn.connect(filename)
+        attr = self._conn.read_root_attr()
         self.set_meta_data(attr)
         self.read_preferences()
         self._init_index()
@@ -1323,7 +1324,7 @@ class NoteBook (NoteBookDir):
         else:
             for node in list(self._dirty):
                 node.save()
-        self._conn.save_index()
+        self._conn.save()
         
         self._dirty.clear()
 
@@ -1334,8 +1335,13 @@ class NoteBook (NoteBookDir):
         self.closing_event.notify(self, save)
         if save:
             self.save()
-        self._conn.close_index()
+        self._conn.close()
         self.close_event.notify(self)
+
+
+    def get_connection(self):
+        """Returns the notebook connection"""
+        return self._conn
 
 
     def _init_index(self):
