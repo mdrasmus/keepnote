@@ -282,8 +282,7 @@ class NoteBookIndex (object):
     def init_index(self):
         """Initialize the tables in the index if they do not exist"""
 
-        self._need_index = False
-
+        self._need_index = True #False
         con = self.con
 
         try:
@@ -410,11 +409,14 @@ class NoteBookIndex (object):
         # perform indexing
         for nodeid, attr in preorder(conn, rootid):
             if nodeid not in visit:
-                self.add_node(nodeid, 
-                              conn.get_parentid(nodeid), 
-                              conn.get_node_basename(nodeid), 
-                              attr,
-                              conn._get_node_mtime(nodeid))
+                mtime = conn._get_node_mtime(nodeid)
+                mtime_index = self.get_node_mtime(nodeid)
+                if mtime > mtime_index:
+                    self.add_node(nodeid, 
+                                  conn.get_parentid(nodeid), 
+                                  conn.get_node_basename(nodeid), 
+                                  attr,
+                                  mtime)
             visit.add(nodeid)
             yield nodeid
 
@@ -437,7 +439,7 @@ class NoteBookIndex (object):
         """Add a node to the index"""               
 
         # TODO: remove single parent assumption        
-
+        
         if self.con is None:
             return
 

@@ -583,6 +583,13 @@ class NoteBookNode (object):
         return self._attr.iteritems()
     
 
+    def _init_attr(self, attr):
+        self._version = attr.get("version", NOTEBOOK_FORMAT_VERSION)
+        if self._notebook.set_attr_defaults(attr):
+            self._set_dirty(True)
+        self._attr.update(attr)
+
+
     def set_attr_timestamp(self, name, timestamp=None):
         """Set a timestamp attribute"""
         if timestamp is None:
@@ -827,7 +834,7 @@ class NoteBookNode (object):
         if self._children is None:
             if self._has_children is None:
                 try:
-                    self.iter_temp_children().next()
+                    self._conn.list_children_attr(self._attr["nodeid"]).next()
                     self._has_children = True
                 except StopIteration:
                     self._has_children = False
@@ -863,7 +870,6 @@ class NoteBookNode (object):
                 attr.get("content_type", default_content_type),
                 self, self._notebook, attr)
             yield node
-
     
     
     def _set_child_order(self):
@@ -882,9 +888,6 @@ class NoteBookNode (object):
 
     def _add_child(self, child, index=None):
         """Add a node as a child"""
-
-        # TODO: it is strange that parent is not set here.  perhaps I should
-        # do that here
         
         # propogate notebook
         child._notebook = self._notebook
@@ -949,14 +952,7 @@ class NoteBookNode (object):
             self._attr["nodeid"], new_filename, ext, sep, number, 
             return_number=return_number, use_number=use_number, 
             ensure_valid=ensure_valid)
-        
-
-    def set_meta_data(self, attr):
-        self._version = attr.get("version", NOTEBOOK_FORMAT_VERSION)
-        if self._notebook.set_attr_defaults(attr):
-            self._set_dirty(True)
-        self._attr.update(attr)
-
+    
 
     #=============================================
     # marking for save needed
@@ -1300,7 +1296,7 @@ class NoteBook (NoteBookDir):
         # read basic info
         self._conn.connect(filename)
         attr = self._conn.read_root()
-        self.set_meta_data(attr)
+        self._init_attr(attr)
         self.read_preferences()
 
         # init needs to happen after preferences
@@ -1345,6 +1341,11 @@ class NoteBook (NoteBookDir):
 
     def _init_index(self):
         """Initialize the index"""
+
+        # TODO: ideally I would like to do index_attr()'s before 
+        # conn.init_index(), so that the initial indexing properly 
+        # catches all the desired attr's
+
         self._conn.init_index()
         self._conn.index_attr("icon")
         self._conn.index_attr("title", index_value=True)
@@ -1729,7 +1730,7 @@ class NoteBookNodeFactory (object):
         maker = self._makers.get(content_type, None)
         if maker:
             node = maker(parent, notebook, attr)
-            node.set_meta_data(attr)
+            node._init_attr(attr)
             return node
         
         elif "payload_filename" in attr:
@@ -1738,7 +1739,7 @@ class NoteBookNodeFactory (object):
                                        title=attr.get("title", _("New File")),
                                        content_type=content_type,
                                        parent=parent, notebook=notebook)
-            node.set_meta_data(attr)
+            node._init_attr(attr)
             return node
         
         else:
@@ -1746,7 +1747,7 @@ class NoteBookNodeFactory (object):
             node = NoteBookGenericFile(title=attr.get("title", _("New File")),
                                        content_type=content_type,
                                        parent=parent, notebook=notebook)
-            node.set_meta_data(attr)
+            node._init_attr(attr)
             return node
 
    

@@ -1,7 +1,8 @@
 """
 
     KeepNote    
-    Notebook data structure
+    
+    Low-level Create-Read-Update-Delete (CRUD) interface for notebooks.
 
 """
 
@@ -172,6 +173,10 @@ class PathCacheNode (object):
 
 
 class PathCache (object):
+    """
+    An in-memory cache of filesystem paths for nodeids
+    """
+
     def __init__(self, rootid=None, rootpath=""):
         self._nodes = {None: None}
         
@@ -378,7 +383,7 @@ class NoteBookConnection (object):
         nodeid = attr["nodeid"]
         self._path_cache.add(nodeid, self._filename, None)
         
-        # NOTE: do not index yet.  It might not be setup yet
+        # NOTE: do not index yet.  The index might not be setup yet
 
         return attr
     
