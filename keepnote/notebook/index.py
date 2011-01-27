@@ -619,14 +619,37 @@ class NoteBookIndex (object):
         # fallback if fts3 is not available
         if not self._has_fulltext:
             words = [x.lower() for x in text.strip().split()]
-            return (node.get_attr("nodeid") for node in 
-                    search_manual(self._notebook, words)
-                    if node is not None)
+            return self._search_manual(words)
+                    
 
         # search db with fts3
         res = self.cur.execute("""SELECT nodeid FROM fulltext 
                   WHERE content MATCH ?;""", (text,))
         return (row[0] for row in res)
+
+
+    def _search_manual(self, words):
+        """Recursively search nodes under node for occurrence of words"""
+
+        nodeid = self._nconn.get_rootid()
+        
+        stack = [nodeid]
+        while len(stack) > 0:
+            nodeid = stack.pop()
+            
+            title = self._nconn.read_node(nodeid).get("title", "").lower()
+            infile = chain([title], 
+                           self._nconn.read_data_as_plain_text(nodeid))
+
+            if match_words(infile, words):
+                yield nodeid
+            else:
+                # return frequently so that search does not block long
+                yield None
+
+            children = self._nconn.list_children_nodeids(nodeid)
+            stack.extend(children)
+
 
 
 
@@ -650,33 +673,4 @@ def match_words(infile, words):
     return True
 
 
-def search_manual(node, words):
-    """Recursively search nodes under node for occurrence of words"""
-    
-    nodes = []
-    words = [x.lower() for x in words]
 
-    stack = [[node, 0]]
-    while len(stack) > 0:
-        node2, i = stack[-1]
-        
-        # check title
-        title = node2.get_title().lower()
-        if node.get_attr("content_type") == keepnote.notebook.CONTENT_TYPE_PAGE:
-            infile = chain([title], node2.read_data_as_plain_text())
-        else:
-            infile = [title]
-
-        if i == 0 and match_words(infile, words):
-            yield node2
-        else:
-            # return frequently so that search does not block long
-            yield None
-
-        if i >= len(node2.get_children()):
-            stack.pop()
-        else:
-            stack[-1][1] += 1
-            stack.append([node2.get_children()[i], 0])
-
-    

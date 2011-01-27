@@ -161,30 +161,14 @@ def get_path_mtime(path):
 
 # TODO: make base class for connection
 
-# TODO: make connection work only with nodeid's.  Try to separate out the
-# node objects.
-# Let the notebook and node objects abstract on top of a simpler low-level
-# connection interface.
 
-# TODO: the main issue will be to cache nodeid's to paths
-# is the index.get_node_path fast enough?
-
-'''
-I should factor out the basename mechanism in node to a separate object
-maintained by the connection.  This will act as an in memory cache of
-nodeid's to filesystem node_paths.  Because of the tree structure,
-it also allow cheap moves of entire trees.
-
-By moving basename out of node, it will stop me from cheating, i.e. letting
-the connection to look inside the node object.
-
-'''
 
 class PathCacheNode (object):
     def __init__(self, nodeid, basename, parent):
         self.nodeid = nodeid
         self.basename = basename
         self.parent = parent
+        self.children = set()
 
 
 class PathCache (object):
@@ -238,8 +222,8 @@ class PathCache (object):
     
     def get_basename(self, nodeid):
         return self._nodes[nodeid].basename
-
-
+    
+    
     def get_parentid(self, nodeid):
         
         node = self._nodes.get(nodeid, None)
@@ -248,6 +232,15 @@ class PathCache (object):
         else:
             return None
 
+
+    def get_children(self, nodeid):
+        node = self._nodes.get(nodeid, None)
+        if node:
+            return (child.nodeid for child in node.children)
+        else:
+            return None
+
+    
 
     def add(self, nodeid, basename, parentid):
         
@@ -260,11 +253,15 @@ class PathCache (object):
             node.parent = parent
             node.basename = basename
         else:
-            self._nodes[nodeid] = PathCacheNode(nodeid, basename, parent)
+            node = self._nodes[nodeid] = PathCacheNode(nodeid, basename, parent)
+        if parent:
+            parent.children.add(node)
 
         
     def remove(self, nodeid):
         if nodeid in self._nodes:
+            node = self._nodes.get(nodeid)
+            node.parent.children.remove(node)
             del self._nodes[nodeid]
 
 
@@ -276,13 +273,15 @@ class PathCache (object):
         if node is not None:
             if parent is not 0:
                 # update cache
+                node.parent.children.remove(node)
                 node.parent = parent
                 node.basename = new_basename
+                parent.children.add(node)
             else:
                 # since new parent is not cached,
                 # remove node from cache
-                del self._nodes[nodeid]
-            
+                self.remove(nodeid)
+
                 
 
 
@@ -387,10 +386,23 @@ class NoteBookConnection (object):
     def read_node(self, nodeid):
         """Read a node attr"""
 
-        path = self._path_cache.get_path(nodeid)
-        parentid = self._path_cache.get_parentid()
-        return self._read_node(self, parentid, path)
-
+        path = self._get_node_path(nodeid)
+        metafile = get_node_meta_file(path)
+        attr = self._read_attr(metafile, self._notebook.attr_defs)
+        if not self._validate_attr(attr):
+            self._write_attr(metafile, attr, self._notebook.attr_defs)
+            print attr
+        
+        # if node has changed on disk (newer mtime), then re-index it
+        mtime = get_path_mtime(path)
+        index_mtime = self._index.get_node_mtime(nodeid)
+        if mtime > index_mtime:
+            parentid = self.get_parent_id(nodeid)
+            basename = os.path.basename(path)
+            self._index.add_node(nodeid, parentid, basename, attr, mtime)
+            
+        return attr
+    
 
     def update_node(self, nodeid, attr):
         """Write node attr"""
@@ -502,6 +514,13 @@ class NoteBookConnection (object):
             pass
 
 
+    def get_rootid(self):
+        if self._rootid:
+            return self._rootid
+        else:
+            return self._read_root()["nodeid"]
+        
+
     def get_parentid(self, nodeid):
         
         # TODO: I could fallback to index for this too
@@ -533,9 +552,14 @@ class NoteBookConnection (object):
 
 
     def list_children_nodeids(self, nodeid, _path=None):
-        
-        return (attr["nodeid"]
-                for attr in self.list_children_attr(nodeid, _path))
+
+        # try to use cache first
+        children = self._path_cache.get_children(nodeid)
+        if children is not None:
+            return children
+        else:
+            return (attr["nodeid"]
+                    for attr in self.list_children_attr(nodeid, _path))
 
 
 

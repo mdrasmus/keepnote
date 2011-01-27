@@ -436,7 +436,7 @@ def log_error(error=None, tracebk=None, out=None):
         out = sys.stderr
 
     if error is None:
-        error, ty, tracebk = sys.exc_info()
+        ty, error, tracebk = sys.exc_info()
 
     out.write("\n")
     traceback.print_exception(type(error), error, tracebk, file=out)

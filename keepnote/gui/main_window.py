@@ -1605,9 +1605,12 @@ class SearchBox (gtk.Entry):
             # interupts the previous text query
             # maybe I need multiple cursors?
             notebook = self._window.get_notebook()
-            nodes = (notebook.get_node_by_id(nodeid)
-                     for nodeid in 
-                     list(notebook.search_node_contents(" ".join(words))))
+            try:
+                nodes = (notebook.get_node_by_id(nodeid)
+                         for nodeid in 
+                         list(notebook.search_node_contents(" ".join(words))))
+            except:
+                keepnote.log_error()
 
             
             # do search in thread
