@@ -364,54 +364,27 @@ class NoteBookConnection (object):
         self._index.save()
 
         
-    def read_root_attr(self):
+    def read_root(self):
         """Read root node attr"""
         assert self._filename is not None
+        
+        metafile = get_node_meta_file(self._filename)
+        attr = self._read_attr(metafile, self._notebook.attr_defs)
+        if not self._validate_attr(attr):
+            self._write_attr(metafile, attr, self._notebook.attr_defs)
+            print attr
+        self._rootid = attr["nodeid"]
 
-        meta_file = os.path.join(self._filename, 
-                                 keepnote.notebook.NODE_META_FILE)
-        attr = self._read_attr(meta_file, self._notebook.attr_defs)
-
-        nodeid = attr.get("nodeid", None)
-        if nodeid is None:
-            nodeid = keepnote.notebook.new_nodeid()
+        # update path cache
+        nodeid = attr["nodeid"]
         self._path_cache.add(nodeid, self._filename, None)
-        self._rootid = nodeid
         
+        # NOTE: do not index yet.  It might not be setup yet
+
         return attr
-
-
-    def get_parentid(self, nodeid):
-        
-        # TODO: I could fallback to index for this too
-        return self._path_cache.get_parentid(nodeid)
-
     
-    def list_node_children(self, nodeid, _path=None):
-        
-        path = self._path_cache.get_path(nodeid) if _path is None else _path
-        assert path is not None
-
-        try:
-            files = os.listdir(path)
-        except OSError, e:
-            raise keepnote.notebook.NoteBookError(
-                _("Do not have permission to read folder contents: %s") 
-                % path, e)
-        
-        for filename in files:
-            path2 = os.path.join(path, filename)
-            if os.path.exists(get_node_meta_file(path2)):
-                try:
-                    yield self._read_node(nodeid, path2)
-                except keepnote.notebook.NoteBookError, e:
-                    print >>sys.stderr, "error reading", path2
-                    traceback.print_exception(*sys.exc_info())
-                    continue
-                    # TODO: raise warning, not all children read
-
     
-    def read_node_attr(self, nodeid):
+    def read_node(self, nodeid):
         """Read a node attr"""
 
         path = self._path_cache.get_path(nodeid)
@@ -419,7 +392,7 @@ class NoteBookConnection (object):
         return self._read_node(self, parentid, path)
 
 
-    def write_node_attr(self, nodeid, attr):
+    def update_node(self, nodeid, attr):
         """Write node attr"""
 
         path = self._path_cache.get_path(nodeid)
@@ -529,11 +502,53 @@ class NoteBookConnection (object):
             pass
 
 
+    def get_parentid(self, nodeid):
+        
+        # TODO: I could fallback to index for this too
+        return self._path_cache.get_parentid(nodeid)
+
+    
+    def list_children_attr(self, nodeid, _path=None):
+        
+        path = self._path_cache.get_path(nodeid) if _path is None else _path
+        assert path is not None
+
+        try:
+            files = os.listdir(path)
+        except OSError, e:
+            raise keepnote.notebook.NoteBookError(
+                _("Do not have permission to read folder contents: %s") 
+                % path, e)
+        
+        for filename in files:
+            path2 = os.path.join(path, filename)
+            if os.path.exists(get_node_meta_file(path2)):
+                try:
+                    yield self._read_node(nodeid, path2)
+                except keepnote.notebook.NoteBookError, e:
+                    print >>sys.stderr, "error reading", path2
+                    traceback.print_exception(*sys.exc_info())
+                    continue
+                    # TODO: raise warning, not all children read
+
+
+    def list_children_nodeids(self, nodeid, _path=None):
+        
+        return (attr["nodeid"]
+                for attr in self.list_children_attr(nodeid, _path))
+
+
+
     def _read_node(self, parentid, path):
         """Reads a node from disk"""
-        
+
         metafile = get_node_meta_file(path)
         attr = self._read_attr(metafile, self._notebook.attr_defs)
+        if not self._validate_attr(attr):
+            self._write_attr(metafile, attr, self._notebook.attr_defs)
+            print attr
+
+        # update path cache
         nodeid = attr["nodeid"]
         basename = os.path.basename(path)
         self._path_cache.add(nodeid, basename, parentid)
@@ -619,6 +634,18 @@ class NoteBookConnection (object):
         return attr
 
 
+    def _validate_attr(self, attr):
+        
+        nodeid = attr.get("nodeid", None)
+        if nodeid is None:
+            nodeid = attr["nodeid"] = keepnote.notebook.new_nodeid()
+            return False
+
+        # TODO: ensure no duplicated nodeid's
+
+        return True
+
+
 
     #===============
     # file API
@@ -643,7 +670,7 @@ class NoteBookConnection (object):
         return safefile.open(
             os.path.join(path, filename), mode, codec=codec)
 
-    def remove_node_file(self, nodeid, filename, _path=None):
+    def delete_node_file(self, nodeid, filename, _path=None):
         """Open a file contained within a node"""
         path = self._get_node_path(nodeid) if _path is None else _path
         os.remove(os.path.join(path, filename))
@@ -700,7 +727,7 @@ class NoteBookConnection (object):
         return os.path.basename(filename)
 
         
-    def node_listdir(self, nodeid, filename=None, _path=None):
+    def listdir(self, nodeid, filename=None, _path=None):
         """
         List data files in node
         """
@@ -766,9 +793,6 @@ class NoteBookConnection (object):
 
     #---------------------------------
     # index management
-    # NOTE: many of these functions are temparary until index is fully
-    # transparent
-    #
 
     def init_index(self):
         """Initialize the index"""

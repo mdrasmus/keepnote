@@ -429,11 +429,14 @@ def init_error_log(pref_dir=None, home=None):
         open(error_log, "a").close()
 
 
-def log_error(error, tracebk=None, out=None):
+def log_error(error=None, tracebk=None, out=None):
     """Write an exception error to the error log"""
     
     if out is None:
         out = sys.stderr
+
+    if error is None:
+        error, ty, tracebk = sys.exc_info()
 
     out.write("\n")
     traceback.print_exception(type(error), error, tracebk, file=out)

@@ -787,7 +787,7 @@ class NoteBookNode (object):
         # record the nodeid of the original node
         node._attr["duplicate_of"] = self.get_attr("nodeid")
         
-        self._conn.write_node_attr(node._attr["nodeid"], node._attr)
+        self._conn.update_node(node._attr["nodeid"], node._attr)
         
         # copy files
         try:
@@ -858,7 +858,7 @@ class NoteBookNode (object):
         
         default_content_type = keepnote.notebook.CONTENT_TYPE_DIR
 
-        for attr in self._conn.list_node_children(self._attr["nodeid"]):
+        for attr in self._conn.list_children_attr(self._attr["nodeid"]):
             node = self._notebook._node_factory.new_node(
                 attr.get("content_type", default_content_type),
                 self, self._notebook, attr)
@@ -931,7 +931,7 @@ class NoteBookNode (object):
     def save(self, force=False):
         """Save node if modified (dirty)"""
         if (force or self._is_dirty()) and self._valid:
-            self._conn.write_node_attr(self._attr["nodeid"], self._attr)
+            self._conn.update_node(self._attr["nodeid"], self._attr)
             self._set_dirty(False)
             
 
@@ -1302,9 +1302,11 @@ class NoteBook (NoteBookDir):
         
         # read basic info
         self._conn.connect(filename)
-        attr = self._conn.read_root_attr()
+        attr = self._conn.read_root()
         self.set_meta_data(attr)
         self.read_preferences()
+
+        # init needs to happen after preferences
         self._init_index()
 
         self.notify_change(True)
@@ -1314,7 +1316,7 @@ class NoteBook (NoteBookDir):
         """Recursively save any loaded nodes"""
 
         if force or self in self._dirty:
-            self._conn.write_node_attr(self._attr["nodeid"], self._attr)
+            self._conn.update_node(self._attr["nodeid"], self._attr)
             self.write_preferences()
         self._set_dirty(False)
 
@@ -1459,8 +1461,7 @@ class NoteBook (NoteBookDir):
         """Returns list of icons in notebook icon store"""
         filename = self._conn.path_join(
             NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR)
-        filenames = list(self._conn.node_listdir(self._attr["nodeid"], 
-                                                 filename))
+        filenames = list(self._conn.listdir(self._attr["nodeid"], filename))
         filenames.sort()
         return filenames
 
@@ -1537,7 +1538,7 @@ class NoteBook (NoteBookDir):
             return
         filename = self._conn.path_join(
             NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR, basename)
-        self._conn.remove_node_file(self._attr["nodeid"], filename)
+        self._conn.delete_node_file(self._attr["nodeid"], filename)
     
     
     def get_universal_root_id(self):
@@ -1665,7 +1666,8 @@ class NoteBook (NoteBookDir):
             root = ET.fromstring(infile.read())
             tree = ET.ElementTree(root)
         except IOError, e:
-            raise NoteBookError(_("Cannot read notebook preferences"), e)
+            raise NoteBookError(_("Cannot read notebook preferences %s")
+                                % self.get_file(PREF_FILE) , e)
         except Exception, e:
             raise NoteBookError(_("Notebook preference data is corrupt"), e)
         finally:

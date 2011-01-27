@@ -29,6 +29,7 @@
 import os
 import sys
 import traceback
+from itertools import chain
 
 # import sqlite
 try:
@@ -47,7 +48,7 @@ sqlite.enable_shared_cache(True)
 
 # keepnote imports
 import keepnote
-#import keepnote.search
+
 
 
 # index filename
@@ -56,17 +57,6 @@ INDEX_VERSION = 3
 
 
 NULL = object()
-
-
-def get_index_file(notebook):
-    """Get the index filename for a notebook"""
-
-    index_dir = notebook.pref.get("index_dir", default=u"")
-
-    if not index_dir or not os.path.exists(index_dir):
-        index_dir = notebook.get_pref_dir()
-
-    return os.path.join(index_dir, INDEX_FILE)
 
 
 def preorder2(conn, nodeid):
@@ -208,7 +198,7 @@ class NoteBookIndex (object):
         """Open connection to index"""
 
         try:
-            index_file = get_index_file(self._notebook)
+            index_file = self._get_index_file()
             self._corrupt = False
             self.con = sqlite.connect(index_file, isolation_level="DEFERRED",
                                       check_same_thread=False)
@@ -249,10 +239,20 @@ class NoteBookIndex (object):
         """Erases database file and reinitializes"""
 
         self.close()
-        index_file = get_index_file(self._notebook)
+        index_file = self._get_index_file()
         if os.path.exists(index_file):
             os.remove(index_file)
         self.open()
+
+
+    def _get_index_file(self):
+        """Get the index filename for a notebook"""
+
+        index_dir = self._notebook.pref.get("index_dir", default=u"")
+        if not index_dir or not os.path.exists(index_dir):
+            index_dir = self._notebook.get_pref_dir()
+        
+        return os.path.join(index_dir, INDEX_FILE)
 
 
     #-----------------------------------------
@@ -311,6 +311,8 @@ class NoteBookIndex (object):
 
             # full text table
             try:
+                #raise Exception()
+
                 # test for fts3 availability
                 con.execute("CREATE VIRTUAL TABLE fts3test USING fts3(col TEXT);")
                 con.execute("DROP TABLE fts3test;")
@@ -404,7 +406,7 @@ class NoteBookIndex (object):
         queue = []
 
         # record nodes that change while indexing
-        def changed_callback(nodes, recurse):
+        def changed_callback(nodes):
             for node in nodes:
                 if node not in visit:
                     queue.append(node)
@@ -486,7 +488,7 @@ class NoteBookIndex (object):
 
         except Exception, e:
             keepnote.log_error("error index node %s '%s'" % 
-                               nodeid, attr.get("title", ""))
+                               (nodeid, attr.get("title", "")))
             self._on_corrupt(e, sys.exc_info()[2])
 
 
@@ -618,10 +620,63 @@ class NoteBookIndex (object):
         if not self._has_fulltext:
             words = [x.lower() for x in text.strip().split()]
             return (node.get_attr("nodeid") for node in 
-                    keepnote.search.search_manual(self._notebook, words)
+                    search_manual(self._notebook, words)
                     if node is not None)
 
         # search db with fts3
         res = self.cur.execute("""SELECT nodeid FROM fulltext 
                   WHERE content MATCH ?;""", (text,))
         return (row[0] for row in res)
+
+
+
+def match_words(infile, words):
+    """Returns True if all of the words in list 'words' appears in the
+       node title or data file"""
+
+    matches = dict.fromkeys(words, False)
+
+    for line in infile:
+        line = line.lower()
+        for word in words:
+            if word in line:
+                matches[word] = True
+
+    # return True if all words are found (AND)
+    for val in matches.itervalues():
+        if not val:
+            return False
+    
+    return True
+
+
+def search_manual(node, words):
+    """Recursively search nodes under node for occurrence of words"""
+    
+    nodes = []
+    words = [x.lower() for x in words]
+
+    stack = [[node, 0]]
+    while len(stack) > 0:
+        node2, i = stack[-1]
+        
+        # check title
+        title = node2.get_title().lower()
+        if node.get_attr("content_type") == keepnote.notebook.CONTENT_TYPE_PAGE:
+            infile = chain([title], node2.read_data_as_plain_text())
+        else:
+            infile = [title]
+
+        if i == 0 and match_words(infile, words):
+            yield node2
+        else:
+            # return frequently so that search does not block long
+            yield None
+
+        if i >= len(node2.get_children()):
+            stack.pop()
+        else:
+            stack[-1][1] += 1
+            stack.append([node2.get_children()[i], 0])
+
+    

@@ -71,7 +71,6 @@ from keepnote.gui import \
 
 from keepnote.gui.icons import \
      lookup_icon_filename
-import keepnote.search
 from keepnote.gui import richtext
 from keepnote.gui import \
     dialog_image_new, \
@@ -832,7 +831,6 @@ class KeepNoteWindow (gtk.Window):
 
         # setup notebook
         self._restore_windows(notebook)
-        #self.set_notebook(notebook)
 
         if not new:
             self.set_status(_("Loaded '%s'") % notebook.get_title())
@@ -871,7 +869,7 @@ class KeepNoteWindow (gtk.Window):
         self.viewer.set_notebook(notebook)
 
 
-    def update_index(self, notebook=None):
+    def update_index(self, notebook=None, clear=False):
         """Update notebook index"""
 
         if notebook is None:
@@ -884,7 +882,8 @@ class KeepNoteWindow (gtk.Window):
             # erase database first
             # NOTE: I do this right now so that corrupt databases can be
             # cleared out of the way.
-            notebook.clear_index()
+            if clear:
+                notebook.clear_index()
 
             try:
                 for node in notebook.index_all():
@@ -1264,7 +1263,7 @@ class KeepNoteWindow (gtk.Window):
 
             ("Update Notebook Index", None, _("_Update Notebook Index"),
              "", None,
-             lambda w: self.update_index()),
+             lambda w: self.update_index(clear=True)),
             
             ("KeepNote Preferences", gtk.STOCK_PREFERENCES, _("_Preferences"),
              "", None,
@@ -1601,18 +1600,16 @@ class SearchBox (gtk.Entry):
             
             gobject.idle_add(gui_update)
 
-            # prepare search iterator
-            notebook = self._window.get_notebook()
-
-
             # TODO: make fully streamed
             # this main issue is that the get_node_by_id query 
             # interupts the previous text query
             # maybe I need multiple cursors?
+            notebook = self._window.get_notebook()
             nodes = (notebook.get_node_by_id(nodeid)
                      for nodeid in 
                      list(notebook.search_node_contents(" ".join(words))))
 
+            
             # do search in thread
             try:
                 lock.acquire()
