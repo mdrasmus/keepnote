@@ -59,30 +59,17 @@ INDEX_VERSION = 3
 NULL = object()
 
 
-def preorder2(conn, nodeid):
+def preorder(conn, nodeid):
     """Iterate through nodes in pre-order traversal"""
 
-    #queue = [nodeid, self._conn.]
+    queue = [(nodeid, conn.read_node(nodeid))]
 
     while len(queue) > 0:
         nodeid, attr = queue.pop()
         yield nodeid, attr
+        queue.extend((attr2["nodeid"], attr2) 
+                     for attr2 in conn.list_children_attr(nodeid))
 
-        for childid in node.iter_temp_children():
-            queue.append(childid)
-
-
-def preorder(node):
-    """Iterate through nodes in pre-order traversal"""
-
-    queue = [node]
-
-    while len(queue) > 0:
-        node = queue.pop()
-        yield node
-
-        for child in node.iter_temp_children():
-            queue.append(child)
 
 
 class AttrIndex (object):
@@ -167,9 +154,9 @@ class AttrIndex (object):
 class NoteBookIndex (object):
     """Index for a NoteBook"""
 
-    def __init__(self, notebook):
+    def __init__(self, conn, notebook):
+        self._nconn = conn
         self._notebook = notebook
-        self._nconn = notebook.get_connection()
         self._uniroot = notebook.get_universal_root_id()
         self._attrs = {}
 
@@ -247,6 +234,9 @@ class NoteBookIndex (object):
 
     def _get_index_file(self):
         """Get the index filename for a notebook"""
+
+        # TODO: figure out another way to set index file
+        # so that I can fully remove notebook concept from index
 
         index_dir = self._notebook.pref.get("index_dir", default=u"")
         if not index_dir or not os.path.exists(index_dir):
@@ -390,7 +380,7 @@ class NoteBookIndex (object):
     #-------------------------------------
     # add/remove nodes from index
 
-    def index_all(self, root=None):
+    def index_all(self, rootid=None):
         """
         Reindex all nodes under root
 
@@ -399,48 +389,22 @@ class NoteBookIndex (object):
 
         # TODO: remove node object code
         
-        if root is None:
-            root = self._notebook
+        if rootid is None:
+            rootid = self._nconn.get_rootid()
         
         visit = set()
-        queue = []
-
-        # record nodes that change while indexing
-        def changed_callback(nodes):
-            for node in nodes:
-                if node not in visit:
-                    queue.append(node)
-        self._notebook.node_changed.add(changed_callback)
-
         conn = self._nconn
         
         # perform indexing
-        for node in preorder(root):
-            nodeid = node._attr["nodeid"]
-            self.add_node(nodeid, 
-                          conn.get_parentid(nodeid), 
-                          conn.get_node_basename(nodeid), 
-                          node._attr, 
-                          conn._get_node_mtime(nodeid))
-            visit.add(node)
-            yield node
-
-        # walk through nodes missed in original pass
-        while len(queue) > 0:
-            node = queue.pop()
-            if node not in visit:
-                for node2 in preorder(node):
-                    nodeid = node2._attr["nodeid"]
-                    self.add_node(nodeid, 
-                                  conn.get_parentid(nodeid), 
-                                  conn._get_node_basename(nodeid), 
-                                  node2._attr, 
-                                  conn._get_node_mtime(nodeid))
-                    visit.add(node2)
-                    yield node2
-
-        # remove callback for notebook changes
-        self._notebook.node_changed.remove(changed_callback)
+        for nodeid, attr in preorder(conn, rootid):
+            if nodeid not in visit:
+                self.add_node(nodeid, 
+                              conn.get_parentid(nodeid), 
+                              conn.get_node_basename(nodeid), 
+                              attr,
+                              conn._get_node_mtime(nodeid))
+            visit.add(nodeid)
+            yield nodeid
 
         # record index complete
         self._need_index = False

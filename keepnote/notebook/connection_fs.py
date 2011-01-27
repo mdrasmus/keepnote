@@ -397,7 +397,7 @@ class NoteBookConnection (object):
         mtime = get_path_mtime(path)
         index_mtime = self._index.get_node_mtime(nodeid)
         if mtime > index_mtime:
-            parentid = self.get_parent_id(nodeid)
+            parentid = self.get_parentid(nodeid)
             basename = os.path.basename(path)
             self._index.add_node(nodeid, parentid, basename, attr, mtime)
             
@@ -820,7 +820,7 @@ class NoteBookConnection (object):
 
     def init_index(self):
         """Initialize the index"""
-        self._index = notebook_index.NoteBookIndex(self._notebook)
+        self._index = notebook_index.NoteBookIndex(self, self._notebook)
     
     def index_needed(self):
         return self._index.index_needed()
