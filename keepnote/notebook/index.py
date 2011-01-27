@@ -34,16 +34,11 @@ from itertools import chain
 # import sqlite
 try:
     import pysqlite2
-    #print pysqlite2
     import pysqlite2.dbapi2 as sqlite
 except Exception, e:
-    #print "fallback", e
     import sqlite3  as sqlite
 sqlite.enable_shared_cache(True)
 #sqlite.threadsafety = 0
-
-
-#print sqlite.sqlite_version
 
 
 # keepnote imports
@@ -69,6 +64,26 @@ def preorder(conn, nodeid):
         yield nodeid, attr
         queue.extend((attr2["nodeid"], attr2) 
                      for attr2 in conn.list_children_attr(nodeid))
+
+
+def match_words(infile, words):
+    """Returns True if all of the words in list 'words' appears in the
+       node title or data file"""
+
+    matches = dict.fromkeys(words, False)
+
+    for line in infile:
+        line = line.lower()
+        for word in words:
+            if word in line:
+                matches[word] = True
+
+    # return True if all words are found (AND)
+    for val in matches.itervalues():
+        if not val:
+            return False
+    
+    return True
 
 
 
@@ -387,13 +402,10 @@ class NoteBookIndex (object):
         This function returns an iterator which must be iterated to completion.
         """
 
-        # TODO: remove node object code
-        
-        if rootid is None:
-            rootid = self._nconn.get_rootid()
-        
         visit = set()
-        conn = self._nconn
+        conn = self._nconn        
+        if rootid is None:
+            rootid = conn.get_rootid()
         
         # perform indexing
         for nodeid, attr in preorder(conn, rootid):
@@ -614,27 +626,6 @@ class NoteBookIndex (object):
             children = self._nconn.list_children_nodeids(nodeid)
             stack.extend(children)
 
-
-
-
-def match_words(infile, words):
-    """Returns True if all of the words in list 'words' appears in the
-       node title or data file"""
-
-    matches = dict.fromkeys(words, False)
-
-    for line in infile:
-        line = line.lower()
-        for word in words:
-            if word in line:
-                matches[word] = True
-
-    # return True if all words are found (AND)
-    for val in matches.itervalues():
-        if not val:
-            return False
-    
-    return True
 
 
 

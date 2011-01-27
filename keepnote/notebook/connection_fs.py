@@ -447,6 +447,10 @@ class NoteBookConnection (object):
             self._path_cache.add(nodeid, basename, parentid)
         except OSError, e:
             raise keepnote.notebook.NoteBookError(_("Cannot create node"), e)
+        
+        # update index
+        self._index.add_node(nodeid, parentid, basename, attr, 
+                             mtime=get_path_mtime(path))
 
         return nodeid
         

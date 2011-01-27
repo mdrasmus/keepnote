@@ -906,10 +906,7 @@ class NoteBookNode (object):
             # append child at end of list
             child._attr["order"] = len(self._children)
             self._children.append(child)
-
-        # TODO: Ideally I would only need to notify the update of the attr
-        # notify index and mark dirty
-        self._conn.update_index_node(child._attr["nodeid"], child._attr)
+            
         child._set_dirty(True)
     
 
