@@ -163,6 +163,14 @@ def get_path_mtime(path):
 # TODO: make base class for connection
 
 
+class ConnectionError (StandardError):
+    pass
+
+class UnknownNode (ConnectionError):
+    def __init__(self, msg="unknown node"):
+        ConnectionError.__init__(self, msg)
+
+
 
 class PathCacheNode (object):
     def __init__(self, nodeid, basename, parent):
@@ -170,6 +178,8 @@ class PathCacheNode (object):
         self.basename = basename
         self.parent = parent
         self.children = set()
+
+        
 
 
 class PathCache (object):
@@ -185,12 +195,16 @@ class PathCache (object):
 
 
     def clear(self):
+        """Clears cache"""
         self._nodes.clear()
         self._nodes[None] = None
 
 
     def get_path_list(self, nodeid):
-        
+        """
+        Returns list representing a path for a nodeid
+        Returns None if nodeid is not cached
+        """
         path_list = []
         node = self._paths.get(nodeid, None)
 
@@ -208,7 +222,11 @@ class PathCache (object):
 
 
     def get_path(self, nodeid):
-        
+        """
+        Returns path for a nodeid
+        Returns None if nodeid is not cached
+        """
+
         path_list = []
         node = self._nodes.get(nodeid, None)
 
@@ -226,33 +244,48 @@ class PathCache (object):
 
     
     def get_basename(self, nodeid):
-        return self._nodes[nodeid].basename
+        """
+        Returns basename of path for a nodeid
+        Returns None if nodeid is not cached
+        """
+        node = self._nodes.get(nodeid, None)
+        if node:
+            return node.basename
+        else:
+            return None
     
     
     def get_parentid(self, nodeid):
-        
+        """
+        Returns parentid of a nodeid
+        Returns None if nodeid is not cached
+        """
         node = self._nodes.get(nodeid, None)
-        if node.parent:
+        if node and node.parent:
             return node.parent.nodeid
         else:
             return None
 
 
     def get_children(self, nodeid):
+        """
+        Returns iterator of the child ids of a nodeid
+        Returns None if nodeid is not cached
+        """
         node = self._nodes.get(nodeid, None)
         if node:
             return (child.nodeid for child in node.children)
         else:
             return None
-
     
 
     def add(self, nodeid, basename, parentid):
+        """Add a new nodeid, basename, and parentid to the cache"""
         
         parent = self._nodes.get(parentid, 0)
         if parent is 0:
             print basename, parentid, self._nodes
-            raise Exception("unknown parent")
+            raise UnknownNode("unknown parent")
         node = self._nodes.get(nodeid, None)
         if node:
             node.parent = parent
@@ -264,6 +297,7 @@ class PathCache (object):
 
         
     def remove(self, nodeid):
+        """Remove a nodeid from the cache"""
         if nodeid in self._nodes:
             node = self._nodes.get(nodeid)
             node.parent.children.remove(node)
@@ -271,7 +305,7 @@ class PathCache (object):
 
 
     def move(self, nodeid, new_basename, parentid):
-        
+        """move nodeid to a new parent"""
         node = self._nodes.get(nodeid, None)
         parent = self._nodes.get(parentid, 0)
         
@@ -308,14 +342,22 @@ class NoteBookConnection (object):
     #================================
     # Filesystem-specific API (may not be supported by some connections)
     
-    def get_node_path(self, node):
+    def get_node_path(self, nodeid):
         """Returns the path of the node"""
-        return self._get_node_path(node.get_attr("nodeid"))
+        return self._get_node_path(nodeid)
     
     
     def get_node_basename(self, nodeid):
-        return self._path_cache.get_basename(nodeid)
-    
+        """Returns the basename of the node"""
+        basename = self._path_cache.get_basename(nodeid)
+        if basename is None and self._index:
+            # fallback to index
+            node = self._index.get_node(nodeid)
+            if node:
+                basename = node["basename"]
+        if basename is None:
+            raise UnknownNode()
+        return basename
 
     #===========================
     # Private path API
@@ -328,7 +370,7 @@ class NoteBookConnection (object):
             # fallback to index
             path = os.path.join(* self._index.get_node_path(nodeid))
         if path is None:
-            raise Exception("unknown path")
+            raise UnknownNode()
         return path
 
 
@@ -340,7 +382,7 @@ class NoteBookConnection (object):
             # fallback to index
             path = self._index.get_node_path(nodeid)
         if path is None:
-            raise Exception("unknown path")
+            raise UnknownNode()
         return path
 
 
@@ -524,6 +566,7 @@ class NoteBookConnection (object):
 
 
     def get_rootid(self):
+        
         if self._rootid:
             return self._rootid
         else:

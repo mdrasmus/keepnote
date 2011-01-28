@@ -517,7 +517,7 @@ class NoteBookNode (object):
 
     def get_path(self):
         """Returns the directory path of the node"""
-        return self._conn.get_node_path(self)        
+        return self._conn.get_node_path(self._attr["nodeid"])
 
     def get_basename(self):
         """Returns the basename of the node"""

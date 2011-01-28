@@ -400,8 +400,9 @@ class NoteBookIndex (object):
 
         This function returns an iterator which must be iterated to completion.
         """
-
+        
         visit = set()
+        parents = set()
         conn = self._nconn        
         if rootid is None:
             rootid = conn.get_rootid()
@@ -411,9 +412,12 @@ class NoteBookIndex (object):
             if nodeid not in visit:
                 mtime = conn._get_node_mtime(nodeid)
                 mtime_index = self.get_node_mtime(nodeid)
-                if mtime > mtime_index:
+                parentid = conn.get_parentid(nodeid)
+                
+                if parentid in parents or mtime > mtime_index:
+                    parents.add(nodeid)
                     self.add_node(nodeid, 
-                                  conn.get_parentid(nodeid), 
+                                  parentid, 
                                   conn.get_node_basename(nodeid), 
                                   attr,
                                   mtime)
@@ -565,6 +569,34 @@ class NoteBookIndex (object):
 
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
+
+
+    def get_node(self, nodeid):
+        """Get node path for a nodeid"""
+        
+        if self.con is None:
+            return None
+
+        # TODO: handle multiple parents
+
+        try:
+            self.cur.execute(u"""SELECT nodeid, parentid, basename, mtime
+                                FROM NodeGraph
+                                WHERE nodeid=?""", (nodeid,))
+            row = self.cur.fetchone()
+
+            # nodeid is not index
+            if row is None:
+                return None
+            
+            return {"nodeid": row[0],
+                    "parentid": row[1],
+                    "basename": row[2],
+                    "mtime": row[3]}
+            
+        except sqlite.DatabaseError, e:
+            self._on_corrupt(e, sys.exc_info()[2])
+
 
 
     def search_titles(self, query):
