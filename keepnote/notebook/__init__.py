@@ -1182,7 +1182,8 @@ class NoteBook (NoteBookDir):
         NoteBookDir.__init__(self, notebook=self, init_attr=False)
         
         self._node_factory = NoteBookNodeFactory()
-        self._conn = connection_fs.NoteBookConnection(self, self._node_factory)
+        self._conn = connection_fs.NoteBookConnectionFS(
+            self, self._node_factory)
         self.pref = NoteBookPreferences()
         rootdir = keepnote.ensure_unicode(rootdir, keepnote.FS_ENCODING)
         self._basename = rootdir

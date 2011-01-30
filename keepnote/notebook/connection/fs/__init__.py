@@ -82,7 +82,8 @@ import xml.etree.cElementTree as ET
 # keepnote imports
 from keepnote import safefile
 from keepnote import trans
-from keepnote.notebook.connection.fs import index as notebook_index
+from . import index as notebook_index
+from .. import NoteBookConnection
 import keepnote
 import keepnote.notebook
 
@@ -361,8 +362,10 @@ class PathCache (object):
 
 
 
-class NoteBookConnection (object):
+class NoteBookConnectionFS (NoteBookConnection):
     def __init__(self, notebook, node_factory):
+        NoteBookConnection.__init__(self)
+        
         self._filename = None
         self._notebook = notebook
         self._node_factory = node_factory
