@@ -46,14 +46,14 @@ import xml.etree.cElementTree as ET
 from keepnote.listening import Listeners
 from keepnote.timestamp import get_timestamp
 from keepnote import trans
-from keepnote.notebook import connection_fs
+from keepnote.notebook.connection import fs as connection_fs
 from keepnote import orderdict
 from keepnote import plist
 from keepnote.pref import Pref
 import keepnote
 
 # currently imported for extensions that expect this here
-from keepnote.notebook.connection_fs import get_valid_unique_filename
+from keepnote.notebook.connection.fs import get_valid_unique_filename
 
 
 _ = trans.translate

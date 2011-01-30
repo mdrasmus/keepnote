@@ -82,7 +82,7 @@ import xml.etree.cElementTree as ET
 # keepnote imports
 from keepnote import safefile
 from keepnote import trans
-from keepnote.notebook import index as notebook_index
+from keepnote.notebook.connection.fs import index as notebook_index
 import keepnote
 import keepnote.notebook
 
