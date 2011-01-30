@@ -4,11 +4,50 @@
     
     Low-level Create-Read-Update-Delete (CRUD) interface for notebooks.
 
+
+Strategy for detecting unmanaged notebook modifications.
+
+When a notebook is first opened, there needs to be a mechanism for determining
+whether the index (sqlite) is update to date.  There are several ways a
+notebook can change on disk in unmanaged ways, that I would like to be 
+able to recover from.  Below is a list of changes, methods for detecting
+them, and solutions to updating the index.
+
+CHANGE: Edits to "node.xml" files
+DETECT: The mtime of the "node.xml" file should be newer than the last indexed
+        mtime.
+UPDATE: Read the "node.xml" file and index the attr.
+
+
+CHANGE: Moving a node directory to a new location within the notebook.
+DETECT: The new parent directory's mtime with be newer than the last indexed
+        mtime.  The child directory being moved will often have no change in
+        mtime.
+UPDATE: A directory with newer mtime needs all of its children re-indexed.
+
+
+CHANGE: Moving a new node directory into the notebook.  This would also require
+        ensuring that nodeid's are still unique.
+DETECT: The new parent directory's mtime with be newer than the last indexed
+        mtime.  The child directory being moved will often have no change in
+        mtime.
+UPDATE: A directory with newer mtime needs all of its children re-indexed.
+        In addition, if any of the children have never been seen before
+        (nodeid not in index), then their entire subtree should re-indexed.
+
+
+CHANGE: A payload file may change in contents (e.g. page.html) and would need
+        to be re-indexed for fulltext search.
+DETECT: The mtime for the payload file should be newer than the last indexed
+        mtime.
+UPDATE: Perhaps at this time unmanaged changes to payload files are not
+        re-indexed.
+
 """
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2011 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -59,7 +98,6 @@ XML_HEADER = u"""\
 
 #=============================================================================
 # filenaming scheme
-
 
 def get_node_meta_file(nodepath):
     """Returns the metadata file for a node"""
@@ -121,7 +159,7 @@ def iter_child_node_paths(path):
 
     for child in children:
         child_path = os.path.join(path, child)
-        if os.path.isfile(os.path.join(child_path, "node.xml")):
+        if os.path.isfile(os.path.join(child_path, u"node.xml")):
             yield child_path
 
 
@@ -152,8 +190,7 @@ def find_node_changes(path, last_mtime):
         if mtime > last_mtime:
             yield path, mtime
 
-        for child_path in iter_child_node_paths(path):
-            queue.append(child_path)
+        queue.extend(iter_child_node_paths(path))
 
 def get_path_mtime(path):
     return os.stat(path).st_mtime
@@ -178,7 +215,6 @@ class PathCacheNode (object):
         self.basename = basename
         self.parent = parent
         self.children = set()
-
         
 
 
@@ -284,8 +320,8 @@ class PathCache (object):
         
         parent = self._nodes.get(parentid, 0)
         if parent is 0:
-            print basename, parentid, self._nodes
-            raise UnknownNode("unknown parent")
+            raise UnknownNode("unknown parent %s" % 
+                              repr((basename, parentid, self._nodes)))
         node = self._nodes.get(nodeid, None)
         if node:
             node.parent = parent
@@ -418,7 +454,6 @@ class NoteBookConnection (object):
         attr = self._read_attr(metafile, self._notebook.attr_defs)
         if not self._validate_attr(attr):
             self._write_attr(metafile, attr, self._notebook.attr_defs)
-            print attr
         self._rootid = attr["nodeid"]
 
         # update path cache
@@ -438,7 +473,6 @@ class NoteBookConnection (object):
         attr = self._read_attr(metafile, self._notebook.attr_defs)
         if not self._validate_attr(attr):
             self._write_attr(metafile, attr, self._notebook.attr_defs)
-            print attr
         
         # if node has changed on disk (newer mtime), then re-index it
         mtime = get_path_mtime(path)
@@ -458,19 +492,48 @@ class NoteBookConnection (object):
         self._write_attr(self._get_node_attr_file(nodeid, path), 
                          attr, self._notebook.attr_defs)
 
+        # determine directory needs rename
+        title_index = self._index.get_attr(nodeid, "title")
+        if title_index and title_index != attr.get("title", ""):
+            # rename node directory
+            self._rename_node_dir(nodeid, attr, path)
+        else:
+            # update index
+            basename = os.path.basename(path)
+            parentid = self._path_cache.get_parentid(nodeid)
+            self._index.add_node(nodeid, parentid, basename, attr, 
+                                 mtime=get_path_mtime(path))
+
+
+    def _rename_node_dir(self, nodeid, attr, path):
+        """Renames a node directory to resemble attr['title']"""
+        
+        # try to pick a path that closely resembles the title
+        title = attr.get("title", "")
+        parent_path = os.path.dirname(path)
+        path2 = keepnote.notebook.get_valid_unique_filename(parent_path, title)
+
+        try:
+            os.rename(path, path2)
+        except OSError, e:
+            raise keepnote.notebook.NoteBookError(_("Cannot rename '%s' to '%s'" % (path, path2)), e)
+
         # update index
-        basename = os.path.basename(path)
+        basename = os.path.basename(path2)
         parentid = self._path_cache.get_parentid(nodeid)
+        self._path_cache.move(nodeid, basename, parentid)
         self._index.add_node(nodeid, parentid, basename, attr, 
-                             mtime=get_path_mtime(path))
+                             mtime=get_path_mtime(path2))
+        
 
 
     def create_root(self, filename, nodeid, attr):
+        """Create the root node"""
         self.create_node(nodeid, None, attr, filename)
     
 
     def create_node(self, nodeid, parentid, attr, _path=None):
-
+        """Create a node"""
         if nodeid is None:
             nodeid = keepnote.notebook.new_nodeid()
 
@@ -503,6 +566,7 @@ class NoteBookConnection (object):
         
     
     def delete_node(self, nodeid):
+        """Delete node"""
         try:
             shutil.rmtree(self._get_node_path(nodeid))
         except OSError, e:
@@ -514,7 +578,7 @@ class NoteBookConnection (object):
         
 
     def move_node(self, nodeid, new_parentid, attr):
-        
+        """Move a node to a new parent"""
         old_path = self._get_node_path(nodeid)
         new_parent_path = self._get_node_path(new_parentid)
         new_path = keepnote.notebook.get_valid_unique_filename(
@@ -530,28 +594,7 @@ class NoteBookConnection (object):
         self._path_cache.move(nodeid, basename, new_parentid)
         self._index.add_node(nodeid, new_parentid, basename, attr, 
                              mtime=get_path_mtime(new_path))
-
-
-    def rename_node(self, nodeid, attr, title):
         
-        # try to pick a path that closely resembles the title
-        path = self._get_node_path(nodeid)
-        parent_path = os.path.dirname(path)
-        path2 = keepnote.notebook.get_valid_unique_filename(parent_path, title)
-
-        try:
-            os.rename(path, path2)
-        except OSError, e:
-            raise keepnote.notebook.NoteBookError(_("Cannot rename '%s' to '%s'" % (path, path2)), e)
-
-        # update index
-        basename = os.path.basename(path2)
-        parentid = self._path_cache.get_parentid(nodeid)
-        self._path_cache.move(nodeid, basename, parentid)
-        self.update_index_node(nodeid, attr)
-        
-        return path2
-
 
     def read_data_as_plain_text(self, nodeid):
         """Iterates over the lines of the data file as plain text"""
@@ -566,7 +609,7 @@ class NoteBookConnection (object):
 
 
     def get_rootid(self):
-        
+        """Returns nodeid of notebook root node"""
         if self._rootid:
             return self._rootid
         else:
@@ -574,13 +617,13 @@ class NoteBookConnection (object):
         
 
     def get_parentid(self, nodeid):
-        
+        """Returns nodeid of parent of node"""
         # TODO: I could fallback to index for this too
         return self._path_cache.get_parentid(nodeid)
 
     
     def list_children_attr(self, nodeid, _path=None):
-        
+        """List attr of children nodes of nodeid"""
         path = self._path_cache.get_path(nodeid) if _path is None else _path
         assert path is not None
 
@@ -604,7 +647,7 @@ class NoteBookConnection (object):
 
 
     def list_children_nodeids(self, nodeid, _path=None):
-
+        """List nodeids of children of node"""
         # try to use cache first
         children = self._path_cache.get_children(nodeid)
         if children is not None:
@@ -622,7 +665,6 @@ class NoteBookConnection (object):
         attr = self._read_attr(metafile, self._notebook.attr_defs)
         if not self._validate_attr(attr):
             self._write_attr(metafile, attr, self._notebook.attr_defs)
-            print attr
 
         # update path cache
         nodeid = attr["nodeid"]

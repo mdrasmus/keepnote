@@ -503,9 +503,6 @@ class NoteBookNode (object):
         """Returns True if node is valid (not deleted)"""
         return self._valid
     
-    def get_version(self):
-        """Returns the format version of this node"""
-        return self._version
     
     def get_notebook(self):
         """Returns the notebook that owns this node"""
@@ -513,7 +510,7 @@ class NoteBookNode (object):
 
 
     #==============================================
-    # filesystem path functions
+    # filesystem-specific methods (may not always be available)
 
     def get_path(self):
         """Returns the directory path of the node"""
@@ -523,13 +520,16 @@ class NoteBookNode (object):
         """Returns the basename of the node"""
         return self._conn.get_node_basename(self._attr["nodeid"])
 
+    #================================
+    # URL methods
+
     def get_url(self, host=""):
         """Returns URL for node"""
         return get_node_url(self._attr["nodeid"], host)
 
 
     #=======================================
-    # attr functions
+    # attr methods
     
     def clear_attr(self, title="", content_type=CONTENT_TYPE_DIR):
         """Clear attributes (set them to defaults)"""
@@ -610,7 +610,7 @@ class NoteBookNode (object):
     
 
     #=============================================
-    # filesystem methods
+    # change structure methods
 
     def create(self):
         """Initializes the node on disk (create required files/directories)"""
@@ -730,8 +730,6 @@ class NoteBookNode (object):
             oldtitle = self._attr["title"]
             try:
                 self._attr["title"] = title
-                self._conn.rename_node(self._attr["nodeid"], self._attr,
-                                       title)
                 self.save(True)
             except NoteBookError, e:
                 self._attr["title"] = oldtitle
@@ -776,9 +774,6 @@ class NoteBookNode (object):
         # initialize skip set to prevent double copying
         if skip is None:
             skip = set()
-        if self in skip:
-            # skip this node if it has just been copied
-            return None
 
         # create new node
         node = parent._new_child(self.get_attr("content_type"),
@@ -800,8 +795,8 @@ class NoteBookNode (object):
         try:
             self._conn.copy_node_files(self._attr["nodeid"], 
                                        node._attr["nodeid"])
-        except Exception, e:
-            print e
+        except:
+            keepnote.log_error()
             # TODO: handle errors
             pass
 
@@ -809,8 +804,9 @@ class NoteBookNode (object):
         # TODO: prevent loops, copy paste within same tree.
         if recurse:
             for child in self.get_children():
-                child.duplicate(node, recurse=True, notify=False,
-                                skip=skip)
+                if child not in skip:
+                    child.duplicate(node, recurse=True, notify=False,
+                                    skip=skip)
 
         if notify:
             parent.notify_change(True)
@@ -834,7 +830,8 @@ class NoteBookNode (object):
         if self._children is None:
             if self._has_children is None:
                 try:
-                    self._conn.list_children_attr(self._attr["nodeid"]).next()
+                    self._conn.list_children_nodeids(
+                        self._attr["nodeid"]).next()
                     self._has_children = True
                 except StopIteration:
                     self._has_children = False
@@ -846,9 +843,7 @@ class NoteBookNode (object):
     def _get_children(self):
         """Load children list from filesystem"""
         
-        self._children = []
-        for node in self.iter_temp_children():
-            self._children.append(node)
+        self._children = list(self.iter_temp_children())
 
         # assign orders
         self._children.sort(key=lambda x: x._attr.get("order", sys.maxint))

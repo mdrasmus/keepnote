@@ -621,7 +621,7 @@ class NoteBookIndex (object):
         if attr:
             return attr.get(self.cur, nodeid)
         else:
-            return []
+            return None
 
 
     def search_contents(self, text):
