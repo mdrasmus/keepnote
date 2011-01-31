@@ -1478,8 +1478,8 @@ class NoteBook (NoteBookDir):
                                               newfilename, ext, "-",
                                               ensure_valid=False)
 
-        self._conn.copy_node_file(None, filename, self._attr["nodeid"], 
-                                  newfilename)
+        self._conn.copy_node_file(None, filename, 
+                                  self._attr["nodeid"], newfilename)
         return self._conn.path_basename(newfilename)
 
 
@@ -1521,10 +1521,10 @@ class NoteBook (NoteBookDir):
                 # we are done searching for names
                 break
             
-        self._conn.copy_node_file(None, filename, self._attr["nodeid"], 
-                                  newfilename)
-        self._conn.copy_node_file(None, filename_open, self._attr["nodeid"], 
-                                  newfilename_open)
+        self._conn.copy_node_file(None, filename, 
+                                  self._attr["nodeid"], newfilename)
+        self._conn.copy_node_file(None, filename_open, 
+                                  self._attr["nodeid"], newfilename_open)
 
         return (self._conn.path_basename(newfilename), 
                 self._conn.path_basename(newfilename_open))

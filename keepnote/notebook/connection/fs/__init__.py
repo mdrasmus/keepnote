@@ -458,17 +458,20 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def create_node(self, nodeid, attr, _path=None, _root=False):
         """Create a node"""
+
+        # generate a new nodeid if one is not given
         if nodeid is None:
             nodeid = keepnote.notebook.new_nodeid()
 
+        # determine parentid
         if _root:
+            # we are creating the root node, therefore there is no parent
             parentid = None
         else:
+            # get parent from attr
             parentids = attr.get("parentids", None)
-            if not parentids:  # None or []
-                parentid = self._rootid
-            else:
-                parentid = parentids[0]
+            # if parentids is None or [], use rootid as default
+            parentid = parentids[0] if parentids else self._rootid
 
         # if no path, use title to set path
         if _path is None:
@@ -478,12 +481,15 @@ class NoteBookConnectionFS (NoteBookConnection):
                 parent_path, title)
         else:
             path = _path
+
+        # determine basename
         if parentid is not None:
             basename = os.path.basename(path)
         else:
             # root node case
             basename = path
 
+        # make directory and write attr
         try:
             os.mkdir(path)
             self._write_attr(self._get_node_attr_file(nodeid, path), 
@@ -512,7 +518,6 @@ class NoteBookConnectionFS (NoteBookConnection):
     
     def read_node(self, nodeid):
         """Read a node attr"""
-
         path = self._get_node_path(nodeid)
         parentid = self.get_parentid(nodeid)
         return self._read_node(parentid, path)
@@ -524,17 +529,17 @@ class NoteBookConnectionFS (NoteBookConnection):
         # TODO: support mutltiple parents 
 
         # determine if parentid has changed
-        parentid = self.get_parentid(nodeid)
-        parentids2 = attr.get("parentids", None)
+        parentid = self.get_parentid(nodeid) # old parent
+        parentids2 = attr.get("parentids", None) # new parent
         parentid2 = parentids2[0] if parentids2 else self._rootid
 
         # determine if title has changed
-        title_index = self._index.get_attr(nodeid, "title")
+        title_index = self._index.get_attr(nodeid, "title") # old title
 
         # write attrs
-        path = self._path_cache.get_path(nodeid)
-        self._write_attr(self._get_node_attr_file(nodeid, path), 
-                         attr, self._notebook.attr_defs)
+        path = self._get_node_path(nodeid)
+        self._write_attr(get_node_meta_file(path), attr, 
+                         self._notebook.attr_defs)
         
         if parentid != parentid2:
             # move to a new parent
@@ -900,7 +905,7 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     
     def copy_node_file(self, nodeid1, filename1, nodeid2, filename2,
-                       path1=None, path2=None):
+                       _path1=None, _path2=None):
         """
         Copy a file between two nodes
 
@@ -910,15 +915,13 @@ class NoteBookConnectionFS (NoteBookConnection):
         if nodeid1 is None:
             fullname1 = filename1
         else:
-            if path1 is None:
-                path1 = self._get_node_path(nodeid1)
+            path1 = self._get_node_path(nodeid1) if not _path1 else _path1
             fullname1 = os.path.join(path1, filename1)
 
         if nodeid2 is None:
             fullname2 = filename2
         else:
-            if path2 is None:
-                path2 = self._get_node_path(nodeid2)
+            path2 = self._get_node_path(nodeid2) if not _path2 else _path2
             fullname2 = os.path.join(path2, filename2)
         
         if os.path.isfile(fullname1):

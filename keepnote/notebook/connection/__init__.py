@@ -66,7 +66,7 @@ class NoteBookConnection (object):
         """Create the root node"""
         pass
 
-    def create_node(self, nodeid, parentid, attr, _path=None):
+    def create_node(self, nodeid, attr):
         """Create a node"""
         pass
         
@@ -102,11 +102,11 @@ class NoteBookConnection (object):
         """Returns nodeid of parent of node"""
         pass
     
-    def list_children_attr(self, nodeid, _path=None):
+    def list_children_attr(self, nodeid):
         """List attr of children nodes of nodeid"""
         pass
 
-    def list_children_nodeids(self, nodeid, _path=None):
+    def list_children_nodeids(self, nodeid):
         """List nodeids of children of node"""
         pass
 
@@ -138,19 +138,19 @@ class NoteBookConnection (object):
                      return_number=False, use_number=False, ensure_valid=True):
         pass
 
-    def mkdir(self, nodeid, filename, _path=None):
+    def mkdir(self, nodeid, filename):
         pass
     
-    def isfile(self, nodeid, filename, _path=None):
+    def isfile(self, nodeid, filename):
         pass
 
-    def path_exists(self, nodeid, filename, _path=None):
+    def path_exists(self, nodeid, filename):
         pass
 
     def path_basename(self, filename):
         pass
         
-    def listdir(self, nodeid, filename=None, _path=None):
+    def listdir(self, nodeid, filename=None):
         """
         List data files in node
         """
