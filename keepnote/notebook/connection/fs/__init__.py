@@ -197,8 +197,7 @@ def get_path_mtime(path):
     return os.stat(path).st_mtime
 
 #=============================================================================
-
-# TODO: make base class for connection
+# classes
 
 
 class ConnectionError (StandardError):
@@ -373,6 +372,9 @@ class NoteBookConnectionFS (NoteBookConnection):
         self._path_cache = PathCache()
         self._rootid = None
 
+        # attributes to not write to disk, they can be derived
+        self._attr_suppress = set(["parentids", "childids"])
+
         # NOTES:
         # - I only use the notebook object for assesing attrdefs and
         # for setuping up the index.
@@ -448,23 +450,63 @@ class NoteBookConnectionFS (NoteBookConnection):
         """Save any unsynced state"""
         self._index.save()
 
+
+    def create_root(self, filename, nodeid, attr):
+        """Create the root node"""
+        self.create_node(nodeid, attr, filename, True)
+    
+
+    def create_node(self, nodeid, attr, _path=None, _root=False):
+        """Create a node"""
+        if nodeid is None:
+            nodeid = keepnote.notebook.new_nodeid()
+
+        if _root:
+            parentid = None
+        else:
+            parentids = attr.get("parentids", None)
+            if not parentids:  # None or []
+                parentid = self._rootid
+            else:
+                parentid = parentids[0]
+
+        # if no path, use title to set path
+        if _path is None:
+            title = attr.get("title", _("New Page"))
+            parent_path = self._get_node_path(parentid)
+            path = keepnote.notebook.get_valid_unique_filename(
+                parent_path, title)
+        else:
+            path = _path
+        if parentid is not None:
+            basename = os.path.basename(path)
+        else:
+            # root node case
+            basename = path
+
+        try:
+            os.mkdir(path)
+            self._write_attr(self._get_node_attr_file(nodeid, path), 
+                             attr, self._notebook.attr_defs)
+            self._path_cache.add(nodeid, basename, parentid)
+        except OSError, e:
+            raise keepnote.notebook.NoteBookError(_("Cannot create node"), e)
+        
+        # update index
+        if self._index:
+            self._index.add_node(nodeid, parentid, basename, attr, 
+                                 mtime=get_path_mtime(path))
+
+        return nodeid
+    
         
     def read_root(self):
         """Read root node attr"""
-        assert self._filename is not None
+        if self._filename is None:
+            raise ConnectionError("connect() has not been called")
         
-        metafile = get_node_meta_file(self._filename)
-        attr = self._read_attr(metafile, self._notebook.attr_defs)
-        if not self._validate_attr(attr):
-            self._write_attr(metafile, attr, self._notebook.attr_defs)
+        attr = self._read_node(None, self._filename)
         self._rootid = attr["nodeid"]
-
-        # update path cache
-        nodeid = attr["nodeid"]
-        self._path_cache.add(nodeid, self._filename, None)
-        
-        # NOTE: do not index yet.  The index might not be setup yet
-
         return attr
     
     
@@ -472,43 +514,45 @@ class NoteBookConnectionFS (NoteBookConnection):
         """Read a node attr"""
 
         path = self._get_node_path(nodeid)
-        metafile = get_node_meta_file(path)
-        attr = self._read_attr(metafile, self._notebook.attr_defs)
-        if not self._validate_attr(attr):
-            self._write_attr(metafile, attr, self._notebook.attr_defs)
-        
-        # if node has changed on disk (newer mtime), then re-index it
-        mtime = get_path_mtime(path)
-        index_mtime = self._index.get_node_mtime(nodeid)
-        if mtime > index_mtime:
-            parentid = self.get_parentid(nodeid)
-            basename = os.path.basename(path)
-            self._index.add_node(nodeid, parentid, basename, attr, mtime)
-            
-        return attr
+        parentid = self.get_parentid(nodeid)
+        return self._read_node(parentid, path)
     
 
     def update_node(self, nodeid, attr):
         """Write node attr"""
+        
+        # TODO: support mutltiple parents 
 
+        # determine if parentid has changed
+        parentid = self.get_parentid(nodeid)
+        parentids2 = attr.get("parentids", None)
+        parentid2 = parentids2[0] if parentids2 else self._rootid
+
+        # determine if title has changed
+        title_index = self._index.get_attr(nodeid, "title")
+
+        # write attrs
         path = self._path_cache.get_path(nodeid)
         self._write_attr(self._get_node_attr_file(nodeid, path), 
                          attr, self._notebook.attr_defs)
-
-        # determine directory needs rename
-        title_index = self._index.get_attr(nodeid, "title")
-        if title_index and title_index != attr.get("title", ""):
-            # rename node directory
-            self._rename_node_dir(nodeid, attr, path)
+        
+        if parentid != parentid2:
+            # move to a new parent
+            self._move_node(nodeid, attr, parentid2)
+        elif (parentid and title_index and 
+              title_index != attr.get("title", "")):
+            # rename node directory, but
+            # do not rename root node dir (parentid is None)
+            self._rename_node_dir(nodeid, attr, path, parentid2)
         else:
             # update index
             basename = os.path.basename(path)
             parentid = self._path_cache.get_parentid(nodeid)
             self._index.add_node(nodeid, parentid, basename, attr, 
                                  mtime=get_path_mtime(path))
+        
 
-
-    def _rename_node_dir(self, nodeid, attr, path):
+    def _rename_node_dir(self, nodeid, attr, path, new_parentid):
         """Renames a node directory to resemble attr['title']"""
         
         # try to pick a path that closely resembles the title
@@ -527,61 +571,11 @@ class NoteBookConnectionFS (NoteBookConnection):
         self._path_cache.move(nodeid, basename, parentid)
         self._index.add_node(nodeid, parentid, basename, attr, 
                              mtime=get_path_mtime(path2))
-        
 
 
-    def create_root(self, filename, nodeid, attr):
-        """Create the root node"""
-        self.create_node(nodeid, None, attr, filename)
-    
-
-    def create_node(self, nodeid, parentid, attr, _path=None):
-        """Create a node"""
-        if nodeid is None:
-            nodeid = keepnote.notebook.new_nodeid()
-
-        # if no path, use title to set path
-        if _path is None:
-            title = attr.get("title", _("New Page"))
-            parent_path = self._get_node_path(parentid)
-            path = keepnote.notebook.get_valid_unique_filename(
-                parent_path, title)
-        else:
-            path = _path
-        if parentid is not None:
-            basename = os.path.basename(path)
-        else:
-            basename = path
-
-        try:
-            os.mkdir(path)
-            self._write_attr(self._get_node_attr_file(nodeid, path), 
-                             attr, self._notebook.attr_defs)
-            self._path_cache.add(nodeid, basename, parentid)
-        except OSError, e:
-            raise keepnote.notebook.NoteBookError(_("Cannot create node"), e)
-        
-        # update index
-        self._index.add_node(nodeid, parentid, basename, attr, 
-                             mtime=get_path_mtime(path))
-
-        return nodeid
-        
-    
-    def delete_node(self, nodeid):
-        """Delete node"""
-        try:
-            shutil.rmtree(self._get_node_path(nodeid))
-        except OSError, e:
-            raise keepnote.notebook.NoteBookError(
-                _("Do not have permission to delete"), e)
-
-        self._path_cache.remove(nodeid)
-        self._index.remove_node(nodeid)
-        
-
-    def move_node(self, nodeid, new_parentid, attr):
+    def _move_node(self, nodeid, attr, new_parentid):
         """Move a node to a new parent"""
+
         old_path = self._get_node_path(nodeid)
         new_parent_path = self._get_node_path(new_parentid)
         new_path = keepnote.notebook.get_valid_unique_filename(
@@ -597,7 +591,19 @@ class NoteBookConnectionFS (NoteBookConnection):
         self._path_cache.move(nodeid, basename, new_parentid)
         self._index.add_node(nodeid, new_parentid, basename, attr, 
                              mtime=get_path_mtime(new_path))
-        
+            
+    
+    def delete_node(self, nodeid):
+        """Delete node"""
+        try:
+            shutil.rmtree(self._get_node_path(nodeid))
+        except OSError, e:
+            raise keepnote.notebook.NoteBookError(
+                _("Do not have permission to delete"), e)
+
+        self._path_cache.remove(nodeid)
+        self._index.remove_node(nodeid)
+                
 
     def read_data_as_plain_text(self, nodeid):
         """Iterates over the lines of the data file as plain text"""
@@ -666,19 +672,25 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         metafile = get_node_meta_file(path)
         attr = self._read_attr(metafile, self._notebook.attr_defs)
+        attr["parentids"] = [parentid]
         if not self._validate_attr(attr):
             self._write_attr(metafile, attr, self._notebook.attr_defs)
 
         # update path cache
         nodeid = attr["nodeid"]
-        basename = os.path.basename(path)
+        if parentid is None:
+            basename = path
+        else:
+            basename = os.path.basename(path)
         self._path_cache.add(nodeid, basename, parentid)
         
         # if node has changed on disk (newer mtime), then re-index it
-        mtime = get_path_mtime(path)
-        index_mtime = self._index.get_node_mtime(nodeid)
-        if mtime > index_mtime:
-            self._index.add_node(nodeid, parentid, basename, attr, mtime)
+        # if reading root node, index might not be initialized yet
+        if self._index:
+            mtime = get_path_mtime(path)
+            index_mtime = self._index.get_node_mtime(nodeid)
+            if mtime > index_mtime:
+                self._index.add_node(nodeid, parentid, basename, attr, mtime)
 
         return attr
     
@@ -700,6 +712,9 @@ class NoteBookConnectionFS (NoteBookConnection):
                       keepnote.notebook.NOTEBOOK_FORMAT_VERSION)
             
             for key, val in attr.iteritems():
+                if key in self._attr_suppress:
+                    continue
+
                 attr_def = attr_defs.get(key, None)
                 
                 if attr_def is not None:

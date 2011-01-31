@@ -436,9 +436,11 @@ created_time_attr = AttrDef("Created", int, "created_time", default=get_timestam
 modified_time_attr = AttrDef("Modified", int, "modified_time", default=get_timestamp)
 
 g_default_attr_defs = [
-    title_attr,
+    AttrDef("Node ID", unicode, "nodeid", default=new_nodeid),
     AttrDef("Content type", unicode, "content_type",
                  default=lambda: CONTENT_TYPE_DIR),
+
+    title_attr,
     AttrDef("Order", int, "order", default=lambda: sys.maxint),
     created_time_attr,
     modified_time_attr,
@@ -448,7 +450,6 @@ g_default_attr_defs = [
                  default=lambda: "order"),
     AttrDef("Folder Sort Direction", int, "info_sort_dir", 
                  default=lambda: 1),
-    AttrDef("Node ID", unicode, "nodeid", default=new_nodeid),
     AttrDef("Icon", unicode, "icon"),
     AttrDef("Icon Open", unicode, "icon_open"),
     AttrDef("Filename", unicode, "payload_filename"),
@@ -617,11 +618,10 @@ class NoteBookNode (object):
 
         self._attr["created_time"] = get_timestamp()
         self._attr["modified_time"] = get_timestamp()
+        self._attr["parentids"] = [self._parent._attr["nodeid"]]
 
         self._attr["nodeid"] = self._conn.create_node(
-            self._attr.get("nodeid", None), 
-            self._parent._attr["nodeid"], 
-            self._attr)
+            self._attr.get("nodeid", None), self._attr)
         self._set_dirty(False)
        
     
@@ -691,8 +691,12 @@ class NoteBookNode (object):
 
         # perform on-disk move if new parent
         if old_parent != parent:
-            self._conn.move_node(self._attr["nodeid"], parent._attr["nodeid"],
-                                 self._attr)
+            try:
+                self._attr["parentids"] = [parent._attr["nodeid"]]
+                self.save(True)
+            except:
+                self._attr["parentids"] = [old_parent._attr["nodeid"]]
+                raise
 
         # perform move in data structure
         self._parent._remove_child(self)

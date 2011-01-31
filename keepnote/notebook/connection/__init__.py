@@ -61,6 +61,14 @@ class NoteBookConnection (object):
 
     #======================
     # Node I/O API
+
+    def create_root(self, filename, nodeid, attr):
+        """Create the root node"""
+        pass
+
+    def create_node(self, nodeid, parentid, attr, _path=None):
+        """Create a node"""
+        pass
         
     def read_root(self):
         """Read root node attr"""
@@ -74,27 +82,17 @@ class NoteBookConnection (object):
         """Write node attr"""
         pass
 
-    def create_root(self, filename, nodeid, attr):
-        """Create the root node"""
-        pass
-
-    def create_node(self, nodeid, parentid, attr, _path=None):
-        """Create a node"""
-        pass
-    
     def delete_node(self, nodeid):
         """Delete node"""
         pass
 
     # secondary node API (try to simplify)
-
-    def move_node(self, nodeid, new_parentid, attr):
-        """Move a node to a new parent"""
-        pass
-
+    
     def read_data_as_plain_text(self, nodeid):
         """Iterates over the lines of the data file as plain text"""
         pass
+
+    # TODO: try remove concept of parentids and childids from connection API
 
     def get_rootid(self):
         """Returns nodeid of notebook root node"""
