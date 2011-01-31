@@ -358,13 +358,26 @@ class NoteBookIndex (object):
 
             con.commit()
 
+            '''
             # check whether index is uptodate
             if not self._need_index:
-                mtime = keepnote.notebook.connection.fs.last_node_change(
-                    self._nconn._get_node_path(self._nconn.get_rootid()))
+
+                fs = keepnote.notebook.connection.fs
+
+                path = self._nconn._get_node_path(self._nconn.get_rootid())
                 mtime_index = self.get_mtime()
+                print path
+
+                keepnote.log_message("checking index...\n")
+                start = time.time()
+                mtime = fs.last_node_change(path)
+                #mtime = fs.last_node_change("/home/raz/doc/notes/matt")
+                print mtime
                 self._need_index = (mtime > mtime_index)
-                print mtime, mtime_index
+
+                keepnote.log_message(
+                    "checked index in %f\n" % (time.time() - start))
+            '''
                     
 
         except sqlite.DatabaseError, e:
