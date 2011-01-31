@@ -230,6 +230,7 @@ class PathCacheNode (object):
         self.basename = basename
         self.parent = parent
         self.children = set()
+        self.children_complete = False
         
 
 
@@ -321,13 +322,18 @@ class PathCache (object):
     def get_children(self, nodeid):
         """
         Returns iterator of the child ids of a nodeid
-        Returns None if nodeid is not cached
+        Returns None if nodeid is not cached or children have not been read
         """
         node = self._nodes.get(nodeid, None)
-        if node:
+        if node and node.children_complete:
             return (child.nodeid for child in node.children)
         else:
             return None
+
+    def set_children_complete(self, nodeid, complete):
+        node = self._nodes.get(nodeid, None)
+        if node:
+            node.children_complete = complete
     
 
     def add(self, nodeid, basename, parentid):
@@ -673,6 +679,8 @@ class NoteBookConnectionFS (NoteBookConnection):
                     traceback.print_exception(*sys.exc_info())
                     continue
                     # TODO: raise warning, not all children read
+
+        self._path_cache.set_children_complete(nodeid, True)
 
 
     def list_children_nodeids(self, nodeid, _path=None):
