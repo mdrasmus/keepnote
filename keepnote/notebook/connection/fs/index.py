@@ -26,10 +26,11 @@
 
 
 # python imports
+from itertools import chain
 import os
 import sys
+import time
 import traceback
-from itertools import chain
 
 # import sqlite
 try:
@@ -200,9 +201,10 @@ class NoteBookIndex (object):
         """Open connection to index"""
 
         try:
-            index_file = self._get_index_file()
+            self._index_file = self._get_index_file()
             self._corrupt = False
-            self.con = sqlite.connect(index_file, isolation_level="DEFERRED",
+            self.con = sqlite.connect(self._index_file, 
+                                      isolation_level="DEFERRED",
                                       check_same_thread=False)
             self.cur = self.con.cursor()
             self.con.execute(u"PRAGMA read_uncommitted = true;")
@@ -215,7 +217,9 @@ class NoteBookIndex (object):
 
     def close(self):
         """Close connection to index"""
-        
+
+        self._index_file = None
+
         if self.con is not None:
             try:
                 self.con.commit()
@@ -230,11 +234,17 @@ class NoteBookIndex (object):
     def save(self):
         """Save index"""
 
+        mtime = time.time()
+        self.con.execute("""UPDATE NodeGraph SET mtime = ? WHERE nodeid = ?;""",
+                         (mtime, self._nconn.get_rootid()))
+
         if self.con is not None:
             try:
                 self.con.commit()
             except:
                 self.open()
+
+        
 
 
     def clear(self):
@@ -282,7 +292,7 @@ class NoteBookIndex (object):
     def init_index(self):
         """Initialize the tables in the index if they do not exist"""
 
-        self._need_index = True #False
+        self._need_index = False
         con = self.con
 
         try:
@@ -347,6 +357,16 @@ class NoteBookIndex (object):
                 attr.init(self.cur)
 
             con.commit()
+
+            # check whether index is uptodate
+            if not self._need_index:
+                mtime = keepnote.notebook.connection.fs.last_node_change(
+                    self._nconn._get_node_path(self._nconn.get_rootid()))
+                mtime_index = self.get_mtime()
+                self._need_index = (mtime > mtime_index)
+                print mtime, mtime_index
+                    
+
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
 
@@ -437,6 +457,11 @@ class NoteBookIndex (object):
             return row[0]
         else:
             return 0.0
+
+
+    def get_mtime(self):
+        """Get last modification time of the index"""
+        return os.stat(self._index_file).st_mtime
 
     
     def add_node(self, nodeid, parentid, basename, attr, mtime):

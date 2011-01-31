@@ -73,6 +73,8 @@ import sys
 import shutil
 import re
 import traceback
+from os.path import join, isdir, isfile
+from os import listdir
 
 # xml imports
 from xml.sax.saxutils import escape
@@ -164,7 +166,7 @@ def iter_child_node_paths(path):
             yield child_path
 
 
-def last_node_change(path):
+def last_node_change2(path):
     """Returns the last modification time underneath a path in the notebook"""
 
     # NOTE: mtime is updated for a directory, whenever any of the files 
@@ -172,7 +174,20 @@ def last_node_change(path):
     
     mtime = os.stat(path).st_mtime
     for child_path in iter_child_node_paths(path):
-        mtime = max(mtime, last_node_change(child_path))
+        mtime = max(mtime, last_node_change2(child_path))
+    return mtime
+
+
+def last_node_change(path):
+    """Returns the last modification time underneath a path in the notebook"""
+
+    # NOTE: mtime is updated for a directory, whenever any of the files 
+    # within the directory are modified.
+    
+    mtime = os.stat(path).st_mtime
+    if isdir(path):
+        for child in listdir(path):
+            mtime = max(mtime, last_node_change(join(path, child)))
     return mtime
 
 
@@ -449,7 +464,7 @@ class NoteBookConnectionFS (NoteBookConnection):
     def save(self):
         """Save any unsynced state"""
         self._index.save()
-
+        
 
     def create_root(self, filename, nodeid, attr):
         """Create the root node"""
