@@ -183,11 +183,16 @@ def last_node_change(path):
 
     # NOTE: mtime is updated for a directory, whenever any of the files 
     # within the directory are modified.
+
+    stat = os.stat
+
+    mtime = stat(path).st_mtime
+
+    for dirpath, dirnames, filenames in os.walk(path):
+        mtime = max(mtime, stat(dirpath).st_mtime)
+        if u"node.xml" in filenames:
+            mtime = max(mtime, stat(join(dirpath, u"node.xml")).st_mtime)
     
-    mtime = os.stat(path).st_mtime
-    if isdir(path):
-        for child in listdir(path):
-            mtime = max(mtime, last_node_change(join(path, child)))
     return mtime
 
 
@@ -472,9 +477,12 @@ class NoteBookConnectionFS (NoteBookConnection):
         self._index.save()
         
 
-    def create_root(self, filename, nodeid, attr):
+    def create_root(self, nodeid, attr):
         """Create the root node"""
-        self.create_node(nodeid, attr, filename, True)
+        if self._filename is None:
+            raise ConnectionError("connect() has not been called")
+
+        self.create_node(nodeid, attr, self._filename, True)
     
 
     def create_node(self, nodeid, attr, _path=None, _root=False):
@@ -648,7 +656,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         if self._rootid:
             return self._rootid
         else:
-            return self._read_root()["nodeid"]
+            return self.read_root()["nodeid"]
         
 
     def get_parentid(self, nodeid):

@@ -62,7 +62,7 @@ class NoteBookConnection (object):
     #======================
     # Node I/O API
 
-    def create_root(self, filename, nodeid, attr):
+    def create_root(self, nodeid, attr):
         """Create the root node"""
         pass
 

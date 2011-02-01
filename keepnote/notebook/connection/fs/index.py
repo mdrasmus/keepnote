@@ -358,7 +358,6 @@ class NoteBookIndex (object):
 
             con.commit()
 
-            '''
             # check whether index is uptodate
             if not self._need_index:
 
@@ -377,7 +376,6 @@ class NoteBookIndex (object):
 
                 keepnote.log_message(
                     "checked index in %f\n" % (time.time() - start))
-            '''
                     
 
         except sqlite.DatabaseError, e:

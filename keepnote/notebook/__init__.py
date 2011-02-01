@@ -1254,17 +1254,7 @@ class NoteBook (NoteBookDir):
         """Clears all attribute definitions from the notebook"""
         self.attr_defs.clear()
 
-    def get_children(self):
-        """Returns all children of this node"""
-
-        # ensure trash folder exists
-        if self._children is None:
-            self._get_children()        
-            self._init_trash()
-        
-        return self._children
-
-
+    
     #===================================================
     # input/output
     
@@ -1275,14 +1265,15 @@ class NoteBook (NoteBookDir):
         self._attr["modified_time"] = get_timestamp()
         self._attr["nodeid"] = new_nodeid()
 
-        
-        self._conn.create_root(self._basename, self._attr["nodeid"], 
-                                self._attr)
+        self._conn.connect(self._basename)
+        self._conn.create_root(self._attr["nodeid"],  self._attr)
         self.write_preferences()
 
         # init index database
         self._init_index()
         self._set_dirty(False)
+
+        self._init_trash()
 
     
     def load(self, filename=None):
@@ -1301,6 +1292,8 @@ class NoteBook (NoteBookDir):
 
         # init needs to happen after preferences
         self._init_index()
+        
+        self._init_trash()
 
         self.notify_change(True)
     
@@ -1408,7 +1401,7 @@ class NoteBook (NoteBookDir):
         
         # ensure trash directory exists
         self._trash = None
-        for child in self._children:
+        for child in self.get_children():
             if self.is_trash_dir(child):
                 self._trash = child
                 break
