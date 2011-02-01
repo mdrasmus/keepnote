@@ -367,15 +367,11 @@ class NoteBookIndex (object):
                 mtime_index = self.get_mtime()
                 print path
 
-                keepnote.log_message("checking index...\n")
+                keepnote.log_message("checking index... ")
                 start = time.time()
                 mtime = fs.last_node_change(path)
-                #mtime = fs.last_node_change("/home/raz/doc/notes/matt")
-                print mtime
                 self._need_index = (mtime > mtime_index)
-
-                keepnote.log_message(
-                    "checked index in %f\n" % (time.time() - start))
+                keepnote.log_message("%f seconds\n" % (time.time() - start))
                     
 
         except sqlite.DatabaseError, e:
