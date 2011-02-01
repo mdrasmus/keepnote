@@ -360,16 +360,11 @@ class NoteBookIndex (object):
 
             # check whether index is uptodate
             if not self._need_index:
-
-                fs = keepnote.notebook.connection.fs
-
-                path = self._nconn._get_node_path(self._nconn.get_rootid())
-                mtime_index = self.get_mtime()
-                print path
-
                 keepnote.log_message("checking index... ")
                 start = time.time()
-                mtime = fs.last_node_change(path)
+                mtime_index = self.get_mtime()
+                mtime = keepnote.notebook.connection.fs.last_node_change(
+                    self._nconn._get_node_path(self._nconn.get_rootid()))
                 self._need_index = (mtime > mtime_index)
                 keepnote.log_message("%f seconds\n" % (time.time() - start))
                     
