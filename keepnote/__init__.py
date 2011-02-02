@@ -239,7 +239,7 @@ def print_runtime_info(out=sys.stderr):
     except:
         out.write("gtk: NOT PRESENT\n")
     
-    from keepnote.notebook.index import sqlite
+    from keepnote.notebook.connection.fs.index import sqlite
     out.write("sqlite: " + sqlite.__file__+"\n"
               "sqlite.version: " + sqlite.version+"\n"
               "sqlite.sqlite_version: " + sqlite.sqlite_version+"\n"
@@ -255,7 +255,7 @@ def print_runtime_info(out=sys.stderr):
 
 def test_fts3():
 
-    from keepnote.notebook.index import sqlite
+    from keepnote.notebook.connection.fs.index import sqlite
     
     con  = sqlite.connect(":memory:")
     try:

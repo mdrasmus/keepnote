@@ -119,6 +119,9 @@ o.add_option("-c", "--cmd", dest="cmd",
 o.add_option("-l", "--list-cmd", dest="list_cmd",
              action="store_true",
              help="list available commands")
+o.add_option("-i", "--info", dest="info",
+             action="store_true",
+             help="show runtime information")
 o.add_option("--no-gui", dest="no_gui",
              action="store_true",
              help="run in non-gui mode")
@@ -290,6 +293,10 @@ def execute_command(app, argv):
         list_commands(app)
         sys.exit()
     
+    if options.info:
+        keepnote.print_runtime_info()
+        sys.exit()
+
 
     if options.cmd:
         # process application command (AppCommand)
