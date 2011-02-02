@@ -79,7 +79,7 @@ Mac OS X Install
   
   To install dependencies with MacPorts use the following command:
 
-    $ sudo port install py25-gtk aspell aspell-dict-en
+    $ sudo port install py25-gtk aspell aspell-dict-en sqlite3
 
   You may need to add your own language's dictionary (aspell-dict-XX) for 
   spell checking to work completely.

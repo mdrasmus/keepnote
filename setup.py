@@ -198,6 +198,8 @@ setup(
               'keepnote.gui',
               'keepnote.gui.richtext',
               'keepnote.notebook',
+              'keepnote.notebook.connection',
+              'keepnote.notebook.connection.fs',
               'keepnote.compat',
               'keepnote.mswin'],
     scripts=['bin/keepnote'],

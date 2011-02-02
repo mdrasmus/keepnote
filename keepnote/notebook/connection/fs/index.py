@@ -359,15 +359,8 @@ class NoteBookIndex (object):
             con.commit()
 
             # check whether index is uptodate
-            if not self._need_index:
-                keepnote.log_message("checking index... ")
-                start = time.time()
-                mtime_index = self.get_mtime()
-                mtime = keepnote.notebook.connection.fs.last_node_change(
-                    self._nconn._get_node_path(self._nconn.get_rootid()))
-                self._need_index = (mtime > mtime_index)
-                keepnote.log_message("%f seconds\n" % (time.time() - start))
-                    
+            #if not self._need_index:
+            #    self._need_index = self.check_index()
 
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
@@ -377,6 +370,18 @@ class NoteBookIndex (object):
         """Return True if database appear corrupt"""
         return self._corrupt
 
+
+    def check_index(self):
+        """Check filesystem to see if index is up to date"""
+
+        keepnote.log_message("checking index... ")
+        start = time.time()
+        mtime_index = self.get_mtime()
+        mtime = keepnote.notebook.connection.fs.last_node_change(
+            self._nconn._get_node_path(self._nconn.get_rootid()))
+        keepnote.log_message("%f seconds\n" % (time.time() - start))
+        return (mtime > mtime_index)
+                    
 
     def _on_corrupt(self, error, tracebk=None):
 
@@ -657,11 +662,12 @@ class NoteBookIndex (object):
         if not self._has_fulltext:
             words = [x.lower() for x in text.strip().split()]
             return self._search_manual(words)
-                    
+        
+        cur = self.con.cursor()
 
         # search db with fts3
-        res = self.cur.execute("""SELECT nodeid FROM fulltext 
-                  WHERE content MATCH ?;""", (text,))
+        res = cur.execute("""SELECT nodeid FROM fulltext 
+                             WHERE content MATCH ?;""", (text,))
         return (row[0] for row in res)
 
 

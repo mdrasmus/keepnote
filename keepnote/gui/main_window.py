@@ -676,6 +676,8 @@ class KeepNoteWindow (gtk.Window):
         
         try:
             notebook = self._app.get_notebook(filename, self)
+            if notebook is None:
+                return None
         except:
             return None
 
@@ -1625,7 +1627,7 @@ class SearchBox (gtk.Entry):
             try:
                 nodes = (notebook.get_node_by_id(nodeid)
                          for nodeid in 
-                         list(notebook.search_node_contents(" ".join(words))))
+                         notebook.search_node_contents(" ".join(words)))
             except:
                 keepnote.log_error()
 

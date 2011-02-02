@@ -84,8 +84,8 @@ import xml.etree.cElementTree as ET
 # keepnote imports
 from keepnote import safefile
 from keepnote import trans
-from . import index as notebook_index
-from .. import NoteBookConnection
+from keepnote.notebook.connection.fs import index as notebook_index
+from keepnote.notebook.connection import NoteBookConnection
 import keepnote
 import keepnote.notebook
 
@@ -669,7 +669,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         """List attr of children nodes of nodeid"""
         path = self._path_cache.get_path(nodeid) if _path is None else _path
         assert path is not None
-
+        
         try:
             files = os.listdir(path)
         except OSError, e:
