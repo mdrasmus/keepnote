@@ -129,6 +129,9 @@ class AttrIndex (object):
             cur.execute(u"""CREATE INDEX IF NOT EXISTS %s
                            ON %s (value);""" % (self._index_value_name,
                                                 self._table_name))
+
+    def drop(self, cur):
+        cur.execute(u"DROP TABLE IF EXISTS %s" % self._table_name)
             
 
     def add_node(self, cur, nodeid, attr):
@@ -408,6 +411,14 @@ class NoteBookIndex (object):
         self.con.execute(u"DROP INDEX IF EXISTS IdxNodeGraphParentid")
         self.con.execute(u"DROP TABLE IF EXISTS fulltext;")
         
+        # drop attribute tables
+        table_names = [x for (x,) in self.con.execute(
+            u"""SELECT name FROM sqlite_master WHERE name LIKE 'Attr_%'""")]
+
+        for table_name in table_names:
+            self.con.execute(u"""DROP TABLE %s;""" % table_name)
+        
+
     
     def index_needed(self):
         """Returns True if indexing is needed"""

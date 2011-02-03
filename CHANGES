@@ -1,8 +1,15 @@
 KeepNote Change Log
 -------------------
 
-keepnote-0.6.8
---------------
+keepnote-0.7
+------------
+- added indexed full text search (require sqlite >= 3.5.0)
+- added custom font sizes for treeview and listview
+- improved notebook loading time
+
+
+keepnote-0.6.8 (2011/01/24)
+---------------------------
 - fixed save notebook on window close bug
 - fixed save preferences on close bug
 
