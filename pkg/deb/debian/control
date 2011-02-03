@@ -10,7 +10,7 @@ Homepage: http://rasm.ods.org/keepnote
 Package: keepnote
 Architecture: all
 XB-Python-Version: ${python:Versions}
-Depends: ${misc:Depends}, python (>=2.5), python-central (>= 0.5.6), python-gtk2, python-glade2
+Depends: ${misc:Depends}, python (>=2.5), python-central (>= 0.5.6), python-gtk2, python-glade2, libsqlite3-0 (>= 3.5.0)
 Suggests: python-gnome2-extras 
 Description: cross-platform note-taking and organization application
  KeepNote is a note taking application that works on Windows, Linux, and 

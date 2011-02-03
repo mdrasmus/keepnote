@@ -85,7 +85,7 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
         self.cell_text.connect("editing-started", self.on_editing_started)
         self.cell_text.connect("editing-canceled", self.on_editing_canceled)
         self.cell_text.connect("edited", self.on_edit_title)
-        self.cell_text.set_property("editable", True)        
+        self.cell_text.set_property("editable", True)
 
         # add the cells to column
         self.column.pack_start(self.cell_icon, False)

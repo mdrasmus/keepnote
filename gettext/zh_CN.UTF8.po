@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: keepnote 0.6.2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2010-10-17 11:27-0400\n"
+"POT-Creation-Date: 2011-02-02 17:48-0500\n"
 "PO-Revision-Date: 2010-03-24 15:32+0800\n"
 "Last-Translator: 胡达川(hu dachuan) <hdccn@sina.com>\n"
 "Language-Team: 胡达川(hu dachuan) <hdccn@sina.com>\n"
@@ -19,16 +19,16 @@ msgstr ""
 "X-Poedit-Language: Chinese\n"
 "X-Poedit-Country: CHINA\n"
 
-#: keepnote/__init__.py:568
+#: keepnote/__init__.py:657
 msgid "Cannot save preferences"
 msgstr "不能保存配置"
 
-#: keepnote/__init__.py:866 keepnote/__init__.py:868
+#: keepnote/__init__.py:987 keepnote/__init__.py:989
 #, python-format
 msgid "Must specify '%s' program in Helper Applications"
 msgstr "必须在助手应用中指定 '%s' 程序"
 
-#: keepnote/__init__.py:889
+#: keepnote/__init__.py:1010
 #, python-format
 msgid ""
 "Error occurred while opening file with %s.\n"
@@ -47,88 +47,88 @@ msgstr ""
 "\n"
 "错误: %s"
 
-#: keepnote/__init__.py:926
-msgid "Unable to dertermine note type."
-msgstr "不能确定笔记类型。"
+#: keepnote/__init__.py:1041
+msgid "Unable to determine note type."
+msgstr ""
 
-#: keepnote/__init__.py:957
+#: keepnote/__init__.py:1071
 msgid "You must specify a Screen Shot program in Application Options"
 msgstr "你必须在应用选项中指定屏幕截图程序。"
 
-#: keepnote/__init__.py:969
+#: keepnote/__init__.py:1083
 #, python-format
 msgid "The screenshot program did not create the necessary image file '%s'"
 msgstr "屏幕截图程序不能创建必须的图片文件 '%s'"
 
-#: keepnote/__init__.py:1008
+#: keepnote/__init__.py:1104
 #, python-format
 msgid "command '%s' already exists"
 msgstr "命令 '%s' 已经存在。"
 
-#: keepnote/__init__.py:1075 keepnote/__init__.py:1192
+#: keepnote/__init__.py:1171 keepnote/__init__.py:1288
 #, python-format
 msgid "enabling extension '%s'\n"
 msgstr "使用扩展 '%s'\n"
 
-#: keepnote/__init__.py:1080
+#: keepnote/__init__.py:1176
 #, python-format
 msgid "  skipping extension '%s':\n"
 msgstr "  忽略扩展 '%s':\n"
 
-#: keepnote/__init__.py:1083
+#: keepnote/__init__.py:1179
 #, python-format
 msgid "    failed dependency: %s\n"
 msgstr "失败的依赖: %s\n"
 
-#: keepnote/__init__.py:1175
+#: keepnote/__init__.py:1271
 #, python-format
 msgid "Unable to install extension '%s'"
 msgstr "不能安装扩展 '%s'"
 
-#: keepnote/__init__.py:1181
+#: keepnote/__init__.py:1277
 #, python-format
 msgid "removing '%s'"
 msgstr "正在移除 '%s'"
 
-#: keepnote/__init__.py:1190
+#: keepnote/__init__.py:1286
 msgid "Enabling new extensions:\n"
 msgstr "使用一个新扩展:\n"
 
-#: keepnote/__init__.py:1205
+#: keepnote/__init__.py:1301
 #, python-format
 msgid "Unable to uninstall unknown extension '%s'."
 msgstr "不能卸载未知扩展 '%s'."
 
-#: keepnote/__init__.py:1210
+#: keepnote/__init__.py:1306
 msgid "KeepNote can only uninstall user extensions"
 msgstr ""
 
-#: keepnote/__init__.py:1227
+#: keepnote/__init__.py:1323
 msgid "Unable to uninstall extension.  Do not have permission."
 msgstr "没有权限，不能卸载扩展。"
 
 #: keepnote/gui/editor_text.py:412 keepnote/gui/editor_sourceview.py:473
-#: keepnote/gui/editor_richtext.py:1001
+#: keepnote/gui/editor_richtext.py:1100
 msgid "_Find In Page..."
 msgstr "在本页内查找(_F)"
 
 #: keepnote/gui/editor_text.py:416 keepnote/gui/editor_sourceview.py:477
-#: keepnote/gui/editor_richtext.py:1005
+#: keepnote/gui/editor_richtext.py:1104
 msgid "Find _Next In Page..."
 msgstr "在下一页中查找(_N)..."
 
 #: keepnote/gui/editor_text.py:421 keepnote/gui/editor_sourceview.py:482
-#: keepnote/gui/editor_richtext.py:1010
+#: keepnote/gui/editor_richtext.py:1109
 msgid "Find Pre_vious In Page..."
 msgstr "在上一页中查找(_V)..."
 
 #: keepnote/gui/editor_text.py:426 keepnote/gui/editor_sourceview.py:487
-#: keepnote/gui/editor_richtext.py:1015
+#: keepnote/gui/editor_richtext.py:1114
 msgid "_Replace In Page..."
 msgstr "在本页内替换(_R)..."
 
 #: keepnote/gui/editor_text.py:432 keepnote/gui/editor_sourceview.py:493
-#: keepnote/gui/editor_richtext.py:1129
+#: keepnote/gui/editor_richtext.py:1228
 msgid "_Spell Check"
 msgstr "拼写检查(_S)"
 
@@ -148,294 +148,301 @@ msgstr "宽度:"
 msgid "height:"
 msgstr "高度:"
 
-#: keepnote/gui/main_window.py:503
+#: keepnote/gui/main_window.py:514
 msgid "New Notebook"
 msgstr "新建笔记本"
 
-#: keepnote/gui/main_window.py:505 keepnote/gui/main_window.py:525
+#: keepnote/gui/main_window.py:516 keepnote/gui/main_window.py:536
 #: keepnote/gui/dialog_app_options.py:59
-#: keepnote/gui/dialog_app_options.py:660 keepnote/gui/__init__.py:648
+#: keepnote/gui/dialog_app_options.py:678 keepnote/gui/__init__.py:696
 #: keepnote/gui/dialog_update_notebook.py:134
-#: keepnote/gui/editor_richtext.py:547 keepnote/gui/editor_richtext.py:692
+#: keepnote/gui/editor_richtext.py:647 keepnote/gui/editor_richtext.py:791
 #: keepnote/gui/dialog_node_icon.py:61
 msgid "Cancel"
 msgstr "取消"
 
-#: keepnote/gui/main_window.py:506
+#: keepnote/gui/main_window.py:517
 msgid "New"
 msgstr "新建"
 
-#: keepnote/gui/main_window.py:523
+#: keepnote/gui/main_window.py:534
 msgid "Open Notebook"
 msgstr "打开笔记本"
 
-#: keepnote/gui/main_window.py:526 keepnote/gui/dialog_app_options.py:60
-#: keepnote/gui/dialog_app_options.py:661 keepnote/gui/dialog_node_icon.py:62
+#: keepnote/gui/main_window.py:537 keepnote/gui/dialog_app_options.py:60
+#: keepnote/gui/dialog_app_options.py:679 keepnote/gui/dialog_node_icon.py:62
 msgid "Open"
 msgstr "打开"
 
-#: keepnote/gui/main_window.py:541
+#: keepnote/gui/main_window.py:552
 msgid "Notebook (*.nbk)"
 msgstr "笔记本 (*.nbk)"
 
-#: keepnote/gui/main_window.py:546 keepnote/gui/dialog_app_options.py:672
+#: keepnote/gui/main_window.py:557 keepnote/gui/dialog_app_options.py:690
 msgid "All files (*.*)"
 msgstr "所有文件 (*.*)"
 
-#: keepnote/gui/main_window.py:612
+#: keepnote/gui/main_window.py:628
 msgid "Notebook saved"
 msgstr "笔记本已保存"
 
-#: keepnote/gui/main_window.py:616
+#: keepnote/gui/main_window.py:632
 msgid "Could not save notebook."
 msgstr "不能保存笔记本。"
 
-#: keepnote/gui/main_window.py:617
+#: keepnote/gui/main_window.py:633
 msgid "Error saving notebook"
 msgstr "保存笔记本时错误"
 
-#: keepnote/gui/main_window.py:630
+#: keepnote/gui/main_window.py:642
 msgid "Reloading only works when a notebook is open."
 msgstr "当笔记本打开时，仅重载工作。"
 
-#: keepnote/gui/main_window.py:637
+#: keepnote/gui/main_window.py:649
 msgid "Notebook reloaded"
 msgstr "笔记本已重新载入"
 
-#: keepnote/gui/main_window.py:653
+#: keepnote/gui/main_window.py:665
 #, python-format
 msgid "Created '%s'"
 msgstr "创建 '%s'"
 
-#: keepnote/gui/main_window.py:655
+#: keepnote/gui/main_window.py:667
 msgid "Could not create new notebook."
 msgstr "不能创建新笔记本。"
 
-#: keepnote/gui/main_window.py:699
-msgid "Opening notebook"
-msgstr "正在打开笔记本"
-
-#: keepnote/gui/main_window.py:699
-msgid "Loading..."
-msgstr "载入中..."
-
-#: keepnote/gui/main_window.py:705 keepnote/gui/__init__.py:436
-#: keepnote/gui/__init__.py:464 keepnote/gui/__init__.py:470
+#: keepnote/gui/main_window.py:848
 #, python-format
-msgid "Could not load notebook '%s'."
-msgstr "不能载入笔记本 '%s'。"
+msgid "Could note find notebook '%s'."
+msgstr ""
 
-#: keepnote/gui/main_window.py:781
+#: keepnote/gui/main_window.py:861
 #, python-format
 msgid "Loaded '%s'"
 msgstr "已载入 '%s'"
 
-#: keepnote/gui/main_window.py:809
+#: keepnote/gui/main_window.py:878
 msgid "Notebook closed"
 msgstr "笔记本已关闭"
 
-#: keepnote/gui/main_window.py:847
+#: keepnote/gui/main_window.py:913
+msgid "Error during index"
+msgstr ""
+
+#: keepnote/gui/main_window.py:917
 msgid "Indexing notebook"
 msgstr "正在索引笔记本"
 
-#: keepnote/gui/main_window.py:847
+#: keepnote/gui/main_window.py:917
 msgid "Indexing..."
 msgstr "索引中"
 
-#: keepnote/gui/main_window.py:871
+#: keepnote/gui/main_window.py:941
 msgid "Notebook modified"
 msgstr "笔记本已修改"
 
-#: keepnote/gui/main_window.py:906 keepnote/compat/notebook_v3.py:1278
-#: keepnote/notebook/__init__.py:1202
+#: keepnote/gui/main_window.py:976 keepnote/compat/notebook_v3.py:1278
+#: keepnote/notebook/__init__.py:1130
 msgid "The Trash folder cannot be deleted."
 msgstr "回收站文件夹不能删除。"
 
-#: keepnote/gui/main_window.py:909
+#: keepnote/gui/main_window.py:979
 msgid "The top-level folder cannot be deleted."
 msgstr "最上层文件夹不能被删除。"
 
-#: keepnote/gui/main_window.py:913
+#: keepnote/gui/main_window.py:983
 msgid "Do you want to delete this note and all of its children?"
 msgstr "你想要删除这个笔记及其所有子笔记么？"
 
-#: keepnote/gui/main_window.py:915
+#: keepnote/gui/main_window.py:985
 msgid "Do you want to delete this note?"
 msgstr "你想要删除本笔记么？"
 
-#: keepnote/gui/main_window.py:917
+#: keepnote/gui/main_window.py:987
 msgid "Delete Note"
 msgstr "删除笔记"
 
-#: keepnote/gui/main_window.py:930
+#: keepnote/gui/main_window.py:1000
 msgid "Could not empty trash."
 msgstr "不能清空回收站。"
 
-#: keepnote/gui/main_window.py:948
+#: keepnote/gui/main_window.py:1018
 msgid "No notes are selected."
 msgstr "未选择笔记"
 
-#: keepnote/gui/main_window.py:1012 keepnote/gui/main_window.py:1023
+#: keepnote/gui/main_window.py:1082 keepnote/gui/main_window.py:1093
 msgid "Could not open error log"
 msgstr "不能打开错误日志"
 
-#: keepnote/gui/main_window.py:1107
+#: keepnote/gui/main_window.py:1177
 msgid "_File"
 msgstr "文件(_F)"
 
-#: keepnote/gui/main_window.py:1109
-msgid "New Window"
-msgstr "新窗口"
-
-#: keepnote/gui/main_window.py:1110
-msgid "Open a new window"
-msgstr "打开一个新的窗口"
-
-#: keepnote/gui/main_window.py:1113
+#: keepnote/gui/main_window.py:1179
 msgid "_New Notebook..."
 msgstr "新建笔记本(_N)..."
 
-#: keepnote/gui/main_window.py:1114
+#: keepnote/gui/main_window.py:1180
 msgid "Start a new notebook"
 msgstr "打开一个新笔记本"
 
-#: keepnote/gui/main_window.py:1117
+#: keepnote/gui/main_window.py:1183
 msgid "_Open Notebook..."
 msgstr "打开笔记本(_O)"
 
-#: keepnote/gui/main_window.py:1118
+#: keepnote/gui/main_window.py:1184
 msgid "Open an existing notebook"
 msgstr "打开存在的笔记本"
 
-#: keepnote/gui/main_window.py:1122
+#: keepnote/gui/main_window.py:1188
 msgid "Open Re_cent Notebook"
 msgstr "最近打开的文档(_C)"
 
-#: keepnote/gui/main_window.py:1125
+#: keepnote/gui/main_window.py:1191
 msgid "_Reload Notebook"
 msgstr "重新载入笔记本(_R)"
 
-#: keepnote/gui/main_window.py:1126
+#: keepnote/gui/main_window.py:1192
 msgid "Reload the current notebook"
 msgstr "重新加载当前笔记本"
 
-#: keepnote/gui/main_window.py:1129
+#: keepnote/gui/main_window.py:1195
 msgid "_Save Notebook"
 msgstr "保存笔记本(_S)"
 
-#: keepnote/gui/main_window.py:1130
+#: keepnote/gui/main_window.py:1196
 msgid "Save the current notebook"
 msgstr "保存当前笔记本"
 
-#: keepnote/gui/main_window.py:1133
+#: keepnote/gui/main_window.py:1199
 msgid "_Close Notebook"
 msgstr "关闭笔记本(_C)"
 
-#: keepnote/gui/main_window.py:1134
+#: keepnote/gui/main_window.py:1200
 msgid "Close the current notebook"
 msgstr "关闭当前笔记本"
 
-#: keepnote/gui/main_window.py:1137
+#: keepnote/gui/main_window.py:1203
 msgid "_Export Notebook"
 msgstr "导出笔记本(_E)"
 
-#: keepnote/gui/main_window.py:1139
+#: keepnote/gui/main_window.py:1205
 msgid "_Import Notebook"
 msgstr "导入笔记本(_I)"
 
-#: keepnote/gui/main_window.py:1141 keepnote/gui/main_window.py:1358
+#: keepnote/gui/main_window.py:1207 keepnote/gui/main_window.py:1437
 msgid "_Quit"
 msgstr "退出(_Q)"
 
-#: keepnote/gui/main_window.py:1142 keepnote/gui/main_window.py:1359
+#: keepnote/gui/main_window.py:1208 keepnote/gui/main_window.py:1438
 msgid "Quit KeepNote"
 msgstr "退出 KeepNote"
 
-#: keepnote/gui/main_window.py:1146
+#: keepnote/gui/main_window.py:1212
 msgid "_Edit"
 msgstr "编辑(_E)"
 
-#: keepnote/gui/main_window.py:1172
+#: keepnote/gui/main_window.py:1238
 msgid "Empty _Trash"
 msgstr "清空回收站(_T)"
 
-#: keepnote/gui/main_window.py:1177
+#: keepnote/gui/main_window.py:1243
 msgid "_Search"
 msgstr "搜索(_S)"
 
-#: keepnote/gui/main_window.py:1179
+#: keepnote/gui/main_window.py:1245
 msgid "_Search All Notes"
 msgstr "搜索所有笔记(_S)"
 
-#: keepnote/gui/main_window.py:1184
+#: keepnote/gui/main_window.py:1250
 msgid "_Go"
 msgstr "_Go"
 
-#: keepnote/gui/main_window.py:1187
+#: keepnote/gui/main_window.py:1253
 msgid "_View"
 msgstr "视图(_V)"
 
-#: keepnote/gui/main_window.py:1190
+#: keepnote/gui/main_window.py:1256
 msgid "View Note in File Explorer"
 msgstr "在文件浏览器中查看笔记"
 
-#: keepnote/gui/main_window.py:1196
+#: keepnote/gui/main_window.py:1262
 msgid "View Note in Text Editor"
 msgstr "在文字编辑器中查看笔记"
 
-#: keepnote/gui/main_window.py:1202
+#: keepnote/gui/main_window.py:1268
 msgid "View Note in Web Browser"
 msgstr "在WEB浏览器中查看笔记"
 
-#: keepnote/gui/main_window.py:1208
+#: keepnote/gui/main_window.py:1274
 msgid "_Open File"
 msgstr "打开文件(_O)"
 
-#: keepnote/gui/main_window.py:1215
+#: keepnote/gui/main_window.py:1281
 msgid "_Tools"
 msgstr "工具(_T)"
 
-#: keepnote/gui/main_window.py:1217
+#: keepnote/gui/main_window.py:1283
 msgid "_Update Notebook Index"
 msgstr "更新笔记本索引(_U)"
 
-#: keepnote/gui/main_window.py:1221 keepnote/gui/main_window.py:1355
+#: keepnote/gui/main_window.py:1287 keepnote/gui/main_window.py:1434
 msgid "_Preferences"
 msgstr "配置(_P)"
 
-#: keepnote/gui/main_window.py:1226
+#: keepnote/gui/main_window.py:1292
+msgid "Window"
+msgstr ""
+
+#: keepnote/gui/main_window.py:1294
+msgid "New Window"
+msgstr "新窗口"
+
+#: keepnote/gui/main_window.py:1295
+msgid "Open a new window"
+msgstr "打开一个新的窗口"
+
+#: keepnote/gui/main_window.py:1298
+msgid "Close Window"
+msgstr ""
+
+#: keepnote/gui/main_window.py:1299
+msgid "Close window"
+msgstr ""
+
+#: keepnote/gui/main_window.py:1304
 msgid "_Help"
 msgstr "帮助(_H)"
 
-#: keepnote/gui/main_window.py:1228
+#: keepnote/gui/main_window.py:1306
 msgid "View _Error Log..."
 msgstr "查看错误日志(_E)..."
 
-#: keepnote/gui/main_window.py:1232
+#: keepnote/gui/main_window.py:1310
 msgid "View Preference Files..."
 msgstr "查看配置文件..."
 
-#: keepnote/gui/main_window.py:1235
+#: keepnote/gui/main_window.py:1313
 msgid "Drag and Drop Test..."
 msgstr "拖拽测试..."
 
-#: keepnote/gui/main_window.py:1239 keepnote/gui/main_window.py:1361
+#: keepnote/gui/main_window.py:1317 keepnote/gui/main_window.py:1440
 msgid "_About"
 msgstr "关于(_A)"
 
-#: keepnote/gui/main_window.py:1245 keepnote/gui/main_window.py:1247
+#: keepnote/gui/main_window.py:1323 keepnote/gui/main_window.py:1325
 msgid "Search All Notes"
 msgstr "搜索所有笔记"
 
-#: keepnote/gui/main_window.py:1540 keepnote/gui/main_window.py:1558
+#: keepnote/gui/main_window.py:1617 keepnote/gui/main_window.py:1648
 msgid "Unexpected error"
 msgstr ""
 
-#: keepnote/gui/main_window.py:1562
+#: keepnote/gui/main_window.py:1652
 msgid "Searching notebook"
 msgstr "正在查找笔记本"
 
-#: keepnote/gui/main_window.py:1562
+#: keepnote/gui/main_window.py:1652
 msgid "Searching..."
 msgstr "搜索中..."
 
@@ -459,34 +466,38 @@ msgstr "在工具栏中使用GTK stock图标"
 msgid "use minimal toolbar"
 msgstr "使用最小化工具栏"
 
-#: keepnote/gui/dialog_app_options.py:286
+#: keepnote/gui/dialog_app_options.py:288
+msgid "Application Font Size:"
+msgstr ""
+
+#: keepnote/gui/dialog_app_options.py:302
 msgid "Listview Layout:"
 msgstr "列表视图布局:"
 
-#: keepnote/gui/dialog_app_options.py:289
+#: keepnote/gui/dialog_app_options.py:305
 msgid "Vertical"
 msgstr "垂直"
 
-#: keepnote/gui/dialog_app_options.py:290
+#: keepnote/gui/dialog_app_options.py:306
 msgid "Horizontal"
 msgstr "水平"
 
-#: keepnote/gui/dialog_app_options.py:337
+#: keepnote/gui/dialog_app_options.py:355
 msgid "Language:"
 msgstr "语言："
 
-#: keepnote/gui/dialog_app_options.py:434
+#: keepnote/gui/dialog_app_options.py:452
 #, python-format
 msgid "Choose %s"
 msgstr "选择 %s"
 
-#: keepnote/gui/dialog_app_options.py:436
-#: keepnote/extensions/new_file/__init__.py:469
+#: keepnote/gui/dialog_app_options.py:454
+#: keepnote/extensions/new_file/__init__.py:463
 #: keepnote/rc/keepnote.glade.h:39
 msgid "Browse..."
 msgstr "浏览..."
 
-#: keepnote/gui/dialog_app_options.py:489
+#: keepnote/gui/dialog_app_options.py:507
 msgid ""
 "This section contains options that are saved on a per notebook basis (e.g. "
 "notebook-specific font).   A subsection will appear for each notebook that "
@@ -495,91 +506,97 @@ msgstr ""
 "这部分包含的选项是保存每一个笔记本的基本选项(如:指定笔记本字体)。字部分显示么"
 "一个当前打开的笔记本。"
 
-#: keepnote/gui/dialog_app_options.py:522
+#: keepnote/gui/dialog_app_options.py:540
 msgid "Choose alternative notebook index directory"
 msgstr "选择一个笔记本索引目录"
 
-#: keepnote/gui/dialog_app_options.py:658
+#: keepnote/gui/dialog_app_options.py:676
 msgid "Install New Extension"
 msgstr "安装新的扩展"
 
-#: keepnote/gui/dialog_app_options.py:667
+#: keepnote/gui/dialog_app_options.py:685
 msgid "KeepNote Extension (*.kne)"
 msgstr "KeepNote 扩展 (*.kne)"
 
-#: keepnote/gui/dialog_app_options.py:735
+#: keepnote/gui/dialog_app_options.py:753
 msgid "Enabled"
 msgstr ""
 
-#: keepnote/gui/dialog_app_options.py:747
+#: keepnote/gui/dialog_app_options.py:765
 msgid "Uninstall"
 msgstr ""
 
-#: keepnote/gui/dialog_app_options.py:864
+#: keepnote/gui/dialog_app_options.py:882
 msgid "Look and Feel"
 msgstr "外观和感觉"
 
-#: keepnote/gui/dialog_app_options.py:868
+#: keepnote/gui/dialog_app_options.py:886
 msgid "Language"
 msgstr "语言"
 
-#: keepnote/gui/dialog_app_options.py:872
+#: keepnote/gui/dialog_app_options.py:890
 msgid "Date and Time"
 msgstr "日期和时间"
 
-#: keepnote/gui/dialog_app_options.py:876
+#: keepnote/gui/dialog_app_options.py:894
 msgid "Helper Applications"
 msgstr "助手应用"
 
-#: keepnote/gui/dialog_app_options.py:880
+#: keepnote/gui/dialog_app_options.py:898
 msgid "Notebook Options"
 msgstr "笔记本选项"
 
-#: keepnote/gui/dialog_app_options.py:883
+#: keepnote/gui/dialog_app_options.py:901
 msgid "Extensions"
 msgstr "扩展"
 
-#: keepnote/gui/tabbed_viewer.py:139 keepnote/gui/tabbed_viewer.py:254
+#: keepnote/gui/tabbed_viewer.py:136 keepnote/gui/tabbed_viewer.py:251
 msgid "(Untitled)"
 msgstr ""
 
-#: keepnote/gui/tabbed_viewer.py:544
+#: keepnote/gui/tabbed_viewer.py:560
 msgid "New _Tab"
 msgstr ""
 
-#: keepnote/gui/tabbed_viewer.py:545
+#: keepnote/gui/tabbed_viewer.py:561
 msgid "Open a new tab"
 msgstr ""
 
-#: keepnote/gui/tabbed_viewer.py:547
+#: keepnote/gui/tabbed_viewer.py:563
 msgid "Close _Tab"
 msgstr ""
 
-#: keepnote/gui/tabbed_viewer.py:548
+#: keepnote/gui/tabbed_viewer.py:564
 msgid "Close a tab"
 msgstr ""
 
-#: keepnote/gui/tabbed_viewer.py:550
+#: keepnote/gui/tabbed_viewer.py:566
 msgid "_Next Tab"
 msgstr ""
 
-#: keepnote/gui/tabbed_viewer.py:551
+#: keepnote/gui/tabbed_viewer.py:567
 msgid "Switch to next tab"
 msgstr ""
 
-#: keepnote/gui/tabbed_viewer.py:553
+#: keepnote/gui/tabbed_viewer.py:569
 msgid "_Previous Tab"
 msgstr ""
 
-#: keepnote/gui/tabbed_viewer.py:554
-msgid "Swtch to previous tab"
+#: keepnote/gui/tabbed_viewer.py:570
+msgid "Switch to previous tab"
 msgstr ""
 
-#: keepnote/gui/__init__.py:444
+#: keepnote/gui/__init__.py:471 keepnote/gui/__init__.py:499
+#: keepnote/gui/__init__.py:505
+#, python-format
+msgid "Could not load notebook '%s'."
+msgstr "不能载入笔记本 '%s'。"
+
+#: keepnote/gui/__init__.py:479
 msgid "Cannot open notebook (version too old)"
 msgstr "不能打开笔记本(版本太旧)"
 
-#: keepnote/gui/__init__.py:454
+#: keepnote/gui/__init__.py:489
 #, python-format
 msgid ""
 "This version of %s cannot read this notebook.\n"
@@ -588,59 +605,59 @@ msgstr ""
 "本版本 %s 不能读这个笔记本。\n"
 "当前笔记本有版本 %d。  %s只能读 %d。"
 
-#: keepnote/gui/__init__.py:646
+#: keepnote/gui/__init__.py:694
 msgid "Attach File..."
 msgstr "附加文件..."
 
-#: keepnote/gui/__init__.py:649
+#: keepnote/gui/__init__.py:697
 msgid "Attach"
 msgstr "附加"
 
-#: keepnote/gui/__init__.py:705
+#: keepnote/gui/__init__.py:753
 #, python-format
 msgid "Error while attaching files %s."
 msgstr ""
 
-#: keepnote/gui/__init__.py:709
+#: keepnote/gui/__init__.py:757
 #, python-format
 msgid "Error while attaching file '%s'."
 msgstr "附加文件时错误 '%s'."
 
-#: keepnote/gui/__init__.py:735
+#: keepnote/gui/__init__.py:782
 msgid "Error"
 msgstr "错误"
 
-#: keepnote/gui/__init__.py:843
+#: keepnote/gui/__init__.py:888
 #, python-format
 msgid "Do you want to install the extension \"%s\"?"
 msgstr "你想要安装这个扩展 \"%s\"么?"
 
-#: keepnote/gui/__init__.py:852
+#: keepnote/gui/__init__.py:897
 #, python-format
 msgid "Extension \"%s\" is now installed."
 msgstr "扩展 \"%s\" 正在安装。"
 
-#: keepnote/gui/__init__.py:853
-msgid "Install Sucessful"
-msgstr "安装成功"
+#: keepnote/gui/__init__.py:898
+msgid "Install Successful"
+msgstr ""
 
-#: keepnote/gui/__init__.py:863
+#: keepnote/gui/__init__.py:907
 #, python-format
 msgid "Do you want to uninstall the extension \"%s\"?"
 msgstr "你想要卸载扩展 \"%s\"?"
 
-#: keepnote/gui/__init__.py:864
+#: keepnote/gui/__init__.py:908
 msgid "Extension Uninstall"
 msgstr "扩展卸载"
 
-#: keepnote/gui/__init__.py:866
+#: keepnote/gui/__init__.py:910
 #, python-format
 msgid "Extension \"%s\" is now uninstalled."
 msgstr "扩展 \"%s\" 正在卸载。"
 
-#: keepnote/gui/__init__.py:868
-msgid "Uninstall Sucessful"
-msgstr "卸载成功"
+#: keepnote/gui/__init__.py:912
+msgid "Uninstall Successful"
+msgstr ""
 
 #: keepnote/gui/listview.py:82
 msgid "Title"
@@ -654,16 +671,16 @@ msgstr "创建"
 msgid "Modified"
 msgstr "修改"
 
-#: keepnote/gui/listview.py:342
+#: keepnote/gui/listview.py:341
 #, python-format
 msgid "%d pages"
 msgstr "%d 页"
 
-#: keepnote/gui/listview.py:344
+#: keepnote/gui/listview.py:343
 msgid "1 page"
 msgstr "1 页"
 
-#: keepnote/gui/richtext/__init__.py:979
+#: keepnote/gui/richtext/__init__.py:973
 msgid "Paste As Plain Text"
 msgstr "无格式粘贴"
 
@@ -718,7 +735,7 @@ msgstr "执行备份过程中发生错误"
 msgid "Backup canceled."
 msgstr "备份取消"
 
-#: keepnote/gui/editor_richtext.py:516
+#: keepnote/gui/editor_richtext.py:616
 #, python-format
 msgid ""
 "The screenshot program encountered an error:\n"
@@ -727,230 +744,230 @@ msgstr ""
 "屏幕截图程序遇到错误:\n"
 " %s"
 
-#: keepnote/gui/editor_richtext.py:526
+#: keepnote/gui/editor_richtext.py:626
 #, python-format
 msgid "%s was unable to remove temp file for screenshot"
 msgstr "%s 不能为屏幕截图移动临时文件"
 
-#: keepnote/gui/editor_richtext.py:545
+#: keepnote/gui/editor_richtext.py:645
 msgid "Insert Image From File"
 msgstr "从文件插入图片"
 
-#: keepnote/gui/editor_richtext.py:548
+#: keepnote/gui/editor_richtext.py:648
 msgid "Insert"
 msgstr "插入"
 
-#: keepnote/gui/editor_richtext.py:601
+#: keepnote/gui/editor_richtext.py:700
 #, python-format
 msgid "Could not insert image '%s'"
 msgstr "不能插入图片 '%s'"
 
-#: keepnote/gui/editor_richtext.py:690
+#: keepnote/gui/editor_richtext.py:789
 msgid "Save Image As..."
 msgstr "另存图片为..."
 
-#: keepnote/gui/editor_richtext.py:693
+#: keepnote/gui/editor_richtext.py:792
 msgid "Save"
 msgstr "保存"
 
-#: keepnote/gui/editor_richtext.py:702
+#: keepnote/gui/editor_richtext.py:801
 msgid "Must specify a filename for the image."
 msgstr "必须制定图片的文件名。"
 
-#: keepnote/gui/editor_richtext.py:709
+#: keepnote/gui/editor_richtext.py:808
 #, python-format
 msgid "Could not save image '%s'."
 msgstr "不能保存图片 '%s'。"
 
-#: keepnote/gui/editor_richtext.py:726
+#: keepnote/gui/editor_richtext.py:825
 msgid "_View Image..."
 msgstr "查看图片(_V)..."
 
-#: keepnote/gui/editor_richtext.py:728
+#: keepnote/gui/editor_richtext.py:827
 msgid "<b>_View Image...</b>"
 msgstr "<b>查看图片(_V)...</b>"
 
-#: keepnote/gui/editor_richtext.py:732
+#: keepnote/gui/editor_richtext.py:831
 msgid "_Edit Image..."
 msgstr "编辑图片(_E)..."
 
-#: keepnote/gui/editor_richtext.py:737
+#: keepnote/gui/editor_richtext.py:836
 msgid "_Resize Image..."
 msgstr "调整图片大小(_R)..."
 
-#: keepnote/gui/editor_richtext.py:743
+#: keepnote/gui/editor_richtext.py:842
 msgid "_Save Image As..."
 msgstr "保存图片为(_S)..."
 
-#: keepnote/gui/editor_richtext.py:905
+#: keepnote/gui/editor_richtext.py:1004
 msgid "Choose Font"
 msgstr "选择字体"
 
-#: keepnote/gui/editor_richtext.py:982
+#: keepnote/gui/editor_richtext.py:1081
 msgid "Insert _Horizontal Rule"
 msgstr "插入水平线(_H)"
 
-#: keepnote/gui/editor_richtext.py:986
+#: keepnote/gui/editor_richtext.py:1085
 msgid "Insert _Image..."
 msgstr "插入图片(_I)..."
 
-#: keepnote/gui/editor_richtext.py:990
+#: keepnote/gui/editor_richtext.py:1089
 msgid "Insert _New Image..."
 msgstr "插入新图片(_N)..."
 
-#: keepnote/gui/editor_richtext.py:991
+#: keepnote/gui/editor_richtext.py:1090
 msgid "Insert a new image"
 msgstr "插入新图片"
 
-#: keepnote/gui/editor_richtext.py:994
+#: keepnote/gui/editor_richtext.py:1093
 msgid "Insert _Screenshot..."
 msgstr "插入屏幕截图(_S)..."
 
-#: keepnote/gui/editor_richtext.py:1019
+#: keepnote/gui/editor_richtext.py:1118
 msgid "Fo_rmat"
 msgstr "格式(_R)"
 
-#: keepnote/gui/editor_richtext.py:1023
+#: keepnote/gui/editor_richtext.py:1122
 msgid "_Bold"
 msgstr "粗体(_B)"
 
-#: keepnote/gui/editor_richtext.py:1024
+#: keepnote/gui/editor_richtext.py:1123
 msgid "Bold"
 msgstr "粗体"
 
-#: keepnote/gui/editor_richtext.py:1028
+#: keepnote/gui/editor_richtext.py:1127
 msgid "_Italic"
 msgstr "斜体(_I)"
 
-#: keepnote/gui/editor_richtext.py:1029
+#: keepnote/gui/editor_richtext.py:1128
 msgid "Italic"
 msgstr "斜体"
 
-#: keepnote/gui/editor_richtext.py:1033
+#: keepnote/gui/editor_richtext.py:1132
 msgid "_Underline"
 msgstr "下划线(_U)"
 
-#: keepnote/gui/editor_richtext.py:1034
+#: keepnote/gui/editor_richtext.py:1133
 msgid "Underline"
 msgstr "下划线"
 
-#: keepnote/gui/editor_richtext.py:1038
+#: keepnote/gui/editor_richtext.py:1137
 msgid "S_trike"
 msgstr "删除线(_T)"
 
-#: keepnote/gui/editor_richtext.py:1039
+#: keepnote/gui/editor_richtext.py:1138
 msgid "Strike"
 msgstr "删除线"
 
-#: keepnote/gui/editor_richtext.py:1043
+#: keepnote/gui/editor_richtext.py:1142
 msgid "_Monospace"
 msgstr "等宽字体(_M)"
 
-#: keepnote/gui/editor_richtext.py:1044
+#: keepnote/gui/editor_richtext.py:1143
 msgid "Monospace"
 msgstr "等宽字体"
 
-#: keepnote/gui/editor_richtext.py:1048
+#: keepnote/gui/editor_richtext.py:1147
 msgid "Lin_k"
 msgstr "链接(_K)"
 
-#: keepnote/gui/editor_richtext.py:1049
+#: keepnote/gui/editor_richtext.py:1148
 msgid "Make Link"
 msgstr "创建链接"
 
-#: keepnote/gui/editor_richtext.py:1053
+#: keepnote/gui/editor_richtext.py:1152
 msgid "No _Wrapping"
 msgstr "不自动换行(_W)"
 
-#: keepnote/gui/editor_richtext.py:1054
+#: keepnote/gui/editor_richtext.py:1153
 msgid "No Wrapping"
 msgstr "不自动换行"
 
-#: keepnote/gui/editor_richtext.py:1058
+#: keepnote/gui/editor_richtext.py:1157
 msgid "_Left Align"
 msgstr "左对齐(_L)"
 
-#: keepnote/gui/editor_richtext.py:1059
+#: keepnote/gui/editor_richtext.py:1158
 msgid "Left Align"
 msgstr "左对齐"
 
-#: keepnote/gui/editor_richtext.py:1063
+#: keepnote/gui/editor_richtext.py:1162
 msgid "C_enter Align"
 msgstr "中间对齐(_E)"
 
-#: keepnote/gui/editor_richtext.py:1064
+#: keepnote/gui/editor_richtext.py:1163
 msgid "Center Align"
 msgstr "中间对齐"
 
-#: keepnote/gui/editor_richtext.py:1068
+#: keepnote/gui/editor_richtext.py:1167
 msgid "_Right Align"
 msgstr "右对齐(_R)"
 
-#: keepnote/gui/editor_richtext.py:1069
+#: keepnote/gui/editor_richtext.py:1168
 msgid "Right Align"
 msgstr "右对齐"
 
-#: keepnote/gui/editor_richtext.py:1073
+#: keepnote/gui/editor_richtext.py:1172
 msgid "_Justify Align"
 msgstr "两端对齐(_J)"
 
-#: keepnote/gui/editor_richtext.py:1074
+#: keepnote/gui/editor_richtext.py:1173
 msgid "Justify Align"
 msgstr "两端对齐"
 
-#: keepnote/gui/editor_richtext.py:1078
+#: keepnote/gui/editor_richtext.py:1177
 msgid "_Bullet List"
 msgstr "项目符号(_B)"
 
-#: keepnote/gui/editor_richtext.py:1079
+#: keepnote/gui/editor_richtext.py:1178
 msgid "Bullet List"
 msgstr "项目符号"
 
-#: keepnote/gui/editor_richtext.py:1085
+#: keepnote/gui/editor_richtext.py:1184
 msgid "Set Font Face"
 msgstr "设置字体风格"
 
-#: keepnote/gui/editor_richtext.py:1086
+#: keepnote/gui/editor_richtext.py:1185
 msgid "Set Font Size"
 msgstr "设置字体大小"
 
-#: keepnote/gui/editor_richtext.py:1087
+#: keepnote/gui/editor_richtext.py:1186
 msgid "Set Text Color"
 msgstr "设置文本颜色"
 
-#: keepnote/gui/editor_richtext.py:1088
+#: keepnote/gui/editor_richtext.py:1187
 msgid "Set Background Color"
 msgstr "设置背景色"
 
-#: keepnote/gui/editor_richtext.py:1090
+#: keepnote/gui/editor_richtext.py:1189
 msgid "Indent M_ore"
 msgstr "增加缩进"
 
-#: keepnote/gui/editor_richtext.py:1095
+#: keepnote/gui/editor_richtext.py:1194
 msgid "Indent Le_ss"
 msgstr "减少缩进"
 
-#: keepnote/gui/editor_richtext.py:1100
+#: keepnote/gui/editor_richtext.py:1199
 msgid "Increase Font _Size"
 msgstr "增加字号(_S)"
 
-#: keepnote/gui/editor_richtext.py:1104
+#: keepnote/gui/editor_richtext.py:1203
 msgid "_Decrease Font Size"
 msgstr "减小字号(_D)"
 
-#: keepnote/gui/editor_richtext.py:1108
+#: keepnote/gui/editor_richtext.py:1207
 msgid "_Apply Text Color"
 msgstr "应用文本颜色(_A)"
 
-#: keepnote/gui/editor_richtext.py:1113
+#: keepnote/gui/editor_richtext.py:1212
 msgid "A_pply Background Color"
 msgstr "应用背景色(_A)"
 
-#: keepnote/gui/editor_richtext.py:1118
+#: keepnote/gui/editor_richtext.py:1217
 msgid "Choose _Font"
 msgstr "选择字体(_F)"
 
-#: keepnote/gui/editor_richtext.py:1123
+#: keepnote/gui/editor_richtext.py:1222
 msgid "Go to Lin_k"
 msgstr "打开链接(_K)"
 
@@ -962,118 +979,118 @@ msgstr "选择图标"
 msgid "Choose Open Icon"
 msgstr "选择一个打开图标"
 
-#: keepnote/gui/three_pane_viewer.py:1005
+#: keepnote/gui/three_pane_viewer.py:1012
 msgid "Copy _Tree"
 msgstr ""
 
-#: keepnote/gui/three_pane_viewer.py:1006
+#: keepnote/gui/three_pane_viewer.py:1013
 msgid "Copy entire tree"
 msgstr ""
 
-#: keepnote/gui/three_pane_viewer.py:1009
+#: keepnote/gui/three_pane_viewer.py:1016
 msgid "New _Page"
 msgstr "新建页(_P)"
 
-#: keepnote/gui/three_pane_viewer.py:1010
+#: keepnote/gui/three_pane_viewer.py:1017
 msgid "Create a new page"
 msgstr "创建一个新页"
 
-#: keepnote/gui/three_pane_viewer.py:1013
+#: keepnote/gui/three_pane_viewer.py:1020
 msgid "New _Child Page"
 msgstr "新建子页(_C)"
 
-#: keepnote/gui/three_pane_viewer.py:1014
+#: keepnote/gui/three_pane_viewer.py:1021
 msgid "Create a new child page"
 msgstr "创建一个新子页"
 
-#: keepnote/gui/three_pane_viewer.py:1018
+#: keepnote/gui/three_pane_viewer.py:1025
 msgid "New _Folder"
 msgstr "新建文件夹(_F)"
 
-#: keepnote/gui/three_pane_viewer.py:1019
+#: keepnote/gui/three_pane_viewer.py:1026
 msgid "Create a new folder"
 msgstr "创建新文件夹"
 
-#: keepnote/gui/three_pane_viewer.py:1023
+#: keepnote/gui/three_pane_viewer.py:1030
 msgid "_Attach File..."
 msgstr "附加文件(_A)..."
 
-#: keepnote/gui/three_pane_viewer.py:1024
+#: keepnote/gui/three_pane_viewer.py:1031
 msgid "Attach a file to the notebook"
 msgstr "附加文件到笔记本"
 
-#: keepnote/gui/three_pane_viewer.py:1028
+#: keepnote/gui/three_pane_viewer.py:1035
 msgid "_Back"
 msgstr "后退(_B)"
 
-#: keepnote/gui/three_pane_viewer.py:1031
+#: keepnote/gui/three_pane_viewer.py:1038
 msgid "_Forward"
 msgstr "前进(_F)"
 
-#: keepnote/gui/three_pane_viewer.py:1034
+#: keepnote/gui/three_pane_viewer.py:1041
 msgid "Go to _Note"
 msgstr "跳转到笔记(_N)"
 
-#: keepnote/gui/three_pane_viewer.py:1038
+#: keepnote/gui/three_pane_viewer.py:1045
 msgid "Go to _Parent Note"
 msgstr "跳转到父节点(_P)"
 
-#: keepnote/gui/three_pane_viewer.py:1042
+#: keepnote/gui/three_pane_viewer.py:1049
 msgid "Go to Next N_ote"
 msgstr "跳转到下一个笔记(_O)"
 
-#: keepnote/gui/three_pane_viewer.py:1046
+#: keepnote/gui/three_pane_viewer.py:1053
 msgid "Go to _Previous Note"
 msgstr "跳转到上一个笔记(_P)"
 
-#: keepnote/gui/three_pane_viewer.py:1050
+#: keepnote/gui/three_pane_viewer.py:1057
 msgid "E_xpand Note"
 msgstr "展开笔记(_X)"
 
-#: keepnote/gui/three_pane_viewer.py:1054
+#: keepnote/gui/three_pane_viewer.py:1061
 msgid "_Collapse Note"
 msgstr "折叠笔记(_C)"
 
-#: keepnote/gui/three_pane_viewer.py:1058
+#: keepnote/gui/three_pane_viewer.py:1065
 msgid "Expand _All Child Notes"
 msgstr "展开所有子笔记(_A)"
 
-#: keepnote/gui/three_pane_viewer.py:1062
+#: keepnote/gui/three_pane_viewer.py:1069
 msgid "Collapse A_ll Child Notes"
 msgstr "折叠所有子笔记(_L)"
 
-#: keepnote/gui/three_pane_viewer.py:1067
+#: keepnote/gui/three_pane_viewer.py:1074
 msgid "Go to _Tree View"
 msgstr "跳转到树形视图(_T)"
 
-#: keepnote/gui/three_pane_viewer.py:1071
+#: keepnote/gui/three_pane_viewer.py:1078
 msgid "Go to _List View"
 msgstr "跳转到列表视图(_L)"
 
-#: keepnote/gui/three_pane_viewer.py:1075
+#: keepnote/gui/three_pane_viewer.py:1082
 msgid "Go to _Editor"
 msgstr "跳转到编辑器(_E)"
 
-#: keepnote/gui/three_pane_viewer.py:1079
+#: keepnote/gui/three_pane_viewer.py:1086
 msgid "_Delete"
 msgstr "删除(_D)"
 
-#: keepnote/gui/three_pane_viewer.py:1082
+#: keepnote/gui/three_pane_viewer.py:1089
 msgid "_Rename"
 msgstr "重命名(_R)"
 
-#: keepnote/gui/three_pane_viewer.py:1086
+#: keepnote/gui/three_pane_viewer.py:1093
 msgid "_Change Note Icon"
 msgstr "改变节点图标(_C)"
 
 #: keepnote/compat/notebook_v3.py:261 keepnote/compat/notebook_v3.py:1836
-#: keepnote/notebook/__init__.py:287 keepnote/notebook/__init__.py:1729
+#: keepnote/notebook/__init__.py:246
 msgid "Cannot read notebook preferences"
 msgstr "不能读笔记本配置"
 
 #: keepnote/compat/notebook_v3.py:263 keepnote/compat/notebook_v3.py:282
-#: keepnote/compat/notebook_v3.py:1838 keepnote/notebook/__init__.py:289
-#: keepnote/notebook/__init__.py:309 keepnote/notebook/__init__.py:1731
+#: keepnote/compat/notebook_v3.py:1838 keepnote/notebook/__init__.py:248
+#: keepnote/notebook/__init__.py:268 keepnote/notebook/__init__.py:1663
 msgid "Notebook preference data is corrupt"
 msgstr "笔记本配置数据错误"
 
@@ -1081,28 +1098,31 @@ msgstr "笔记本配置数据错误"
 msgid "No version tag found"
 msgstr ""
 
-#: keepnote/compat/notebook_v3.py:278 keepnote/notebook/__init__.py:305
+#: keepnote/compat/notebook_v3.py:278 keepnote/notebook/__init__.py:264
 msgid "Unknown version string"
 msgstr ""
 
-#: keepnote/compat/notebook_v3.py:674 keepnote/notebook/__init__.py:2078
+#: keepnote/compat/notebook_v3.py:674
+#: keepnote/notebook/connection/fs/__init__.py:528
 msgid "Cannot create node"
 msgstr "不能创建节点"
 
-#: keepnote/compat/notebook_v3.py:693 keepnote/notebook/__init__.py:2084
+#: keepnote/compat/notebook_v3.py:693
+#: keepnote/notebook/connection/fs/__init__.py:636
 msgid "Do not have permission to delete"
 msgstr "没有删除权限"
 
-#: keepnote/compat/notebook_v3.py:720 keepnote/notebook/__init__.py:704
+#: keepnote/compat/notebook_v3.py:720 keepnote/notebook/__init__.py:655
 msgid "This node is not part of any notebook"
 msgstr "这个节点不属于任何笔记本"
 
-#: keepnote/compat/notebook_v3.py:769 keepnote/notebook/__init__.py:2097
+#: keepnote/compat/notebook_v3.py:769
+#: keepnote/notebook/connection/fs/__init__.py:621
 msgid "Do not have permission for move"
 msgstr "没有移动权限"
 
-#: keepnote/compat/notebook_v3.py:817 keepnote/notebook/__init__.py:788
-#: keepnote/notebook/__init__.py:2111
+#: keepnote/compat/notebook_v3.py:817
+#: keepnote/notebook/connection/fs/__init__.py:600
 #, python-format
 msgid "Cannot rename '%s' to '%s'"
 msgstr "不能重命名 '%s' 为 '%s'"
@@ -1112,63 +1132,72 @@ msgid "Do not have permission to read folder contents"
 msgstr "没有读文件夹内容权限"
 
 #: keepnote/compat/notebook_v3.py:1077 keepnote/compat/notebook_v3.py:1183
-#: keepnote/notebook/__init__.py:1106
+#: keepnote/notebook/__init__.py:1032
 #, python-format
 msgid "Cannot initialize richtext file '%s'"
 msgstr "不能初始化富文本文件 '%s'"
 
 #: keepnote/compat/notebook_v3.py:1209 keepnote/compat/notebook_v3.py:1929
-#: keepnote/compat/notebook_v3.py:1938 keepnote/notebook/__init__.py:1133
-#: keepnote/notebook/__init__.py:2173 keepnote/notebook/__init__.py:2182
+#: keepnote/compat/notebook_v3.py:1938 keepnote/notebook/__init__.py:1060
+#: keepnote/notebook/__init__.py:1732 keepnote/notebook/__init__.py:1740
 msgid "New File"
 msgstr ""
 
-#: keepnote/compat/notebook_v3.py:1249 keepnote/notebook/__init__.py:1174
+#: keepnote/compat/notebook_v3.py:1249 keepnote/notebook/__init__.py:1103
 #, python-format
 msgid "Cannot copy file '%s'"
 msgstr "不能拷贝文件 '%s'"
 
-#: keepnote/compat/notebook_v3.py:1273 keepnote/notebook/__init__.py:1197
+#: keepnote/compat/notebook_v3.py:1273 keepnote/notebook/__init__.py:1125
 msgid "The Trash folder must be a top-level folder."
 msgstr "回收站文件夹必须是最上层文件夹"
 
 #: keepnote/compat/notebook_v3.py:1357 keepnote/compat/notebook_v3.py:1826
-#: keepnote/notebook/__init__.py:1714
+#: keepnote/notebook/__init__.py:1646
 msgid "Cannot save notebook preferences"
 msgstr "不能保存笔记本配置"
 
-#: keepnote/compat/notebook_v3.py:1514 keepnote/notebook/__init__.py:240
+#: keepnote/compat/notebook_v3.py:1514 keepnote/notebook/__init__.py:199
 #, python-format
 msgid "Cannot find notebook '%s'"
 msgstr "未找到笔记 '%s'"
 
-#: keepnote/compat/notebook_v3.py:1641 keepnote/notebook/__init__.py:1492
+#: keepnote/compat/notebook_v3.py:1641 keepnote/notebook/__init__.py:1417
 msgid "Cannot create Trash folder"
 msgstr "无法创建回收站"
 
-#: keepnote/compat/notebook_v3.py:1828 keepnote/notebook/__init__.py:1716
+#: keepnote/compat/notebook_v3.py:1828 keepnote/notebook/__init__.py:1648
 msgid "File format error"
 msgstr "文件格式错误"
 
-#: keepnote/compat/notebook_v3.py:1974 keepnote/notebook/__init__.py:2027
+#: keepnote/compat/notebook_v3.py:1974
+#: keepnote/notebook/connection/fs/__init__.py:774
 msgid "Cannot write meta data"
 msgstr "不能写元数据"
 
-#: keepnote/compat/notebook_v3.py:1986 keepnote/notebook/__init__.py:2039
+#: keepnote/compat/notebook_v3.py:1986
+#: keepnote/notebook/connection/fs/__init__.py:785
 msgid "Error reading meta data file"
 msgstr "不能读元数据"
 
-#: keepnote/compat/notebook_v3.py:1991 keepnote/notebook/__init__.py:2044
+#: keepnote/compat/notebook_v3.py:1991
+#: keepnote/notebook/connection/fs/__init__.py:790
 msgid "Root tag is not 'node'"
 msgstr ""
 
-#: keepnote/notebook/__init__.py:2071 keepnote/notebook/__init__.py:2092
+#: keepnote/notebook/connection/fs/__init__.py:507
+#: keepnote/notebook/connection/fs/__init__.py:616
 msgid "New Page"
 msgstr ""
 
-#: keepnote/notebook/__init__.py:2124
+#: keepnote/notebook/connection/fs/__init__.py:677
 #, python-format
 msgid "Do not have permission to read folder contents: %s"
+msgstr ""
+
+#: keepnote/notebook/__init__.py:1660
+#, python-format
+msgid "Cannot read notebook preferences %s"
 msgstr ""
 
 #: keepnote/rc/keepnote.glade.h:1
@@ -1619,6 +1648,21 @@ msgstr "设置图标"
 #: keepnote/rc/keepnote.glade.h:111
 msgid "set open-icon"
 msgstr "设置打开图标"
+
+#~ msgid "Unable to dertermine note type."
+#~ msgstr "不能确定笔记类型。"
+
+#~ msgid "Opening notebook"
+#~ msgstr "正在打开笔记本"
+
+#~ msgid "Loading..."
+#~ msgstr "载入中..."
+
+#~ msgid "Install Sucessful"
+#~ msgstr "安装成功"
+
+#~ msgid "Uninstall Sucessful"
+#~ msgstr "卸载成功"
 
 #~ msgid "Use sysem tray icon"
 #~ msgstr "使用系统托盘图标"

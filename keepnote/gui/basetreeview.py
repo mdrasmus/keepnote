@@ -93,6 +93,8 @@ def compute_new_path(model, target, drop_position):
             str(drop_position))
 
 
+
+
 class KeepNoteBaseTreeView (gtk.TreeView):
     """Base class for treeviews of a NoteBook notes"""
 
@@ -112,6 +114,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         self._get_icon = None
 
         self._menu = None
+
 
         # TODO: style
         #print self.style #"vertical-separator"

@@ -280,6 +280,22 @@ class LookAndFeelSection (Section):
             _("use GTK stock icons in toolbar"))
         self.use_minitoolbar = add_check(
             _("use minimal toolbar"))
+
+
+        # app font size
+        font_size = 10
+        h = gtk.HBox(False, 5); h.show()
+        l = gtk.Label(_("Application Font Size:")); l.show()
+        h.pack_start(l, False, False, 0)
+        self.app_font_size = gtk.SpinButton(
+          gtk.Adjustment(value=font_size, lower=2, upper=500, step_incr=1))
+        self.app_font_size.set_value(font_size)
+        #font_size_button.set_editable(False)
+        self.app_font_size.show()
+        h.pack_start(self.app_font_size, False, False, 0)
+        v.pack_start(h, False, False, 0)
+
+
         
         # view mode combo
         h = gtk.HBox(False, 5); h.show()
@@ -301,6 +317,7 @@ class LookAndFeelSection (Section):
         self.listview_rules_check.set_active(l.get("listview_rules"))
         self.use_stock_icons_check.set_active(l.get("use_stock_icons"))
         self.use_minitoolbar.set_active(l.get("use_minitoolbar"))
+        self.app_font_size.set_value(l.get("app_font_size"))
 
         if app.pref.get("viewers", "three_pane_viewer", "view_mode", default="") == "horizontal":
             self.listview_layout.set_active(1)
@@ -316,6 +333,7 @@ class LookAndFeelSection (Section):
         l["listview_rules"] = self.listview_rules_check.get_active()
         l["use_stock_icons"] = self.use_stock_icons_check.get_active()
         l["use_minitoolbar"] = self.use_minitoolbar.get_active()
+        l["app_font_size"] = self.app_font_size.get_value()
 
         app.pref.set("viewers", "three_pane_viewer", "view_mode", 
                      ["vertical", "horizontal"][

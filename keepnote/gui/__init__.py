@@ -74,9 +74,6 @@ DEFAULT_FONT = "%s %d" % (DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE)
 
 
 
-
-
-
 #=============================================================================
 # resources
 
@@ -174,6 +171,24 @@ def init_key_shortcuts():
     else:
         gtk.accel_map_save(accel_file)
 
+
+def set_gtk_style(font_size=10, vsep=0):
+    """
+    Set basic GTK style settings
+    """
+
+    gtk.rc_parse_string("""
+      style "keepnote-treeview" {
+        font_name = "%(font_size)d"
+        GtkTreeView::vertical-separator = %(vsep)d
+        GtkTreeView::expander-size = 10
+      }
+
+      class "GtkTreeView" style "keepnote-treeview"
+      class "GtkEntry" style "keepnote-treeview"
+
+      """ % {"font_size": font_size,
+             "vsep": vsep})
 
 
 def update_file_preview(file_chooser, preview):
@@ -381,12 +396,17 @@ class KeepNote (keepnote.KeepNote):
         """Load information from preferences"""
 
         keepnote.KeepNote.load_preferences(self)
-        
+
         # set defaults for auto save
         p = self.pref
         use_autosave = p.get("autosave", default=True)
         p.get("autosave_time", default=keepnote.DEFAULT_AUTOSAVE_TIME)
         
+
+        # set style
+        set_gtk_style(font_size=p.get("look_and_feel", "app_font_size", 
+                                      default=10))
+
         # let windows load their preferences
         for window in self._windows:
             window.load_preferences()
