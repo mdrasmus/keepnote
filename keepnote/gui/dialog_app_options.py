@@ -924,14 +924,14 @@ class ApplicationOptionsDialog (object):
         #for notebook in self.app.iter_notebooks():
         #    notebook.write_preferences()
         #    notebook.notify_change(False)
-        
-        # force a app and notebook preference save
-        app.save()
 
         # notify changes
         self.app.pref.changed.notify()
         for notebook in self.app.iter_notebooks():
             notebook.notify_change(False)
+
+        # force a app and notebook preference save
+        app.save()
 
 
     #=====================================
