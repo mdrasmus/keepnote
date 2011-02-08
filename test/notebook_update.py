@@ -43,26 +43,6 @@ class TestCaseNoteBookUpdate (unittest.TestCase):
         update.update_notebook(new_notebook_filename, new_version,
                                verify=False)
 
-        def walk(node):
-            attr = dict(list(node.iter_attr()))
-            node.write_meta_data()
-
-            try:
-                node.read_meta_data()
-            except:
-                print "error reading node '%s'" % node.get_path()
-                raise
-            attr2 = dict(list(node.iter_attr()))
-
-            self.assertEquals(attr, attr2)
-
-            # recurse
-            for child in node.get_children():
-                walk(child)
-        notebook = notebooklib.NoteBook()
-        notebook.load(new_notebook_filename)
-        walk(notebook)
-
         self.assert_(notebook._attr["title"] != "None")
 
 
@@ -70,7 +50,7 @@ class TestCaseNoteBookUpdate (unittest.TestCase):
         """test notebook update through gui"""
 
         new_version = notebooklib.NOTEBOOK_FORMAT_VERSION
-        old_notebook_filename = "test/data/notebook-v1"
+        old_notebook_filename = "test/data/notebook-v4"
         new_notebook_filename = "test/data/notebook-v%d-update" % new_version
         
 
