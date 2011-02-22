@@ -1,15 +1,14 @@
-# Japanese translations for keepnote package
-# keepnote パッケージに対する英訳.
+# Japanese translations for keepnote package.
 # Copyright (C) 2010 THE keepnote'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the keepnote package.
 # Toshiharu Kudoh <toshi.kd2@gmail.com>, 2010.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: keepnote 0.6.3\n"
+"Project-Id-Version: keepnote 0.6.7\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2011-02-02 17:48-0500\n"
-"PO-Revision-Date: 2010-06-30 3:29+0900\n"
+"POT-Creation-Date: 2011-02-22 15:10-0500\n"
+"PO-Revision-Date: 2010-12-28 20:45+0900\n"
 "Last-Translator: Toshiharu Kudoh <toshi.kd2@gmail.com>\n"
 "Language-Team: Japanese\n"
 "Language: \n"
@@ -38,7 +37,7 @@ msgid ""
 "\n"
 "error: %s"
 msgstr ""
-"ファイル %s を開いている間にエラーが発生しました。\n"
+"ファイルを %s で開いている間にエラーが発生しました。\n"
 "\n"
 "プログラム： '%s'\n"
 "\n"
@@ -48,7 +47,7 @@ msgstr ""
 
 #: keepnote/__init__.py:1041
 msgid "Unable to determine note type."
-msgstr ""
+msgstr "ノートの形式を決定できません。"
 
 #: keepnote/__init__.py:1071
 msgid "You must specify a Screen Shot program in Application Options"
@@ -70,17 +69,17 @@ msgstr "コマンド '%s' はすでに存在しています"
 #: keepnote/__init__.py:1171 keepnote/__init__.py:1288
 #, python-format
 msgid "enabling extension '%s'\n"
-msgstr "機能拡張 '%s' を有効化\n"
+msgstr "機能拡張 '%s' を有効化中\n"
 
 #: keepnote/__init__.py:1176
 #, python-format
 msgid "  skipping extension '%s':\n"
-msgstr "機能拡張 '%s' をスキップ：\n"
+msgstr "  機能拡張 '%s' をスキップ：\n"
 
 #: keepnote/__init__.py:1179
 #, python-format
 msgid "    failed dependency: %s\n"
-msgstr "依存関係の欠損： %s\n"
+msgstr "    依存関係の欠損： %s\n"
 
 #: keepnote/__init__.py:1271
 #, python-format
@@ -94,7 +93,7 @@ msgstr "'%s' を削除中"
 
 #: keepnote/__init__.py:1286
 msgid "Enabling new extensions:\n"
-msgstr "新しい機能拡張を有効化：\n"
+msgstr "新しい機能拡張を有効化中：\n"
 
 #: keepnote/__init__.py:1301
 #, python-format
@@ -103,34 +102,34 @@ msgstr "不明な機能拡張 '%s' をアンインストールできません。
 
 #: keepnote/__init__.py:1306
 msgid "KeepNote can only uninstall user extensions"
-msgstr ""
+msgstr "KeepNote はユーザー機能拡張だけをアンインストールできます"
 
 #: keepnote/__init__.py:1323
 msgid "Unable to uninstall extension.  Do not have permission."
 msgstr "機能拡張をアンインストールできません。権限がありません。"
 
 #: keepnote/gui/editor_text.py:412 keepnote/gui/editor_sourceview.py:473
-#: keepnote/gui/editor_richtext.py:1100
+#: keepnote/gui/editor_richtext.py:1096
 msgid "_Find In Page..."
 msgstr "ページを検索(_F)..."
 
 #: keepnote/gui/editor_text.py:416 keepnote/gui/editor_sourceview.py:477
-#: keepnote/gui/editor_richtext.py:1104
+#: keepnote/gui/editor_richtext.py:1100
 msgid "Find _Next In Page..."
 msgstr "ページ内で次を検索(_N)..."
 
 #: keepnote/gui/editor_text.py:421 keepnote/gui/editor_sourceview.py:482
-#: keepnote/gui/editor_richtext.py:1109
+#: keepnote/gui/editor_richtext.py:1105
 msgid "Find Pre_vious In Page..."
 msgstr "ページ内で前を検索(_V)..."
 
 #: keepnote/gui/editor_text.py:426 keepnote/gui/editor_sourceview.py:487
-#: keepnote/gui/editor_richtext.py:1114
+#: keepnote/gui/editor_richtext.py:1110
 msgid "_Replace In Page..."
 msgstr "ページ内で置換(_R)..."
 
 #: keepnote/gui/editor_text.py:432 keepnote/gui/editor_sourceview.py:493
-#: keepnote/gui/editor_richtext.py:1228
+#: keepnote/gui/editor_richtext.py:1224
 msgid "_Spell Check"
 msgstr "スペルチェック(_S)"
 
@@ -158,7 +157,7 @@ msgstr "新規ノートブック"
 #: keepnote/gui/dialog_app_options.py:59
 #: keepnote/gui/dialog_app_options.py:678 keepnote/gui/__init__.py:696
 #: keepnote/gui/dialog_update_notebook.py:134
-#: keepnote/gui/editor_richtext.py:647 keepnote/gui/editor_richtext.py:791
+#: keepnote/gui/editor_richtext.py:643 keepnote/gui/editor_richtext.py:787
 #: keepnote/gui/dialog_node_icon.py:61
 msgid "Cancel"
 msgstr "キャンセル"
@@ -202,7 +201,7 @@ msgstr "再読み込みはノートブックが開いている間のみです。
 
 #: keepnote/gui/main_window.py:649
 msgid "Notebook reloaded"
-msgstr "ノートブックが再読込されました"
+msgstr "ノートブックが再読み込みされました"
 
 #: keepnote/gui/main_window.py:665
 #, python-format
@@ -216,7 +215,7 @@ msgstr "新規ノートブックを作成できませんでした。"
 #: keepnote/gui/main_window.py:848
 #, python-format
 msgid "Could note find notebook '%s'."
-msgstr ""
+msgstr "ノートブック '%s' を読み込めませんでした。"
 
 #: keepnote/gui/main_window.py:861
 #, python-format
@@ -244,9 +243,9 @@ msgid "Notebook modified"
 msgstr "ノートブックが修正されました"
 
 #: keepnote/gui/main_window.py:976 keepnote/compat/notebook_v3.py:1278
-#: keepnote/notebook/__init__.py:1130
+#: keepnote/notebook/__init__.py:1137
 msgid "The Trash folder cannot be deleted."
-msgstr "ゴミ箱は削除できません。"
+msgstr "ゴミ箱フォルダは削除できません。"
 
 #: keepnote/gui/main_window.py:979
 msgid "The top-level folder cannot be deleted."
@@ -362,23 +361,23 @@ msgstr "移動(_G)"
 
 #: keepnote/gui/main_window.py:1253
 msgid "_View"
-msgstr "参照(_V)"
+msgstr "表示(_V)"
 
 #: keepnote/gui/main_window.py:1256
 msgid "View Note in File Explorer"
-msgstr "ファイルブラウザで参照"
+msgstr "ノートをファイルブラウザで表示"
 
 #: keepnote/gui/main_window.py:1262
 msgid "View Note in Text Editor"
-msgstr "テキストエディタで参照"
+msgstr "ノートをテキストエディタで表示"
 
 #: keepnote/gui/main_window.py:1268
 msgid "View Note in Web Browser"
-msgstr "ウェブブラウザで参照"
+msgstr "ノートをウェブブラウザで表示"
 
 #: keepnote/gui/main_window.py:1274
 msgid "_Open File"
-msgstr "ファイルを開く(_F)"
+msgstr "ファイルを開く(_O)"
 
 #: keepnote/gui/main_window.py:1281
 msgid "_Tools"
@@ -394,7 +393,7 @@ msgstr "設定(_P)"
 
 #: keepnote/gui/main_window.py:1292
 msgid "Window"
-msgstr ""
+msgstr "ウィンドウ"
 
 #: keepnote/gui/main_window.py:1294
 msgid "New Window"
@@ -406,11 +405,11 @@ msgstr "新規ウィンドウを開く"
 
 #: keepnote/gui/main_window.py:1298
 msgid "Close Window"
-msgstr ""
+msgstr "ウィンドウを閉じる"
 
 #: keepnote/gui/main_window.py:1299
 msgid "Close window"
-msgstr ""
+msgstr "ウィンドウを閉じる"
 
 #: keepnote/gui/main_window.py:1304
 msgid "_Help"
@@ -418,7 +417,7 @@ msgstr "ヘルプ(_H)"
 
 #: keepnote/gui/main_window.py:1306
 msgid "View _Error Log..."
-msgstr "エラーログを参照...(_E)"
+msgstr "エラーログを表示...(_E)"
 
 #: keepnote/gui/main_window.py:1310
 msgid "View Preference Files..."
@@ -438,11 +437,11 @@ msgstr "全てのノートを検索"
 
 #: keepnote/gui/main_window.py:1617 keepnote/gui/main_window.py:1648
 msgid "Unexpected error"
-msgstr ""
+msgstr "予期しないエラー"
 
 #: keepnote/gui/main_window.py:1652
 msgid "Searching notebook"
-msgstr "ノートブックを検索"
+msgstr "ノートブックを検索中"
 
 #: keepnote/gui/main_window.py:1652
 msgid "Searching..."
@@ -458,7 +457,7 @@ msgstr "ツリービューで線を表示"
 
 #: keepnote/gui/dialog_app_options.py:278
 msgid "use ruler hints in listview"
-msgstr "リストビューでルーラーのヒントを使用"
+msgstr "リストビューでルーラーヒントを使用"
 
 #: keepnote/gui/dialog_app_options.py:280
 msgid "use GTK stock icons in toolbar"
@@ -482,7 +481,7 @@ msgstr "縦方向"
 
 #: keepnote/gui/dialog_app_options.py:306
 msgid "Horizontal"
-msgstr "横方法"
+msgstr "横方向"
 
 #: keepnote/gui/dialog_app_options.py:355
 msgid "Language:"
@@ -497,7 +496,7 @@ msgstr "%s を選択"
 #: keepnote/extensions/new_file/__init__.py:463
 #: keepnote/rc/keepnote.glade.h:39
 msgid "Browse..."
-msgstr "閲覧..."
+msgstr "参照..."
 
 #: keepnote/gui/dialog_app_options.py:507
 msgid ""
@@ -523,7 +522,7 @@ msgstr "KeepNote 機能拡張 (*.kne)"
 
 #: keepnote/gui/dialog_app_options.py:753
 msgid "Enabled"
-msgstr "有効"
+msgstr "有効化済"
 
 #: keepnote/gui/dialog_app_options.py:765
 msgid "Uninstall"
@@ -587,13 +586,13 @@ msgstr "前のタブ(_P)"
 
 #: keepnote/gui/tabbed_viewer.py:570
 msgid "Switch to previous tab"
-msgstr ""
+msgstr "前のタブへ切り替え"
 
 #: keepnote/gui/__init__.py:471 keepnote/gui/__init__.py:499
 #: keepnote/gui/__init__.py:505
 #, python-format
 msgid "Could not load notebook '%s'."
-msgstr "ノートブック '%s' を読み込めません。"
+msgstr "ノートブック '%s' を読み込めませんでした。"
 
 #: keepnote/gui/__init__.py:479
 msgid "Cannot open notebook (version too old)"
@@ -610,21 +609,21 @@ msgstr ""
 
 #: keepnote/gui/__init__.py:694
 msgid "Attach File..."
-msgstr "ファイルを追加..."
+msgstr "ファイルを添付..."
 
 #: keepnote/gui/__init__.py:697
 msgid "Attach"
-msgstr "追加"
+msgstr "添付"
 
 #: keepnote/gui/__init__.py:753
 #, python-format
 msgid "Error while attaching files %s."
-msgstr "ファイル %s を追加中にエラーが発生しました。"
+msgstr "ファイル %s を添付中にエラーが発生しました。"
 
 #: keepnote/gui/__init__.py:757
 #, python-format
 msgid "Error while attaching file '%s'."
-msgstr "ファイル '%s' を追加中にエラーが発生しました。"
+msgstr "ファイル %s を添付中にエラーが発生しました。"
 
 #: keepnote/gui/__init__.py:782
 msgid "Error"
@@ -642,7 +641,7 @@ msgstr "機能拡張 \"%s\" がインストールされました。"
 
 #: keepnote/gui/__init__.py:898
 msgid "Install Successful"
-msgstr ""
+msgstr "インストールが成功しました"
 
 #: keepnote/gui/__init__.py:907
 #, python-format
@@ -660,7 +659,7 @@ msgstr "機能拡張 \"%s\" がアンインストールされました。"
 
 #: keepnote/gui/__init__.py:912
 msgid "Uninstall Successful"
-msgstr ""
+msgstr "アンインストールが成功しました"
 
 #: keepnote/gui/listview.py:82
 msgid "Title"
@@ -681,9 +680,9 @@ msgstr "%d ページ"
 
 #: keepnote/gui/listview.py:343
 msgid "1 page"
-msgstr "1ページ"
+msgstr "1 ページ"
 
-#: keepnote/gui/richtext/__init__.py:973
+#: keepnote/gui/richtext/__init__.py:974
 msgid "Paste As Plain Text"
 msgstr "プレーンテキストとして貼り付け"
 
@@ -693,8 +692,8 @@ msgid ""
 "This notebook has format version %d and must be updated to version %d before "
 "opening."
 msgstr ""
-"このノートブックのバージョンは %d で、開く前にバージョン %d へアップデートし"
-"なくてはなりません"
+"このノートブックのバージョンは %d なので、開く前にバージョン %d へアップデー"
+"トしなくてはなりません。"
 
 #: keepnote/gui/dialog_update_notebook.py:108
 msgid "Updating Notebook"
@@ -740,7 +739,7 @@ msgstr "バックアップ中にエラーが発生しました。"
 msgid "Backup canceled."
 msgstr "バックアップがキャンセルされました。"
 
-#: keepnote/gui/editor_richtext.py:616
+#: keepnote/gui/editor_richtext.py:612
 #, python-format
 msgid ""
 "The screenshot program encountered an error:\n"
@@ -749,230 +748,230 @@ msgstr ""
 "スクリーンショットプログラムはエラーに遭遇しました：\n"
 " %s"
 
-#: keepnote/gui/editor_richtext.py:626
+#: keepnote/gui/editor_richtext.py:622
 #, python-format
 msgid "%s was unable to remove temp file for screenshot"
 msgstr "%s はスクリーンショットの一時ファイルを削除できませんでした"
 
-#: keepnote/gui/editor_richtext.py:645
+#: keepnote/gui/editor_richtext.py:641
 msgid "Insert Image From File"
 msgstr "ファイルから画像を挿入"
 
-#: keepnote/gui/editor_richtext.py:648
+#: keepnote/gui/editor_richtext.py:644
 msgid "Insert"
 msgstr "挿入"
 
-#: keepnote/gui/editor_richtext.py:700
+#: keepnote/gui/editor_richtext.py:696
 #, python-format
 msgid "Could not insert image '%s'"
 msgstr "画像 '%s' を挿入できませんでした"
 
-#: keepnote/gui/editor_richtext.py:789
+#: keepnote/gui/editor_richtext.py:785
 msgid "Save Image As..."
 msgstr "画像を別名で保存..."
 
-#: keepnote/gui/editor_richtext.py:792
+#: keepnote/gui/editor_richtext.py:788
 msgid "Save"
 msgstr "保存"
 
-#: keepnote/gui/editor_richtext.py:801
+#: keepnote/gui/editor_richtext.py:797
 msgid "Must specify a filename for the image."
 msgstr "画像のファイル名を指定する必要があります。"
 
-#: keepnote/gui/editor_richtext.py:808
+#: keepnote/gui/editor_richtext.py:804
 #, python-format
 msgid "Could not save image '%s'."
 msgstr "画像 '%s' を保存できませんでした。"
 
-#: keepnote/gui/editor_richtext.py:825
+#: keepnote/gui/editor_richtext.py:821
 msgid "_View Image..."
-msgstr "画像を参照(_V)..."
+msgstr "画像を表示(_V)..."
+
+#: keepnote/gui/editor_richtext.py:823
+msgid "<b>_View Image...</b>"
+msgstr "<b>画像を表示(_V)...</b>"
 
 #: keepnote/gui/editor_richtext.py:827
-msgid "<b>_View Image...</b>"
-msgstr "<b>画像を参照(_V)...</b>"
-
-#: keepnote/gui/editor_richtext.py:831
 msgid "_Edit Image..."
 msgstr "画像を編集(_E)..."
 
-#: keepnote/gui/editor_richtext.py:836
+#: keepnote/gui/editor_richtext.py:832
 msgid "_Resize Image..."
 msgstr "画像をリサイズ(_R)..."
 
-#: keepnote/gui/editor_richtext.py:842
+#: keepnote/gui/editor_richtext.py:838
 msgid "_Save Image As..."
 msgstr "画像を別名で保存(_S)..."
 
-#: keepnote/gui/editor_richtext.py:1004
+#: keepnote/gui/editor_richtext.py:1000
 msgid "Choose Font"
 msgstr "フォントを選択"
 
-#: keepnote/gui/editor_richtext.py:1081
+#: keepnote/gui/editor_richtext.py:1077
 msgid "Insert _Horizontal Rule"
 msgstr "横方向のルールを挿入(_H)"
 
-#: keepnote/gui/editor_richtext.py:1085
+#: keepnote/gui/editor_richtext.py:1081
 msgid "Insert _Image..."
-msgstr "画像挿入(_I)..."
+msgstr "画像を挿入(_I)..."
 
-#: keepnote/gui/editor_richtext.py:1089
+#: keepnote/gui/editor_richtext.py:1085
 msgid "Insert _New Image..."
 msgstr "新規画像を挿入(_N)..."
 
-#: keepnote/gui/editor_richtext.py:1090
+#: keepnote/gui/editor_richtext.py:1086
 msgid "Insert a new image"
 msgstr "新規画像を挿入"
 
-#: keepnote/gui/editor_richtext.py:1093
+#: keepnote/gui/editor_richtext.py:1089
 msgid "Insert _Screenshot..."
 msgstr "スクリーンショット挿入(_S)..."
 
-#: keepnote/gui/editor_richtext.py:1118
+#: keepnote/gui/editor_richtext.py:1114
 msgid "Fo_rmat"
 msgstr "書式(_R)"
 
-#: keepnote/gui/editor_richtext.py:1122
+#: keepnote/gui/editor_richtext.py:1118
 msgid "_Bold"
 msgstr "太字(_B)"
 
-#: keepnote/gui/editor_richtext.py:1123
+#: keepnote/gui/editor_richtext.py:1119
 msgid "Bold"
 msgstr "太字"
 
-#: keepnote/gui/editor_richtext.py:1127
+#: keepnote/gui/editor_richtext.py:1123
 msgid "_Italic"
 msgstr "イタリック(_I)"
 
-#: keepnote/gui/editor_richtext.py:1128
+#: keepnote/gui/editor_richtext.py:1124
 msgid "Italic"
 msgstr "イタリック"
 
-#: keepnote/gui/editor_richtext.py:1132
+#: keepnote/gui/editor_richtext.py:1128
 msgid "_Underline"
 msgstr "下線(_U)"
 
-#: keepnote/gui/editor_richtext.py:1133
+#: keepnote/gui/editor_richtext.py:1129
 msgid "Underline"
 msgstr "下線"
 
-#: keepnote/gui/editor_richtext.py:1137
+#: keepnote/gui/editor_richtext.py:1133
 msgid "S_trike"
 msgstr "打ち消し(_T)"
 
-#: keepnote/gui/editor_richtext.py:1138
+#: keepnote/gui/editor_richtext.py:1134
 msgid "Strike"
 msgstr "打ち消し"
 
-#: keepnote/gui/editor_richtext.py:1142
+#: keepnote/gui/editor_richtext.py:1138
 msgid "_Monospace"
 msgstr "等幅(_M)"
 
-#: keepnote/gui/editor_richtext.py:1143
+#: keepnote/gui/editor_richtext.py:1139
 msgid "Monospace"
 msgstr "等幅"
 
-#: keepnote/gui/editor_richtext.py:1147
+#: keepnote/gui/editor_richtext.py:1143
 msgid "Lin_k"
 msgstr "リンク(_K)"
 
-#: keepnote/gui/editor_richtext.py:1148
+#: keepnote/gui/editor_richtext.py:1144
 msgid "Make Link"
 msgstr "リンクを作成"
 
-#: keepnote/gui/editor_richtext.py:1152
+#: keepnote/gui/editor_richtext.py:1148
 msgid "No _Wrapping"
 msgstr "折り返しなし(_W)"
 
-#: keepnote/gui/editor_richtext.py:1153
+#: keepnote/gui/editor_richtext.py:1149
 msgid "No Wrapping"
 msgstr "折り返しなし"
 
-#: keepnote/gui/editor_richtext.py:1157
+#: keepnote/gui/editor_richtext.py:1153
 msgid "_Left Align"
 msgstr "左寄せ(_L)"
 
-#: keepnote/gui/editor_richtext.py:1158
+#: keepnote/gui/editor_richtext.py:1154
 msgid "Left Align"
 msgstr "左寄せ"
 
-#: keepnote/gui/editor_richtext.py:1162
+#: keepnote/gui/editor_richtext.py:1158
 msgid "C_enter Align"
 msgstr "中央配置(_E)"
 
-#: keepnote/gui/editor_richtext.py:1163
+#: keepnote/gui/editor_richtext.py:1159
 msgid "Center Align"
 msgstr "中央配置"
 
-#: keepnote/gui/editor_richtext.py:1167
+#: keepnote/gui/editor_richtext.py:1163
 msgid "_Right Align"
 msgstr "右寄せ(_R)"
 
-#: keepnote/gui/editor_richtext.py:1168
+#: keepnote/gui/editor_richtext.py:1164
 msgid "Right Align"
 msgstr "右寄せ"
 
-#: keepnote/gui/editor_richtext.py:1172
+#: keepnote/gui/editor_richtext.py:1168
 msgid "_Justify Align"
 msgstr "均等配置(_J)"
 
-#: keepnote/gui/editor_richtext.py:1173
+#: keepnote/gui/editor_richtext.py:1169
 msgid "Justify Align"
 msgstr "均等配置"
 
-#: keepnote/gui/editor_richtext.py:1177
+#: keepnote/gui/editor_richtext.py:1173
 msgid "_Bullet List"
 msgstr "箇条書き(_B)"
 
-#: keepnote/gui/editor_richtext.py:1178
+#: keepnote/gui/editor_richtext.py:1174
 msgid "Bullet List"
 msgstr "箇条書き"
 
-#: keepnote/gui/editor_richtext.py:1184
+#: keepnote/gui/editor_richtext.py:1180
 msgid "Set Font Face"
 msgstr "フォントフェイスを設定"
 
-#: keepnote/gui/editor_richtext.py:1185
+#: keepnote/gui/editor_richtext.py:1181
 msgid "Set Font Size"
 msgstr "フォントサイズを設定"
 
-#: keepnote/gui/editor_richtext.py:1186
+#: keepnote/gui/editor_richtext.py:1182
 msgid "Set Text Color"
 msgstr "文字色を設定"
 
-#: keepnote/gui/editor_richtext.py:1187
+#: keepnote/gui/editor_richtext.py:1183
 msgid "Set Background Color"
 msgstr "背景色を設定"
 
-#: keepnote/gui/editor_richtext.py:1189
+#: keepnote/gui/editor_richtext.py:1185
 msgid "Indent M_ore"
 msgstr "インデントを追加(_O)"
 
-#: keepnote/gui/editor_richtext.py:1194
+#: keepnote/gui/editor_richtext.py:1190
 msgid "Indent Le_ss"
 msgstr "インデントを削除(_S)"
 
-#: keepnote/gui/editor_richtext.py:1199
+#: keepnote/gui/editor_richtext.py:1195
 msgid "Increase Font _Size"
 msgstr "フォントサイズを増加(_S)"
 
-#: keepnote/gui/editor_richtext.py:1203
+#: keepnote/gui/editor_richtext.py:1199
 msgid "_Decrease Font Size"
 msgstr "フォントサイズを減少(_D)"
 
-#: keepnote/gui/editor_richtext.py:1207
+#: keepnote/gui/editor_richtext.py:1203
 msgid "_Apply Text Color"
 msgstr "文字色を適用(_A)"
 
-#: keepnote/gui/editor_richtext.py:1212
+#: keepnote/gui/editor_richtext.py:1208
 msgid "A_pply Background Color"
 msgstr "背景色を適用(_P)"
 
-#: keepnote/gui/editor_richtext.py:1217
+#: keepnote/gui/editor_richtext.py:1213
 msgid "Choose _Font"
 msgstr "フォントを選択(_F)"
 
-#: keepnote/gui/editor_richtext.py:1222
+#: keepnote/gui/editor_richtext.py:1218
 msgid "Go to Lin_k"
 msgstr "リンクへ移動(_K)"
 
@@ -990,7 +989,7 @@ msgstr "ツリーを複製(_T)"
 
 #: keepnote/gui/three_pane_viewer.py:1013
 msgid "Copy entire tree"
-msgstr "全体のツリーを複製"
+msgstr "ツリー全体を複製"
 
 #: keepnote/gui/three_pane_viewer.py:1016
 msgid "New _Page"
@@ -1006,7 +1005,7 @@ msgstr "新規子ページ(_C)"
 
 #: keepnote/gui/three_pane_viewer.py:1021
 msgid "Create a new child page"
-msgstr "新規の子ページを作成"
+msgstr "新規子ページを作成"
 
 #: keepnote/gui/three_pane_viewer.py:1025
 msgid "New _Folder"
@@ -1018,11 +1017,11 @@ msgstr "新規フォルダを作成"
 
 #: keepnote/gui/three_pane_viewer.py:1030
 msgid "_Attach File..."
-msgstr "ファイルを追加(_A)..."
+msgstr "ファイルを添付(_A)..."
 
 #: keepnote/gui/three_pane_viewer.py:1031
 msgid "Attach a file to the notebook"
-msgstr "ノートブックにファイルを追加"
+msgstr "ノートブックにファイルを添付"
 
 #: keepnote/gui/three_pane_viewer.py:1035
 msgid "_Back"
@@ -1054,7 +1053,7 @@ msgstr "ノートを展開する(_X)"
 
 #: keepnote/gui/three_pane_viewer.py:1061
 msgid "_Collapse Note"
-msgstr "ノートを折りたたむ(_C)"
+msgstr "ノートを折り畳む(_C)"
 
 #: keepnote/gui/three_pane_viewer.py:1065
 msgid "Expand _All Child Notes"
@@ -1062,7 +1061,7 @@ msgstr "すべての子ノートを展開する(_A)"
 
 #: keepnote/gui/three_pane_viewer.py:1069
 msgid "Collapse A_ll Child Notes"
-msgstr "すべての子ノートを折りたたむ(_L)"
+msgstr "すべての子ノートを折り畳む(_L)"
 
 #: keepnote/gui/three_pane_viewer.py:1074
 msgid "Go to _Tree View"
@@ -1086,7 +1085,7 @@ msgstr "リネーム(_R)"
 
 #: keepnote/gui/three_pane_viewer.py:1093
 msgid "_Change Note Icon"
-msgstr "ノートのアイコンを変更(_C)"
+msgstr "ノートアイコン変更(_C)"
 
 #: keepnote/compat/notebook_v3.py:261 keepnote/compat/notebook_v3.py:1836
 #: keepnote/notebook/__init__.py:246
@@ -1095,17 +1094,17 @@ msgstr "ノートブックの設定を読み込めません"
 
 #: keepnote/compat/notebook_v3.py:263 keepnote/compat/notebook_v3.py:282
 #: keepnote/compat/notebook_v3.py:1838 keepnote/notebook/__init__.py:248
-#: keepnote/notebook/__init__.py:268 keepnote/notebook/__init__.py:1663
+#: keepnote/notebook/__init__.py:268 keepnote/notebook/__init__.py:1670
 msgid "Notebook preference data is corrupt"
 msgstr "ノートブックの設定データが破損しています"
 
 #: keepnote/compat/notebook_v3.py:275
 msgid "No version tag found"
-msgstr ""
+msgstr "バージョンタグが見つかりません"
 
 #: keepnote/compat/notebook_v3.py:278 keepnote/notebook/__init__.py:264
 msgid "Unknown version string"
-msgstr ""
+msgstr "不明なバージョン文字列"
 
 #: keepnote/compat/notebook_v3.py:674
 #: keepnote/notebook/connection/fs/__init__.py:528
@@ -1130,35 +1129,35 @@ msgstr "移動権限がありません"
 #: keepnote/notebook/connection/fs/__init__.py:600
 #, python-format
 msgid "Cannot rename '%s' to '%s'"
-msgstr "'%s' から '%s'へリネームできません"
+msgstr "'%s' から '%s'へ改名できません"
 
 #: keepnote/compat/notebook_v3.py:960
 msgid "Do not have permission to read folder contents"
 msgstr "フォルダコンテンツを読むための権限がありません"
 
 #: keepnote/compat/notebook_v3.py:1077 keepnote/compat/notebook_v3.py:1183
-#: keepnote/notebook/__init__.py:1032
+#: keepnote/notebook/__init__.py:1039
 #, python-format
 msgid "Cannot initialize richtext file '%s'"
 msgstr "リッチテキストファイル '%s' を初期化できません"
 
 #: keepnote/compat/notebook_v3.py:1209 keepnote/compat/notebook_v3.py:1929
-#: keepnote/compat/notebook_v3.py:1938 keepnote/notebook/__init__.py:1060
-#: keepnote/notebook/__init__.py:1732 keepnote/notebook/__init__.py:1740
+#: keepnote/compat/notebook_v3.py:1938 keepnote/notebook/__init__.py:1067
+#: keepnote/notebook/__init__.py:1739 keepnote/notebook/__init__.py:1747
 msgid "New File"
 msgstr "新規ファイル"
 
-#: keepnote/compat/notebook_v3.py:1249 keepnote/notebook/__init__.py:1103
+#: keepnote/compat/notebook_v3.py:1249 keepnote/notebook/__init__.py:1110
 #, python-format
 msgid "Cannot copy file '%s'"
-msgstr "'%s' をコピーできません"
+msgstr "ファイル '%s' をコピーできません"
 
-#: keepnote/compat/notebook_v3.py:1273 keepnote/notebook/__init__.py:1125
+#: keepnote/compat/notebook_v3.py:1273 keepnote/notebook/__init__.py:1132
 msgid "The Trash folder must be a top-level folder."
 msgstr "ゴミ箱フォルダはトップレベルフォルダでなければなりません。"
 
 #: keepnote/compat/notebook_v3.py:1357 keepnote/compat/notebook_v3.py:1826
-#: keepnote/notebook/__init__.py:1646
+#: keepnote/notebook/__init__.py:1653
 msgid "Cannot save notebook preferences"
 msgstr "ノートブックの設定を保存できません"
 
@@ -1167,11 +1166,11 @@ msgstr "ノートブックの設定を保存できません"
 msgid "Cannot find notebook '%s'"
 msgstr "ノートブック '%s' を見つけられません"
 
-#: keepnote/compat/notebook_v3.py:1641 keepnote/notebook/__init__.py:1417
+#: keepnote/compat/notebook_v3.py:1641 keepnote/notebook/__init__.py:1424
 msgid "Cannot create Trash folder"
 msgstr "ゴミ箱を作成できません"
 
-#: keepnote/compat/notebook_v3.py:1828 keepnote/notebook/__init__.py:1648
+#: keepnote/compat/notebook_v3.py:1828 keepnote/notebook/__init__.py:1655
 msgid "File format error"
 msgstr "ファイルフォーマットエラー"
 
@@ -1183,24 +1182,24 @@ msgstr "メタデータを書き込めません"
 #: keepnote/compat/notebook_v3.py:1986
 #: keepnote/notebook/connection/fs/__init__.py:785
 msgid "Error reading meta data file"
-msgstr "メタデータを読み込めません"
+msgstr "メタデータファイルを読み込み中にエラーが発生しました"
 
 #: keepnote/compat/notebook_v3.py:1991
 #: keepnote/notebook/connection/fs/__init__.py:790
 msgid "Root tag is not 'node'"
-msgstr "ルートタグは 'node' ではありません"
+msgstr "ルートタグが 'node' ではありません"
 
 #: keepnote/notebook/connection/fs/__init__.py:507
 #: keepnote/notebook/connection/fs/__init__.py:616
 msgid "New Page"
-msgstr ""
+msgstr "新規ページ"
 
 #: keepnote/notebook/connection/fs/__init__.py:677
 #, python-format
 msgid "Do not have permission to read folder contents: %s"
-msgstr ""
+msgstr "フォルダコンテンツ %s を読むための権限がありません"
 
-#: keepnote/notebook/__init__.py:1660
+#: keepnote/notebook/__init__.py:1667
 #, python-format
 msgid "Cannot read notebook preferences %s"
 msgstr ""
@@ -1208,104 +1207,104 @@ msgstr ""
 #: keepnote/rc/keepnote.glade.h:1
 #, c-format
 msgid "%%"
-msgstr ""
+msgstr "%%"
 
 #: keepnote/rc/keepnote.glade.h:2
 #, c-format
 msgid "%A"
-msgstr ""
+msgstr "%A"
 
 #: keepnote/rc/keepnote.glade.h:3
 msgid "%B"
-msgstr ""
+msgstr "%B"
 
 #: keepnote/rc/keepnote.glade.h:4
 msgid "%H"
-msgstr ""
+msgstr "%H"
 
 #: keepnote/rc/keepnote.glade.h:5
 msgid "%I"
-msgstr ""
+msgstr "%I"
 
 #: keepnote/rc/keepnote.glade.h:6
 msgid "%M"
-msgstr ""
+msgstr "%M"
 
 #: keepnote/rc/keepnote.glade.h:7
 #, c-format
 msgid "%S"
-msgstr ""
+msgstr "%S"
 
 #: keepnote/rc/keepnote.glade.h:8
 msgid "%U"
-msgstr ""
+msgstr "%U"
 
 #: keepnote/rc/keepnote.glade.h:9
 msgid "%W"
-msgstr ""
+msgstr "%W"
 
 #: keepnote/rc/keepnote.glade.h:10
 #, c-format
 msgid "%X"
-msgstr ""
+msgstr "%X"
 
 #: keepnote/rc/keepnote.glade.h:11
 msgid "%Y"
-msgstr ""
+msgstr "%Y"
 
 #: keepnote/rc/keepnote.glade.h:12
 msgid "%Z"
-msgstr ""
+msgstr "%Z"
 
 #: keepnote/rc/keepnote.glade.h:13
 #, c-format
 msgid "%a"
-msgstr ""
+msgstr "%a"
 
 #: keepnote/rc/keepnote.glade.h:14
 msgid "%b"
-msgstr ""
+msgstr "%b"
 
 #: keepnote/rc/keepnote.glade.h:15
 #, c-format
 msgid "%c"
-msgstr ""
+msgstr "%c"
 
 #: keepnote/rc/keepnote.glade.h:16
 #, c-format
 msgid "%d"
-msgstr ""
+msgstr "%d"
 
 #: keepnote/rc/keepnote.glade.h:17
 msgid "%j"
-msgstr ""
+msgstr "%j"
 
 #: keepnote/rc/keepnote.glade.h:18
 #, c-format
 msgid "%m"
-msgstr ""
+msgstr "%m"
 
 #: keepnote/rc/keepnote.glade.h:19
 #, c-format
 msgid "%p"
-msgstr ""
+msgstr "%p"
 
 #: keepnote/rc/keepnote.glade.h:20
 msgid "%w"
-msgstr ""
+msgstr "%w"
 
 #: keepnote/rc/keepnote.glade.h:21
 #, c-format
 msgid "%x"
-msgstr ""
+msgstr "%x"
 
 #: keepnote/rc/keepnote.glade.h:22
 msgid "%y"
-msgstr ""
+msgstr "%y"
 
 #: keepnote/rc/keepnote.glade.h:23
 msgid "50"
-msgstr ""
+msgstr "50"
 
 #: keepnote/rc/keepnote.glade.h:24
 msgid "<b>All Available icons</b>"
@@ -1351,7 +1350,7 @@ msgstr "<b>このノートブック</b>"
 msgid "<i>note: backup and upgrade may take a while for larger notebooks.</i>"
 msgstr ""
 "<i>注意：巨大なノートブックのバックアップとアップグレードはしばらく時間がかか"
-"るかも知れません。"
+"るかも知れません。</i>"
 
 #: keepnote/rc/keepnote.glade.h:35
 msgid "A literal \"%\" character"
@@ -1359,11 +1358,11 @@ msgstr ""
 
 #: keepnote/rc/keepnote.glade.h:36
 msgid "Alternative index location:"
-msgstr "代替の索引の位置："
+msgstr "代替索引の位置："
 
 #: keepnote/rc/keepnote.glade.h:37
 msgid "Always on top"
-msgstr ""
+msgstr "常にトップに"
 
 #: keepnote/rc/keepnote.glade.h:38
 msgid "Autosave:"
@@ -1375,11 +1374,11 @@ msgstr "大文字小文字の区別(_S)"
 
 #: keepnote/rc/keepnote.glade.h:41
 msgid "Day of the month as a decimal number [01,31]"
-msgstr "十進数としての月の日数 ［01,31］"
+msgstr "月の日数を十進数で ［01,31］"
 
 #: keepnote/rc/keepnote.glade.h:42
 msgid "Day of the year as a decimal number [001,366]"
-msgstr "十進数としての年の日数 ［001,366］"
+msgstr "年の日数を十進数で ［001,366］"
 
 #: keepnote/rc/keepnote.glade.h:43
 msgid "Default Notebook:"
@@ -1414,11 +1413,11 @@ msgstr "タスクバーから隠す"
 
 #: keepnote/rc/keepnote.glade.h:50
 msgid "Hour (12-hour clock) as a decimal number [01,12]"
-msgstr "十進数としての時間（12時制） ［01,12］"
+msgstr "時間を十進数で（12時制） ［01,12］"
 
 #: keepnote/rc/keepnote.glade.h:51
 msgid "Hour (24-hour clock) as a decimal number [00,23]"
-msgstr "十進数としての時間（24時制） ［01,23］"
+msgstr "時間を十進数で（24時制） ［00,23］"
 
 #: keepnote/rc/keepnote.glade.h:52
 msgid "Keep aspect ratio"
@@ -1426,7 +1425,7 @@ msgstr "アスペクト比を維持"
 
 #: keepnote/rc/keepnote.glade.h:53
 msgid "KeepNote Preferences"
-msgstr "KeepNote 設定"
+msgstr "KeepNote の設定"
 
 #: keepnote/rc/keepnote.glade.h:54
 msgid "Locale's abbreviated month name"
@@ -1462,15 +1461,15 @@ msgstr "地域の完全な週名"
 
 #: keepnote/rc/keepnote.glade.h:62
 msgid "Minimize on start"
-msgstr ""
+msgstr "起動時に最小化"
 
 #: keepnote/rc/keepnote.glade.h:63
 msgid "Minute as a decimal number [00,59]"
-msgstr "十進数としての分 ［00,59］"
+msgstr "分を十進数で ［00,59］"
 
 #: keepnote/rc/keepnote.glade.h:64
 msgid "Month as a decimal number [01,12]"
-msgstr "十進数としての月 ［00,12］"
+msgstr "月を十進数で ［00,12］"
 
 #: keepnote/rc/keepnote.glade.h:65
 msgid "New Icon"
@@ -1526,7 +1525,7 @@ msgstr "後方を検索(_B)"
 
 #: keepnote/rc/keepnote.glade.h:78
 msgid "Second as a decimal number [00,61]"
-msgstr "十進数としての秒 ［00,61］"
+msgstr "秒を十進数で ［00,61］"
 
 #: keepnote/rc/keepnote.glade.h:79
 msgid "Snap:"
@@ -1541,7 +1540,7 @@ msgid ""
 "This notebook has format version 1 and must be updated to version 2 before "
 "openning."
 msgstr ""
-"このノートブックはフォーマットのバージョンが1で、開く前にバージョン2にアップ"
+"このノートブックはフォーマットバージョン1であり、開く前にバージョン2にアップ"
 "デートしなくてはなりません。"
 
 #: keepnote/rc/keepnote.glade.h:82
@@ -1554,11 +1553,11 @@ msgstr "現在のノートブックを使う"
 
 #: keepnote/rc/keepnote.glade.h:84
 msgid "Use system tray icon"
-msgstr ""
+msgstr "システムトレイアイコンを使う"
 
 #: keepnote/rc/keepnote.glade.h:85
 msgid "Visible on all desktops"
-msgstr ""
+msgstr "すべてのデスクトップで見えるように"
 
 #: keepnote/rc/keepnote.glade.h:86
 msgid ""
@@ -1576,15 +1575,15 @@ msgstr ""
 
 #: keepnote/rc/keepnote.glade.h:92
 msgid "Weekday as a decimal number [0(Sunday),6]"
-msgstr "十進数としての週日 ［0（日曜）,6］"
+msgstr "曜日を十進数で ［0（日曜）,6］"
 
 #: keepnote/rc/keepnote.glade.h:93
 msgid "Year with century as a decimal number"
-msgstr "十進数としての世紀の年"
+msgstr "上二桁付きの西暦を十進数で"
 
 #: keepnote/rc/keepnote.glade.h:94
 msgid "Year without century as a decimal number [00,99]"
-msgstr ""
+msgstr "上二桁なしの西暦を十進数で [00,99]"
 
 #: keepnote/rc/keepnote.glade.h:95
 msgid "_Apply"
@@ -1616,7 +1615,7 @@ msgstr "アイコンを消去"
 
 #: keepnote/rc/keepnote.glade.h:102
 msgid "gtk-cancel"
-msgstr "キャンセル"
+msgstr ""
 
 #: keepnote/rc/keepnote.glade.h:103
 msgid "gtk-ok"
@@ -1636,7 +1635,7 @@ msgstr "オープンアイコン："
 
 #: keepnote/rc/keepnote.glade.h:108
 msgid "save backup before updating (recommended)"
-msgstr "アップデートの前にバックアップをとる（推奨）"
+msgstr "アップデートの前にバックアップを取得（推奨）"
 
 #: keepnote/rc/keepnote.glade.h:109
 msgid "seconds"
@@ -1650,35 +1649,8 @@ msgstr "アイコンを設定"
 msgid "set open-icon"
 msgstr "オープンアイコンを設定"
 
-#~ msgid "Unable to dertermine note type."
-#~ msgstr "ノートの形式を決定できません。"
-
 #~ msgid "Opening notebook"
 #~ msgstr "ノートブックを展開中"
 
 #~ msgid "Loading..."
 #~ msgstr "読込中..."
-
-#~ msgid "Swtch to previous tab"
-#~ msgstr "前のタブへ切り替え"
-
-#~ msgid "Install Sucessful"
-#~ msgstr "インストールが成功しました"
-
-#~ msgid "Uninstall Sucessful"
-#~ msgstr "アンインストールが成功しました"
-
-#~ msgid "Use sysem tray icon"
-#~ msgstr "システムトレイアイコンを使う"
-
-#~ msgid "KeepNote cannot uninstall system extensions"
-#~ msgstr "KeepNote はシステム機能拡張をアンインストールできません"
-
-#~ msgid "attaching %s"
-#~ msgstr "%s を追加"
-
-#~ msgid "Attach File"
-#~ msgstr "ファイルを追加"
-
-#~ msgid "Attaching files to notebook."
-#~ msgstr "ノートブックにファイルを追加しています。"

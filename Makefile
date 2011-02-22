@@ -69,6 +69,9 @@ $(EBUILD):
 clean:
 	rm -rf $(TMP_FILES) $(UPLOAD_FILES) $(WINDIR) $(WININSTALLER_SRC)
 
+# show makefile actions
+help:
+	grep '^[^$$][^\t]*:[^=]*$$' Makefile | sed 's/:.*//'
 
 #=============================================================================
 # icons

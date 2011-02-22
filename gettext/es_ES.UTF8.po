@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: keepnote 0.5.3\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2011-02-02 17:48-0500\n"
+"POT-Creation-Date: 2011-02-22 15:10-0500\n"
 "PO-Revision-Date: 2010-04-01 14:25-0400\n"
 "Last-Translator: Klemens Häckel <click3d at linuxmail (dot) org>\n"
 "Language-Team: Spanish <kde-i18n-doc@kde.org>\n"
@@ -100,27 +100,27 @@ msgid "Unable to uninstall extension.  Do not have permission."
 msgstr ""
 
 #: keepnote/gui/editor_text.py:412 keepnote/gui/editor_sourceview.py:473
-#: keepnote/gui/editor_richtext.py:1100
+#: keepnote/gui/editor_richtext.py:1096
 msgid "_Find In Page..."
 msgstr "_Buscar en página..."
 
 #: keepnote/gui/editor_text.py:416 keepnote/gui/editor_sourceview.py:477
-#: keepnote/gui/editor_richtext.py:1104
+#: keepnote/gui/editor_richtext.py:1100
 msgid "Find _Next In Page..."
 msgstr "Buscar _siguiente en página..."
 
 #: keepnote/gui/editor_text.py:421 keepnote/gui/editor_sourceview.py:482
-#: keepnote/gui/editor_richtext.py:1109
+#: keepnote/gui/editor_richtext.py:1105
 msgid "Find Pre_vious In Page..."
 msgstr "Buscar _anterior en página..."
 
 #: keepnote/gui/editor_text.py:426 keepnote/gui/editor_sourceview.py:487
-#: keepnote/gui/editor_richtext.py:1114
+#: keepnote/gui/editor_richtext.py:1110
 msgid "_Replace In Page..."
 msgstr "_Reemplazar en página..."
 
 #: keepnote/gui/editor_text.py:432 keepnote/gui/editor_sourceview.py:493
-#: keepnote/gui/editor_richtext.py:1228
+#: keepnote/gui/editor_richtext.py:1224
 msgid "_Spell Check"
 msgstr "_Comprobación de ortografía"
 
@@ -148,7 +148,7 @@ msgstr "Nuevo libro"
 #: keepnote/gui/dialog_app_options.py:59
 #: keepnote/gui/dialog_app_options.py:678 keepnote/gui/__init__.py:696
 #: keepnote/gui/dialog_update_notebook.py:134
-#: keepnote/gui/editor_richtext.py:647 keepnote/gui/editor_richtext.py:791
+#: keepnote/gui/editor_richtext.py:643 keepnote/gui/editor_richtext.py:787
 #: keepnote/gui/dialog_node_icon.py:61
 msgid "Cancel"
 msgstr "Cancelar"
@@ -234,7 +234,7 @@ msgid "Notebook modified"
 msgstr "Libro modificado"
 
 #: keepnote/gui/main_window.py:976 keepnote/compat/notebook_v3.py:1278
-#: keepnote/notebook/__init__.py:1130
+#: keepnote/notebook/__init__.py:1137
 msgid "The Trash folder cannot be deleted."
 msgstr "No posible vaciar la papelera."
 
@@ -673,7 +673,7 @@ msgstr "%d páginas"
 msgid "1 page"
 msgstr "1 página"
 
-#: keepnote/gui/richtext/__init__.py:973
+#: keepnote/gui/richtext/__init__.py:974
 msgid "Paste As Plain Text"
 msgstr "Pegar como texto plano"
 
@@ -730,7 +730,7 @@ msgstr "Error durante la copia de respaldo."
 msgid "Backup canceled."
 msgstr "Copia de respaldo cancelada."
 
-#: keepnote/gui/editor_richtext.py:616
+#: keepnote/gui/editor_richtext.py:612
 #, python-format
 msgid ""
 "The screenshot program encountered an error:\n"
@@ -739,230 +739,230 @@ msgstr ""
 "Error en el programa de captura de pantalla:\n"
 " %s"
 
-#: keepnote/gui/editor_richtext.py:626
+#: keepnote/gui/editor_richtext.py:622
 #, python-format
 msgid "%s was unable to remove temp file for screenshot"
 msgstr "%s no pudo remover archivo temporal para la captura de pantalla"
 
-#: keepnote/gui/editor_richtext.py:645
+#: keepnote/gui/editor_richtext.py:641
 msgid "Insert Image From File"
 msgstr "Insertar imágen desde archivo"
 
-#: keepnote/gui/editor_richtext.py:648
+#: keepnote/gui/editor_richtext.py:644
 msgid "Insert"
 msgstr "Insertar"
 
-#: keepnote/gui/editor_richtext.py:700
+#: keepnote/gui/editor_richtext.py:696
 #, python-format
 msgid "Could not insert image '%s'"
 msgstr "No pisble insertar imagen '%s'"
 
-#: keepnote/gui/editor_richtext.py:789
+#: keepnote/gui/editor_richtext.py:785
 msgid "Save Image As..."
 msgstr "Guardar imagen como..."
 
-#: keepnote/gui/editor_richtext.py:792
+#: keepnote/gui/editor_richtext.py:788
 msgid "Save"
 msgstr "Guardar"
 
-#: keepnote/gui/editor_richtext.py:801
+#: keepnote/gui/editor_richtext.py:797
 msgid "Must specify a filename for the image."
 msgstr "Debe indicar un nombre de archivo de la imágen."
 
-#: keepnote/gui/editor_richtext.py:808
+#: keepnote/gui/editor_richtext.py:804
 #, python-format
 msgid "Could not save image '%s'."
 msgstr "No posible guardar imagen '%s'."
 
-#: keepnote/gui/editor_richtext.py:825
+#: keepnote/gui/editor_richtext.py:821
 msgid "_View Image..."
 msgstr "_Ver imágen..."
 
-#: keepnote/gui/editor_richtext.py:827
+#: keepnote/gui/editor_richtext.py:823
 msgid "<b>_View Image...</b>"
 msgstr "<b>_Ver imágen...</b>"
 
-#: keepnote/gui/editor_richtext.py:831
+#: keepnote/gui/editor_richtext.py:827
 msgid "_Edit Image..."
 msgstr "_Editar imagen..."
 
-#: keepnote/gui/editor_richtext.py:836
+#: keepnote/gui/editor_richtext.py:832
 msgid "_Resize Image..."
 msgstr "_Redimensionar imagen..."
 
-#: keepnote/gui/editor_richtext.py:842
+#: keepnote/gui/editor_richtext.py:838
 msgid "_Save Image As..."
 msgstr "_Guardar imagen como..."
 
-#: keepnote/gui/editor_richtext.py:1004
+#: keepnote/gui/editor_richtext.py:1000
 msgid "Choose Font"
 msgstr "Elegir Fuente"
 
-#: keepnote/gui/editor_richtext.py:1081
+#: keepnote/gui/editor_richtext.py:1077
 msgid "Insert _Horizontal Rule"
 msgstr "Insertar línea _horizontal"
 
-#: keepnote/gui/editor_richtext.py:1085
+#: keepnote/gui/editor_richtext.py:1081
 msgid "Insert _Image..."
 msgstr "Insertar _Imagen..."
 
-#: keepnote/gui/editor_richtext.py:1089
+#: keepnote/gui/editor_richtext.py:1085
 msgid "Insert _New Image..."
 msgstr ""
 
-#: keepnote/gui/editor_richtext.py:1090
+#: keepnote/gui/editor_richtext.py:1086
 msgid "Insert a new image"
 msgstr ""
 
-#: keepnote/gui/editor_richtext.py:1093
+#: keepnote/gui/editor_richtext.py:1089
 msgid "Insert _Screenshot..."
 msgstr "Insertar captura de pantalla..."
 
-#: keepnote/gui/editor_richtext.py:1118
+#: keepnote/gui/editor_richtext.py:1114
 msgid "Fo_rmat"
 msgstr "Fo_rmatear"
 
-#: keepnote/gui/editor_richtext.py:1122
+#: keepnote/gui/editor_richtext.py:1118
 msgid "_Bold"
 msgstr "_Negrita"
 
-#: keepnote/gui/editor_richtext.py:1123
+#: keepnote/gui/editor_richtext.py:1119
 msgid "Bold"
 msgstr "Negrita"
 
-#: keepnote/gui/editor_richtext.py:1127
+#: keepnote/gui/editor_richtext.py:1123
 msgid "_Italic"
 msgstr "_Cursivo"
 
-#: keepnote/gui/editor_richtext.py:1128
+#: keepnote/gui/editor_richtext.py:1124
 msgid "Italic"
 msgstr "Cursivo"
 
-#: keepnote/gui/editor_richtext.py:1132
+#: keepnote/gui/editor_richtext.py:1128
 msgid "_Underline"
 msgstr "_Subrayado"
 
-#: keepnote/gui/editor_richtext.py:1133
+#: keepnote/gui/editor_richtext.py:1129
 msgid "Underline"
 msgstr "Subrayado"
 
-#: keepnote/gui/editor_richtext.py:1137
+#: keepnote/gui/editor_richtext.py:1133
 msgid "S_trike"
 msgstr "_Tachado"
 
-#: keepnote/gui/editor_richtext.py:1138
+#: keepnote/gui/editor_richtext.py:1134
 msgid "Strike"
 msgstr "Tachado"
 
-#: keepnote/gui/editor_richtext.py:1142
+#: keepnote/gui/editor_richtext.py:1138
 msgid "_Monospace"
 msgstr "_Fuente de espacio fijo"
 
-#: keepnote/gui/editor_richtext.py:1143
+#: keepnote/gui/editor_richtext.py:1139
 msgid "Monospace"
 msgstr "Espaciado fijo"
 
-#: keepnote/gui/editor_richtext.py:1147
+#: keepnote/gui/editor_richtext.py:1143
 msgid "Lin_k"
 msgstr "_Hipervínculo"
 
-#: keepnote/gui/editor_richtext.py:1148
+#: keepnote/gui/editor_richtext.py:1144
 msgid "Make Link"
 msgstr "Crear hipervínculo"
 
-#: keepnote/gui/editor_richtext.py:1152
+#: keepnote/gui/editor_richtext.py:1148
 msgid "No _Wrapping"
 msgstr "_SIn salto de línea automática"
 
-#: keepnote/gui/editor_richtext.py:1153
+#: keepnote/gui/editor_richtext.py:1149
 msgid "No Wrapping"
 msgstr "Sin salto de línea automático"
 
-#: keepnote/gui/editor_richtext.py:1157
+#: keepnote/gui/editor_richtext.py:1153
 msgid "_Left Align"
 msgstr "Alineado a la _izquierda"
 
-#: keepnote/gui/editor_richtext.py:1158
+#: keepnote/gui/editor_richtext.py:1154
 msgid "Left Align"
 msgstr "Alineación a la izquierda"
 
-#: keepnote/gui/editor_richtext.py:1162
+#: keepnote/gui/editor_richtext.py:1158
 msgid "C_enter Align"
 msgstr "Alineación _centrada"
 
-#: keepnote/gui/editor_richtext.py:1163
+#: keepnote/gui/editor_richtext.py:1159
 msgid "Center Align"
 msgstr "Alineación centrada"
 
-#: keepnote/gui/editor_richtext.py:1167
+#: keepnote/gui/editor_richtext.py:1163
 msgid "_Right Align"
 msgstr "Alineado a la _derecha"
 
-#: keepnote/gui/editor_richtext.py:1168
+#: keepnote/gui/editor_richtext.py:1164
 msgid "Right Align"
 msgstr "Alineado a la derecha"
 
-#: keepnote/gui/editor_richtext.py:1172
+#: keepnote/gui/editor_richtext.py:1168
 msgid "_Justify Align"
 msgstr "Alineación _justificada"
 
-#: keepnote/gui/editor_richtext.py:1173
+#: keepnote/gui/editor_richtext.py:1169
 msgid "Justify Align"
 msgstr "Alineación justificada"
 
-#: keepnote/gui/editor_richtext.py:1177
+#: keepnote/gui/editor_richtext.py:1173
 msgid "_Bullet List"
 msgstr "_Lista de viñetas"
 
-#: keepnote/gui/editor_richtext.py:1178
+#: keepnote/gui/editor_richtext.py:1174
 msgid "Bullet List"
 msgstr "Lista de viñetas"
 
-#: keepnote/gui/editor_richtext.py:1184
+#: keepnote/gui/editor_richtext.py:1180
 msgid "Set Font Face"
 msgstr "Familia de fuente"
 
-#: keepnote/gui/editor_richtext.py:1185
+#: keepnote/gui/editor_richtext.py:1181
 msgid "Set Font Size"
 msgstr "Tamaño de fuente"
 
-#: keepnote/gui/editor_richtext.py:1186
+#: keepnote/gui/editor_richtext.py:1182
 msgid "Set Text Color"
 msgstr "Color de texto"
 
-#: keepnote/gui/editor_richtext.py:1187
+#: keepnote/gui/editor_richtext.py:1183
 msgid "Set Background Color"
 msgstr "Color de fondo"
 
-#: keepnote/gui/editor_richtext.py:1189
+#: keepnote/gui/editor_richtext.py:1185
 msgid "Indent M_ore"
 msgstr "Aumentar indentación"
 
-#: keepnote/gui/editor_richtext.py:1194
+#: keepnote/gui/editor_richtext.py:1190
 msgid "Indent Le_ss"
 msgstr "Reducir indentación"
 
-#: keepnote/gui/editor_richtext.py:1199
+#: keepnote/gui/editor_richtext.py:1195
 msgid "Increase Font _Size"
 msgstr "Aumentar tamaño de fuente"
 
-#: keepnote/gui/editor_richtext.py:1203
+#: keepnote/gui/editor_richtext.py:1199
 msgid "_Decrease Font Size"
 msgstr "Reducir tamaño de fuente"
 
-#: keepnote/gui/editor_richtext.py:1207
+#: keepnote/gui/editor_richtext.py:1203
 msgid "_Apply Text Color"
 msgstr "Aplicar color de texto"
 
-#: keepnote/gui/editor_richtext.py:1212
+#: keepnote/gui/editor_richtext.py:1208
 msgid "A_pply Background Color"
 msgstr "Aplicar color de fondo"
 
-#: keepnote/gui/editor_richtext.py:1217
+#: keepnote/gui/editor_richtext.py:1213
 msgid "Choose _Font"
 msgstr "Elegir Fuente"
 
-#: keepnote/gui/editor_richtext.py:1222
+#: keepnote/gui/editor_richtext.py:1218
 msgid "Go to Lin_k"
 msgstr "Ir a hiperenlace"
 
@@ -1085,7 +1085,7 @@ msgstr "No posible leer la configuración del libro"
 
 #: keepnote/compat/notebook_v3.py:263 keepnote/compat/notebook_v3.py:282
 #: keepnote/compat/notebook_v3.py:1838 keepnote/notebook/__init__.py:248
-#: keepnote/notebook/__init__.py:268 keepnote/notebook/__init__.py:1663
+#: keepnote/notebook/__init__.py:268 keepnote/notebook/__init__.py:1670
 msgid "Notebook preference data is corrupt"
 msgstr "Datos de configuración del libro están corruptos"
 
@@ -1127,28 +1127,28 @@ msgid "Do not have permission to read folder contents"
 msgstr "No tiene permisos para leer contenido de directorio"
 
 #: keepnote/compat/notebook_v3.py:1077 keepnote/compat/notebook_v3.py:1183
-#: keepnote/notebook/__init__.py:1032
+#: keepnote/notebook/__init__.py:1039
 #, python-format
 msgid "Cannot initialize richtext file '%s'"
 msgstr "Imposible inicializar archivo de texto enriquezido '%s'"
 
 #: keepnote/compat/notebook_v3.py:1209 keepnote/compat/notebook_v3.py:1929
-#: keepnote/compat/notebook_v3.py:1938 keepnote/notebook/__init__.py:1060
-#: keepnote/notebook/__init__.py:1732 keepnote/notebook/__init__.py:1740
+#: keepnote/compat/notebook_v3.py:1938 keepnote/notebook/__init__.py:1067
+#: keepnote/notebook/__init__.py:1739 keepnote/notebook/__init__.py:1747
 msgid "New File"
 msgstr ""
 
-#: keepnote/compat/notebook_v3.py:1249 keepnote/notebook/__init__.py:1103
+#: keepnote/compat/notebook_v3.py:1249 keepnote/notebook/__init__.py:1110
 #, python-format
 msgid "Cannot copy file '%s'"
 msgstr "Imposible copiar archivo '%s' "
 
-#: keepnote/compat/notebook_v3.py:1273 keepnote/notebook/__init__.py:1125
+#: keepnote/compat/notebook_v3.py:1273 keepnote/notebook/__init__.py:1132
 msgid "The Trash folder must be a top-level folder."
 msgstr "La papelera debe ser una carpeta de nivel más alto."
 
 #: keepnote/compat/notebook_v3.py:1357 keepnote/compat/notebook_v3.py:1826
-#: keepnote/notebook/__init__.py:1646
+#: keepnote/notebook/__init__.py:1653
 msgid "Cannot save notebook preferences"
 msgstr "Imposible guardar la configuración del libro"
 
@@ -1157,11 +1157,11 @@ msgstr "Imposible guardar la configuración del libro"
 msgid "Cannot find notebook '%s'"
 msgstr "Libro '%s' no encontrado"
 
-#: keepnote/compat/notebook_v3.py:1641 keepnote/notebook/__init__.py:1417
+#: keepnote/compat/notebook_v3.py:1641 keepnote/notebook/__init__.py:1424
 msgid "Cannot create Trash folder"
 msgstr "Imposible crear carpeta de papelera"
 
-#: keepnote/compat/notebook_v3.py:1828 keepnote/notebook/__init__.py:1648
+#: keepnote/compat/notebook_v3.py:1828 keepnote/notebook/__init__.py:1655
 msgid "File format error"
 msgstr "Error de formato de archivo"
 
@@ -1190,7 +1190,7 @@ msgstr ""
 msgid "Do not have permission to read folder contents: %s"
 msgstr ""
 
-#: keepnote/notebook/__init__.py:1660
+#: keepnote/notebook/__init__.py:1667
 #, python-format
 msgid "Cannot read notebook preferences %s"
 msgstr ""
