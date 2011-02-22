@@ -69,7 +69,7 @@ BLANK_NOTE = u"""\
 """
 
 
-NOTEBOOK_FORMAT_VERSION = 4
+NOTEBOOK_FORMAT_VERSION = 5
 ELEMENT_NODE = 1
 NODE_META_FILE = u"node.xml"
 PAGE_DATA_FILE = u"page.html"
@@ -938,12 +938,19 @@ class NoteBookNode (object):
         """Returns filename of data/text/html/etc"""
         return self._conn.get_node_file(self._attr["nodeid"], PAGE_DATA_FILE)
 
+    def get_page_file(self):
+        """Returns filename of data/text/html/etc"""
+        return PAGE_DATA_FILE
+
     def get_file(self, filename):
         return self._conn.get_node_file(self._attr["nodeid"], filename)
 
     def open_file(self, filename, mode="r", codec="utf-8"):
         return self._conn.open_node_file(
             self._attr["nodeid"], filename, mode, codec=codec)
+
+    def delete_file(self, filename):
+        return self._conn.delete_node_file(self._attr["nodeid"], filename)
 
     def new_filename(self, new_filename, ext=u"", sep=u" ", number=2, 
                      return_number=False, use_number=False, ensure_valid=True):

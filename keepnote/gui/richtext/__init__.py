@@ -202,18 +202,19 @@ class RichTextIO (object):
         self._html_buffer = HtmlBuffer()
 
     
-    def save(self, textbuffer, filename, title=None):
+    def save(self, textbuffer, filename, title=None, stream=None):
         """Save buffer contents to file"""
         
         self._save_images(textbuffer, filename)
         
         try:
-            buffer_contents = iter_buffer_contents(textbuffer,
-                                                   None,
-                                                   None,
-                                                   ignore_tag)
+            buffer_contents = iter_buffer_contents(
+                textbuffer, None, None, ignore_tag)
             
-            out = safefile.open(filename, "wb", codec="utf-8")
+            if stream:
+                out = stream
+            else:
+                out = safefile.open(filename, "wb", codec="utf-8")
             self._html_buffer.set_output(out)
             self._html_buffer.write(buffer_contents,
                                     textbuffer.tag_table,
@@ -225,7 +226,7 @@ class RichTextIO (object):
         textbuffer.set_modified(False)
     
     
-    def load(self, textview, textbuffer, filename):
+    def load(self, textview, textbuffer, filename, stream=None):
         """Load buffer with data from file"""
         
         # unhook expensive callbacks
@@ -241,8 +242,8 @@ class RichTextIO (object):
         
         err = None
         try:
-            if hasattr(filename, "read"):
-                infile = filename
+            if stream:
+                infile = stream
             else:
                 infile = safefile.open(filename, "r", codec="utf-8")
             buffer_contents = self._html_buffer.read(infile)
