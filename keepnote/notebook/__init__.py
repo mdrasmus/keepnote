@@ -1153,7 +1153,7 @@ class NoteBookPreferences (Pref):
 
     def set_data(self, data):
         self.init()
-        self._data = data
+        self._data.update(data)
 
 
     def get_data(self):
@@ -1168,7 +1168,7 @@ class NoteBookPreferences (Pref):
 
 
     def get_quick_pick_icons(self):
-        return self._data["quick_pick_icons"]
+        return self._data.get("quick_pick_icons", [])
 
     def set_quick_pick_icons(self, icons):
         self._data["quick_pick_icons"] = list(icons)

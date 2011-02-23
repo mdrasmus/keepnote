@@ -3,16 +3,18 @@
 
 inherit distutils
 
+EAPI=2
+
 DESCRIPTION="a note taking application"
-HOMEPAGE="http://rasm.ods.org/keepnote/"
-SRC_URI="http://rasm.ods.org/${PN}/download/${P}.tar.gz"
+HOMEPAGE="http://keepnote.org/keepnote/"
+SRC_URI="http://keepnote.org/keepnote/download/${P}.tar.gz"
 
 LICENSE="GPL-2"
 KEYWORDS="amd64 ~ppc64 ~sparc x86"
 SLOT="0"
 IUSE="spell"
 
-DEPEND=">=virtual/python-2.4
+DEPEND=">=virtual/python-2.5[sqlite]
        >=dev-python/pygtk-2.12.0
        spell? ( >=app-text/gtkspell-2.0.11-r1 )"
 
