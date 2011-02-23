@@ -731,7 +731,7 @@ class NoteBookNode (object):
             self._attr["title"] = title
             self._set_dirty(True)
         else:
-            oldtitle = self._attr["title"]
+            oldtitle = self._attr.get("title", "")
             try:
                 self._attr["title"] = title
                 self.save(True)
@@ -781,7 +781,7 @@ class NoteBookNode (object):
 
         # create new node
         node = parent._new_child(self.get_attr("content_type"),
-                                 self.get_attr("title"),
+                                 self.get_attr("title", ""),
                                  index=index)
         skip.add(node)
 
@@ -1212,7 +1212,7 @@ class NoteBook (NoteBookDir):
         if rootdir is not None:
             self._attr["title"] = os.path.basename(rootdir)
         else:
-            self._attr["title"] = None
+            self._attr["title"] = ""
 
         
         # listeners

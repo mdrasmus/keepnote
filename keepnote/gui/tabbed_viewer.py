@@ -245,13 +245,13 @@ class TabbedViewer (Viewer):
         # get node title
         if node is None:
             if viewer.get_notebook():
-                title = viewer.get_notebook().get_attr("title")
+                title = viewer.get_notebook().get_attr("title", "")
                 icon = None
             else:
                 title = _("(Untitled)")
                 icon = None
         else:
-            title = node.get_attr("title")
+            title = node.get_attr("title", "")
             icon = get_node_icon(node, expand=False)
 
         # truncate title
