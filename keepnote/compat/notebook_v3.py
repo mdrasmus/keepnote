@@ -870,7 +870,7 @@ class NoteBookNode (object):
 
         # create new node
         node = parent._new_child(self.get_attr("content_type"),
-                                 self.get_attr("title"),
+                                 self.get_attr("title", ""),
                                  index=index)
         skip.add(node)
 

@@ -674,6 +674,7 @@ class KeepNoteWindow (gtk.Window):
     def _load_notebook(self, filename):
         """Loads notebook in background with progress bar"""
         
+        '''
         try:
             notebook = self._app.get_notebook(filename, self)
             if notebook is None:
@@ -681,23 +682,13 @@ class KeepNoteWindow (gtk.Window):
         except:
             return None
 
-        # check for indexing
-        # TODO: is this the best place for checking?
-        # There is a difference between normal incremental indexing
-        # and indexing due version updating.
-        # incremental updating (checking a few files that have changed on 
-        # disk) should be done within notebook.load().
-        # Whole notebook re-indexing, triggered by version upgrade
-        # should be done separately, and with a different wait dialog
-        # clearly indicating that notebook loading is going to take
-        # longer than usual.
         if notebook.index_needed():
             self.update_index(notebook)
         
         return notebook
+        '''
 
         # NOTE: loading in the background seems to be much slower
-        '''
         def update(task):
             # open notebook in GUI thread
             notebook = [None]
@@ -719,12 +710,12 @@ class KeepNoteWindow (gtk.Window):
             while not loaded[0]: pass
             
             # preload certain nodes
-            if notebook[0]:
-                def walk(node):
-                    if node.get_attr("expanded"):
-                        for child in node.get_children():
-                            walk(child)
-                walk(notebook[0])
+            #if notebook[0]:
+            #    def walk(node):
+            #        if node.get_attr("expanded"):
+            #            for child in node.get_children():
+            #                walk(child)
+            #    walk(notebook[0])
 
             # send notebook back to main thread
             task.set_result(notebook[0])
@@ -746,7 +737,21 @@ class KeepNoteWindow (gtk.Window):
             notebook = task.get_result()
             if notebook is None:
                 return None
-        '''
+
+        # check for indexing
+        # TODO: is this the best place for checking?
+        # There is a difference between normal incremental indexing
+        # and indexing due version updating.
+        # incremental updating (checking a few files that have changed on 
+        # disk) should be done within notebook.load().
+        # Whole notebook re-indexing, triggered by version upgrade
+        # should be done separately, and with a different wait dialog
+        # clearly indicating that notebook loading is going to take
+        # longer than usual.
+        if notebook.index_needed():
+            self.update_index(notebook)
+        
+        return notebook
 
         
 
@@ -929,11 +934,11 @@ class KeepNoteWindow (gtk.Window):
         if notebook is None:
             self.set_title(keepnote.PROGRAM_NAME)
         else:
-            title = notebook.get_attr("title")
+            title = notebook.get_attr("title", "")
             if node is None:
                 node = self.get_current_page()
             if node is not None:
-                title += u": " + node.get_attr("title")
+                title += u": " + node.get_attr("title", "")
 
             modified = notebook.save_needed()
             if modified:
@@ -1619,10 +1624,6 @@ class SearchBox (gtk.Entry):
             
             gobject.idle_add(gui_update)
 
-            # TODO: make fully streamed
-            # this main issue is that the get_node_by_id query 
-            # interupts the previous text query
-            # maybe I need multiple cursors?
             notebook = self._window.get_notebook()
             try:
                 nodes = (notebook.get_node_by_id(nodeid)

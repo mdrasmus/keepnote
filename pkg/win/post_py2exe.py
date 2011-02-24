@@ -41,11 +41,6 @@ try:
 except:
     include(find_path("GTK/bin/jpeg62.dll"), dest+"jpeg62.dll")
 
-
-# needed for sqlite on Windows 7
-#include("pkg/win/sqlite3.dll", dest+"sqlite3.dll")
-# doesn't work yet, breaks search
-
         
 include(find_path("GTK/lib/gtk-2.0/2.10.0/engines"), dest+"lib/gtk-2.0/2.10.0/engines")
 include(find_path("GTK/lib/gtk-2.0/2.10.0/loaders"), dest+"lib/gtk-2.0/2.10.0/loaders")
