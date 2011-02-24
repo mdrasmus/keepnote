@@ -116,6 +116,7 @@ TRANSLATOR_CREDITS = (
     u"German: Jan Rimmek <jan.rimmek@mhinac.de>\n"
     u"Japanese: Toshiharu Kudoh <toshi.kd2@gmail.com>\n"
     u"Italian: Davide Melan <davide.melan@gmail.com>\n"
+    u"Polish: Bernard Baraniewski <raznaya2010(at)rambler(dot)ru>\n"
     u"Russian: Hikiko Mori <hikikomori.dndz@gmail.com>\n"
     u"Spanish: Klemens Hackel <click3d at linuxmail (dot) org>\n"
     u"Turkish: Yuce Tekol <yucetekol@gmail.com>\n"
