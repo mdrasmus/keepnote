@@ -104,4 +104,14 @@ def update_notebook(filename, desired_version, warn=lambda w: False,
             notebook.close()
             version = 4
 
-
+        # upgrade 4 --> 5
+        elif version == 4:
+            
+            # try to load old notebook (may raise exceptions)
+            notebook = notebooklib.NoteBook()
+            notebook.load(filename)
+            notebook.pref.set("version", 5)
+            notebook.save(force=True)
+            notebook.close()
+            version = 5
+            

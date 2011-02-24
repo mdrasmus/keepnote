@@ -105,12 +105,12 @@ class NodeIO (RichTextIO):
     def set_node(self, node):
         self._node = node
         
-    def save(self, textbuffer, filename, title=None):
+    def save(self, textbuffer, filename, title=None, stream=None):
         """Save buffer contents to file"""
-        RichTextIO.save(self, textbuffer, filename, title)
+        RichTextIO.save(self, textbuffer, filename, title, stream=stream)
     
-    def load(self, textview, textbuffer, filename):
-        RichTextIO.load(self, textview, textbuffer, filename)
+    def load(self, textview, textbuffer, filename, stream=None):
+        RichTextIO.load(self, textview, textbuffer, filename, stream=stream)
 
     
     def _load_images(self, textbuffer, html_filename):
@@ -130,8 +130,7 @@ class NodeIO (RichTextIO):
         self._saved_image_files.add(os.path.basename(html_filename))
 
         RichTextIO._save_images(self, textbuffer, html_filename)
-        #print "saved", self._saved_image_files
-
+        
         # delete images not part of the saved set
         self._delete_images(html_filename, 
                             self._image_files - self._saved_image_files)
@@ -141,41 +140,34 @@ class NodeIO (RichTextIO):
     def _delete_images(self, html_filename, image_files):
         
         for image_file in image_files:
-            #print image_file, is_local_file(image_file)
-            
             # only delete an image file if it is local
             if is_local_file(image_file):
                 try:
-                    os.remove(self._get_filename(html_filename, image_file))
+                    self._node.delete_file(image_file)
                 except:
+                    keepnote.log_error()
                     pass
 
 
     def _load_image(self, textbuffer, image, html_filename):
-        image.set_from_file(
-            self._get_filename(html_filename, image.get_filename()))
 
+        infile = self._node.open_file(image.get_filename(), mode="rb")
+        image.set_from_stream(infile)
+        infile.close()
+        
         # record loaded images
         self._image_files.add(image.get_filename())
 
 
     def _save_image(self, textbuffer, image, html_filename):
 
-        filename = self._get_filename(html_filename, image.get_filename())
-
-        # write image if it is modified or its file does not exist
-        if image.save_needed() or not os.path.exists(filename):
-            image.write(filename)
-
+        if image.save_needed():
+            out = self._node.open_file(image.get_filename(), mode="wb")
+            image.write_stream(out)
+            out.close()
+        
         # mark image as saved
         self._saved_image_files.add(image.get_filename())
-
-
-    def _get_filename(self, html_filename, filename):
-        path = os.path.dirname(html_filename)
-        if is_relative_file(filename):
-            return os.path.join(path, filename)
-        return filename
 
 
 
@@ -329,12 +321,15 @@ class RichTextEditor (KeepNoteEditor):
             page = pages[0]
             self._page = page
             self._textview.enable()
-
+            
             try:
                 self._textview_io.set_node(self._page)
-                self._textview_io.load(self._textview,
-                                       self._textview.get_buffer(),
-                                       self._page.get_data_file())
+                self._textview_io.load(
+                    self._textview,
+                    self._textview.get_buffer(),
+                    self._page.get_data_file(),
+                    stream=self._page.open_file(
+                        self._page.get_page_file()))
                 self._load_cursor()
 
  
@@ -389,9 +384,12 @@ class RichTextEditor (KeepNoteEditor):
 
             try:
                 # save text data
-                self._textview_io.save(self._textview.get_buffer(),
-                                       self._page.get_data_file(),
-                                       self._page.get_title())
+                self._textview_io.save(
+                    self._textview.get_buffer(),
+                    self._page.get_data_file(),
+                    self._page.get_title(),
+                    stream=self._page.open_file(
+                        self._page.get_page_file(), "w"))
                 
                 # save meta data            
                 self._page.set_attr_timestamp("modified_time")
@@ -510,8 +508,6 @@ class RichTextEditor (KeepNoteEditor):
 
             # TODO: clean up icon handling.
             for nodeid, title in self._notebook.search_node_titles(text)[:self._maxlinks]:
-                #node = self._notebook.get_node_by_id(nodeid)
-                #icon = get_node_icon(node)
                 icon = self._notebook.get_attr_by_id(nodeid, "icon")
                 if icon is None:
                     icon = "note.png"

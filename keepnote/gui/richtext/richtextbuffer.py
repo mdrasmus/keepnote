@@ -334,10 +334,16 @@ class RichTextImage (RichTextAnchor):
             self._save_needed = False
         
 
-    def write_stream(self, stream, format):
+    def write_stream(self, stream, filename="image.png"):
+        """
+        Write image to stream
+        'filename' is used to infer picture format only.
+        """
+
         def write(buf):
             stream.write(buf)
             return True
+        format = get_image_format(filename)
         self._pixbuf_original.save_to_callback(write, format)
         self._save_needed = False
         
