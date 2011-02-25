@@ -44,15 +44,17 @@ KEEPNOTE_HEADER = "keepnote\n"
 # TODO: ensure commands are executed in order, but don't allow malicious
 # process to DOS main process (may be minor issue)
 
+#=============================================================================
+# lock file
 
 def get_lock_file(lockfile):
     """
     Try to acquire a lock file
-    Returns (aquire, fd) where 'aquire' is True if the lock is aquired and
+    Returns (acquire, fd) where 'acquire' is True if the lock is acquired and
     'fd' is the file descriptor of the lock file.
     """
 
-    aquire = False
+    acquire = False
 
     while True:
         try:
@@ -60,7 +62,7 @@ def get_lock_file(lockfile):
             fd = os.open(lockfile, os.O_CREAT|os.O_EXCL|os.O_RDWR, 0600)
             
             # creation succeeded, we have the lock
-            aquire = True
+            acquire = True
             break
 
         except OSError, e:
@@ -72,7 +74,7 @@ def get_lock_file(lockfile):
                 # lock already exists (i.e. held by someone else)
                 # try to open it in read only mode
                 fd = os.open(lockfile, os.O_RDONLY)
-                aquire = False
+                acquire = False
                 break
 
             except OSError, e:
@@ -83,13 +85,36 @@ def get_lock_file(lockfile):
                 # The lock file disapeared between the two open attempts.
                 # Loop and try again.
             
-    return aquire, fd
+    return acquire, fd
     
+
+
+
+def write_lock_file(fd, port, passwd):
+    """Write a KeepNote lock file"""
+    os.write(fd, "%d:%s" % (port, passwd))
+
+
+def read_lock_file(fd):
+    """Parse a KeepNote lock file"""
+    text = os.read(fd, 1000)
+    port, passwd = text.split(":")
+    port = int(port)
+    return port, passwd
+
+
+def make_passwd():
+    """Generate a random password"""
+    return str(random.randint(0, 1000000))
+
+
+#=============================================================================
+# sockets
 
 def open_socket(port=None, start_port=4000, end_port=10000, tries=10):
     """
     Open a new socket to listen for new connections.
-    This function make multiple attempts and can possibly try random 
+    This function makes multiple attempts and can possibly try random 
     port numbers.
     """
     
@@ -171,24 +196,8 @@ def process_connection(conn, addr, passwd, execfunc):
         conn.close()
 
 
-
-
-def write_lock_file(fd, port, passwd):
-    """Write a lock file"""
-    os.write(fd, "%d:%s" % (port, passwd))
-
-
-def read_lock_file(fd):
-    """Parse a lock file"""
-    text = os.read(fd, 1000)
-    port, passwd = text.split(":")
-    port = int(port)
-    return port, passwd
-
-
-def make_passwd():
-    """Generate a random password"""
-    return str(random.randint(0, 1000000))
+#=============================================================================
+# commands read/write
 
 
 def unescape(text):
@@ -322,13 +331,15 @@ class CommandExecutor (object):
         lock_file = keepnote.get_user_lock_file()
 
         for i in range(tries):
-            aquire, fd = get_lock_file(lock_file)
+            acquire, fd = get_lock_file(lock_file)
 
-            if aquire:
+            if acquire:
+                # we are main process, listen for others
                 self._listen(fd, execfunc)
                 return True
 
             else:
+                # we are slave process.
                 # connect to main process through socket
                 try:
                     self._connect(fd)
@@ -362,9 +373,6 @@ def get_command_executor(func, port=None):
     cmd_exec.set_port(port)
     main_proc = cmd_exec.setup(func)
     return main_proc, cmd_exec
-
-
-
 
 
 
