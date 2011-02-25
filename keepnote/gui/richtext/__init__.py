@@ -309,8 +309,8 @@ class RichTextIO (object):
             image.write(self._get_filename(html_filename, image.get_filename()))
 
     def _get_filename(self, html_filename, filename):
-        path = os.path.dirname(html_filename)
         if is_relative_file(filename):
+            path = os.path.dirname(html_filename)
             return os.path.join(path, filename)
         return filename
 

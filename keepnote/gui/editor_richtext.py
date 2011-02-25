@@ -151,9 +151,17 @@ class NodeIO (RichTextIO):
 
     def _load_image(self, textbuffer, image, html_filename):
 
-        infile = self._node.open_file(image.get_filename(), mode="rb")
-        image.set_from_stream(infile)
-        infile.close()
+        # TODO: generalize url recognition
+        filename = image.get_filename()
+        if filename.startswith("http:/") or filename.startswith("file:/"):
+            image.set_from_url(filename)
+        elif is_relative_file(filename):
+            infile = self._node.open_file(filename, mode="rb")
+            image.set_from_stream(infile)
+            infile.close()
+        else:
+            image.set_from_file(filename)
+        
         
         # record loaded images
         self._image_files.add(image.get_filename())

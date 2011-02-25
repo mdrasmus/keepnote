@@ -436,7 +436,7 @@ class RichTextImage (RichTextAnchor):
 
 
     
-    def set_from_url(self, url, filename):
+    def set_from_url(self, url, filename=None):
         """Set image by url"""
 
         imgfile = None        
@@ -448,7 +448,10 @@ class RichTextImage (RichTextAnchor):
 
             if download_file(url, imgfile):
                 self.set_from_file(imgfile)
-                self.set_filename(filename)
+                if filename is not None:
+                    self.set_filename(filename)
+                else:
+                    self.set_filename(url)
             else:
                 raise Exception("Could not download file")
         except Exception:
