@@ -61,9 +61,7 @@ class Extension (extension.Extension):
 
         self._widget_focus = {}
         self._set_focus_id = {}
-        self._ui_id = {}
-        self._action_groups = {}
-
+        
         self.format = "%Y/%m/%d"
 
         self.enabled.add(self.on_enabled)
@@ -75,7 +73,7 @@ class Extension (extension.Extension):
 
 
     def get_depends(self):
-        return [("keepnote", ">=", (0, 6, 1))]
+        return [("keepnote", ">=", (0, 7, 1))]
 
     #===============================
     # config handling
@@ -107,16 +105,10 @@ class Extension (extension.Extension):
         self._set_focus_id[window] = window.connect("set-focus", self._on_focus)
 
         # add menu options
-        self._action_groups[window] = gtk.ActionGroup("MainWindow")
-        self._action_groups[window].add_actions([
-                ("Insert Date", None, "Insert _Date",
-                 "", None,
-                 lambda w: self.insert_date(window)),
-                ])
-        window.get_uimanager().insert_action_group(self._action_groups[window], 0)
+        self.add_action(window, "Insert Date", "Insert _Date", 
+                        lambda w: self.insert_date(window))
 
-
-        self._ui_id[window] = window.get_uimanager().add_ui_from_string(
+        self.add_ui(window,
                 """
                 <ui>
                 <menubar name="main_menu_bar">
@@ -133,17 +125,13 @@ class Extension (extension.Extension):
                 </ui>
                 """)
 
-    def on_remove_ui(self, window):        
-
+    def on_remove_ui(self, window):
+        
+        extension.Extension.on_remove_ui(self, window)
+        
         # disconnect window callbacks
         window.disconnect(self._set_focus_id[window])
         del self._set_focus_id[window]
-
-        # remove menu options
-        window.get_uimanager().remove_ui(self._ui_id[window])
-        window.get_uimanager().remove_action_group(self._action_groups[window])
-        del self._action_groups[window]
-        del self._ui_id[window]
 
 
     #=================================

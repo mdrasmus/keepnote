@@ -63,12 +63,9 @@ class Extension (extension.Extension):
         
         extension.Extension.__init__(self, app)
 
-        self._ui_id = {}
-        self._action_groups = {}
-
 
     def get_depends(self):
-        return [("keepnote", ">=", (0, 6, 2))]
+        return [("keepnote", ">=", (0, 7, 1))]
 
         
     #================================
@@ -77,16 +74,10 @@ class Extension (extension.Extension):
     def on_add_ui(self, window):
 
         # add menu options
-        self._action_groups[window] = gtk.ActionGroup("MainWindow")
-        self._action_groups[window].add_actions([
-                ("Python Prompt...", None, "Python Prompt...",
-                 "", None,
-                 lambda w: self.on_python_prompt(window)),
-                ])
-        window.get_uimanager().insert_action_group(self._action_groups[window], 0)
+        self.add_action(window, "Python Prompt...", "Python Prompt...",
+                        lambda w: self.on_python_prompt(window))
 
-
-        self._ui_id[window] = window.get_uimanager().add_ui_from_string(
+        self.add_ui(window,
                 """
                 <ui>
                 <menubar name="main_menu_bar">
@@ -98,14 +89,6 @@ class Extension (extension.Extension):
                 </menubar>
                 </ui>
                 """)
-
-    def on_remove_ui(self, window):        
-        
-        # remove menu options
-        window.get_uimanager().remove_ui(self._ui_id[window])
-        window.get_uimanager().remove_action_group(self._action_groups[window])
-        del self._action_groups[window]
-        del self._ui_id[window]
 
 
     #================================

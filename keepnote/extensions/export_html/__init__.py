@@ -72,29 +72,20 @@ class Extension (extension.Extension):
         extension.Extension.__init__(self, app)
         self.app = app
 
-        self._ui_id = {}
-        self._action_groups = {}
-
 
     def get_depends(self):
-        return [("keepnote", ">=", (0, 6, 4))]
+        return [("keepnote", ">=", (0, 7, 1))]
 
 
     def on_add_ui(self, window):
         """Initialize extension for a particular window"""
         
         # add menu options
-        self._action_groups[window] = gtk.ActionGroup("MainWindow")
-        self._action_groups[window].add_actions([
-            ("Export HTML", None, "_HTML...",
-             "", None,
-             lambda w: self.on_export_notebook(window,
-                                               window.get_notebook())),
-            ])
-        window.get_uimanager().insert_action_group(
-            self._action_groups[window], 0)
+        self.add_action(window, "Export HTML", "_HTML...",
+                        lambda w: self.on_export_notebook(
+                window, window.get_notebook()))
         
-        self._ui_id[window] = window.get_uimanager().add_ui_from_string(
+        self.add_ui(window,
             """
             <ui>
             <menubar name="main_menu_bar">
@@ -106,15 +97,6 @@ class Extension (extension.Extension):
             </menubar>
             </ui>
             """)
-
-    def on_remove_ui(self, window):        
-
-        # remove option
-        window.get_uimanager().remove_action_group(self._action_groups[window])
-        del self._action_groups[window]
-        
-        window.get_uimanager().remove_ui(self._ui_id[window])
-        del self._ui_id[window]
 
 
     def on_export_notebook(self, window, notebook):
