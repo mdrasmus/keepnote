@@ -11,8 +11,4 @@ include keepnote/images/node_icons/*
 recursive-include keepnote/rc *
 recursive-include keepnote/extensions *
 include desktop/*
-recursive-include locale *
 recursive-include gettext *
-include post_py2exe.py
-include pywin.py
-include installer.iss
