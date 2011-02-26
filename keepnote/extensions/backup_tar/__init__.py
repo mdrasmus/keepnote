@@ -63,31 +63,23 @@ class Extension (extension.Extension):
         extension.Extension.__init__(self, app)
         self.app = app
 
-        self._ui_id = {}
-        self._action_groups = {}
-
 
     def get_depends(self):
-        return [("keepnote", ">=", (0, 6, 4))]
+        return [("keepnote", ">=", (0, 7, 1))]
 
 
     def on_add_ui(self, window):
         """Initialize extension for a particular window"""
 
         # add menu options
-        self._action_groups[window] = gtk.ActionGroup("MainWindow")
-        self._action_groups[window].add_actions([
-            ("Backup Notebook", None, "_Backup Notebook...",
-             "", None,
-             lambda w: self.on_archive_notebook(window,
-                                                window.get_notebook())),
-            ("Restore Notebook", None, "R_estore Notebook...",
-             "", None,
-             lambda w: self.on_restore_notebook(window))
-            ])
-        window.get_uimanager().insert_action_group(self._action_groups[window], 0)
+        self.add_action(window, "Backup Notebook", "_Backup Notebook...",
+                        lambda w: self.on_archive_notebook(
+                window, window.get_notebook()))
+        self.add_action(window, "Restore Notebook", "R_estore Notebook...",
+                        lambda w: self.on_restore_notebook(window))
         
-        self._ui_id[window] = window.get_uimanager().add_ui_from_string(
+        # add menu items
+        self.add_ui(window,
             """
             <ui>
             <menubar name="main_menu_bar">
@@ -100,15 +92,6 @@ class Extension (extension.Extension):
             </menubar>
             </ui>
             """)
-
-    def on_remove_ui(self, window):        
-
-        # remove menu options
-        window.get_uimanager().remove_action_group(self._action_groups[window])
-        del self._action_groups[window]
-        
-        window.get_uimanager().remove_ui(self._ui_id[window])
-        del self._ui_id[window]
 
 
     def on_archive_notebook(self, window, notebook):
