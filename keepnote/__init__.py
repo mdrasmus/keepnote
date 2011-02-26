@@ -785,7 +785,6 @@ class KeepNote (object):
         self.pref.set("extension_info", {
             "disabled": self._disabled_extensions[:]
             })
-
         
         # save to disk
         self.pref.write()

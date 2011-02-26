@@ -169,7 +169,7 @@ class Extension (extension.Extension):
 
 
     def update_all_menus(self):
-        for window in self._ui_id.keys():
+        for window in self.get_windows():
             self.set_new_file_menus(window)
 
     #==============================

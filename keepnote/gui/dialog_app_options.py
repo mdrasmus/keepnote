@@ -370,12 +370,14 @@ class LanguageSection (Section):
 
     def load_options(self, app):
 
+        lang = app.pref.get("language", default="")
+
         # set default
-        if app.language == "":
+        if lang == "":
             self.language_box.set_active(0)
         else:
             for i, row in enumerate(self.language_box.get_model()):
-                if app.language == row[0]:
+                if lang == row[0]:
                     self.language_box.set_active(i)
                     break
 
@@ -383,10 +385,10 @@ class LanguageSection (Section):
     def save_options(self, app):
         
         if self.language_box.get_active() > 0:
-            app.language = lang = self.language_box.get_active_text()
+            app.pref.set("language", self.language_box.get_active_text())
         else:
             # set default
-            app.language = ""
+            app.pref.set("language", "")
 
         # XXX: may be I should not change translation during execution
         #if app.pref.language != keepnote.trans.get_lang():
@@ -458,8 +460,8 @@ class HelperAppsSection (Section):
             button.show()
             button.connect("clicked", button_clicked(key, app_title, prog))
             self.table.attach(button, 2, 3, i, i+1,
-                         xoptions=0, yoptions=0,
-                         xpadding=2, ypadding=2)
+                              xoptions=0, yoptions=0,
+                              xpadding=2, ypadding=2)
     
 
     def save_options(self, app):
@@ -467,12 +469,14 @@ class HelperAppsSection (Section):
         # TODO: use a public interface
 
         # save external app options
-        for key, entry in self.entries.iteritems():
-            ext_app = app.get_external_app(key)
-            if ext_app:
-                ext_app.prog = unicode_gtk(entry.get_text())
+        apps = app.pref.get("external_apps", default=[])
 
-
+        for app in apps:
+            key = app.get("key", None)
+            if key:
+                entry = self.entries.get(key, None)
+                if entry:
+                    app["prog"] = unicode_gtk(entry.get_text())
 
 
 class DatesSection (Section):
@@ -919,19 +923,22 @@ class ApplicationOptionsDialog (object):
         # let sections record their preferences
         for section in self._sections:
             section.save_options(self.app)
-
+        
         # save noteboook preference changes
         #for notebook in self.app.iter_notebooks():
         #    notebook.write_preferences()
         #    notebook.notify_change(False)
 
         # notify changes
+        # app and notebook will load prefs from plist
         self.app.pref.changed.notify()
         for notebook in self.app.iter_notebooks():
             notebook.notify_change(False)
-
+        
         # force a app and notebook preference save
+        # save prefs to plist and to disk
         app.save()
+
 
 
     #=====================================
