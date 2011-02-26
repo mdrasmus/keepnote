@@ -66,10 +66,6 @@ class Extension (extension.Extension):
         extension.Extension.__init__(self, app)
         self.app = app
 
-        self._ui_id = {}
-        self._action_groups = {}
-
-
         self._file_types = []
         self._default_file_types = [
             FileType("Text File (txt)", "untitled.txt", "plain_text.txt"),
@@ -90,7 +86,7 @@ class Extension (extension.Extension):
 
 
     def get_depends(self):
-        return [("keepnote", ">=", (0, 6, 3))]
+        return [("keepnote", ">=", (0, 7, 1))]
 
 
 
@@ -183,14 +179,10 @@ class Extension (extension.Extension):
         """Initialize extension for a particular window"""
         
         # add menu options
-        self._action_groups[window] = gtk.ActionGroup("MainWindow")
-        self._action_groups[window].add_actions([
-            #("treeview_popup", None, None),
-            ("New File", None, "New _File")
-            ])
-        window.get_uimanager().insert_action_group(self._action_groups[window], 0)
+        self.add_action(window, "New File", "New _File")
+        #("treeview_popup", None, None),
         
-        self._ui_id[window] = window.get_uimanager().add_ui_from_string(
+        self.add_ui(window,
             """
             <ui>
             <menubar name="main_menu_bar">
@@ -215,16 +207,6 @@ class Extension (extension.Extension):
             """)
 
         self.set_new_file_menus(window)
-
-    def on_remove_ui(self, window):        
-
-        # remove menu options
-        window.get_uimanager().remove_action_group(self._action_groups[window])
-        del self._action_groups[window]
-        
-        window.get_uimanager().remove_ui(self._ui_id[window])
-        del self._ui_id[window]
-
 
 
     #=================================

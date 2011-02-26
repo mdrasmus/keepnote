@@ -128,7 +128,8 @@ class Extension (extension.Extension):
     # helper functions
 
 
-    def add_action(self, window, action_name, menu_text, callback,
+    def add_action(self, window, action_name, menu_text, 
+                   callback=lambda w: None,
                    stock_id=None, accel="", tooltip=None):
         
         # init action group
@@ -136,7 +137,7 @@ class Extension (extension.Extension):
             group = gtk.ActionGroup("MainWindow")
             self.__action_groups[window] = group
             window.get_uimanager().insert_action_group(group, 0)
-
+            
         # add action
         self.__action_groups[window].add_actions([
             (action_name, stock_id, menu_text, accel, tooltip, callback)])
