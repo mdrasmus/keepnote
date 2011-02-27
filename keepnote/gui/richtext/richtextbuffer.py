@@ -399,7 +399,7 @@ class RichTextImage (RichTextAnchor):
             loader.write(stream.read())
             loader.close()
             self._pixbuf_original = loader.get_pixbuf()
-        except gobject.GError, e:
+        except Exception:
             self.set_no_image()
         else:
             # successful image load, set its size

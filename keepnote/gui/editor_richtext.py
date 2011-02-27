@@ -156,9 +156,12 @@ class NodeIO (RichTextIO):
         if filename.startswith("http:/") or filename.startswith("file:/"):
             image.set_from_url(filename)
         elif is_relative_file(filename):
-            infile = self._node.open_file(filename, mode="rb")
-            image.set_from_stream(infile)
-            infile.close()
+            try:
+                infile = self._node.open_file(filename, mode="rb")
+                image.set_from_stream(infile)
+                infile.close()
+            except:
+                image.set_no_image()
         else:
             image.set_from_file(filename)
         
