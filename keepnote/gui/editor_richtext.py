@@ -174,7 +174,7 @@ class NodeIO (RichTextIO):
 
         if image.save_needed():
             out = self._node.open_file(image.get_filename(), mode="wb")
-            image.write_stream(out)
+            image.write_stream(out, image.get_filename())
             out.close()
         
         # mark image as saved
