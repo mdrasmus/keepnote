@@ -1,8 +1,17 @@
 KeepNote Change Log
 -------------------
 
-keepnote-0.7
-------------
+
+keepnote-0.7.1
+--------------
+- fixed helper applications bug
+- fixed insert image format bug
+- fixed missing image bug
+- added extension API for adding UI elements
+
+
+keepnote-0.7 (2011/02/25)
+-------------------------
 - added indexed full text search (require sqlite >= 3.5.0)
 - added custom font sizes for treeview and listview
 - improved notebook loading time
@@ -52,6 +61,7 @@ keepnote-0.6.5 (2010/20/13)
 keepnote-0.6.4 (2010/7/23)
 --------------------------
 - fixed notebook file note found bug
+
 
 keepnote-0.6.3 (2010/7/4)
 -------------------------
