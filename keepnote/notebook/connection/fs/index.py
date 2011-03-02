@@ -641,6 +641,35 @@ class NoteBookIndex (object):
             self._on_corrupt(e, sys.exc_info()[2])
 
 
+    def list_children(self, nodeid):
+        
+        if self.con is None:
+            return None
+        
+        try:
+            self.cur.execute(u"""SELECT nodeid, basename
+                                FROM NodeGraph
+                                WHERE parentid=?""", (nodeid,))
+            return list(self.cur.fetchall())
+            
+        except sqlite.DatabaseError, e:
+            self._on_corrupt(e, sys.exc_info()[2])
+
+
+    def has_children(self, nodeid):
+        
+        if self.con is None:
+            return None
+        
+        try:
+            self.cur.execute(u"""SELECT nodeid
+                                FROM NodeGraph
+                                WHERE parentid=?""", (nodeid,))
+            return self.cur.fetchone() != None
+            
+        except sqlite.DatabaseError, e:
+            self._on_corrupt(e, sys.exc_info()[2])
+
 
     def search_titles(self, query):
         """Return nodeids of nodes with matching titles"""

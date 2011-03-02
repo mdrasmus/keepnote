@@ -19,7 +19,7 @@ DETECT: The mtime of the "node.xml" file should be newer than the last indexed
 UPDATE: Read the "node.xml" file and index the attr.
 
 
-CHANGE: Moving a node directory to a new location within the notebook.
+CHANGE: Moving/renaming a node directory to a new location within the notebook.
 DETECT: The new parent directory's mtime with be newer than the last indexed
         mtime.  The child directory being moved will often have no change in
         mtime.
@@ -674,6 +674,14 @@ class NoteBookConnectionFS (NoteBookConnection):
         path = self._path_cache.get_path(nodeid) if _path is None else _path
         assert path is not None
         
+        # if node is unchanged on disk (same mtime), 
+        # use index to detect children
+        if self._index:
+            mtime = get_path_mtime(path)
+            index_mtime = self._index.get_node_mtime(nodeid)
+            if mtime == index_mtime:
+                return self._index.has_children(nodeid)
+
         try:
             files = self._listdir_cache.get(path, None)
             if files is None:
@@ -697,9 +705,21 @@ class NoteBookConnectionFS (NoteBookConnection):
         assert path is not None
         
         try:
-            files = self._listdir_cache.get(path, None)
+            # if node is unchanged on disk (same mtime), 
+            # use index to detect children
+            files = None
+            if self._index:
+                mtime = get_path_mtime(path)
+                index_mtime = self._index.get_node_mtime(nodeid)
+                if mtime == index_mtime:
+                    files = list(row[1] for row in self._index.list_children(nodeid))
             if files is None:
-                files = self._listdir_cache[path] = os.listdir(path)
+                files = os.listdir(path)
+
+            #files = self._listdir_cache.get(path, None)
+            #if files is None:
+            #    print "listdir", path
+            #    files = self._listdir_cache[path] = os.listdir(path)
         except OSError, e:
             raise keepnote.notebook.NoteBookError(
                 _("Do not have permission to read folder contents: %s") 
@@ -725,9 +745,21 @@ class NoteBookConnectionFS (NoteBookConnection):
         children = self._path_cache.get_children(nodeid)
         if children is not None:
             return children
-        else:
-            return (attr["nodeid"]
-                    for attr in self.list_children_attr(nodeid, _path))
+
+        path = self._path_cache.get_path(nodeid) if _path is None else _path
+        assert path is not None
+        
+       
+        # if node is unchanged on disk (same mtime), 
+        # use index to detect children
+        if self._index:
+            mtime = get_path_mtime(path)
+            index_mtime = self._index.get_node_mtime(nodeid)
+            if mtime == index_mtime:
+                return (row[0] for row in self._index.list_children(nodeid))
+
+        return (attr["nodeid"]
+                for attr in self.list_children_attr(nodeid, _path))
 
 
 
@@ -750,6 +782,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             basename = os.path.basename(path)
         self._path_cache.add(nodeid, basename, parentid)
         
+        
         # if node has changed on disk (newer mtime), then re-index it
         # if reading root node, index might not be initialized yet
         if self._index:
@@ -757,6 +790,10 @@ class NoteBookConnectionFS (NoteBookConnection):
             index_mtime = self._index.get_node_mtime(nodeid)
             if mtime > index_mtime:
                 self._index.add_node(nodeid, parentid, basename, attr, mtime)
+                # index children again (by reading them)
+                for childid in self.list_children_nodeids(nodeid):
+                    pass
+                    
 
         return attr
     
