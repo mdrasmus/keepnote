@@ -217,7 +217,6 @@ _mtime_cache = {}
 def get_path_mtime(path):
     mtime = _mtime_cache.get(path, None)
     if mtime is None:
-        print "mtime", path
         mtime = _mtime_cache[path] = os.stat(path).st_mtime
     return mtime
 
