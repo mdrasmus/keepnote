@@ -548,6 +548,7 @@ class NoteBookConnectionFS (NoteBookConnection):
     
     def read_node(self, nodeid):
         """Read a node attr"""
+        
         path = self._get_node_path(nodeid)
         parentid = self.get_parentid(nodeid)
         return self._read_node(parentid, path)
@@ -556,6 +557,8 @@ class NoteBookConnectionFS (NoteBookConnection):
     def update_node(self, nodeid, attr):
         """Write node attr"""
         
+        #print self._index.get_attr(nodeid, "title")
+
         # TODO: support mutltiple parents 
 
         # determine if parentid has changed
@@ -665,6 +668,28 @@ class NoteBookConnectionFS (NoteBookConnection):
         # TODO: I could fallback to index for this too
         return self._path_cache.get_parentid(nodeid)
 
+
+    def has_children(self, nodeid, _path=None):
+        """Returns True if node has children"""
+        path = self._path_cache.get_path(nodeid) if _path is None else _path
+        assert path is not None
+        
+        try:
+            files = self._listdir_cache.get(path, None)
+            if files is None:
+                files = self._listdir_cache[path] = os.listdir(path)
+        except OSError, e:
+            raise keepnote.notebook.NoteBookError(
+                _("Do not have permission to read folder contents: %s") 
+                % path, e)
+        
+        for filename in files:
+            path2 = os.path.join(path, filename)
+            if os.path.exists(get_node_meta_file(path2)):
+                return True
+
+        return False
+
     
     def list_children_attr(self, nodeid, _path=None):
         """List attr of children nodes of nodeid"""
@@ -708,6 +733,8 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def _read_node(self, parentid, path):
         """Reads a node from disk"""
+
+        #print "read", path
 
         metafile = get_node_meta_file(path)
         attr = self._read_attr(metafile, self._notebook.attr_defs)

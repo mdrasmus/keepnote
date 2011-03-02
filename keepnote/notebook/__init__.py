@@ -833,12 +833,8 @@ class NoteBookNode (object):
         """Return True if node has children"""
         if self._children is None:
             if self._has_children is None:
-                try:
-                    self._conn.list_children_nodeids(
-                        self._attr["nodeid"]).next()
-                    self._has_children = True
-                except StopIteration:
-                    self._has_children = False
+                self._has_children = self._conn.has_children(
+                    self._attr["nodeid"])
             return self._has_children
         else:
             return len(self._children) > 0
@@ -1307,7 +1303,7 @@ class NoteBook (NoteBookDir):
     
     def save(self, force=False):
         """Recursively save any loaded nodes"""
-
+        
         if force or self in self._dirty:
             self._conn.update_node(self._attr["nodeid"], self._attr)
             self.write_preferences()
