@@ -397,7 +397,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         self._index = None
         self._path_cache = PathCache()
         self._rootid = None
-        self._listdir_cache = {} # TODO: make LRU cache
+        #self._listdir_cache = {} # TODO: make LRU cache
 
         # attributes to not write to disk, they can be derived
         self._attr_suppress = set(["parentids", "childids"])
@@ -683,9 +683,7 @@ class NoteBookConnectionFS (NoteBookConnection):
                 return self._index.has_children(nodeid)
 
         try:
-            files = self._listdir_cache.get(path, None)
-            if files is None:
-                files = self._listdir_cache[path] = os.listdir(path)
+            files = os.listdir(path)
         except OSError, e:
             raise keepnote.notebook.NoteBookError(
                 _("Do not have permission to read folder contents: %s") 
@@ -712,14 +710,11 @@ class NoteBookConnectionFS (NoteBookConnection):
                 mtime = get_path_mtime(path)
                 index_mtime = self._index.get_node_mtime(nodeid)
                 if mtime == index_mtime:
-                    files = list(row[1] for row in self._index.list_children(nodeid))
+                    files = list(row[1] for row in 
+                                 self._index.list_children(nodeid))
             if files is None:
                 files = os.listdir(path)
-
-            #files = self._listdir_cache.get(path, None)
-            #if files is None:
-            #    print "listdir", path
-            #    files = self._listdir_cache[path] = os.listdir(path)
+            
         except OSError, e:
             raise keepnote.notebook.NoteBookError(
                 _("Do not have permission to read folder contents: %s") 
