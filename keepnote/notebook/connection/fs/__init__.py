@@ -673,19 +673,19 @@ class NoteBookConnectionFS (NoteBookConnection):
         return self._path_cache.get_parentid(nodeid)
 
 
-    def has_children(self, nodeid, _path=None):
+    def has_children(self, nodeid, _path=None, _index=True):
         """Returns True if node has children"""
         path = self._path_cache.get_path(nodeid) if _path is None else _path
         assert path is not None
         
         # if node is unchanged on disk (same mtime), 
         # use index to detect children
-        if self._index:
+        if _index and self._index:
             mtime = get_path_mtime(path)
             index_mtime = self._index.get_node_mtime(nodeid)
             if mtime == index_mtime:
                 return self._index.has_children(nodeid)
-
+        
         try:
             files = os.listdir(path)
         except OSError, e:
@@ -701,7 +701,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         return False
 
     
-    def list_children_attr(self, nodeid, _path=None):
+    def list_children_attr(self, nodeid, _path=None, _index=True):
         """List attr of children nodes of nodeid"""
         path = self._path_cache.get_path(nodeid) if _path is None else _path
         assert path is not None
@@ -710,7 +710,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             # if node is unchanged on disk (same mtime), 
             # use index to detect children
             files = None
-            if self._index:
+            if _index and self._index:
                 mtime = get_path_mtime(path)
                 index_mtime = self._index.get_node_mtime(nodeid)
                 if mtime == index_mtime:
@@ -738,7 +738,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         self._path_cache.set_children_complete(nodeid, True)
 
 
-    def list_children_nodeids(self, nodeid, _path=None):
+    def list_children_nodeids(self, nodeid, _path=None, _index=True):
         """List nodeids of children of node"""
         # try to use cache first
         children = self._path_cache.get_children(nodeid)
@@ -751,7 +751,7 @@ class NoteBookConnectionFS (NoteBookConnection):
        
         # if node is unchanged on disk (same mtime), 
         # use index to detect children
-        if self._index:
+        if _index and self._index:
             mtime = get_path_mtime(path)
             index_mtime = self._index.get_node_mtime(nodeid)
             if mtime == index_mtime:
@@ -788,10 +788,15 @@ class NoteBookConnectionFS (NoteBookConnection):
             mtime = get_path_mtime(path)
             index_mtime = self._index.get_node_mtime(nodeid)
             if mtime > index_mtime:
-                self._index.add_node(nodeid, parentid, basename, attr, mtime)
+                # TODO: ensure we don't have cycles with multiple parents
                 # index children again (by reading them)
-                for childid in self.list_children_nodeids(nodeid):
+                for childid in self.list_children_nodeids(nodeid, _index=False):
                     pass
+
+                # we can only update the mtime of the node once we know
+                # the children are properly indexed
+                self._index.add_node(nodeid, parentid, basename, attr, mtime)
+                print "index", attr["title"]
                     
 
         return attr

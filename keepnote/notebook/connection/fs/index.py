@@ -64,7 +64,7 @@ def preorder(conn, nodeid):
         nodeid, attr = queue.pop()
         yield nodeid, attr
         queue.extend((attr2["nodeid"], attr2) 
-                     for attr2 in conn.list_children_attr(nodeid))
+                     for attr2 in conn.list_children_attr(nodeid, _index=False))
 
 
 def match_words(infile, words):
@@ -191,11 +191,11 @@ class NoteBookIndex (object):
         self.open()
 
         # initialize with root node
-        self.add_node(
-            notebook._attr["nodeid"], None, "", 
-            notebook._attr, 
-            self._nconn._get_node_mtime(
-                notebook._attr["nodeid"]))
+        #self.add_node(
+        #    notebook._attr["nodeid"], None, "", 
+        #    notebook._attr, 
+        #    self._nconn._get_node_mtime(
+        #        notebook._attr["nodeid"]))
 
     #-----------------------------------------
     # index connection
@@ -574,9 +574,6 @@ class NoteBookIndex (object):
     def get_node_path(self, nodeid):
         """Get node path for a nodeid"""
         
-        if self.con is None:
-            return None
-
         # TODO: handle multiple parents
 
         visit = set([nodeid])
@@ -612,14 +609,12 @@ class NoteBookIndex (object):
 
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
+            raise
 
 
     def get_node(self, nodeid):
         """Get node path for a nodeid"""
         
-        if self.con is None:
-            return None
-
         # TODO: handle multiple parents
 
         try:
@@ -639,13 +634,11 @@ class NoteBookIndex (object):
             
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
+            raise
 
 
     def list_children(self, nodeid):
-        
-        if self.con is None:
-            return None
-        
+                
         try:
             self.cur.execute(u"""SELECT nodeid, basename
                                 FROM NodeGraph
@@ -654,12 +647,10 @@ class NoteBookIndex (object):
             
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
+            raise
 
 
     def has_children(self, nodeid):
-        
-        if self.con is None:
-            return None
         
         try:
             self.cur.execute(u"""SELECT nodeid
@@ -669,6 +660,7 @@ class NoteBookIndex (object):
             
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
+            raise
 
 
     def search_titles(self, query):
@@ -677,14 +669,19 @@ class NoteBookIndex (object):
         if "title" not in self._attrs:
             return []
 
-        # order titles by exact matches and then alphabetically
-        self.cur.execute(
-            u"""SELECT nodeid, value FROM %s WHERE value LIKE ?
-                       ORDER BY value != ?, value """ % 
-            self._attrs["title"].get_table_name(),
-            (u"%" + query + u"%", query))
-        
-        return list(self.cur.fetchall())
+        try:
+            # order titles by exact matches and then alphabetically
+            self.cur.execute(
+                u"""SELECT nodeid, value FROM %s WHERE value LIKE ?
+                           ORDER BY value != ?, value """ % 
+                self._attrs["title"].get_table_name(),
+                (u"%" + query + u"%", query))
+
+            return list(self.cur.fetchall())
+
+        except sqlite.DatabaseError, e:
+            self._on_corrupt(e, sys.exc_info()[2])
+            raise
 
 
     def get_attr(self, nodeid, key):

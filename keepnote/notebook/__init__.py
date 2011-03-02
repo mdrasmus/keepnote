@@ -1122,7 +1122,7 @@ class NoteBookTrash (NoteBookNode):
         
         if parent == self._notebook:
             assert parent == self._parent
-            NoteBookDir.move(self, parent, index)
+            NoteBookNode.move(self, parent, index)
         else:
             raise NoteBookError(
                 _("The Trash folder must be a top-level folder."))
@@ -1292,13 +1292,14 @@ class NoteBook (NoteBookDir):
         attr = self._conn.read_root()
         self._init_attr(attr)
         self.read_preferences()
-
+        
         # init needs to happen after preferences
         self._init_index()
         
         self._init_trash()
 
         self.notify_change(True)
+
     
     
     def save(self, force=False):
