@@ -82,7 +82,7 @@ def get_path_from_node(model, node, node_col):
             i += 1
         else:
             raise Exception("bad model")
-
+    
     return tuple(path)
         
 
@@ -136,8 +136,6 @@ class BaseTreeModel (gtk.GenericTreeModel):
         Set the notebook for this model
         A notebook must be set before any nodes can be added to the model
         """
-        
-        # TODO: eventually initialize columns based on notebook
         
         # unhook listeners for old notebook. if it exists
         if self._notebook is not None:

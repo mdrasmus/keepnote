@@ -488,9 +488,6 @@ class NoteBookNode (object):
         self._children = None
         self._has_children = None
         self._valid = True
-
-        # TODO: make version an attr
-        self._version = NOTEBOOK_FORMAT_VERSION
         self._attr = {}
         
         if init_attr:
@@ -585,7 +582,8 @@ class NoteBookNode (object):
     
 
     def _init_attr(self, attr):
-        self._version = attr.get("version", NOTEBOOK_FORMAT_VERSION)
+        #self._version = attr.get("version", NOTEBOOK_FORMAT_VERSION)
+        attr.setdefault("version", NOTEBOOK_FORMAT_VERSION)
         if self._notebook.set_attr_defaults(attr):
             self._set_dirty(True)
         self._attr.update(attr)
@@ -611,7 +609,7 @@ class NoteBookNode (object):
     
 
     #=============================================
-    # change structure methods
+    # node structure methods
 
     def create(self):
         """Initializes the node on disk (create required files/directories)"""
@@ -820,7 +818,7 @@ class NoteBookNode (object):
 
 
     #==================================
-    # child management
+    # child node management
 
     def get_children(self):
         """Returns all children of this node"""
@@ -839,24 +837,32 @@ class NoteBookNode (object):
         else:
             return len(self._children) > 0
     
+
+    def add_child(self, child, index=None):
+        """Add node as a child"""
+        self._add_child(child, index)
+        self.notify_change(True)
+
+    
+    def allows_children(self):
+        """Returns True is this node allows children"""
+        return True
+
     
     def _get_children(self):
         """Load children list from filesystem"""
         
-        self._children = list(self.iter_temp_children())
+        self._children = list(self._iter_children())
 
         # assign orders
         self._children.sort(key=lambda x: x._attr.get("order", sys.maxint))
         self._set_child_order()
 
 
-    def iter_temp_children(self):
+    def _iter_children(self):
         """Iterate through children
            Returns temporary node objects
         """
-
-        # TODO: If I trusted the index, I could load node from
-        # index first.
         
         default_content_type = keepnote.notebook.CONTENT_TYPE_DIR
 
@@ -873,12 +879,6 @@ class NoteBookNode (object):
             if child._attr["order"] != i:
                 child._attr["order"] = i
                 child._set_dirty(True)
-
-
-    def add_child(self, child, index=None):
-        """Add node as a child"""
-        self._add_child(child, index)
-        self.notify_change(True)
         
 
     def _add_child(self, child, index=None):
@@ -915,27 +915,23 @@ class NoteBookNode (object):
         self._children.remove(child)
 
 
-    def allows_children(self):
-        """Returns True is this node allows children"""
-        return True
-    
-
     #==============================================
-    # low-level input/output
+    # input/output
         
     def save(self, force=False):
         """Save node if modified (dirty)"""
         if (force or self._is_dirty()) and self._valid:
             self._conn.update_node(self._attr["nodeid"], self._attr)
             self._set_dirty(False)
-            
+    
 
-    def get_data_file(self):
-        """Returns filename of data/text/html/etc"""
-        return self._conn.get_node_file(self._attr["nodeid"], PAGE_DATA_FILE)
+    #=============================================
+    # node file API
 
     def get_page_file(self):
         """Returns filename of data/text/html/etc"""
+
+        # TODO: think about generalizing this to payload concept
         return PAGE_DATA_FILE
 
     def get_file(self, filename):
@@ -955,12 +951,22 @@ class NoteBookNode (object):
             return_number=return_number, use_number=use_number, 
             ensure_valid=ensure_valid)
     
+    
+    def get_data_file(self):
+        """
+        Returns filename of data/text/html/etc
+
+        (deprecated can't always assume data file has local path)
+        """
+        return self._conn.get_node_file(self._attr["nodeid"], PAGE_DATA_FILE)
+
 
     #=============================================
     # marking for save needed
 
     def _set_dirty(self, dirty):
         """Sets the dirty bit to indicates whether node needs saving"""
+        
         self._notebook._set_dirty_node(self, dirty)
         
     def _is_dirty(self):
@@ -1119,7 +1125,10 @@ class NoteBookTrash (NoteBookNode):
         
     def move(self, parent, index=None):
         """Trash folder only be under root directory"""
-        
+
+        # TODO: figure out how to enfore this at the notebook level, instead
+        # in a special member function
+
         if parent == self._notebook:
             assert parent == self._parent
             NoteBookNode.move(self, parent, index)
@@ -1130,6 +1139,9 @@ class NoteBookTrash (NoteBookNode):
     def delete(self):
         """Trash folder cannot be deleted"""
         
+        # TODO: figure out how to enfore this at the notebook level, instead
+        # in a special member function
+
         raise NoteBookError(_("The Trash folder cannot be deleted."))
 
 
@@ -1305,6 +1317,8 @@ class NoteBook (NoteBookDir):
     def save(self, force=False):
         """Recursively save any loaded nodes"""
         
+        # TODO: keepnote copy of old pref.  only save pref if its changed.
+
         if force or self in self._dirty:
             self._conn.update_node(self._attr["nodeid"], self._attr)
             self.write_preferences()
@@ -1335,6 +1349,10 @@ class NoteBook (NoteBookDir):
         """Returns the notebook connection"""
         return self._conn
 
+    
+    def get_universal_root_id(self):
+        return UNIVERSAL_ROOT
+
 
     def _init_index(self):
         """Initialize the index"""
@@ -1349,7 +1367,20 @@ class NoteBook (NoteBookDir):
 
 
     #--------------------------------------
-    # input/output
+    # input/output        
+    
+    def save_needed(self):
+        """Returns True if save is needed"""
+        return len(self._dirty) > 0
+
+
+    def new_node(self, content_type, parent, attr):
+        """Create a new NodeBookNode"""
+
+        # TODO: maybe when I unify all node types, the factory function
+        # will not be needed.
+        return self._node_factory.new_node(content_type, parent, self, attr)
+
 
     def _set_dirty_node(self, node, dirty):
         """Mark a node to be dirty (needs saving) in NoteBook"""        
@@ -1364,26 +1395,18 @@ class NoteBook (NoteBookDir):
     def _is_dirty_node(self, node):
         """Returns True if node is dirty (needs saving)"""
         return node in self._dirty
-        
-    
-    def save_needed(self):
-        """Returns True if save is needed"""
-        return len(self._dirty) > 0
-
-
-    def new_node(self, content_type, parent, attr):
-        """Create a new NodeBookNode"""        
-        return self._node_factory.new_node(content_type, parent, self, attr)
 
 
     #=====================================
     # attrs
 
     def get_necessary_attrs(self):
+        """Returns necessary attributes"""
         return self._necessary_attrs
 
 
     def set_attr_defaults(self, attr):
+        """Set default attributes in an attr dict"""
         modified = False
         for key in self._necessary_attrs:
             if key not in attr:
@@ -1421,17 +1444,14 @@ class NoteBook (NoteBookDir):
                 raise NoteBookError(_("Cannot create Trash folder"), e)
 
     
-    def is_trash_dir(self, child):
-        """Returns True if child node is the Trash Folder"""
-        return child.get_attr("content_type") == CONTENT_TYPE_TRASH
+    def is_trash_dir(self, node):
+        """Returns True if node is a Trash Folder"""
+        return node.get_attr("content_type") == CONTENT_TYPE_TRASH
 
 
     def empty_trash(self):
         """Deletes all nodes under Trash Folder"""
-
-        if self._trash is None:
-            self._init_trash()
-
+        
         for child in reversed(list(self._trash.get_children())):
             child.delete()
 
@@ -1440,6 +1460,8 @@ class NoteBook (NoteBookDir):
 
     # TODO: think about how to replace icon interface with connection.
     # this may not be necessary
+
+    # TODO: maybe I can move this interface outside of the notebook object
 
     def get_icon_file(self, basename):
         """Lookup icon filename in notebook icon store"""
@@ -1536,10 +1558,6 @@ class NoteBook (NoteBookDir):
         self._conn.delete_node_file(self._attr["nodeid"], filename)
     
     
-    def get_universal_root_id(self):
-        return UNIVERSAL_ROOT
-    
-    
     #================================================
     # search
 
@@ -1579,6 +1597,7 @@ class NoteBook (NoteBookDir):
         return self._conn.search_node_contents(text)
 
     def has_fulltext_search(self):
+        """Returns True if full text indexed search is availble"""
         return self._conn.has_fulltext_search()
 
     def get_attr_by_id(self, nodeid, key):
@@ -1608,7 +1627,10 @@ class NoteBook (NoteBookDir):
         return self._conn.get_node_file(self._attr["nodeid"], PREF_FILE)
     
     def get_pref_dir(self):
-        """Gets the NoteBook's preference directory"""
+        """
+        Gets the NoteBook's preference directory
+        (deprecated, only used by index module)
+        """
         return self._conn.get_node_file(self._attr["nodeid"], NOTEBOOK_META_DIR)
 
     def get_icon_dir(self):
@@ -1624,7 +1646,7 @@ class NoteBook (NoteBookDir):
 
     
     def write_preferences(self):
-        """Writes the NoteBooks preferences to the file-system"""
+        """Writes the NoteBooks preferences"""
         try:
             # ensure preference directory exists
             self._conn.mkdir(self._attr["nodeid"], NOTEBOOK_META_DIR)
@@ -1653,7 +1675,7 @@ class NoteBook (NoteBookDir):
 
     
     def read_preferences(self):
-        """Reads the NoteBook's preferneces from the file-system"""
+        """Reads the NoteBook's preferneces"""
         
         try:
             infile = None
@@ -1673,8 +1695,7 @@ class NoteBook (NoteBookDir):
         # check version
         version = get_notebook_version_etree(tree)
         if version > NOTEBOOK_FORMAT_VERSION:
-            raise NoteBookVersionError(version,
-                                       NOTEBOOK_FORMAT_VERSION)
+            raise NoteBookVersionError(version, NOTEBOOK_FORMAT_VERSION)
 
         
         if root.tag == "notebook":

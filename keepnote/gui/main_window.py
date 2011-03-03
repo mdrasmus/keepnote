@@ -443,6 +443,8 @@ class KeepNoteWindow (gtk.Window):
         # save window preferences
         p.set("window", "window_maximized", self._maximized)
 
+        # TODO: in app, save all open notebooks: 'default_notebooks'
+        
         if (p.get("use_last_notebook", default=False) and 
             self.viewer.get_notebook()):
             p.set("default_notebook", self.viewer.get_notebook().get_path())
@@ -450,12 +452,6 @@ class KeepNoteWindow (gtk.Window):
 
         # let viewer save preferences
         self.viewer.save_preferences(self._app.pref)
-        
-        #self._app.pref.changed.notify()
-        #self._app.pref.write()
-
-        # TODO: there should be a signal for saving
-        # self._app.pref.save.notify()
         
         
     def set_recent_notebooks_menu(self, recent_notebooks):

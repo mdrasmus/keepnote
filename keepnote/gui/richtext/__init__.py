@@ -203,7 +203,14 @@ class RichTextIO (object):
 
     
     def save(self, textbuffer, filename, title=None, stream=None):
-        """Save buffer contents to file"""
+        """
+        Save buffer contents to file
+
+        textbuffer -- richtextbuffer to save
+        filename   -- HTML filename to save to (optional if stream given)
+        title      -- title of HTML file (optional)
+        stream     -- output stream for HTML file (optional)
+        """
         
         self._save_images(textbuffer, filename)
         
@@ -227,7 +234,13 @@ class RichTextIO (object):
     
     
     def load(self, textview, textbuffer, filename, stream=None):
-        """Load buffer with data from file"""
+        """
+        Load buffer with data from file
+
+        textbuffer -- richtextbuffer to load
+        filename   -- HTML filename to load (optional if stream given)
+        stream     -- output stream for HTML file (optional)
+        """
         
         # unhook expensive callbacks
         textbuffer.block_signals()

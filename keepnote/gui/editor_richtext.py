@@ -127,7 +127,8 @@ class NodeIO (RichTextIO):
         self._saved_image_files.clear()
         
         # don't allow the html file to be deleted
-        self._saved_image_files.add(os.path.basename(html_filename))
+        if html_filename:
+            self._saved_image_files.add(os.path.basename(html_filename))
 
         RichTextIO._save_images(self, textbuffer, html_filename)
         
@@ -338,7 +339,7 @@ class RichTextEditor (KeepNoteEditor):
                 self._textview_io.load(
                     self._textview,
                     self._textview.get_buffer(),
-                    self._page.get_data_file(),
+                    self._page.get_page_file(),
                     stream=self._page.open_file(
                         self._page.get_page_file()))
                 self._load_cursor()
@@ -397,7 +398,7 @@ class RichTextEditor (KeepNoteEditor):
                 # save text data
                 self._textview_io.save(
                     self._textview.get_buffer(),
-                    self._page.get_data_file(),
+                    self._page.get_page_file(),
                     self._page.get_title(),
                     stream=self._page.open_file(
                         self._page.get_page_file(), "w"))

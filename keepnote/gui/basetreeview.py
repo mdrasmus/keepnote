@@ -115,15 +115,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
         self._menu = None
 
-
-        # TODO: style
-        #print self.style #"vertical-separator"
-        #print self.style_get_property("vertical-separator")
-        #style = self.get_modifier_style()        
-        #self.modify_style(style)
-        #print self.style_get_property("vertical-separator")
-
-
+        
         # selection
         self.get_selection().connect("changed", self.__on_select_changed)
         self.get_selection().connect("changed", self.on_select_changed)
@@ -235,13 +227,14 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
             # init signals for model
             self.rich_model.set_notebook(self._notebook)
-            self.changed_start_id = self.rich_model.connect("node-changed-start",
-                                                   self._on_node_changed_start)
-            self.changed_end_id = self.rich_model.connect("node-changed-end",
-                                                 self._on_node_changed_end)
+            self.changed_start_id = self.rich_model.connect(
+                "node-changed-start", self._on_node_changed_start)
+            self.changed_end_id = self.rich_model.connect(
+                "node-changed-end", self._on_node_changed_end)
             self._node_col = self.rich_model.get_node_column_pos()
             self._get_icon = lambda row: \
-                             self.model.get_value(row, self.rich_model.get_column_by_name("icon").pos)
+                self.model.get_value(
+                row, self.rich_model.get_column_by_name("icon").pos)
 
                 
             self.insert_id = self.model.connect("row-inserted",
@@ -249,8 +242,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             self.delete_id = self.model.connect("row-deleted",
                                                 self.on_row_deleted)
             self.has_child_id = self.model.connect(
-                "row-has-child-toggled",
-                self.on_row_has_child_toggled)
+                "row-has-child-toggled", self.on_row_has_child_toggled)
 
 
     def set_popup_menu(self, menu):
@@ -308,12 +300,15 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             if node == self._master_node:
                 for child in node.get_children():
                     if self.is_node_expanded(child):
-                        path = get_path_from_node(self.model, child, self.rich_model.get_node_column_pos())
+                        path = get_path_from_node(
+                            self.model, child, 
+                            self.rich_model.get_node_column_pos())
                         self.expand_row(path, False)
             else:
                 try:
-                    path = get_path_from_node(self.model, node,
-                                              self.rich_model.get_node_column_pos())
+                    path = get_path_from_node(
+                        self.model, node,
+                        self.rich_model.get_node_column_pos())
                 except:
                     path = None
                 if path is not None:
@@ -322,8 +317,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                     # NOTE: parent may lose expand state if it has one child
                     # therefore, we should expand parent if it exists and is
                     # visible (i.e. len(path)>1) in treeview
-                    if parent and self.is_node_expanded(parent) and \
-                       len(path) > 1:
+                    if (parent and self.is_node_expanded(parent) and 
+                        len(path) > 1):
                         self.expand_row(path[:-1], False)
 
                     if self.is_node_expanded(node):
@@ -337,8 +332,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         for node in self.__sel_nodes2:
             sel_count += 1
             if node.is_valid():
-                path2 = get_path_from_node(self.model, node,
-                                           self.rich_model.get_node_column_pos())
+                path2 = get_path_from_node(
+                    self.model, node, self.rich_model.get_node_column_pos())
                 if (path2 is not None and 
                     (len(path2) <= 1 or self.row_expanded(path2[:-1]))):
                     # reselect and scroll to node 
@@ -358,13 +353,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
     def __on_select_changed(self, treeselect):
         """Keep track of which nodes are selected"""
-        #model, paths = treeselect.get_selected_rows()
-        #self.__sel_nodes = [self.model.get_value(self.model.get_iter(path),
-        #                                         self._node_col)
-        #                    for path in paths]
 
-        self.__sel_nodes = self.get_selected_nodes()
-        
+        self.__sel_nodes = self.get_selected_nodes()        
         if self.__suppress_sel:
             self.get_selection().stop_emission("changed")
     
@@ -1032,7 +1022,6 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             return
         
         # determine if drop is allowed
-        #print "recieved", source_nodes
         for source_node in source_nodes:
             if not self._drop_allowed(source_node, target_node, drop_position):
                 drag_context.finish(False, False, eventtime)

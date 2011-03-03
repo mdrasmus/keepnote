@@ -796,7 +796,7 @@ class NoteBookConnectionFS (NoteBookConnection):
                 # we can only update the mtime of the node once we know
                 # the children are properly indexed
                 self._index.add_node(nodeid, parentid, basename, attr, mtime)
-                print "index", attr["title"]
+                #print "index", attr["title"]
                     
 
         return attr
