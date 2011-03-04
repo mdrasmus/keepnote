@@ -324,6 +324,26 @@ def attach_file(filename, node, index=None):
         raise e
 
 
+def new_page(parent, title=None, index=None):
+    """Add a new page to a node in a notebook"""
+
+    if title is None:
+        title = DEFAULT_PAGE_NAME
+
+    child = parent.new_child(CONTENT_TYPE_PAGE, title, index)
+    write_empty_page(child)
+    child.save(True)
+    return child
+
+
+def write_empty_page(node):
+    """Initializes an empty data file on file-system"""
+
+    out = node.open_file(PAGE_DATA_FILE, "w")
+    out.write(BLANK_NOTE)
+    out.close()
+
+
 
 #=============================================================================
 # errors
@@ -672,6 +692,10 @@ class NoteBookNode (object):
         
         # TODO: become more complicated with general graph structure
         # trace up through parents
+
+        if self == self._notebook._trash:
+            return True
+
         ptr = self._parent
         while ptr is not None:
             if ptr == self._notebook._trash:
@@ -1018,13 +1042,6 @@ class NoteBookNode (object):
 #=============================================================================
 # NoteBookNode subclasses
 
-def write_empty_data_file(node):
-    """Initializes an empty data file on file-system"""
-
-    out = node.open_file(PAGE_DATA_FILE, "w")
-    out.write(BLANK_NOTE)
-    out.close()
-
 
 class NoteBookPage (NoteBookNode):
     """Class that represents a Page in the NoteBook"""
@@ -1036,7 +1053,7 @@ class NoteBookPage (NoteBookNode):
     
     def create(self):
         NoteBookNode.create(self)
-        write_empty_data_file(self)
+        write_empty_page(self)
 
 
 

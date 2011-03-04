@@ -34,10 +34,6 @@ from gtk import gdk
 # keepnote imports
 from keepnote.gui import treemodel
 from keepnote.gui import basetreeview
-from keepnote.notebook import NoteBookTrash, \
-              NoteBookError
-
-
 
 
 class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):

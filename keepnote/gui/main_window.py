@@ -53,8 +53,7 @@ from keepnote import \
     FS_ENCODING
 from keepnote.notebook import \
      NoteBookError, \
-     NoteBookVersionError, \
-     NoteBookTrash
+     NoteBookVersionError
 from keepnote import notebook as notebooklib
 from keepnote import tasklib
 from keepnote.gui import \
@@ -973,10 +972,10 @@ class KeepNoteWindow (gtk.Window):
         # could make this a stand alone function/dialog box
         
         for node in nodes:
-            if isinstance(node, NoteBookTrash):
+            if node.get_attr("content_type") == notebooklib.CONTENT_TYPE_TRASH:
                 self.error(_("The Trash folder cannot be deleted."), None)
                 return False
-            elif node.get_parent() == None:
+            if node.get_parent() == None:
                 self.error(_("The top-level folder cannot be deleted."), None)
                 return False
 

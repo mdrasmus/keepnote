@@ -39,7 +39,7 @@ from gtk import gdk
 # keepnote imports
 import keepnote
 from keepnote import unicode_gtk
-from keepnote.notebook import NoteBookError, NoteBookTrash
+from keepnote.notebook import NoteBookError
 from keepnote.gui.icons import get_node_icon
 from keepnote.gui.treemodel import \
      get_path_from_node, iter_children
