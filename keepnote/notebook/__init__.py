@@ -783,7 +783,6 @@ class NoteBookNode (object):
         
         self.get_children()
         node = self._notebook.new_node(content_type, self, {"title": title})
-        node.create()
         self._add_child(node, index)
         node.save(True)
         self.notify_change(True)
@@ -797,7 +796,6 @@ class NoteBookNode (object):
         
         self.get_children()
         node = self._notebook.new_node(content_type, self, {"title": title})
-        node.create()
         self._add_child(node, index)
         node.save(True)
         return node
@@ -1043,20 +1041,6 @@ class NoteBookNode (object):
 # NoteBookNode subclasses
 
 
-class NoteBookPage (NoteBookNode):
-    """Class that represents a Page in the NoteBook"""
-    
-    def __init__(self, title=DEFAULT_PAGE_NAME,
-                 parent=None, notebook=None):
-        NoteBookNode.__init__(self, title, parent, notebook,
-                              content_type=CONTENT_TYPE_PAGE)
-    
-    def create(self):
-        NoteBookNode.create(self)
-        write_empty_page(self)
-
-
-
 class NoteBookGenericFile (NoteBookNode):
     """Class that represents generic file in NoteBook"""
     
@@ -1231,8 +1215,9 @@ class NoteBook (NoteBookNode):
         self._node_factory.add_node_type(
             CONTENT_TYPE_PAGE,
             lambda parent, notebook, attr:
-            NoteBookPage(parent=parent,
-                         notebook=notebook))
+            NoteBookNode(
+                DEFAULT_PAGE_NAME, parent=parent, notebook=notebook,
+                content_type=CONTENT_TYPE_PAGE))
         self._node_factory.add_node_type(
             CONTENT_TYPE_TRASH,
             lambda parent, notebook, attr:
@@ -1358,7 +1343,9 @@ class NoteBook (NoteBookNode):
 
         # TODO: maybe when I unify all node types, the factory function
         # will not be needed.
-        return self._node_factory.new_node(content_type, parent, self, attr)
+        node = self._node_factory.new_node(content_type, parent, self, attr)
+        node.create()
+        return node
 
 
     def move_allowed(self, node, parent, index=None):
@@ -1438,7 +1425,6 @@ class NoteBook (NoteBookNode):
         if self._trash is None:
             try:
                 self._trash = self.new_node(CONTENT_TYPE_TRASH, self, {})
-                self._trash.create()
                 self._add_child(self._trash)
 
             except NoteBookError, e:
