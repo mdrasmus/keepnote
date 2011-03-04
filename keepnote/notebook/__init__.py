@@ -626,6 +626,41 @@ class NoteBookNode (object):
         """Returns the parent of the node"""
         return self._parent
 
+
+    def set_payload(self, filename, new_filename=None):
+        """Copy file into NoteBook directory"""
+
+        # determine new file name
+        if new_filename is None:
+            new_filename = os.path.basename(filename)
+        new_filename = self._conn.new_filename(self._attr["nodeid"], 
+                                               new_filename, None)
+        
+        try:
+            # attempt url parse
+            parts = urlparse.urlparse(filename)
+            
+            if os.path.exists(filename) or parts[0] == "":
+                # perform local copy
+                self._conn.copy_node_file(None, filename, 
+                                          self._attr["nodeid"], new_filename)
+            else:
+                # perform download
+                out = self.open_file(new_filename, "wb")
+                infile = urllib2.urlopen(filename)
+                while True:
+                    data = infile.read(1024*4)
+                    if data == "":
+                        break
+                    out.write(data)
+                infile.close()
+                out.close()
+        except IOError, e:
+            raise NoteBookError(_("Cannot copy file '%s'" % filename), e)
+        
+        # set attr
+        self._attr["payload_filename"] = new_filename
+
     
 
     #=============================================
@@ -903,9 +938,11 @@ class NoteBookNode (object):
         default_content_type = keepnote.notebook.CONTENT_TYPE_DIR
 
         for attr in self._conn.list_children_attr(self._attr["nodeid"]):
-            node = self._notebook._node_factory.new_node(
-                attr.get("content_type", default_content_type),
-                self, self._notebook, attr)
+            node = NoteBookNode(
+                attr.get("title", DEFAULT_PAGE_NAME), 
+                parent=self, notebook=self._notebook,
+                content_type=attr.get("content_type", default_content_type))
+            node._init_attr(attr)
             yield node
     
     
@@ -1034,74 +1071,7 @@ class NoteBookNode (object):
     def resume_change(self, listener=None):
         """Resume notification of listeners for node changes"""        
         if self._notebook:
-            self._notebook.node_changed.resume(listener)
-
-
-#=============================================================================
-# NoteBookNode subclasses
-
-
-class NoteBookGenericFile (NoteBookNode):
-    """Class that represents generic file in NoteBook"""
-    
-    def __init__(self, filename=None, title=None, content_type=None,
-                 parent=None, notebook=None):
-
-        # init title and content_type
-        if filename:
-            if title is None:
-                title = os.path.basename(filename)
-            if content_type is None:
-                content_type = mimetypes.guess_type(filename)[0]
-
-        else:
-            title = _("New File")
-            if content_type is None:
-                content_type = "application/octet-stream"
-        
-        NoteBookNode.__init__(self, title, parent, notebook,
-                              content_type=content_type)
-
-        # set payload filename
-        if filename:
-            self._attr["payload_filename"] = filename
-        
-
-
-    def set_payload(self, filename, new_filename=None):
-        """Copy file into NoteBook directory"""
-
-        # determine new file name
-        if new_filename is None:
-            new_filename = os.path.basename(filename)
-        
-        new_filename = self._conn.new_filename(self._attr["nodeid"], 
-                                               new_filename, None)
-        
-        try:
-            # attempt url parse
-            parts = urlparse.urlparse(filename)
-            
-            if os.path.exists(filename) or parts[0] == "":
-                # perform local copy
-                self._conn.copy_node_file(None, filename, 
-                                          self._attr["nodeid"], new_filename)
-            else:
-                # perform download
-                out = self.open_file(new_filename, "wb")
-                infile = urllib2.urlopen(filename)
-                while True:
-                    data = infile.read(1024*4)
-                    if data == "":
-                        break
-                    out.write(data)
-                infile.close()
-                out.close()
-        except IOError, e:
-            raise NoteBookError(_("Cannot copy file '%s'" % filename), e)
-        
-        # set attr
-        self._attr["payload_filename"] = new_filename
+            self._notebook.node_changed.resume(listener)        
 
 
 
@@ -1161,9 +1131,7 @@ class NoteBook (NoteBookNode):
                               content_type=CONTENT_TYPE_DIR,
                               init_attr=False)
         
-        self._node_factory = NoteBookNodeFactory()
-        self._conn = connection_fs.NoteBookConnectionFS(
-            self, self._node_factory)
+        self._conn = connection_fs.NoteBookConnectionFS(self)
         self.pref = NoteBookPreferences()
         rootdir = keepnote.ensure_unicode(rootdir, keepnote.FS_ENCODING)
         self._basename = rootdir
@@ -1188,9 +1156,6 @@ class NoteBook (NoteBookNode):
         self.node_changed = Listeners()  # signature = (node, recurse)
         self.closing_event = Listeners()
         self.close_event = Listeners()
-
-        # add node types
-        self._init_default_node_types()
         
 
     def _init_default_attr(self):
@@ -1201,29 +1166,6 @@ class NoteBook (NoteBookNode):
         for attr in g_default_attr_defs:
             self.add_attr_def(attr)
         
-        
-    def _init_default_node_types(self):
-        """Initialize default node types for notebook"""
-        
-        self._node_factory.clear()
-        self._node_factory.add_node_type(
-            CONTENT_TYPE_DIR,
-            lambda parent, notebook, attr:
-                NoteBookNode(
-                DEFAULT_DIR_NAME, parent=parent, notebook=notebook,
-                content_type=CONTENT_TYPE_DIR))
-        self._node_factory.add_node_type(
-            CONTENT_TYPE_PAGE,
-            lambda parent, notebook, attr:
-            NoteBookNode(
-                DEFAULT_PAGE_NAME, parent=parent, notebook=notebook,
-                content_type=CONTENT_TYPE_PAGE))
-        self._node_factory.add_node_type(
-            CONTENT_TYPE_TRASH,
-            lambda parent, notebook, attr:
-            NoteBookNode(TRASH_NAME, parent=parent, notebook=notebook,
-                         content_type=CONTENT_TYPE_TRASH))
-
 
     def add_attr_def(self, attr):
         """Adds a new attribute definition to the notebook"""
@@ -1340,10 +1282,11 @@ class NoteBook (NoteBookNode):
 
     def new_node(self, content_type, parent, attr):
         """Create a new NodeBookNode"""
-
-        # TODO: maybe when I unify all node types, the factory function
-        # will not be needed.
-        node = self._node_factory.new_node(content_type, parent, self, attr)
+        
+        node = NoteBookNode(attr.get("title", DEFAULT_PAGE_NAME), 
+                            parent=parent, notebook=self,
+                            content_type=content_type)
+        node._init_attr(attr)
         node.create()
         return node
 
@@ -1699,60 +1642,3 @@ class NoteBook (NoteBookNode):
         data["version"] = version
         self.pref.set_data(data)
       
-
-
-#=============================================================================
-# Meta Data Parsing
-
-
-class NoteBookNodeFactory (object):
-    """
-    This is a factory class that creates NoteBookNode's.  
-    """
-
-    def __init__(self):
-        self._makers = {}
-
-    def clear(self):
-        self._makers.clear()
-
-    def add_node_type(self, content_type, make_func):
-        """
-        Adds a new node content_type to the factory.
-        Enables factory to build nodes of the given type by calling the
-        given function 'make_func'.
-
-        make_func must have the signature:
-           make_func(path, parent, notebook, attr_dict)
-        """
-        
-        self._makers[content_type] = make_func
-        
-
-    def new_node(self, content_type, parent, notebook, attr):
-        """Creates a new node given a content_type"""
-        
-        maker = self._makers.get(content_type, None)
-        if maker:
-            node = maker(parent, notebook, attr)
-            node._init_attr(attr)
-            return node
-        
-        elif "payload_filename" in attr:
-            # test for generic file
-            node = NoteBookGenericFile(filename=attr["payload_filename"],
-                                       title=attr.get("title", _("New File")),
-                                       content_type=content_type,
-                                       parent=parent, notebook=notebook)
-            node._init_attr(attr)
-            return node
-        
-        else:
-            # return unintialized generic file
-            node = NoteBookGenericFile(title=attr.get("title", _("New File")),
-                                       content_type=content_type,
-                                       parent=parent, notebook=notebook)
-            node._init_attr(attr)
-            return node
-
-   

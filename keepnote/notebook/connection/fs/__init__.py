@@ -392,12 +392,12 @@ class PathCache (object):
 
 
 class NoteBookConnectionFS (NoteBookConnection):
-    def __init__(self, notebook, node_factory):
+    def __init__(self, notebook):
         NoteBookConnection.__init__(self)
         
         self._filename = None
         self._notebook = notebook
-        self._node_factory = node_factory
+        #self._node_factory = node_factory
         self._index = None
         self._path_cache = PathCache()
         self._rootid = None
