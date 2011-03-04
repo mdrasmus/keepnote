@@ -645,6 +645,8 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         self._path_cache.remove(nodeid)
         self._index.remove_node(nodeid)
+
+        # TODO: do I also need to unindex all unreachable children?
                 
 
     def read_data_as_plain_text(self, nodeid):

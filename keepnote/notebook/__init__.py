@@ -582,7 +582,7 @@ class NoteBookNode (object):
     
 
     def _init_attr(self, attr):
-        #self._version = attr.get("version", NOTEBOOK_FORMAT_VERSION)
+        """Initialize attributes from a dict"""
         attr.setdefault("version", NOTEBOOK_FORMAT_VERSION)
         if self._notebook.set_attr_defaults(attr):
             self._set_dirty(True)
@@ -626,6 +626,11 @@ class NoteBookNode (object):
     def delete(self):
         """Deletes this node from the notebook"""
 
+        # check whether this is allowed
+        allowed, error = self._notebook.delete_allowed(self)
+        if not allowed:
+            raise error
+
         # perform delete on disk
         self._conn.delete_node(self._attr["nodeid"])
         
@@ -634,6 +639,7 @@ class NoteBookNode (object):
         self._parent._set_child_order()
         self._set_dirty(False)
         
+        # TODO: this will change with multiple parents.  Need GC of some sort
         # make sure to recursively invalidate
         def walk(node):
             node._valid = False
@@ -680,10 +686,18 @@ class NoteBookNode (object):
         # TODO: if parent is in another notebook, index updates need to be
         # done for whole subtree.  Also accessory data like icons might need
         # to be transferred.
+
+        # TODO: with multiple parents, we need to specify here which 
+        # parent relationship we are breaking.
         
         assert self != parent
         old_parent = self._parent
         
+        # check whether move is allowed
+        allowed, error = self._notebook.move_allowed(self, parent, index)
+        if not allowed:
+            raise error
+
         # make sure new parents children are loaded
         parent.get_children()
 
@@ -1004,6 +1018,13 @@ class NoteBookNode (object):
 #=============================================================================
 # NoteBookNode subclasses
 
+def write_empty_data_file(node):
+    """Initializes an empty data file on file-system"""
+
+    out = node.open_file(PAGE_DATA_FILE, "w")
+    out.write(BLANK_NOTE)
+    out.close()
+
 
 class NoteBookPage (NoteBookNode):
     """Class that represents a Page in the NoteBook"""
@@ -1012,68 +1033,35 @@ class NoteBookPage (NoteBookNode):
                  parent=None, notebook=None):
         NoteBookNode.__init__(self, title, parent, notebook,
                               content_type=CONTENT_TYPE_PAGE)
-
-
+    
     def create(self):
         NoteBookNode.create(self)
-        self.write_empty_data_file()
+        write_empty_data_file(self)
 
-
-    def read_data_as_plain_text(self):
-        """Iterates over the lines of the data file as plain text"""
-        infile = self._conn.open_node_file(
-            self._attr["nodeid"], PAGE_DATA_FILE, "r", codec="utf-8")
-        for line in read_data_as_plain_text(infile):
-            yield line
-
-        infile.close()
-            
-    
-    def write_empty_data_file(self):
-        """Initializes an empty data file on file-system"""
-        try:
-            out = self._conn.open_node_file(
-                self._attr["nodeid"], PAGE_DATA_FILE, "w", codec="utf-8")
-            out.write(BLANK_NOTE)
-            out.close()
-        except IOError, e:
-            raise NoteBookError(
-                _("Cannot initialize richtext file '%s'" % datafile), e)
-        
-
-
-class NoteBookDir (NoteBookNode):
-    """Class that represents Folders in NoteBook"""
-    
-    def __init__(self, title=DEFAULT_DIR_NAME,
-                 parent=None, notebook=None, init_attr=True):
-        NoteBookNode.__init__(self, title, parent, notebook,
-                              content_type=CONTENT_TYPE_DIR,
-                              init_attr=init_attr)
 
 
 class NoteBookGenericFile (NoteBookNode):
-    """Class that generic file in NoteBook"""
+    """Class that represents generic file in NoteBook"""
     
     def __init__(self, filename=None, title=None, content_type=None,
                  parent=None, notebook=None):
 
+        # init title and content_type
         if filename:
             if title is None:
                 title = os.path.basename(filename)
-
             if content_type is None:
                 content_type = mimetypes.guess_type(filename)[0]
 
         else:
             title = _("New File")
-
             if content_type is None:
                 content_type = "application/octet-stream"
         
         NoteBookNode.__init__(self, title, parent, notebook,
                               content_type=content_type)
 
+        # set payload filename
         if filename:
             self._attr["payload_filename"] = filename
         
@@ -1113,36 +1101,6 @@ class NoteBookGenericFile (NoteBookNode):
         
         # set attr
         self._attr["payload_filename"] = new_filename
-
-
-class NoteBookTrash (NoteBookNode):
-    """Class represents the Trash Folder in a NoteBook"""
-
-    def __init__(self, name, notebook):
-        NoteBookNode.__init__(self, name, parent=notebook, notebook=notebook,
-                              content_type=CONTENT_TYPE_TRASH)
-        
-        
-    def move(self, parent, index=None):
-        """Trash folder only be under root directory"""
-
-        # TODO: figure out how to enfore this at the notebook level, instead
-        # in a special member function
-
-        if parent == self._notebook:
-            assert parent == self._parent
-            NoteBookNode.move(self, parent, index)
-        else:
-            raise NoteBookError(
-                _("The Trash folder must be a top-level folder."))
-    
-    def delete(self):
-        """Trash folder cannot be deleted"""
-        
-        # TODO: figure out how to enfore this at the notebook level, instead
-        # in a special member function
-
-        raise NoteBookError(_("The Trash folder cannot be deleted."))
 
 
 
@@ -1188,7 +1146,7 @@ class NoteBookPreferences (Pref):
 # NoteBook type
 
 
-class NoteBook (NoteBookDir):
+class NoteBook (NoteBookNode):
     """Class represents a NoteBook"""
 
     # TODO: should I make a base class with a filename argument?
@@ -1198,7 +1156,9 @@ class NoteBook (NoteBookDir):
         """rootdir -- Root directory of notebook"""
 
         self._conn = None
-        NoteBookDir.__init__(self, notebook=self, init_attr=False)
+        NoteBookNode.__init__(self, notebook=self, 
+                              content_type=CONTENT_TYPE_DIR,
+                              init_attr=False)
         
         self._node_factory = NoteBookNodeFactory()
         self._conn = connection_fs.NoteBookConnectionFS(
@@ -1248,8 +1208,9 @@ class NoteBook (NoteBookDir):
         self._node_factory.add_node_type(
             CONTENT_TYPE_DIR,
             lambda parent, notebook, attr:
-            NoteBookDir(parent=parent,
-                        notebook=notebook))
+                NoteBookNode(
+                DEFAULT_DIR_NAME, parent=parent, notebook=notebook,
+                content_type=CONTENT_TYPE_DIR))
         self._node_factory.add_node_type(
             CONTENT_TYPE_PAGE,
             lambda parent, notebook, attr:
@@ -1258,7 +1219,8 @@ class NoteBook (NoteBookDir):
         self._node_factory.add_node_type(
             CONTENT_TYPE_TRASH,
             lambda parent, notebook, attr:
-            NoteBookTrash(TRASH_NAME, notebook))
+            NoteBookNode(TRASH_NAME, parent=parent, notebook=notebook,
+                         content_type=CONTENT_TYPE_TRASH))
 
 
     def add_attr_def(self, attr):
@@ -1382,6 +1344,28 @@ class NoteBook (NoteBookDir):
         return self._node_factory.new_node(content_type, parent, self, attr)
 
 
+    def move_allowed(self, node, parent, index=None):
+
+        if node.get_attr("content_type") == CONTENT_TYPE_TRASH:
+            if parent != self:
+                # trash node but be child of root
+                return False, NoteBookError(
+                    _("The Trash folder must be a top-level folder."))
+        
+        # move is allowed
+        return True, None
+
+
+    def delete_allowed(self, node):
+
+        if node.get_attr("content_type") == CONTENT_TYPE_TRASH:
+            # cannot delete trash
+            return False, NoteBookError(
+                _("The Trash folder cannot be deleted."))
+
+        return True, None
+
+
     def _set_dirty_node(self, node, dirty):
         """Mark a node to be dirty (needs saving) in NoteBook"""        
         
@@ -1436,7 +1420,7 @@ class NoteBook (NoteBookDir):
         # if no trash folder, create it
         if self._trash is None:
             try:
-                self._trash = NoteBookTrash(TRASH_NAME, self)
+                self._trash = self.new_node(CONTENT_TYPE_TRASH, self, {})
                 self._trash.create()
                 self._add_child(self._trash)
 

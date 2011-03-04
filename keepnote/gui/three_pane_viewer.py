@@ -578,21 +578,7 @@ class ThreePaneViewer (Viewer):
         else:
             parent = self._notebook
         
-        if pos == "sibling" and parent.get_parent() is not None:
-            index = parent.get_attr("order") + 1
-            parent = parent.get_parent()
-        else:
-            index = None
-
-
-        if kind == notebooklib.CONTENT_TYPE_DIR:
-            node = parent.new_child(notebooklib.CONTENT_TYPE_DIR,
-                                    notebooklib.DEFAULT_DIR_NAME,
-                                    index)
-        else:
-            node = parent.new_child(notebooklib.CONTENT_TYPE_PAGE,
-                                    notebooklib.DEFAULT_PAGE_NAME,
-                                    index)
+        node = Viewer.new_node(self, kind, pos, parent)
 
         self._view_new_node(node)
 
