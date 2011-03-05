@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 #
 #  KeepNote - note-taking and organization
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2011 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -150,30 +150,30 @@ def start_error_log(show_errors):
 
     keepnote.init_error_log()
         
-    # Test ability to write to file[-like] objects used to display errors.  
+    # Test ability to write to file-like objects used to display errors.  
     # - if stderr is unavailable, create error message, else add to stream
     #   list. Do not exit.
     # Note: this code-section is necessary to allow Linux-users the option of
     #       launching KeepNote from a *.desktop file without having it  
-    #       run in a terminal (currently, KeepNote must be allowed to spawn
-    #       a terminal window when launching from a *.desktop file). In other
-    #       words, 'Terminal=false' can be safely added to the *.desktop file;
-    #       without this section, adding 'Terminal=false' to the *.desktop file
-    #       causes KeepNote launch failure.
+    #       run in a terminal. In other words, 'Terminal=false' can be safely 
+    #       added to the *.desktop file; without this code, adding 
+    #       'Terminal=false' to the *.desktop file causes KeepNote 
+    #       launch failure.
     
     stream_list = []
     stderr_test_str = "\n"
     stderr_except_msg = ""
-    
-    try:
-        if show_errors:
+
+    if show_errors:    
+        try:
             sys.stderr.write(stderr_test_str)
-    except IOError:
-        formatted_msg = traceback.format_exc().splitlines()
-        stderr_except_msg = ''.join(['** stderr - unavailable for messages - ',
-                                     formatted_msg[-1], "\n"])
-    else:
-        stream_list.append(sys.stderr)
+        except IOError:
+            formatted_msg = traceback.format_exc().splitlines()
+            stderr_except_msg = ''.join(
+                ['** stderr - unavailable for messages - ',
+                 formatted_msg[-1], "\n"])
+        else:
+            stream_list.append(sys.stderr)
     
     # if errorlog is unavailable, exit with error, else add to stream list.
     try:
@@ -184,18 +184,13 @@ def start_error_log(show_errors):
         stream_list.append(errorlog)
     
 
-    if show_errors:
-        sys.stderr = TeeFileStream(stream_list,
-                                   autoflush=True)
-    else:
-        sys.stderr = errorlog
+    # redirect stderr
+    sys.stderr = TeeFileStream(stream_list, autoflush=True)
 
 
-    sys.stderr.write("==============================================\n"
-                     "%s %s: %s\n" % (keepnote.PROGRAM_NAME,
-                                      keepnote.PROGRAM_VERSION_TEXT,
-                                      time.asctime()))
-    sys.stderr.write(stderr_except_msg)
+    # write errorlog header
+    keepnote.print_error_log_header()
+    keepnote.log_message(stderr_except_msg)
 
 
 
@@ -237,14 +232,21 @@ def gui_exec(function, *args, **kw):
     import gtk.gdk
     import gobject
 
+    wait = [True]
+
     def idle_func():
         gtk.gdk.threads_enter()
         try:
             function(*args, **kw)
+            wait[0] = False
             return False
         finally:
             gtk.gdk.threads_leave()
     gobject.idle_add(idle_func)
+
+    # wait for execute, TODO: don't use busy wait
+    while wait[0]:
+        pass
 
 
 def start_gui(argv, options, args, cmd_exec):
@@ -258,46 +260,48 @@ def start_gui(argv, options, args, cmd_exec):
     # setup threading environment
     setup_threading()
 
-    # start error log
-    start_error_log(options.show_errors)
-
-    # read preferences
+    # create app
     app = keepnote.gui.KeepNote(basedir)
     app.init()
     cmd_exec.set_app(app)
-    execute_command(app, argv)
+    need_gui = execute_command(app, argv)
     
-    gtk.main()
+    # begin gtk event loop
+    if need_gui:
+        gtk.main()
 
 
 def start_non_gui(argv, options, args, cmd_exec):
-
-    # start error log
-    start_error_log(options.show_errors)
 
     # read preferences
     app = keepnote.KeepNote(basedir)
     app.init()
     cmd_exec.set_app(app)
-
     execute_command(app, argv)
 
 
 def execute_command(app, argv):
-    """Execute commands given on command line"""
+    """
+    Execute commands given on command line
+
+    Returns True if gui event loop should be started
+    """
     
     options, args = parse_argv(argv)
 
-    # parse builtin commands
+    #------------------------------------------
+    # process builtin commands
     if options.list_cmd:
         list_commands(app)
-        sys.exit()
+        return False
     
     if options.info:
-        keepnote.print_runtime_info()
-        sys.exit()
+        keepnote.print_runtime_info(sys.stdout)
+        return False
 
 
+    #------------------------------------------
+    # process extended commands
     if options.cmd:
         # process application command (AppCommand)
         if len(args) == 0:
@@ -313,36 +317,38 @@ def execute_command(app, argv):
         if not options.no_gui:
             if len(app.get_windows()) == 0:
                 app.new_window()
+                return True
+
+        return False
+
+    #------------------------------------------
+    # process a non-command
+
+    if options.no_gui:
+        return False
+
+    if len(args) > 0:
+        if keepnote.extension.is_extension_install_file(args[0]):
+            # install extension
+            if len(app.get_windows()) == 0:
+                app.new_window()
+
+            app.install_extension(args[0])
+        else:
+            # open specified notebook
+            win = app.new_window()
+            win.open_notebook(args[0].rstrip("/"))
 
     else:
-        # process a non-command
+        # no arguments
+        win = app.new_window()
 
-        if options.no_gui:
-            sys.exit()
+        # open default notebook
+        if options.default_notebook and app.pref.get(
+            "default_notebook", default="") != "":
+            win.open_notebook(app.pref.get("default_notebook"))
 
-        if len(args) > 0:
-            if keepnote.extension.is_extension_install_file(args[0]):
-                # install extension
-                if len(app.get_windows()) == 0:
-                    app.new_window()
-
-                app.install_extension(args[0])
-            else:
-                # open specified notebook
-                win = app.new_window()
-                win.open_notebook(args[0].rstrip("/"))
-
-        else:
-            # no arguments
-            
-            if options.default_notebook and app.pref.get("default_notebook",
-                                                         default="") != "":
-                # open default notebook
-                win = app.new_window()
-                win.open_notebook(app.pref.get("default_notebook"))
-            else:
-                # open empty window
-                app.new_window()
+    return True
 
 
 def list_commands(app):
@@ -367,29 +373,28 @@ def main(argv):
     """Main execution"""    
 
     options, args = parse_argv(argv)
-
-    # check for old preference info
-    keepnote.compat.pref.check_old_user_pref_dir()
-
+    
     # init preference dir
+    keepnote.compat.pref.check_old_user_pref_dir()
     if not os.path.exists(keepnote.get_user_pref_dir()):
         keepnote.init_user_pref_dir()
+
+    # start error log
+    start_error_log(options.show_errors)
 
     # get command executor
     if options.newproc:
         main_proc = True
         cmd_exec = CommandExecutor()
     else:
-        try:
+        if options.no_gui:
+            main_proc, cmd_exec = get_command_executor(
+                execute_command, port=options.port)
+        else:
             main_proc, cmd_exec = get_command_executor(
                 lambda app, argv: gui_exec(
                     lambda: execute_command(app, argv)),
-                port=options.port)
-        except:
-            # backup if error is encountered acquiring lock
-            main_proc = True
-            cmd_exec = CommandExecutor()
-    
+                port=options.port)    
 
     if main_proc:
         # initiate main process
@@ -402,17 +407,16 @@ def main(argv):
         cmd_exec.execute(argv)
 
 
+#=============================================================================
+# start main function
+# catch any exceptions that occur
 try:
     main(sys.argv)
-    
 except exceptions.SystemExit, e:
     # sys.exit() was called
     pass
-
 except Exception, e:
     traceback.print_exc()
-    
-    # flush final errors
     sys.stderr.flush()
 
 

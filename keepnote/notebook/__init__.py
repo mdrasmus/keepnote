@@ -299,6 +299,17 @@ def guess_file_mimetype(filename, default="application/octet-stream"):
         return content_type
 
 
+def write_empty_page(node, page_file=PAGE_DATA_FILE):
+    """Initializes an empty data file on file-system"""
+
+    out = node.open_file(page_file, "w")
+    out.write(BLANK_NOTE)
+    out.close()
+
+
+#=============================================================================
+# adding content to a notebook/nodes
+
 def attach_file(filename, node, index=None):
     """Attach a file to a node in a notebook"""
 
@@ -332,16 +343,7 @@ def new_page(parent, title=None, index=None):
 
     child = parent.new_child(CONTENT_TYPE_PAGE, title, index)
     write_empty_page(child)
-    child.save(True)
     return child
-
-
-def write_empty_page(node):
-    """Initializes an empty data file on file-system"""
-
-    out = node.open_file(PAGE_DATA_FILE, "w")
-    out.write(BLANK_NOTE)
-    out.close()
 
 
 
@@ -380,7 +382,6 @@ class NoteBookVersionError (NoteBookError):
 #=============================================================================
 # notebook attributes
 
-# TODO: finish
 
 class AttrDef (object):
     """
@@ -388,39 +389,30 @@ class AttrDef (object):
     nodes in a NoteBook.
     """
 
-    def __init__(self, name, datatype, key=None, write=None, read=None,
-                 default=None):
+    def __init__(self, name, datatype, key, default=None):
 
         self.name = name
         self.datatype = datatype
-        if key is None:
-            self.key = name
-        else:
-            self.key = key
-        
-        # writer function
-        if write is None:
-            if datatype == bool:
-                self.write = lambda x: unicode(int(x))
-            else:
-                self.write = unicode
-        else:
-            self.write = write
-
-        # reader function
-        if read is None:
-            if datatype == bool:
-                self.read = lambda x: bool(int(x))
-            else:
-                self.read = datatype
-        else:
-            self.read = read
+        self.key = key
 
         # default function
         if default is None:
             self.default = datatype
         else:
             self.default = default
+        
+        # writer function
+        if datatype == bool:
+            self.write = lambda x: unicode(int(x))
+        else:
+            self.write = unicode
+
+        # reader function
+        if datatype == bool:
+            self.read = lambda x: bool(int(x))
+        else:
+            self.read = datatype
+
         
 
 class UnknownAttr (object):
@@ -440,36 +432,24 @@ class NoteBookTable (object):
         # NoteBooks have tables and attrs
 
 
-
-# mapping for old style of saving sort order
-_sort_info_backcompat = {"0": "order",
-                         "1": "order",
-                         "2": "title",
-                         "3": "created_time",
-                         "4": "modified_time"} 
-def read_info_sort(key):
-    return _sort_info_backcompat.get(key, key)
-
-
 title_attr = AttrDef("Title", unicode, "title")
-created_time_attr = AttrDef("Created", int, "created_time", default=get_timestamp)
-modified_time_attr = AttrDef("Modified", int, "modified_time", default=get_timestamp)
+created_time_attr = AttrDef("Created", int, "created_time", 
+                            default=get_timestamp)
+modified_time_attr = AttrDef("Modified", int, "modified_time", 
+                             default=get_timestamp)
 
 g_default_attr_defs = [
     AttrDef("Node ID", unicode, "nodeid", default=new_nodeid),
     AttrDef("Content type", unicode, "content_type",
-                 default=lambda: CONTENT_TYPE_DIR),
-
+            default=lambda: CONTENT_TYPE_DIR),
     title_attr,
     AttrDef("Order", int, "order", default=lambda: sys.maxint),
     created_time_attr,
     modified_time_attr,
     AttrDef("Expaned", bool, "expanded", default=lambda: True),
     AttrDef("Expanded2", bool, "expanded2", default=lambda: True),
-    AttrDef("Folder Sort", unicode, "info_sort", read=read_info_sort,
-                 default=lambda: "order"),
-    AttrDef("Folder Sort Direction", int, "info_sort_dir", 
-                 default=lambda: 1),
+    AttrDef("Folder Sort", unicode, "info_sort", default=lambda: "order"),
+    AttrDef("Folder Sort Direction", int, "info_sort_dir", default=lambda: 1),
     AttrDef("Icon", unicode, "icon"),
     AttrDef("Icon Open", unicode, "icon_open"),
     AttrDef("Filename", unicode, "payload_filename"),

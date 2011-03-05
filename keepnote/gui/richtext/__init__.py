@@ -711,7 +711,8 @@ class RichTextView (gtk.TextView):
 
     
     def _on_paste(self):
-        """Callback for paste action"""    
+        """Callback for paste action"""
+        
         clipboard = self.get_clipboard(selection=CLIPBOARD_NAME)
         self.stop_emission('paste-clipboard')
         self.paste_clipboard(clipboard, None, self.get_editable())
@@ -780,7 +781,7 @@ class RichTextView (gtk.TextView):
             # nothing on clipboard
             return
         targets = set(targets)
-
+        
         
         # check that insert is allowed
         it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
@@ -833,6 +834,11 @@ class RichTextView (gtk.TextView):
     def _do_paste_text(self, clipboard, text, data):
         """Paste text into buffer"""
 
+        print "!!!", text
+
+        if text is None:
+            return
+        
         self._textbuffer.begin_user_action()
         self._textbuffer.delete_selection(False, True)
         self._textbuffer.insert_at_cursor(sanitize_text(text))

@@ -219,6 +219,14 @@ def unicode_gtk(text):
     return unicode(text, "utf8")
 
 
+def print_error_log_header(out=sys.stderr):
+    """Display error log header"""
+    out.write("==============================================\n"
+              "%s %s: %s\n" % (keepnote.PROGRAM_NAME,
+                               keepnote.PROGRAM_VERSION_TEXT,
+                               time.asctime()))
+
+
 def print_runtime_info(out=sys.stderr):
     """Display runtime information"""
 

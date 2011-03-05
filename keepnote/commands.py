@@ -175,7 +175,7 @@ def process_connection(conn, addr, passwd, execfunc):
         connfile.write(KEEPNOTE_HEADER)
         connfile.flush()
         passwd2 = connfile.readline().rstrip("\n")
-        command = connfile.readline()
+        command = connfile.readline().rstrip("\n")
 
         # ensure password matches
         if passwd2 != passwd:
@@ -184,11 +184,23 @@ def process_connection(conn, addr, passwd, execfunc):
             return
         
         # parse command and execute
-        execfunc(parse_command(command))
+        try:
+            # redirect stdout to connection
+            stdout = sys.stdout
+            sys.stdout = connfile
+            sys.stdout.flush()
+            #print "\n",
+            execfunc(parse_command(command))
+            connfile.flush()
+        except:
+            pass
+        finally:
+            sys.stdout = stdout
 
         # close connection
         connfile.close()
         conn.close()
+        
 
     except socket.error, e:
         # socket error, close connection
@@ -303,7 +315,6 @@ class CommandExecutor (object):
         
                     
         # ensure header matches
-        #header = connfile.readline()
         s.settimeout(5.0) # wait upto 5 seconds to connect
         header = s.recv(len(KEEPNOTE_HEADER))
         assert header == KEEPNOTE_HEADER
@@ -311,10 +322,22 @@ class CommandExecutor (object):
         # send password
         connfile = s.makefile()
         connfile.write("%s\n" % passwd)
+        connfile.flush()
                     
         def execute(app, argv):
             # send command
-            connfile.write(format_command(argv))
+            connfile.write(format_command(argv) + "\n")
+            connfile.flush()
+
+            # display return
+            while 1:
+                c = s.recv(1)
+                if len(c) < 1:
+                    break
+                sys.stdout.write(c)
+            sys.stdout.flush()
+            
+            # close socket
             connfile.close()
             s.close()
         self._execfunc = execute
@@ -369,13 +392,16 @@ class CommandExecutor (object):
 def get_command_executor(func, port=None):
     """Make a CommandExecutor object that wraps the given function"""
 
-    cmd_exec = CommandExecutor()
-    cmd_exec.set_port(port)
-    main_proc = cmd_exec.setup(func)
+    try:
+        cmd_exec = CommandExecutor()
+        cmd_exec.set_port(port)
+        main_proc = cmd_exec.setup(func)
+    except:
+        # backup if error is encountered acquiring lock
+        main_proc = True
+        cmd_exec = CommandExecutor()
+
     return main_proc, cmd_exec
-
-
-
 
 
 

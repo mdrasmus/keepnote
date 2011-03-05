@@ -3,11 +3,13 @@
     KeepNote
     Tee File Streams
 
+    Allow one file stream to multiplex for multiple file streams
+
 """
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2011 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -32,13 +34,30 @@ class TeeFileStream (object):
         self._autoflush = autoflush
 
 
+    def add(self, stream):
+        """Adds a new stream to teefile"""
+        self._streams.append(stream)
+
+        
+    def remove(self, stream):
+        """Removes a stream from teefile"""
+        self._streams.remove(stream)
+
+
+    def get_streams(self):
+        """Returns a list of streams associated with teefile"""
+        return list(self._streams)
+
+
     def write(self, data):
+        """Write data to streams"""
         for stream in self._streams:
             stream.write(data)
             if self._autoflush:
                 stream.flush()
 
     def flush(self):
+        """Flush streams"""
         for stream in self._streams:
             stream.flush()
 
