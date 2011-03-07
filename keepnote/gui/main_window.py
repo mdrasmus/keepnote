@@ -664,68 +664,9 @@ class KeepNoteWindow (gtk.Window):
     def _load_notebook(self, filename):
         """Loads notebook in background with progress bar"""
         
-        '''
-        try:
-            notebook = self._app.get_notebook(filename, self)
-            if notebook is None:
-                return None
-        except:
-            return None
-
-        if notebook.index_needed():
-            self.update_index(notebook)
-        
-        return notebook
-        '''
-
-        
-
-        # NOTE: loading in the background seems to be much slower
+        # load notebook in background
         def update(task):
-            # open notebook in GUI thread
-
-            '''
-            notebook = [None]
-            #loaded = [False]
-            sem = threading.Semaphore(0)
-
-            def func():
-                # NOTE: according to the GTK API, these thread calls should 
-                # not be needed, since all my GTK calls are in the main thread.
-                # But I needed them in order to prevent the main event loop
-                # from stalling while returning from several nested dialogs.
-                #gtk.gdk.threads_enter()
-                notebook[0] = self._app.get_notebook(filename, self, task=task)
-                
-                #gtk.gdk.threads_leave()
-                #loaded[0] = True
-                sem.release()
-                return False
-            gobject.idle_add(func)
-
-            # wait for notebook to be loaded
-            #while not loaded[0]: 
-            #    pass
-
-            sem.acquire()
-            '''
-
-            notebook = [None]
-            notebook[0] = self._app.get_notebook(filename, self, task=task)
-            
-            # preload certain nodes
-            #if notebook[0]:
-            #    def walk(node):
-            #        if node.get_attr("expanded"):
-            #            for child in node.get_children():
-            #                walk(child)
-            #    walk(notebook[0])
-
-            # send notebook back to main thread
-            task.set_result(notebook[0])
-
-
-        # open notebook
+            task.set_result(self._app.get_notebook(filename, self, task=task))
         task = tasklib.Task(update)
         self.wait_dialog(_("Opening notebook"), _("Loading..."), task,
                          cancel=False)
@@ -741,8 +682,6 @@ class KeepNoteWindow (gtk.Window):
             notebook = task.get_result()
             if notebook is None:
                 return None
-
-        print "loaded"
 
         # check for indexing
         # TODO: is this the best place for checking?
