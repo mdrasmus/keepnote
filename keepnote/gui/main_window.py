@@ -742,6 +742,8 @@ class KeepNoteWindow (gtk.Window):
             if notebook is None:
                 return None
 
+        print "loaded"
+
         # check for indexing
         # TODO: is this the best place for checking?
         # There is a difference between normal incremental indexing
