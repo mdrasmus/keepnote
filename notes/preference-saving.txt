@@ -1,0 +1,19 @@
+
+
+app.save_preferences()
+- saves data from objects to pref dict
+- recurses through windows to save data from objects to pref dict
+- writes pref dict to disk
+
+
+dialog_app_options.save_preferences():
+- app.save_preferences()
+  - plists are now uptodate prior to pref changes
+- for section in sections: section.save_preferences()
+  - modifies pref plists 
+  - CANNOT modify data objects, changes will get overwritten by load.
+- app.load_preferences()
+  - all data objects are synced from plists
+- app.save()
+  - data objects save to plists
+  - plists save to disk
