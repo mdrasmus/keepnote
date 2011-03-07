@@ -723,10 +723,9 @@ class KeepNote (object):
         self._external_apps_lookup = {}
         
         # set of registered extensions for this application
+        self._extension_paths = []
         self._extensions = {}
         self._disabled_extensions = []
-
-
 
 
 
@@ -736,12 +735,12 @@ class KeepNote (object):
         # read preferences
         self.pref.read()
         self.load_preferences()
-        
-        # scan extensions
-        self.clear_extensions()
-        self.scan_extensions_dir(get_system_extensions_dir(), "system")
-        self.scan_extensions_dir(get_user_extensions_dir(), "user")
 
+        # init extension paths
+        self._extension_paths = [
+            (get_system_extensions_dir(), "system"),
+            (get_user_extensions_dir(), "user")]
+        
         # initialize all extensions
         self.init_extensions()
 
@@ -817,6 +816,11 @@ class KeepNote (object):
 
     def quit(self):
         """Stop the application"""
+        
+        if self.pref.get("use_last_notebook", default=False):
+            self.pref.set("default_notebooks", 
+                  [n.get_path() for n in self.iter_notebooks()])
+
         self.save_preferences()
 
 
@@ -1120,14 +1124,46 @@ class KeepNote (object):
 
 
     #================================
-    # extensions
+    # extensions        
+        
+    def init_extensions(self):
+        """Enable all extensions"""
+
+        # remove all existing extensions
+        self._clear_extensions()
+
+        # scan for extensions
+        self._scan_extension_paths()        
+
+        # import all extensions
+        self._import_all_extensions()
+
+        # enable those extensions that have their dependencies met
+        for ext in self.get_imported_extensions():
+            # enable extension
+            try:
+                if ext.key not in self._disabled_extensions:
+                    log_message(_("enabling extension '%s'\n") % ext.key)
+                    enabled = ext.enable(True)
+
+            except extension.DependencyError, e:
+                # could not enable due to failed dependency
+                log_message(_("  skipping extension '%s':\n") % ext.key)
+                for dep in ext.get_depends():
+                    if not self.dependency_satisfied(dep):
+                        log_message(_("    failed dependency: %s\n") % 
+                                    repr(dep))
+
+            except Exception, e:
+                # unknown error
+                log_error(e, sys.exc_info()[2])
 
 
-    def clear_extensions(self):
+    def _clear_extensions(self):
         """Disable and unregister all extensions for the app"""
 
         # disable all enabled extensions
-        for ext in self.iter_extensions(enabled=True):
+        for ext in list(self.get_enabled_extensions()):
             ext.disable()
 
         # reset registered extensions list
@@ -1135,15 +1171,31 @@ class KeepNote (object):
             "keepnote": ExtensionEntry("", "system", KeepNoteExtension(self))}
 
 
-    def add_extension_entry(self, filename, ext_type):
-        """Add an extension filename to the app's extension entries"""
+    def _scan_extension_paths(self):
+        """Scan all extension paths"""
+        for path, ext_type in self._extension_paths:         
+            self._scan_extensions_dir(path, ext_type)
+
+
+    def _scan_extensions_dir(self, extensions_path, ext_type):
+        """
+        Scan extensions directory and register extensions with app
         
+        extensions_path -- path for extensions
+        ext_type        -- "user"/"system"
+        """
+        for filename in extension.scan_extensions_dir(extensions_path):
+            self._add_extension_entry(filename, ext_type)
+
+
+    def _add_extension_entry(self, filename, ext_type):
+        """Add an extension filename to the app's extension entries"""        
         entry = ExtensionEntry(filename, ext_type, None)
         self._extensions[entry.get_key()] = entry
         return entry
                 
 
-    def remove_extension_entry(self, ext_key):
+    def _remove_extension_entry(self, ext_key):
         """Remove an extension entry"""
         
        # retrieve information about extension
@@ -1157,79 +1209,69 @@ class KeepNote (object):
             del self._extensions[ext_key]
 
 
-    def scan_extensions_dir(self, extensions_dir, ext_type):
-        """Scan extensions directory and register extensions with app"""
-        
-        for filename in extension.iter_extensions(extensions_dir):
-            self.add_extension_entry(filename, ext_type)
-        
-        
-    def init_extensions(self):
-        """Enable all registered extensions"""
-        
-        # ensure all extensions are imported first
-        for ext in self.iter_extensions():
-            pass
+    def get_installed_extensions(self):
+        """Iterates through installed extensions"""
+        return self._extensions.iterkeys()
 
-        # enable those extensions that have their dependencies met
-        for ext in self.iter_extensions():
-            # enable extension
-            try:
-                if ext.key not in self._disabled_extensions:
-                    log_message(_("enabling extension '%s'\n") % ext.key)
-                    enabled = ext.enable(True)
-
-            except extension.DependencyError, e:
-
-                log_message(_("  skipping extension '%s':\n") % ext.key)
-                for dep in ext.get_depends():
-                    if not self.dependency_satisfied(dep):
-                        log_message(_("    failed dependency: %s\n") % repr(dep))
-
-            except Exception, e:
-                log_error(e, sys.exc_info()[2])
     
+    def get_imported_extensions(self):
+        """Iterates through imported extensions"""
+        for entry in self._extensions.values():
+            if entry.ext is not None:
+                yield entry.ext
+
     
+    def get_enabled_extensions(self):
+        """Iterates through enabled extensions"""
+        for ext in self.get_imported_extensions():
+            if ext.is_enabled():
+                yield ext
+
+
     def get_extension(self, name):
         """Get an extension module by name"""
         
         # return None if extension name is unknown
         if name not in self._extensions:
             return None
-
+        
         # get extension information
         entry = self._extensions[name]
 
         # load if first use
         if entry.ext is None:
-            try:
-                entry.ext = extension.import_extension(self, name, entry.filename)
-                entry.ext.type = entry.ext_type
-                entry.ext.enabled.add(
-                    lambda e: self.on_extension_enabled(entry.ext, e))
-
-            except KeepNotePreferenceError, e:
-                log_error(e, sys.exc_info()[2])
-                
+            self._import_extension(entry)
+        
         return entry.ext
 
 
-    def iter_extensions(self, enabled=False):
-        """
-        Iterate through all extensions
+    def _import_extension(self, entry):
+        """Import an extension from an extension entry"""
+        try:
+            entry.ext = extension.import_extension(
+                self, entry.get_key(), entry.filename)
+        except KeepNotePreferenceError, e:
+            log_error(e, sys.exc_info()[2])
+            return None
+        
+        entry.ext.type = entry.ext_type
+        entry.ext.enabled.add(
+            lambda e: self.on_extension_enabled(entry.ext, e))
+        return entry.ext
 
-        If 'enabled' is True, then only enabled extensions are returned.
-        """
 
-        for name in self._extensions:
-            ext = self.get_extension(name)
-            if ext and (ext.is_enabled() or not enabled):
-                yield ext
+    def _import_all_extensions(self):
+        """Import all extensions"""
+        for entry in self._extensions.values():
+            # load if first use
+            if entry.ext is None:
+                self._import_extension(entry)
 
 
     def dependency_satisfied(self, dep):
-        """Returns True if dependency 'dep' is satisfied by registered extensions"""
-
+        """
+        Returns True if dependency 'dep' is satisfied by registered extensions
+        """
         ext  = self.get_extension(dep[0])
         return extension.dependency_satisfied(ext, dep)
 
@@ -1238,8 +1280,8 @@ class KeepNote (object):
         """Returns True if dependencies 'depends' are satisfied"""
 
         for dep in depends:
-            if not extension.dependency_satisfied(self.get_extension(dep[0]), 
-                                                  dep):
+            ext = self.get_extension(dep[0])
+            if ext is None or not extension.dependency_satisfied(ext, dep):
                 return False
         return True
 

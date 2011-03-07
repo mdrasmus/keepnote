@@ -838,7 +838,7 @@ class KeepNote (keepnote.KeepNote):
         """Callback for window close event"""
 
         if window in self._windows:
-            for ext in self.iter_extensions():
+            for ext in self.get_enabled_extensions():
                 try:
                     if isinstance(ext, keepnote.gui.extension.Extension):
                         ext.on_close_window(window)
@@ -868,7 +868,7 @@ class KeepNote (keepnote.KeepNote):
         """Initialize all extensions for a window"""
         
         if exts is None:
-            exts = self.iter_extensions()
+            exts = self.get_enabled_extensions()
 
         if windows is None:
             windows = self.get_windows()

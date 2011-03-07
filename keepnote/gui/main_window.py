@@ -441,12 +441,6 @@ class KeepNoteWindow (gtk.Window):
 
         # save window preferences
         p.set("window", "window_maximized", self._maximized)
-
-        # TODO: in app, save all open notebooks: 'default_notebooks'
-        
-        if (p.get("use_last_notebook", default=False) and 
-            self.viewer.get_notebook()):
-            p.set("default_notebook", self.viewer.get_notebook().get_path())
         p.set("recent_notebooks", self._recent_notebooks)
 
         # let viewer save preferences
@@ -775,6 +769,7 @@ class KeepNoteWindow (gtk.Window):
                     if old_id:
                         self.viewer.set_id(old_id)
                 else:
+                    # TODO: this needs more testing
                     # notebooks are open, so reassign the notebook's pref to
                     # match the existing viewer
                     p["viewerid"] = self.viewer.get_id()

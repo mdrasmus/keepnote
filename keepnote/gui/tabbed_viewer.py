@@ -457,6 +457,10 @@ class TabbedViewer (Viewer):
     # node operations
 
 
+    def new_node(self, kind, pos, parent=None):
+        return self._current_viewer.new_node(kind, pos, parent)
+
+
     def get_current_page(self):
         """Returns the currently focused page"""
         return self._current_viewer.get_current_page()

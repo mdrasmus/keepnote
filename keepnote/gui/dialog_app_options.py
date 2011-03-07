@@ -171,12 +171,14 @@ class GeneralSection (Section):
         # populate default notebook        
         if app.pref.get("use_last_notebook", default=True):
             self.xml.get_widget("last_notebook_radio").set_active(True)
-        elif app.pref.get("default_notebook", default="") == "":
+        elif app.pref.get("default_notebooks", default=[]) == []:
             self.xml.get_widget("no_default_notebook_radio").set_active(True)
         else:
             self.xml.get_widget("default_notebook_radio").set_active(True)
             self.xml.get_widget("default_notebook_entry").\
-                set_text(app.pref.get("default_notebook", default=""))
+                set_text(
+                (app.pref.get("default_notebooks", default=[]) + [""])[0]
+                )
 
 
         # populate autosave
@@ -218,12 +220,13 @@ class GeneralSection (Section):
             app.pref.set("use_last_notebook", True)
         elif self.xml.get_widget("default_notebook_radio").get_active():
             app.pref.set("use_last_notebook", False)
-            app.pref.set("default_notebook", 
-                         unicode_gtk(
-                    self.xml.get_widget("default_notebook_entry").get_text()))
+            app.pref.set("default_notebooks", 
+                         [unicode_gtk(
+                        self.xml.get_widget(
+                            "default_notebook_entry").get_text())])
         else:
             app.pref.set("use_last_notebook", False)
-            app.pref.set("default_notebook", "")
+            app.pref.set("default_notebooks", [])
 
 
         # save autosave
@@ -641,7 +644,7 @@ class ExtensionsSection (Section):
             return lambda w: self._on_uninstall(ext.key)
 
         # populate extension list
-        exts = list(app.iter_extensions())
+        exts = list(app.get_imported_extensions())
         d = {"user": 0, "system": 1}
         exts.sort(key=lambda e: (d.get(e.type, 10), e.name))
         for ext in exts:
@@ -846,7 +849,7 @@ class ApplicationOptionsDialog (object):
 
         # add extension options
         self.extensions_ui = []
-        for ext in self.app.iter_extensions(True):
+        for ext in self.app.get_enabled_extensions():
             if isinstance(ext, keepnote.gui.extension.Extension):
                 ext.on_add_options_ui(self)
                 self.extensions_ui.append(ext)

@@ -73,6 +73,10 @@ class Extension (keepnote.gui.extension.Extension):
             AppCommand("view", self.on_view_note,
                        metavar="NOTE_URL",
                        help="view a note"),
+            AppCommand("new", self.on_new_note,
+                       metavar="PARENT_URL",
+                       help="add a new note"),
+
             AppCommand("search-titles", self.on_search_titles,
                        metavar="TEXT",
                        help="search notes by title")
@@ -145,7 +149,7 @@ class Extension (keepnote.gui.extension.Extension):
     def on_screenshot(self, app, args):
         window = app.get_current_window()
         if window:
-            window.get_viewer().editor.on_screenshot()
+            window.get_viewer().get_current_viewer().editor._editor.on_screenshot()
         
 
     def on_view_note(self, app, args):
@@ -183,6 +187,23 @@ class Extension (keepnote.gui.extension.Extension):
                         
 
 
+    def on_new_note(self, app, args):
+
+        if len(args) < 1:
+            self.error("Must specify note url")
+            return
+        
+        app.focus_windows()
+        
+        nodeurl = args[1]
+        window, notebook = self.get_window_notebook()
+        nodeid = self.get_nodeid(nodeurl)
+        if notebook and nodeid:
+            node = notebook.get_node_by_id(nodeid)
+            if node:
+                window.get_viewer().new_node(
+                    keepnote.notebook.CONTENT_TYPE_PAGE, "child", node)
+
 
     def on_search_titles(self, app, args):
 
@@ -190,8 +211,6 @@ class Extension (keepnote.gui.extension.Extension):
             self.error("Must specify text to search")
             return
         
-        app.focus_windows()        
-
         # get window and notebook
         window = self.app.get_current_window()
         if window is None:
@@ -218,3 +237,36 @@ class Extension (keepnote.gui.extension.Extension):
                 window.get_viewer().goto_node(node)
                 break
 
+
+    def get_nodeid(self, text):
+        
+        if keepnote.notebook.is_node_url(text):
+            host, nodeid = keepnote.notebook.parse_node_url(text)
+            return nodeid            
+        else:
+            # do text search
+            window = self.app.get_current_window()
+            if window is None:
+                return None
+            notebook = window.get_notebook()
+            if notebook is None:
+                return None
+            
+            results = list(notebook.search_node_titles(text))
+
+            if len(results) == 1:
+                return results[0][0]
+            else:
+                for nodeid, title in results:
+                    if title == text:
+                        return nodeid
+
+                return None
+
+
+    def get_window_notebook(self):
+        window = self.app.get_current_window()
+        if window is None:
+            return None, None
+        notebook = window.get_notebook()
+        return window, notebook

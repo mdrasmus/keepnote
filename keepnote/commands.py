@@ -186,10 +186,9 @@ def process_connection(conn, addr, passwd, execfunc):
         # parse command and execute
         try:
             # redirect stdout to connection
+            sys.stdout.flush()
             stdout = sys.stdout
             sys.stdout = connfile
-            sys.stdout.flush()
-            #print "\n",
             execfunc(parse_command(command))
             connfile.flush()
         except:

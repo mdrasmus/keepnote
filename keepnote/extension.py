@@ -79,7 +79,7 @@ def init_user_extensions(pref_dir=None, home=None):
 
 
 
-def iter_extensions(extensions_dir):
+def scan_extensions_dir(extensions_dir):
     """Iterate through the extensions in directory"""
 
     for filename in os.listdir(extensions_dir):
@@ -291,7 +291,11 @@ class Extension (object):
     # filesystem paths
 
     def get_base_dir(self, exist=True):
-        """Returns the directory containing the extensions code"""
+        """
+        Returns the directory containing the extension's code
+
+        If 'exists' is True, create directory if it does not exists.
+        """
         path = self._app.get_extension_base_dir(self.key)
         if exist and not os.path.exists(path):
             os.makedirs(path)
@@ -299,7 +303,11 @@ class Extension (object):
 
 
     def get_data_dir(self, exist=True):
-        """Returns the directory for storing data specific to this extension"""
+        """
+        Returns the directory for storing data specific to this extension
+
+        If 'exists' is True, create directory if it does not exists.
+        """
         path = self._app.get_extension_data_dir(self.key)
         if exist and not os.path.exists(path):
             os.makedirs(path)
@@ -307,7 +315,9 @@ class Extension (object):
 
     def get_data_file(self, filename, exist=True):
         """
-        Returns a full path to  a file within the extension's data directory
+        Returns a full path to a file within the extension's data directory
+
+        If 'exists' is True, create directory if it does not exists.
         """
         return os.path.join(self.get_data_dir(exist), filename)
 

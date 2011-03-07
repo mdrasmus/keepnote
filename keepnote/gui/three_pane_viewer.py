@@ -560,7 +560,7 @@ class ThreePaneViewer (Viewer):
 
 
 
-    def new_node(self, kind, pos):
+    def new_node(self, kind, pos, parent=None):
         """Add a new node to the notebook"""
         
         # TODO: think about where this goes
@@ -570,13 +570,13 @@ class ThreePaneViewer (Viewer):
 
         self.treeview.cancel_editing()
         self.listview.cancel_editing()
-
-        nodes = self.get_selected_nodes()
         
-        if len(nodes) == 1:
-            parent = nodes[0]
-        else:
-            parent = self._notebook
+        if parent is None:
+            nodes = self.get_selected_nodes()
+            if len(nodes) == 1:
+                parent = nodes[0]
+            else:
+                parent = self._notebook
         
         node = Viewer.new_node(self, kind, pos, parent)
 
@@ -603,14 +603,21 @@ class ThreePaneViewer (Viewer):
         
         self._new_page_occurred = True
         
-        widget = self.get_focused_widget()
-        
-        if widget == self.treeview:
-            self.treeview.expand_node(node.get_parent())
+        self.goto_node(node)
+
+        if node in self.treeview.get_selected_nodes():
             self.treeview.edit_node(node)
         else:
-            self.listview.expand_node(node.get_parent())
             self.listview.edit_node(node)
+        
+        #widget = self.get_focused_widget()
+        #
+        #if widget == self.treeview:
+        #    self.treeview.expand_node(node.get_parent())
+        #    self.treeview.edit_node(node)
+        #else:
+        #    self.listview.expand_node(node.get_parent())
+        #    self.listview.edit_node(node)
 
 
 

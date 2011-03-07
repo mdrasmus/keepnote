@@ -344,9 +344,9 @@ def execute_command(app, argv):
         win = app.new_window()
 
         # open default notebook
-        if options.default_notebook and app.pref.get(
-            "default_notebook", default="") != "":
-            win.open_notebook(app.pref.get("default_notebook"))
+        if options.default_notebook:
+            for path in app.pref.get("default_notebooks", default=[]):
+                win.open_notebook(path)
 
     return True
 
