@@ -683,6 +683,8 @@ class KeepNoteWindow (gtk.Window):
         # NOTE: loading in the background seems to be much slower
         def update(task):
             # open notebook in GUI thread
+
+            '''
             notebook = [None]
             #loaded = [False]
             sem = threading.Semaphore(0)
@@ -706,6 +708,10 @@ class KeepNoteWindow (gtk.Window):
             #    pass
 
             sem.acquire()
+            '''
+
+            notebook = [None]
+            notebook[0] = self._app.get_notebook(filename, self, task=task)
             
             # preload certain nodes
             #if notebook[0]:
