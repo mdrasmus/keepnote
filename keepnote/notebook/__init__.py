@@ -26,7 +26,6 @@
 
 
 # python imports
-import gettext
 import mimetypes
 import os
 import sys
@@ -280,9 +279,16 @@ def get_node_url(nodeid, host=u""):
 
 
 def is_node_url(url):
+    """Returns True if URL is a node"""
     return re.match(u"nbk://[^/]*/.*", url) != None
 
 def parse_node_url(url):
+    """
+    Parses a node URL into a tuple (host, nodeid)
+
+    nbk:///abcd              => ("", "abcd")
+    nbk://example.com/abcd   => ("example.com", "abcd")
+    """
     match = re.match(u"nbk://([^/]*)/(.*)", url)
     if match:
         return match.groups()
@@ -300,8 +306,7 @@ def guess_file_mimetype(filename, default="application/octet-stream"):
 
 
 def write_empty_page(node, page_file=PAGE_DATA_FILE):
-    """Initializes an empty data file on file-system"""
-
+    """Initializes an empty page file for a node"""
     out = node.open_file(page_file, "w")
     out.write(BLANK_NOTE)
     out.close()
@@ -389,7 +394,7 @@ class AttrDef (object):
     nodes in a NoteBook.
     """
 
-    def __init__(self, name, datatype, key, default=None):
+    def __init__(self, key, datatype, name, default=None):
 
         self.name = name
         self.datatype = datatype
@@ -421,8 +426,27 @@ class UnknownAttr (object):
     def __init__(self, value):
         self.value = value
 
-        
 
+g_default_attr_defs = [
+    AttrDef("nodeid", unicode, "Node ID", default=new_nodeid),
+    AttrDef("content_type", unicode, "Content type", 
+            default=lambda: CONTENT_TYPE_DIR),
+    AttrDef("title", unicode, "Title"),
+    AttrDef("order", int, "Order", default=lambda: sys.maxint),
+    AttrDef("created_time", int, "Created time", default=get_timestamp),
+    AttrDef("modified_time", int, "Modified time", default=get_timestamp),
+    AttrDef("expanded", bool, "Expaned", default=lambda: True),
+    AttrDef("expanded2", bool, "Expanded2", default=lambda: True),
+    AttrDef("info_sort", unicode, "Folder sort", default=lambda: "order"),
+    AttrDef("info_sort_dir", int, "Folder sort direction", default=lambda: 1),
+    AttrDef("icon", unicode, "Icon"),
+    AttrDef("icon_open", unicode, "Icon open"),
+    AttrDef("payload_filename", unicode, "Filename"),
+    AttrDef("duplicate_of", unicode, "Duplicate of")
+]
+
+
+'''
 class NoteBookTable (object):
     def __init__(self, name, attrs=[]):
         self.name = name
@@ -431,36 +455,10 @@ class NoteBookTable (object):
         # TODO: add col widths
         # NoteBooks have tables and attrs
 
-
-title_attr = AttrDef("Title", unicode, "title")
-created_time_attr = AttrDef("Created", int, "created_time", 
-                            default=get_timestamp)
-modified_time_attr = AttrDef("Modified", int, "modified_time", 
-                             default=get_timestamp)
-
-g_default_attr_defs = [
-    AttrDef("Node ID", unicode, "nodeid", default=new_nodeid),
-    AttrDef("Content type", unicode, "content_type",
-            default=lambda: CONTENT_TYPE_DIR),
-    title_attr,
-    AttrDef("Order", int, "order", default=lambda: sys.maxint),
-    created_time_attr,
-    modified_time_attr,
-    AttrDef("Expaned", bool, "expanded", default=lambda: True),
-    AttrDef("Expanded2", bool, "expanded2", default=lambda: True),
-    AttrDef("Folder Sort", unicode, "info_sort", default=lambda: "order"),
-    AttrDef("Folder Sort Direction", int, "info_sort_dir", default=lambda: 1),
-    AttrDef("Icon", unicode, "icon"),
-    AttrDef("Icon Open", unicode, "icon_open"),
-    AttrDef("Filename", unicode, "payload_filename"),
-    AttrDef("Duplicate of", unicode, "duplicate_of")
-]
-
-
 default_notebook_table = NoteBookTable("default", attrs=[title_attr,
                                                          created_time_attr,
                                                          modified_time_attr])
-
+'''
 
 
 # TODO: parent might be an implict attr
@@ -588,6 +586,18 @@ class NoteBookNode (object):
             self._set_dirty(True)
         self._attr.update(attr)
 
+    #========================================
+    # special attr methods
+
+    def get_parent(self):
+        """Returns the parent of the node"""
+        return self._parent
+
+
+    def get_title(self):
+        """Returns the display title of a node"""
+        return self._attr.get("title", "")
+    
 
     def set_attr_timestamp(self, name, timestamp=None):
         """Set a timestamp attribute"""
@@ -596,16 +606,6 @@ class NoteBookNode (object):
         self._attr[name] = timestamp
         self._set_dirty(True)
         
-
-    def get_title(self):
-        """Returns the display title of a node"""
-        return self._attr.get("title", "")
-    
-    
-    def get_parent(self):
-        """Returns the parent of the node"""
-        return self._parent
-
 
     def set_payload(self, filename, new_filename=None):
         """Copy file into NoteBook directory"""
@@ -699,7 +699,6 @@ class NoteBookNode (object):
         else:
             # move to trash            
             self.move(self._notebook._trash)
-        
         
     
     def in_trash(self):
@@ -979,7 +978,7 @@ class NoteBookNode (object):
     
 
     #=============================================
-    # node file API
+    # node file methods
 
     def get_page_file(self):
         """Returns filename of data/text/html/etc"""
@@ -1136,7 +1135,10 @@ class NoteBook (NoteBookNode):
         self.node_changed = Listeners()  # signature = (node, recurse)
         self.closing_event = Listeners()
         self.close_event = Listeners()
-        
+
+
+    #=====================================
+    # attrs        
 
     def _init_default_attr(self):
         """Initialize default notebook attributes"""
@@ -1147,13 +1149,29 @@ class NoteBook (NoteBookNode):
             self.add_attr_def(attr)
         
 
-    def add_attr_def(self, attr):
+    def add_attr_def(self, attr_def):
         """Adds a new attribute definition to the notebook"""
-        self.attr_defs[attr.key] = attr
+        self.attr_defs[attr_def.key] = attr_def
     
+
     def clear_attr_defs(self):
         """Clears all attribute definitions from the notebook"""
         self.attr_defs.clear()
+
+
+    def get_necessary_attrs(self):
+        """Returns necessary attributes"""
+        return self._necessary_attrs
+
+
+    def set_attr_defaults(self, attr):
+        """Set default attributes in an attr dict"""
+        modified = False
+        for key in self._necessary_attrs:
+            if key not in attr:
+                attr[key] = self.attr_defs[key].default()
+                modified = True
+        return modified
 
     
     #===================================================
@@ -1186,7 +1204,7 @@ class NoteBook (NoteBookNode):
             self._basename = filename
         
         # read basic info
-        self._conn.connect(filename)
+        self._conn.connect(self._basename)
         attr = self._conn.read_root()
         self._init_attr(attr)
         self.read_preferences()
@@ -1272,6 +1290,7 @@ class NoteBook (NoteBookNode):
 
 
     def move_allowed(self, node, parent, index=None):
+        """Returns True if this node move is allowed"""
 
         if node.get_attr("content_type") == CONTENT_TYPE_TRASH:
             if parent != self:
@@ -1284,6 +1303,7 @@ class NoteBook (NoteBookNode):
 
 
     def delete_allowed(self, node):
+        """Returns True if this node can be deleted"""
 
         if node.get_attr("content_type") == CONTENT_TYPE_TRASH:
             # cannot delete trash
@@ -1306,24 +1326,6 @@ class NoteBook (NoteBookNode):
     def _is_dirty_node(self, node):
         """Returns True if node is dirty (needs saving)"""
         return node in self._dirty
-
-
-    #=====================================
-    # attrs
-
-    def get_necessary_attrs(self):
-        """Returns necessary attributes"""
-        return self._necessary_attrs
-
-
-    def set_attr_defaults(self, attr):
-        """Set default attributes in an attr dict"""
-        modified = False
-        for key in self._necessary_attrs:
-            if key not in attr:
-                attr[key] = self.attr_defs[key].default()
-                modified = True
-        return modified
 
 
     #=====================================

@@ -33,6 +33,7 @@ import subprocess
 import sys
 import time
 import thread
+import threading
 import uuid
 
 
@@ -677,26 +678,34 @@ class KeepNoteWindow (gtk.Window):
         return notebook
         '''
 
+        
+
         # NOTE: loading in the background seems to be much slower
         def update(task):
             # open notebook in GUI thread
             notebook = [None]
-            loaded = [False]
+            #loaded = [False]
+            sem = threading.Semaphore(0)
+
             def func():
                 # NOTE: according to the GTK API, these thread calls should 
                 # not be needed, since all my GTK calls are in the main thread.
                 # But I needed them in order to prevent the main event loop
                 # from stalling while returning from several nested dialogs.
-                gtk.gdk.threads_enter()
+                #gtk.gdk.threads_enter()
                 notebook[0] = self._app.get_notebook(filename, self, task=task)
                 
-                gtk.gdk.threads_leave()
-                loaded[0] = True
+                #gtk.gdk.threads_leave()
+                #loaded[0] = True
+                sem.release()
                 return False
             gobject.idle_add(func)
 
             # wait for notebook to be loaded
-            while not loaded[0]: pass
+            #while not loaded[0]: 
+            #    pass
+
+            sem.acquire()
             
             # preload certain nodes
             #if notebook[0]:
