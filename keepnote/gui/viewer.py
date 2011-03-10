@@ -104,6 +104,9 @@ class Viewer (gtk.VBox):
     def redo(self):
         pass
 
+    def get_editor(self):
+        return None
+
     def get_current_page(self):
         return None
 

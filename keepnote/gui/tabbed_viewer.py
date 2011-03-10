@@ -453,6 +453,9 @@ class TabbedViewer (Viewer):
         return self._current_viewer.redo()
 
 
+    def get_editor(self):
+        return self._current_viewer.get_editor()
+
     #===============================================
     # node operations
 

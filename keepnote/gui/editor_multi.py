@@ -98,6 +98,10 @@ class MultiEditor (KeepNoteEditor):
             self._editor.view_pages(self._pages)
 
 
+    def get_editor(self):
+        return self._editor
+
+
     def _connect_signals(self, editor):
 
         def make_callback(sig):
@@ -121,6 +125,12 @@ class MultiEditor (KeepNoteEditor):
         self._notebook = notebook
         if self._editor:
             self._editor.set_notebook(notebook)
+
+    def get_textview(self):
+        """Return the textview"""
+        if self._editor:
+            return self._editor.get_textview()
+        return None
         
     def is_focus(self):
         """Return True if text editor has focus"""
@@ -206,7 +216,7 @@ class ContentEditor (MultiEditor):
     def removed_editor(self, content_type):
         del self._editors[content_type]
 
-    def get_editor(self, content_type):
+    def get_editor_content(self, content_type):
         return self._editors[content_type]
 
     def set_default_editor(self, editor):

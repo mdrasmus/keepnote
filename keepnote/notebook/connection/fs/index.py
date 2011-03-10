@@ -190,12 +190,6 @@ class NoteBookIndex (object):
         # start index
         self.open()
 
-        # initialize with root node
-        #self.add_node(
-        #    notebook._attr["nodeid"], None, "", 
-        #    notebook._attr, 
-        #    self._nconn._get_node_mtime(
-        #        notebook._attr["nodeid"]))
 
     #-----------------------------------------
     # index connection
@@ -207,10 +201,11 @@ class NoteBookIndex (object):
             self._index_file = self._get_index_file()
             self._corrupt = False
             self.con = sqlite.connect(self._index_file, 
-                                      isolation_level="DEFERRED",
+                                      #isolation_level="DEFERRED",
+                                      isolation_level="IMMEDIATE",
                                       check_same_thread=False)
             self.cur = self.con.cursor()
-            self.con.execute(u"PRAGMA read_uncommitted = true;")
+            #self.con.execute(u"PRAGMA read_uncommitted = true;")
 
             self.init_index()
         except sqlite.DatabaseError, e:
@@ -636,6 +631,14 @@ class NoteBookIndex (object):
             self._on_corrupt(e, sys.exc_info()[2])
             raise
 
+        
+    def has_node(self, nodeid):
+        """Returns True if index has node"""
+        self.cur.execute(u"""SELECT nodeid, parentid, basename, mtime
+                             FROM NodeGraph
+                             WHERE nodeid=?""", (nodeid,))
+        return self.cur.fetchone() is not None
+
 
     def list_children(self, nodeid):
                 
@@ -710,6 +713,8 @@ class NoteBookIndex (object):
 
     def _search_manual(self, words):
         """Recursively search nodes under node for occurrence of words"""
+
+        keepnote.log_message("manual search")
 
         nodeid = self._nconn.get_rootid()
         

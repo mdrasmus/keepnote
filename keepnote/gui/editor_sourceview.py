@@ -158,7 +158,7 @@ class TextEditor (KeepNoteEditor):
         else:
             # no new notebook, clear the view
             self.clear_view()
-        
+
     
     def load_preferences(self, app_pref, first_open=False):
         """Load application preferences"""

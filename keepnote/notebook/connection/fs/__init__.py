@@ -85,7 +85,9 @@ import xml.etree.cElementTree as ET
 from keepnote import safefile
 from keepnote import trans
 from keepnote.notebook.connection.fs import index as notebook_index
-from keepnote.notebook.connection import NoteBookConnection
+from keepnote.notebook.connection import \
+    NoteBookConnection, UnknownNode, UnknownFile, NodeExists, \
+    ConnectionError, path_join
 import keepnote
 import keepnote.notebook
 
@@ -220,20 +222,14 @@ def get_path_mtime(path):
         mtime = _mtime_cache[path] = os.stat(path).st_mtime
     return mtime
 
+
+
 #=============================================================================
-# classes
-
-
-class ConnectionError (StandardError):
-    pass
-
-class UnknownNode (ConnectionError):
-    def __init__(self, msg="unknown node"):
-        ConnectionError.__init__(self, msg)
-
-
+# path cache
 
 class PathCacheNode (object):
+    """Cache information for a node"""
+
     def __init__(self, nodeid, basename, parent):
         self.nodeid = nodeid
         self.basename = basename
@@ -261,13 +257,18 @@ class PathCache (object):
         self._nodes[None] = None
 
 
+    def has_node(self, nodeid):
+        """Returns True if node in cache"""
+        return nodeid in self._nodes
+
+
     def get_path_list(self, nodeid):
         """
         Returns list representing a path for a nodeid
         Returns None if nodeid is not cached
         """
         path_list = []
-        node = self._paths.get(nodeid, None)
+        node = self._nodes.get(nodeid, None)
 
         # node is not in cache
         if node is None:
@@ -440,7 +441,9 @@ class NoteBookConnectionFS (NoteBookConnection):
         path = self._path_cache.get_path(nodeid)
         if path is None and self._index:
             # fallback to index
-            path = os.path.join(* self._index.get_node_path(nodeid))
+            path_list = self._index.get_node_path(nodeid)
+            if path is not None:
+                path = os.path.join(* path_list)
         if path is None:
             raise UnknownNode()
         return path
@@ -492,6 +495,10 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def create_node(self, nodeid, attr, _path=None, _root=False):
         """Create a node"""
+        
+        # check for existing nodeid
+        if self.has_node(nodeid):
+            raise NodeExists()
 
         # generate a new nodeid if one is not given
         if nodeid is None:
@@ -510,6 +517,10 @@ class NoteBookConnectionFS (NoteBookConnection):
         # if no path, use title to set path
         if _path is None:
             title = attr.get("title", _("New Page"))
+
+            # TODO: handle case where parent does not currently exist
+            # TODO: also handle case where parent finally shows up and
+            # reunites with its children in the orphans dir
             parent_path = self._get_node_path(parentid)
             path = keepnote.notebook.get_valid_unique_filename(
                 parent_path, title)
@@ -557,6 +568,12 @@ class NoteBookConnectionFS (NoteBookConnection):
         parentid = self.get_parentid(nodeid)
         return self._read_node(parentid, path)
     
+
+    def has_node(self, nodeid):
+        """Read a node attr"""
+        return (self._path_cache.has_node(nodeid) or 
+                self._index and self._index.has_node(nodeid))
+
 
     def update_node(self, nodeid, attr):
         """Write node attr"""
@@ -652,7 +669,7 @@ class NoteBookConnectionFS (NoteBookConnection):
     def read_data_as_plain_text(self, nodeid):
         """Iterates over the lines of the data file as plain text"""
         try:
-            infile = self.open_node_file(
+            infile = self.open_file(
                 nodeid, keepnote.notebook.PAGE_DATA_FILE, "r", codec="utf-8")
             for line in keepnote.notebook.read_data_as_plain_text(infile):
                 yield line
@@ -806,8 +823,7 @@ class NoteBookConnectionFS (NoteBookConnection):
     
     def _get_node_attr_file(self, nodeid, path=None):
         """Returns the meta file for the node"""
-        return self.get_node_file(nodeid, keepnote.notebook.NODE_META_FILE,
-                                  path)
+        return self.get_file(nodeid, keepnote.notebook.NODE_META_FILE, path)
 
 
     def _write_attr(self, filename, attr, attr_defs):
@@ -855,7 +871,8 @@ class NoteBookConnectionFS (NoteBookConnection):
         try:
             tree = ET.ElementTree(file=filename)
         except Exception, e:
-            raise keepnote.notebook.NoteBookError(_("Error reading meta data file"), e)
+            raise keepnote.notebook.NoteBookError(
+                _("Error reading meta data file"), e)
 
         # check root
         root = tree.getroot()
@@ -902,23 +919,33 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     # TODO: returning a fullpath to a file is not fully portable
     # will eventually need some kind of fetching mechanism
+
+    # TODO: don't allow .. .
     
-    def get_node_file(self, nodeid, filename, _path=None):
+    def get_file(self, nodeid, filename, _path=None):
         path = self._get_node_path(nodeid) if _path is None else _path
         return os.path.join(path, filename)
 
     
-    def open_node_file(self, nodeid, filename, mode="r", 
+    def open_file(self, nodeid, filename, mode="r", 
                         codec=None, _path=None):
         """Open a file contained within a node"""        
         path = self._get_node_path(nodeid) if _path is None else _path
-        return safefile.open(
-            os.path.join(path, filename), mode, codec=codec)
+        fullname = os.path.join(path, filename)
+        dirpath = os.path.dirname(fullname)
+        if not os.path.exists(dirpath):
+            os.makedirs(dirpath)
 
-    def delete_node_file(self, nodeid, filename, _path=None):
+        return safefile.open(fullname, mode, codec=codec)
+
+    def delete_file(self, nodeid, filename, _path=None):
         """Open a file contained within a node"""
         path = self._get_node_path(nodeid) if _path is None else _path
-        os.remove(os.path.join(path, filename))
+        filepath = os.path.join(path, filename)
+        if os.path.isfile(filepath):
+            os.remove(filepath)
+        else:
+            shutil.rmtree(filepath)
 
 
     def new_filename(self, nodeid, new_filename, ext=u"", sep=u" ", number=2, 
@@ -950,6 +977,33 @@ class NoteBookConnectionFS (NoteBookConnection):
             return keepnote.notebook.relpath(fullname, path)
 
 
+    def list_files(self, nodeid, filename="", _path=None):
+        """
+        List data files in node
+
+        directories have a '/' at the end of their name
+        """
+
+        path = self._get_node_path(nodeid) if _path is None else _path
+        path = os.path.join(path, filename)
+
+        try:
+            filenames = os.listdir(path)
+        except:
+            raise UnknownFile()
+
+        for filename in filenames:
+            if (filename != keepnote.notebook.NODE_META_FILE and 
+                not filename.startswith("__")):
+                fullname = os.path.join(path, filename)
+                if not os.path.exists(get_node_meta_file(fullname)):
+                    # ensure directory is not a node
+                    
+                    if os.path.isdir(fullname):
+                        yield filename + "/"
+                    else:
+                        yield filename
+
 
     def mkdir(self, nodeid, filename, _path=None):
         path = self._get_node_path(nodeid) if _path is None else _path
@@ -958,17 +1012,17 @@ class NoteBookConnectionFS (NoteBookConnection):
             os.mkdir(fullname)
 
     
-    def isfile(self, nodeid, filename, _path=None):
-        path = self._get_node_path(nodeid) if _path is None else _path
-        return os.path.isfile(os.path.join(path, filename))
+    #def isfile(self, nodeid, filename, _path=None):
+    #    path = self._get_node_path(nodeid) if _path is None else _path
+    #    return os.path.isfile(os.path.join(path, filename))
 
 
-    def path_exists(self, nodeid, filename, _path=None):
+    def file_exists(self, nodeid, filename, _path=None):
         path = self._get_node_path(nodeid) if _path is None else _path
         return os.path.exists(os.path.join(path, filename))
 
 
-    def path_basename(self, filename):
+    def file_basename(self, filename):
         return os.path.basename(filename)
 
         

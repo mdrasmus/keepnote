@@ -48,12 +48,16 @@ class KeepNoteEditor (gtk.VBox):
         gtk.VBox.__init__(self, False, 0)
         self._app = app
         self._notebook = None
+        self._textview = None
         self.show_all()
 
 
     def set_notebook(self, notebook):
         """Set notebook for editor"""
-        
+
+    def get_textview(self):
+        return self._textview
+
     def is_focus(self):
         """Return True if text editor has focus"""
         return False

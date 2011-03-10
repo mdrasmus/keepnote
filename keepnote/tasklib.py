@@ -150,7 +150,6 @@ class Task (object):
                 self.finish()
             
         except Exception, e:
-            
             self._lock.acquire()
             self._exc_info = sys.exc_info()
             self._aborted = True

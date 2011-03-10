@@ -239,21 +239,21 @@ class KeepNoteWindow (gtk.Window):
 
 
     def add_viewer(self, viewer):
-        
+        """Adds a viewer to the window"""
         self._viewers.append(viewer)
 
     def remove_viewer(self, viewer):
-
+        """Removes a viewer from the window"""
         self._viewers.remove(viewer)
 
     def get_all_viewers(self):
-
+        """Returns list of all viewers associated with window"""
         return self._viewers
 
 
     def get_all_notebooks(self):
-
-        return set(filter(lambda v: v is not None,
+        """Returns all notebooks loaded by all viewers"""
+        return set(filter(lambda n: n is not None,
                           (v.get_notebook() for v in self._viewers)))
 
     #===============================================
@@ -1538,38 +1538,51 @@ class SearchBox (gtk.Entry):
         from threading import Lock
         from Queue import Queue
         queue = Queue()
-        lock = Lock()
+        lock = Lock() # a mutex for the notebook (protect sqlite)
 
 
         # update gui with search result
         def search(task):
+            alldone = Lock() # ensure gui and background sync up at end
+            alldone.acquire()
+
             def gui_update():
+                lock.acquire()
+                more = True
+
                 try:
-                    maxstep = 10
+                    maxstep = 20
                     for i in xrange(maxstep):
                         # check if search is aborted
                         if task.aborted():
-                            return False
-
-                        if not queue.empty():
-                            node = queue.get()
-                            if node is None:
-                                # no more nodes left, finish
-                                return False
-                            else:
-                                # add result to gui
-                                lock.acquire()
-                                self._window.get_viewer().add_search_result(node)
-                                lock.release()
-                        else:
+                            more = False
                             break
-                    return True
+
+                        # skip if queue is empty
+                        if queue.empty():
+                            break
+                        node = queue.get()
+
+                        # no more nodes left, finish
+                        if node is None:
+                            more = False
+                            break
+
+                        # add result to gui
+                        self._window.get_viewer().add_search_result(node)
                 except Exception, e:
-                    self.error(_("Unexpected error"), e)
-                    return False
-            
+                    self._window.error(_("Unexpected error"), e)
+                    more = False
+                finally:
+                    lock.release()
+                
+                if not more:
+                    alldone.release()
+                return more
             gobject.idle_add(gui_update)
 
+
+            # init search
             notebook = self._window.get_notebook()
             try:
                 nodes = (notebook.get_node_by_id(nodeid)
@@ -1589,15 +1602,25 @@ class SearchBox (gtk.Entry):
                     if node:
                         queue.put(node)
                     lock.acquire()
-                queue.put(None)
                 lock.release()
+                queue.put(None)
             except Exception, e:
                 self.error(_("Unexpected error"), e)
 
+            # wait for gui thread to finish
+            # NOTE: if task is aborted, then gui_update stops itself for 
+            # some reason, thus no need to acquire alldone.
+            if not task.aborted():
+                alldone.acquire()
+
         
         # launch task
-        self._window.wait_dialog(_("Searching notebook"), _("Searching..."),
-                                 tasklib.Task(search))
+        task = tasklib.Task(search)
+        self._window.wait_dialog(
+            _("Searching notebook"), _("Searching..."), task)
+        if task.exc_info()[0]:
+            e, t, tr = task.exc_info()
+            keepnote.log_error(e, tr)
 
 
     def focus_on_search_box(self):

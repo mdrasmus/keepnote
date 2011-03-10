@@ -282,6 +282,10 @@ class ThreePaneViewer (Viewer):
         self.editor.redo()
 
 
+    def get_editor(self):
+        return self.editor
+
+
     def set_status(self, text, bar="status"):
         """Set a status message"""
         self.emit("status", text, bar)

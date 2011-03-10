@@ -281,11 +281,6 @@ class RichTextEditor (KeepNoteEditor):
             self._textview.set_default_font(
                 self._notebook.pref.get("default_font",
                                         default=DEFAULT_FONT))
-
-
-    def get_textview(self):
-        """Return the textview"""
-        return self._textview
     
         
     def is_focus(self):

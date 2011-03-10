@@ -833,9 +833,7 @@ class RichTextView (gtk.TextView):
     
     def _do_paste_text(self, clipboard, text, data):
         """Paste text into buffer"""
-
-        print "!!!", text
-
+        
         if text is None:
             return
         

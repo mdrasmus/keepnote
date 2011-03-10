@@ -149,7 +149,11 @@ class Extension (keepnote.gui.extension.Extension):
     def on_screenshot(self, app, args):
         window = app.get_current_window()
         if window:
-            window.get_viewer().get_current_viewer().editor._editor.on_screenshot()
+            editor = window.get_viewer().get_editor()
+            if hasattr(editor, "get_editor"):
+                editor = editor.get_editor()
+            if hasattr(editor, "on_screenshot"):
+                editor.on_screenshot()
         
 
     def on_view_note(self, app, args):
