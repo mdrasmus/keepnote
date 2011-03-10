@@ -61,6 +61,26 @@ def path_join(*parts):
     return "/".join(parts[i:])
 
 
+def path_basename(filename):
+    """
+    Return the last component of a filename
+
+    aaa/bbb   =>  bbb
+    aaa/bbb/  =>  bbb
+    aaa/      =>  aaa
+    aaa       =>  aaa
+    ''        =>  ''
+    /         =>  ''
+    """
+
+    if filename.endswith("/"):
+        i = filename.rfind("/", 0, -1) + 1
+        return filename[i:-1]
+    else:
+        i = filename.rfind("/", 0, -1) + 1
+        return filename[i:]
+
+
 
 #=============================================================================
 
@@ -255,32 +275,6 @@ class NoteBookConnection (object):
 #=============================================================================
 # syncing
 
-class NoteBookSyncer (object):
-
-    def __init__(self):
-        self.on_conflict = on_conflict_reject
-
-
-    def sync_node(self, nodeid, conn1, conn2):
-        sync_node(nodeid, conn1, conn2, on_conflict=self.on_conflict)
-
-
-    '''
-    def move_node(self, conn1, nodeid, conn2, parentid):
-        """Move a node and its whole subtree"""
-        
-        if (isinstance(conn1, NoteBookConnectionFS) and 
-            isinstance(conn2, NoteBookConnectionFS)):
-            # use efficient on-disk move
-
-            attr = conn1.read_node(nodeid)
-
-            path1 = conn1.get_node_path(nodeid)
-            ppath2 = conn2.get_node_path(parentid)
-            path2 = get_valid_unique_filename(ppath2, attr.get("title", 
-                                                               "new note"))
-            os.rename(path1, path2)
-     '''
 
 
 def on_conflict_reject(nodeid, conn1, conn2, attr1=None, attr2=None):

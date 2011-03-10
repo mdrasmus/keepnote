@@ -1479,7 +1479,7 @@ class NoteBook (NoteBookNode):
 
         self._conn.copy_node_file(None, filename, 
                                   self._attr["nodeid"], newfilename)
-        return self._conn.file_basename(newfilename)
+        return connection.path_basename(newfilename)
 
 
 
@@ -1525,8 +1525,8 @@ class NoteBook (NoteBookNode):
         self._conn.copy_node_file(None, filename_open, 
                                   self._attr["nodeid"], newfilename_open)
 
-        return (self._conn.file_basename(newfilename), 
-                self._conn.file_basename(newfilename_open))
+        return (connection.path_basename(newfilename), 
+                connection.path_basename(newfilename_open))
 
 
     def uninstall_icon(self, basename):
