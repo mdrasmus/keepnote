@@ -87,7 +87,7 @@ from keepnote import trans
 from keepnote.notebook.connection.fs import index as notebook_index
 from keepnote.notebook.connection import \
     NoteBookConnection, UnknownNode, UnknownFile, NodeExists, \
-    ConnectionError, path_join, path_basename
+    CorruptIndex, ConnectionError, path_join, path_basename
 import keepnote
 import keepnote.notebook
 
@@ -100,17 +100,25 @@ XML_HEADER = u"""\
 <?xml version="1.0" encoding="UTF-8"?>
 """
 
+NODE_META_FILE = u"node.xml"
+NOTEBOOK_META_DIR = u"__NOTEBOOK__"
+LOSTDIR = u"lost_found"
+
+
 
 #=============================================================================
 # filenaming scheme
 
 def get_node_meta_file(nodepath):
     """Returns the metadata file for a node"""
-    return os.path.join(nodepath, keepnote.notebook.NODE_META_FILE)
+    return os.path.join(nodepath, NODE_META_FILE)
 
 def get_pref_file(nodepath):
     """Returns the filename of the notebook preference file"""
     return os.path.join(nodepath, keepnote.notebook.PREF_FILE)
+
+def get_lostdir(nodepath):
+    return os.path.join(nodepath, NOTEBOOK_META_DIR, LOSTDIR)
 
 
 def path_local2node(filename):
@@ -126,7 +134,8 @@ def path_local2node(filename):
       aaa\bbb\ccc  =>  aaa/bbb/ccc
     """
 
-    assert "/" not in filename
+    if os.path.sep == "/":
+        return filename
     return filename.replace(os.path.sep, "/")
 
 
@@ -143,6 +152,8 @@ def path_node2local(filename):
       aaa/bbb/ccc  =>  aaa\bbb\ccc
     """
     
+    if os.path.sep == "/":
+        return filename
     return filename.replace("/", os.path.sep)
     
 
@@ -509,6 +520,22 @@ class NoteBookConnectionFS (NoteBookConnection):
         return os.stat(self._get_node_path(nodeid)).st_mtime
 
 
+    def _get_lostdir(self):
+        return get_lostdir(self._filename)
+
+    def _move_to_lostdir(self, filename):
+        """Moves a file/dir to the lost_found directory"""
+        
+        pass
+        #lostdir = self._get_lostdir()
+        #new_filename = keepnote.notebook.get_unique_filename(
+        #    lostdir, os.path.basename(filename),  sep=u"-")
+        #
+        #if os.path.isfile(filename):
+        #    os.rename(filename, new_filename)
+        
+            
+
     #======================
     # Node I/O API
 
@@ -534,6 +561,12 @@ class NoteBookConnectionFS (NoteBookConnection):
             raise ConnectionError("connect() has not been called")
 
         self.create_node(nodeid, attr, self._filename, True)
+
+        # make lost and found
+        
+        lostdir = self._get_lostdir()
+        if not os.path.exists(lostdir):
+            os.makedirs(lostdir)
     
 
     def create_node(self, nodeid, attr, _path=None, _root=False):
@@ -778,13 +811,17 @@ class NoteBookConnectionFS (NoteBookConnection):
                 if mtime == index_mtime:
                     files = list(row[1] for row in 
                                  self._index.list_children(nodeid))
+        except Exception, e:
+            pass
+
+        try:
             if files is None:
                 files = os.listdir(path)
-            
-        except OSError, e:
+        except:
             raise keepnote.notebook.NoteBookError(
                 _("Do not have permission to read folder contents: %s") 
-                % path, e)
+                % path, e)            
+            
         
         for filename in files:
             path2 = os.path.join(path, filename)
@@ -846,27 +883,30 @@ class NoteBookConnectionFS (NoteBookConnection):
         
         # if node has changed on disk (newer mtime), then re-index it
         # if reading root node, index might not be initialized yet
-        if self._index:
-            mtime = get_path_mtime(path)
-            index_mtime = self._index.get_node_mtime(nodeid)
-            if mtime > index_mtime:
-                # TODO: ensure we don't have cycles with multiple parents
-                # index children again (by reading them)
-                for childid in self.list_children_nodeids(nodeid, _index=False):
-                    pass
+        try:
+            if self._index:
+                mtime = get_path_mtime(path)
+                index_mtime = self._index.get_node_mtime(nodeid)
+                if mtime > index_mtime:
+                    # TODO: ensure we don't have cycles with multiple parents
+                    # index children again (by reading them)
+                    for childid in self.list_children_nodeids(
+                        nodeid, _index=False):
+                        pass
 
-                # we can only update the mtime of the node once we know
-                # the children are properly indexed
-                self._index.add_node(nodeid, parentid, basename, attr, mtime)
-                #print "index", attr["title"]
-                    
+                    # we can only update the mtime of the node once we know
+                    # the children are properly indexed
+                    self._index.add_node(
+                        nodeid, parentid, basename, attr, mtime)
+        except:
+            pass    
 
         return attr
     
     
     def _get_node_attr_file(self, nodeid, path=None):
         """Returns the meta file for the node"""
-        return self.get_file(nodeid, keepnote.notebook.NODE_META_FILE, path)
+        return self.get_file(nodeid, NODE_META_FILE, path)
 
 
     def _write_attr(self, filename, attr, attr_defs):
@@ -906,7 +946,7 @@ class NoteBookConnectionFS (NoteBookConnection):
                 _("Cannot write meta data"), e)
 
 
-    def _read_attr(self, filename, attr_defs):
+    def _read_attr(self, filename, attr_defs, recover=True):
         """Read a node meta data file"""
         
         attr = {}
@@ -914,6 +954,10 @@ class NoteBookConnectionFS (NoteBookConnection):
         try:
             tree = ET.ElementTree(file=filename)
         except Exception, e:
+            if recover:
+                self._recover_attr(filename)
+                return self._read_attr(filename, attr_defs, recover=False)
+            
             raise keepnote.notebook.NoteBookError(
                 _("Error reading meta data file"), e)
 
@@ -937,6 +981,14 @@ class NoteBookConnectionFS (NoteBookConnection):
                         attr[key] = keepnote.notebook.UnknownAttr(child.text)
 
         return attr
+
+
+    def _recover_attr(self, filename):
+        
+        self._move_to_lostdir(filename)
+        out = open(filename, "w")
+        out.write("<node></node>")
+        out.close()
 
 
     def _validate_attr(self, attr):
@@ -1024,7 +1076,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             raise UnknownFile()
 
         for filename in filenames:
-            if (filename != keepnote.notebook.NODE_META_FILE and 
+            if (filename != NODE_META_FILE and 
                 not filename.startswith("__")):
                 fullname = os.path.join(path, filename)
                 if not os.path.exists(get_node_meta_file(fullname)):

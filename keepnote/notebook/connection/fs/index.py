@@ -194,12 +194,13 @@ class NoteBookIndex (object):
     #-----------------------------------------
     # index connection
 
-    def open(self):
+    def open(self, auto_clear=True):
         """Open connection to index"""
 
         try:
             self._index_file = self._get_index_file()
             self._corrupt = False
+            self._need_index = False
             self.con = sqlite.connect(self._index_file, 
                                       #isolation_level="DEFERRED",
                                       isolation_level="IMMEDIATE",
@@ -207,7 +208,7 @@ class NoteBookIndex (object):
             self.cur = self.con.cursor()
             #self.con.execute(u"PRAGMA read_uncommitted = true;")
 
-            self.init_index()
+            self.init_index(auto_clear=auto_clear)
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
             raise
@@ -232,15 +233,18 @@ class NoteBookIndex (object):
     def save(self):
         """Save index"""
 
-        mtime = time.time()
-        self.con.execute("""UPDATE NodeGraph SET mtime = ? WHERE nodeid = ?;""",
-                         (mtime, self._nconn.get_rootid()))
+        try:
+            mtime = time.time()
+            self.con.execute("""UPDATE NodeGraph SET mtime = ? WHERE nodeid = ?;""",
+                             (mtime, self._nconn.get_rootid()))
 
-        if self.con is not None:
-            try:
-                self.con.commit()
-            except:
-                self.open()
+            if self.con is not None:
+                try:
+                    self.con.commit()
+                except:
+                    self.open()
+        except Exception, e:
+            self._on_corrupt(e, sys.exc_info()[2])
 
         
 
@@ -252,7 +256,7 @@ class NoteBookIndex (object):
         index_file = self._get_index_file()
         if os.path.exists(index_file):
             os.remove(index_file)
-        self.open()
+        self.open(auto_clear=False)
 
 
     def _get_index_file(self):
@@ -287,10 +291,9 @@ class NoteBookIndex (object):
                          (version,))
 
 
-    def init_index(self):
+    def init_index(self, auto_clear=True):
         """Initialize the tables in the index if they do not exist"""
 
-        self._need_index = False
         con = self.con
 
         try:
@@ -323,12 +326,12 @@ class NoteBookIndex (object):
 
             # full text table
             try:
-                #raise Exception()
-
                 # test for fts3 availability
-                con.execute("CREATE VIRTUAL TABLE fts3test USING fts3(col TEXT);")
+                con.execute(
+                    "CREATE VIRTUAL TABLE fts3test USING fts3(col TEXT);")
                 con.execute("DROP TABLE fts3test;")
 
+                # create fulltext table if it does not already exist
                 if not list(con.execute(u"""SELECT 1 FROM sqlite_master 
                                    WHERE name == 'fulltext';""")):
                     con.execute(u"""CREATE VIRTUAL TABLE 
@@ -337,10 +340,8 @@ class NoteBookIndex (object):
                                      tokenize=porter);""")
                 self._has_fulltext = True
             except Exception, e:
-                print e
+                keepnote.log_error(e)
                 self._has_fulltext = False
-
-            #print "fulltext", self._has_fulltext
 
             # TODO: make an Attr table
             # this will let me query whether an attribute is currently being
@@ -363,6 +364,10 @@ class NoteBookIndex (object):
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
 
+            keepnote.log_message("reinitializing index '%s'\n" %
+                                 self._index_file)
+            self.clear()
+
     
     def is_corrupt(self):
         """Return True if database appear corrupt"""
@@ -384,6 +389,7 @@ class NoteBookIndex (object):
     def _on_corrupt(self, error, tracebk=None):
 
         self._corrupt = True
+        self._need_index = True
 
         # display error
         keepnote.log_error(error, tracebk)

@@ -71,7 +71,6 @@ BLANK_NOTE = u"""\
 
 NOTEBOOK_FORMAT_VERSION = 5
 ELEMENT_NODE = 1
-NODE_META_FILE = u"node.xml"
 PAGE_DATA_FILE = u"page.html"
 PREF_FILE = u"notebook.nbk"
 NOTEBOOK_META_DIR = u"__NOTEBOOK__"
@@ -233,6 +232,8 @@ def read_data_as_plain_text(infile):
 
 #=============================================================================
 # functions
+
+# TODO: Notebook version concept might need to be present in connection API
 
 def get_notebook_version(filename):
     """Read the version of a notebook from its preference file"""

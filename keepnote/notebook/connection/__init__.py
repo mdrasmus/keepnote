@@ -45,6 +45,11 @@ class UnknownFile (ConnectionError):
     def __init__(self, msg="unknown file"):
         ConnectionError.__init__(self, msg)
 
+class CorruptIndex (ConnectionError):
+    def __init__(self, msg="index error"):
+        ConnectionError.__init__(self, msg)
+
+
 #=============================================================================
 
 
