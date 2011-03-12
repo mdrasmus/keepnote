@@ -526,13 +526,13 @@ class NoteBookConnectionFS (NoteBookConnection):
     def _move_to_lostdir(self, filename):
         """Moves a file/dir to the lost_found directory"""
         
-        pass
-        #lostdir = self._get_lostdir()
-        #new_filename = keepnote.notebook.get_unique_filename(
-        #    lostdir, os.path.basename(filename),  sep=u"-")
-        #
-        #if os.path.isfile(filename):
-        #    os.rename(filename, new_filename)
+        lostdir = self._get_lostdir()
+        new_filename = keepnote.notebook.get_unique_filename(
+            lostdir, os.path.basename(filename),  sep=u"-")
+        
+        keepnote.log_message("moving data to lostdir '%s' => '%s'\n" % 
+                             (filename, new_filename))
+        os.rename(filename, new_filename)
         
             
 
