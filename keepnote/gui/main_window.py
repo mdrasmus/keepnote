@@ -663,14 +663,29 @@ class KeepNoteWindow (gtk.Window):
         
     def _load_notebook(self, filename):
         """Loads notebook in background with progress bar"""
-        
+
         # load notebook in background
         def update(task):
-            task.set_result(self._app.get_notebook(filename, self, task=task))
+            # NOTE: notebook needs to open in gui thread, because it seems
+            # that sqlite must only run in a single thread (gui thread)
+            sem = threading.Semaphore()
+            sem.acquire()
+            
+            def func():
+                gtk.gdk.threads_enter()
+                task.set_result(self._app.get_notebook(filename, 
+                                                       self, task=task))
+                gtk.gdk.threads_leave()
+                sem.release()
+                return False
+            gobject.idle_add(func)
+
+            # wait for notebook to load
+            sem.acquire()
+
         task = tasklib.Task(update)
         self.wait_dialog(_("Opening notebook"), _("Loading..."), task,
                          cancel=False)
-        
 
         # detect errors
         if task.aborted():

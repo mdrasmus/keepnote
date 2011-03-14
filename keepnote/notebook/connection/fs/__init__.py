@@ -532,7 +532,11 @@ class NoteBookConnectionFS (NoteBookConnection):
         
         keepnote.log_message("moving data to lostdir '%s' => '%s'\n" % 
                              (filename, new_filename))
-        os.rename(filename, new_filename)
+        try:
+            os.rename(filename, new_filename)
+        except OSError, e:
+            raise ConnectionError("unable to store lost file '%s'" 
+                                  % filename, e)
         
             
 

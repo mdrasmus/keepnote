@@ -196,7 +196,7 @@ class NoteBookIndex (object):
 
     def open(self, auto_clear=True):
         """Open connection to index"""
-
+        
         try:
             self._index_file = self._get_index_file()
             self._corrupt = False

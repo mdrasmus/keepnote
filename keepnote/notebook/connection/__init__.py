@@ -31,7 +31,15 @@
 
 
 class ConnectionError (StandardError):
-    pass
+    def __init__(self, msg, error=None):
+        StandardError.__init__(self, msg)
+        self.error = error
+
+    def repr(self):
+        if self.error is not None:
+            return StandardError.repr(self) + ": " + repr(self.error)
+        else:
+            return StandardError.repr(self)
 
 class UnknownNode (ConnectionError):
     def __init__(self, msg="unknown node"):
@@ -46,8 +54,8 @@ class UnknownFile (ConnectionError):
         ConnectionError.__init__(self, msg)
 
 class CorruptIndex (ConnectionError):
-    def __init__(self, msg="index error"):
-        ConnectionError.__init__(self, msg)
+    def __init__(self, msg="index error", error=None):
+        ConnectionError.__init__(self, msg, error)
 
 
 #=============================================================================
