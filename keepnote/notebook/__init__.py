@@ -686,7 +686,9 @@ class NoteBookNode (object):
         walk(self)
 
         # parent node notifies listeners of change
-        self._parent.notify_change(True)
+        self._notebook.node_changed.notify(
+            [("removed", self._parent, self._attr["order"])])
+        #self._parent.notify_change(True)
     
     
     def trash(self):
@@ -732,6 +734,7 @@ class NoteBookNode (object):
         
         assert self != parent
         old_parent = self._parent
+        old_index = self._attr["order"]
 
         # check whether move is allowed
         allowed, error = self._notebook.move_allowed(self, parent, index)
@@ -772,6 +775,12 @@ class NoteBookNode (object):
             self.notify_changes([old_parent, parent], True)
         else:
             old_parent.notify_change(True)
+
+        # TODO: I would like to do this, but it is complicated when
+        # the 'added' event changes path of 'remove' location
+        #self._notebook.node_changed.notify([
+        #        ("removed", old_parent, old_index), ("added", self)])
+    
 
 
     def _move_notebooks(self, parent, index=None):
@@ -822,6 +831,7 @@ class NoteBookNode (object):
         self.save(True)
 
         # notify listeners
+        #self._notebook.node_changed.notify(["removed", old_parent, self])
         parent.notify_change(True)
         old_parent.notify_change(True)
 
@@ -857,7 +867,8 @@ class NoteBookNode (object):
         node = self._notebook.new_node(content_type, self, {"title": title})
         self._add_child(node, index)
         node.save(True)
-        self.notify_change(True)
+        #self.notify_change(True)
+        self._notebook.node_changed.notify([("added", node)])
         return node
     
 
@@ -949,7 +960,8 @@ class NoteBookNode (object):
     def add_child(self, child, index=None):
         """Add node as a child"""
         self._add_child(child, index)
-        self.notify_change(True)
+        self._notebook.node_changed.notify([("added", child)])
+        #self.notify_change(True)
 
     
     def allows_children(self):
@@ -1100,13 +1112,22 @@ class NoteBookNode (object):
     def notify_change(self, recurse):
         """Notify listeners that node has changed"""
         if self._notebook:
-            self._notebook.node_changed.notify([self], recurse)
+            if recurse:
+                self._notebook.node_changed.notify([("changed-recurse", self)])
+            else:
+                self._notebook.node_changed.notify([("changed", self)])
 
     def notify_changes(self, nodes, recurse):
         """Notify listeners that several nodes have changed"""
         if self._notebook:
-            self._notebook.node_changed.notify(nodes, recurse)
-    
+            if recurse:
+                self._notebook.node_changed.notify(
+                    [("changed-recurse", n) for n in nodes])
+            else:
+                self._notebook.node_changed.notify(
+                    [("changed", n) for n in nodes])
+
+    '''
     def suppress_change(self, listener=None):
         """Suppress notification of listeners for node changes"""
         if self._notebook:
@@ -1116,6 +1137,11 @@ class NoteBookNode (object):
         """Resume notification of listeners for node changes"""        
         if self._notebook:
             self._notebook.node_changed.resume(listener)        
+    '''
+
+
+class NodeAction (object):
+    pass
 
 
 

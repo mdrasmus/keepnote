@@ -148,6 +148,7 @@ class BaseTreeModel (gtk.GenericTreeModel):
             self._notebook.node_changed.add(self._on_node_changed)
 
 
+
     #==========================
     # column manipulation
 
@@ -258,34 +259,145 @@ class BaseTreeModel (gtk.GenericTreeModel):
     #==============================
     # notebook callbacks
 
-    def _on_node_changed(self, nodes, recurse):
+    # TODO: the node_changed callback should give more detail of
+    # how multiple nodes were added/removed.  
+
+    def _on_node_changed(self, actions):
         """Callback for when a node changes"""
 
+        #print "changed", actions
+
         # notify listeners that changes in the model will start to occur
-        self.emit("node-changed-start", nodes)
+        self.emit("node-changed-start", [a[1] for a in actions
+                                         if a[0] == "changed" or 
+                                            a[0] == "changed-recurse"])
         
-        for node in nodes:
-            if node == self._master_node:
+        for action in actions:
+            act = action[0]
+
+            if (act == "changed" or act == "changed-recurse" or act == "added"):
+                node = action[1]
+            else:
+                node = None
+
+            if node and node == self._master_node:
                 # reset roots
                 self.set_root_nodes(self._master_node.get_children())
-            elif recurse:
+
+            elif act == "changed-recurse":
                 try:
                     path = self.on_get_path(node)
                 except:
                     # node is not part of model, ignore it
                     continue
-                
                 rowref = self.create_tree_iter(node)
 
-                # TODO: is there something more elegant?
                 self.row_deleted(path)
                 self.row_inserted(path, rowref)
                 self.row_has_child_toggled(path, rowref)
+
+            elif act == "added":
+                try:
+                    path = self.on_get_path(node)
+                except:
+                    # node is not part of model, ignore it
+                    return
+                rowref = self.create_tree_iter(node)
+
+                self.row_inserted(path, rowref)
+                rowref2 = self.create_tree_iter(node.get_parent())
+                self.row_has_child_toggled(path[:-1], rowref2)
                 self.row_has_child_toggled(path, rowref)
+
+            elif act == "removed":
+                parent = action[1]
+                index = action[2]
+
+                try:
+                    parent_path = self.on_get_path(parent)
+                except:
+                    # node is not part of model, ignore it
+                    return
+                path = parent_path + (index,)
+
+                self.row_deleted(path)
+                rowref = self.create_tree_iter(parent)
+                self.row_has_child_toggled(parent_path, rowref)
+
                
         # notify listeners that changes in the model have ended
-        self.emit("node-changed-end", nodes)
+        self.emit("node-changed-end", [a[1] for a in actions
+                                       if a[0] == "changed" or 
+                                          a[0] == "changed-recurse"])
 
+
+    def _on_node_added(self, node):
+        """Callback for when a node changes"""
+
+        return
+
+        print "added", node.get_title()
+
+        if node == self._master_node:
+            return
+
+        # notify listeners that changes in the model will start to occur
+        self.emit("node-changed-start", [node])
+        
+        try:
+            path = self.on_get_path(node)
+        except:
+            # node is not part of model, ignore it
+            return
+                
+        rowref = self.create_tree_iter(node)
+
+        print "added path", path
+        self.row_inserted(path, rowref)
+
+        if True: #len(node.get_parent().get_children()) == 1:
+            # parent has_child status changed
+            rowref2 = self.create_tree_iter(node.get_parent())
+            self.row_has_child_toggled(path[:-1], rowref2)
+            self.row_has_child_toggled(path[:-1], rowref2)
+               
+        # notify listeners that changes in the model have ended
+        print "added here"
+        self.emit("node-changed-end", [node])
+
+
+    def _on_node_removed(self, parent, index):
+        """Callback for when a node changes"""
+
+        return
+
+        if parent == self._master_node:
+            return
+
+        # notify listeners that changes in the model will start to occur
+        self.emit("node-changed-start", [parent])
+        
+        try:
+            parent_path = self.on_get_path(parent)
+        except:
+            # node is not part of model, ignore it
+            return
+
+        path = parent_path + (index,)
+        
+        print "removed path", path
+        self.row_deleted(path)
+
+        if True: #len(node.get_parent().get_children()) == 1:
+            # parent has_child status changed
+            rowref = self.create_tree_iter(parent)
+            self.row_has_child_toggled(parent_path, rowref)
+            self.row_has_child_toggled(parent_path, rowref)
+
+               
+        # notify listeners that changes in the model have ended
+        print "remove here"
+        self.emit("node-changed-end", [parent])
 
 
 
@@ -307,7 +419,7 @@ class BaseTreeModel (gtk.GenericTreeModel):
     
 
     def on_get_iter(self, path):
-        """Returns the path of a treeiter"""
+        """Returns the node of a path"""
         if path[0] >= len(self._roots):
             return None
         
@@ -315,6 +427,7 @@ class BaseTreeModel (gtk.GenericTreeModel):
         
         for i in path[1:]:
             if i >= len(node.get_children()):
+                print path
                 raise ValueError()
             node = node.get_children()[i]
 

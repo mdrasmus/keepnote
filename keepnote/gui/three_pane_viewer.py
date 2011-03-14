@@ -265,7 +265,7 @@ class ThreePaneViewer (Viewer):
         self._save_selections()
                
 
-    def on_notebook_node_changed(self, nodes, recurse):
+    def on_notebook_node_changed(self, nodes):
         """Callback for when notebook node is changed"""
 
         #if self._current_page in nodes:
