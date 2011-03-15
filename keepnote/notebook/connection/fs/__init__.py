@@ -483,7 +483,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             if node:
                 basename = node["basename"]
         if basename is None:
-            raise UnknownNode()
+            raise UnknownNode(nodeid)
         return basename
 
     #===========================
@@ -499,7 +499,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             if path is not None:
                 path = os.path.join(* path_list)
         if path is None:
-            raise UnknownNode()
+            raise UnknownNode(nodeid)
         return path
 
 
@@ -511,7 +511,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             # fallback to index
             path = self._index.get_node_path(nodeid)
         if path is None:
-            raise UnknownNode()
+            raise UnknownNode(nodeid)
         return path
 
 
@@ -578,7 +578,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         
         # check for existing nodeid
         if self.has_node(nodeid):
-            raise NodeExists()
+            raise NodeExists(nodeid)
 
         # generate a new nodeid if one is not given
         if nodeid is None:
@@ -652,7 +652,7 @@ class NoteBookConnectionFS (NoteBookConnection):
     def has_node(self, nodeid):
         """Read a node attr"""
         return (self._path_cache.has_node(nodeid) or 
-                self._index and self._index.has_node(nodeid))
+                (self._index and self._index.has_node(nodeid)))
 
 
     def update_node(self, nodeid, attr):
@@ -779,11 +779,11 @@ class NoteBookConnectionFS (NoteBookConnection):
         
         # if node is unchanged on disk (same mtime), 
         # use index to detect children
-        if _index and self._index:
-            mtime = get_path_mtime(path)
-            index_mtime = self._index.get_node_mtime(nodeid)
-            if mtime == index_mtime:
-                return self._index.has_children(nodeid)
+        #if _index and self._index:
+        #    mtime = get_path_mtime(path)
+        #    index_mtime = self._index.get_node_mtime(nodeid)
+        #    if mtime == index_mtime:
+        #        return self._index.has_children(nodeid)
         
         try:
             files = os.listdir(path)

@@ -669,7 +669,11 @@ class NoteBookNode (object):
             raise error
 
         # perform delete on disk
-        self._conn.delete_node(self._attr["nodeid"])
+        def walk(node):
+            for child in node.get_children():
+                walk(child)
+            self._conn.delete_node(node._attr["nodeid"])
+        walk(self)
         
         # update data structure
         self._parent._remove_child(self)
@@ -787,32 +791,39 @@ class NoteBookNode (object):
         """Move node to a different notebook"""
 
         # TODO: finish
-        # NOTE: will needs to recursively transfer notes to other notebook
+        # NOTE: will need to recursively transfer notes to other notebook
         # could use duplicate code...
         
         # TODO: does conflict detection go inside the connection?
         
 
         # move between notebooks are not currently supported.
-        raise NoteBookError(
-                _("Moving notes between notebooks is not currently supported."))
+        #raise NoteBookError(
+        #        _("Moving notes between notebooks is not currently supported."))
 
         # make sure new parents children are loaded
         parent.get_children()
+        old_parent = self._parent
 
         # perform on-disk move if new parent
         try:
             self._attr["parentids"] = [parent._attr["nodeid"]]
+            conn1 = self._conn
+            conn2 = parent._conn
+            moved = []
             def walk(node):
-                connection.sync_node(self._attr["nodeid"], self._conn, 
-                                     parent._conn, attr=self._attr)
+                connection.sync_node(node._attr["nodeid"], conn1, conn2, 
+                                     attr=node._attr)
+                moved = node._attr["nodeid"]
                 for child in node.get_children():
                     walk(child)
             walk(self)
 
-            # remove node from this notebook
-            self._conn.delete_node(self._attr["nodeid"])
+            # remove nodes from this notebook
+            for nodeid in moved:
+                self._conn.delete_node(nodeid)
         except:
+            keepnote.log_error()
             raise
 
         # perform move in data structure
@@ -828,10 +839,10 @@ class NoteBookNode (object):
                 walk(child)
         walk(self)
 
+        
         self.save(True)
 
         # notify listeners
-        #self._notebook.node_changed.notify(["removed", old_parent, self])
         parent.notify_change(True)
         old_parent.notify_change(True)
 
@@ -1008,6 +1019,7 @@ class NoteBookNode (object):
         
         # propogate notebook
         child._notebook = self._notebook
+        child._conn = self._conn
         
         # determine insert location
         if self._children is None:

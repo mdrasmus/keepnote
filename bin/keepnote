@@ -328,16 +328,19 @@ def execute_command(app, argv):
         return False
 
     if len(args) > 0:
-        if keepnote.extension.is_extension_install_file(args[0]):
-            # install extension
-            if len(app.get_windows()) == 0:
-                app.new_window()
+        
+        for arg in args:
+            if keepnote.extension.is_extension_install_file(arg):
+                # install extension
+                if len(app.get_windows()) == 0:
+                    app.new_window()
 
-            app.install_extension(args[0])
-        else:
-            # open specified notebook
-            win = app.new_window()
-            win.open_notebook(args[0].rstrip("/"))
+                app.install_extension(arg)
+            else:
+                # open specified notebook
+                if len(app.get_windows()) == 0:
+                    app.new_window()
+                app.get_current_window().open_notebook(arg)
 
     else:
         # no arguments

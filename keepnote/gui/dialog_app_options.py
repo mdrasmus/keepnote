@@ -934,11 +934,6 @@ class ApplicationOptionsDialog (object):
         for section in self._sections:
             section.save_options(self.app)
         
-        # save noteboook preference changes
-        #for notebook in self.app.iter_notebooks():
-        #    notebook.write_preferences()
-        #    notebook.notify_change(False)
-
         # notify changes
         # app and notebook will load prefs from plist
         self.app.pref.changed.notify()

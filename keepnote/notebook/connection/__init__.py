@@ -307,7 +307,11 @@ def on_conflict_newer(nodeid, conn1, conn2, attr1=None, attr2=None):
     if attr1 is None:
         attr1 = conn1.read_node(nodeid)
     if attr2 is None:
-        attr2 = conn2.read_node(nodeid)
+        try:
+            attr2 = conn2.read_node(nodeid)
+        except UnknownNode:
+            conn2.create_node(nodeid, attr1)
+            sync_files(conn1, nodeid, conn2, nodeid)
 
     if attr1.get("modified_time", 0) > attr2.get("modified_time", 0):
         conn2.update_node(nodeid, attr1)

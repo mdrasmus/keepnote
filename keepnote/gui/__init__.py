@@ -447,6 +447,9 @@ class KeepNote (keepnote.KeepNote):
         self.init_extensions_windows([window])
         window.show_all()
 
+        if self._current_window is None:
+            self._current_window = window
+        
         return window
 
     
