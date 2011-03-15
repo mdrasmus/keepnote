@@ -663,12 +663,19 @@ class ExtensionsSection (Section):
 
     def save_options(self, app):
         
+        app.pref.set(
+            "extension_info", "disabled", 
+            [widget.ext.key for widget in self.extlist
+             if not widget.enabled])
+
+        # enable/disable extensions
         for widget in self.extlist:
-            try:
-                widget.ext.enable(widget.enabled)
-            except Exception, e:
-                keepnote.log_error(e)
-            widget.update()
+            if widget.enabled != widget.ext.is_enabled():
+                try:
+                    widget.ext.enable(widget.enabled)
+                except:
+                    keepnote.log_error()
+                
 
 
     def _on_uninstall(self, ext):

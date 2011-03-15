@@ -245,6 +245,7 @@ def print_runtime_info(out=sys.stderr):
     try:
         import gtk
         out.write("gtk: "+ gtk.__file__+"\n")
+        out.write("gtk.gtk_version: "+repr(gtk.gtk_version)+"\n")
     except:
         out.write("gtk: NOT PRESENT\n")
     
@@ -1174,10 +1175,10 @@ class KeepNote (object):
     def _scan_extension_paths(self):
         """Scan all extension paths"""
         for path, ext_type in self._extension_paths:         
-            self._scan_extensions_dir(path, ext_type)
+            self._scan_extension_path(path, ext_type)
 
 
-    def _scan_extensions_dir(self, extensions_path, ext_type):
+    def _scan_extension_path(self, extensions_path, ext_type):
         """
         Scan extensions directory and register extensions with app
         
@@ -1311,7 +1312,7 @@ class KeepNote (object):
 
             # rescan user extensions
             exts = set(self._extensions.keys())
-            self.scan_extensions_dir(userdir, "user")
+            self._scan_extension_path(userdir, "user")
 
             # find new extensions
             new_names = set(self._extensions.keys()) - exts
