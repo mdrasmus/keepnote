@@ -675,6 +675,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             parent = self._notebook
 
         
+        # TODO: this needs to be generalized for copy/cut between notebooks
+        # get_node_by_id might be None if wrong notebook
         # find nodes to paste
         nodeids = selection_data.data.split(";")
         nodes = [self._notebook.get_node_by_id(nodeid)
@@ -687,7 +689,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                     if node is not None:
                         node.move(parent)
                 except:
-                    pass
+                    keepnote.log_error()
 
         elif selection_data.target == MIME_TREE_COPY:
             for node in nodes:
@@ -695,7 +697,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                     if node is not None:
                         node.duplicate(parent, recurse=True)
                 except Exception, e:
-                    print "error", e
+                    keepnote.log_error()
 
         elif selection_data.target == MIME_NODE_COPY:
             for node in nodes:
@@ -703,7 +705,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                     if node is not None:
                         node.duplicate(parent)
                 except Exception, e:
-                    print "error", e
+                    keepnote.log_error()
             
 
 

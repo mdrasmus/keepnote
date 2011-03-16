@@ -533,9 +533,9 @@ class NoteBookIndex (object):
                 attr.remove_node(self.cur, nodeid)
 
             # delete children
-            for (childid,) in self.cur.execute(
-                u"SELECT nodeid FROM NodeGraph WHERE parentid=?", (nodeid,)):
-                self.remove_node(childid)
+            #for (childid,) in self.cur.execute(
+            #    u"SELECT nodeid FROM NodeGraph WHERE parentid=?", (nodeid,)):
+            #    self.remove_node(childid)
 
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])

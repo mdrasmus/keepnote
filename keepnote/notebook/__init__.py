@@ -692,7 +692,6 @@ class NoteBookNode (object):
         # parent node notifies listeners of change
         self._notebook.node_changed.notify(
             [("removed", self._parent, self._attr["order"])])
-        #self._parent.notify_change(True)
     
     
     def trash(self):
@@ -729,9 +728,8 @@ class NoteBookNode (object):
     def move(self, parent, index=None):
         """Move this node to be the child of another node 'parent'"""
         
-        # TODO: if parent is in another notebook, index updates need to be
-        # done for whole subtree.  Also accessory data like icons might need
-        # to be transferred.
+        # TODO: if parent is in another notebook, accessory data like icons 
+        # might need to be transferred.
 
         # TODO: with multiple parents, we need to specify here which 
         # parent relationship we are breaking.
@@ -789,62 +787,33 @@ class NoteBookNode (object):
 
     def _move_notebooks(self, parent, index=None):
         """Move node to a different notebook"""
-
-        # TODO: finish
-        # NOTE: will need to recursively transfer notes to other notebook
-        # could use duplicate code...
         
         # TODO: does conflict detection go inside the connection?
         
-
-        # move between notebooks are not currently supported.
-        #raise NoteBookError(
-        #        _("Moving notes between notebooks is not currently supported."))
-
-        # make sure new parents children are loaded
-        parent.get_children()
         old_parent = self._parent
+        conn1 = self._conn
+        conn2 = parent._conn
 
-        # perform on-disk move if new parent
+        # perform sync subtree between connections
         try:
+            # change parent pointer
             self._attr["parentids"] = [parent._attr["nodeid"]]
-            conn1 = self._conn
-            conn2 = parent._conn
-            moved = []
             def walk(node):
                 connection.sync_node(node._attr["nodeid"], conn1, conn2, 
                                      attr=node._attr)
-                moved = node._attr["nodeid"]
                 for child in node.get_children():
                     walk(child)
             walk(self)
-
-            # remove nodes from this notebook
-            for nodeid in moved:
-                self._conn.delete_node(nodeid)
         except:
             keepnote.log_error()
             raise
 
-        # perform move in data structure
-        self._parent._remove_child(self)
-        self._parent._set_child_order()
-        self._parent = parent
-        self._parent._add_child(self, index)
+        # delete self from this notebook
+        self.delete()
 
-        # change notebook pointer
-        def walk(node):
-            node._notebook = parent._notebook
-            for child in node.get_children():
-                walk(child)
-        walk(self)
-
-        
-        self.save(True)
-
-        # notify listeners
-        parent.notify_change(True)
-        old_parent.notify_change(True)
+        # reread node from other connection
+        new_child = parent._notebook._read_node(self._attr["nodeid"], parent)
+        parent.add_child(new_child, index=index)
 
 
     def rename(self, title):
@@ -902,6 +871,11 @@ class NoteBookNode (object):
 
         # NOTE: we must be able to handle the case where the root node is
         # duplicated.
+
+        # move between notebooks are not currently supported.
+        #raise NoteBookError(
+        #        _("Moving notes between notebooks is not currently supported."))
+
         
         # initialize skip set to prevent double copying
         if skip is None:
@@ -921,12 +895,14 @@ class NoteBookNode (object):
         # record the nodeid of the original node
         node._attr["duplicate_of"] = self.get_attr("nodeid")
         
-        self._conn.update_node(node._attr["nodeid"], node._attr)
+        node._conn.update_node(node._attr["nodeid"], node._attr)
         
         # copy files
         try:
-            self._conn.copy_node_files(self._attr["nodeid"], 
-                                       node._attr["nodeid"])
+            connection.sync_files(self._conn, self._attr["nodeid"],
+                                  node._conn, node._attr["nodeid"])
+            #self._conn.copy_node_files(self._attr["nodeid"], 
+            #                           node._attr["nodeid"])
         except:
             keepnote.log_error()
             # TODO: handle errors
@@ -995,7 +971,7 @@ class NoteBookNode (object):
            Returns temporary node objects
         """
         
-        default_content_type = keepnote.notebook.CONTENT_TYPE_DIR
+        default_content_type = CONTENT_TYPE_DIR
 
         for attr in self._conn.list_children_attr(self._attr["nodeid"]):
             node = NoteBookNode(
@@ -1430,6 +1406,19 @@ class NoteBook (NoteBookNode):
         """Returns True if node is dirty (needs saving)"""
         return node in self._dirty
 
+
+    def _read_node(self, nodeid, parent=None, attr=None, 
+                   default_content_type=CONTENT_TYPE_DIR):
+
+        if attr is None:
+            attr = self._conn.read_node(nodeid)
+        
+        node = NoteBookNode(
+            attr.get("title", DEFAULT_PAGE_NAME), 
+            parent=parent, notebook=self,
+            content_type=attr.get("content_type", default_content_type))
+        node._init_attr(attr)
+        return node
 
     #=====================================
     # trash functions

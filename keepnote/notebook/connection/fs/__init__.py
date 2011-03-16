@@ -496,7 +496,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         if path is None and self._index:
             # fallback to index
             path_list = self._index.get_node_path(nodeid)
-            if path is not None:
+            if path_list is not None:
                 path = os.path.join(* path_list)
         if path is None:
             raise UnknownNode(nodeid)
