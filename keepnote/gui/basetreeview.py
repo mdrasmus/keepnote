@@ -112,6 +112,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         self.__suppress_sel = False
         self._node_col = None
         self._get_icon = None
+        self._get_node = self._get_node_default
 
         self._menu = None
 
@@ -194,6 +195,20 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             else:
                 self.model.set_notebook(notebook)
             
+
+    def set_get_node(self, get_node_func=None):
+
+        if get_node_func is None:
+            self._get_node = self._get_node_default
+        else:
+            self._get_node = get_node_func
+
+
+    def _get_node_default(self, nodeid):
+        if self._notebook is None:
+            return None
+        return self._notebook.get_node_by_id(nodeid)
+        
 
     def set_model(self, model):
         """Set the model for the view"""
@@ -675,12 +690,12 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             parent = self._notebook
 
         
-        # TODO: this needs to be generalized for copy/cut between notebooks
-        # get_node_by_id might be None if wrong notebook
         # find nodes to paste
         nodeids = selection_data.data.split(";")
-        nodes = [self._notebook.get_node_by_id(nodeid)
-                 for nodeid in nodeids]
+        nodes = [self._get_node(nodeid) for nodeid in nodeids]
+
+        #nodes = [self._notebook.get_node_by_id(nodeid)
+        #         for nodeid in nodeids]
 
         
         if selection_data.target == MIME_NODE_CUT:

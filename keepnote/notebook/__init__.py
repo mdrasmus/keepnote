@@ -872,10 +872,6 @@ class NoteBookNode (object):
         # NOTE: we must be able to handle the case where the root node is
         # duplicated.
 
-        # move between notebooks are not currently supported.
-        #raise NoteBookError(
-        #        _("Moving notes between notebooks is not currently supported."))
-
         
         # initialize skip set to prevent double copying
         if skip is None:
@@ -889,7 +885,7 @@ class NoteBookNode (object):
 
         # copy attributes
         for key, value in self.iter_attr():
-            if key not in ("nodeid", "order"):
+            if key not in ("nodeid", "order", "parentids"):
                 node._attr[key] = value
 
         # record the nodeid of the original node
@@ -901,8 +897,6 @@ class NoteBookNode (object):
         try:
             connection.sync_files(self._conn, self._attr["nodeid"],
                                   node._conn, node._attr["nodeid"])
-            #self._conn.copy_node_files(self._attr["nodeid"], 
-            #                           node._attr["nodeid"])
         except:
             keepnote.log_error()
             # TODO: handle errors

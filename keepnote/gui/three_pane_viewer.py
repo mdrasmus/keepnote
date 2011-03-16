@@ -105,6 +105,7 @@ class ThreePaneViewer (Viewer):
 
         # treeview
         self.treeview = KeepNoteTreeView()
+        self.treeview.set_get_node(self._app.get_node)
         self.treeview.connect("select-nodes", self._on_tree_select)
         self.treeview.connect("delete-node", self.on_delete_node)
         self.treeview.connect("error", lambda w,t,e: self.emit("error", t, e))
@@ -115,6 +116,7 @@ class ThreePaneViewer (Viewer):
         
         # listview
         self.listview = KeepNoteListView()
+        self.listview.set_get_node(self._app.get_node)
         self.listview.connect("select-nodes", self._on_list_select)
         self.listview.connect("delete-node", self.on_delete_node)
         self.listview.connect("goto-node", self.on_goto_node)

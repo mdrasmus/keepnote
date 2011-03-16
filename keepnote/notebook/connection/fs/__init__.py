@@ -666,7 +666,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         parentid = self.get_parentid(nodeid) # old parent
         parentids2 = attr.get("parentids", None) # new parent
         parentid2 = parentids2[0] if parentids2 else self._rootid
-
+        
         # determine if title has changed
         title_index = self._index.get_attr(nodeid, "title") # old title
 

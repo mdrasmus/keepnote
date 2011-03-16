@@ -936,6 +936,18 @@ class KeepNote (object):
             notebook.save()
 
 
+    def get_node(self, nodeid):
+        """Returns a node with 'nodeid' from any of the opened notebooks"""
+        
+        for notebook in self._notebooks.itervalues():
+            node = notebook.get_node_by_id(nodeid)
+            if node is not None:
+                return node
+
+        return None
+
+
+
     def save(self, silent=False):
         """Save notebooks and preferences"""
         

@@ -185,19 +185,8 @@ class NoteBookConnection (object):
     #===============
     # file API
 
-    # XXX: is path_join needed?  or can I always specify paths with '/'?
-
-    def path_join(self, *parts):
-        return os.path.join(*parts)
-
-    # TODO: returning a fullpath to a file is not fully portable
-    # will eventually need some kind of fetching mechanism
-    
-    def get_file(self, nodeid, filename, _path=None):
-        pass
-
     def open_file(self, nodeid, filename, mode="r", 
-                        codec=None, _path=None):
+                        codec=None):
         """Open a file contained within a node"""        
         pass
 
@@ -205,8 +194,12 @@ class NoteBookConnection (object):
         """Open a file contained within a node"""
         pass
 
+    # Is this needed inside the connection?  Can it be support outside?
     def new_filename(self, nodeid, new_filename, ext=u"", sep=u" ", number=2, 
                      return_number=False, use_number=False, ensure_valid=True):
+        pass
+
+    def mkdir(self, nodeid, filename):
         pass
 
     def list_files(self, nodeid, filename=None):
@@ -214,28 +207,33 @@ class NoteBookConnection (object):
         List data files in node
         """
         pass
-
-    def mkdir(self, nodeid, filename):
-        pass
     
     def file_exists(self, nodeid, filename):
         pass
 
     def file_basename(self, filename):
         pass
-            
-    def copy_files(self, nodeid1, nodeid2):
-        """
-        Copy all data files from nodeid1 to nodeid2
-        """
-        pass
-    
+                
     def copy_file(self, nodeid1, filename1, nodeid2, filename2):
         """
         Copy a file between two nodes
 
         if node is None, filename is assumed to be a local file
         """
+        pass
+
+
+    def copy_files(self, nodeid1, nodeid2):
+        """
+        Copy all data files from nodeid1 to nodeid2
+        """
+        pass
+
+
+    # TODO: returning a fullpath to a file is not fully portable
+    # will eventually need some kind of fetching mechanism
+    
+    def get_file(self, nodeid, filename, _path=None):
         pass
 
 
@@ -260,6 +258,7 @@ class NoteBookConnection (object):
     # indexing/querying
 
     def index_attr(self, key, index_value=False):
+        """Add indexing for an attribute"""
         pass
 
     def search_node_titles(self, text):
