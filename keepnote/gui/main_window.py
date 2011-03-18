@@ -712,9 +712,7 @@ class KeepNoteWindow (gtk.Window):
             self.update_index(notebook)
         
         return notebook
-
-        
-
+    
 
     def _restore_windows(self, notebook):
         """Restore multiple windows for notebook"""
@@ -964,9 +962,6 @@ class KeepNoteWindow (gtk.Window):
             self.get_notebook().empty_trash()
         except NoteBookError, e:
             self.error(_("Could not empty trash."), e, sys.exc_info()[2])
-
-        
-
 
     
     #=================================================
@@ -1560,6 +1555,7 @@ class SearchBox (gtk.Entry):
         def search(task):
             alldone = Lock() # ensure gui and background sync up at end
             alldone.acquire()
+            nresults = [0]
 
             def gui_update():
                 lock.acquire()
@@ -1584,7 +1580,11 @@ class SearchBox (gtk.Entry):
                             break
 
                         # add result to gui
+                        nresults[0] += 1
                         self._window.get_viewer().add_search_result(node)
+                        if nresults[0] == 1:
+                            self._window.get_viewer().goto_node(node)
+                        
                 except Exception, e:
                     self._window.error(_("Unexpected error"), e)
                     more = False

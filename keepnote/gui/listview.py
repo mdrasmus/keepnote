@@ -328,7 +328,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         self.set_sensitive(True)        
 
         # update status
-        self.display_page_count()
+        #self.display_page_count()
 
 
     def display_page_count(self, npages=None):

@@ -111,7 +111,7 @@ class Viewer (gtk.VBox):
         return None
 
     def get_selected_nodes(self):
-        pass
+        return []
 
     def new_node(self, kind, pos, parent=None):
 
@@ -129,9 +129,6 @@ class Viewer (gtk.VBox):
                                     notebooklib.DEFAULT_DIR_NAME,
                                     index)
         else:
-            #node = parent.new_child(notebooklib.CONTENT_TYPE_PAGE,
-            #                        notebooklib.DEFAULT_PAGE_NAME,
-            #                        index)
             node = notebooklib.new_page(
                 parent, title=notebooklib.DEFAULT_PAGE_NAME, index=index)
 
