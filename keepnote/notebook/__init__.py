@@ -54,7 +54,7 @@ import keepnote
 
 # currently imported for extensions that expect this here
 from keepnote.notebook.connection.fs import get_valid_unique_filename
-
+from keepnote.notebook import sync
 
 _ = trans.translate
 
@@ -799,8 +799,8 @@ class NoteBookNode (object):
             # change parent pointer
             self._attr["parentids"] = [parent._attr["nodeid"]]
             def walk(node):
-                connection.sync_node(node._attr["nodeid"], conn1, conn2, 
-                                     attr=node._attr)
+                sync.sync_node(node._attr["nodeid"], conn1, conn2, 
+                               attr=node._attr)
                 for child in node.get_children():
                     walk(child)
             walk(self)
@@ -895,8 +895,8 @@ class NoteBookNode (object):
         
         # copy files
         try:
-            connection.sync_files(self._conn, self._attr["nodeid"],
-                                  node._conn, node._attr["nodeid"])
+            sync.sync_files(self._conn, self._attr["nodeid"],
+                            node._conn, node._attr["nodeid"])
         except:
             keepnote.log_error()
             # TODO: handle errors

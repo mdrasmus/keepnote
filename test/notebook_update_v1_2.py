@@ -24,7 +24,7 @@ class TestCaseNoteBookUpdate (unittest.TestCase):
         """test notebook update from version 1 to 2"""
 
         old_notebook_filename = "test/data/notebook-v1"
-        new_notebook_filename = "test/data/notebook-v2-update"
+        new_notebook_filename = "test/tmp/notebook-v2-update"
         new_version = 2
 
         # make copy of old notebook
@@ -62,7 +62,7 @@ class TestCaseNoteBookUpdate (unittest.TestCase):
         """test notebook update through gui"""
 
         old_notebook_filename = "test/data/notebook-v1"
-        new_notebook_filename = "test/data/notebook-v2-update"
+        new_notebook_filename = "test/tmp/notebook-v2-update"
         new_version = 2
 
         # make copy of old notebook
@@ -75,10 +75,7 @@ class TestCaseNoteBookUpdate (unittest.TestCase):
             os.system("bin/keepnote %s" % new_notebook_filename), 0)
 
 
-        
-suite = unittest.defaultTestLoader.loadTestsFromTestCase(
-    TestCaseNoteBookUpdate)
 
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    unittest.main()
 

@@ -216,9 +216,7 @@ class TestCaseRichTextBuffer (BufferBase):
                            'hello',
                            'END:size 30'])
 
-richtextbuffer_suite = unittest.defaultTestLoader.loadTestsFromTestCase(
-    TestCaseRichTextBuffer)
 
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=2).run(richtextbuffer_suite)
+    unittest.main()
 

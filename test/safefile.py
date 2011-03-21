@@ -97,10 +97,7 @@ class TestCaseSafeFile (unittest.TestCase):
                                   u"again\n"])
 
 
-        
-suite = unittest.defaultTestLoader.loadTestsFromTestCase(
-    TestCaseSafeFile)
 
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    unittest.main()
 

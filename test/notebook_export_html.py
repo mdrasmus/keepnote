@@ -15,7 +15,7 @@ class TestCaseNotebookIndex (unittest.TestCase):
 
     def test_notebook_lookup_node(self):        
 
-        export_filename = "test/data/notebook_export"
+        export_filename = "test/tmp/notebook_export"
         app = keepnote.KeepNote()
         app.init()
         ext = app.get_extension("export_html")
@@ -32,12 +32,8 @@ class TestCaseNotebookIndex (unittest.TestCase):
         ext.export_notebook(book, export_filename)
         
         
-        
-
-        
-notebook_index_suite = unittest.defaultTestLoader.loadTestsFromTestCase(
-    TestCaseNotebookIndex)
-
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=2).run(notebook_index_suite)
+    unittest.main()
+
+
 

@@ -60,10 +60,7 @@ class TestCaseInstall (unittest.TestCase):
         print cmd
         self.assertEquals(os.system(cmd), 0)
 
-        
-suite = unittest.defaultTestLoader.loadTestsFromTestCase(
-    TestCaseInstall)
 
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    unittest.main()
 

@@ -24,7 +24,7 @@ class TestCaseNoteBookUpdate (unittest.TestCase):
 
         new_version = notebooklib.NOTEBOOK_FORMAT_VERSION
         old_notebook_filename = "test/data/notebook-v1"
-        new_notebook_filename = ("test/data/notebook-v%d-update" % new_version)
+        new_notebook_filename = ("test/tmp/notebook-v%d-update" % new_version)
 
         # make copy of old notebook
         if os.path.exists(new_notebook_filename):
@@ -64,10 +64,6 @@ class TestCaseNoteBookUpdate (unittest.TestCase):
             os.system("bin/keepnote --newproc %s" % new_notebook_filename), 0)
 
 
-        
-suite = unittest.defaultTestLoader.loadTestsFromTestCase(
-    TestCaseNoteBookUpdate)
-
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    unittest.main()
 

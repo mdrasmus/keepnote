@@ -1,9 +1,19 @@
 KeepNote Change Log
 -------------------
 
-
-keepnote-0.7.1
+keepnote-0.7.2
 --------------
+- added moving/copying notes between notebooks
+- fixed extension disable bug
+- improved command API
+- improved extensions API
+- improved auto-notebook healing
+- simplified notebook API
+- improved node caching with index
+
+
+keepnote-0.7.1 (2011.03.01)
+---------------------------
 - fixed helper applications bug
 - fixed insert image format bug
 - fixed missing image bug

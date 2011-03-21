@@ -56,9 +56,9 @@ class TestCaseWaitDialog (unittest.TestCase):
         gtk.main()
 
         
-suite = unittest.defaultTestLoader.loadTestsFromTestCase(
-    TestCaseWaitDialog)
 
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    unittest.main()
+
+
 

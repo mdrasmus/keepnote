@@ -62,8 +62,6 @@ class Tests (unittest.TestCase):
 
         print open("test/data/notebook-v4/notebook.nbk").read()
 
-        #gtk.main()
-
 
     def test_install_icon(self):
         
@@ -98,18 +96,6 @@ class Tests (unittest.TestCase):
         book.close()
 
 
-        
-
-        
-        
-
-
-        
-#notebook_index_suite = unittest.defaultTestLoader.loadTestsFromTestCase(
-#    TestCaseNotebookIndex)
-
 if __name__ == "__main__":
-    #unittest.TextTestRunner(verbosity=2).run(notebook_index_suite)
-
     unittest.main()
 

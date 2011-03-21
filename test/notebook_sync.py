@@ -20,14 +20,14 @@ class Sync (unittest.TestCase):
     def test_sync(self):
 
         # initialize two notebooks
-        clean_dir("test/data/notebook_sync/n1")
-        clean_dir("test/data/notebook_sync/n2")
-        makedirs("test/data/notebook_sync")
+        clean_dir("test/tmp/notebook_sync/n1")
+        clean_dir("test/tmp/notebook_sync/n2")
+        makedirs("test/tmp/notebook_sync")
 
-        notebook1 = notebook.NoteBook("test/data/notebook_sync/n1")
+        notebook1 = notebook.NoteBook("test/tmp/notebook_sync/n1")
         notebook1.create()
 
-        notebook2 = notebook.NoteBook("test/data/notebook_sync/n2")
+        notebook2 = notebook.NoteBook("test/tmp/notebook_sync/n2")
         notebook2.create()
 
         print list(notebook1.list_files())
@@ -83,19 +83,20 @@ class Sync (unittest.TestCase):
         # check for original node
         attr = notebook2._conn.read_node(n.get_attr("nodeid"))
         self.assert_(attr["title"] == "node2")
+        notebook2.close()
 
 
     def test_files(self):
 
         # initialize two notebooks
-        clean_dir("test/data/notebook_sync/n1")
-        clean_dir("test/data/notebook_sync/n2")
-        makedirs("test/data/notebook_sync")
+        clean_dir("test/tmp/notebook_sync/n1")
+        clean_dir("test/tmp/notebook_sync/n2")
+        makedirs("test/tmp/notebook_sync")
 
-        notebook1 = notebook.NoteBook("test/data/notebook_sync/n1")
+        notebook1 = notebook.NoteBook("test/tmp/notebook_sync/n1")
         notebook1.create()
 
-        notebook2 = notebook.NoteBook("test/data/notebook_sync/n2")
+        notebook2 = notebook.NoteBook("test/tmp/notebook_sync/n2")
         notebook2.create()
         
         # create a new node in notebook1 with several files
@@ -123,6 +124,9 @@ class Sync (unittest.TestCase):
         except connlib.UnknownFile:
             # this exception should occur
             pass
+        
+        notebook1.close()
+        notebook2.close()
 
 
         

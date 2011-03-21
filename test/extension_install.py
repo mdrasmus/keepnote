@@ -31,10 +31,6 @@ class ExtensionInstall (unittest.TestCase):
         os.system("rm -rf ~/.config/keepnote/extensions/test_extension")
 
 
-        
-suite = unittest.defaultTestLoader.loadTestsFromTestCase(
-    ExtensionInstall)
-
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    unittest.main()
 

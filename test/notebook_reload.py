@@ -33,10 +33,6 @@ class NoteBookReload (unittest.TestCase):
         self.assert_(len(list(app.iter_notebooks())) == 0)
 
 
-        
-suite = unittest.defaultTestLoader.loadTestsFromTestCase(
-    NoteBookReload)
-
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=2).run(suite)
+    unittest.main()
 

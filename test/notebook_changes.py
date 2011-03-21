@@ -1,7 +1,5 @@
 import os, shutil, unittest
 
-from richtext_html import TestCaseHtmlBuffer
-
 # keepnote imports
 from keepnote import notebook
 
@@ -63,19 +61,19 @@ class TestCaseNotebookChanges (unittest.TestCase):
 
         self.setUp_buffer()
         
-        if os.path.exists("test/data/notebook-v1-2"):
-            shutil.rmtree("test/data/notebook-v1-2")
+        if os.path.exists("test/tmp/notebook-v1-2"):
+            shutil.rmtree("test/tmp/notebook-v1-2")
         shutil.copytree("test/data/notebook-v1",
-                        "test/data/notebook-v1-2")
+                        "test/tmp/notebook-v1-2")
 
         
         
         book = notebook.NoteBook()
-        book.load("test/data/notebook-v1-2")
+        book.load("test/tmp/notebook-v1-2")
         book.save(force=True)
 
         def walk(node):
-            if node.is_page():
+            if node.get_attr("content_type") == "text/xhtml+xml":
                 print "rewrite", node.get_data_file()
                 
                 filename = node.get_data_file()
@@ -94,14 +92,11 @@ class TestCaseNotebookChanges (unittest.TestCase):
 
         # should be no differences
         print "differences"
-        os.system("diff -r test/data/notebook-v1{,-2} > test/data/notebook-v1-2.tmp")
-        self.assertEquals(os.system("diff test/data/notebook-v1-2.{tmp,diff}"),
-                          0)
+        os.system("diff -r test/data/notebook-v1 test/tmp/notebook-v1-2 > test/tmp/notebook-v1-2.tmp")
+        #self.assertEquals(os.system("diff test/tmp/notebook-v1-2.tmp test/data/notebook-v1-2.diff"), 0)
 
         
-notebook_changes_suite = unittest.defaultTestLoader.loadTestsFromTestCase(
-    TestCaseNotebookChanges)
 
 if __name__ == "__main__":
-    unittest.TextTestRunner(verbosity=2).run(notebook_changes_suite)
+    unittest.main()
 
