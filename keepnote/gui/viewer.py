@@ -160,6 +160,10 @@ class Viewer (gtk.VBox):
     def add_search_result(self, node):
         pass
 
+    def end_search_result(self):
+        pass
+
+
     #================================================
     # UI management
 

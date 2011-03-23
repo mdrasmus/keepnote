@@ -756,6 +756,17 @@ class ThreePaneViewer (Viewer):
         """Add a search result"""
         self.listview.append_node(node)
 
+    def end_search_result(self):
+        """End a search result"""
+        
+        # select top result
+        try:
+            self.listview.get_selection().select_path((0,))
+        except:
+            # don't worry if there isn't anything to select
+            pass
+
+
     def viewing_search(self):
         """Returns True if we are currently viewing a search result"""
         return (len(self.treeview.get_selected_nodes()) == 0 and

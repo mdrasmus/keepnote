@@ -1555,7 +1555,6 @@ class SearchBox (gtk.Entry):
         def search(task):
             alldone = Lock() # ensure gui and background sync up at end
             alldone.acquire()
-            nresults = [0]
 
             def gui_update():
                 lock.acquire()
@@ -1580,10 +1579,7 @@ class SearchBox (gtk.Entry):
                             break
 
                         # add result to gui
-                        nresults[0] += 1
                         self._window.get_viewer().add_search_result(node)
-                        if nresults[0] == 1:
-                            self._window.get_viewer().goto_node(node)
                         
                 except Exception, e:
                     self._window.error(_("Unexpected error"), e)
@@ -1636,6 +1632,9 @@ class SearchBox (gtk.Entry):
         if task.exc_info()[0]:
             e, t, tr = task.exc_info()
             keepnote.log_error(e, tr)
+
+            
+        self._window.get_viewer().end_search_result()
 
 
     def focus_on_search_box(self):

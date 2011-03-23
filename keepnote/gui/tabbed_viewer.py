@@ -500,6 +500,12 @@ class TabbedViewer (Viewer):
         return self._current_viewer.add_search_result(node)
 
 
+    def end_search_result(self):
+        """Start a new search result"""
+        return self._current_viewer.end_search_result()
+
+
+
     #===========================================
     # ui
     

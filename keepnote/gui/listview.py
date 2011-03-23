@@ -315,7 +315,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
 
     def append_node(self, node):
 
-        # do allow appending of nodes unless we are masterless
+        # do not allow appending of nodes unless we are masterless
         if self.get_master_node() is not None:
             return
 
