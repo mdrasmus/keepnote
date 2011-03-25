@@ -38,7 +38,7 @@ try:
     import pysqlite2.dbapi2 as sqlite
 except Exception, e:
     import sqlite3  as sqlite
-sqlite.enable_shared_cache(True)
+#sqlite.enable_shared_cache(True)
 #sqlite.threadsafety = 0
 
 
