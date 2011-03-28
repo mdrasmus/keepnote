@@ -192,9 +192,9 @@ def process_connection(conn, addr, passwd, execfunc):
             # redirect stdout to connection
             sys.stdout.flush()
             stdout = sys.stdout
-            sys.stdout = QuotedOutput(connfile)
+            sys.stdout = connfile #QuotedOutput(connfile)
             execfunc(parse_command(command))
-            connfile.write(KEEPNOTE_EOF)
+            #connfile.write(KEEPNOTE_EOF)
             connfile.flush()    
         except:
             keepnote.log_error()
@@ -204,6 +204,7 @@ def process_connection(conn, addr, passwd, execfunc):
 
         # close connection
         connfile.close()
+        conn.shutdown(socket.SHUT_RDWR)
         conn.close()
         
 
@@ -211,22 +212,6 @@ def process_connection(conn, addr, passwd, execfunc):
         # socket error, close connection
         print >>sys.stderr, e, ": error with connection"
         conn.close()
-
-
-class QuotedOutput (object):
-    def __init__(self, out):
-        self.__out = out
-        self.mode = out.mode
-
-    def write(self, text):
-        for c in format_result(text):
-            self.__out.write(c)
-
-    def closed(self):
-        return self.__out.closed()
-    
-    def flush(self):
-        self.__out.flush()
 
 
 #=============================================================================
@@ -288,6 +273,23 @@ def format_command(argv):
 
 
 
+# TODO: maybe not needed
+class QuotedOutput (object):
+    def __init__(self, out):
+        self.__out = out
+        self.mode = out.mode
+
+    def write(self, text):
+        for c in format_result(text):
+            self.__out.write(c)
+
+    def closed(self):
+        return self.__out.closed()
+    
+    def flush(self):
+        self.__out.flush()
+
+# TODO: maybe not needed
 def format_result(result):
     
     for c in result:
@@ -295,7 +297,7 @@ def format_result(result):
             yield KEEPNOTE_ESCAPE
         yield c
 
-
+# TODO: maybe not needed
 def parse_result(result):
     """
     Parse result text
@@ -400,7 +402,9 @@ class CommandExecutor (object):
                     if len(c) < 1:
                         break
                     yield c
-            for c in parse_result(read_socket(s)):
+            
+            #for c in parse_result(read_socket(s)):
+            for c in read_socket(s):
                 sys.stdout.write(c)
             sys.stdout.flush()
     
