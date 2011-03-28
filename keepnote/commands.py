@@ -38,6 +38,10 @@ import keepnote
 
 # constants
 KEEPNOTE_HEADER = "keepnote\n"
+KEEPNOTE_EOF = "\x00"
+KEEPNOTE_ESCAPE = "\xff"
+
+
 
 # TODO: add unicode support
 
@@ -188,10 +192,12 @@ def process_connection(conn, addr, passwd, execfunc):
             # redirect stdout to connection
             sys.stdout.flush()
             stdout = sys.stdout
-            sys.stdout = connfile
+            sys.stdout = QuotedOutput(connfile)
             execfunc(parse_command(command))
-            connfile.flush()
+            connfile.write(KEEPNOTE_EOF)
+            connfile.flush()    
         except:
+            keepnote.log_error()
             pass
         finally:
             sys.stdout = stdout
@@ -205,6 +211,22 @@ def process_connection(conn, addr, passwd, execfunc):
         # socket error, close connection
         print >>sys.stderr, e, ": error with connection"
         conn.close()
+
+
+class QuotedOutput (object):
+    def __init__(self, out):
+        self.__out = out
+        self.mode = out.mode
+
+    def write(self, text):
+        for c in format_result(text):
+            self.__out.write(c)
+
+    def closed(self):
+        return self.__out.closed()
+    
+    def flush(self):
+        self.__out.flush()
 
 
 #=============================================================================
@@ -264,6 +286,49 @@ def format_command(argv):
     """Format a command from the socket"""
     return " ".join(escape(x) for x in argv)
 
+
+
+def format_result(result):
+    
+    for c in result:
+        if c == KEEPNOTE_EOF or c == KEEPNOTE_ESCAPE:
+            yield KEEPNOTE_ESCAPE
+        yield c
+
+
+def parse_result(result):
+    """
+    Parse result text
+
+    The end of the socket stream is determined by this syntax
+
+    Let $ be \x00
+    Let \ be \xff
+
+    abc$          =>  abc
+    abc\$def$     =>  abc$def
+    abc\\$        =>  abc\
+    abcd\\\$def$  =>  abc\$def
+
+    """
+
+    escape = False
+
+    for c in result:
+        if not escape and c == KEEPNOTE_ESCAPE:
+            # begin escape mode, next char
+            escape = True
+            continue
+        else:
+            # end escape mode
+            escape = False
+
+        if not escape and c == KEEPNOTE_EOF:
+            # end of file
+            break
+
+        # output char
+        yield c
 
 
 class CommandExecutor (object):
@@ -329,18 +394,21 @@ class CommandExecutor (object):
             connfile.flush()
 
             # display return
-            while 1:
-                c = s.recv(1)
-                if len(c) < 1:
-                    break
+            def read_socket(s):
+                while 1:
+                    c = s.recv(1)
+                    if len(c) < 1:
+                        break
+                    yield c
+            for c in parse_result(read_socket(s)):
                 sys.stdout.write(c)
             sys.stdout.flush()
-            
+    
             # close socket
             connfile.close()
             s.close()
         self._execfunc = execute
-
+        
 
     def setup(self, execfunc):        
         """
