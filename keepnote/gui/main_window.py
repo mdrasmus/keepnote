@@ -714,68 +714,105 @@ class KeepNoteWindow (gtk.Window):
         return notebook
     
 
-    def _restore_windows(self, notebook):
-        """Restore multiple windows for notebook"""
+    def _restore_windows(self, notebook, open_here=True):
+        """
+        Restore multiple windows for notebook
+
+        open_here -- if True, will open notebook in this window
+
+
+        Cases:
+        1. if notebook has no saved windows, just open notebook in this window
+        2. if notebook has 1 saved window
+           if open_here:
+             open it in this window
+           else:
+             if this window has no opened notebooks,
+                reassign its ids to the notebook and open it here
+             else
+                reassign notebooks saved ids to this window and viewer
+        3. if notebook has >1 saved windows, open them in their own windows
+           if this window has no notebook, reassign its id to one of the 
+           saved ids.
+
+        """
+
+        # init window lookup
+        win_lookup = dict((w.get_id(), w) for w in 
+                          self._app.get_windows())
+
+        def open_in_window(winid, viewerid, notebook):
+            win = win_lookup.get(winid, None)
+            if win is None:
+                # open new window
+                win = self._app.new_window()
+                win_lookup[winid] = win
+                win._winid = winid
+                if viewerid:
+                    win.get_viewer().set_id(viewerid)
+
+            # set notebook
+            self._app.ref_notebook(notebook)
+            win.set_notebook(notebook)
         
-        # determine whether to open new windows or use this one
+        
+        # find out how many windows this notebook had last time
+        # init viewer if needed
         windows = notebook.pref.get("windows", "ids", define=True)
         notebook.pref.get("viewers", "ids", define=True)
         
+
         if len(windows) == 0:
+            # no presistence info found, just open notebook in this window
             self.set_notebook(notebook)
 
         elif len(windows) == 1:
             # restore a single window
-
-            p = windows.values()[0]
-            old_id = p.get("viewerid", None)
-            if old_id is not None:
-                # use this window
+            winid, winpref = windows.items()[0]
+            viewerid = winpref.get("viewerid", None)
+            
+            if viewerid is not None:
                 if len(self.get_all_notebooks()) == 0:
                     # no notebooks are open, so it is ok to reassign 
                     # the viewer's id to match the notebook pref
-                    self._winid = windows.keys()[0]
-                    if old_id:
-                        self.viewer.set_id(old_id)
-                else:
-                    # TODO: this needs more testing
+                    self._winid = winid
+                    self.viewer.set_id(viewerid)
+                    self.set_notebook(notebook)
+                elif open_here:
+                    # TODO: needs more testing
+
                     # notebooks are open, so reassign the notebook's pref to
                     # match the existing viewer
-                    p["viewerid"] = self.viewer.get_id()
-
-                    p2 = notebook.pref.get("viewers", "ids", old_id, 
-                                           define=True)
-                    notebook.pref.set("viewers", "ids", 
-                                      self.viewer.get_id(), p2)
-                    if old_id in notebook.pref.get("viewers", "ids"):
-                        del notebook.pref.get("viewers", "ids")[old_id]
-            self.set_notebook(notebook)
+                    notebook.pref.set("windows", "ids", 
+                                      {self._winid:
+                                       {"viewerid": self.viewer.get_id(),
+                                        "viewer_type": self.viewer.get_name()}})
+                    notebook.pref.set(
+                        "viewers", "ids", self.viewer.get_id(), 
+                        notebook.pref.get("viewers", "ids", viewerid, 
+                                          define=True))
+                    del notebook.pref.get("viewers", "ids")[viewerid]
+                    self.set_notebook(notebook)
+                else:
+                    # open in whatever window the notebook wants
+                    open_in_window(winid, viewerid, notebook)
+                    self._app.unref_notebook(notebook)
+                    
 
         elif len(windows) > 1:
             # get different kinds of window ids
-            win_lookup = dict((w.get_id(), w) for w in 
-                              self._app.get_windows())
             restoring_ids = set(windows.keys())
-            openned_ids = set(w.get_id() for w in 
-                              self._app.get_windows())
-            abandoned_ids = openned_ids - restoring_ids
-            new_ids = restoring_ids - openned_ids
+            new_ids = restoring_ids - set(win_lookup.keys())
 
             if len(self.get_all_notebooks()) == 0:
                 # special case: if no notebooks opened, then make sure
                 # to reuse this window
 
                 if self._winid not in restoring_ids:
-                    # find a saved window that does not have a matching ID
-                    # and set it to this window
-                    if len(new_ids) > 0:
-                        self._winid = new_ids.pop()
-                    else:
-                        self._winid = iter(restoring_ids).next()
+                    self._winid = iter(restoring_ids).next()
                 
                 restoring_ids.remove(self._winid)
-                win_pref = windows[self._winid]
-                viewerid = win_pref.get("viewerid", None)
+                viewerid = windows[self._winid].get("viewerid", None)
                 if viewerid:
                     self.viewer.set_id(viewerid)
                 self.set_notebook(notebook)
@@ -783,26 +820,12 @@ class KeepNoteWindow (gtk.Window):
             # restore remaining windows
             while len(restoring_ids) > 0:
                 winid = restoring_ids.pop()
+                viewerid = windows[winid].get("viewerid", None)
+                open_in_window(winid, viewerid, notebook)
+            self._app.unref_notebook(notebook)
 
-                if winid in openned_ids:
-                    # open in existing window
-                    win = win_lookup[winid]
-                else:
-                    # open new window
-                    win = self._app.new_window()
-                    win._winid = winid
-                    win_pref = windows[winid]
-                    viewerid = win_pref.get("viewerid", None)
-                    if viewerid:
-                        win.get_viewer().set_id(viewerid)
-                
-                # set notebook
-                self._app.ref_notebook(notebook)
-                win.set_notebook(notebook)
-
-        
     
-    def open_notebook(self, filename, new=False):
+    def open_notebook(self, filename, new=False, open_here=True):
         """Opens a new notebook"""
         
         try:
@@ -819,7 +842,7 @@ class KeepNoteWindow (gtk.Window):
             return
 
         # setup notebook
-        self._restore_windows(notebook)
+        self._restore_windows(notebook, open_here=open_here)
 
         if not new:
             self.set_status(_("Loaded '%s'") % notebook.get_title())

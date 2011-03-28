@@ -319,7 +319,7 @@ class TabbedViewer (Viewer):
         # restore saved tabs
         tabs = notebook.pref.get("viewers", "ids", self._viewerid,
                                  "tabs", default=[])
-        
+
         if len(tabs) == 0:
             # no tabs to restore
             if self._current_viewer.get_notebook():

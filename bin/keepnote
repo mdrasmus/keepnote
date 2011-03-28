@@ -347,9 +347,12 @@ def execute_command(app, argv):
         win = app.new_window()
 
         # open default notebook
-        if options.default_notebook:
+        if len(app.get_windows()) == 1 and options.default_notebook:
+            # TODO: finish
+            # reopen all windows referenced by notebooks
+
             for path in app.pref.get("default_notebooks", default=[]):
-                win.open_notebook(path)
+                win.open_notebook(path, open_here=False)
 
     return True
 
