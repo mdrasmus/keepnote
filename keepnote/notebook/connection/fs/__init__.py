@@ -276,6 +276,11 @@ def get_path_mtime(path):
         mtime = _mtime_cache[path] = os.stat(path).st_mtime
     return mtime
 
+def mark_path_outdated(path):
+    os.utime(path, None)
+    mtime = _mtime_cache.get(path, None)
+    if mtime is None:
+        del _mtime_cache[path]
 
 
 #=============================================================================
@@ -805,27 +810,28 @@ class NoteBookConnectionFS (NoteBookConnection):
         path = self._path_cache.get_path(nodeid) if _path is None else _path
         assert path is not None
         
-        try:
-            # if node is unchanged on disk (same mtime), 
-            # use index to detect children
-            files = None
-            if _index and self._index:
+
+        files = None
+        if _index and self._index:
+            try:
+                # if node is unchanged on disk (same mtime), 
+                # use index to detect children
                 mtime = get_path_mtime(path)
                 index_mtime = self._index.get_node_mtime(nodeid)
                 if mtime == index_mtime:
                     files = list(row[1] for row in 
                                  self._index.list_children(nodeid))
-        except Exception, e:
-            pass
+            except Exception, e:
+                pass
 
-        try:
-            if files is None:
+        if files is None:
+            try:    
                 files = os.listdir(path)
-        except:
-            raise keepnote.notebook.NoteBookError(
-                _("Do not have permission to read folder contents: %s") 
-                % path, e)            
-            
+            except:
+                raise keepnote.notebook.NoteBookError(
+                    _("Do not have permission to read folder contents: %s") 
+                    % path, e)           
+        
         
         for filename in files:
             path2 = os.path.join(path, filename)
@@ -867,9 +873,7 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def _read_node(self, parentid, path):
         """Reads a node from disk"""
-
-        #print "read", path
-
+        
         metafile = get_node_meta_file(path)
         attr = self._read_attr(metafile, self._notebook.attr_defs)
         attr["parentids"] = [parentid]
@@ -887,23 +891,24 @@ class NoteBookConnectionFS (NoteBookConnection):
         
         # if node has changed on disk (newer mtime), then re-index it
         # if reading root node, index might not be initialized yet
-        try:
-            if self._index:
+        if self._index:
+            try:
                 mtime = get_path_mtime(path)
                 index_mtime = self._index.get_node_mtime(nodeid)
                 if mtime > index_mtime:
-                    # TODO: ensure we don't have cycles with multiple parents
-                    # index children again (by reading them)
-                    for childid in self.list_children_nodeids(
-                        nodeid, _index=False):
-                        pass
-
-                    # we can only update the mtime of the node once we know
-                    # the children are properly indexed
+                    print "index", path
+                    
+                    # mark children out of date
+                    for path2 in iter_child_node_paths(path):
+                        mark_path_outdated(path2)
+                    
                     self._index.add_node(
                         nodeid, parentid, basename, attr, mtime)
-        except:
-            pass    
+                    
+                    # record that more indexing is needed
+                    self._index.set_index_needed(True)
+            except:
+                pass    
 
         return attr
     

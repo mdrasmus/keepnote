@@ -425,6 +425,9 @@ class NoteBookIndex (object):
         """Returns True if indexing is needed"""
         return self._need_index
 
+
+    def set_index_needed(self, val=True):
+        self._need_index = val
     
     def has_fulltext_search(self):
         return self._has_fulltext
