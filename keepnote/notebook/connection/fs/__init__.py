@@ -896,8 +896,6 @@ class NoteBookConnectionFS (NoteBookConnection):
                 mtime = get_path_mtime(path)
                 index_mtime = self._index.get_node_mtime(nodeid)
                 if mtime > index_mtime:
-                    print "index", path
-                    
                     # mark children out of date
                     for path2 in iter_child_node_paths(path):
                         mark_path_outdated(path2)
