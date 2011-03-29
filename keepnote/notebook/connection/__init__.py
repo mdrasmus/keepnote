@@ -112,6 +112,12 @@ class NoteBookConnection (object):
         """Returns the basename of the node"""
         pass
 
+    # TODO: returning a fullpath to a file is not fully portable
+    # will eventually need some kind of fetching mechanism    
+    def get_file(self, nodeid, filename, _path=None):
+        pass
+
+
     #======================
     # connection API
 
@@ -153,12 +159,7 @@ class NoteBookConnection (object):
     def has_node(self, nodeid):
         return False
 
-    # secondary node API (try to simplify)
-    
-    def read_data_as_plain_text(self, nodeid):
-        """Iterates over the lines of the data file as plain text"""
-        pass
-
+    # TODO: can this be simplified with a search query?
     def get_rootid(self):
         """Returns nodeid of notebook root node"""
         pass
@@ -167,18 +168,12 @@ class NoteBookConnection (object):
     #===============
     # file API
 
-    def open_file(self, nodeid, filename, mode="r", 
-                        codec=None):
+    def open_file(self, nodeid, filename, mode="r", codec=None):
         """Open a file contained within a node"""        
         pass
 
     def delete_file(self, nodeid, filename, _path=None):
         """Open a file contained within a node"""
-        pass
-
-    # Is this needed inside the connection?  Can it be support outside?
-    def new_filename(self, nodeid, new_filename, ext=u"", sep=u" ", number=2, 
-                     return_number=False, use_number=False, ensure_valid=True):
         pass
 
     def mkdir(self, nodeid, filename):
@@ -193,9 +188,6 @@ class NoteBookConnection (object):
     def file_exists(self, nodeid, filename):
         pass
 
-    def file_basename(self, filename):
-        pass
-                
     def copy_file(self, nodeid1, filename1, nodeid2, filename2):
         """
         Copy a file between two nodes
@@ -204,7 +196,6 @@ class NoteBookConnection (object):
         """
         pass
 
-
     def copy_files(self, nodeid1, nodeid2):
         """
         Copy all data files from nodeid1 to nodeid2
@@ -212,10 +203,15 @@ class NoteBookConnection (object):
         pass
 
 
-    # TODO: returning a fullpath to a file is not fully portable
-    # will eventually need some kind of fetching mechanism
-    
-    def get_file(self, nodeid, filename, _path=None):
+    # Is this needed inside the connection?  Can it be support outside?
+    def new_filename(self, nodeid, new_filename, ext=u"", sep=u" ", number=2, 
+                     return_number=False, use_number=False, ensure_valid=True):
+        pass
+
+
+    # TODO: can this be removed some how?
+    def read_data_as_plain_text(self, nodeid):
+        """Iterates over the lines of the data file as plain text"""
         pass
 
 
@@ -281,14 +277,14 @@ class NoteBookConnection (object):
 File path translation strategy.
 
 on disk            user-visible
-filename      =>     filename
-__filename    =>     filename
-____filename  =>     __filename
+filename    =>     filename
+_filename   =>     filename
+__filename  =>     _filename
 
 user-visble       on disk 
-filename      =>  filename (if simple file exists)
-              =>  __filename (if simple file does not-exist)
-__filename    =>  ____filename
+filename     =>  filename (if file 'filename' exists)
+filename     =>  _filename (if file 'filename' does not-exist)
+_filename    =>  __filename
 
 
 Within an attached directory naming scheme is 1-to-1
@@ -297,21 +293,21 @@ Within an attached directory naming scheme is 1-to-1
 
 Reading filename from disk:
   filename = read_from_disk()
-  if filename.startswith("__"):
+  if filename.startswith("_"):
     # unquote filename
-    return filename[2:]
+    return filename[1:]
 
 Looking for filename on disk:
-  if filename.startswith("__"):
-    # escape '__'
-    filename = "__" + filename
+  if filename.startswith("_"):
+    # escape '_'
+    filename = "_" + filename
   if simple_file_exists(filename):  # i.e. not a node dir
     return filename
   else:
     # try quoted name
-    return "__" + filename
+    return "_" + filename
 
 
-node directories aren't allowed to start with '__'.
+node directories aren't allowed to start with '_'.
 
 """

@@ -1470,7 +1470,7 @@ class NoteBook (NoteBookNode):
         # TODO: is there a better way to access icons?
         # directly by stream?
 
-        filename = self._conn.path_join(
+        filename = connection.path_join(
             NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR, basename)
         if self._conn.file_exists(self._attr["nodeid"], filename):
             return self._conn.get_file(self._attr["nodeid"], filename)
@@ -1480,7 +1480,7 @@ class NoteBook (NoteBookNode):
 
     def get_icons(self):
         """Returns list of icons in notebook icon store"""
-        filename = self._conn.path_join(
+        filename = connection.path_join(
             NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR)
         filenames = list(self._conn.list_files(self._attr["nodeid"], filename))
         filenames.sort()
@@ -1494,7 +1494,7 @@ class NoteBook (NoteBookNode):
 
         basename = os.path.basename(filename)
         basename, ext = os.path.splitext(basename)
-        newfilename = self._conn.path_join(NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR,
+        newfilename = connection.path_join(NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR,
                                            basename)
 
         newfilename = self._conn.new_filename(self._attr["nodeid"], 
@@ -1514,7 +1514,7 @@ class NoteBook (NoteBookNode):
 
         basename = os.path.basename(filename)
         basename, ext = os.path.splitext(basename)
-        startname = self._conn.path_join(NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR,
+        startname = connection.path_join(NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR,
                                          basename)
 
         nodepath = self.get_path()
@@ -1557,7 +1557,7 @@ class NoteBook (NoteBookNode):
         """Removes an icon from the notebook icon store"""
         if len(basename) == 0:
             return
-        filename = self._conn.path_join(
+        filename = connection.path_join(
             NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR, basename)
         self._conn.delete_node_file(self._attr["nodeid"], filename)
     
@@ -1641,7 +1641,7 @@ class NoteBook (NoteBookNode):
         """Gets the NoteBook's icon directory"""
         return self._conn.get_file(
             self._attr["nodeid"], 
-            self._conn.path_join(NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR))
+            connection.path_join(NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR))
     
 
     def set_preferences_dirty(self):
@@ -1657,7 +1657,7 @@ class NoteBook (NoteBookNode):
                 
             # ensure icon directory exists
             self._conn.mkdir(self._attr["nodeid"], 
-                             self._conn.path_join(NOTEBOOK_META_DIR, 
+                             connection.path_join(NOTEBOOK_META_DIR, 
                                                   NOTEBOOK_ICON_DIR))
 
             data = self.pref.get_data()

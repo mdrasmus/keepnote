@@ -88,7 +88,7 @@ from keepnote import trans
 from keepnote.notebook.connection.fs import index as notebook_index
 from keepnote.notebook.connection import \
     NoteBookConnection, UnknownNode, UnknownFile, NodeExists, \
-    CorruptIndex, ConnectionError, path_join, path_basename
+    CorruptIndex, ConnectionError, path_basename
 import keepnote
 import keepnote.notebook
 
@@ -491,6 +491,17 @@ class NoteBookConnectionFS (NoteBookConnection):
         if basename is None:
             raise UnknownNode(nodeid)
         return basename
+
+
+    # TODO: returning a fullpath to a file is not fully portable
+    # will eventually need some kind of fetching mechanism
+
+    # TODO: don't allow .. .
+    
+    def get_file(self, nodeid, filename, _path=None):
+        path = self._get_node_path(nodeid) if _path is None else _path
+        return get_node_filename(path, filename)
+
 
     #===========================
     # Private path API
@@ -1014,21 +1025,6 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     #===============
     # file API
-
-    # XXX: is path_join needed?  or can I always specify paths with '/'?
-
-    def path_join(self, *parts):
-        return os.path.join(*parts)
-
-    # TODO: returning a fullpath to a file is not fully portable
-    # will eventually need some kind of fetching mechanism
-
-    # TODO: don't allow .. .
-    
-    def get_file(self, nodeid, filename, _path=None):
-        path = self._get_node_path(nodeid) if _path is None else _path
-        return get_node_filename(path, filename)
-
     
     def open_file(self, nodeid, filename, mode="r", 
                         codec=None, _path=None):
