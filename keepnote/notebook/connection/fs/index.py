@@ -454,7 +454,7 @@ class NoteBookIndex (object):
             if nodeid not in visit:
                 mtime = conn._get_node_mtime(nodeid)
                 mtime_index = self.get_node_mtime(nodeid)
-                parentid = conn.get_parentid(nodeid)
+                parentid = conn._get_parentid(nodeid)
                 
                 if parentid in parents or mtime > mtime_index:
                     parents.add(nodeid)

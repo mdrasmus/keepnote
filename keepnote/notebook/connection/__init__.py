@@ -168,10 +168,6 @@ class NoteBookConnection (object):
     def get_rootid(self):
         """Returns nodeid of notebook root node"""
         pass
-
-    def get_parentid(self, nodeid):
-        """Returns nodeid of parent of node"""
-        pass
     
 
     #===============

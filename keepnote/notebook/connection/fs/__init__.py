@@ -613,6 +613,8 @@ class NoteBookConnectionFS (NoteBookConnection):
         else:
             path = _path
 
+        attr["childrenids"] = []
+
         # determine basename
         basename = os.path.basename(path) if parentid else path
 
@@ -647,7 +649,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         """Read a node attr"""
         
         path = self._get_node_path(nodeid)
-        parentid = self.get_parentid(nodeid)
+        parentid = self._get_parentid(nodeid)
         return self._read_node(parentid, path)
     
 
@@ -665,7 +667,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         # TODO: support mutltiple parents 
 
         # determine if parentid has changed
-        parentid = self.get_parentid(nodeid) # old parent
+        parentid = self._get_parentid(nodeid) # old parent
         parentids2 = attr.get("parentids", None) # new parent
         parentid2 = parentids2[0] if parentids2 else self._rootid
         
@@ -688,8 +690,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         else:
             # update index
             basename = os.path.basename(path)
-            parentid = self._path_cache.get_parentid(nodeid)
-            self._index.add_node(nodeid, parentid, basename, attr, 
+            self._index.add_node(nodeid, parentid2, basename, attr, 
                                  mtime=get_path_mtime(path))
         
 
@@ -708,9 +709,8 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         # update index
         basename = os.path.basename(path2)
-        parentid = self._path_cache.get_parentid(nodeid)
-        self._path_cache.move(nodeid, basename, parentid)
-        self._index.add_node(nodeid, parentid, basename, attr, 
+        self._path_cache.move(nodeid, basename, new_parentid)
+        self._index.add_node(nodeid, new_parentid, basename, attr, 
                              mtime=get_path_mtime(path2))
 
 
@@ -768,7 +768,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             return self.read_root()["nodeid"]
         
 
-    def get_parentid(self, nodeid):
+    def _get_parentid(self, nodeid):
         """Returns nodeid of parent of node"""
         # TODO: I could fallback to index for this too
         return self._path_cache.get_parentid(nodeid)
@@ -1241,9 +1241,9 @@ class NoteBookConnectionFS (NoteBookConnection):
     def update_index_node(self, nodeid, attr):
         """Update a node in the index"""
         
-        path = self._path_cache.get_path(nodeid)
+        path = self._get_node_path(nodeid)
         basename = os.path.basename(path)
-        parentid = self._path_cache.get_parentid(nodeid)
+        parentid = attr["parentids"][0]
         self._index.add_node(nodeid, parentid, basename, attr, 
                              mtime=get_path_mtime(path))
 
