@@ -157,6 +157,7 @@ class NoteBookConnection (object):
         pass
 
     def has_node(self, nodeid):
+        """Returns True if node exists"""
         return False
 
     # TODO: can this be simplified with a search query?

@@ -450,6 +450,11 @@ class PathCache (object):
 
                 
 
+# TODO: figure out how to do attribute defs.  Is it really needed?  
+# Maybe storage should always know datatype of attr, so attr defs are not
+# needed.
+# would I want to enable validation though?  and managed attr using attrids?
+# or does this not belong at the connection level.
 
 
 class NoteBookConnectionFS (NoteBookConnection):
@@ -458,11 +463,9 @@ class NoteBookConnectionFS (NoteBookConnection):
         
         self._filename = None
         self._notebook = notebook
-        #self._node_factory = node_factory
         self._index = None
         self._path_cache = PathCache()
         self._rootid = None
-        #self._listdir_cache = {} # TODO: make LRU cache
 
         # attributes to not write to disk, they can be derived
         self._attr_suppress = set(["parentids", "childids"])
@@ -470,6 +473,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         # NOTES:
         # - I only use the notebook object for assesing attrdefs and
         # for setuping up the index.
+        # try to remove.
     
 
     #================================
@@ -583,8 +587,7 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         self.create_node(nodeid, attr, self._filename, True)
 
-        # make lost and found
-        
+        # make lost and found        
         lostdir = self._get_lostdir()
         if not os.path.exists(lostdir):
             os.makedirs(lostdir)
@@ -666,7 +669,7 @@ class NoteBookConnectionFS (NoteBookConnection):
     
 
     def has_node(self, nodeid):
-        """Read a node attr"""
+        """Returns True if node exists"""
         return (self._path_cache.has_node(nodeid) or 
                 (self._index and self._index.has_node(nodeid)))
 
@@ -1189,7 +1192,8 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def init_index(self):
         """Initialize the index"""
-        self._index = notebook_index.NoteBookIndex(self, self._notebook)
+        self._index = notebook_index.NoteBookIndex(
+            self, self._get_index_file())
         
     def index_needed(self):
         return self._index.index_needed()
@@ -1201,6 +1205,15 @@ class NoteBookConnectionFS (NoteBookConnection):
         for node in self._index.index_all():
             yield node
 
+    def _get_index_file(self):
+
+        notebook = self._notebook
+        index_dir = notebook.pref.get("index_dir", default=u"")
+        if not index_dir or not os.path.exists(index_dir):
+            index_dir = notebook.get_pref_dir()
+        
+        return os.path.join(index_dir, notebook_index.INDEX_FILE)
+        
 
     #---------------------------------
     # indexing/querying

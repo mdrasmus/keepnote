@@ -169,14 +169,15 @@ class AttrIndex (object):
                         (nodeid, value))
 
 
+# TODO: remove uniroot
 
 class NoteBookIndex (object):
     """Index for a NoteBook"""
 
-    def __init__(self, conn, notebook):
+    def __init__(self, conn, index_file):
         self._nconn = conn
-        self._notebook = notebook
-        self._uniroot = notebook.get_universal_root_id()
+        self._index_file = index_file
+        self._uniroot = keepnote.notebook.UNIVERSAL_ROOT
         self._attrs = {}
 
         # index state/capabilities
@@ -198,7 +199,6 @@ class NoteBookIndex (object):
         """Open connection to index"""
         
         try:
-            self._index_file = self._get_index_file()
             self._corrupt = False
             self._need_index = False
             self.con = sqlite.connect(self._index_file, 
@@ -216,9 +216,7 @@ class NoteBookIndex (object):
 
     def close(self):
         """Close connection to index"""
-
-        self._index_file = None
-
+        
         if self.con is not None:
             try:
                 self.con.commit()
@@ -253,23 +251,10 @@ class NoteBookIndex (object):
         """Erases database file and reinitializes"""
 
         self.close()
-        index_file = self._get_index_file()
-        if os.path.exists(index_file):
-            os.remove(index_file)
-        self.open(auto_clear=False)
-
-
-    def _get_index_file(self):
-        """Get the index filename for a notebook"""
-
-        # TODO: figure out another way to set index file
-        # so that I can fully remove notebook concept from index
-
-        index_dir = self._notebook.pref.get("index_dir", default=u"")
-        if not index_dir or not os.path.exists(index_dir):
-            index_dir = self._notebook.get_pref_dir()
-        
-        return os.path.join(index_dir, INDEX_FILE)
+        if self._index_file:
+            if os.path.exists(self._index_file):
+                os.remove(self._index_file)
+            self.open(auto_clear=False)
 
 
     #-----------------------------------------
