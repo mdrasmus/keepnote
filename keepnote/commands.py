@@ -38,8 +38,8 @@ import keepnote
 
 # constants
 KEEPNOTE_HEADER = "keepnote\n"
-KEEPNOTE_EOF = "\x00"
-KEEPNOTE_ESCAPE = "\xff"
+#KEEPNOTE_EOF = "\x00"
+#KEEPNOTE_ESCAPE = "\xff"
 
 
 
@@ -273,66 +273,6 @@ def format_command(argv):
 
 
 
-# TODO: maybe not needed
-class QuotedOutput (object):
-    def __init__(self, out):
-        self.__out = out
-        self.mode = out.mode
-
-    def write(self, text):
-        for c in format_result(text):
-            self.__out.write(c)
-
-    def closed(self):
-        return self.__out.closed()
-    
-    def flush(self):
-        self.__out.flush()
-
-# TODO: maybe not needed
-def format_result(result):
-    
-    for c in result:
-        if c == KEEPNOTE_EOF or c == KEEPNOTE_ESCAPE:
-            yield KEEPNOTE_ESCAPE
-        yield c
-
-# TODO: maybe not needed
-def parse_result(result):
-    """
-    Parse result text
-
-    The end of the socket stream is determined by this syntax
-
-    Let $ be \x00
-    Let \ be \xff
-
-    abc$          =>  abc
-    abc\$def$     =>  abc$def
-    abc\\$        =>  abc\
-    abcd\\\$def$  =>  abc\$def
-
-    """
-
-    escape = False
-
-    for c in result:
-        if not escape and c == KEEPNOTE_ESCAPE:
-            # begin escape mode, next char
-            escape = True
-            continue
-        else:
-            # end escape mode
-            escape = False
-
-        if not escape and c == KEEPNOTE_EOF:
-            # end of file
-            break
-
-        # output char
-        yield c
-
-
 class CommandExecutor (object):
 
     def __init__(self):
@@ -396,15 +336,10 @@ class CommandExecutor (object):
             connfile.flush()
 
             # display return
-            def read_socket(s):
-                while 1:
-                    c = s.recv(1)
-                    if len(c) < 1:
-                        break
-                    yield c
-            
-            #for c in parse_result(read_socket(s)):
-            for c in read_socket(s):
+            while 1:
+                c = s.recv(1024*4)
+                if len(c) == 0:
+                    break
                 sys.stdout.write(c)
             sys.stdout.flush()
     
@@ -476,7 +411,70 @@ def get_command_executor(func, port=None):
 
 
 
+#=============================================================================
+# old code
 
+'''
+# TODO: maybe not needed
+class QuotedOutput (object):
+    def __init__(self, out):
+        self.__out = out
+        self.mode = out.mode
+
+    def write(self, text):
+        for c in format_result(text):
+            self.__out.write(c)
+
+    def closed(self):
+        return self.__out.closed()
+    
+    def flush(self):
+        self.__out.flush()
+
+# TODO: maybe not needed
+def format_result(result):
+    
+    for c in result:
+        if c == KEEPNOTE_EOF or c == KEEPNOTE_ESCAPE:
+            yield KEEPNOTE_ESCAPE
+        yield c
+
+# TODO: maybe not needed
+def parse_result(result):
+    """
+    Parse result text
+
+    The end of the socket stream is determined by this syntax
+
+    Let $ be \x00
+    Let \ be \xff
+
+    abc$          =>  abc
+    abc\$def$     =>  abc$def
+    abc\\$        =>  abc\
+    abcd\\\$def$  =>  abc\$def
+
+    """
+
+    escape = False
+
+    for c in result:
+        if not escape and c == KEEPNOTE_ESCAPE:
+            # begin escape mode, next char
+            escape = True
+            continue
+        else:
+            # end escape mode
+            escape = False
+
+        if not escape and c == KEEPNOTE_EOF:
+            # end of file
+            break
+
+        # output char
+        yield c
+
+'''
 
 
 
