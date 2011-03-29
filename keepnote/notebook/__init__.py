@@ -1281,7 +1281,7 @@ class NoteBook (NoteBookNode):
         
         # read basic info
         self._conn.connect(self._basename)
-        attr = self._conn.read_root()
+        attr = self._conn.read_node(self._conn.get_rootid())
         self._init_attr(attr)
         self.read_preferences()
 

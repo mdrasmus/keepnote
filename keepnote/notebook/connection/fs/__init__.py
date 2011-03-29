@@ -612,7 +612,8 @@ class NoteBookConnectionFS (NoteBookConnection):
                 parent_path, title)
         else:
             path = _path
-
+            
+        # initialize with no children
         attr["childrenids"] = []
 
         # determine basename
@@ -635,7 +636,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         return nodeid
     
         
-    def read_root(self):
+    def _read_root(self):
         """Read root node attr"""
         if self._filename is None:
             raise ConnectionError("connect() has not been called")
@@ -765,7 +766,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         if self._rootid:
             return self._rootid
         else:
-            return self.read_root()["nodeid"]
+            return self._read_root()["nodeid"]
         
 
     def _get_parentid(self, nodeid):
