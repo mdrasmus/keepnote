@@ -64,7 +64,7 @@ def preorder(conn, nodeid):
         nodeid, attr = queue.pop()
         yield nodeid, attr
         queue.extend((attr2["nodeid"], attr2) 
-                     for attr2 in conn.list_children_attr(nodeid, _index=False))
+                  for attr2 in conn._list_children_attr(nodeid, _index=False))
 
 
 def match_words(infile, words):
@@ -741,7 +741,7 @@ class NoteBookIndex (object):
                 # return frequently so that search does not block long
                 yield None
 
-            children = self._nconn.list_children_nodeids(nodeid)
+            children = self._nconn._list_children_nodeids(nodeid)
             stack.extend(children)
 
 

@@ -4,7 +4,28 @@
     
     Low-level Create-Read-Update-Delete (CRUD) interface for notebooks.
 
+"""
 
+#
+#  KeepNote
+#  Copyright (c) 2008-2011 Matt Rasmussen
+#  Author: Matt Rasmussen <rasmus@mit.edu>
+#
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; version 2 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
+#
+
+"""
 Strategy for detecting unmanaged notebook modifications.
 
 When a notebook is first opened, there needs to be a mechanism for determining
@@ -44,26 +65,6 @@ UPDATE: Perhaps at this time unmanaged changes to payload files are not
         re-indexed.
 
 """
-
-#
-#  KeepNote
-#  Copyright (c) 2008-2011 Matt Rasmussen
-#  Author: Matt Rasmussen <rasmus@mit.edu>
-#
-# This program is free software; you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; version 2 of the License.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program; if not, write to the Free Software
-# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
-#
-
 
 # python imports
 import gettext
@@ -279,7 +280,7 @@ def get_path_mtime(path):
 def mark_path_outdated(path):
     os.utime(path, None)
     mtime = _mtime_cache.get(path, None)
-    if mtime is None:
+    if mtime is not None:
         del _mtime_cache[path]
 
 
@@ -613,11 +614,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             path = _path
 
         # determine basename
-        if parentid is not None:
-            basename = os.path.basename(path)
-        else:
-            # root node case
-            basename = path
+        basename = os.path.basename(path) if parentid else path
 
         # make directory and write attr
         try:
@@ -787,7 +784,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         #if _index and self._index:
         #    mtime = get_path_mtime(path)
         #    index_mtime = self._index.get_node_mtime(nodeid)
-        #    if mtime == index_mtime:
+        #    if mtime <= index_mtime:
         #        return self._index.has_children(nodeid)
         
         try:
@@ -805,20 +802,21 @@ class NoteBookConnectionFS (NoteBookConnection):
         return False
 
     
-    def list_children_attr(self, nodeid, _path=None, _index=True):
+    def _list_children_attr(self, nodeid, _path=None, _index=True):
         """List attr of children nodes of nodeid"""
         path = self._path_cache.get_path(nodeid) if _path is None else _path
         assert path is not None
         
 
         files = None
+        mtime = index_mtime = None
         if _index and self._index:
             try:
                 # if node is unchanged on disk (same mtime), 
                 # use index to detect children
                 mtime = get_path_mtime(path)
                 index_mtime = self._index.get_node_mtime(nodeid)
-                if mtime == index_mtime:
+                if mtime <= index_mtime:
                     files = list(row[1] for row in 
                                  self._index.list_children(nodeid))
             except Exception, e:
@@ -839,15 +837,14 @@ class NoteBookConnectionFS (NoteBookConnection):
                 try:
                     yield self._read_node(nodeid, path2)
                 except keepnote.notebook.NoteBookError, e:
-                    print >>sys.stderr, "error reading", path2
-                    traceback.print_exception(*sys.exc_info())
+                    keepnote.log_error("error reading %s" % path2)
                     continue
                     # TODO: raise warning, not all children read
 
         self._path_cache.set_children_complete(nodeid, True)
 
 
-    def list_children_nodeids(self, nodeid, _path=None, _index=True):
+    def _list_children_nodeids(self, nodeid, _path=None, _index=True):
         """List nodeids of children of node"""
         # try to use cache first
         children = self._path_cache.get_children(nodeid)
@@ -863,11 +860,11 @@ class NoteBookConnectionFS (NoteBookConnection):
         if _index and self._index:
             mtime = get_path_mtime(path)
             index_mtime = self._index.get_node_mtime(nodeid)
-            if mtime == index_mtime:
+            if mtime <= index_mtime:
                 return (row[0] for row in self._index.list_children(nodeid))
 
         return (attr["nodeid"]
-                for attr in self.list_children_attr(nodeid, _path))
+                for attr in self._list_children_attr(nodeid, _path))
 
 
 
@@ -882,10 +879,7 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         # update path cache
         nodeid = attr["nodeid"]
-        if parentid is None:
-            basename = path
-        else:
-            basename = os.path.basename(path)
+        basename = os.path.basename(path) if parentid else path  
         self._path_cache.add(nodeid, basename, parentid)
         
         
@@ -903,10 +897,16 @@ class NoteBookConnectionFS (NoteBookConnection):
                     self._index.add_node(
                         nodeid, parentid, basename, attr, mtime)
                     
+                    # TODO: make re-indexing smarter (use mtimes for partial
+                    # reindexing) 
                     # record that more indexing is needed
                     self._index.set_index_needed(True)
             except:
+                keepnote.log_error()
                 pass    
+
+        # supplement childids
+        attr["childrenids"] = list(self._list_children_nodeids(nodeid, path))
 
         return attr
     
@@ -1193,7 +1193,7 @@ class NoteBookConnectionFS (NoteBookConnection):
     def init_index(self):
         """Initialize the index"""
         self._index = notebook_index.NoteBookIndex(self, self._notebook)
-    
+        
     def index_needed(self):
         return self._index.index_needed()
 

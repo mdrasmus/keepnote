@@ -173,14 +173,6 @@ class NoteBookConnection (object):
         """Returns nodeid of parent of node"""
         pass
     
-    def list_children_attr(self, nodeid):
-        """List attr of children nodes of nodeid"""
-        pass
-
-    def list_children_nodeids(self, nodeid):
-        """List nodeids of children of node"""
-        pass
-
 
     #===============
     # file API

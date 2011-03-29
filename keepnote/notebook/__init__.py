@@ -967,7 +967,10 @@ class NoteBookNode (object):
         
         default_content_type = CONTENT_TYPE_DIR
 
-        for attr in self._conn.list_children_attr(self._attr["nodeid"]):
+        #for attr in self._conn.list_children_attr(self._attr["nodeid"]):
+
+        for childid in self._attr["childrenids"]:
+            attr = self._conn.read_node(childid)
             node = NoteBookNode(
                 attr.get("title", DEFAULT_PAGE_NAME), 
                 parent=self, notebook=self._notebook,
@@ -1281,10 +1284,9 @@ class NoteBook (NoteBookNode):
         attr = self._conn.read_root()
         self._init_attr(attr)
         self.read_preferences()
-        
+
         # init needs to happen after preferences
         self._init_index()
-        
         self._init_trash()
 
         self.notify_change(True)
