@@ -1175,24 +1175,23 @@ class NoteBookPreferences (Pref):
 class NoteBook (NoteBookNode):
     """Class represents a NoteBook"""
 
-    # TODO: should I make a base class with a filename argument?
-    # TODO: replace os.path.basename with conn
+    # TODO: should I make a base class without a filename argument?
     
     def __init__(self, rootdir=None):
         """rootdir -- Root directory of notebook"""
 
-        self._conn = None
+        attr_defs = {}
+        conn = connection_fs.NoteBookConnectionFS(attr_defs)
         NoteBookNode.__init__(self, notebook=self, 
                               content_type=CONTENT_TYPE_DIR,
-                              init_attr=False)
+                              init_attr=False, conn=conn)
         
-        self._conn = connection_fs.NoteBookConnectionFS(self)
         self.pref = NoteBookPreferences()
         rootdir = keepnote.ensure_unicode(rootdir, keepnote.FS_ENCODING)
         self._basename = rootdir
         self._dirty = set()
         self._trash = None
-        self.attr_defs ={}
+        self.attr_defs = attr_defs
         self._necessary_attrs = []
         
 
@@ -1328,18 +1327,19 @@ class NoteBook (NoteBookNode):
         """Returns the notebook connection"""
         return self._conn
 
-    
-    def get_universal_root_id(self):
-        return UNIVERSAL_ROOT
-
 
     def _init_index(self):
         """Initialize the index"""
 
+        # TODO: temp solution. remove soon.
+        index_dir = self.pref.get("index_dir", default=u"")
+        if index_dir and os.path.exists(index_dir):
+            return self._conn._set_index_file(
+                os.path.join(index_dir, notebook_index.INDEX_FILE))
+
         # TODO: ideally I would like to do index_attr()'s before 
         # conn.init_index(), so that the initial indexing properly 
         # catches all the desired attr's
-
         self._conn.init_index()
         self._conn.index_attr("icon")
         self._conn.index_attr("title", index_value=True)

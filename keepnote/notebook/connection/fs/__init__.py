@@ -458,14 +458,16 @@ class PathCache (object):
 
 
 class NoteBookConnectionFS (NoteBookConnection):
-    def __init__(self, notebook):
+    def __init__(self, attr_defs):
         NoteBookConnection.__init__(self)
         
         self._filename = None
-        self._notebook = notebook
+        self._attr_defs = attr_defs
         self._index = None
         self._path_cache = PathCache()
         self._rootid = None
+
+        self._index_file = None
 
         # attributes to not write to disk, they can be derived
         self._attr_suppress = set(["parentids", "childids"])
@@ -637,7 +639,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         try:
             os.mkdir(path)
             self._write_attr(self._get_node_attr_file(nodeid, path), 
-                             attr, self._notebook.attr_defs)
+                             attr, self._attr_defs)
             self._path_cache.add(nodeid, basename, parentid)
         except OSError, e:
             raise keepnote.notebook.NoteBookError(_("Cannot create node"), e)
@@ -692,7 +694,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         # write attrs
         path = self._get_node_path(nodeid)
         self._write_attr(get_node_meta_file(path), attr, 
-                         self._notebook.attr_defs)
+                         self._attr_defs)
         
         if parentid != parentid2:
             # move to a new parent
@@ -887,10 +889,10 @@ class NoteBookConnectionFS (NoteBookConnection):
         """Reads a node from disk"""
         
         metafile = get_node_meta_file(path)
-        attr = self._read_attr(metafile, self._notebook.attr_defs)
+        attr = self._read_attr(metafile, self._attr_defs)
         attr["parentids"] = [parentid]
         if not self._validate_attr(attr):
-            self._write_attr(metafile, attr, self._notebook.attr_defs)
+            self._write_attr(metafile, attr, self._attr_defs)
 
         # update path cache
         nodeid = attr["nodeid"]
@@ -1207,20 +1209,22 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def _get_index_file(self):
 
-        notebook = self._notebook
-        index_dir = notebook.pref.get("index_dir", default=u"")
-        if not index_dir or not os.path.exists(index_dir):
-            index_dir = notebook.get_pref_dir()
+        if self._index_file is not None:
+            return self._index_file
+        else:
+            return os.path.join(
+                self._filename, NOTEBOOK_META_DIR, notebook_index.INDEX_FILE)
         
-        return os.path.join(index_dir, notebook_index.INDEX_FILE)
-        
+    # TODO: temp solution. remove soon
+    def _set_index_file(self, index_file):
+        self._index_file = index_file
 
     #---------------------------------
     # indexing/querying
 
     def index_attr(self, key, index_value=False):
         
-        datatype = self._notebook.attr_defs[key].datatype
+        datatype = self._attr_defs[key].datatype
 
         if issubclass(datatype, basestring):
             index_type = "TEXT"
