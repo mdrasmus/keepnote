@@ -561,26 +561,25 @@ class NoteBookConnectionFS (NoteBookConnection):
             raise ConnectionError("unable to store lost file '%s'" 
                                   % filename, e)
         
-            
-
     #======================
-    # Node I/O API
+    # Connection API
 
     def connect(self, filename):
         """Make a new connection"""
         self._filename = filename
-
         
     def close(self):
         """Close connection"""
         self._filename = None
         self._index.close()
-        
 
     def save(self):
         """Save any unsynced state"""
         self._index.save()
-        
+
+
+    #======================
+    # Node I/O API        
 
     def create_root(self, nodeid, attr):
         """Create the root node"""
@@ -679,8 +678,6 @@ class NoteBookConnectionFS (NoteBookConnection):
     def update_node(self, nodeid, attr):
         """Write node attr"""
         
-        #print self._index.get_attr(nodeid, "title")
-
         # TODO: support mutltiple parents 
 
         # determine if parentid has changed
@@ -698,12 +695,12 @@ class NoteBookConnectionFS (NoteBookConnection):
         
         if parentid != parentid2:
             # move to a new parent
-            self._move_node(nodeid, attr, parentid2)
+            self._rename_node_dir(nodeid, attr, parentid2, path)
         elif (parentid and title_index and 
               title_index != attr.get("title", "")):
             # rename node directory, but
             # do not rename root node dir (parentid is None)
-            self._rename_node_dir(nodeid, attr, path, parentid2)
+            self._rename_node_dir(nodeid, attr, parentid2, path)
         else:
             # update index
             basename = os.path.basename(path)
@@ -711,38 +708,20 @@ class NoteBookConnectionFS (NoteBookConnection):
                                  mtime=get_path_mtime(path))
         
 
-    def _rename_node_dir(self, nodeid, attr, path, new_parentid):
+    def _rename_node_dir(self, nodeid, attr, new_parentid, path):
         """Renames a node directory to resemble attr['title']"""
         
         # try to pick a path that closely resembles the title
-        title = attr.get("title", "")
-        parent_path = os.path.dirname(path)
-        path2 = keepnote.notebook.get_valid_unique_filename(parent_path, title)
-
-        try:
-            os.rename(path, path2)
-        except OSError, e:
-            raise keepnote.notebook.NoteBookError(_("Cannot rename '%s' to '%s'" % (path, path2)), e)
-
-        # update index
-        basename = os.path.basename(path2)
-        self._path_cache.move(nodeid, basename, new_parentid)
-        self._index.add_node(nodeid, new_parentid, basename, attr, 
-                             mtime=get_path_mtime(path2))
-
-
-    def _move_node(self, nodeid, attr, new_parentid):
-        """Move a node to a new parent"""
-
-        old_path = self._get_node_path(nodeid)
+        title = attr.get("title", _("New Page"))
         new_parent_path = self._get_node_path(new_parentid)
         new_path = keepnote.notebook.get_valid_unique_filename(
-            new_parent_path, attr.get("title", _("New Page")))
+            new_parent_path, title)
 
         try:
-            os.rename(old_path, new_path)
+            os.rename(path, new_path)
         except OSError, e:
-            raise keepnote.notebook.NoteBookError(_("Do not have permission for move"), e)
+            raise keepnote.notebook.NoteBookError(
+                _("Cannot rename '%s' to '%s'" % (path, new_path)), e)
 
         # update index
         basename = os.path.basename(new_path)
@@ -753,6 +732,9 @@ class NoteBookConnectionFS (NoteBookConnection):
     
     def delete_node(self, nodeid):
         """Delete node"""
+
+        # TODO: will need code that orphans any children of nodeid
+
         try:
             shutil.rmtree(self._get_node_path(nodeid))
         except OSError, e:
@@ -761,21 +743,7 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         self._path_cache.remove(nodeid)
         self._index.remove_node(nodeid)
-
-        # TODO: do I also need to unindex all unreachable children?
                 
-
-    def read_data_as_plain_text(self, nodeid):
-        """Iterates over the lines of the data file as plain text"""
-        try:
-            infile = self.open_file(
-                nodeid, keepnote.notebook.PAGE_DATA_FILE, "r", codec="utf-8")
-            for line in keepnote.notebook.read_data_as_plain_text(infile):
-                yield line
-            infile.close()
-        except:
-            pass
-
 
     def get_rootid(self):
         """Returns nodeid of notebook root node"""
@@ -787,7 +755,8 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def _get_parentid(self, nodeid):
         """Returns nodeid of parent of node"""
-        # TODO: I could fallback to index for this too
+        # TODO: I should fallback to index for this too
+        # TODO: this assume preorder reading
         return self._path_cache.get_parentid(nodeid)
 
 
@@ -798,11 +767,11 @@ class NoteBookConnectionFS (NoteBookConnection):
         
         # if node is unchanged on disk (same mtime), 
         # use index to detect children
-        #if _index and self._index:
-        #    mtime = get_path_mtime(path)
-        #    index_mtime = self._index.get_node_mtime(nodeid)
-        #    if mtime <= index_mtime:
-        #        return self._index.has_children(nodeid)
+        if _index and self._index:
+            mtime = get_path_mtime(path)
+            index_mtime = self._index.get_node_mtime(nodeid)
+            if mtime <= index_mtime:
+                return self._index.has_children(nodeid)
         
         try:
             files = os.listdir(path)
@@ -819,34 +788,17 @@ class NoteBookConnectionFS (NoteBookConnection):
         return False
 
     
-    def _list_children_attr(self, nodeid, _path=None, _index=True):
+    def _list_children_attr(self, nodeid, _path=None):
         """List attr of children nodes of nodeid"""
         path = self._path_cache.get_path(nodeid) if _path is None else _path
         assert path is not None
         
-
-        files = None
-        mtime = index_mtime = None
-        if _index and self._index:
-            try:
-                # if node is unchanged on disk (same mtime), 
-                # use index to detect children
-                mtime = get_path_mtime(path)
-                index_mtime = self._index.get_node_mtime(nodeid)
-                if mtime <= index_mtime:
-                    files = list(row[1] for row in 
-                                 self._index.list_children(nodeid))
-            except Exception, e:
-                pass
-
-        if files is None:
-            try:    
-                files = os.listdir(path)
-            except:
-                raise keepnote.notebook.NoteBookError(
-                    _("Do not have permission to read folder contents: %s") 
-                    % path, e)           
-        
+        try:    
+            files = os.listdir(path)
+        except:
+            raise keepnote.notebook.NoteBookError(
+                _("Do not have permission to read folder contents: %s") 
+                % path, e)           
         
         for filename in files:
             path2 = os.path.join(path, filename)
@@ -868,10 +820,10 @@ class NoteBookConnectionFS (NoteBookConnection):
         if children is not None:
             return children
 
+        # TODO: don't require nodeid to be in cache
         path = self._path_cache.get_path(nodeid) if _path is None else _path
         assert path is not None
-        
-       
+               
         # if node is unchanged on disk (same mtime), 
         # use index to detect children
         if _index and self._index:
@@ -880,9 +832,9 @@ class NoteBookConnectionFS (NoteBookConnection):
             if mtime <= index_mtime:
                 return (row[0] for row in self._index.list_children(nodeid))
 
+        # fallback to reading attrs of children
         return (attr["nodeid"]
                 for attr in self._list_children_attr(nodeid, _path))
-
 
 
     def _read_node(self, parentid, path):
@@ -914,8 +866,6 @@ class NoteBookConnectionFS (NoteBookConnection):
                     self._index.add_node(
                         nodeid, parentid, basename, attr, mtime)
                     
-                    # TODO: make re-indexing smarter (use mtimes for partial
-                    # reindexing) 
                     # record that more indexing is needed
                     self._index.set_index_needed(True)
             except:
@@ -1025,6 +975,19 @@ class NoteBookConnectionFS (NoteBookConnection):
         # TODO: ensure no duplicated nodeid's
 
         return True
+
+
+    # TODO: move into indexing framework
+    def read_data_as_plain_text(self, nodeid):
+        """Iterates over the lines of the data file as plain text"""
+        try:
+            infile = self.open_file(
+                nodeid, keepnote.notebook.PAGE_DATA_FILE, "r", codec="utf-8")
+            for line in keepnote.notebook.read_data_as_plain_text(infile):
+                yield line
+            infile.close()
+        except:
+            pass
 
 
 

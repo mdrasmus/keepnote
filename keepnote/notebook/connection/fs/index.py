@@ -64,7 +64,7 @@ def preorder(conn, nodeid):
         nodeid, attr = queue.pop()
         yield nodeid, attr
         queue.extend((attr2["nodeid"], attr2) 
-                  for attr2 in conn._list_children_attr(nodeid, _index=False))
+                  for attr2 in conn._list_children_attr(nodeid))
 
 
 def match_words(infile, words):
