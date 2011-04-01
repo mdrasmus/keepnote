@@ -1657,8 +1657,7 @@ class NoteBook (NoteBookNode):
                 
             # ensure icon directory exists
             self._conn.mkdir(self._attr["nodeid"], 
-                             connection.path_join(NOTEBOOK_META_DIR, 
-                                                  NOTEBOOK_ICON_DIR))
+                             NOTEBOOK_META_DIR + "/" +  NOTEBOOK_ICON_DIR)
 
             data = self.pref.get_data()
 
@@ -1678,7 +1677,7 @@ class NoteBook (NoteBookNode):
             raise NoteBookError(_("File format error"), e)
 
     
-    def read_preferences(self):
+    def read_preferences(self, recover=True):
         """Reads the NoteBook's preferneces"""
         
         try:
@@ -1690,7 +1689,13 @@ class NoteBook (NoteBookNode):
             raise NoteBookError(_("Cannot read notebook preferences %s")
                                 % self.get_file(PREF_FILE) , e)
         except Exception, e:
-            raise NoteBookError(_("Notebook preference data is corrupt"), e)
+            if recover:
+                if infile:
+                    infile.close()
+                    infile = None
+                self._recover_preferences()
+                return self.read_preferences(recover=False)
+            #raise NoteBookError(_("Notebook preference data is corrupt"), e)
         finally:
             if infile:
                 infile.close()
@@ -1716,3 +1721,9 @@ class NoteBook (NoteBookNode):
         data["version"] = version
         self.pref.set_data(data)
       
+
+    def _recover_preferences(self):
+        
+        out = self.open_file(PREF_FILE, "w")
+        out.write("<notebook></notebook>")
+        out.close()

@@ -91,10 +91,12 @@ class SafeFile (file):
 
         if self._tmp:
             # NOTE: windows will not allow rename when destination file exists
-            if os.path.exists(self._filename):
-                os.remove(self._filename)
+            if sys.platform.startswith("win"):
+                if os.path.exists(self._filename):
+                    os.remove(self._filename)
             os.rename(self._tmp, self._filename)
             self._tmp = None
+
 
 
     def discard(self):
