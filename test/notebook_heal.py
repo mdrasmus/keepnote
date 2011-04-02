@@ -130,11 +130,6 @@ class Heal (unittest.TestCase):
         os.system("cat test/tmp/notebook_heal/n1/notebook.nbk")
         assert open("test/tmp/notebook_heal/n1/notebook.nbk").read().startswith("<?xml")
 
-        # check that old node file was stored in lost and found
-        #assert "notebook.nbk" in os.listdir(
-        #    "test/tmp/notebook_heal/n1/__NOTEBOOK__/lost_found")
-        
-
         
         
 if __name__ == "__main__":
