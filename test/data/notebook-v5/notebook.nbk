@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<notebook>
+<version>5</version>
+<pref>
+    <dict>
+        <key>version</key><integer>5</integer>
+        <key>quick_pick_icons</key><array>
+            <string>x.png</string>
+        </array>
+        <key>default_font</key><string>Sans 10</string>
+        <key>index_dir</key><string></string>
+        <key>selected_treeview_nodes</key><array>
+            <string>4ccfe0b3-0a5e-445f-83e9-e57fc8e70181</string>
+        </array>
+        <key>selected_listview_nodes</key><array>
+            <string>4ccfe0b3-0a5e-445f-83e9-e57fc8e70181</string>
+        </array>
+        <key>windows</key><dict>
+            <key>ids</key><dict>
+                <key>6d358780-e226-4331-bf0f-11046574cbca</key><dict>
+                    <key>viewerid</key><string>3d78d35f-335a-471f-8020-49526fad87f2</string>
+                    <key>viewer_type</key><string>tabbed_viewer</string>
+                </dict>
+            </dict>
+        </dict>
+        <key>viewers</key><dict>
+            <key>ids</key><dict>
+                <key>9474153e-5710-46a3-bb76-8c04e0f12aa9</key><dict>
+                    <key>selected_treeview_nodes</key><array>
+                    </array>
+                    <key>selected_listview_nodes</key><array>
+                    </array>
+                </dict>
+                <key>3d78d35f-335a-471f-8020-49526fad87f2</key><dict>
+                    <key>tabs</key><array>
+                        <dict>
+                            <key>viewerid</key><string>9474153e-5710-46a3-bb76-8c04e0f12aa9</string>
+                            <key>viewer_type</key><string>three_pane_viewer</string>
+                            <key>name</key><string></string>
+                        </dict>
+                    </array>
+                    <key>current_viewer</key><string>9474153e-5710-46a3-bb76-8c04e0f12aa9</string>
+                </dict>
+            </dict>
+        </dict>
+    </dict>
+</pref>
+</notebook>
