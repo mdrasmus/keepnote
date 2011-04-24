@@ -480,13 +480,28 @@ class KeepNote (keepnote.KeepNote):
             dialog = dialog_update_notebook.UpdateNoteBookDialog(self, window)
             if not dialog.show(filename, version=version, task=task):
                 self.error(_("Cannot open notebook (version too old)"))
+                gtk.gdk.threads_leave()
                 return None
         
-            
-        # try to open notebook
-        try:
+        
+        # load notebook in background
+        def update(task):
             notebook = notebooklib.NoteBook()
             notebook.load(filename)
+            task.set_result(notebook)
+
+        task = tasklib.Task(update)        
+        dialog = keepnote.gui.dialog_wait.WaitDialog(window)
+        dialog.show(_("Opening notebook"), _("Loading..."), task, cancel=False)
+
+        # detect errors
+        try:
+            if task.aborted():
+                raise task.exc_info()[1]
+            else:
+                notebook = task.get_result()
+                if notebook is None:
+                    return None
 
         except notebooklib.NoteBookVersionError, e:
             self.error(_("This version of %s cannot read this notebook.\n" 

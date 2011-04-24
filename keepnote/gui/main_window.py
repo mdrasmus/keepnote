@@ -664,10 +664,12 @@ class KeepNoteWindow (gtk.Window):
     def _load_notebook(self, filename):
         """Loads notebook in background with progress bar"""
         
+        '''
         # load notebook in background
         def update(task):
-            # NOTE: notebook needs to open in gui thread, because it seems
-            # that sqlite must only run in a single thread (gui thread)
+            # NOTE: notebook needs to open in gui thread, because it 
+            # app.get_notebook() might launch a dialog
+
             #sem = threading.Semaphore()
             #sem.acquire()
             
@@ -700,8 +702,11 @@ class KeepNoteWindow (gtk.Window):
             notebook = task.get_result()
             if notebook is None:
                 return None
+        '''
         
-        #notebook = self._app.get_notebook(filename, self)
+        notebook = self._app.get_notebook(filename, self)
+        if notebook is None:
+            return None
 
         # check for indexing
         # TODO: is this the best place for checking?
