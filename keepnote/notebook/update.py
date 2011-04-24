@@ -99,6 +99,9 @@ def update_notebook(filename, desired_version, warn=lambda w: False,
             notebook = old_notebooklib.NoteBook()
             notebook.load(filename)
             notebook.pref.version = 4
+            index_file = os.path.join(notebook.get_pref_dir(), "index.sqlite")
+            if os.path.exists(index_file):
+                os.remove(index_file)
             old_notebooklib.write_new_preferences(notebook.pref, 
                                                   notebook.get_pref_file())
             notebook.close()
@@ -112,6 +115,10 @@ def update_notebook(filename, desired_version, warn=lambda w: False,
             notebook.load(filename)
             notebook.pref.set("version", 5)
             notebook.save(force=True)
+
+            if notebook.index_needed():
+                notebook.clear_index()
+
             notebook.close()
             version = 5
             
