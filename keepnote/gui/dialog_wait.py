@@ -80,6 +80,7 @@ class WaitDialog (object):
         
         lasttime = [time.time()]
         pulse_rate = 0.5 # seconds per sweep
+        update_rate = 100
 
         def gui_update():
 
@@ -116,7 +117,7 @@ class WaitDialog (object):
             # repeat this timeout function
             return True
 
-        gobject.timeout_add(50, gui_update)
+        gobject.timeout_add(update_rate, gui_update)
             
 
     def _on_task_update(self):

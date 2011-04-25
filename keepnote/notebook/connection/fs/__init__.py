@@ -104,7 +104,7 @@ XML_HEADER = u"""\
 NODE_META_FILE = u"node.xml"
 NOTEBOOK_META_DIR = u"__NOTEBOOK__"
 LOSTDIR = u"lost_found"
-
+MAX_LEN_NODE_FILENAME = 20
 
 
 #=============================================================================
@@ -175,13 +175,15 @@ REGEX_SLASHES = re.compile(ur"[/\\]")
 REGEX_BAD_CHARS = re.compile(ur"[\?'&<>|`:;]")
 REGEX_LEADING_UNDERSCORE = re.compile(ur"^__+")
 
-def get_valid_filename(filename, default=u"folder"):
+def get_valid_filename(filename, default=u"folder", 
+                       maxlen=MAX_LEN_NODE_FILENAME):
     """
     Converts a filename into a valid one
     
     Strips bad characters from filename
     """
     
+    filename = filename[:maxlen]
     filename = re.sub(REGEX_SLASHES, u"-", filename)
     filename = re.sub(REGEX_BAD_CHARS, u"", filename)
     filename = filename.replace(u"\t", " ")
@@ -623,8 +625,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             # TODO: also handle case where parent finally shows up and
             # reunites with its children in the orphans dir
             parent_path = self._get_node_path(parentid)
-            path = keepnote.notebook.get_valid_unique_filename(
-                parent_path, title)
+            path = get_valid_unique_filename(parent_path, title)
         else:
             path = _path
             
@@ -714,8 +715,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         # try to pick a path that closely resembles the title
         title = attr.get("title", _("New Page"))
         new_parent_path = self._get_node_path(new_parentid)
-        new_path = keepnote.notebook.get_valid_unique_filename(
-            new_parent_path, title)
+        new_path = get_valid_unique_filename(new_parent_path, title)
 
         try:
             os.rename(path, new_path)
@@ -1134,7 +1134,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         path2 = os.path.join(path, os.path.dirname(new_filename))
 
         if ensure_valid:
-            fullname = keepnote.notebook.get_valid_unique_filename(
+            fullname = get_valid_unique_filename(
                 path2, basename, ext, sep=sep, number=number)
         else:
             if return_number:

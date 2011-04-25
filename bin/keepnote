@@ -163,9 +163,9 @@ def start_error_log(show_errors):
     stream_list = []
     stderr_test_str = "\n"
     stderr_except_msg = ""
-
+    
     if show_errors:    
-        try:
+        try:            
             sys.stderr.write(stderr_test_str)
         except IOError:
             formatted_msg = traceback.format_exc().splitlines()
@@ -193,12 +193,11 @@ def start_error_log(show_errors):
     keepnote.log_message(stderr_except_msg)
 
 
-
 def parse_argv(argv):
     """Parse arguments"""
 
     # set default arguments
-    options = o.get_default_values()    
+    options = o.get_default_values()
     if keepnote.get_platform() == "windows":        
         options.show_errors = False
     else:
@@ -330,12 +329,19 @@ def execute_command(app, argv):
     if len(args) > 0:
         
         for arg in args:
-            if keepnote.extension.is_extension_install_file(arg):
+
+            if keepnote.notebook.is_node_url(arg):
+                # goto a node
+                host, nodeid = keepnote.notebook.parse_node_url(arg)
+                app.goto_nodeid(nodeid)
+
+            elif keepnote.extension.is_extension_install_file(arg):
                 # install extension
                 if len(app.get_windows()) == 0:
                     app.new_window()
 
                 app.install_extension(arg)
+
             else:
                 # open specified notebook
                 if len(app.get_windows()) == 0:

@@ -34,6 +34,7 @@ import subprocess
 import sys
 import tempfile
 import thread
+import threading
 
 # pygtk imports
 import pygtk
@@ -486,13 +487,33 @@ class KeepNote (keepnote.KeepNote):
         
         # load notebook in background
         def update(task):
-            notebook = notebooklib.NoteBook()
-            notebook.load(filename)
-            task.set_result(notebook)
+            sem = threading.Semaphore()
+            sem.acquire()
+            
+            # perform notebook load in gui thread.
+            # Ideally, this should be in the background, but it is very
+            # slow.  If updating the wait dialog wasn't so expensive, I would
+            # simply do loading in the background thread.
+            def func():
+                notebook = notebooklib.NoteBook()
+                notebook.load(filename)
+                task.set_result(notebook)
+                sem.release() # notify that notebook is loaded
+                return False
+            gobject.idle_add(func)
 
-        task = tasklib.Task(update)        
+            # wait for notebook to load
+            sem.acquire()
+
+        #def update2(task):
+        #    notebook = notebooklib.NoteBook()
+        #    notebook.load(filename)
+        #    task.set_result(notebook)
+
+        task = tasklib.Task(update)
         dialog = keepnote.gui.dialog_wait.WaitDialog(window)
         dialog.show(_("Opening notebook"), _("Loading..."), task, cancel=False)
+        
 
         # detect errors
         try:
@@ -502,6 +523,7 @@ class KeepNote (keepnote.KeepNote):
                 notebook = task.get_result()
                 if notebook is None:
                     return None
+            
 
         except notebooklib.NoteBookVersionError, e:
             self.error(_("This version of %s cannot read this notebook.\n" 
@@ -570,6 +592,19 @@ class KeepNote (keepnote.KeepNote):
         for window in self._windows:
             window.close_notebook(notebook)
         
+
+    def goto_nodeid(self, nodeid):
+        """
+        Open a node by nodeid
+        """
+        for window in self.get_windows():
+            notebook = window.get_notebook()
+            if not notebook:
+                continue
+            node = notebook.get_node_by_id(nodeid)
+            if node:
+                window.get_viewer().goto_node(node)
+                break
 
 
 
