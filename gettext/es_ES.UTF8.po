@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: keepnote 0.5.3\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2011-04-24 14:45-0400\n"
+"POT-Creation-Date: 2011-05-12 10:36-0400\n"
 "PO-Revision-Date: 2010-12-18 19:43+0100\n"
 "Last-Translator: Gaspar Fernández <blakeyed@totaki.com>\n"
 "Language-Team: Spanish <kde-i18n-doc@kde.org>\n"
@@ -18,16 +18,16 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "X-Generator: Lokalize 1.0\n"
 
-#: keepnote/__init__.py:667
+#: keepnote/__init__.py:673
 msgid "Cannot save preferences"
 msgstr "No es posible salvar la configuración"
 
-#: keepnote/__init__.py:1012 keepnote/__init__.py:1014
+#: keepnote/__init__.py:1018 keepnote/__init__.py:1020
 #, python-format
 msgid "Must specify '%s' program in Helper Applications"
 msgstr "Debe especificar el programa '%s' en Aplicaciones Auxiliares"
 
-#: keepnote/__init__.py:1035
+#: keepnote/__init__.py:1041
 #, python-format
 msgid ""
 "Error occurred while opening file with %s.\n"
@@ -46,67 +46,67 @@ msgstr ""
 "\n"
 "error: %s"
 
-#: keepnote/__init__.py:1066
+#: keepnote/__init__.py:1072
 msgid "Unable to determine note type."
 msgstr ""
 
-#: keepnote/__init__.py:1096
+#: keepnote/__init__.py:1102
 msgid "You must specify a Screen Shot program in Application Options"
 msgstr ""
 "Debe especificar un programa de captura de pantalla en las opciones de la "
 "aplicación"
 
-#: keepnote/__init__.py:1108
+#: keepnote/__init__.py:1114
 #, python-format
 msgid "The screenshot program did not create the necessary image file '%s'"
 msgstr ""
 "El programa de captura de pantalla no generó el fichero de imagen necesario "
 "'%s'"
 
-#: keepnote/__init__.py:1129
+#: keepnote/__init__.py:1135
 #, python-format
 msgid "command '%s' already exists"
 msgstr "El comando '%s' ya existe"
 
-#: keepnote/__init__.py:1159 keepnote/__init__.py:1351
+#: keepnote/__init__.py:1165 keepnote/__init__.py:1357
 #, python-format
 msgid "enabling extension '%s'\n"
 msgstr "habilitando extensión '%s'\n"
 
-#: keepnote/__init__.py:1164
+#: keepnote/__init__.py:1170
 #, python-format
 msgid "  skipping extension '%s':\n"
 msgstr "  omitiendo extensión '%s':\n"
 
-#: keepnote/__init__.py:1167
+#: keepnote/__init__.py:1173
 #, python-format
 msgid "    failed dependency: %s\n"
 msgstr "    falla de dependencia: %s\n"
 
-#: keepnote/__init__.py:1334
+#: keepnote/__init__.py:1340
 #, python-format
 msgid "Unable to install extension '%s'"
 msgstr "No se puede instalar la extensión '%s'"
 
-#: keepnote/__init__.py:1340
+#: keepnote/__init__.py:1346
 #, python-format
 msgid "removing '%s'"
 msgstr "eliminando '%s'"
 
-#: keepnote/__init__.py:1349
+#: keepnote/__init__.py:1355
 msgid "Enabling new extensions:\n"
 msgstr "Activando nuevas extensiones:\n"
 
-#: keepnote/__init__.py:1364
+#: keepnote/__init__.py:1370
 #, python-format
 msgid "Unable to uninstall unknown extension '%s'."
 msgstr "No se ha podido desinstalar la extensión desconocida '%s'."
 
-#: keepnote/__init__.py:1369
+#: keepnote/__init__.py:1375
 msgid "KeepNote can only uninstall user extensions"
 msgstr "KeepNote sólo puede desinstalar extensiones de usuario"
 
-#: keepnote/__init__.py:1386
+#: keepnote/__init__.py:1392
 msgid "Unable to uninstall extension.  Do not have permission."
 msgstr "No se puede desinstalar extensión. No tengo permiso"
 
@@ -157,7 +157,7 @@ msgstr "Nuevo libro"
 
 #: keepnote/gui/main_window.py:506 keepnote/gui/main_window.py:526
 #: keepnote/gui/dialog_app_options.py:59
-#: keepnote/gui/dialog_app_options.py:692 keepnote/gui/__init__.py:714
+#: keepnote/gui/dialog_app_options.py:692 keepnote/gui/__init__.py:749
 #: keepnote/gui/dialog_update_notebook.py:134
 #: keepnote/gui/editor_richtext.py:650 keepnote/gui/editor_richtext.py:794
 #: keepnote/gui/dialog_node_icon.py:61
@@ -590,25 +590,25 @@ msgstr "_Pestaña anterior"
 msgid "Switch to previous tab"
 msgstr ""
 
-#: keepnote/gui/__init__.py:474 keepnote/gui/__init__.py:517
-#: keepnote/gui/__init__.py:523
+#: keepnote/gui/__init__.py:475 keepnote/gui/__init__.py:539
+#: keepnote/gui/__init__.py:545
 #, python-format
 msgid "Could not load notebook '%s'."
 msgstr "No posible abrir libro '%s'."
 
-#: keepnote/gui/__init__.py:482
+#: keepnote/gui/__init__.py:483
 msgid "Cannot open notebook (version too old)"
 msgstr "No posible abrir libro (versión muy antigua)"
 
-#: keepnote/gui/__init__.py:495
+#: keepnote/gui/__init__.py:515
 msgid "Opening notebook"
 msgstr "Abriendo cuaderno"
 
-#: keepnote/gui/__init__.py:495
+#: keepnote/gui/__init__.py:515
 msgid "Loading..."
 msgstr "Cargando..."
 
-#: keepnote/gui/__init__.py:507
+#: keepnote/gui/__init__.py:529
 #, python-format
 msgid ""
 "This version of %s cannot read this notebook.\n"
@@ -617,57 +617,57 @@ msgstr ""
 "La versión actual %s no puede abrir el libro.\n"
 "La versión del libro es %d.  %s solamente puede abrir %d."
 
-#: keepnote/gui/__init__.py:712
+#: keepnote/gui/__init__.py:747
 msgid "Attach File..."
 msgstr "Adjuntar un archivo..."
 
-#: keepnote/gui/__init__.py:715
+#: keepnote/gui/__init__.py:750
 msgid "Attach"
 msgstr "Adjuntar"
 
-#: keepnote/gui/__init__.py:771
+#: keepnote/gui/__init__.py:806
 #, python-format
 msgid "Error while attaching files %s."
 msgstr "Error adjuntando los archivos %s."
 
-#: keepnote/gui/__init__.py:775
+#: keepnote/gui/__init__.py:810
 #, python-format
 msgid "Error while attaching file '%s'."
 msgstr "Error al adjuntar archivo '%s'."
 
-#: keepnote/gui/__init__.py:800
+#: keepnote/gui/__init__.py:835
 msgid "Error"
 msgstr "Error"
 
-#: keepnote/gui/__init__.py:906
+#: keepnote/gui/__init__.py:941
 #, python-format
 msgid "Do you want to install the extension \"%s\"?"
 msgstr "¿Desea instalar la extensión \"%s\"?"
 
-#: keepnote/gui/__init__.py:915
+#: keepnote/gui/__init__.py:950
 #, python-format
 msgid "Extension \"%s\" is now installed."
 msgstr "La extensión \"%s\" está instalada."
 
-#: keepnote/gui/__init__.py:916
+#: keepnote/gui/__init__.py:951
 msgid "Install Successful"
 msgstr ""
 
-#: keepnote/gui/__init__.py:925
+#: keepnote/gui/__init__.py:960
 #, python-format
 msgid "Do you want to uninstall the extension \"%s\"?"
 msgstr "¿Desea desinstalar la extensión \"%s\"?"
 
-#: keepnote/gui/__init__.py:926
+#: keepnote/gui/__init__.py:961
 msgid "Extension Uninstall"
 msgstr "Desinstalar extensión"
 
-#: keepnote/gui/__init__.py:928
+#: keepnote/gui/__init__.py:963
 #, python-format
 msgid "Extension \"%s\" is now uninstalled."
 msgstr "La extensión \"%s\" está desinstalada"
 
-#: keepnote/gui/__init__.py:930
+#: keepnote/gui/__init__.py:965
 msgid "Uninstall Successful"
 msgstr ""
 
@@ -1117,7 +1117,7 @@ msgid "Unknown version string"
 msgstr "Cadena de versión desconocida"
 
 #: keepnote/compat/notebook_v3.py:674
-#: keepnote/notebook/connection/fs/__init__.py:644
+#: keepnote/notebook/connection/fs/__init__.py:645
 msgid "Cannot create node"
 msgstr "No posible crear nodo"
 
@@ -1196,8 +1196,8 @@ msgstr "Fallo al leer el fichero de meta datos"
 msgid "Root tag is not 'node'"
 msgstr "La etiqueta raíz no es 'node'"
 
-#: keepnote/notebook/connection/fs/__init__.py:620
-#: keepnote/notebook/connection/fs/__init__.py:715
+#: keepnote/notebook/connection/fs/__init__.py:622
+#: keepnote/notebook/connection/fs/__init__.py:716
 msgid "New Page"
 msgstr "Nueva página"
 

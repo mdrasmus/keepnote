@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: keepnote 0.7.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2011-04-24 14:45-0400\n"
+"POT-Creation-Date: 2011-05-12 10:36-0400\n"
 "PO-Revision-Date: 2011-04-29 23:11+0200\n"
 "Last-Translator: Morgan Antonsson <morgan.antonsson@gmail.com>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
@@ -18,16 +18,16 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: keepnote/__init__.py:667
+#: keepnote/__init__.py:673
 msgid "Cannot save preferences"
 msgstr "Kan inte spara inställningar"
 
-#: keepnote/__init__.py:1012 keepnote/__init__.py:1014
+#: keepnote/__init__.py:1018 keepnote/__init__.py:1020
 #, python-format
 msgid "Must specify '%s' program in Helper Applications"
 msgstr "Måste välja %s-program i hjälpapplikationer"
 
-#: keepnote/__init__.py:1035
+#: keepnote/__init__.py:1041
 #, python-format
 msgid ""
 "Error occurred while opening file with %s.\n"
@@ -46,63 +46,64 @@ msgstr ""
 "\n"
 "fel: %s"
 
-#: keepnote/__init__.py:1066
+#: keepnote/__init__.py:1072
 msgid "Unable to determine note type."
 msgstr "Kan inte bestämma typ av anteckning."
 
-#: keepnote/__init__.py:1096
+#: keepnote/__init__.py:1102
 msgid "You must specify a Screen Shot program in Application Options"
-msgstr "Du måste ange ett program för att skapa skärmbilder i applikationsalternativ"
+msgstr ""
+"Du måste ange ett program för att skapa skärmbilder i applikationsalternativ"
 
-#: keepnote/__init__.py:1108
+#: keepnote/__init__.py:1114
 #, python-format
 msgid "The screenshot program did not create the necessary image file '%s'"
 msgstr "Skärmbildsprogrammet skapade inte den förväntade bildfilen '%s'"
 
-#: keepnote/__init__.py:1129
+#: keepnote/__init__.py:1135
 #, python-format
 msgid "command '%s' already exists"
 msgstr "Kommandot '%s' finns redan"
 
-#: keepnote/__init__.py:1159 keepnote/__init__.py:1351
+#: keepnote/__init__.py:1165 keepnote/__init__.py:1357
 #, python-format
 msgid "enabling extension '%s'\n"
 msgstr "aktivera utökning '%s'\n"
 
-#: keepnote/__init__.py:1164
+#: keepnote/__init__.py:1170
 #, python-format
 msgid "  skipping extension '%s':\n"
 msgstr "  hoppar över utökning '%s':\n"
 
-#: keepnote/__init__.py:1167
+#: keepnote/__init__.py:1173
 #, python-format
 msgid "    failed dependency: %s\n"
 msgstr "    felaktigt beroende: %s\n"
 
-#: keepnote/__init__.py:1334
+#: keepnote/__init__.py:1340
 #, python-format
 msgid "Unable to install extension '%s'"
 msgstr "Kan inte installera utökning '%s'"
 
-#: keepnote/__init__.py:1340
+#: keepnote/__init__.py:1346
 #, python-format
 msgid "removing '%s'"
 msgstr "tar bort '%s'"
 
-#: keepnote/__init__.py:1349
+#: keepnote/__init__.py:1355
 msgid "Enabling new extensions:\n"
 msgstr "Aktiverar nya utökningar:\n"
 
-#: keepnote/__init__.py:1364
+#: keepnote/__init__.py:1370
 #, python-format
 msgid "Unable to uninstall unknown extension '%s'."
 msgstr "Kan inte ta bort okänd utökning '%s'."
 
-#: keepnote/__init__.py:1369
+#: keepnote/__init__.py:1375
 msgid "KeepNote can only uninstall user extensions"
 msgstr "KeepNote kan bara ta bort användarutökningar"
 
-#: keepnote/__init__.py:1386
+#: keepnote/__init__.py:1392
 msgid "Unable to uninstall extension.  Do not have permission."
 msgstr "Kan inte installera utökning. Saknar rättigheter."
 
@@ -153,7 +154,7 @@ msgstr "Nytt anteckningsblock"
 
 #: keepnote/gui/main_window.py:506 keepnote/gui/main_window.py:526
 #: keepnote/gui/dialog_app_options.py:59
-#: keepnote/gui/dialog_app_options.py:692 keepnote/gui/__init__.py:714
+#: keepnote/gui/dialog_app_options.py:692 keepnote/gui/__init__.py:749
 #: keepnote/gui/dialog_update_notebook.py:134
 #: keepnote/gui/editor_richtext.py:650 keepnote/gui/editor_richtext.py:794
 #: keepnote/gui/dialog_node_icon.py:61
@@ -586,25 +587,25 @@ msgstr "_Föregående flik"
 msgid "Switch to previous tab"
 msgstr "Byt till föregående flik"
 
-#: keepnote/gui/__init__.py:474 keepnote/gui/__init__.py:517
-#: keepnote/gui/__init__.py:523
+#: keepnote/gui/__init__.py:475 keepnote/gui/__init__.py:539
+#: keepnote/gui/__init__.py:545
 #, python-format
 msgid "Could not load notebook '%s'."
 msgstr "Kunde inte läsa anteckningsblock '%s'."
 
-#: keepnote/gui/__init__.py:482
+#: keepnote/gui/__init__.py:483
 msgid "Cannot open notebook (version too old)"
 msgstr "Kan inte öppna anteckningsblock (för gammal version)"
 
-#: keepnote/gui/__init__.py:495
+#: keepnote/gui/__init__.py:515
 msgid "Opening notebook"
 msgstr "Öppnar anteckningsblock"
 
-#: keepnote/gui/__init__.py:495
+#: keepnote/gui/__init__.py:515
 msgid "Loading..."
 msgstr "Läser in..."
 
-#: keepnote/gui/__init__.py:507
+#: keepnote/gui/__init__.py:529
 #, python-format
 msgid ""
 "This version of %s cannot read this notebook.\n"
@@ -613,57 +614,57 @@ msgstr ""
 "Denna version av %s kan inte läsa det här anteckningsblocket.\n"
 "Anteckningsblockets version är %d. %s kan bara läsa %d."
 
-#: keepnote/gui/__init__.py:712
+#: keepnote/gui/__init__.py:747
 msgid "Attach File..."
 msgstr "Bifoga fil..."
 
-#: keepnote/gui/__init__.py:715
+#: keepnote/gui/__init__.py:750
 msgid "Attach"
 msgstr "Bifoga"
 
-#: keepnote/gui/__init__.py:771
+#: keepnote/gui/__init__.py:806
 #, python-format
 msgid "Error while attaching files %s."
 msgstr "Fel när filer bifogades: %s."
 
-#: keepnote/gui/__init__.py:775
+#: keepnote/gui/__init__.py:810
 #, python-format
 msgid "Error while attaching file '%s'."
 msgstr "Fel när fil '%s' bifogades"
 
-#: keepnote/gui/__init__.py:800
+#: keepnote/gui/__init__.py:835
 msgid "Error"
 msgstr "Fel"
 
-#: keepnote/gui/__init__.py:906
+#: keepnote/gui/__init__.py:941
 #, python-format
 msgid "Do you want to install the extension \"%s\"?"
 msgstr "Vill du installera utökningen \"%s\"?"
 
-#: keepnote/gui/__init__.py:915
+#: keepnote/gui/__init__.py:950
 #, python-format
 msgid "Extension \"%s\" is now installed."
 msgstr "Utökning \"%s\" är nu installerad."
 
-#: keepnote/gui/__init__.py:916
+#: keepnote/gui/__init__.py:951
 msgid "Install Successful"
 msgstr "Installationen lyckades"
 
-#: keepnote/gui/__init__.py:925
+#: keepnote/gui/__init__.py:960
 #, python-format
 msgid "Do you want to uninstall the extension \"%s\"?"
 msgstr "Vill du installera utökningen \"%s\"?"
 
-#: keepnote/gui/__init__.py:926
+#: keepnote/gui/__init__.py:961
 msgid "Extension Uninstall"
 msgstr "Ta bort utökning"
 
-#: keepnote/gui/__init__.py:928
+#: keepnote/gui/__init__.py:963
 #, python-format
 msgid "Extension \"%s\" is now uninstalled."
 msgstr "Utökningen \"%s\" är nu borttagen."
 
-#: keepnote/gui/__init__.py:930
+#: keepnote/gui/__init__.py:965
 msgid "Uninstall Successful"
 msgstr "Borttagningen lyckades"
 
@@ -1113,7 +1114,7 @@ msgid "Unknown version string"
 msgstr "Okänd versionssträng"
 
 #: keepnote/compat/notebook_v3.py:674
-#: keepnote/notebook/connection/fs/__init__.py:644
+#: keepnote/notebook/connection/fs/__init__.py:645
 msgid "Cannot create node"
 msgstr "Kan inte skapa nod"
 
@@ -1192,8 +1193,8 @@ msgstr "Kan inte läsa metadatafil"
 msgid "Root tag is not 'node'"
 msgstr "Rottag är inte 'node'"
 
-#: keepnote/notebook/connection/fs/__init__.py:620
-#: keepnote/notebook/connection/fs/__init__.py:715
+#: keepnote/notebook/connection/fs/__init__.py:622
+#: keepnote/notebook/connection/fs/__init__.py:716
 msgid "New Page"
 msgstr "Ny sida"
 

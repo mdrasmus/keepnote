@@ -959,7 +959,8 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def _recover_attr(self, filename):
         
-        self._move_to_lostdir(filename)
+        if os.path.exists(filename):
+            self._move_to_lostdir(filename)
         out = open(filename, "w")
         out.write("<node></node>")
         out.close()

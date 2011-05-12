@@ -10,9 +10,10 @@ keepnote-0.7.2
 - improved auto-notebook healing
 - simplified notebook API
 - improved node caching with index
+- added Swedish language
 
 
-keepnote-0.7.1 (2011.03.01)
+keepnote-0.7.1 (2011/03/01)
 ---------------------------
 - fixed helper applications bug
 - fixed insert image format bug
