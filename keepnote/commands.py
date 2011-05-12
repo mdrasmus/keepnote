@@ -321,7 +321,7 @@ class CommandExecutor (object):
         
                     
         # ensure header matches
-        s.settimeout(5.0) # wait upto 5 seconds to connect
+        s.settimeout(5.0) # wait up to 5 seconds to connect
         header = s.recv(len(KEEPNOTE_HEADER))
         assert header == KEEPNOTE_HEADER
 
@@ -336,11 +336,14 @@ class CommandExecutor (object):
             connfile.flush()
 
             # display return
-            while 1:
-                c = s.recv(1024*4)
-                if len(c) == 0:
-                    break
-                sys.stdout.write(c)
+            try:
+                while 1:
+                    c = s.recv(1024*4)
+                    if len(c) == 0:
+                        break
+                    sys.stdout.write(c)
+            except socket.error:
+                pass
             sys.stdout.flush()
     
             # close socket

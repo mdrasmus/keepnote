@@ -286,6 +286,7 @@ class BaseTreeModel (gtk.GenericTreeModel):
                 except:
                     continue # node is not part of model, ignore it
                 rowref = self.create_tree_iter(node)
+                # TODO: is it ok to create rowref before row_deleted?
 
                 self.row_deleted(path)
                 self.row_inserted(path, rowref)
