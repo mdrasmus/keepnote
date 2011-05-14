@@ -170,14 +170,17 @@ class NoteBookConnection (object):
     # file API
 
     def open_file(self, nodeid, filename, mode="r", codec=None):
-        """Open a file contained within a node"""        
+        """Open a file contained within a node"""
         pass
 
     def delete_file(self, nodeid, filename, _path=None):
         """Open a file contained within a node"""
         pass
 
-    def mkdir(self, nodeid, filename):
+    def create_dir(self, nodeid, filename):
+        pass
+
+    def delete_dir(self, nodeid, filename):
         pass
 
     def list_files(self, nodeid, filename=None):

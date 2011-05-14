@@ -1052,9 +1052,11 @@ class NoteBookNode (object):
     def list_files(self, filename=""):
         return self._conn.list_files(self._attr["nodeid"], filename)
 
-    def mkdir(self, filename):
-        self._conn.mkdir(self._attr["nodeid"], filename)
+    def create_dir(self, filename):
+        self._conn.create_dir(self._attr["nodeid"], filename)
 
+    def delete_dir(self, filename):
+        self._conn.delete_dir(self._attr["nodeid"], filename)
 
 
     def get_page_file(self):
@@ -1653,10 +1655,10 @@ class NoteBook (NoteBookNode):
         """Writes the NoteBooks preferences"""
         try:
             # ensure preference directory exists
-            self._conn.mkdir(self._attr["nodeid"], NOTEBOOK_META_DIR)
+            self._conn.create_dir(self._attr["nodeid"], NOTEBOOK_META_DIR)
                 
             # ensure icon directory exists
-            self._conn.mkdir(self._attr["nodeid"], 
+            self._conn.create_dir(self._attr["nodeid"], 
                              NOTEBOOK_META_DIR + "/" +  NOTEBOOK_ICON_DIR)
 
             data = self.pref.get_data()

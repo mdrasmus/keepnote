@@ -1061,12 +1061,18 @@ class NoteBookConnectionFS (NoteBookConnection):
                         yield filename
 
 
-    def mkdir(self, nodeid, filename, _path=None):
+    def create_dir(self, nodeid, filename, _path=None):
         path = self._get_node_path(nodeid) if _path is None else _path
         fullname = get_node_filename(path, filename)
         if not os.path.exists(fullname):
             os.mkdir(fullname)
     
+    def delete_dir(self, nodeid, filename, _path=None):
+        path = self._get_node_path(nodeid) if _path is None else _path
+        fullname = get_node_filename(path, filename)
+        if not os.path.exists(fullname):
+            shutil.rmtree(fullname)
+        
 
     def file_exists(self, nodeid, filename, _path=None):
         path = self._get_node_path(nodeid) if _path is None else _path

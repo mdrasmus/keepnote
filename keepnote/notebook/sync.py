@@ -92,7 +92,7 @@ def sync_files(conn1, nodeid1, conn2, nodeid2, path1="", path2=""):
 
     # ensure target path exists
     if not conn2.file_exists(nodeid2, path2):
-        conn2.mkdir(nodeid2, path2)
+        conn2.create_dir(nodeid2, path2)
 
     # remove files in node2 that don't exist in node1
     for f in list(conn2.list_files(nodeid2, path2)):
