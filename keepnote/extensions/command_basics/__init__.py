@@ -52,6 +52,12 @@ class Extension (keepnote.gui.extension.Extension):
         self.commands = [
             AppCommand("focus", lambda app, args: app.focus_windows(),
                        help="focus all open windows"),
+            AppCommand("minimize", self.on_minimize_windows,
+                       help="minimize all windows"),
+            AppCommand("toggle_windows", self.on_toggle_windows,
+                       help="toggle all windows"),
+
+
             AppCommand("screenshot", self.on_screenshot,
                        help="insert a new screenshot"),
             AppCommand("install", self.on_install_extension,
@@ -108,6 +114,22 @@ class Extension (keepnote.gui.extension.Extension):
 
     #====================================================
     # commands
+
+    def on_minimize_windows(self, app, args):
+        
+        for window in app.get_windows():
+            window.iconify()
+
+    def on_toggle_windows(self, app, args):
+        
+        for window in app.get_windows():
+            if window.is_active():
+                self.on_minimize_windows(app, args)
+                return
+        
+        app.focus_windows()
+
+
 
     def on_uninstall_extension(self, app, args):
         
