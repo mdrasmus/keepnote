@@ -133,7 +133,7 @@ class TabbedViewer (Viewer):
         # create viewer and add to notebook
         if viewer is None:
             viewer = self._default_viewer(self._app, self._main_window)
-        label = TabLabel(None, _("(Untitled)"))
+        label = TabLabel(self, viewer, None, _("(Untitled)"))
         label.connect("new-name", lambda w, text: 
                       self._on_new_tab_name(viewer, text))
         self._tabs.append_page(viewer, label)
@@ -169,6 +169,9 @@ class TabbedViewer (Viewer):
 
         # switch to the new tab
         self._tabs.set_current_page(self._tabs.get_n_pages() - 1)
+
+    def close_viewer(self, viewer):        
+        self.close_tab(self._tabs.page_num(viewer))
 
 
     def close_tab(self, pos=None):
@@ -592,10 +595,13 @@ class TabbedViewer (Viewer):
 
 class TabLabel (gtk.HBox):
 
-    def __init__(self, icon, text):
+    def __init__(self, tabs, viewer, icon, text):
         gtk.HBox.__init__(self, False, 2)
 
         #self.name = None
+
+        self.tabs = tabs
+        self.viewer = viewer
 
         # icon
         self.icon = gtk.Image()
@@ -614,10 +620,35 @@ class TabLabel (gtk.HBox):
         self.entry.connect("focus-out-event", lambda w, e: self.stop_editing())
         self.entry.connect("editing-done", self._done)
         self._editing = False
+
+        # close button
+        self.close_button_state = [gtk.STATE_NORMAL]
+        def highlight(w, state):
+            self.close_button_state[0] = w.get_state()
+            w.set_state(state)
+
+        self.eclose_button = gtk.EventBox()
+        self.close_button = gtk.Label("x")
+        self.eclose_button.add(self.close_button)
+        self.eclose_button.show()
+
+        self.close_button.set_alignment(0, .5)
+        self.eclose_button.connect(
+            "enter-notify-event", 
+            lambda w, e: highlight(w, gtk.STATE_PRELIGHT))
+        self.eclose_button.connect(
+            "leave-notify-event", 
+            lambda w, e: highlight(w, self.close_button_state[0]))
+        self.close_button.show()
+
+        self.eclose_button.connect("button-press-event", lambda w, e:
+                                       self.tabs.close_viewer(self.viewer) 
+                                   if e.button == 1 else None)
         
         # layout
         self.pack_start(self.icon, False, False, 0)
         self.pack_start(self.label, True, True, 0)
+        self.pack_start(self.eclose_button, False, False, 0)
 
 
 
@@ -637,6 +668,7 @@ class TabLabel (gtk.HBox):
             self.remove(self.label)
             self.entry.set_text(self.label.get_label())
             self.pack_start(self.entry, True, True, 0)
+            self.reorder_child(self.entry, 1)
             self.entry.set_size_request(w, h)
             self.entry.show()
             self.entry.grab_focus()
@@ -648,6 +680,7 @@ class TabLabel (gtk.HBox):
             self._editing = False
             self.remove(self.entry)
             self.pack_start(self.label, True, True, 0)
+            self.reorder_child(self.label, 1)
             self.label.show()
 
 
