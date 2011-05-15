@@ -760,12 +760,12 @@ class NoteBookConnectionFS (NoteBookConnection):
         # TODO: this assume preorder reading
         return self._path_cache.get_parentid(nodeid)
 
-
+    '''
     def has_children(self, nodeid, _path=None, _index=True):
         """Returns True if node has children"""
         path = self._path_cache.get_path(nodeid) if _path is None else _path
         assert path is not None
-        
+
         # if node is unchanged on disk (same mtime), 
         # use index to detect children
         if _index and self._index:
@@ -787,7 +787,7 @@ class NoteBookConnectionFS (NoteBookConnection):
                 return True
 
         return False
-
+        '''
     
     def _list_children_attr(self, nodeid, _path=None, _full=True):
         """List attr of children nodes of nodeid"""
@@ -821,13 +821,12 @@ class NoteBookConnectionFS (NoteBookConnection):
         if children is not None:
             return children
 
-        # TODO: don't require nodeid to be in cache
-        path = self._path_cache.get_path(nodeid) if _path is None else _path
-        assert path is not None
+        path = self._get_node_path(nodeid)
                
         # if node is unchanged on disk (same mtime), 
         # use index to detect children
-        if _index and self._index:
+        # however we also require a fully updated index (not index_needed)
+        if _index and self._index and not self._index.index_needed():
             mtime = get_path_mtime(path)
             index_mtime = self._index.get_node_mtime(nodeid)
             if mtime <= index_mtime:

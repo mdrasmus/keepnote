@@ -664,46 +664,6 @@ class KeepNoteWindow (gtk.Window):
     def _load_notebook(self, filename):
         """Loads notebook in background with progress bar"""
         
-        '''
-        # load notebook in background
-        def update(task):
-            # NOTE: notebook needs to open in gui thread, because it 
-            # app.get_notebook() might launch a dialog
-
-            #sem = threading.Semaphore()
-            #sem.acquire()
-            
-            #def func():
-            #    gtk.gdk.threads_enter()
-            #    task.set_result(self._app.get_notebook(filename, 
-            #                                           self, task=task))
-            #    gtk.gdk.threads_leave()
-            #    sem.release()
-            #    return False
-            #gobject.idle_add(func)
-
-            task.set_result(self._app.get_notebook(filename, 
-                                                   self, task=task))
-
-            # wait for notebook to load
-            #sem.acquire()
-
-        task = tasklib.Task(update)
-        self.wait_dialog(_("Opening notebook"), _("Loading..."), task,
-                         cancel=False)
-
-        # detect errors
-        if task.aborted():
-            self.error(_("Could not load notebook '%s'.") % filename,
-                       task.exc_info()[1], task.exc_info()[2])
-            return None
-                
-        else:
-            notebook = task.get_result()
-            if notebook is None:
-                return None
-        '''
-        
         notebook = self._app.get_notebook(filename, self)
         if notebook is None:
             return None

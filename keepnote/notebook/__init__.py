@@ -931,8 +931,7 @@ class NoteBookNode (object):
         """Return True if node has children"""
         if self._children is None:
             if self._has_children is None:
-                self._has_children = self._conn.has_children(
-                    self._attr["nodeid"])
+                self._has_children = (len(self._attr["childrenids"]) > 0)
             return self._has_children
         else:
             return len(self._children) > 0
