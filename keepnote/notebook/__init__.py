@@ -1338,7 +1338,7 @@ class NoteBook (NoteBookNode):
         if index_dir and os.path.exists(index_dir):
             return self._conn._set_index_file(
                 os.path.join(index_dir, notebook_index.INDEX_FILE))
-
+        
         # TODO: ideally I would like to do index_attr()'s before 
         # conn.init_index(), so that the initial indexing properly 
         # catches all the desired attr's

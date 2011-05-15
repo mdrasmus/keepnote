@@ -601,6 +601,48 @@ class NoteBookIndex (object):
             raise
 
 
+    def get_node_filepath(self, nodeid):
+        """Get node path for a nodeid"""
+        
+        # TODO: handle multiple parents
+
+        visit = set([nodeid])
+        path = []
+        parentid = None
+
+        try:
+            while parentid != self._uniroot:
+                # continue to walk up parent
+
+                self.cur.execute(u"""SELECT nodeid, parentid, basename
+                                FROM NodeGraph
+                                WHERE nodeid=?""", (nodeid,))
+                row = self.cur.fetchone()
+
+                # nodeid is not index
+                if row is None:
+                    return None
+
+                nodeid, parentid, basename = row
+                if basename != "":
+                    path.append(basename)
+
+                # parent has unexpected loop
+                if parentid in visit:
+                    self._on_corrupt(Exception("unexpect parent path loop"))
+                    return None
+                
+                # walk up
+                nodeid = parentid
+
+            path.reverse()
+            return path
+
+        except sqlite.DatabaseError, e:
+            self._on_corrupt(e, sys.exc_info()[2])
+            raise
+
+
     def get_node(self, nodeid):
         """Get node path for a nodeid"""
         

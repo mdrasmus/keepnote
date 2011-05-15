@@ -410,7 +410,7 @@ class PathCache (object):
 
     def add(self, nodeid, basename, parentid):
         """Add a new nodeid, basename, and parentid to the cache"""
-        
+
         parent = self._nodes.get(parentid, 0)
         if parent is 0:
             raise UnknownNode("unknown parent %s" % 
@@ -520,11 +520,12 @@ class NoteBookConnectionFS (NoteBookConnection):
         path = self._path_cache.get_path(nodeid)
         if path is None and self._index:
             # fallback to index
-            path_list = self._index.get_node_path(nodeid)
+            path_list = self._index.get_node_filepath(nodeid)
             if path_list is not None:
-                path = os.path.join(* path_list)
+                path = os.path.join(self._filename, * path_list)
         if path is None:
             raise UnknownNode(nodeid)
+
         return path
 
 
@@ -534,7 +535,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         path = self._path_cache.get_path_list(nodeid)
         if path is None and self._index:
             # fallback to index
-            path = self._index.get_node_path(nodeid)
+            path = [self._filename] + self._index.get_node_filepath(nodeid)
         if path is None:
             raise UnknownNode(nodeid)
         return path
@@ -788,7 +789,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         return False
 
     
-    def _list_children_attr(self, nodeid, _path=None):
+    def _list_children_attr(self, nodeid, _path=None, _full=True):
         """List attr of children nodes of nodeid"""
         path = self._path_cache.get_path(nodeid) if _path is None else _path
         assert path is not None
@@ -804,7 +805,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             path2 = os.path.join(path, filename)
             if os.path.exists(get_node_meta_file(path2)):
                 try:
-                    yield self._read_node(nodeid, path2)
+                    yield self._read_node(nodeid, path2, _full=_full)
                 except keepnote.notebook.NoteBookError, e:
                     keepnote.log_error("error reading %s" % path2)
                     continue
@@ -831,16 +832,17 @@ class NoteBookConnectionFS (NoteBookConnection):
             index_mtime = self._index.get_node_mtime(nodeid)
             if mtime <= index_mtime:
                 return (row[0] for row in self._index.list_children(nodeid))
-
+        
         # fallback to reading attrs of children
         return (attr["nodeid"]
-                for attr in self._list_children_attr(nodeid, _path))
+             for attr in self._list_children_attr(nodeid, _path, _full=False))
 
 
-    def _read_node(self, parentid, path):
+    def _read_node(self, parentid, path, _full=True):
         """Reads a node from disk"""
         
         metafile = get_node_meta_file(path)
+
         attr = self._read_attr(metafile, self._attr_defs)
         attr["parentids"] = [parentid]
         if not self._validate_attr(attr):
@@ -873,7 +875,9 @@ class NoteBookConnectionFS (NoteBookConnection):
                 pass    
 
         # supplement childids
-        attr["childrenids"] = list(self._list_children_nodeids(nodeid, path))
+        if _full:
+            attr["childrenids"] = list(
+                self._list_children_nodeids(nodeid, path))
 
         return attr
     
@@ -961,9 +965,13 @@ class NoteBookConnectionFS (NoteBookConnection):
         
         if os.path.exists(filename):
             self._move_to_lostdir(filename)
-        out = open(filename, "w")
-        out.write("<node></node>")
-        out.close()
+        try:
+            out = open(filename, "w")
+            out.write("<node></node>")
+            out.close()
+        except:
+            keepnote.log_error("failed to recover '%s'" % filename)
+            pass
 
 
     def _validate_attr(self, attr):
