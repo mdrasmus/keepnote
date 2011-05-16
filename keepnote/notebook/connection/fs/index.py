@@ -427,8 +427,6 @@ class NoteBookIndex (object):
 
         This function returns an iterator which must be iterated to completion.
         """
-
-        print "index all"
         
         visit = set()
         parents = set()

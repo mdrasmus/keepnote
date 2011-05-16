@@ -628,7 +628,7 @@ class TabLabel (gtk.HBox):
             w.set_state(state)
 
         self.eclose_button = gtk.EventBox()
-        self.close_button = gtk.Label("x")
+        self.close_button = keepnote.gui.get_resource_image("close_tab.png")
         self.eclose_button.add(self.close_button)
         self.eclose_button.show()
 
