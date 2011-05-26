@@ -55,17 +55,6 @@ INDEX_VERSION = 3
 NULL = object()
 
 
-def preorder(conn, nodeid):
-    """Iterate through nodes in pre-order traversal"""
-
-    queue = [(nodeid, conn.read_node(nodeid))]
-
-    while len(queue) > 0:
-        nodeid, attr = queue.pop()
-        yield nodeid, attr
-        queue.extend((attr2["nodeid"], attr2) 
-                  for attr2 in conn._list_children_attr(nodeid))
-
 
 def match_words(infile, words):
     """Returns True if all of the words in list 'words' appears in the
@@ -421,9 +410,12 @@ class NoteBookIndex (object):
     #-------------------------------------
     # add/remove nodes from index
 
+    # TODO: prevent "unmanaged change detected" warning when doing index_all()
+    # Also I think double indexing is occuring
+
     def index_all(self, rootid=None):
         """
-        Reindex all nodes under root
+        Reindex all nodes under 'rootid'
 
         This function returns an iterator which must be iterated to completion.
         """
@@ -434,8 +426,23 @@ class NoteBookIndex (object):
         if rootid is None:
             rootid = conn.get_rootid()
         
+
+        def preorder(conn, nodeid):
+            """Iterate through nodes in pre-order traversal"""
+            queue = [nodeid]
+            while len(queue) > 0:
+                nodeid = queue.pop()
+                yield nodeid
+                queue.extend(
+                    conn._list_children_nodeids(nodeid, _index=False))
+                #queue.extend((attr2["nodeid"], attr2) 
+                #             for attr2 in conn._list_children_attr(
+                #        nodeid, _full=False))
+
+
         # perform indexing
-        for nodeid, attr in preorder(conn, rootid):
+        for nodeid in preorder(conn, rootid):
+            '''
             if nodeid not in visit:
                 mtime = conn._get_node_mtime(nodeid)
                 mtime_index = self.get_node_mtime(nodeid)
@@ -449,6 +456,7 @@ class NoteBookIndex (object):
                                   attr,
                                   mtime)
             visit.add(nodeid)
+            '''
             yield nodeid
 
         # record index complete
@@ -481,6 +489,8 @@ class NoteBookIndex (object):
     
     def add_node(self, nodeid, parentid, basename, attr, mtime):
         """Add a node to the index"""               
+
+        print "add", nodeid, basename
         
         # TODO: remove single parent assumption        
         

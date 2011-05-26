@@ -1352,7 +1352,6 @@ class NoteBook (NoteBookNode):
         # TODO: ideally I would like to do index_attr()'s before 
         # conn.init_index(), so that the initial indexing properly 
         # catches all the desired attr's
-        self._conn.init_index()
         self._conn.index_attr("icon")
         self._conn.index_attr("title", index_value=True)
 

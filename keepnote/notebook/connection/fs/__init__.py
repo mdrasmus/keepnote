@@ -574,6 +574,7 @@ class NoteBookConnectionFS (NoteBookConnection):
     def connect(self, filename):
         """Make a new connection"""
         self._filename = filename
+        self.init_index()
         
     def close(self):
         """Close connection"""
@@ -599,12 +600,6 @@ class NoteBookConnectionFS (NoteBookConnection):
         lostdir = self._get_lostdir()
         if not os.path.exists(lostdir):
             os.makedirs(lostdir)
-        
-        self.init_index()
-        self._index.add_node(nodeid, None, self._filename, attr, 
-                             mtime=get_path_mtime(self._filename))
-        self.save()
-
     
 
     def create_node(self, nodeid, attr, _path=None, _root=False):
@@ -656,9 +651,13 @@ class NoteBookConnectionFS (NoteBookConnection):
             raise keepnote.notebook.NoteBookError(_("Cannot create node"), e)
         
         # update index
-        if self._index:
-            self._index.add_node(nodeid, parentid, basename, attr, 
-                                 mtime=get_path_mtime(path))
+        if not self._index:
+            self.create_dir(nodeid, NOTEBOOK_META_DIR)
+            self._index = notebook_index.NoteBookIndex(
+                self, self._get_index_file())
+        self._index.add_node(nodeid, parentid, basename, attr, 
+                             mtime=get_path_mtime(path))
+
 
         return nodeid
     
@@ -673,12 +672,12 @@ class NoteBookConnectionFS (NoteBookConnection):
         return attr
     
     
-    def read_node(self, nodeid):
+    def read_node(self, nodeid, _force_index=False):
         """Read a node attr"""
         
         path = self._get_node_path(nodeid)
         parentid = self._get_parentid(nodeid)
-        return self._read_node(parentid, path)
+        return self._read_node(parentid, path, _force_index=_force_index)
     
 
     def has_node(self, nodeid):
@@ -770,34 +769,6 @@ class NoteBookConnectionFS (NoteBookConnection):
         # TODO: this assume preorder reading
         return self._path_cache.get_parentid(nodeid)
 
-    '''
-    def has_children(self, nodeid, _path=None, _index=True):
-        """Returns True if node has children"""
-        path = self._path_cache.get_path(nodeid) if _path is None else _path
-        assert path is not None
-
-        # if node is unchanged on disk (same mtime), 
-        # use index to detect children
-        if _index and self._index:
-            mtime = get_path_mtime(path)
-            index_mtime = self._index.get_node_mtime(nodeid)
-            if mtime <= index_mtime:
-                return self._index.has_children(nodeid)
-        
-        try:
-            files = os.listdir(path)
-        except OSError, e:
-            raise keepnote.notebook.NoteBookError(
-                _("Do not have permission to read folder contents: %s") 
-                % path, e)
-        
-        for filename in files:
-            path2 = os.path.join(path, filename)
-            if os.path.exists(get_node_meta_file(path2)):
-                return True
-
-        return False
-        '''
     
     def _list_children_attr(self, nodeid, _path=None, _full=True):
         """List attr of children nodes of nodeid"""
@@ -832,7 +803,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             return children
 
         path = self._get_node_path(nodeid)
-               
+        
         # if node is unchanged on disk (same mtime), 
         # use index to detect children
         # however we also require a fully updated index (not index_needed)
@@ -847,7 +818,7 @@ class NoteBookConnectionFS (NoteBookConnection):
              for attr in self._list_children_attr(nodeid, _path, _full=False))
 
 
-    def _read_node(self, parentid, path, _full=True):
+    def _read_node(self, parentid, path, _full=True, _force_index=False):
         """Reads a node from disk"""
         
         metafile = get_node_meta_file(path)
@@ -863,31 +834,19 @@ class NoteBookConnectionFS (NoteBookConnection):
         self._path_cache.add(nodeid, basename, parentid)
         
         
-        # if node has changed on disk (newer mtime), then re-index it
+        # check indexing
         # if reading root node, index might not be initialized yet
-        if self._index:
-            try:
-                mtime = get_path_mtime(path)
-                index_mtime = self._index.get_node_mtime(nodeid)
-                if mtime > index_mtime:
-                    keepnote.log_message(
-                        "Unmanaged change detected. Reindexing '%s'\n" % path)
-                    
-                    # reindex all children in case their parentid's changed
-                    for path2 in iter_child_node_paths(path):
-                        attr2 = self._read_node(nodeid, path2, _full=False)
-                        self._index.add_node(
-                            attr["nodeid"], nodeid, 
-                            os.path.basename(path2), attr2, 
-                            get_path_mtime(path2))
-                    
-                    # reindex this node
-                    self._index.add_node(
-                        nodeid, parentid, basename, attr, mtime)
-                    
-            except:
-                keepnote.log_error()
-                pass    
+        if _force_index:
+            # reindex this node
+            self._index.add_node(
+                nodeid, parentid, basename, attr, get_path_mtime(path))
+        else:
+            # if node has changed on disk (newer mtime), 
+            # then re-index it
+            mtime = get_path_mtime(path)
+            index_mtime = self._index.get_node_mtime(nodeid)
+            if mtime > index_mtime:
+                self._reindex_node(nodeid, parentid, path, attr, mtime)    
 
         # supplement childids
         if _full:
@@ -896,6 +855,26 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         return attr
     
+
+    def _reindex_node(self, nodeid, parentid, path, attr, mtime):
+        """Reindex a node that has been tampered"""
+
+        keepnote.log_message(
+            "Unmanaged change detected. Reindexing '%s'\n" % path)
+
+        # reindex all children in case their parentid's changed
+        for path2 in iter_child_node_paths(path):
+            attr2 = self._read_node(nodeid, path2, _full=False)
+            self._index.add_node(
+                attr2["nodeid"], nodeid, 
+                os.path.basename(path2), attr2, 
+                get_path_mtime(path2))
+
+        # reindex this node
+        self._index.add_node(
+            nodeid, parentid, os.path.basename(path), attr, mtime)
+
+
     
     def _get_node_attr_file(self, nodeid, path=None):
         """Returns the meta file for the node"""
@@ -1026,9 +1005,9 @@ class NoteBookConnectionFS (NoteBookConnection):
         dirpath = os.path.dirname(fullname)
         if not os.path.exists(dirpath):
             os.makedirs(dirpath)
-
+        
         stream = safefile.open(fullname, mode, codec=codec)
-
+        
         # update mtime since file creation causes directory mtime to change
         if self._index:
             self._index.set_node_mtime(nodeid, os.stat(path).st_mtime)
@@ -1193,8 +1172,10 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def init_index(self):
         """Initialize the index"""
-        self._index = notebook_index.NoteBookIndex(
-            self, self._get_index_file())
+
+        fn = self._get_index_file()
+        if os.path.exists(os.path.dirname(fn)):
+            self._index = notebook_index.NoteBookIndex(self, fn)
 
         
     def index_needed(self):
@@ -1225,7 +1206,7 @@ class NoteBookConnectionFS (NoteBookConnection):
     def index_attr(self, key, index_value=False):
         
         datatype = self._attr_defs[key].datatype
-
+        
         if issubclass(datatype, basestring):
             index_type = "TEXT"
         elif issubclass(datatype, int):
@@ -1235,6 +1216,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         else:
             raise Exception("unknown attr datatype '%s'" % repr(datatype))
 
+        
         self._index.add_attr(notebook_index.AttrIndex(key, index_type, 
                                                       index_value=index_value))
 

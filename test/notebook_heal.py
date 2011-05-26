@@ -151,9 +151,9 @@ class Heal (unittest.TestCase):
         book = notebook.NoteBook("test/tmp/notebook_tamper/n1")
         book.create()
         make_notebook(book, struct)
-        book.save()
         book.close()
 
+        print "system"
         os.system(
             "sqlite3 test/tmp/notebook_tamper/n1/__NOTEBOOK__/index.sqlite "
             "'select mtime from NodeGraph where parentid == \"" +
