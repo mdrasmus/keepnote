@@ -413,9 +413,10 @@ class PathCache (object):
 
     def add(self, nodeid, basename, parentid):
         """Add a new nodeid, basename, and parentid to the cache"""
-
+        
         parent = self._nodes.get(parentid, 0)
         if parent is 0:
+            # TODO: should I allow unknown parent?
             raise UnknownNode("unknown parent %s" % 
                               repr((basename, parentid, self._nodes)))
         node = self._nodes.get(nodeid, None)
@@ -706,12 +707,12 @@ class NoteBookConnectionFS (NoteBookConnection):
         
         if parentid != parentid2:
             # move to a new parent
-            self._rename_node_dir(nodeid, attr, parentid2, path)
+            self._rename_node_dir(nodeid, attr, parentid, parentid2, path)
         elif (parentid and title_index and 
               title_index != attr.get("title", "")):
             # rename node directory, but
             # do not rename root node dir (parentid is None)
-            self._rename_node_dir(nodeid, attr, parentid2, path)
+            self._rename_node_dir(nodeid, attr, parentid, parentid2, path)
         else:
             # update index
             basename = os.path.basename(path)
@@ -719,7 +720,7 @@ class NoteBookConnectionFS (NoteBookConnection):
                                  mtime=get_path_mtime(path))
         
 
-    def _rename_node_dir(self, nodeid, attr, new_parentid, path):
+    def _rename_node_dir(self, nodeid, attr, parentid, new_parentid, path):
         """Renames a node directory to resemble attr['title']"""
         
         # try to pick a path that closely resembles the title
@@ -738,6 +739,14 @@ class NoteBookConnectionFS (NoteBookConnection):
         self._path_cache.move(nodeid, basename, new_parentid)
         self._index.add_node(nodeid, new_parentid, basename, attr, 
                              mtime=get_path_mtime(new_path))
+
+        # update parent too
+        self._index.set_node_mtime(
+            parentid, get_path_mtime(os.path.dirname(path)))
+        if new_parentid != parentid:
+            self._index.set_node_mtime(
+                parentid, get_path_mtime(new_parent_path))
+
             
     
     def delete_node(self, nodeid):
@@ -765,9 +774,12 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def _get_parentid(self, nodeid):
         """Returns nodeid of parent of node"""
-        # TODO: I should fallback to index for this too
-        # TODO: this assume preorder reading
-        return self._path_cache.get_parentid(nodeid)
+        parentid = self._path_cache.get_parentid(nodeid)
+        if parentid is None:
+            node = self._index.get_node(nodeid)
+            if node and node["parentid"] != keepnote.notebook.UNIVERSAL_ROOT:
+                return node["parentid"]
+        return parentid
 
     
     def _list_children_attr(self, nodeid, _path=None, _full=True):
@@ -811,7 +823,11 @@ class NoteBookConnectionFS (NoteBookConnection):
             mtime = get_path_mtime(path)
             index_mtime = self._index.get_node_mtime(nodeid)
             if mtime <= index_mtime:
-                return (row[0] for row in self._index.list_children(nodeid))
+                children = []
+                for row in self._index.list_children(nodeid):
+                    self._path_cache.add(row[0], row[1], nodeid)
+                    children.append(row[0])
+                return children
         
         # fallback to reading attrs of children
         return (attr["nodeid"]
@@ -830,24 +846,22 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         # update path cache
         nodeid = attr["nodeid"]
-        basename = os.path.basename(path) if parentid else path  
+        basename = os.path.basename(path) if parentid else path
         self._path_cache.add(nodeid, basename, parentid)
         
         
         # check indexing
-        # if reading root node, index might not be initialized yet
         if _force_index:
             # reindex this node
             self._index.add_node(
                 nodeid, parentid, basename, attr, get_path_mtime(path))
         else:
-            # if node has changed on disk (newer mtime), 
-            # then re-index it
+            # if node has changed on disk (newer mtime), then re-index it
             mtime = get_path_mtime(path)
             index_mtime = self._index.get_node_mtime(nodeid)
             if mtime > index_mtime:
-                self._reindex_node(nodeid, parentid, path, attr, mtime)    
-
+                self._reindex_node(nodeid, parentid, path, attr, mtime)  
+        
         # supplement childids
         if _full:
             attr["childrenids"] = list(

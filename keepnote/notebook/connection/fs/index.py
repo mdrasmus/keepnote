@@ -490,7 +490,7 @@ class NoteBookIndex (object):
     def add_node(self, nodeid, parentid, basename, attr, mtime):
         """Add a node to the index"""               
 
-        print "add", nodeid, basename
+        #print "add", nodeid, basename
         
         # TODO: remove single parent assumption        
         
