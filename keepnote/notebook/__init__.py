@@ -47,6 +47,7 @@ from keepnote.timestamp import get_timestamp
 from keepnote import trans
 from keepnote.notebook.connection import fs as connection_fs
 from keepnote.notebook import connection
+from keepnote import safefile
 from keepnote import orderdict
 from keepnote import plist
 from keepnote.pref import Pref
@@ -1260,10 +1261,11 @@ class NoteBook (NoteBookNode):
 
         self._conn.connect(self._basename)
         self._conn.create_root(self._attr["nodeid"],  self._attr)
+        
+        self._init_index()
+        
         self.write_preferences()
 
-        # init index database
-        self._init_index()
         self._set_dirty(False)
 
         self._init_trash()
@@ -1276,16 +1278,33 @@ class NoteBook (NoteBookNode):
         if filename is not None:
             filename = normalize_notebook_dirname(filename, longpath=False)
             self._basename = filename
+
+        
+        # TODO: generalize. this is currently fs-specific
+        # cheat by reading preferences first so that we can set index_dir
+        # if needed.  Ideally this should be set in the app pref, but in a
+        # notebook-specific way
+        pref_file = os.path.join(self._basename, PREF_FILE)
+        if os.path.exists(pref_file):
+            self.read_preferences(safefile.open(pref_file, codec="utf-8"))
+
+            # TODO: temp solution. remove soon.
+            index_dir = self.pref.get("index_dir", default=u"")
+            if index_dir and os.path.exists(index_dir):
+                return self._conn._set_index_file(
+                    os.path.join(index_dir, notebook_index.INDEX_FILE))
+
         
         # read basic info
         self._conn.connect(self._basename)
+        self._init_index()
+
         attr = self._conn.read_node(self._conn.get_rootid())
         self._init_attr(attr)
-        self.read_preferences()
 
-        # init needs to happen after preferences
-        self._init_index()
         self._init_trash()
+
+        self.read_preferences()
 
         self.notify_change(True)
 
@@ -1330,12 +1349,6 @@ class NoteBook (NoteBookNode):
     def _init_index(self):
         """Initialize the index"""
 
-        # TODO: temp solution. remove soon.
-        index_dir = self.pref.get("index_dir", default=u"")
-        if index_dir and os.path.exists(index_dir):
-            return self._conn._set_index_file(
-                os.path.join(index_dir, notebook_index.INDEX_FILE))
-        
         # TODO: ideally I would like to do index_attr()'s before 
         # conn.init_index(), so that the initial indexing properly 
         # catches all the desired attr's
@@ -1584,6 +1597,7 @@ class NoteBook (NoteBookNode):
                     return walk(child, path, i+1)
             
             # node not found
+            keepnote.log_message("node %s not found" % str(path))
             return None
         return walk(self._notebook, path[1:], 0)
     
@@ -1676,12 +1690,12 @@ class NoteBook (NoteBookNode):
             raise NoteBookError(_("File format error"), e)
 
     
-    def read_preferences(self, recover=True):
+    def read_preferences(self, infile=None, recover=True):
         """Reads the NoteBook's preferneces"""
         
         try:
-            infile = None
-            infile = self.open_file(PREF_FILE, "r", codec="utf-8")
+            if infile is None:
+                infile = self.open_file(PREF_FILE, "r", codec="utf-8")
             root = ET.fromstring(infile.read())
             tree = ET.ElementTree(root)
         except IOError, e:

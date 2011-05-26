@@ -26,10 +26,11 @@
 #
 
 """
-Strategy for detecting unmanaged notebook modifications.
+Strategy for detecting unmanaged notebook modifications, which I also 
+call tampering.
 
 When a notebook is first opened, there needs to be a mechanism for determining
-whether the index (sqlite) is update to date.  There are several ways a
+whether the index (sqlite) is up to date.  There are several ways a
 notebook can change on disk in unmanaged ways, that I would like to be 
 able to recover from.  Below is a list of changes, methods for detecting
 them, and solutions to updating the index.
@@ -44,12 +45,14 @@ CHANGE: Moving/renaming a node directory to a new location within the notebook.
 DETECT: The new parent directory's mtime with be newer than the last indexed
         mtime.  The child directory being moved will often have no change in
         mtime.
-UPDATE: A directory with newer mtime needs all of its children re-indexed.
+UPDATE: A directory with newer mtime needs all of its children re-indexed,
+        but their child do not need to reindex as long as their mtimes 
+        check out.
 
 
 CHANGE: Moving a new node directory into the notebook.  This would also require
         ensuring that nodeid's are still unique.
-DETECT: The new parent directory's mtime with be newer than the last indexed
+DETECT: The new parent directory's mtime will be newer than the last indexed
         mtime.  The child directory being moved will often have no change in
         mtime.
 UPDATE: A directory with newer mtime needs all of its children re-indexed.
@@ -518,6 +521,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         """Returns the path of the nodeid"""
         
         path = self._path_cache.get_path(nodeid)
+        
         if path is None and self._index:
             # fallback to index
             path_list = self._index.get_node_filepath(nodeid)
@@ -573,8 +577,8 @@ class NoteBookConnectionFS (NoteBookConnection):
         
     def close(self):
         """Close connection"""
-        self._filename = None
         self._index.close()
+        self._filename = None
 
     def save(self):
         """Save any unsynced state"""
@@ -589,12 +593,18 @@ class NoteBookConnectionFS (NoteBookConnection):
         if self._filename is None:
             raise ConnectionError("connect() has not been called")
 
-        self.create_node(nodeid, attr, self._filename, True)
+        nodeid = self.create_node(nodeid, attr, self._filename, True)
 
         # make lost and found        
         lostdir = self._get_lostdir()
         if not os.path.exists(lostdir):
             os.makedirs(lostdir)
+        
+        self.init_index()
+        self._index.add_node(nodeid, None, self._filename, attr, 
+                             mtime=get_path_mtime(self._filename))
+        self.save()
+
     
 
     def create_node(self, nodeid, attr, _path=None, _root=False):
@@ -860,15 +870,21 @@ class NoteBookConnectionFS (NoteBookConnection):
                 mtime = get_path_mtime(path)
                 index_mtime = self._index.get_node_mtime(nodeid)
                 if mtime > index_mtime:
-                    # mark children out of date
-                    for path2 in iter_child_node_paths(path):
-                        mark_path_outdated(path2)
+                    keepnote.log_message(
+                        "Unmanaged change detected. Reindexing '%s'\n" % path)
                     
+                    # reindex all children in case their parentid's changed
+                    for path2 in iter_child_node_paths(path):
+                        attr2 = self._read_node(nodeid, path2, _full=False)
+                        self._index.add_node(
+                            attr["nodeid"], nodeid, 
+                            os.path.basename(path2), attr2, 
+                            get_path_mtime(path2))
+                    
+                    # reindex this node
                     self._index.add_node(
                         nodeid, parentid, basename, attr, mtime)
                     
-                    # record that more indexing is needed
-                    self._index.set_index_needed(True)
             except:
                 keepnote.log_error()
                 pass    
@@ -936,7 +952,7 @@ class NoteBookConnectionFS (NoteBookConnection):
                 return self._read_attr(filename, attr_defs, recover=False)
             
             raise keepnote.notebook.NoteBookError(
-                _("Error reading meta data file"), e)
+                _("Error reading meta data file '%s'" % filename), e)
 
         # check root
         root = tree.getroot()
@@ -1011,7 +1027,13 @@ class NoteBookConnectionFS (NoteBookConnection):
         if not os.path.exists(dirpath):
             os.makedirs(dirpath)
 
-        return safefile.open(fullname, mode, codec=codec)
+        stream = safefile.open(fullname, mode, codec=codec)
+
+        # update mtime since file creation causes directory mtime to change
+        if self._index:
+            self._index.set_node_mtime(nodeid, os.stat(path).st_mtime)
+        
+        return stream
 
     def delete_file(self, nodeid, filename, _path=None):
         """Delete a node file"""
@@ -1173,6 +1195,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         """Initialize the index"""
         self._index = notebook_index.NoteBookIndex(
             self, self._get_index_file())
+
         
     def index_needed(self):
         return self._index.index_needed()

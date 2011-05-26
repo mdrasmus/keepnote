@@ -4,12 +4,12 @@
 from testing import *
 
 # python imports
-import unittest, os, sys, shutil
+import unittest, os, sys, shutil, time
 
 # keepnote imports
 from keepnote import notebook, safefile
 import keepnote.notebook.connection as connlib
-
+import keepnote.notebook.connection.fs as fs
 
 
 class Heal (unittest.TestCase):
@@ -131,6 +131,56 @@ class Heal (unittest.TestCase):
         assert open("test/tmp/notebook_heal/n1/notebook.nbk").read().startswith("<?xml")
 
         
+
+    def test_tamper(self):
+
+        struct = [["a", ["a1"], ["a2"], ["a3"]],
+                  ["b", ["b1"], ["b2",
+                                 ["c1"], ["c2"]]]]
+        def make_notebook(node, children):
+            for child in children:
+                name = child[0]
+                node2 = notebook.new_page(node, name)
+                make_notebook(node2, child[1:])
+        
+
+        # initialize a notebook
+        make_clean_dir("test/tmp/notebook_tamper")
+
+        print "creating notebook"
+        book = notebook.NoteBook("test/tmp/notebook_tamper/n1")
+        book.create()
+        make_notebook(book, struct)
+        book.save()
+        book.close()
+
+        os.system(
+            "sqlite3 test/tmp/notebook_tamper/n1/__NOTEBOOK__/index.sqlite "
+            "'select mtime from NodeGraph where parentid == \"" +
+            notebook.UNIVERSAL_ROOT + "\";'")
+
+        time.sleep(1)
+
+        print fs.get_path_mtime(u"test/tmp/notebook_tamper/n1")
+        fs.mark_path_outdated(u"test/tmp/notebook_tamper/n1")
+        print fs.get_path_mtime(u"test/tmp/notebook_tamper/n1")
+
+
+        print "reopening notebook 1"
+        book = notebook.NoteBook()
+        book.load("test/tmp/notebook_tamper/n1")
+        #book.save(True)
+        book.close()
+
+
+        print "reopening notebook 2"
+        book = notebook.NoteBook()
+        book.load("test/tmp/notebook_tamper/n1")
+        #book.save(True)
+        book.close()
+
+
+
         
 if __name__ == "__main__":
     unittest.main()

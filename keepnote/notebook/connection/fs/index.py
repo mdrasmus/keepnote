@@ -465,6 +465,14 @@ class NoteBookIndex (object):
         else:
             return 0.0
 
+    def set_node_mtime(self, nodeid, mtime=None):
+
+        if mtime is None:
+            mtime = time.time()
+
+        self.con.execute("""UPDATE NodeGraph SET mtime = ? WHERE nodeid = ?;""",
+                         (mtime, nodeid))
+
 
     def get_mtime(self):
         """Get last modification time of the index"""
@@ -473,7 +481,7 @@ class NoteBookIndex (object):
     
     def add_node(self, nodeid, parentid, basename, attr, mtime):
         """Add a node to the index"""               
-
+        
         # TODO: remove single parent assumption        
         
         if self.con is None:
@@ -498,8 +506,7 @@ class NoteBookIndex (object):
             # update fulltext
             infile = self._nconn.read_data_as_plain_text(nodeid)
             self.index_node_text(nodeid, attr, infile)
-
-
+            
         except Exception, e:
             keepnote.log_error("error index node %s '%s'" % 
                                (nodeid, attr.get("title", "")))
@@ -584,7 +591,7 @@ class NoteBookIndex (object):
                     return None
 
                 nodeid, parentid, basename = row
-
+                
                 # parent has unexpected loop
                 if parentid in visit:
                     self._on_corrupt(Exception("unexpect parent path loop"))
@@ -644,7 +651,7 @@ class NoteBookIndex (object):
 
 
     def get_node(self, nodeid):
-        """Get node path for a nodeid"""
+        """Get node data for a nodeid"""
         
         # TODO: handle multiple parents
 
