@@ -276,11 +276,14 @@ def find_node_changes(path, last_mtime):
         queue.extend(iter_child_node_paths(path))
 
 _mtime_cache = {}
-def get_path_mtime(path):
+def get_path_mtime2(path):
     mtime = _mtime_cache.get(path, None)
     if mtime is None:
         mtime = _mtime_cache[path] = os.stat(path).st_mtime
     return mtime
+
+def get_path_mtime(path):
+    return os.stat(path).st_mtime
 
 def mark_path_outdated(path):
     os.utime(path, None)
@@ -745,7 +748,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             parentid, get_path_mtime(os.path.dirname(path)))
         if new_parentid != parentid:
             self._index.set_node_mtime(
-                parentid, get_path_mtime(new_parent_path))
+                new_parentid, get_path_mtime(new_parent_path))
 
             
     
