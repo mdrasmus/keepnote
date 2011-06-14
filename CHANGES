@@ -1,8 +1,14 @@
 KeepNote Change Log
 -------------------
 
-keepnote-0.7.2
+keepnote 0.7.3
 --------------
+- added close button on tabs
+- bug fixes to notebook indexing, healing, and tamper detection
+
+
+keepnote-0.7.2 (2011.5.12)
+--------------------------
 - added moving/copying notes between notebooks
 - fixed extension disable bug
 - improved command API

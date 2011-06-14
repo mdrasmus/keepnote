@@ -736,7 +736,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         except OSError, e:
             raise keepnote.notebook.NoteBookError(
                 _("Cannot rename '%s' to '%s'" % (path, new_path)), e)
-
+        
         # update index
         basename = os.path.basename(new_path)
         self._path_cache.move(nodeid, basename, new_parentid)
@@ -812,25 +812,27 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def _list_children_nodeids(self, nodeid, _path=None, _index=True):
         """List nodeids of children of node"""
+        
         # try to use cache first
         children = self._path_cache.get_children(nodeid)
         if children is not None:
             return children
 
         path = self._get_node_path(nodeid)
-        
+
+        # Disabled for now.  Don't rely on index for listing children
         # if node is unchanged on disk (same mtime), 
         # use index to detect children
         # however we also require a fully updated index (not index_needed)
-        if _index and self._index and not self._index.index_needed():
-            mtime = get_path_mtime(path)
-            index_mtime = self._index.get_node_mtime(nodeid)
-            if mtime <= index_mtime:
-                children = []
-                for row in self._index.list_children(nodeid):
-                    self._path_cache.add(row[0], row[1], nodeid)
-                    children.append(row[0])
-                return children
+        #if _index and self._index and not self._index.index_needed():
+        #    mtime = get_path_mtime(path)
+        #    index_mtime = self._index.get_node_mtime(nodeid)
+        #    if mtime <= index_mtime:
+        #        children = []
+        #        for row in self._index.list_children(nodeid):
+        #            self._path_cache.add(row[0], row[1], nodeid)
+        #            children.append(row[0])
+        #        return children
         
         # fallback to reading attrs of children
         return (attr["nodeid"]
@@ -860,9 +862,8 @@ class NoteBookConnectionFS (NoteBookConnection):
                 nodeid, parentid, basename, attr, get_path_mtime(path))
         else:
             # if node has changed on disk (newer mtime), then re-index it
-            mtime = get_path_mtime(path)
-            index_mtime = self._index.get_node_mtime(nodeid)
-            if mtime > index_mtime:
+            current, mtime = self._node_index_current(nodeid, path)
+            if not current:
                 self._reindex_node(nodeid, parentid, path, attr, mtime)  
         
         # supplement childids
@@ -873,19 +874,31 @@ class NoteBookConnectionFS (NoteBookConnection):
         return attr
     
 
-    def _reindex_node(self, nodeid, parentid, path, attr, mtime):
+    def _node_index_current(self, nodeid, path, mtime=None):
+        if mtime is None:
+            mtime = get_path_mtime(path)
+        index_mtime = self._index.get_node_mtime(nodeid)
+        return mtime <= index_mtime, mtime
+
+
+    def _reindex_node(self, nodeid, parentid, path, attr, mtime, warn=True):
         """Reindex a node that has been tampered"""
 
-        keepnote.log_message(
-            "Unmanaged change detected. Reindexing '%s'\n" % path)
+        if warn:
+            keepnote.log_message(
+                "Unmanaged change detected. Reindexing '%s'\n" % path)
 
+        # TODO: to prevent a full recurse I could index children but 
+        # use 0 for mtime, so that they will still trigger an index for them
+        # selves
         # reindex all children in case their parentid's changed
         for path2 in iter_child_node_paths(path):
-            attr2 = self._read_node(nodeid, path2, _full=False)
-            self._index.add_node(
-                attr2["nodeid"], nodeid, 
-                os.path.basename(path2), attr2, 
-                get_path_mtime(path2))
+            attr2 = self._read_node(nodeid, path2, _full=False,
+                                    _force_index=True)
+            #self._index.add_node(
+            #    attr2["nodeid"], nodeid, 
+            #    os.path.basename(path2), attr2, 
+            #    get_path_mtime(path2))
 
         # reindex this node
         self._index.add_node(
@@ -1025,6 +1038,8 @@ class NoteBookConnectionFS (NoteBookConnection):
         
         stream = safefile.open(fullname, mode, codec=codec)
         
+        # TODO: this should check and update the mtime
+        # but only update if it was previously consistent (before the open)
         # update mtime since file creation causes directory mtime to change
         if self._index:
             self._index.set_node_mtime(nodeid, os.stat(path).st_mtime)
@@ -1202,6 +1217,11 @@ class NoteBookConnectionFS (NoteBookConnection):
         return self._index.clear()
 
     def index_all(self):
+        
+        # clear memory cache too
+        self._path_cache.clear()
+        self._path_cache.add(self._rootid, self._filename, None)
+
         for node in self._index.index_all():
             yield node
 

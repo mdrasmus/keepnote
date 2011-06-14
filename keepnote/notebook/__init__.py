@@ -1286,14 +1286,17 @@ class NoteBook (NoteBookNode):
         # notebook-specific way
         pref_file = os.path.join(self._basename, PREF_FILE)
         if os.path.exists(pref_file):
-            self.read_preferences(safefile.open(pref_file, codec="utf-8"))
+            try:
+                self.read_preferences(safefile.open(pref_file, codec="utf-8"),
+                                      recover=False)
 
-            # TODO: temp solution. remove soon.
-            index_dir = self.pref.get("index_dir", default=u"")
-            if index_dir and os.path.exists(index_dir):
-                return self._conn._set_index_file(
-                    os.path.join(index_dir, notebook_index.INDEX_FILE))
-
+                # TODO: temp solution. remove soon.
+                index_dir = self.pref.get("index_dir", default=u"")
+                if index_dir and os.path.exists(index_dir):
+                    self._conn._set_index_file(
+                        os.path.join(index_dir, notebook_index.INDEX_FILE))
+            except:
+                pass
         
         # read basic info
         self._conn.connect(self._basename)
@@ -1583,12 +1586,13 @@ class NoteBook (NoteBookNode):
 
         path = self._conn.get_node_path_by_id(nodeid)
         if path is None:
+            keepnote.log_message("node %s not found" % nodeid)
             return None
         
         def walk(node, path, i):
             if i >= len(path):
                 return node
-
+            
             # search children
             nodeid2 = path[i]
             for child in node.get_children():
@@ -1707,7 +1711,7 @@ class NoteBook (NoteBookNode):
                     infile = None
                 self._recover_preferences()
                 return self.read_preferences(recover=False)
-            #raise NoteBookError(_("Notebook preference data is corrupt"), e)
+            raise NoteBookError(_("Notebook preference data is corrupt"), e)
         finally:
             if infile:
                 infile.close()

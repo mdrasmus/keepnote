@@ -301,6 +301,7 @@ class NoteBookIndex (object):
             # full text table
             try:
                 # test for fts3 availability
+                con.execute(u"DROP TABLE IF EXISTS fts3test;")
                 con.execute(
                     "CREATE VIRTUAL TABLE fts3test USING fts3(col TEXT);")
                 con.execute("DROP TABLE fts3test;")
@@ -489,8 +490,6 @@ class NoteBookIndex (object):
     
     def add_node(self, nodeid, parentid, basename, attr, mtime):
         """Add a node to the index"""               
-
-        #print "add", nodeid, basename
         
         # TODO: remove single parent assumption        
         
@@ -548,14 +547,11 @@ class NoteBookIndex (object):
 
     def index_node_text(self, nodeid, attr, infile):
 
-        if (attr.get("content_type", None) == 
-            keepnote.notebook.CONTENT_TYPE_PAGE):
-            try:
-                text = attr.get("title", "") + "\n" + "".join(infile)
-            except Exception, e:
-                print e
-                return
+        try:
+            text = attr.get("title", "") + "\n" + "".join(infile)
             self.insert_text(nodeid, text)
+        except Exception, e:
+            keepnote.log_error()
 
 
     def insert_text(self, nodeid, text):
@@ -750,7 +746,11 @@ class NoteBookIndex (object):
 
 
     def search_contents(self, text):
-        
+
+        # TODO: implement fully general fix
+        # crude cleaning
+        text = text.replace('"', "")
+
         # fallback if fts3 is not available
         if not self._has_fulltext:
             words = [x.lower() for x in text.strip().split()]
@@ -759,9 +759,13 @@ class NoteBookIndex (object):
         cur = self.con.cursor()
 
         # search db with fts3
-        res = cur.execute("""SELECT nodeid FROM fulltext 
+        try:
+            res = cur.execute("""SELECT nodeid FROM fulltext 
                              WHERE content MATCH ?;""", (text,))
-        return (row[0] for row in res)
+            return (row[0] for row in res)
+        except:
+            keepnote.log_error("SQLITE error while performing search")
+            return []
 
 
     def _search_manual(self, words):

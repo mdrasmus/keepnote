@@ -169,14 +169,12 @@ class Heal (unittest.TestCase):
         print "reopening notebook 1"
         book = notebook.NoteBook()
         book.load("test/tmp/notebook_tamper/n1")
-        #book.save(True)
         book.close()
 
 
         print "reopening notebook 2"
         book = notebook.NoteBook()
         book.load("test/tmp/notebook_tamper/n1")
-        #book.save(True)
         book.close()
 
 
