@@ -426,16 +426,17 @@ class ThreePaneViewer (Viewer):
             # change selection
             if len(nodes) == 1:
                 node = nodes[0]
-                widget = self.get_focused_widget()
+                widget = self.get_focused_widget(self.listview)
                 parent = node.get_parent()
                 children = parent.get_children()
                 i = children.index(node)
+
                 if i < len(children) - 1:
                     widget.select_nodes([children[i+1]])
                 else:
                     widget.select_nodes([parent])
             else:
-                widget = self.get_focused_widget()
+                widget = self.get_focused_widget(self.listview)
                 widget.select_nodes([])
 
             # perform delete

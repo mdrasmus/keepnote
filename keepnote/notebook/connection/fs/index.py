@@ -422,7 +422,6 @@ class NoteBookIndex (object):
         """
         
         visit = set()
-        parents = set()
         conn = self._nconn        
         if rootid is None:
             rootid = conn.get_rootid()
@@ -436,28 +435,10 @@ class NoteBookIndex (object):
                 yield nodeid
                 queue.extend(
                     conn._list_children_nodeids(nodeid, _index=False))
-                #queue.extend((attr2["nodeid"], attr2) 
-                #             for attr2 in conn._list_children_attr(
-                #        nodeid, _full=False))
 
 
         # perform indexing
         for nodeid in preorder(conn, rootid):
-            '''
-            if nodeid not in visit:
-                mtime = conn._get_node_mtime(nodeid)
-                mtime_index = self.get_node_mtime(nodeid)
-                parentid = conn._get_parentid(nodeid)
-                
-                if parentid in parents or mtime > mtime_index:
-                    parents.add(nodeid)
-                    self.add_node(nodeid, 
-                                  parentid, 
-                                  conn.get_node_basename(nodeid), 
-                                  attr,
-                                  mtime)
-            visit.add(nodeid)
-            '''
             yield nodeid
 
         # record index complete
