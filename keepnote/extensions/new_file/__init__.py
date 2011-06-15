@@ -240,12 +240,18 @@ class Extension (extension.Extension):
         if len(nodes) == 0:
             parent = notebook
         else:
-            parent = nodes[0]
+            sibling = nodes[0]
+            if sibling.get_parent():
+                parent = sibling.get_parent()
+                index = sibling.get_attr("order") + 1
+            else:
+                parent = sibling
 
         try:
             uri = os.path.join(self.get_data_dir(), file_type.example_file)
             node = notebooklib.attach_file(uri, parent)
             node.rename(file_type.filename)
+            window.get_viewer().goto_node(node)
         except Exception, e:
             window.error("Error while attaching file '%s'." % uri, e)
 

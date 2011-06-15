@@ -197,20 +197,19 @@ class TextEditor (KeepNoteEditor):
                         page.get_attr("payload_filename"))
                     text = infile.read()
                     infile.close()
-                    #text = safefile.open(
-                    #    os.path.join(page.get_path(),
-                    #                 page.get_attr("payload_filename")),
-                    #    codec="utf-8").read()
                     self._textview.get_buffer().set_text(text)
                     self._load_cursor()
                     
                 else:
                     self.clear_view()
 
+            except UnicodeDecodeError, e:
+                self.clear_view()
             except RichTextError, e:
                 self.clear_view()                
                 self.emit("error", e.msg, e)
             except Exception, e:
+                keepnote.log_error()
                 self.clear_view()
                 self.emit("error", "Unknown error", e)
 
