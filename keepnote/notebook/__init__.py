@@ -49,6 +49,7 @@ from keepnote.notebook.connection import fs as connection_fs
 from keepnote.notebook import connection
 from keepnote import safefile
 from keepnote import orderdict
+from keepnote import maskdict
 from keepnote import plist
 from keepnote.pref import Pref
 import keepnote
@@ -70,7 +71,7 @@ BLANK_NOTE = u"""\
 """
 
 
-NOTEBOOK_FORMAT_VERSION = 5
+NOTEBOOK_FORMAT_VERSION = 6
 ELEMENT_NODE = 1
 PAGE_DATA_FILE = u"page.html"
 PREF_FILE = u"notebook.nbk"
@@ -892,7 +893,8 @@ class NoteBookNode (object):
         # record the nodeid of the original node
         node._attr["duplicate_of"] = self.get_attr("nodeid")
         
-        node._conn.update_node(node._attr["nodeid"], node._attr)
+        #node._conn.update_node(node._attr["nodeid"], node._attr)
+        node._write_attr(node._attr)
         
         # copy files
         try:
@@ -916,6 +918,17 @@ class NoteBookNode (object):
 
         return node
 
+
+    def _write_attr(self, attr):
+        
+        self._notebook._mask_attr.set_dict(attr)
+
+        #print
+        #print attr
+        #print self._notebook._mask_attr
+        
+        self._conn.update_node(attr["nodeid"], self._notebook._mask_attr)
+        #self._conn.update_node(attr["nodeid"], attr)
 
 
     #==================================
@@ -1026,7 +1039,8 @@ class NoteBookNode (object):
     def save(self, force=False):
         """Save node if modified (dirty)"""
         if (force or self._is_dirty()) and self._valid:
-            self._conn.update_node(self._attr["nodeid"], self._attr)
+            self._write_attr(self._attr)
+            #self._conn.update_node(self._attr["nodeid"], self._attr)
             self._set_dirty(False)
     
 
@@ -1193,6 +1207,11 @@ class NoteBook (NoteBookNode):
         self._trash = None
         self.attr_defs = attr_defs
         self._necessary_attrs = []
+        #self._attr_temp = set(["icon_open_load", "icon_load"])
+                               #"parentid",
+                               #"childrenids"])
+        self._mask_attr = maskdict.MaskDict(
+            {}, ["icon_open_load", "icon_load"])
         
 
         # init notebook attributes
@@ -1319,7 +1338,8 @@ class NoteBook (NoteBookNode):
         # TODO: keepnote copy of old pref.  only save pref if its changed.
 
         if force or self in self._dirty:
-            self._conn.update_node(self._attr["nodeid"], self._attr)
+            self._write_attr(self._attr)
+            #self._conn.update_node(self._attr["nodeid"], self._attr)
             self.write_preferences()
         self._set_dirty(False)
 
@@ -1733,6 +1753,9 @@ class NoteBook (NoteBookNode):
                     data = orderdict.OrderDict()
             else:
                 data = orderdict.OrderDict()
+        else:
+            raise NoteBookError(_("Cannot read notebook preferences %s")
+                                % self.get_file(PREF_FILE) , e)
         
         data["version"] = version
         self.pref.set_data(data)

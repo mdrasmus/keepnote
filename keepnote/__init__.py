@@ -94,7 +94,7 @@ except ImportError:
 PROGRAM_NAME = u"KeepNote"
 PROGRAM_VERSION_MAJOR = 0
 PROGRAM_VERSION_MINOR = 7
-PROGRAM_VERSION_RELEASE = 3
+PROGRAM_VERSION_RELEASE = 4
 PROGRAM_VERSION = (PROGRAM_VERSION_MAJOR,
                    PROGRAM_VERSION_MINOR,
                    PROGRAM_VERSION_RELEASE)
@@ -455,9 +455,12 @@ def log_error(error=None, tracebk=None, out=None):
     if error is None:
         ty, error, tracebk = sys.exc_info()
 
-    out.write("\n")
-    traceback.print_exception(type(error), error, tracebk, file=out)
-    out.flush()
+    try:
+        out.write("\n")
+        traceback.print_exception(type(error), error, tracebk, file=out)
+        out.flush()
+    except UnicodeEncodeError:
+        out.write(error.encode("ascii", "replace"))
 
 
 def log_message(message, out=None):
@@ -465,7 +468,10 @@ def log_message(message, out=None):
 
     if out is None:
         out = sys.stderr
-    out.write(message)
+    try:
+        out.write(message)
+    except UnicodeEncodeError:
+        out.write(message.encode("ascii", "replace"))
     out.flush()
 
 #=============================================================================

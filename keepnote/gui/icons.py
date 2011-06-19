@@ -156,6 +156,29 @@ def get_icon_filename(icon_name, default=None):
     return _g_mime_icons.get_icon_filename(icon_name, default)
 
 
+def lookup_icon_filename(notebook, basename):
+    """
+    Lookup full filename of a icon from a notebook and builtins
+    Returns None if not found
+    notebook can be None
+    """
+
+    # lookup in notebook icon store
+    if notebook is not None:
+        filename = notebook.get_icon_file(basename)
+        if filename:
+            return filename
+
+    # lookup in builtins
+    filename = get_resource(keepnote.NODE_ICON_DIR, basename)
+    if os.path.isfile(filename):
+        return filename
+
+    # lookup mime types
+    return _g_mime_icons.get_icon_filename(basename)
+
+#=============================================================================
+
 def get_default_icon_basenames(node):
     """Returns basesnames for default icons for a node"""
     content_type = node.get_attr("content_type")
@@ -180,29 +203,6 @@ def get_default_icon_filenames(node):
             lookup_icon_filename(node.get_notebook(), filenames[1])]
 
 
-def lookup_icon_filename(notebook, basename):
-    """
-    Lookup full filename of a icon from a notebook and builtins
-    Returns None if not found
-    notebook can be None
-    """
-
-    # lookup in notebook icon store
-    if notebook is not None:
-        filename = notebook.get_icon_file(basename)
-        if filename:
-            return filename
-
-    # lookup in builtins
-    filename = get_resource(keepnote.NODE_ICON_DIR, basename)
-    if os.path.isfile(filename):
-        return filename
-
-    # lookup mime types
-    return _g_mime_icons.get_icon_filename(basename)
-
-
-
 def get_all_icon_basenames(notebook):
     """
     Return a list of all builtin icons and notebook-specific icons
@@ -222,14 +222,15 @@ def guess_open_icon_filename(icon_file):
     return path + u"-open" + ext
 
 
-def get_node_icon_basenames(node):
+def get_node_icon_filenames_basenames(node):
 
     # TODO: merge with get_node_icon_filenames?
 
     notebook = node.get_notebook()
 
     # get default basenames
-    basenames = get_default_icon_basenames(node)
+    basenames = list(get_default_icon_basenames(node))
+    filenames = get_default_icon_filenames(node)
 
     # load icon    
     if node.has_attr("icon"):
@@ -237,6 +238,7 @@ def get_node_icon_basenames(node):
         basename = node.get_attr("icon")
         filename = lookup_icon_filename(notebook, basename)
         if filename:
+            filenames[0] = filename
             basenames[0] = basename
 
 
@@ -246,6 +248,7 @@ def get_node_icon_basenames(node):
         basename = node.get_attr("icon_open")
         filename = lookup_icon_filename(notebook, basename)
         if filename:
+            filenames[1] = filename
             basenames[1] = basename
     else:
         if node.has_attr("icon"):
@@ -254,59 +257,27 @@ def get_node_icon_basenames(node):
             basename = guess_open_icon_filename(node.get_attr("icon"))
             filename = lookup_icon_filename(notebook, basename)
             if filename:
+                filenames[1] = filename
                 basenames[1] = basename
             else:
                 # use icon as-is for open icon if it is specified
                 basename = node.get_attr("icon")
                 filename = lookup_icon_filename(notebook, basename)
                 if filename:
+                    filenames[1] = filename
                     basenames[1] = basename
 
-    return basenames
-    
+    return basenames, filenames
+
+
+def get_node_icon_basenames(node):
+    return get_node_icon_filenames_basenames(node)[0]
 
 
 def get_node_icon_filenames(node):
     """Loads the icons for a node"""
-
-    notebook = node.get_notebook()
-
-    # get default filenames
-    filenames = get_default_icon_filenames(node)
+    return get_node_icon_filenames_basenames(node)[1]
     
-    # load icon    
-    if node.has_attr("icon"):
-        # use attr
-        filename = lookup_icon_filename(notebook, node.get_attr("icon"))
-        if filename:
-            filenames[0] = filename
-
-
-    # load icon with open state
-    if node.has_attr("icon_open"):
-        # use attr
-        filename = lookup_icon_filename(notebook,
-                                        node.get_attr("icon_open"))
-        if filename:
-            filenames[1] = filename
-    else:
-        if node.has_attr("icon"):
-
-            # use icon to guess open icon
-            filename = lookup_icon_filename(notebook,
-                guess_open_icon_filename(node.get_attr("icon")))            
-
-            if filename:
-                filenames[1] = filename
-            else:
-                # use icon as-is for open icon if it is specified
-                filename = lookup_icon_filename(notebook,
-                                                node.get_attr("icon"))
-                if filename:
-                    filenames[1] = filename    
-    
-    return filenames
-
 
 # TODO: continue to clean up class
 
@@ -414,3 +385,93 @@ def get_node_icon(node, expand=False, fade=False):
         else:
             return get_node_icon_fade(filenames[int(expand)], icon_size)
     '''
+
+
+
+
+'''
+def get_node_icon_basenames(node):
+
+    # TODO: merge with get_node_icon_filenames?
+
+    notebook = node.get_notebook()
+
+    # get default basenames
+    basenames = get_default_icon_basenames(node)
+
+    # load icon    
+    if node.has_attr("icon"):
+        # use attr
+        basename = node.get_attr("icon")
+        filename = lookup_icon_filename(notebook, basename)
+        if filename:
+            basenames[0] = basename
+
+
+    # load icon with open state
+    if node.has_attr("icon_open"):
+        # use attr
+        basename = node.get_attr("icon_open")
+        filename = lookup_icon_filename(notebook, basename)
+        if filename:
+            basenames[1] = basename
+    else:
+        if node.has_attr("icon"):
+
+            # use icon to guess open icon
+            basename = guess_open_icon_filename(node.get_attr("icon"))
+            filename = lookup_icon_filename(notebook, basename)
+            if filename:
+                basenames[1] = basename
+            else:
+                # use icon as-is for open icon if it is specified
+                basename = node.get_attr("icon")
+                filename = lookup_icon_filename(notebook, basename)
+                if filename:
+                    basenames[1] = basename
+
+    return basenames
+    
+
+
+def get_node_icon_filenames(node):
+    """Loads the icons for a node"""
+
+    notebook = node.get_notebook()
+
+    # get default filenames
+    filenames = get_default_icon_filenames(node)
+    
+    # load icon    
+    if node.has_attr("icon"):
+        # use attr
+        filename = lookup_icon_filename(notebook, node.get_attr("icon"))
+        if filename:
+            filenames[0] = filename
+
+
+    # load icon with open state
+    if node.has_attr("icon_open"):
+        # use attr
+        filename = lookup_icon_filename(notebook,
+                                        node.get_attr("icon_open"))
+        if filename:
+            filenames[1] = filename
+    else:
+        if node.has_attr("icon"):
+
+            # use icon to guess open icon
+            filename = lookup_icon_filename(notebook,
+                guess_open_icon_filename(node.get_attr("icon")))            
+
+            if filename:
+                filenames[1] = filename
+            else:
+                # use icon as-is for open icon if it is specified
+                filename = lookup_icon_filename(notebook,
+                                                node.get_attr("icon"))
+                if filename:
+                    filenames[1] = filename    
+    
+    return filenames
+'''

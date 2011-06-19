@@ -1,13 +1,11 @@
 """
     KeepNote
-    plist module
-    
-    Apple's property list xml serialization
+    OrderDict module
 """
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2011 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -30,7 +28,7 @@
 
 
 class OrderDict (dict):
-    """\
+    """
     An ordered dict
     """
 
@@ -44,7 +42,7 @@ class OrderDict (dict):
                 dict.__setitem__(self, k, v)
         else:
             dict.__init__(self, *args, **kargs)
-            self._order = []
+            self._order = dict.keys(self)
     
     # The following methods keep names in sync with dictionary keys
     def __setitem__(self, key, value):
@@ -79,19 +77,18 @@ class OrderDict (dict):
         return iter(self._order)
     
     def values(self):
-        return [self[key] for key in self.iterkeys()]
+        return [self[key] for key in self._order]
     
     def itervalues(self):
-        def func():
-            for key in self.iterkeys():
-                yield self[key]
-        return func()
+        for key in self._order:
+            yield self[key]
+
+    def items(self):
+        return [(key, self[key]) for key in self._order]
         
     def iteritems(self):
-        def func():
-            for key in self.iterkeys():
-                yield (key, self[key])
-        return func()
+        for key in self._order:
+            yield (key, self[key])
 
     def __iter__(self):
         return iter(self._order)

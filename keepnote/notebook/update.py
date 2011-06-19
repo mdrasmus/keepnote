@@ -30,7 +30,7 @@ from xml.sax.saxutils import escape
 
 from keepnote import notebook as notebooklib
 from keepnote import safefile
-from keepnote.compat import notebook_update_v1_2
+from keepnote.compat import notebook_update_v1_2, notebook_update_v5_6
 
 
 def update_notebook(filename, desired_version, warn=lambda w: False,
@@ -122,3 +122,13 @@ def update_notebook(filename, desired_version, warn=lambda w: False,
             notebook.close()
             version = 5
             
+
+        elif version == 5:
+            notebook_update_v5_6.update(filename)
+            version = 6
+
+
+
+
+
+

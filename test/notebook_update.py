@@ -1,19 +1,16 @@
+
+from testing import *
 import os, shutil, unittest, traceback, sys
 
 
 import keepnote.compat.notebook_v1 as oldnotebooklib
+from keepnote.compat import notebook_update_v5_6
 from keepnote import notebook as notebooklib
 from keepnote.notebook import update
 import keepnote
 
 
-def mk_clean_dir(dirname):
-    if os.path.exists(dirname):
-        shutil.rmtree(dirname)
-    os.makedirs(dirname)
-    
-
-class TestCaseNoteBookUpdate (unittest.TestCase):
+class Update (unittest.TestCase):
     
     def setUp(self):      
         pass
@@ -44,6 +41,16 @@ class TestCaseNoteBookUpdate (unittest.TestCase):
                                verify=False)
 
         self.assert_(notebook._attr["title"] != "None")
+
+
+    def test_v5_6(self):
+        
+        # initialize two notebooks
+        make_clean_dir("test/tmp/notebook_update")
+
+        shutil.copytree("test/data/notebook-v5",
+                        "test/tmp/notebook_update/n1")
+        notebook_update_v5_6.update(u"test/tmp/notebook_update/n1")
 
 
     def test_gui(self):
