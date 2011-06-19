@@ -479,7 +479,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         self._index_file = None
 
         # attributes to not write to disk, they can be derived
-        self._attr_suppress = set(["parentids", "childids"])
+        self._attr_suppress = set(["parentids", "childrenids"])
         self._attr_mask = maskdict.MaskDict({}, self._attr_suppress)
 
         # NOTES:
@@ -1000,7 +1000,6 @@ class NoteBookConnectionFS (NoteBookConnection):
             out.write(u'</node>\n')
             out.close()
         except Exception, e:
-            raise e
             raise keepnote.notebook.NoteBookError(
                 _("Cannot write meta data"), e)
 
