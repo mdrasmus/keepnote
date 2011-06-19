@@ -467,11 +467,10 @@ class PathCache (object):
 
 
 class NoteBookConnectionFS (NoteBookConnection):
-    def __init__(self, attr_defs):
+    def __init__(self):
         NoteBookConnection.__init__(self)
         
         self._filename = None
-        self._attr_defs = attr_defs
         self._index = None
         self._path_cache = PathCache()
         self._rootid = None
@@ -649,8 +648,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         # make directory and write attr
         try:
             os.mkdir(path)
-            self._write_attr(self._get_node_attr_file(nodeid, path), 
-                             attr, self._attr_defs)
+            self._write_attr(self._get_node_attr_file(nodeid, path), attr)
             self._path_cache.add(nodeid, basename, parentid)
         except OSError, e:
             raise keepnote.notebook.NoteBookError(_("Cannot create node"), e)
@@ -706,8 +704,7 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         # write attrs
         path = self._get_node_path(nodeid)
-        self._write_attr(get_node_meta_file(path), attr, 
-                         self._attr_defs)
+        self._write_attr(get_node_meta_file(path), attr)
         
         if parentid != parentid2:
             # move to a new parent
@@ -845,10 +842,10 @@ class NoteBookConnectionFS (NoteBookConnection):
         
         metafile = get_node_meta_file(path)
 
-        attr = self._read_attr(metafile, self._attr_defs)
+        attr = self._read_attr(metafile)
         attr["parentids"] = [parentid]
         if not self._validate_attr(attr):
-            self._write_attr(metafile, attr, self._attr_defs)
+            self._write_attr(metafile, attr)
 
         # update path cache
         nodeid = attr["nodeid"]
@@ -868,6 +865,8 @@ class NoteBookConnectionFS (NoteBookConnection):
                 self._reindex_node(nodeid, parentid, path, attr, mtime)  
         
         # supplement childids
+        # TODO: when cloning is implemented, use filesystem to only supplement
+        # not replace childrenids list
         if _full:
             attr["childrenids"] = list(
                 self._list_children_nodeids(nodeid, path))
@@ -912,81 +911,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         return self.get_file(nodeid, NODE_META_FILE, path)
 
 
-    def _write_attr2(self, filename, attr, attr_defs):
-        """Write a node meta data file"""
-        
-        try:
-            out = safefile.open(filename, "w", codec="utf-8")
-            out.write(XML_HEADER)
-            out.write("<node>\n"
-                      "<version>%s</version>\n" % 
-                      keepnote.notebook.NOTEBOOK_FORMAT_VERSION)
-            
-            for key, val in attr.iteritems():
-                if key in self._attr_suppress:
-                    continue
-
-                attr_def = attr_defs.get(key, None)
-                
-                if attr_def is not None:
-                    out.write('<attr key="%s">%s</attr>\n' %
-                              (key, escape(attr_def.write(val))))
-                elif key == "version":
-                    # skip version attr
-                    pass
-                elif isinstance(val, keepnote.notebook.UnknownAttr):
-                    # write unknown attrs if they are strings
-                    out.write('<attr key="%s">%s</attr>\n' %
-                              (key, escape(val.value)))
-                else:
-                    # drop attribute
-                    pass
-                
-            out.write("</node>\n")
-            out.close()
-        except Exception, e:
-            raise keepnote.notebook.NoteBookError(
-                _("Cannot write meta data"), e)
-
-
-    def _read_attr2(self, filename, attr_defs, recover=True):
-        """Read a node meta data file"""
-        
-        attr = {}
-
-        try:
-            tree = ET.ElementTree(file=filename)
-        except Exception, e:
-            if recover:
-                self._recover_attr(filename)
-                return self._read_attr(filename, attr_defs, recover=False)
-            
-            raise keepnote.notebook.NoteBookError(
-                _("Error reading meta data file '%s'" % filename), e)
-
-        # check root
-        root = tree.getroot()
-        if root.tag != "node":
-            raise keepnote.notebook.NoteBookError(_("Root tag is not 'node'"))
-        
-        # iterate children
-        for child in root:
-            if child.tag == "version":
-                attr["version"] = int(child.text)
-            elif child.tag == "attr":
-                key = child.get("key", None)
-                if key is not None:
-                    attr_parser = attr_defs.get(key, None)
-                    if attr_parser is not None:
-                        attr[key] = attr_parser.read(child.text)
-                    else:
-                        # unknown attribute is read as a UnknownAttr
-                        attr[key] = keepnote.notebook.UnknownAttr(child.text)
-
-        return attr
-
-
-    def _write_attr(self, filename, attr, attr_defs):
+    def _write_attr(self, filename, attr):
         """Write a node meta data file"""
 
         self._attr_mask.set_dict(attr)
@@ -1004,17 +929,15 @@ class NoteBookConnectionFS (NoteBookConnection):
                 _("Cannot write meta data"), e)
 
 
-    def _read_attr(self, filename, attr_defs, recover=True):
+    def _read_attr(self, filename, recover=True):
         """Read a node meta data file"""
         
-        attr = {}
-
         try:
             tree = ET.ElementTree(file=filename)
         except Exception, e:
             if recover:
                 self._recover_attr(filename)
-                return self._read_attr(filename, attr_defs, recover=False)
+                return self._read_attr(filename, recover=False)
             
             raise keepnote.notebook.NoteBookError(
                 _("Error reading meta data file '%s'" % filename), e)
@@ -1025,6 +948,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             raise keepnote.notebook.NoteBookError(_("Root tag is not 'node'"))
         
         # iterate children
+        attr = {}
         version = None
         for child in root:
             if child.tag == "dict":
@@ -1293,10 +1217,8 @@ class NoteBookConnectionFS (NoteBookConnection):
     #---------------------------------
     # indexing/querying
 
-    def index_attr(self, key, index_value=False):
-        
-        datatype = self._attr_defs[key].datatype
-        
+    def index_attr(self, key, datatype, index_value=False):
+                
         if issubclass(datatype, basestring):
             index_type = "TEXT"
         elif issubclass(datatype, int):
@@ -1344,3 +1266,80 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     
 
+
+
+
+'''
+    def _write_attr2(self, filename, attr, attr_defs):
+        """Write a node meta data file"""
+        
+        try:
+            out = safefile.open(filename, "w", codec="utf-8")
+            out.write(XML_HEADER)
+            out.write("<node>\n"
+                      "<version>%s</version>\n" % 
+                      keepnote.notebook.NOTEBOOK_FORMAT_VERSION)
+            
+            for key, val in attr.iteritems():
+                if key in self._attr_suppress:
+                    continue
+
+                attr_def = attr_defs.get(key, None)
+                
+                if attr_def is not None:
+                    out.write('<attr key="%s">%s</attr>\n' %
+                              (key, escape(attr_def.write(val))))
+                elif key == "version":
+                    # skip version attr
+                    pass
+                elif isinstance(val, keepnote.notebook.UnknownAttr):
+                    # write unknown attrs if they are strings
+                    out.write('<attr key="%s">%s</attr>\n' %
+                              (key, escape(val.value)))
+                else:
+                    # drop attribute
+                    pass
+                
+            out.write("</node>\n")
+            out.close()
+        except Exception, e:
+            raise keepnote.notebook.NoteBookError(
+                _("Cannot write meta data"), e)
+
+
+    def _read_attr2(self, filename, attr_defs, recover=True):
+        """Read a node meta data file"""
+        
+        attr = {}
+
+        try:
+            tree = ET.ElementTree(file=filename)
+        except Exception, e:
+            if recover:
+                self._recover_attr(filename)
+                return self._read_attr(filename, attr_defs, recover=False)
+            
+            raise keepnote.notebook.NoteBookError(
+                _("Error reading meta data file '%s'" % filename), e)
+
+        # check root
+        root = tree.getroot()
+        if root.tag != "node":
+            raise keepnote.notebook.NoteBookError(_("Root tag is not 'node'"))
+        
+        # iterate children
+        for child in root:
+            if child.tag == "version":
+                attr["version"] = int(child.text)
+            elif child.tag == "attr":
+                key = child.get("key", None)
+                if key is not None:
+                    attr_parser = attr_defs.get(key, None)
+                    if attr_parser is not None:
+                        attr[key] = attr_parser.read(child.text)
+                    else:
+                        # unknown attribute is read as a UnknownAttr
+                        attr[key] = keepnote.notebook.UnknownAttr(child.text)
+
+        return attr
+'''

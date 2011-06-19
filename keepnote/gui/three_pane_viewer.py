@@ -178,6 +178,7 @@ class ThreePaneViewer (Viewer):
         self.listview_sw.set_shadow_type(gtk.SHADOW_IN)
         self.listview_sw.add(self.listview)
         self.paned2.add1(self.listview_sw)
+        #self.paned2.child_set_property(self.listview_sw, "shrink", True)
         
         # layout editor
         self.paned2.add2(self.editor_pane)
@@ -225,8 +226,12 @@ class ThreePaneViewer (Viewer):
 
         p = app_pref.get("viewers", "three_pane_viewer", define=True)
         self.set_view_mode(p.get("view_mode", DEFAULT_VIEW_MODE))
-        self.paned2.set_position(p.get("vsash_pos", DEFAULT_VSASH_POS))
+
+        
+        self.paned2.set_property("position-set", True)
+        self.hpaned.set_property("position-set", True)
         self.hpaned.set_position(p.get("hsash_pos", DEFAULT_HSASH_POS))
+        self.paned2.set_position(p.get("vsash_pos", DEFAULT_VSASH_POS))
 
 
         self.listview.set_date_formats(app_pref.get("timestamp_formats"))

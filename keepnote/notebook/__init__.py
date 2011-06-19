@@ -1193,9 +1193,8 @@ class NoteBook (NoteBookNode):
     
     def __init__(self, rootdir=None):
         """rootdir -- Root directory of notebook"""
-
-        attr_defs = {}
-        conn = connection_fs.NoteBookConnectionFS(attr_defs)
+        
+        conn = connection_fs.NoteBookConnectionFS()
         NoteBookNode.__init__(self, notebook=self, 
                               content_type=CONTENT_TYPE_DIR,
                               init_attr=False, conn=conn)
@@ -1205,11 +1204,9 @@ class NoteBook (NoteBookNode):
         self._basename = rootdir
         self._dirty = set()
         self._trash = None
-        self.attr_defs = attr_defs
+        self.attr_defs = {}
         self._necessary_attrs = []
-        #self._attr_temp = set(["icon_open_load", "icon_load"])
-                               #"parentid",
-                               #"childrenids"])
+        
         self._mask_attr = maskdict.MaskDict(
             {}, ["icon_open_load", "icon_load"])
         
@@ -1375,8 +1372,8 @@ class NoteBook (NoteBookNode):
         # TODO: ideally I would like to do index_attr()'s before 
         # conn.init_index(), so that the initial indexing properly 
         # catches all the desired attr's
-        self._conn.index_attr("icon")
-        self._conn.index_attr("title", index_value=True)
+        self._conn.index_attr("icon", unicode)
+        self._conn.index_attr("title", unicode, index_value=True)
 
 
     #--------------------------------------
