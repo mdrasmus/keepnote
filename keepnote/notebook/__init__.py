@@ -1176,6 +1176,7 @@ class NoteBook (NoteBookNode):
     """Class represents a NoteBook"""
 
     # TODO: should I make a base class without a filename argument?
+    # TODO: should I require rootdir here or in create function?
     
     def __init__(self, rootdir=None):
         """rootdir -- Root directory of notebook"""
@@ -1254,6 +1255,9 @@ class NoteBook (NoteBookNode):
     
     def create(self):
         """Initialize NoteBook on the file-system"""
+
+        if self._basename is None:
+            raise NoteBookError("must specify rootdir")
 
         self._attr["created_time"] = get_timestamp()
         self._attr["modified_time"] = get_timestamp()

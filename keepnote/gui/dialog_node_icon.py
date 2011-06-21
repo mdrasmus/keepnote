@@ -32,6 +32,7 @@ import os
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
+import gobject
 import gtk
 import gtk.glade
 
@@ -195,7 +196,7 @@ class NodeIconDialog (object):
             if filename:
                 try:
                     pixbuf = keepnote.gui.get_pixbuf(filename)
-                except GError:
+                except gobject.GError:
                     continue
                 list.append((pixbuf, iconfile))
             

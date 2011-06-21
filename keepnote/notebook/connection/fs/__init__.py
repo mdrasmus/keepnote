@@ -564,7 +564,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         new_filename = keepnote.notebook.get_unique_filename(
             lostdir, os.path.basename(filename),  sep=u"-")
         
-        keepnote.log_message("moving data to lostdir '%s' => '%s'\n" % 
+        keepnote.log_message(u"moving data to lostdir '%s' => '%s'\n" % 
                              (filename, new_filename))
         try:
             os.rename(filename, new_filename)
@@ -735,7 +735,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             os.rename(path, new_path)
         except OSError, e:
             raise keepnote.notebook.NoteBookError(
-                _("Cannot rename '%s' to '%s'" % (path, new_path)), e)
+                _(u"Cannot rename '%s' to '%s'" % (path, new_path)), e)
         
         # update index
         basename = os.path.basename(new_path)
@@ -761,7 +761,9 @@ class NoteBookConnectionFS (NoteBookConnection):
             shutil.rmtree(self._get_node_path(nodeid))
         except OSError, e:
             raise keepnote.notebook.NoteBookError(
-                _("Do not have permission to delete"), e)
+                _(u"Do not have permission to delete"), e)
+
+        # TODO: remove from index entire subtree
 
         self._path_cache.remove(nodeid)
         self._index.remove_node(nodeid)
@@ -803,7 +805,7 @@ class NoteBookConnectionFS (NoteBookConnection):
                 try:
                     yield self._read_node(nodeid, path2, _full=_full)
                 except keepnote.notebook.NoteBookError, e:
-                    keepnote.log_error("error reading %s" % path2)
+                    keepnote.log_error(u"error reading %s" % path2)
                     continue
                     # TODO: raise warning, not all children read
 
@@ -818,8 +820,8 @@ class NoteBookConnectionFS (NoteBookConnection):
         if children is not None:
             return children
 
-        path = self._get_node_path(nodeid)
-
+        #path = self._get_node_path(nodeid)
+        #
         # Disabled for now.  Don't rely on index for listing children
         # if node is unchanged on disk (same mtime), 
         # use index to detect children
@@ -886,7 +888,7 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         if warn:
             keepnote.log_message(
-                "Unmanaged change detected. Reindexing '%s'\n" % path)
+                u"Unmanaged change detected. Reindexing '%s'\n" % path)
 
         # TODO: to prevent a full recurse I could index children but 
         # use 0 for mtime, so that they will still trigger an index for them
@@ -994,7 +996,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             out.write("<node></node>")
             out.close()
         except:
-            keepnote.log_error("failed to recover '%s'" % filename)
+            keepnote.log_error(u"failed to recover '%s'" % filename)
             pass
 
 

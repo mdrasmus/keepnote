@@ -152,7 +152,7 @@ DEFAULT_AUTOSAVE_TIME = 10 * 1000 # 10 sec (in msec)
 # TODO: cleanup, make get/set_basedir symmetrical
 
 def get_basedir():
-    return unicode(os.path.dirname(__file__))
+    return os.path.dirname(unicode(__file__, FS_ENCODING))
 
 def set_basedir(basedir):
     global BASEDIR
