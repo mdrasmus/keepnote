@@ -226,12 +226,10 @@ class ThreePaneViewer (Viewer):
 
         p = app_pref.get("viewers", "three_pane_viewer", define=True)
         self.set_view_mode(p.get("view_mode", DEFAULT_VIEW_MODE))
-
-        
         self.paned2.set_property("position-set", True)
         self.hpaned.set_property("position-set", True)
-        self.hpaned.set_position(p.get("hsash_pos", DEFAULT_HSASH_POS))
         self.paned2.set_position(p.get("vsash_pos", DEFAULT_VSASH_POS))
+        self.hpaned.set_position(p.get("hsash_pos", DEFAULT_HSASH_POS))
 
 
         self.listview.set_date_formats(app_pref.get("timestamp_formats"))
