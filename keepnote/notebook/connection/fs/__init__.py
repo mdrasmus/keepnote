@@ -138,9 +138,9 @@ def path_local2node(filename):
       aaa\bbb\ccc  =>  aaa/bbb/ccc
     """
 
-    if os.path.sep == "/":
+    if os.path.sep == u"/":
         return filename
-    return filename.replace(os.path.sep, "/")
+    return filename.replace(os.path.sep, u"/")
 
 
 def path_node2local(filename):
@@ -156,9 +156,9 @@ def path_node2local(filename):
       aaa/bbb/ccc  =>  aaa\bbb\ccc
     """
     
-    if os.path.sep == "/":
+    if os.path.sep == u"/":
         return filename
-    return filename.replace("/", os.path.sep)
+    return filename.replace(u"/", os.path.sep)
     
 
 def get_node_filename(node_path, filename):
@@ -312,7 +312,7 @@ class PathCache (object):
     An in-memory cache of filesystem paths for nodeids
     """
 
-    def __init__(self, rootid=None, rootpath=""):
+    def __init__(self, rootid=None, rootpath=u""):
         self._nodes = {None: None}
         
         if rootid:
@@ -569,7 +569,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         try:
             os.rename(filename, new_filename)
         except OSError, e:
-            raise ConnectionError("unable to store lost file '%s'" 
+            raise ConnectionError(u"unable to store lost file '%s'" 
                                   % filename, e)
         
     #======================
@@ -712,7 +712,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             # move to a new parent
             self._rename_node_dir(nodeid, attr, parentid, parentid2, path)
         elif (parentid and title_index and 
-              title_index != attr.get("title", "")):
+              title_index != attr.get("title", u"")):
             # rename node directory, but
             # do not rename root node dir (parentid is None)
             self._rename_node_dir(nodeid, attr, parentid, parentid2, path)
@@ -796,7 +796,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             files = os.listdir(path)
         except:
             raise keepnote.notebook.NoteBookError(
-                _("Do not have permission to read folder contents: %s") 
+                _(u"Do not have permission to read folder contents: %s") 
                 % path, e)           
         
         for filename in files:
@@ -919,8 +919,8 @@ class NoteBookConnectionFS (NoteBookConnection):
         try:
             out = safefile.open(filename, "w", codec="utf-8")
             out.write(XML_HEADER)
-            out.write("<node>\n"
-                      "<version>%s</version>\n" % 
+            out.write(u"<node>\n"
+                      u"<version>%s</version>\n" % 
                       keepnote.notebook.NOTEBOOK_FORMAT_VERSION)
             
             for key, val in attr.iteritems():
@@ -930,20 +930,20 @@ class NoteBookConnectionFS (NoteBookConnection):
                 attr_def = attr_defs.get(key, None)
                 
                 if attr_def is not None:
-                    out.write('<attr key="%s">%s</attr>\n' %
+                    out.write(u'<attr key="%s">%s</attr>\n' %
                               (key, escape(attr_def.write(val))))
                 elif key == "version":
                     # skip version attr
                     pass
                 elif isinstance(val, keepnote.notebook.UnknownAttr):
                     # write unknown attrs if they are strings
-                    out.write('<attr key="%s">%s</attr>\n' %
+                    out.write(u'<attr key="%s">%s</attr>\n' %
                               (key, escape(val.value)))
                 else:
                     # drop attribute
                     pass
                 
-            out.write("</node>\n")
+            out.write(u"</node>\n")
             out.close()
         except Exception, e:
             raise keepnote.notebook.NoteBookError(
@@ -963,7 +963,7 @@ class NoteBookConnectionFS (NoteBookConnection):
                 return self._read_attr(filename, attr_defs, recover=False)
             
             raise keepnote.notebook.NoteBookError(
-                _("Error reading meta data file '%s'" % filename), e)
+                _(u"Error reading meta data file '%s'" % filename), e)
 
         # check root
         root = tree.getroot()

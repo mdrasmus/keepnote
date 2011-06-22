@@ -886,7 +886,7 @@ class KeepNoteWindow (gtk.Window):
         if notebook is None:
             self.set_title(keepnote.PROGRAM_NAME)
         else:
-            title = notebook.get_attr("title", "")
+            title = notebook.get_attr("title", u"")
             if node is None:
                 node = self.get_current_page()
             if node is not None:
