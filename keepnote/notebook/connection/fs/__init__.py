@@ -561,6 +561,9 @@ class NoteBookConnectionFS (NoteBookConnection):
         """Moves a file/dir to the lost_found directory"""
         
         lostdir = self._get_lostdir()
+        if not os.path.exists(lostdir):
+            os.makedirs(lostdir)
+
         new_filename = keepnote.notebook.get_unique_filename(
             lostdir, os.path.basename(filename),  sep=u"-")
         
