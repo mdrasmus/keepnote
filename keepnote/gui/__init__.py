@@ -486,7 +486,7 @@ class KeepNote (keepnote.KeepNote):
         
         
         # load notebook in background
-        def update_old(task):
+        def update(task):
             sem = threading.Semaphore()
             sem.acquire()
             
@@ -506,7 +506,7 @@ class KeepNote (keepnote.KeepNote):
             sem.acquire()
             
 
-        def update(task):
+        def update_old(task):
             notebook = notebooklib.NoteBook()
             notebook.load(filename)
             task.set_result(notebook)
