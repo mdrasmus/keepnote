@@ -107,7 +107,7 @@ XML_HEADER = u"""\
 NODE_META_FILE = u"node.xml"
 NOTEBOOK_META_DIR = u"__NOTEBOOK__"
 LOSTDIR = u"lost_found"
-MAX_LEN_NODE_FILENAME = 20
+MAX_LEN_NODE_FILENAME = 40
 
 
 #=============================================================================
