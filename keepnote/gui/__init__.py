@@ -533,18 +533,18 @@ class KeepNote (keepnote.KeepNote):
                           e.notebook_version,
                           keepnote.PROGRAM_NAME,
                           e.readable_version),
-                       e, sys.exc_info()[2])
+                       e, task.exc_info()[2])
             return None
 
         except NoteBookError, e:
             self.error(_("Could not load notebook '%s'.") % filename,
-                       e, sys.exc_info()[2])
+                       e, task.exc_info()[2])
             return None
 
         except Exception, e:
             # give up opening notebook
             self.error(_("Could not load notebook '%s'.") % filename,
-                       e, sys.exc_info()[2])
+                       e, task.exc_info()[2])
             return None
 
         # install default quick pick icons

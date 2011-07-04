@@ -282,8 +282,10 @@ def get_path_mtime2(path):
         mtime = _mtime_cache[path] = os.stat(path).st_mtime
     return mtime
 
+# DEBUG: disabled to see if windows 7 speed issue is due to this
 def get_path_mtime(path):
-    return os.stat(path).st_mtime
+    return 0
+    #return os.stat(path).st_mtime
 
 def mark_path_outdated(path):
     os.utime(path, None)
@@ -551,7 +553,9 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def _get_node_mtime(self, nodeid):
         """mtime (modification time) for nodeid"""
-        return os.stat(self._get_node_path(nodeid)).st_mtime
+        # DEBUG: disabled to see if windows 7 speed issue is due to mtime
+        return 0
+        #return os.stat(self._get_node_path(nodeid)).st_mtime
 
 
     def _get_lostdir(self):
@@ -746,12 +750,13 @@ class NoteBookConnectionFS (NoteBookConnection):
         self._index.add_node(nodeid, new_parentid, basename, attr, 
                              mtime=get_path_mtime(new_path))
 
+        # DEBUG: disbale to see if windows 7 speed issue is related to mtime
         # update parent too
-        self._index.set_node_mtime(
-            parentid, get_path_mtime(os.path.dirname(path)))
-        if new_parentid != parentid:
-            self._index.set_node_mtime(
-                new_parentid, get_path_mtime(new_parent_path))
+        #self._index.set_node_mtime(
+        #    parentid, get_path_mtime(os.path.dirname(path)))
+        #if new_parentid != parentid:
+        #    self._index.set_node_mtime(
+        #        new_parentid, get_path_mtime(new_parent_path))
 
             
     
@@ -880,6 +885,9 @@ class NoteBookConnectionFS (NoteBookConnection):
     
 
     def _node_index_current(self, nodeid, path, mtime=None):
+        # DEBUG: disabled to see if windows 7 speed issue is related to mtime
+        return True, 0
+
         if mtime is None:
             mtime = get_path_mtime(path)
         index_mtime = self._index.get_node_mtime(nodeid)
@@ -1046,8 +1054,8 @@ class NoteBookConnectionFS (NoteBookConnection):
         # TODO: this should check and update the mtime
         # but only update if it was previously consistent (before the open)
         # update mtime since file creation causes directory mtime to change
-        if self._index:
-            self._index.set_node_mtime(nodeid, os.stat(path).st_mtime)
+        #if self._index:
+        #    self._index.set_node_mtime(nodeid, os.stat(path).st_mtime)
         
         return stream
 
