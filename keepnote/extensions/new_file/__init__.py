@@ -1,13 +1,13 @@
 """
     KeepNote Extension 
-    backup_tar
+    new_file
 
-    Tar file notebook backup
+    Extension allows adding new filetypes to a notebook
 """
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2011 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
