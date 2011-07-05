@@ -80,6 +80,8 @@ class ImageResizeDialog (object):
         self.dialog = self.xml.get_widget("image_resize_dialog")
         self.dialog.set_transient_for(self.main_window)
         self.dialog.connect("response", lambda d, r: self.on_response(r))       
+
+        # TODO: convert to run
         self.dialog.show()
 
         self.image = image

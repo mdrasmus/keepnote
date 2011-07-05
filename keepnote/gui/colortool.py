@@ -242,7 +242,15 @@ class ColorMenu (gtk.Menu):
     def on_new_color(self, menu):
         """Callback for new color"""
         dialog = gtk.ColorSelectionDialog("Choose color")
+        dialog.colorsel.set_has_palette(True)
         dialog.colorsel.set_has_opacity_control(False)
+
+        settings = gtk.settings_get_default()
+        #settings.set_property("gtk-color-palette",
+        #                     ":".join(["#ff0000"]*50))
+
+        #print dialog.colorsel.get_children()[0].get_children()[1].get_children()[1].get_children()[1]
+
         response = dialog.run()
 
         if response == gtk.RESPONSE_OK:                    
@@ -284,7 +292,8 @@ class ColorMenu (gtk.Menu):
 
         self.realize()
 
-
+    def clear_custom_colors(self):
+        pass
 
 
 gobject.type_register(ColorMenu)

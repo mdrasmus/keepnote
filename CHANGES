@@ -1,8 +1,17 @@
 KeepNote Change Log
 -------------------
 
-keepnote 0.7.3
+keepnote-0.7.4
 --------------
+- fixed notebook loading speed on Windows 
+- fixed basedir bug
+- fixed widget focus bug
+- fixed zero size listdir bug
+- fixed lostdir bug
+
+
+keepnote-0.7.3 (2011.06.18)
+---------------------------
 - added close button on tabs
 - bug fixes to notebook indexing, healing, and tamper detection
 

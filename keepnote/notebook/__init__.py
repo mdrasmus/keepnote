@@ -1533,7 +1533,7 @@ class NoteBook (NoteBookNode):
                                            basename)
 
         newfilename = self._conn.new_filename(self._attr["nodeid"], 
-                                              newfilename, ext, "-",
+                                              newfilename, ext, u"-",
                                               ensure_valid=False)
 
         self._conn.copy_node_file(None, filename, 
@@ -1558,7 +1558,7 @@ class NoteBook (NoteBookNode):
         use_number = False
         while True:
             newfilename, number = self._conn.new_filename(
-                self._attr["nodeid"], startname, ext, "-",
+                self._attr["nodeid"], startname, ext, u"-",
                 number=number, return_number=True, use_number=use_number,
                 ensure_valid=False,
                 path=nodepath)
@@ -1566,10 +1566,10 @@ class NoteBook (NoteBookNode):
             # determine open icon filename
             newfilename_open = startname
             if number:
-                newfilename_open += "-" + str(number)
+                newfilename_open += u"-" + unicode(number)
             else:
                 number = 2
-            newfilename_open += "-open" + ext
+            newfilename_open += u"-open" + ext
 
             # see if it already exists
             if self._conn.file_exists(self._attr["nodeid"], newfilename_open):

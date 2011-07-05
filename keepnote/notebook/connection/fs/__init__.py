@@ -107,7 +107,7 @@ XML_HEADER = u"""\
 NODE_META_FILE = u"node.xml"
 NOTEBOOK_META_DIR = u"__NOTEBOOK__"
 LOSTDIR = u"lost_found"
-MAX_LEN_NODE_FILENAME = 20
+MAX_LEN_NODE_FILENAME = 40
 
 
 #=============================================================================
@@ -561,6 +561,9 @@ class NoteBookConnectionFS (NoteBookConnection):
         """Moves a file/dir to the lost_found directory"""
         
         lostdir = self._get_lostdir()
+        if not os.path.exists(lostdir):
+            os.makedirs(lostdir)
+
         new_filename = keepnote.notebook.get_unique_filename(
             lostdir, os.path.basename(filename),  sep=u"-")
         
