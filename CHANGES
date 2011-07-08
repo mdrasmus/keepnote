@@ -3,6 +3,7 @@ KeepNote Change Log
 
 keepnote-0.7.4
 --------------
+- added Slovak language
 - fixed notebook loading speed on Windows 
 - fixed basedir bug
 - fixed widget focus bug

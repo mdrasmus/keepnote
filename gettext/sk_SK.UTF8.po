@@ -1,32 +1,31 @@
-# Chinese translations for keepnote package
-# keepnote 软件包的简体中文翻译.
-# Copyright (C) 2010 THE keepnote'S COPYRIGHT HOLDER
+# Slovak translations for keepnote package
+# Slovenské preklady pre balík keepnote.
+# Copyright (C) 2011 THE keepnote'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the keepnote package.
-# hudc <hdccn@sina.com>, 2010.
+# Slavko <linux@slavino.sk>, 2011.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: keepnote 0.6.2\n"
+"Project-Id-Version: keepnote 0.7.3\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2011-07-08 09:49-0400\n"
-"PO-Revision-Date: 2010-03-24 15:32+0800\n"
-"Last-Translator: 胡达川(hu dachuan) <hdccn@sina.com>\n"
-"Language-Team: 胡达川(hu dachuan) <hdccn@sina.com>\n"
-"Language: \n"
+"PO-Revision-Date: 2011-07-08 08:43+0200\n"
+"Last-Translator: Slavko <linux@slavino.sk>\n"
+"Language-Team: Slovak <nomail@nomail.sk>\n"
+"Language: sk\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
-"X-Poedit-Language: Chinese\n"
-"X-Poedit-Country: CHINA\n"
+"Content-Transfer-Encoding: 8-bit\n"
+"Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
 
 #: keepnote/__init__.py:682
 msgid "Cannot save preferences"
-msgstr "不能保存配置"
+msgstr "Nemožno uložiť nastavenia"
 
 #: keepnote/__init__.py:1027 keepnote/__init__.py:1029
 #, python-format
 msgid "Must specify '%s' program in Helper Applications"
-msgstr "必须在助手应用中指定 '%s' 程序"
+msgstr "Musíte zadať '%s' program v Pomocných aplikáciách"
 
 #: keepnote/__init__.py:1050
 #, python-format
@@ -39,118 +38,119 @@ msgid ""
 "\n"
 "error: %s"
 msgstr ""
-"用 %s打开文件时发生错误\n"
+"Nastala chyba pri otváraní súboru pomocou %s.\n"
 "\n"
-"程序: '%s'\n"
+"program: '%s'\n"
 "\n"
-"文件: '%s'\n"
+"súbor: '%s'\n"
 "\n"
-"错误: %s"
+"chyba: %s"
 
 #: keepnote/__init__.py:1081
 msgid "Unable to determine note type."
-msgstr ""
+msgstr "Nemožno určiť typ poznámky"
 
 #: keepnote/__init__.py:1111
 msgid "You must specify a Screen Shot program in Application Options"
-msgstr "你必须在应用选项中指定屏幕截图程序。"
+msgstr "Musíte zadať program na snímanie obrazovky v Nastaveniach"
 
 #: keepnote/__init__.py:1123
 #, python-format
 msgid "The screenshot program did not create the necessary image file '%s'"
-msgstr "屏幕截图程序不能创建必须的图片文件 '%s'"
+msgstr ""
+"Program na snímanie obrazovky nevytvoril požadovaný súbor obrázka \"%s\""
 
 #: keepnote/__init__.py:1144
 #, python-format
 msgid "command '%s' already exists"
-msgstr "命令 '%s' 已经存在。"
+msgstr "príkaz '%s' už existuje"
 
 #: keepnote/__init__.py:1174 keepnote/__init__.py:1366
 #, python-format
 msgid "enabling extension '%s'\n"
-msgstr "使用扩展 '%s'\n"
+msgstr "zapínanie rozšírenia '%s'\n"
 
 #: keepnote/__init__.py:1179
 #, python-format
 msgid "  skipping extension '%s':\n"
-msgstr "  忽略扩展 '%s':\n"
+msgstr "  preskakovanie rozšírenia '%s':\n"
 
 #: keepnote/__init__.py:1182
 #, python-format
 msgid "    failed dependency: %s\n"
-msgstr "失败的依赖: %s\n"
+msgstr "    zlyhala závislosť : %s\n"
 
 #: keepnote/__init__.py:1349
 #, python-format
 msgid "Unable to install extension '%s'"
-msgstr "不能安装扩展 '%s'"
+msgstr "Nemožno nainštalovať rozšírenie '%s'"
 
 #: keepnote/__init__.py:1355
 #, python-format
 msgid "removing '%s'"
-msgstr "正在移除 '%s'"
+msgstr "odstraňovanie '%s'"
 
 #: keepnote/__init__.py:1364
 msgid "Enabling new extensions:\n"
-msgstr "使用一个新扩展:\n"
+msgstr "Zapínanie nových rozšírení:\n"
 
 #: keepnote/__init__.py:1379
 #, python-format
 msgid "Unable to uninstall unknown extension '%s'."
-msgstr "不能卸载未知扩展 '%s'."
+msgstr "Nemožno odinštalovať neznáme rozšírenie '%s'."
 
 #: keepnote/__init__.py:1384
 msgid "KeepNote can only uninstall user extensions"
-msgstr ""
+msgstr "KeepNote môže odinštalovať len používateľské rozšírenia"
 
 #: keepnote/__init__.py:1401
 msgid "Unable to uninstall extension.  Do not have permission."
-msgstr "没有权限，不能卸载扩展。"
+msgstr "Nemožno odinštalovať rozšírenie.  Nemáte na to práva."
 
 #: keepnote/gui/editor_text.py:407 keepnote/gui/editor_sourceview.py:473
 #: keepnote/gui/editor_richtext.py:1103
 msgid "_Find In Page..."
-msgstr "在本页内查找(_F)"
+msgstr "_Nájsť v stránke..."
 
 #: keepnote/gui/editor_text.py:411 keepnote/gui/editor_sourceview.py:477
 #: keepnote/gui/editor_richtext.py:1107
 msgid "Find _Next In Page..."
-msgstr "在下一页中查找(_N)..."
+msgstr "Nájsť v ďalšej _stránke..."
 
 #: keepnote/gui/editor_text.py:416 keepnote/gui/editor_sourceview.py:482
 #: keepnote/gui/editor_richtext.py:1112
 msgid "Find Pre_vious In Page..."
-msgstr "在上一页中查找(_V)..."
+msgstr "Nájsť v pre_došlej stránke..."
 
 #: keepnote/gui/editor_text.py:421 keepnote/gui/editor_sourceview.py:487
 #: keepnote/gui/editor_richtext.py:1117
 msgid "_Replace In Page..."
-msgstr "在本页内替换(_R)..."
+msgstr "N_ahradiť v stránke..."
 
 #: keepnote/gui/editor_text.py:427 keepnote/gui/editor_sourceview.py:493
 #: keepnote/gui/editor_richtext.py:1231
 msgid "_Spell Check"
-msgstr "拼写检查(_S)"
+msgstr "_Kontrola preklepov"
 
 #: keepnote/gui/dialog_image_new.py:53
 msgid "New Image"
-msgstr "新图片"
+msgstr "Nový obrázok"
 
 #: keepnote/gui/dialog_image_new.py:62
 msgid "format:"
-msgstr "格式:"
+msgstr "formát:"
 
 #: keepnote/gui/dialog_image_new.py:74 keepnote/rc/keepnote.glade.h:112
 msgid "width:"
-msgstr "宽度:"
+msgstr "šírka:"
 
 #: keepnote/gui/dialog_image_new.py:86 keepnote/rc/keepnote.glade.h:105
 msgid "height:"
-msgstr "高度:"
+msgstr "výška:"
 
 #: keepnote/gui/main_window.py:504
 msgid "New Notebook"
-msgstr "新建笔记本"
+msgstr "Nový zápisník"
 
 #: keepnote/gui/main_window.py:506 keepnote/gui/main_window.py:526
 #: keepnote/gui/dialog_app_options.py:59
@@ -159,343 +159,343 @@ msgstr "新建笔记本"
 #: keepnote/gui/editor_richtext.py:650 keepnote/gui/editor_richtext.py:794
 #: keepnote/gui/dialog_node_icon.py:62
 msgid "Cancel"
-msgstr "取消"
+msgstr "Zrušiť"
 
 #: keepnote/gui/main_window.py:507
 msgid "New"
-msgstr "新建"
+msgstr "Nový"
 
 #: keepnote/gui/main_window.py:524
 msgid "Open Notebook"
-msgstr "打开笔记本"
+msgstr "Otvoriť zápisník"
 
 #: keepnote/gui/main_window.py:527 keepnote/gui/dialog_app_options.py:60
 #: keepnote/gui/dialog_app_options.py:693 keepnote/gui/dialog_node_icon.py:63
 msgid "Open"
-msgstr "打开"
+msgstr "Otvoriť"
 
 #: keepnote/gui/main_window.py:542
 msgid "Notebook (*.nbk)"
-msgstr "笔记本 (*.nbk)"
+msgstr "Zápisník (*.nbk)"
 
 #: keepnote/gui/main_window.py:547 keepnote/gui/dialog_app_options.py:704
 msgid "All files (*.*)"
-msgstr "所有文件 (*.*)"
+msgstr "Všetky súbory (*.*)"
 
 #: keepnote/gui/main_window.py:618
 msgid "Notebook saved"
-msgstr "笔记本已保存"
+msgstr "Zápisník uložený"
 
 #: keepnote/gui/main_window.py:622
 msgid "Could not save notebook."
-msgstr "不能保存笔记本。"
+msgstr "Nemožno uložiť zápisník."
 
 #: keepnote/gui/main_window.py:623
 msgid "Error saving notebook"
-msgstr "保存笔记本时错误"
+msgstr "Chyba pri ukladaní zápisníka"
 
 #: keepnote/gui/main_window.py:632
 msgid "Reloading only works when a notebook is open."
-msgstr "当笔记本打开时，仅重载工作。"
+msgstr "Znova načítanie funguje len keď je zápisník otvorený."
 
 #: keepnote/gui/main_window.py:639
 msgid "Notebook reloaded"
-msgstr "笔记本已重新载入"
+msgstr "Zápisník znova načítaný"
 
 #: keepnote/gui/main_window.py:655
 #, python-format
 msgid "Created '%s'"
-msgstr "创建 '%s'"
+msgstr "Vytvorený '%s'"
 
 #: keepnote/gui/main_window.py:657
 msgid "Could not create new notebook."
-msgstr "不能创建新笔记本。"
+msgstr "Nemožno vytvoriť nový zápisník."
 
 #: keepnote/gui/main_window.py:805
 #, python-format
 msgid "Could note find notebook '%s'."
-msgstr ""
+msgstr "Nemožno nájsť zápisník '%s'."
 
 #: keepnote/gui/main_window.py:818
 #, python-format
 msgid "Loaded '%s'"
-msgstr "已载入 '%s'"
+msgstr "Načítaný '%s'"
 
 #: keepnote/gui/main_window.py:835
 msgid "Notebook closed"
-msgstr "笔记本已关闭"
+msgstr "Zápisník zatvorený"
 
 #: keepnote/gui/main_window.py:870
 msgid "Error during index"
-msgstr ""
+msgstr "Chyba počas indexovania"
 
 #: keepnote/gui/main_window.py:874
 msgid "Indexing notebook"
-msgstr "正在索引笔记本"
+msgstr "Indexovanie zápisníka"
 
 #: keepnote/gui/main_window.py:874
 msgid "Indexing..."
-msgstr "索引中"
+msgstr "Indexovanie..."
 
 #: keepnote/gui/main_window.py:898
 msgid "Notebook modified"
-msgstr "笔记本已修改"
+msgstr "Zápisník zmenený"
 
 #: keepnote/gui/main_window.py:933 keepnote/compat/notebook_v3.py:1278
 #: keepnote/notebook/__init__.py:1404
 msgid "The Trash folder cannot be deleted."
-msgstr "回收站文件夹不能删除。"
+msgstr "Zložku koša nemožno odstrániť."
 
 #: keepnote/gui/main_window.py:936
 msgid "The top-level folder cannot be deleted."
-msgstr "最上层文件夹不能被删除。"
+msgstr "Zložku najvyššej úrovne nemožno odstrániť."
 
 #: keepnote/gui/main_window.py:940
 msgid "Do you want to delete this note and all of its children?"
-msgstr "你想要删除这个笔记及其所有子笔记么？"
+msgstr "Chcete odstrániť túto poznámku a všetkých potomkov?"
 
 #: keepnote/gui/main_window.py:942
 msgid "Do you want to delete this note?"
-msgstr "你想要删除本笔记么？"
+msgstr "Chcete odstrániť túto poznámku?"
 
 #: keepnote/gui/main_window.py:944
 msgid "Delete Note"
-msgstr "删除笔记"
+msgstr "Odstránenie poznámky"
 
 #: keepnote/gui/main_window.py:957
 msgid "Could not empty trash."
-msgstr "不能清空回收站。"
+msgstr "Nemožno vyprázdniť kôš."
 
 #: keepnote/gui/main_window.py:972
 msgid "No notes are selected."
-msgstr "未选择笔记"
+msgstr "Nie sú zvolené poznámky."
 
 #: keepnote/gui/main_window.py:1036 keepnote/gui/main_window.py:1047
 msgid "Could not open error log"
-msgstr "不能打开错误日志"
+msgstr "Nemožno otvoriť záznam chýb"
 
 #: keepnote/gui/main_window.py:1131
 msgid "_File"
-msgstr "文件(_F)"
+msgstr "_Súbor"
 
 #: keepnote/gui/main_window.py:1133
 msgid "_New Notebook..."
-msgstr "新建笔记本(_N)..."
+msgstr "_Nový zápisník..."
 
 #: keepnote/gui/main_window.py:1134
 msgid "Start a new notebook"
-msgstr "打开一个新笔记本"
+msgstr "Spustí nový zápisník"
 
 #: keepnote/gui/main_window.py:1137
 msgid "_Open Notebook..."
-msgstr "打开笔记本(_O)"
+msgstr "_Otvoriť zápisník..."
 
 #: keepnote/gui/main_window.py:1138
 msgid "Open an existing notebook"
-msgstr "打开存在的笔记本"
+msgstr "Otvorí existujúci zápisník"
 
 #: keepnote/gui/main_window.py:1142
 msgid "Open Re_cent Notebook"
-msgstr "最近打开的文档(_C)"
+msgstr "Otvoriť ne_dávny zápisník"
 
 #: keepnote/gui/main_window.py:1145
 msgid "_Reload Notebook"
-msgstr "重新载入笔记本(_R)"
+msgstr "Zn_ova načítať zápisník"
 
 #: keepnote/gui/main_window.py:1146
 msgid "Reload the current notebook"
-msgstr "重新加载当前笔记本"
+msgstr "Znova načíta nový zápisník"
 
 #: keepnote/gui/main_window.py:1149
 msgid "_Save Notebook"
-msgstr "保存笔记本(_S)"
+msgstr "_Uložiť zápisník"
 
 #: keepnote/gui/main_window.py:1150
 msgid "Save the current notebook"
-msgstr "保存当前笔记本"
+msgstr "Uloží aktuálny zápisník"
 
 #: keepnote/gui/main_window.py:1153
 msgid "_Close Notebook"
-msgstr "关闭笔记本(_C)"
+msgstr "_Zatvoriť zápisník"
 
 #: keepnote/gui/main_window.py:1154
 msgid "Close the current notebook"
-msgstr "关闭当前笔记本"
+msgstr "Zatvorí aktuálny zápisník"
 
 #: keepnote/gui/main_window.py:1157
 msgid "_Export Notebook"
-msgstr "导出笔记本(_E)"
+msgstr "_Exportovať zápisník"
 
 #: keepnote/gui/main_window.py:1159
 msgid "_Import Notebook"
-msgstr "导入笔记本(_I)"
+msgstr "_Importovať zápisník"
 
 #: keepnote/gui/main_window.py:1161 keepnote/gui/main_window.py:1391
 msgid "_Quit"
-msgstr "退出(_Q)"
+msgstr "_Skončiť"
 
 #: keepnote/gui/main_window.py:1162 keepnote/gui/main_window.py:1392
 msgid "Quit KeepNote"
-msgstr "退出 KeepNote"
+msgstr "Skončí KeepNote"
 
 #: keepnote/gui/main_window.py:1166
 msgid "_Edit"
-msgstr "编辑(_E)"
+msgstr "_Upraviť"
 
 #: keepnote/gui/main_window.py:1192
 msgid "Empty _Trash"
-msgstr "清空回收站(_T)"
+msgstr "Vyprázdniť _kôš"
 
 #: keepnote/gui/main_window.py:1197
 msgid "_Search"
-msgstr "搜索(_S)"
+msgstr "_Hľadať"
 
 #: keepnote/gui/main_window.py:1199
 msgid "_Search All Notes"
-msgstr "搜索所有笔记(_S)"
+msgstr "_Hľadať vo všetkých"
 
 #: keepnote/gui/main_window.py:1204
 msgid "_Go"
-msgstr "_Go"
+msgstr "_Prejsť"
 
 #: keepnote/gui/main_window.py:1207
 msgid "_View"
-msgstr "视图(_V)"
+msgstr "_Zobraziť"
 
 #: keepnote/gui/main_window.py:1210
 msgid "View Note in File Explorer"
-msgstr "在文件浏览器中查看笔记"
+msgstr "Zobraziť v _správcovi súborov"
 
 #: keepnote/gui/main_window.py:1216
 msgid "View Note in Text Editor"
-msgstr "在文字编辑器中查看笔记"
+msgstr "Zobraziť v textovom _editore"
 
 #: keepnote/gui/main_window.py:1222
 msgid "View Note in Web Browser"
-msgstr "在WEB浏览器中查看笔记"
+msgstr "Zobraziť vo _webovom prehliadači"
 
 #: keepnote/gui/main_window.py:1228
 msgid "_Open File"
-msgstr "打开文件(_O)"
+msgstr "_Otvoriť súbor"
 
 #: keepnote/gui/main_window.py:1235
 msgid "_Tools"
-msgstr "工具(_T)"
+msgstr "_Nástroje"
 
 #: keepnote/gui/main_window.py:1237
 msgid "_Update Notebook Index"
-msgstr "更新笔记本索引(_U)"
+msgstr "_Aktualizovať index zápisníka"
 
 #: keepnote/gui/main_window.py:1241 keepnote/gui/main_window.py:1388
 msgid "_Preferences"
-msgstr "配置(_P)"
+msgstr "_Nastavenia"
 
 #: keepnote/gui/main_window.py:1246
 msgid "Window"
-msgstr ""
+msgstr "_Okno"
 
 #: keepnote/gui/main_window.py:1248
 msgid "New Window"
-msgstr "新窗口"
+msgstr "_Nové okno"
 
 #: keepnote/gui/main_window.py:1249
 msgid "Open a new window"
-msgstr "打开一个新的窗口"
+msgstr "Otvorí nové okno"
 
 #: keepnote/gui/main_window.py:1252
 msgid "Close Window"
-msgstr ""
+msgstr "_Zatvoriť okno"
 
 #: keepnote/gui/main_window.py:1253
 msgid "Close window"
-msgstr ""
+msgstr "Zavrie okno"
 
 #: keepnote/gui/main_window.py:1258
 msgid "_Help"
-msgstr "帮助(_H)"
+msgstr "_Pomocník"
 
 #: keepnote/gui/main_window.py:1260
 msgid "View _Error Log..."
-msgstr "查看错误日志(_E)..."
+msgstr "Záznam _chýb..."
 
 #: keepnote/gui/main_window.py:1264
 msgid "View Preference Files..."
-msgstr "查看配置文件..."
+msgstr "Súbory _nastavení..."
 
 #: keepnote/gui/main_window.py:1267
 msgid "Drag and Drop Test..."
-msgstr "拖拽测试..."
+msgstr "Test Ťahaj&Pusť"
 
 #: keepnote/gui/main_window.py:1271 keepnote/gui/main_window.py:1394
 msgid "_About"
-msgstr "关于(_A)"
+msgstr "_O programe"
 
 #: keepnote/gui/main_window.py:1277 keepnote/gui/main_window.py:1279
 msgid "Search All Notes"
-msgstr "搜索所有笔记"
+msgstr "Hľadať vo všetkých poznámkach"
 
 #: keepnote/gui/main_window.py:1578 keepnote/gui/main_window.py:1612
 msgid "Unexpected error"
-msgstr ""
+msgstr "Neočakávaná chyba"
 
 #: keepnote/gui/main_window.py:1624
 msgid "Searching notebook"
-msgstr "正在查找笔记本"
+msgstr "Prehľadávanie zápisníka"
 
 #: keepnote/gui/main_window.py:1624
 msgid "Searching..."
-msgstr "搜索中..."
+msgstr "Hľadanie..."
 
 #: keepnote/gui/dialog_app_options.py:124
 msgid "Choose Default Notebook"
-msgstr "选择默认笔记本"
+msgstr "Vyberte predvolený zápisník"
 
 #: keepnote/gui/dialog_app_options.py:279
 msgid "show lines in treeview"
-msgstr "在树状视图中显示线"
+msgstr "zobraziť riadky v zozname"
 
 #: keepnote/gui/dialog_app_options.py:281
 msgid "use ruler hints in listview"
-msgstr "在列表视图使用规则提示。"
+msgstr "použiť info pravítka v zobrazení zoznamu"
 
 #: keepnote/gui/dialog_app_options.py:283
 msgid "use GTK stock icons in toolbar"
-msgstr "在工具栏中使用GTK stock图标"
+msgstr "použiť v paneli nástrojov GTK ikony"
 
 #: keepnote/gui/dialog_app_options.py:285
 msgid "use minimal toolbar"
-msgstr "使用最小化工具栏"
+msgstr "použiť minimálny panel nástrojov"
 
 #: keepnote/gui/dialog_app_options.py:291
 msgid "Application Font Size:"
-msgstr ""
+msgstr "Veľkosť písma aplikácie:"
 
 #: keepnote/gui/dialog_app_options.py:305
 msgid "Listview Layout:"
-msgstr "列表视图布局:"
+msgstr "Vzhľad zoznamu:"
 
 #: keepnote/gui/dialog_app_options.py:308
 msgid "Vertical"
-msgstr "垂直"
+msgstr "Zvislo"
 
 #: keepnote/gui/dialog_app_options.py:309
 msgid "Horizontal"
-msgstr "水平"
+msgstr "Vodorovne"
 
 #: keepnote/gui/dialog_app_options.py:358
 msgid "Language:"
-msgstr "语言："
+msgstr "Jazyk:"
 
 #: keepnote/gui/dialog_app_options.py:457
 #, python-format
 msgid "Choose %s"
-msgstr "选择 %s"
+msgstr "Vyberte %s"
 
 #: keepnote/gui/dialog_app_options.py:459
 #: keepnote/extensions/new_file/__init__.py:451
 #: keepnote/rc/keepnote.glade.h:39
 msgid "Browse..."
-msgstr "浏览..."
+msgstr "Prechádzať..."
 
 #: keepnote/gui/dialog_app_options.py:514
 msgid ""
@@ -503,106 +503,106 @@ msgid ""
 "notebook-specific font).   A subsection will appear for each notebook that "
 "is currently opened."
 msgstr ""
-"这部分包含的选项是保存每一个笔记本的基本选项(如:指定笔记本字体)。字部分显示么"
-"一个当前打开的笔记本。"
+"Táto časť obsahuje voľby, ktoré sú uložené pre každý zápisník (napr. font "
+"zápisníka). Každý otvorený zápisník bude mať samostatnú položku."
 
 #: keepnote/gui/dialog_app_options.py:547
 msgid "Choose alternative notebook index directory"
-msgstr "选择一个笔记本索引目录"
+msgstr "Zvoľte alternatívny adresár indexu zápisníka"
 
 #: keepnote/gui/dialog_app_options.py:690
 msgid "Install New Extension"
-msgstr "安装新的扩展"
+msgstr "Inštalovať nové rozšírenie"
 
 #: keepnote/gui/dialog_app_options.py:699
 msgid "KeepNote Extension (*.kne)"
-msgstr "KeepNote 扩展 (*.kne)"
+msgstr "Rozšírenie KeepNote (*.kne)"
 
 #: keepnote/gui/dialog_app_options.py:767
 msgid "Enabled"
-msgstr ""
+msgstr "Zapnuté"
 
 #: keepnote/gui/dialog_app_options.py:779
 msgid "Uninstall"
-msgstr ""
+msgstr "Odinštalovať"
 
 #: keepnote/gui/dialog_app_options.py:896
 msgid "Look and Feel"
-msgstr "外观和感觉"
+msgstr "Vzhľad a správanie"
 
 #: keepnote/gui/dialog_app_options.py:900
 msgid "Language"
-msgstr "语言"
+msgstr "Jazyk"
 
 #: keepnote/gui/dialog_app_options.py:904
 msgid "Date and Time"
-msgstr "日期和时间"
+msgstr "Dátum a čas"
 
 #: keepnote/gui/dialog_app_options.py:908
 msgid "Helper Applications"
-msgstr "助手应用"
+msgstr "Pomocné aplikácie"
 
 #: keepnote/gui/dialog_app_options.py:912
 msgid "Notebook Options"
-msgstr "笔记本选项"
+msgstr "Voľby zápisníka"
 
 #: keepnote/gui/dialog_app_options.py:915
 msgid "Extensions"
-msgstr "扩展"
+msgstr "Rozšírenia"
 
 #: keepnote/gui/tabbed_viewer.py:136 keepnote/gui/tabbed_viewer.py:254
 msgid "(Untitled)"
-msgstr ""
+msgstr "(Bez mena)"
 
 #: keepnote/gui/tabbed_viewer.py:576
 msgid "New _Tab"
-msgstr ""
+msgstr "N_ová záložka"
 
 #: keepnote/gui/tabbed_viewer.py:577
 msgid "Open a new tab"
-msgstr ""
+msgstr "Otvorí novú záložku"
 
 #: keepnote/gui/tabbed_viewer.py:579
 msgid "Close _Tab"
-msgstr ""
+msgstr "Z_atvoriť záložku"
 
 #: keepnote/gui/tabbed_viewer.py:580
 msgid "Close a tab"
-msgstr ""
+msgstr "Zatvorí záložku"
 
 #: keepnote/gui/tabbed_viewer.py:582
 msgid "_Next Tab"
-msgstr ""
+msgstr "Ď_alšia záložka"
 
 #: keepnote/gui/tabbed_viewer.py:583
 msgid "Switch to next tab"
-msgstr ""
+msgstr "Prepne na ďalšiu záložku"
 
 #: keepnote/gui/tabbed_viewer.py:585
 msgid "_Previous Tab"
-msgstr ""
+msgstr "_Predošlá záložka"
 
 #: keepnote/gui/tabbed_viewer.py:586
 msgid "Switch to previous tab"
-msgstr ""
+msgstr "Prepne na predošlú záložku"
 
 #: keepnote/gui/__init__.py:475 keepnote/gui/__init__.py:540
 #: keepnote/gui/__init__.py:546
 #, python-format
 msgid "Could not load notebook '%s'."
-msgstr "不能载入笔记本 '%s'。"
+msgstr "Nemožno načítať zápisník '%s'."
 
 #: keepnote/gui/__init__.py:483
 msgid "Cannot open notebook (version too old)"
-msgstr "不能打开笔记本(版本太旧)"
+msgstr "Nemožno otvoriť zápisník (príliš stará verzia)"
 
 #: keepnote/gui/__init__.py:516
 msgid "Opening notebook"
-msgstr "正在打开笔记本"
+msgstr "Otváranie zápisníka"
 
 #: keepnote/gui/__init__.py:516
 msgid "Loading..."
-msgstr "载入中..."
+msgstr "Načítanie..."
 
 #: keepnote/gui/__init__.py:530
 #, python-format
@@ -610,138 +610,140 @@ msgid ""
 "This version of %s cannot read this notebook.\n"
 "The notebook has version %d.  %s can only read %d."
 msgstr ""
-"本版本 %s 不能读这个笔记本。\n"
-"当前笔记本有版本 %d。  %s只能读 %d。"
+"Táto verzia %s nemôž čítať tento zápisník.\n"
+"Zápisník má verziu %d.  %s môže čítať len %d."
 
 #: keepnote/gui/__init__.py:748
 msgid "Attach File..."
-msgstr "附加文件..."
+msgstr "Pripojiť súbor..."
 
 #: keepnote/gui/__init__.py:751
 msgid "Attach"
-msgstr "附加"
+msgstr "Pripojiť"
 
 #: keepnote/gui/__init__.py:807
 #, python-format
 msgid "Error while attaching files %s."
-msgstr ""
+msgstr "Chyba pri pripájaní súborov %s."
 
 #: keepnote/gui/__init__.py:811
 #, python-format
 msgid "Error while attaching file '%s'."
-msgstr "附加文件时错误 '%s'."
+msgstr "Chyba pri pripájaní súboru %s."
 
 #: keepnote/gui/__init__.py:836
 msgid "Error"
-msgstr "错误"
+msgstr "Chyba"
 
 #: keepnote/gui/__init__.py:942
 #, python-format
 msgid "Do you want to install the extension \"%s\"?"
-msgstr "你想要安装这个扩展 \"%s\"么?"
+msgstr "Chcete nainštalovať rozšírenie \"%s\"?"
 
 #: keepnote/gui/__init__.py:951
 #, python-format
 msgid "Extension \"%s\" is now installed."
-msgstr "扩展 \"%s\" 正在安装。"
+msgstr "Rozšírenie \"%s\" je teraz nainštalované."
 
 #: keepnote/gui/__init__.py:952
 msgid "Install Successful"
-msgstr ""
+msgstr "Inštalácia úspešná"
 
 #: keepnote/gui/__init__.py:961
 #, python-format
 msgid "Do you want to uninstall the extension \"%s\"?"
-msgstr "你想要卸载扩展 \"%s\"?"
+msgstr "Chcete odinštalovať rozšírenie \"%s\"?"
 
 #: keepnote/gui/__init__.py:962
 msgid "Extension Uninstall"
-msgstr "扩展卸载"
+msgstr "Odinštalovanie rozšírenia"
 
 #: keepnote/gui/__init__.py:964
 #, python-format
 msgid "Extension \"%s\" is now uninstalled."
-msgstr "扩展 \"%s\" 正在卸载。"
+msgstr "Rozšírenie \"%s\" je teraz odinštalované."
 
 #: keepnote/gui/__init__.py:966
 msgid "Uninstall Successful"
-msgstr ""
+msgstr "Odinštalovanie úspešné"
 
 #: keepnote/gui/listview.py:82
 msgid "Title"
-msgstr "标题"
+msgstr "Titulok"
 
 #: keepnote/gui/listview.py:112
 msgid "Created"
-msgstr "创建"
+msgstr "Vytvorené"
 
 #: keepnote/gui/listview.py:131
 msgid "Modified"
-msgstr "修改"
+msgstr "Upravené"
 
 #: keepnote/gui/listview.py:341
 #, python-format
 msgid "%d pages"
-msgstr "%d 页"
+msgstr "%d stránky/ok"
 
 #: keepnote/gui/listview.py:343
 msgid "1 page"
-msgstr "1 页"
+msgstr "1 stránka"
 
 #: keepnote/gui/richtext/__init__.py:991
 msgid "Paste As Plain Text"
-msgstr "无格式粘贴"
+msgstr "Vložiť ako prostý text"
 
 #: keepnote/gui/dialog_update_notebook.py:50
 #, python-format
 msgid ""
 "This notebook has format version %d and must be updated to version %d before "
 "opening."
-msgstr "该笔记本拥有格式版本 %d ，在打开前必须更新版本到 %d "
+msgstr ""
+"Tento zápisník má verziu formátu %d a pred otvorením musí byť aktualizovaný "
+"na verziu %d."
 
 #: keepnote/gui/dialog_update_notebook.py:108
 msgid "Updating Notebook"
-msgstr "正在更新笔记本"
+msgstr "Aktualizovanie zápisníka"
 
 #: keepnote/gui/dialog_update_notebook.py:109
 msgid "Updating notebook..."
-msgstr "正在更新笔记本..."
+msgstr "Aktualizovanie zápisníka..."
 
 #: keepnote/gui/dialog_update_notebook.py:115
 msgid "Error while updating."
-msgstr "更新时发生错误。"
+msgstr "Chyba počas aktualizácie."
 
 #: keepnote/gui/dialog_update_notebook.py:121
 msgid "Notebook updated successfully"
-msgstr "笔记本更新成功"
+msgstr "Zápisník úspešne aktualizovaný"
 
 #: keepnote/gui/dialog_update_notebook.py:122
 msgid "Notebook Update Complete"
-msgstr "笔记本更新完成"
+msgstr "Aktualizácia zápisníka dokončená"
 
 #: keepnote/gui/dialog_update_notebook.py:131
 msgid "Choose Backup Notebook Name"
-msgstr "选择备份笔记本名称"
+msgstr "Zvoľte meno zálohy zápisníka"
 
 #: keepnote/gui/dialog_update_notebook.py:135
 msgid "Backup"
-msgstr "备份"
+msgstr "Záloha"
 
 #: keepnote/gui/dialog_update_notebook.py:158
 msgid "Backing Up Notebook"
-msgstr "备份笔记本"
+msgstr "Zálohovanie zápisníka"
 
 #: keepnote/gui/dialog_update_notebook.py:159
 msgid "Backing up old notebook..."
-msgstr "备份旧笔记本..."
+msgstr "Zálohovanie starého zápisníka"
 
 #: keepnote/gui/dialog_update_notebook.py:166
 msgid "Error occurred during backup."
-msgstr "执行备份过程中发生错误"
+msgstr "Pri zálohovaní sa vyskytla chyba."
 
 #: keepnote/gui/dialog_update_notebook.py:169
 msgid "Backup canceled."
-msgstr "备份取消"
+msgstr "Zálohovanie zrušené."
 
 #: keepnote/gui/editor_richtext.py:619
 #, python-format
@@ -749,465 +751,465 @@ msgid ""
 "The screenshot program encountered an error:\n"
 " %s"
 msgstr ""
-"屏幕截图程序遇到错误:\n"
+"Program na snímanie obrazovky vyvolal chybu:\n"
 " %s"
 
 #: keepnote/gui/editor_richtext.py:629
 #, python-format
 msgid "%s was unable to remove temp file for screenshot"
-msgstr "%s 不能为屏幕截图移动临时文件"
+msgstr "%s nemohol odstrániť dočasní súbor snímku obrazovky"
 
 #: keepnote/gui/editor_richtext.py:648
 msgid "Insert Image From File"
-msgstr "从文件插入图片"
+msgstr "Vložiť obrázok zo súboru"
 
 #: keepnote/gui/editor_richtext.py:651
 msgid "Insert"
-msgstr "插入"
+msgstr "Vložiť"
 
 #: keepnote/gui/editor_richtext.py:703
 #, python-format
 msgid "Could not insert image '%s'"
-msgstr "不能插入图片 '%s'"
+msgstr "Nemožno vložiť obrázok '%s'"
 
 #: keepnote/gui/editor_richtext.py:792
 msgid "Save Image As..."
-msgstr "另存图片为..."
+msgstr "Uložiť obrázok ako..."
 
 #: keepnote/gui/editor_richtext.py:795
 msgid "Save"
-msgstr "保存"
+msgstr "Uložiť"
 
 #: keepnote/gui/editor_richtext.py:804
 msgid "Must specify a filename for the image."
-msgstr "必须制定图片的文件名。"
+msgstr "Musíte zadať meno súboru pre obrázok."
 
 #: keepnote/gui/editor_richtext.py:811
 #, python-format
 msgid "Could not save image '%s'."
-msgstr "不能保存图片 '%s'。"
+msgstr "Nemožno uložiť obrázok '%s'."
 
 #: keepnote/gui/editor_richtext.py:828
 msgid "_View Image..."
-msgstr "查看图片(_V)..."
+msgstr "_Zobraziť obrázok..."
 
 #: keepnote/gui/editor_richtext.py:830
 msgid "<b>_View Image...</b>"
-msgstr "<b>查看图片(_V)...</b>"
+msgstr "<b>_Zobraziť obrázok...</b>"
 
 #: keepnote/gui/editor_richtext.py:834
 msgid "_Edit Image..."
-msgstr "编辑图片(_E)..."
+msgstr "_Upraviť obrázok..."
 
 #: keepnote/gui/editor_richtext.py:839
 msgid "_Resize Image..."
-msgstr "调整图片大小(_R)..."
+msgstr "Zmeniť _veľkosť"
 
 #: keepnote/gui/editor_richtext.py:845
 msgid "_Save Image As..."
-msgstr "保存图片为(_S)..."
+msgstr "_Uložiť obrázok ako..."
 
 #: keepnote/gui/editor_richtext.py:1007
 msgid "Choose Font"
-msgstr "选择字体"
+msgstr "Zvoľte písmo"
 
 #: keepnote/gui/editor_richtext.py:1084
 msgid "Insert _Horizontal Rule"
-msgstr "插入水平线(_H)"
+msgstr "Vložiť _vodorovnú čaru"
 
 #: keepnote/gui/editor_richtext.py:1088
 msgid "Insert _Image..."
-msgstr "插入图片(_I)..."
+msgstr "Vlož_iť obrázok"
 
 #: keepnote/gui/editor_richtext.py:1092
 msgid "Insert _New Image..."
-msgstr "插入新图片(_N)..."
+msgstr "Vložiť _nový obrázok..."
 
 #: keepnote/gui/editor_richtext.py:1093
 msgid "Insert a new image"
-msgstr "插入新图片"
+msgstr "Vloží nový obrázok"
 
 #: keepnote/gui/editor_richtext.py:1096
 msgid "Insert _Screenshot..."
-msgstr "插入屏幕截图(_S)..."
+msgstr "Vložiť sní_mok obrazovky"
 
 #: keepnote/gui/editor_richtext.py:1121
 msgid "Fo_rmat"
-msgstr "格式(_R)"
+msgstr "_Formát"
 
 #: keepnote/gui/editor_richtext.py:1125
 msgid "_Bold"
-msgstr "粗体(_B)"
+msgstr "_Tučné"
 
 #: keepnote/gui/editor_richtext.py:1126
 msgid "Bold"
-msgstr "粗体"
+msgstr "Tučné"
 
 #: keepnote/gui/editor_richtext.py:1130
 msgid "_Italic"
-msgstr "斜体(_I)"
+msgstr "Š_ikmé"
 
 #: keepnote/gui/editor_richtext.py:1131
 msgid "Italic"
-msgstr "斜体"
+msgstr "Šikmé"
 
 #: keepnote/gui/editor_richtext.py:1135
 msgid "_Underline"
-msgstr "下划线(_U)"
+msgstr "_Podčiarknuté"
 
 #: keepnote/gui/editor_richtext.py:1136
 msgid "Underline"
-msgstr "下划线"
+msgstr "Podčiarknuté"
 
 #: keepnote/gui/editor_richtext.py:1140
 msgid "S_trike"
-msgstr "删除线(_T)"
+msgstr "P_rečiarknuté"
 
 #: keepnote/gui/editor_richtext.py:1141
 msgid "Strike"
-msgstr "删除线"
+msgstr "Prečiarknuté"
 
 #: keepnote/gui/editor_richtext.py:1145
 msgid "_Monospace"
-msgstr "等宽字体(_M)"
+msgstr "_Pevná šírka"
 
 #: keepnote/gui/editor_richtext.py:1146
 msgid "Monospace"
-msgstr "等宽字体"
+msgstr "Pevná šírka"
 
 #: keepnote/gui/editor_richtext.py:1150
 msgid "Lin_k"
-msgstr "链接(_K)"
+msgstr "Od_kaz"
 
 #: keepnote/gui/editor_richtext.py:1151
 msgid "Make Link"
-msgstr "创建链接"
+msgstr "Vytvorí odkaz"
 
 #: keepnote/gui/editor_richtext.py:1155
 msgid "No _Wrapping"
-msgstr "不自动换行(_W)"
+msgstr "Ne_zalamovať"
 
 #: keepnote/gui/editor_richtext.py:1156
 msgid "No Wrapping"
-msgstr "不自动换行"
+msgstr "Nezalamovať"
 
 #: keepnote/gui/editor_richtext.py:1160
 msgid "_Left Align"
-msgstr "左对齐(_L)"
+msgstr "Zarovnať vľ_avo"
 
 #: keepnote/gui/editor_richtext.py:1161
 msgid "Left Align"
-msgstr "左对齐"
+msgstr "Zarovnať vľavo"
 
 #: keepnote/gui/editor_richtext.py:1165
 msgid "C_enter Align"
-msgstr "中间对齐(_E)"
+msgstr "Zarovnať na _stred"
 
 #: keepnote/gui/editor_richtext.py:1166
 msgid "Center Align"
-msgstr "中间对齐"
+msgstr "Zarovnať na stred"
 
 #: keepnote/gui/editor_richtext.py:1170
 msgid "_Right Align"
-msgstr "右对齐(_R)"
+msgstr "Zarovnať vprav_o"
 
 #: keepnote/gui/editor_richtext.py:1171
 msgid "Right Align"
-msgstr "右对齐"
+msgstr "Zarovnať vpravo"
 
 #: keepnote/gui/editor_richtext.py:1175
 msgid "_Justify Align"
-msgstr "两端对齐(_J)"
+msgstr "Zarovnať do _bloku"
 
 #: keepnote/gui/editor_richtext.py:1176
 msgid "Justify Align"
-msgstr "两端对齐"
+msgstr "Zarovnať do bloku"
 
 #: keepnote/gui/editor_richtext.py:1180
 msgid "_Bullet List"
-msgstr "项目符号(_B)"
+msgstr "_Zoznam"
 
 #: keepnote/gui/editor_richtext.py:1181
 msgid "Bullet List"
-msgstr "项目符号"
+msgstr "Zoznam"
 
 #: keepnote/gui/editor_richtext.py:1187
 msgid "Set Font Face"
-msgstr "设置字体风格"
+msgstr "Nastaviť vzhľad písma"
 
 #: keepnote/gui/editor_richtext.py:1188
 msgid "Set Font Size"
-msgstr "设置字体大小"
+msgstr "Nastaviť veľkosť písma"
 
 #: keepnote/gui/editor_richtext.py:1189
 msgid "Set Text Color"
-msgstr "设置文本颜色"
+msgstr "Nastaviť farbu písma"
 
 #: keepnote/gui/editor_richtext.py:1190
 msgid "Set Background Color"
-msgstr "设置背景色"
+msgstr "Nastaviť farbu pozadia"
 
 #: keepnote/gui/editor_richtext.py:1192
 msgid "Indent M_ore"
-msgstr "增加缩进"
+msgstr "Z_väčšiť odsadenie"
 
 #: keepnote/gui/editor_richtext.py:1197
 msgid "Indent Le_ss"
-msgstr "减少缩进"
+msgstr "Z_menšiť odsadenie"
 
 #: keepnote/gui/editor_richtext.py:1202
 msgid "Increase Font _Size"
-msgstr "增加字号(_S)"
+msgstr "Zväčšiť veľ_kosť písma"
 
 #: keepnote/gui/editor_richtext.py:1206
 msgid "_Decrease Font Size"
-msgstr "减小字号(_D)"
+msgstr "Zmenšiť v_eľkosť písma"
 
 #: keepnote/gui/editor_richtext.py:1210
 msgid "_Apply Text Color"
-msgstr "应用文本颜色(_A)"
+msgstr "Použiť farbu _textu"
 
 #: keepnote/gui/editor_richtext.py:1215
 msgid "A_pply Background Color"
-msgstr "应用背景色(_A)"
+msgstr "Použiť _farbu pozadia"
 
 #: keepnote/gui/editor_richtext.py:1220
 msgid "Choose _Font"
-msgstr "选择字体(_F)"
+msgstr "Zvoliť pí_smo"
 
 #: keepnote/gui/editor_richtext.py:1225
 msgid "Go to Lin_k"
-msgstr "打开链接(_K)"
+msgstr "Prejsť na od_kaz"
 
 #: keepnote/gui/dialog_node_icon.py:327
 msgid "Choose Icon"
-msgstr "选择图标"
+msgstr "Zvoľte ikonu"
 
 #: keepnote/gui/dialog_node_icon.py:338
 msgid "Choose Open Icon"
-msgstr "选择一个打开图标"
+msgstr "Zvoľte otvorenú ikonu"
 
 #: keepnote/gui/three_pane_viewer.py:1025
 msgid "Copy _Tree"
-msgstr ""
+msgstr "Kopírovať s_trom"
 
 #: keepnote/gui/three_pane_viewer.py:1026
 msgid "Copy entire tree"
-msgstr ""
+msgstr "Kopíruje celý strom"
 
 #: keepnote/gui/three_pane_viewer.py:1029
 msgid "New _Page"
-msgstr "新建页(_P)"
+msgstr "Nová stránka"
 
 #: keepnote/gui/three_pane_viewer.py:1030
 msgid "Create a new page"
-msgstr "创建一个新页"
+msgstr "Vytvorí novú stránku"
 
 #: keepnote/gui/three_pane_viewer.py:1033
 msgid "New _Child Page"
-msgstr "新建子页(_C)"
+msgstr "Nová _vnorená stránka"
 
 #: keepnote/gui/three_pane_viewer.py:1034
 msgid "Create a new child page"
-msgstr "创建一个新子页"
+msgstr "Vytvorí novú vnorenú stránku"
 
 #: keepnote/gui/three_pane_viewer.py:1038
 msgid "New _Folder"
-msgstr "新建文件夹(_F)"
+msgstr "Nová _zložka"
 
 #: keepnote/gui/three_pane_viewer.py:1039
 msgid "Create a new folder"
-msgstr "创建新文件夹"
+msgstr "Vytvorí novú zložku"
 
 #: keepnote/gui/three_pane_viewer.py:1043
 msgid "_Attach File..."
-msgstr "附加文件(_A)..."
+msgstr "Prip_ojiť súbor"
 
 #: keepnote/gui/three_pane_viewer.py:1044
 msgid "Attach a file to the notebook"
-msgstr "附加文件到笔记本"
+msgstr "Pripojí k zápisníku súbor"
 
 #: keepnote/gui/three_pane_viewer.py:1048
 msgid "_Back"
-msgstr "后退(_B)"
+msgstr "_Späť"
 
 #: keepnote/gui/three_pane_viewer.py:1051
 msgid "_Forward"
-msgstr "前进(_F)"
+msgstr "_Vpred"
 
 #: keepnote/gui/three_pane_viewer.py:1054
 msgid "Go to _Note"
-msgstr "跳转到笔记(_N)"
+msgstr "Prejsť na p_oznámku"
 
 #: keepnote/gui/three_pane_viewer.py:1058
 msgid "Go to _Parent Note"
-msgstr "跳转到父节点(_P)"
+msgstr "Prejsť na _rodičovskú"
 
 #: keepnote/gui/three_pane_viewer.py:1062
 msgid "Go to Next N_ote"
-msgstr "跳转到下一个笔记(_O)"
+msgstr "Prejsť na ďalšiu p_oznámku"
 
 #: keepnote/gui/three_pane_viewer.py:1066
 msgid "Go to _Previous Note"
-msgstr "跳转到上一个笔记(_P)"
+msgstr "Prejsť na predošlú poznámk_u"
 
 #: keepnote/gui/three_pane_viewer.py:1070
 msgid "E_xpand Note"
-msgstr "展开笔记(_X)"
+msgstr "Roz_baliť poznámku"
 
 #: keepnote/gui/three_pane_viewer.py:1074
 msgid "_Collapse Note"
-msgstr "折叠笔记(_C)"
+msgstr "Zba_liť poznámku"
 
 #: keepnote/gui/three_pane_viewer.py:1078
 msgid "Expand _All Child Notes"
-msgstr "展开所有子笔记(_A)"
+msgstr "Rozbaliť všet_ky vnorené"
 
 #: keepnote/gui/three_pane_viewer.py:1082
 msgid "Collapse A_ll Child Notes"
-msgstr "折叠所有子笔记(_L)"
+msgstr "Zbaliť _všetky vnorené"
 
 #: keepnote/gui/three_pane_viewer.py:1087
 msgid "Go to _Tree View"
-msgstr "跳转到树形视图(_T)"
+msgstr "Prejsť na _strom"
 
 #: keepnote/gui/three_pane_viewer.py:1091
 msgid "Go to _List View"
-msgstr "跳转到列表视图(_L)"
+msgstr "Prejsť na zoz_nam"
 
 #: keepnote/gui/three_pane_viewer.py:1095
 msgid "Go to _Editor"
-msgstr "跳转到编辑器(_E)"
+msgstr "Prejsť na _editor"
 
 #: keepnote/gui/three_pane_viewer.py:1099
 msgid "_Delete"
-msgstr "删除(_D)"
+msgstr "O_dstrániť"
 
 #: keepnote/gui/three_pane_viewer.py:1102
 msgid "_Rename"
-msgstr "重命名(_R)"
+msgstr "P_remenovať"
 
 #: keepnote/gui/three_pane_viewer.py:1106
 msgid "_Change Note Icon"
-msgstr "改变节点图标(_C)"
+msgstr "Zmeniť _ikonu"
 
 #: keepnote/compat/notebook_v3.py:261 keepnote/compat/notebook_v3.py:1836
 #: keepnote/notebook/__init__.py:248
 msgid "Cannot read notebook preferences"
-msgstr "不能读笔记本配置"
+msgstr "Nemožno čítať nastavenia zápisníka"
 
 #: keepnote/compat/notebook_v3.py:263 keepnote/compat/notebook_v3.py:282
 #: keepnote/compat/notebook_v3.py:1838 keepnote/notebook/__init__.py:250
 #: keepnote/notebook/__init__.py:270 keepnote/notebook/__init__.py:1718
 msgid "Notebook preference data is corrupt"
-msgstr "笔记本配置数据错误"
+msgstr "Dáta nastavenia zápisníka sú poškodené"
 
 #: keepnote/compat/notebook_v3.py:275
 msgid "No version tag found"
-msgstr ""
+msgstr "Nebola nájdená značka verzie"
 
 #: keepnote/compat/notebook_v3.py:278 keepnote/notebook/__init__.py:266
 msgid "Unknown version string"
-msgstr ""
+msgstr "Neznámy reťazec verzie"
 
 #: keepnote/compat/notebook_v3.py:674
 #: keepnote/notebook/connection/fs/__init__.py:658
 msgid "Cannot create node"
-msgstr "不能创建节点"
+msgstr "Nemožno vytvoriť uzol"
 
 #: keepnote/compat/notebook_v3.py:693
 #: keepnote/notebook/connection/fs/__init__.py:767
 msgid "Do not have permission to delete"
-msgstr "没有删除权限"
+msgstr "Nemáte práva na odstránenie"
 
 #: keepnote/compat/notebook_v3.py:720 keepnote/notebook/__init__.py:702
 msgid "This node is not part of any notebook"
-msgstr "这个节点不属于任何笔记本"
+msgstr "Táto poznámka nie je časťou žiadneho zápisníka"
 
 #: keepnote/compat/notebook_v3.py:769
 msgid "Do not have permission for move"
-msgstr "没有移动权限"
+msgstr "Nemáte práva na presunutie"
 
 #: keepnote/compat/notebook_v3.py:817
 #: keepnote/notebook/connection/fs/__init__.py:741
 #, python-format
 msgid "Cannot rename '%s' to '%s'"
-msgstr "不能重命名 '%s' 为 '%s'"
+msgstr "Nemožno premenovať '%s' na '%s'"
 
 #: keepnote/compat/notebook_v3.py:960
 msgid "Do not have permission to read folder contents"
-msgstr "没有读文件夹内容权限"
+msgstr "Nemáte práva na čítanie obsahu zložky"
 
 #: keepnote/compat/notebook_v3.py:1077 keepnote/compat/notebook_v3.py:1183
 #, python-format
 msgid "Cannot initialize richtext file '%s'"
-msgstr "不能初始化富文本文件 '%s'"
+msgstr "Nemožno inicializovať súbor richtext '%s'"
 
 #: keepnote/compat/notebook_v3.py:1209 keepnote/compat/notebook_v3.py:1929
 #: keepnote/compat/notebook_v3.py:1938
 msgid "New File"
-msgstr ""
+msgstr "Nový súbor"
 
 #: keepnote/compat/notebook_v3.py:1249 keepnote/notebook/__init__.py:642
 #, python-format
 msgid "Cannot copy file '%s'"
-msgstr "不能拷贝文件 '%s'"
+msgstr "Nemožno kopírovať súbor '%s'"
 
 #: keepnote/compat/notebook_v3.py:1273 keepnote/notebook/__init__.py:1392
 msgid "The Trash folder must be a top-level folder."
-msgstr "回收站文件夹必须是最上层文件夹"
+msgstr "Zložka koša musí byť zložkou najvyššej úrovne."
 
 #: keepnote/compat/notebook_v3.py:1357 keepnote/compat/notebook_v3.py:1826
 #: keepnote/notebook/__init__.py:1695
 msgid "Cannot save notebook preferences"
-msgstr "不能保存笔记本配置"
+msgstr "Nemožno uložiť nastavenia zápisníka"
 
 #: keepnote/compat/notebook_v3.py:1514 keepnote/notebook/__init__.py:199
 #, python-format
 msgid "Cannot find notebook '%s'"
-msgstr "未找到笔记 '%s'"
+msgstr "Nemožno nájsť zápisník '%s'"
 
 #: keepnote/compat/notebook_v3.py:1641 keepnote/notebook/__init__.py:1463
 msgid "Cannot create Trash folder"
-msgstr "无法创建回收站"
+msgstr "Nemožno vytvoriť zložku koša"
 
 #: keepnote/compat/notebook_v3.py:1828 keepnote/notebook/__init__.py:1697
 msgid "File format error"
-msgstr "文件格式错误"
+msgstr "Chyba formátu súboru"
 
 #: keepnote/compat/notebook_v3.py:1974
 #: keepnote/notebook/connection/fs/__init__.py:953
 msgid "Cannot write meta data"
-msgstr "不能写元数据"
+msgstr "Nemožno zapísať metadáta"
 
 #: keepnote/compat/notebook_v3.py:1986
 msgid "Error reading meta data file"
-msgstr "不能读元数据"
+msgstr "Chyba čítania súboru metadát"
 
 #: keepnote/compat/notebook_v3.py:1991
 #: keepnote/notebook/connection/fs/__init__.py:974
 msgid "Root tag is not 'node'"
-msgstr ""
+msgstr "Koreňová značka nie je 'uzol'"
 
 #: keepnote/notebook/connection/fs/__init__.py:635
 #: keepnote/notebook/connection/fs/__init__.py:733
 msgid "New Page"
-msgstr ""
+msgstr "Nová stránka"
 
 #: keepnote/notebook/connection/fs/__init__.py:802
 #, python-format
 msgid "Do not have permission to read folder contents: %s"
-msgstr ""
+msgstr "Nemáte práva na čítanie obsahu zložky: %s"
 
 #: keepnote/notebook/connection/fs/__init__.py:969
 #, python-format
 msgid "Error reading meta data file '%s'"
-msgstr ""
+msgstr "Chyba čítania súboru metadát '%s'"
 
 #: keepnote/notebook/__init__.py:1709
 #, python-format
 msgid "Cannot read notebook preferences %s"
-msgstr ""
+msgstr "Nemožno čítať nastavenia zápisníka %s"
 
 #: keepnote/rc/keepnote.glade.h:1
 #, c-format
@@ -1313,95 +1315,97 @@ msgstr "50"
 
 #: keepnote/rc/keepnote.glade.h:24
 msgid "<b>All Available icons</b>"
-msgstr "<b>所有可用图标</b>"
+msgstr "<b>Všetky dostupné ikony</b>"
 
 #: keepnote/rc/keepnote.glade.h:25
 msgid "<b>Date &amp; time formatting key</b>"
-msgstr "<b>日期 &amp; 时间格式关键字</b>"
+msgstr "<b>Formátovacie značky dátumu a času</b>"
 
 #: keepnote/rc/keepnote.glade.h:26
 msgid "<b>Date and Time</b>"
-msgstr "<b>日期和时间</b>"
+msgstr "<b>Dátum a čas</b>"
 
 #: keepnote/rc/keepnote.glade.h:27
 msgid "<b>General KeepNote Options</b>"
-msgstr "<b>常规 KeepNote 选项</b>"
+msgstr "<b>Všeobecné voľby KeepNote</b>"
 
 #: keepnote/rc/keepnote.glade.h:28
 msgid "<b>Manage icons</b>"
-msgstr "<b>管理图标</b>"
+msgstr "<b>Spravovať ikony</b>"
 
 #: keepnote/rc/keepnote.glade.h:29
 msgid "<b>Node icons</b>"
-msgstr "<b>节点图标</b>"
+msgstr "<b>Ikony uzlov</b>"
 
 #: keepnote/rc/keepnote.glade.h:30
 msgid "<b>Notebook Update</b>"
-msgstr "<b>笔记本更新</b>"
+msgstr "<b>Aktualizácia zápisníka</b>"
 
 #: keepnote/rc/keepnote.glade.h:31
 msgid "<b>Quick pick icons</b>"
-msgstr "<b>快速选择图标</b>"
+msgstr "<b>Rýchle ikony</b>"
 
 #: keepnote/rc/keepnote.glade.h:32
 msgid "<b>Startup</b>"
-msgstr "<b>启动</b>"
+msgstr "<b>Spúšťanie</b>"
 
 #: keepnote/rc/keepnote.glade.h:33
 msgid "<b>This Notebook</b>"
-msgstr "<b>这个笔记本</b>"
+msgstr "<b>Tento zápisník</b>"
 
 #: keepnote/rc/keepnote.glade.h:34
 msgid "<i>note: backup and upgrade may take a while for larger notebooks.</i>"
-msgstr "<i>提示: 对于较大的笔记本，备份和升级可能会花费跟多的时间。</i>"
+msgstr ""
+"<i>Poznámka: zálohovanie a aktualizácia môže pri väčších zápisníkoch trvať "
+"dlho.</i>"
 
 #: keepnote/rc/keepnote.glade.h:35
 msgid "A literal \"%\" character"
-msgstr "逐字的 \"%\" 字符"
+msgstr "Znak %"
 
 #: keepnote/rc/keepnote.glade.h:36
 msgid "Alternative index location:"
-msgstr "选择一个索引目录:"
+msgstr "Alternatívne umiestnenie indexu:"
 
 #: keepnote/rc/keepnote.glade.h:37
 msgid "Always on top"
-msgstr ""
+msgstr "Vždy na vrchu"
 
 #: keepnote/rc/keepnote.glade.h:38
 msgid "Autosave:"
-msgstr "自动保存:"
+msgstr "Auto ukladanie:"
 
 #: keepnote/rc/keepnote.glade.h:40
 msgid "Case _Sensitive"
-msgstr "区分大小写(_S)"
+msgstr "Rozlišovať _veľkosť"
 
 #: keepnote/rc/keepnote.glade.h:41
 msgid "Day of the month as a decimal number [01,31]"
-msgstr "十进制中月份的每一天 [01,31]"
+msgstr "Deň mesiaca ako desiatkové číslo [01,31]"
 
 #: keepnote/rc/keepnote.glade.h:42
 msgid "Day of the year as a decimal number [001,366]"
-msgstr "十进制年份中的每一天 [001,366]"
+msgstr "Deň roka ako desiatkové číslo [001,366]"
 
 #: keepnote/rc/keepnote.glade.h:43
 msgid "Default Notebook:"
-msgstr "默认笔记本:"
+msgstr "Predvolený zápisník:"
 
 #: keepnote/rc/keepnote.glade.h:44
 msgid "Default font:"
-msgstr "默认字体:"
+msgstr "Predvolené písmo:"
 
 #: keepnote/rc/keepnote.glade.h:45
 msgid "Different year:"
-msgstr "不同年份:"
+msgstr "Iný rok:"
 
 #: keepnote/rc/keepnote.glade.h:46
 msgid "Find Text:"
-msgstr "查找文本:"
+msgstr "Hľadaný text:"
 
 #: keepnote/rc/keepnote.glade.h:47
 msgid "Find/Replace"
-msgstr "查找/替换"
+msgstr "Nájsť/nahradiť"
 
 #: keepnote/rc/keepnote.glade.h:48
 msgid ""
@@ -1409,128 +1413,129 @@ msgid ""
 "different scenarios (e.g. how to display a timestamp from today, this month, "
 "or this year)"
 msgstr ""
-"在这你可以定制4种不同场景中列表视图的时间戳的格式(如:怎样显示今天、本月或者本"
-"年的时间戳)"
+"Tu si môžete prispôsobiť formát časovej značky v zobrazení zoznamu na 4 "
+"rôzne scenáre (tj. ako zobraziť časovú značku pre dnešok, tento mesiac alebo "
+"tento rok)"
 
 #: keepnote/rc/keepnote.glade.h:49
 msgid "Hide from taskbar"
-msgstr "从任务栏隐藏"
+msgstr "Skryť z panela úloh"
 
 #: keepnote/rc/keepnote.glade.h:50
 msgid "Hour (12-hour clock) as a decimal number [01,12]"
-msgstr "十进制小时 (12小时)  [01,12]"
+msgstr "Hodina (12 hod) ako desiatkové číslo [01,12]"
 
 #: keepnote/rc/keepnote.glade.h:51
 msgid "Hour (24-hour clock) as a decimal number [00,23]"
-msgstr "十进制小时(24小时) [00,23]"
+msgstr "Hodina (24 hod) ako desiatkové číslo  [00,23]"
 
 #: keepnote/rc/keepnote.glade.h:52
 msgid "Keep aspect ratio"
-msgstr "保持纵横比"
+msgstr "Zachovať pomer strán"
 
 #: keepnote/rc/keepnote.glade.h:53
 msgid "KeepNote Preferences"
-msgstr "KeepNote 首选项"
+msgstr "Nastavenia KeepNote"
 
 #: keepnote/rc/keepnote.glade.h:54
 msgid "Locale's abbreviated month name"
-msgstr "本地月份名称缩写"
+msgstr "Lokalizovaná skratka mena mesiaca"
 
 #: keepnote/rc/keepnote.glade.h:55
 msgid "Locale's abbreviated weekday name"
-msgstr "本地周缩写"
+msgstr "Lokalizovaná skratka mena dňa týždňa"
 
 #: keepnote/rc/keepnote.glade.h:56
 msgid "Locale's appropriate date and time representation"
-msgstr "本地适当的日期和时间表示"
+msgstr "Lokalizovaná reprezentácia dátumu a času"
 
 #: keepnote/rc/keepnote.glade.h:57
 msgid "Locale's appropriate date representation"
-msgstr "本地适当的日期表示"
+msgstr "Lokalizovaná reprezentácia dátumu"
 
 #: keepnote/rc/keepnote.glade.h:58
 msgid "Locale's appropriate time representation"
-msgstr "本地适当的时间表示"
+msgstr "Lokalizovaná reprezentácia času"
 
 #: keepnote/rc/keepnote.glade.h:59
 msgid "Locale's equivalent of either AM or PM"
-msgstr "本地类似AM或PM的词汇"
+msgstr "Lokalizovaný ekvivalent AM alebo PM"
 
 #: keepnote/rc/keepnote.glade.h:60
 msgid "Locale's full month name"
-msgstr "本地月份名称"
+msgstr "Lokalizované meno mesiaca"
 
 #: keepnote/rc/keepnote.glade.h:61
 msgid "Locale's full weekday name"
-msgstr "本地全部周全称"
+msgstr "Lokalizované meno dňa týždňa"
 
 #: keepnote/rc/keepnote.glade.h:62
 msgid "Minimize on start"
-msgstr ""
+msgstr "Minimalizovať pri spustení"
 
 #: keepnote/rc/keepnote.glade.h:63
 msgid "Minute as a decimal number [00,59]"
-msgstr "十进制分钟 [00,59]"
+msgstr "Minúta ako desiatkové číslo [00,59]"
 
 #: keepnote/rc/keepnote.glade.h:64
 msgid "Month as a decimal number [01,12]"
-msgstr "M十进制月份 [01,12]"
+msgstr "Mesiac ako desiatkové číslo [01,12]"
 
 #: keepnote/rc/keepnote.glade.h:65
 msgid "New Icon"
-msgstr "新图标"
+msgstr "Nová ikona"
 
 #: keepnote/rc/keepnote.glade.h:66
 msgid "No Default Notebook"
-msgstr "没有默认笔记本"
+msgstr "Žiadny predvolený zápisník"
 
 #: keepnote/rc/keepnote.glade.h:67
 msgid "Notebook Update"
-msgstr "笔记本更新"
+msgstr "Aktualizácia zápisníka"
 
 #: keepnote/rc/keepnote.glade.h:68
 msgid "Notebook-specific Icons"
-msgstr "指定笔记本图标"
+msgstr "Ikony zápisníka"
 
 #: keepnote/rc/keepnote.glade.h:69
 msgid "Open Last Notebook"
-msgstr "打开最后访问的笔记"
+msgstr "Otvoriť posledný zápisník"
 
 #: keepnote/rc/keepnote.glade.h:70
 msgid "Replace Text:"
-msgstr "替换文本:"
+msgstr "Nahradiť textom:"
 
 #: keepnote/rc/keepnote.glade.h:71
 msgid "Replace _All"
-msgstr "替换全部(_A)"
+msgstr "Nahradiť _všetky"
 
 #: keepnote/rc/keepnote.glade.h:72
 msgid "Resize Image"
-msgstr "调整图片大小"
+msgstr "Zmena veľkosti obrázku"
 
 #: keepnote/rc/keepnote.glade.h:73
 msgid "Same day:"
-msgstr "当天:"
+msgstr "Rovnaký deň:"
 
 #: keepnote/rc/keepnote.glade.h:74
 msgid "Same month:"
-msgstr "当月:"
+msgstr "Rovnaký mesiac:"
 
 #: keepnote/rc/keepnote.glade.h:75
 msgid "Same year:"
-msgstr "当年:"
+msgstr "Rovnaký rok:"
 
 #: keepnote/rc/keepnote.glade.h:76
 msgid "Sea_rch Forward"
-msgstr "向前查找(_R)"
+msgstr "Hľadať v_pred"
 
 #: keepnote/rc/keepnote.glade.h:77
 msgid "Search _Backward "
-msgstr "向后查找(_B)"
+msgstr "Hľadať v_zad"
 
 #: keepnote/rc/keepnote.glade.h:78
 msgid "Second as a decimal number [00,61]"
-msgstr "十进制秒 [00,61]"
+msgstr "Sekundy ako desiatkové číslo [00,61]"
 
 #: keepnote/rc/keepnote.glade.h:79
 msgid "Snap:"
@@ -1538,29 +1543,31 @@ msgstr ""
 
 #: keepnote/rc/keepnote.glade.h:80
 msgid "Standard Icons"
-msgstr "标准图标"
+msgstr "Štandardné ikony"
 
 #: keepnote/rc/keepnote.glade.h:81
 msgid ""
 "This notebook has format version 1 and must be updated to version 2 before "
 "openning."
-msgstr "该笔记本拥有格式版本1，在打开前必须更新版本到2。"
+msgstr ""
+"Tento zápisník má verziu formátu 1 a pred otvorením musí byť aktualizovaný "
+"na verziu 2."
 
 #: keepnote/rc/keepnote.glade.h:82
 msgid "Time zone name (no characters if no time zone exists)"
-msgstr "时区名称(如果没有时区，则无字符)"
+msgstr "Meno časovej zóny (bez znakov, ak zóna neexistuje)"
 
 #: keepnote/rc/keepnote.glade.h:83
 msgid "Use current notebook"
-msgstr "使用当前笔记本"
+msgstr "Použiť aktuálny zápisník"
 
 #: keepnote/rc/keepnote.glade.h:84
 msgid "Use system tray icon"
-msgstr ""
+msgstr "Použiť ikonu oznamovacej oblasti"
 
 #: keepnote/rc/keepnote.glade.h:85
 msgid "Visible on all desktops"
-msgstr ""
+msgstr "Viditeľné na všetkých plochách"
 
 #: keepnote/rc/keepnote.glade.h:86
 msgid ""
@@ -1568,9 +1575,9 @@ msgid ""
 "as a decimal number [00,53]. All days in a new year preceding \n"
 "the first Monday are considered to be in week 0"
 msgstr ""
-"十进制一年中周数[00,53] (星期一作为一周的开始)。 \n"
-"在新的一年中 前面的所有天\n"
-"第一个星期日被作为本周的0"
+"Číslo týždňa roku (pondelok ako prvý deň týždňa) ako desiatkové \n"
+"číslo [00,53]. Všetky dni nového roka, ktoré predchádzajú prvému \n"
+"pondelku sú považované za týždeň 0."
 
 #: keepnote/rc/keepnote.glade.h:89
 msgid ""
@@ -1578,57 +1585,57 @@ msgid ""
 "as a decimal number [00,53]. All days in a new year preceding \n"
 "the first Sunday are considered to be in week 0"
 msgstr ""
-"十进制一年中周数[00,53] (星期日作为一周的开始)。 \n"
-"在新的一年中 前面的所有天\n"
-"第一个星期日被作为本周的0"
+"Číslo týždňa roku (nedeľa ako prvý deň týždňa) ako desiatkové \n"
+"číslo [00,53]. Všetky dni nového roka, ktoré predchádzajú prvej \n"
+"nedeli sú považované za týždeň 0."
 
 #: keepnote/rc/keepnote.glade.h:92
 msgid "Weekday as a decimal number [0(Sunday),6]"
-msgstr "十进制周 [0(Sunday),6]"
+msgstr "Deň týždňa ako desiatkové číslo [0(Nedeľa),6]"
 
 #: keepnote/rc/keepnote.glade.h:93
 msgid "Year with century as a decimal number"
-msgstr "十进制有世纪年"
+msgstr "Rok so storočím ako desiatkové číslo"
 
 #: keepnote/rc/keepnote.glade.h:94
 msgid "Year without century as a decimal number [00,99]"
-msgstr "十进制无世纪年 [00,99]"
+msgstr "Rok bez storočia ako desiatkové číslo [00,99]"
 
 #: keepnote/rc/keepnote.glade.h:95
 msgid "_Apply"
-msgstr "应用(_A)"
+msgstr "_Použiť"
 
 #: keepnote/rc/keepnote.glade.h:96
 msgid "_Cancel"
-msgstr "取消(_C)"
+msgstr "_Zrušiť"
 
 #: keepnote/rc/keepnote.glade.h:97
 msgid "_Close"
-msgstr "关闭(_C)"
+msgstr "Z_atvoriť"
 
 #: keepnote/rc/keepnote.glade.h:98
 msgid "_Find"
-msgstr "查找(_F)"
+msgstr "_Nájsť"
 
 #: keepnote/rc/keepnote.glade.h:99
 msgid "_Ok"
-msgstr "确定(_O)"
+msgstr "_OK"
 
 #: keepnote/rc/keepnote.glade.h:100
 msgid "_Replace"
-msgstr "替换(_R)"
+msgstr "_Nahradiť"
 
 #: keepnote/rc/keepnote.glade.h:101
 msgid "delete icon"
-msgstr "删除图标"
+msgstr "zmazať ikonu"
 
 #: keepnote/rc/keepnote.glade.h:102
 msgid "gtk-cancel"
-msgstr "gtk-取消"
+msgstr "gtk-cancel"
 
 #: keepnote/rc/keepnote.glade.h:103
 msgid "gtk-ok"
-msgstr "gtk-确定"
+msgstr "gtk-ok"
 
 #: keepnote/rc/keepnote.glade.h:104
 msgid "gtk-revert-to-saved"
@@ -1636,51 +1643,24 @@ msgstr "gtk-revert-to-saved"
 
 #: keepnote/rc/keepnote.glade.h:106
 msgid "icon:"
-msgstr "图标:"
+msgstr "ikona:"
 
 #: keepnote/rc/keepnote.glade.h:107
 msgid "open-icon:"
-msgstr "打开图标:"
+msgstr "otvorená ikona:"
 
 #: keepnote/rc/keepnote.glade.h:108
 msgid "save backup before updating (recommended)"
-msgstr "在更新前保存备份(推荐)"
+msgstr "uložiť zálohu pred aktualizáciou (odporúčané)"
 
 #: keepnote/rc/keepnote.glade.h:109
 msgid "seconds"
-msgstr "秒"
+msgstr "sekundy"
 
 #: keepnote/rc/keepnote.glade.h:110
 msgid "set icon"
-msgstr "设置图标"
+msgstr "nastaviť ikonu"
 
 #: keepnote/rc/keepnote.glade.h:111
 msgid "set open-icon"
-msgstr "设置打开图标"
-
-#~ msgid "Unable to dertermine note type."
-#~ msgstr "不能确定笔记类型。"
-
-#~ msgid "Install Sucessful"
-#~ msgstr "安装成功"
-
-#~ msgid "Uninstall Sucessful"
-#~ msgstr "卸载成功"
-
-#~ msgid "Use sysem tray icon"
-#~ msgstr "使用系统托盘图标"
-
-#~ msgid "KeepNote cannot uninstall system extensions"
-#~ msgstr "KeepNote 不能卸载系统扩展。"
-
-#~ msgid "Could not open Image Viewer."
-#~ msgstr "不能打开图片浏览器"
-
-#~ msgid "You must specify an Image Viewer in Application Options."
-#~ msgstr "你必须在应用选项中指定图片浏览器。"
-
-#~ msgid "Could not open Image Editor."
-#~ msgstr "不能打开图片浏览器。"
-
-#~ msgid "You must specify an Image Editor in Application Options."
-#~ msgstr "你必须在应用选项中指定图片编辑器。"
+msgstr "nastaviť otvorenú ikonu"

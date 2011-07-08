@@ -119,6 +119,7 @@ TRANSLATOR_CREDITS = (
     u"Polish: Bernard Baraniewski <raznaya2010(at)rambler(dot)ru>\n"
     u"Russian: Hikiko Mori <hikikomori.dndz@gmail.com>\n"
     u"Spanish: Klemens Hackel <click3d at linuxmail (dot) org>\n"
+    u"Slovak: Slavko <linux@slavino.sk>\n"
     u"Swedish: Morgan Antonsson <morgan.antonsson@gmail.com>\n"
     u"Turkish: Yuce Tekol <yucetekol@gmail.com>\n"
 )

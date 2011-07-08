@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<file_types><file_type><name>Text File (txt)</name><example_file>plain_text.txt</example_file><filename>untitled.txt</filename></file_type><file_type><name>Spreadsheet (xls)</name><example_file>spreadsheet.xls</example_file><filename>untitled.xls</filename></file_type><file_type><name>Word Document (doc)</name><example_file>document.doc</example_file><filename>untitled.doc</filename></file_type></file_types>
