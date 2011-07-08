@@ -1180,8 +1180,7 @@ class NoteBook (NoteBookNode):
     # TODO: should I make a base class without a filename argument?
     # TODO: should I require rootdir here or in create function?
     
-    def __init__(self, rootdir=None):
-        """rootdir -- Root directory of notebook"""
+    def __init__(self):
         
         conn = connection_fs.NoteBookConnectionFS()
         NoteBookNode.__init__(self, notebook=self, 
@@ -1189,8 +1188,6 @@ class NoteBook (NoteBookNode):
                               init_attr=False, conn=conn)
         
         self.pref = NoteBookPreferences()
-        rootdir = keepnote.ensure_unicode(rootdir, keepnote.FS_ENCODING)
-        self._basename = rootdir
         self._dirty = set()
         self._trash = None
         self.attr_defs = {}
@@ -1205,10 +1202,7 @@ class NoteBook (NoteBookNode):
         self.clear_attr()
 
         self._attr["order"] = 0
-        if rootdir is not None:
-            self._attr["title"] = os.path.basename(rootdir)
-        else:
-            self._attr["title"] = ""
+        self._attr["title"] = ""
 
         
         # listeners
@@ -1257,17 +1251,14 @@ class NoteBook (NoteBookNode):
     #===================================================
     # input/output
     
-    def create(self):
+    def create(self, filename):
         """Initialize NoteBook on the file-system"""
-
-        if self._basename is None:
-            raise NoteBookError("must specify rootdir")
-
+        
         self._attr["created_time"] = get_timestamp()
         self._attr["modified_time"] = get_timestamp()
         self._attr["nodeid"] = new_nodeid()
 
-        self._conn.connect(self._basename)
+        self._conn.connect(filename)
         self._conn.create_node(self._attr["nodeid"],  self._attr)
         
         self._init_index()
@@ -1279,20 +1270,18 @@ class NoteBook (NoteBookNode):
         self._init_trash()
 
     
-    def load(self, filename=None):
+    def load(self, filename):
         """Load the NoteBook from the file-system"""
 
         # ensure filename points to notebook directory
-        if filename is not None:
-            filename = normalize_notebook_dirname(filename, longpath=False)
-            self._basename = filename
+        filename = normalize_notebook_dirname(filename, longpath=False)
 
         
         # TODO: generalize. this is currently fs-specific
         # cheat by reading preferences first so that we can set index_dir
         # if needed.  Ideally this should be set in the app pref, but in a
         # notebook-specific way
-        pref_file = os.path.join(self._basename, PREF_FILE)
+        pref_file = os.path.join(filename, PREF_FILE)
         if os.path.exists(pref_file):
             try:
                 self.read_preferences(safefile.open(pref_file, codec="utf-8"),
@@ -1307,7 +1296,7 @@ class NoteBook (NoteBookNode):
                 pass
         
         # read basic info
-        self._conn.connect(self._basename)
+        self._conn.connect(filename)
         self._init_index()
 
         attr = self._conn.read_node(self._conn.get_rootid())

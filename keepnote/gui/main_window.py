@@ -649,8 +649,8 @@ class KeepNoteWindow (gtk.Window):
         try:
             # make sure filename is unicode
             filename = ensure_unicode(filename, FS_ENCODING)
-            notebook = notebooklib.NoteBook(filename)
-            notebook.create()
+            notebook = notebooklib.NoteBook()
+            notebook.create(filename)
             notebook.close()
             self.set_status(_("Created '%s'") % notebook.get_title())
         except NoteBookError, e:
