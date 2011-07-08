@@ -58,6 +58,11 @@ class CorruptIndex (ConnectionError):
         ConnectionError.__init__(self, msg, error)
 
 
+class Unimplemented (ConnectionError):
+    def __init__(self, msg="unimplemented"):
+        ConnectionError.__init__(self, msg)
+    
+
 #=============================================================================
 
 
@@ -67,11 +72,10 @@ def path_join(*parts):
 
     Node files always use '/' for path separator.
     """
-    # skip initial empty strings
-    i = 0
-    while parts[i] == "":
-        i +=1
-    return "/".join(parts[i:])
+    # skip empty strings
+    # trim training "slashes"
+    return "/".join((part[:-1] if part[-1] == "/" else part) 
+                    for part in parts if part != "")
 
 
 def path_basename(filename):
@@ -101,27 +105,10 @@ class NoteBookConnection (object):
     def __init__(self):
         pass
 
-    #================================
-    # Filesystem-specific API (may not be supported by some connections)
-    
-    def get_node_path(self, nodeid):
-        """Returns the path of the node"""
-        pass
-    
-    def get_node_basename(self, nodeid):
-        """Returns the basename of the node"""
-        pass
-
-    # TODO: returning a fullpath to a file is not fully portable
-    # will eventually need some kind of fetching mechanism    
-    def get_file(self, nodeid, filename, _path=None):
-        pass
-
-
     #======================
     # connection API
 
-    def connect(self, filename):
+    def connect(self, url):
         """Make a new connection"""
         pass
         
@@ -135,11 +122,7 @@ class NoteBookConnection (object):
 
     #======================
     # Node I/O API
-
-    def create_root(self, nodeid, attr):
-        """Create the root node"""
-        pass
-
+    
     def create_node(self, nodeid, attr):
         """Create a node"""
         pass
@@ -170,20 +153,26 @@ class NoteBookConnection (object):
     # file API
 
     def open_file(self, nodeid, filename, mode="r", codec=None):
-        """Open a file contained within a node"""
+        """
+        Open a file contained within a node
+
+        nodeid   -- node to open a file from
+        filename -- filename of file to open
+        mode     -- can be "r" (read), "w" (write), "a" (append)
+        codec    -- read or write with an encoding (default: None)
+        """
         pass
 
-    def delete_file(self, nodeid, filename, _path=None):
-        """Open a file contained within a node"""
+
+    def delete_file(self, nodeid, filename):
+        """Delete a file contained within a node"""
         pass
 
     def create_dir(self, nodeid, filename):
+        """Create directory within node"""
         pass
 
-    def delete_dir(self, nodeid, filename):
-        pass
-
-    def list_files(self, nodeid, filename=None):
+    def list_files(self, nodeid, filename="/"):
         """
         List data files in node
         """
@@ -192,31 +181,70 @@ class NoteBookConnection (object):
     def file_exists(self, nodeid, filename):
         pass
 
+    def move_file(self, nodeid, filename1, nodeid2, filename2):
+        """
+        Move or rename a node file
+        
+        'nodeid1' and 'nodeid2' cannot be None.
+        """
+
+        if nodeid is None or nodeid2 is None:
+            raise UnknownFile("nodeid cannot be None")
+        
+        self.copy_file(nodeid, filename, nodeid, new_filename)
+        self.delete_file(nodeid, filename)
+
+
     def copy_file(self, nodeid1, filename1, nodeid2, filename2):
         """
         Copy a file between two nodes
 
-        if node is None, filename is assumed to be a local file
-        """
-        pass
+        'nodeid1' and 'nodeid2' can be the same nodeid.
 
-    def copy_files(self, nodeid1, nodeid2):
+        If 'nodeidX' is None, 'filenameX' is assumed to be a local file.
+
+        If 'filename1' is a dir (ends with a "/") filename2 must be a dir
+        and the copy is recursive for the contents of 'filename1'.
+
         """
-        Copy all data files from nodeid1 to nodeid2
-        """
-        pass
+
+        if fullname1.endswith("/"):
+            # copy directory tree
+            self.create_dir(nodeid2, filename2)
+
+            for filename in self.list_files(nodeid1):
+                self.copy_file(nodeid1, path_join(filename1, filename),
+                               nodeid2, path_join(filename2, filename))
+
+        else:
+            # copy file
+            
+            if nodeid1 is not None:
+                stream1 = self.open_file(nodeid1, filename1)
+            else:
+                # filename1 is local
+                stream1 = open(filename1, "rb")
+
+            if nodeid2 is not None:
+                stream2 = self.open_file(nodeid2, filename2, "w")
+            else:
+                # filename 2 is local
+                stream2 = open(filename2, "w")
+
+            while True:
+                data = stream1.read(1024*4)
+                if len(data) == 0:
+                    break
+                stream2.write(data)
+
+            stream1.close()
+            stream2.close()
 
 
     # Is this needed inside the connection?  Can it be support outside?
-    def new_filename(self, nodeid, new_filename, ext=u"", sep=u" ", number=2, 
-                     return_number=False, use_number=False, ensure_valid=True):
-        pass
-
-
-    # TODO: can this be removed some how?
-    def read_data_as_plain_text(self, nodeid):
-        """Iterates over the lines of the data file as plain text"""
-        pass
+    #def new_filename(self, nodeid, new_filename, ext=u"", sep=u" ", number=2, 
+    #                 return_number=False, use_number=False, ensure_valid=True):
+    #    pass
 
 
     #---------------------------------
@@ -268,50 +296,20 @@ class NoteBookConnection (object):
 
 
 
+    #================================
+    # Filesystem-specific API (may not be supported by some connections)
+    
+    def get_node_path(self, nodeid):
+        """Returns the path of the node"""
+        pass
+    
+    def get_node_basename(self, nodeid):
+        """Returns the basename of the node"""
+        pass
 
-# TODO: need to keep namespace of files and node directories spearate.
-# Need to carefully define what valid filenames look like.
-#  - is it case-sensitive?
-#  - which characters are allowed?
-#  - would do a translation between what the user thinks the path is and
-#    what is actually used on disk.
-
-
-"""
-File path translation strategy.
-
-on disk            user-visible
-filename    =>     filename
-_filename   =>     filename
-__filename  =>     _filename
-
-user-visble       on disk 
-filename     =>  filename (if file 'filename' exists)
-filename     =>  _filename (if file 'filename' does not-exist)
-_filename    =>  __filename
+    # TODO: returning a fullpath to a file is not fully portable
+    # will eventually need some kind of fetching mechanism    
+    def get_file(self, nodeid, filename, _path=None):
+        pass
 
 
-Within an attached directory naming scheme is 1-to-1
-
-
-
-Reading filename from disk:
-  filename = read_from_disk()
-  if filename.startswith("_"):
-    # unquote filename
-    return filename[1:]
-
-Looking for filename on disk:
-  if filename.startswith("_"):
-    # escape '_'
-    filename = "_" + filename
-  if simple_file_exists(filename):  # i.e. not a node dir
-    return filename
-  else:
-    # try quoted name
-    return "_" + filename
-
-
-node directories aren't allowed to start with '_'.
-
-"""

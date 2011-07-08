@@ -158,7 +158,7 @@ class NodeIO (RichTextIO):
             image.set_from_url(filename)
         elif is_relative_file(filename):
             try:
-                infile = self._node.open_file(filename, mode="rb")
+                infile = self._node.open_file(filename, mode="r") # rb
                 image.set_from_stream(infile)
                 infile.close()
             except:
@@ -174,7 +174,7 @@ class NodeIO (RichTextIO):
     def _save_image(self, textbuffer, image, html_filename):
 
         if image.save_needed():
-            out = self._node.open_file(image.get_filename(), mode="wb")
+            out = self._node.open_file(image.get_filename(), mode="w") # wb
             image.write_stream(out, image.get_filename())
             out.close()
         

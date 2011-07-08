@@ -108,39 +108,35 @@ def get_unique_filename(path, filename, ext=u"", sep=u" ", number=2,
     # try the given filename
     if not use_number:
         newname = os.path.join(path, filename + ext)
-        if not os.path.exists(newname):
-            if return_number:
-                return (newname, None)
-            else:
-                return newname
+        if not os.path.exists(newname):            
+            return (newname, None) if return_number else newname
     
     # try numbered suffixes
     i = number
     while True:
         newname = os.path.join(path, filename + sep + unicode(i) + ext)
         if not os.path.exists(newname):
-            if return_number:
-                return (newname, i)
-            else:
-                return newname
+            return (newname, i) if return_number else newname
         i += 1
 
 
-def get_unique_filename_list(filenames, filename, ext=u"", sep=u" ", number=2):
+def get_unique_filename_list(filenames, filename, ext=u"", sep=u" ", number=2,
+                             return_number=False, use_number=False):
     """Returns a unique filename for a given list of existing files"""
     filenames = set(filenames)
     
     # try the given filename
-    newname = filename + ext
-    if newname not in filenames:
-        return newname
+    if not use_number:
+        newname = filename + ext
+        if newname not in filenames:
+            return (newname, None) if return_number else newname
     
     # try numbered suffixes
     i = number
     while True:
         newname = filename + sep + unicode(i) + ext
         if newname not in filenames:
-            return newname
+            return (newname, i) if return_number else newname
         i += 1
 
 
@@ -617,8 +613,8 @@ class NoteBookNode (object):
         # determine new file name
         if new_filename is None:
             new_filename = os.path.basename(filename)
-        new_filename = self._conn.new_filename(self._attr["nodeid"], 
-                                               new_filename, None)
+        new_filename = connection_fs.new_filename(
+            self._conn, self._attr["nodeid"], new_filename, None)
         
         try:
             # attempt url parse
@@ -626,11 +622,11 @@ class NoteBookNode (object):
             
             if os.path.exists(filename) or parts[0] == "":
                 # perform local copy
-                self._conn.copy_node_file(None, filename, 
-                                          self._attr["nodeid"], new_filename)
+                self._conn.copy_file(None, filename, 
+                                     self._attr["nodeid"], new_filename)
             else:
                 # perform download
-                out = self.open_file(new_filename, "wb")
+                out = self.open_file(new_filename, "w")
                 infile = urllib2.urlopen(filename)
                 while True:
                     data = infile.read(1024*4)
@@ -639,7 +635,7 @@ class NoteBookNode (object):
                     out.write(data)
                 infile.close()
                 out.close()
-        except IOError, e:
+        except Exception, e:
             raise NoteBookError(_("Cannot copy file '%s'" % filename), e)
         
         # set attr
@@ -844,7 +840,7 @@ class NoteBookNode (object):
 
     def new_child(self, content_type, title, index=None):
         """Add a new node under this node"""
-        
+
         self.get_children()
         node = self._notebook.new_node(content_type, self, {"title": title})
         self._add_child(node, index)
@@ -1056,7 +1052,7 @@ class NoteBookNode (object):
 
     def new_filename(self, new_filename, ext=u"", sep=u" ", number=2, 
                      return_number=False, use_number=False, ensure_valid=True):
-        return self._conn.new_filename(
+        return connection_fs.new_filename(self._conn,
             self._attr["nodeid"], new_filename, ext, sep, number, 
             return_number=return_number, use_number=use_number, 
             ensure_valid=ensure_valid)
@@ -1066,9 +1062,6 @@ class NoteBookNode (object):
 
     def create_dir(self, filename):
         self._conn.create_dir(self._attr["nodeid"], filename)
-
-    def delete_dir(self, filename):
-        self._conn.delete_dir(self._attr["nodeid"], filename)
 
 
     def get_page_file(self):
@@ -1280,7 +1273,7 @@ class NoteBook (NoteBookNode):
         self._attr["nodeid"] = new_nodeid()
 
         self._conn.connect(self._basename)
-        self._conn.create_root(self._attr["nodeid"],  self._attr)
+        self._conn.create_node(self._attr["nodeid"],  self._attr)
         
         self._init_index()
         
@@ -1532,12 +1525,12 @@ class NoteBook (NoteBookNode):
         newfilename = connection.path_join(NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR,
                                            basename)
 
-        newfilename = self._conn.new_filename(self._attr["nodeid"], 
-                                              newfilename, ext, u"-",
-                                              ensure_valid=False)
+        newfilename = connection_fs.new_filename(
+            self._conn, self._attr["nodeid"], newfilename, ext, u"-",
+            ensure_valid=False)
 
-        self._conn.copy_node_file(None, filename, 
-                                  self._attr["nodeid"], newfilename)
+        self._conn.copy_file(None, filename, 
+                             self._attr["nodeid"], newfilename)
         return connection.path_basename(newfilename)
 
 
@@ -1557,8 +1550,8 @@ class NoteBook (NoteBookNode):
         number = 2
         use_number = False
         while True:
-            newfilename, number = self._conn.new_filename(
-                self._attr["nodeid"], startname, ext, u"-",
+            newfilename, number = connection_fs.new_filename(
+                self._conn, self._attr["nodeid"], startname, ext, u"-",
                 number=number, return_number=True, use_number=use_number,
                 ensure_valid=False,
                 path=nodepath)
@@ -1579,10 +1572,10 @@ class NoteBook (NoteBookNode):
                 # we are done searching for names
                 break
             
-        self._conn.copy_node_file(None, filename, 
-                                  self._attr["nodeid"], newfilename)
-        self._conn.copy_node_file(None, filename_open, 
-                                  self._attr["nodeid"], newfilename_open)
+        self._conn.copy_file(None, filename, 
+                             self._attr["nodeid"], newfilename)
+        self._conn.copy_file(None, filename_open, 
+                             self._attr["nodeid"], newfilename_open)
 
         return (connection.path_basename(newfilename), 
                 connection.path_basename(newfilename_open))

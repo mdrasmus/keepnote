@@ -44,6 +44,7 @@ except Exception, e:
 
 # keepnote imports
 import keepnote
+import keepnote.notebook
 
 
 
@@ -74,6 +75,18 @@ def match_words(infile, words):
             return False
     
     return True
+
+
+def read_data_as_plain_text(conn, nodeid):
+    """Iterates over the lines of the data file as plain text"""
+    try:
+        infile = conn.open_file(
+            nodeid, keepnote.notebook.PAGE_DATA_FILE, "r", codec="utf-8")
+        for line in keepnote.notebook.read_data_as_plain_text(infile):
+            yield line
+        infile.close()
+    except:
+        pass
 
 
 
@@ -232,8 +245,6 @@ class NoteBookIndex (object):
                     self.open()
         except Exception, e:
             self._on_corrupt(e, sys.exc_info()[2])
-
-        
 
 
     def clear(self):
@@ -494,7 +505,7 @@ class NoteBookIndex (object):
                 attrindex.add_node(self.cur, nodeid, attr)
 
             # update fulltext
-            infile = self._nconn.read_data_as_plain_text(nodeid)
+            infile = read_data_as_plain_text(self._nconn, nodeid)
             self.index_node_text(nodeid, attr, infile)
             
         except Exception, e:
@@ -762,7 +773,7 @@ class NoteBookIndex (object):
             
             title = self._nconn.read_node(nodeid).get("title", "").lower()
             infile = chain([title], 
-                           self._nconn.read_data_as_plain_text(nodeid))
+                           read_data_as_plain_text(self._nconn, nodeid))
 
             if match_words(infile, words):
                 yield nodeid

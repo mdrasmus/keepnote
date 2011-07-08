@@ -206,11 +206,58 @@ def get_valid_filename(filename, default=u"folder",
     
 
 
-def get_valid_unique_filename(path, filename, ext=u"", sep=u" ", number=2):
+def get_valid_unique_filename(path, filename, ext=u"", sep=u" ", number=2,
+                              return_number=False, use_number=False):
     """Returns a valid and unique version of a filename for a given path"""
     return keepnote.notebook.get_unique_filename(
-        path, get_valid_filename(filename), ext, sep, number)
+        path, get_valid_filename(filename), ext, sep, number,
+        return_number=return_number, use_number=use_number)
+
+
+def get_valid_unique_filename_list(filenames, filename, 
+                                   ext=u"", sep=u" ", number=2,
+                                   return_number=False, use_number=False):
+    """Returns a valid and unique version of a filename for a given path"""
+    return keepnote.notebook.get_unique_filename_list(
+        filenames, get_valid_filename(filename), ext, sep, number,
+        return_number=return_number, use_number=use_number)
     
+
+def new_filename(conn, nodeid, new_filename, ext=u"", sep=u" ", number=2, 
+                 return_number=False, use_number=False, ensure_valid=True,
+                 _path=None):
+
+    filenames = list(conn.list_files(nodeid, os.path.dirname(new_filename)))
+    return new_filename_list(filenames, new_filename, ext=ext, sep=sep, 
+                             number=number,  return_number=return_number, 
+                             use_number=use_number, ensure_valid=ensure_valid,
+                             _path=_path)
+
+def new_filename_list(filenames, new_filename, ext=u"", sep=u" ", number=2, 
+                      return_number=False, use_number=False, ensure_valid=True,
+                      _path=None):
+
+    # TODO: use proper local and node path's (get_node_filename)
+    
+    # TODO: add assert for valid new_filename
+
+    if ext is None:
+        new_filename, ext = os.path.splitext(new_filename)
+    
+    if ensure_valid:
+        fullname, number = get_valid_unique_filename_list(
+            filenames, new_filename, ext, sep=sep, number=number,
+            return_number=True, use_number=use_number)
+    else:
+        fullname, number = keepnote.notebook.get_unique_filename_list(
+            filenames, new_filename, ext, sep=sep, number=number,
+            return_number=True, use_number=use_number)
+
+    if return_number:
+        return fullname, number
+    else:
+        return fullname
+
 
 
 #=============================================================================
@@ -523,7 +570,7 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def _get_node_path(self, nodeid):
         """Returns the path of the nodeid"""
-        
+
         path = self._path_cache.get_path(nodeid)
         
         if path is None and self._index:
@@ -578,9 +625,9 @@ class NoteBookConnectionFS (NoteBookConnection):
     #======================
     # Connection API
 
-    def connect(self, filename):
+    def connect(self, url):
         """Make a new connection"""
-        self._filename = filename
+        self._filename = url
         self.init_index()
         
     def close(self):
@@ -595,23 +642,22 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     #======================
     # Node I/O API        
-
-    def create_root(self, nodeid, attr):
-        """Create the root node"""
-        if self._filename is None:
-            raise ConnectionError("connect() has not been called")
-
-        nodeid = self.create_node(nodeid, attr, self._filename, True)
-
-        # make lost and found        
-        lostdir = self._get_lostdir()
-        if not os.path.exists(lostdir):
-            os.makedirs(lostdir)
     
 
-    def create_node(self, nodeid, attr, _path=None, _root=False):
+    def create_node(self, nodeid, attr, _path=None):
         """Create a node"""
-        
+
+        # check for creating root
+        if self._rootid is None:
+            if self._filename is None:
+                raise ConnectionError("connect() has not been called")
+            assert attr.get("parentids", (None,))[0] is None, attr
+            _path = self._filename
+            _root = True
+        else:
+            _root = False
+
+
         # check for existing nodeid
         if self.has_node(nodeid):
             raise NodeExists(nodeid)
@@ -621,14 +667,9 @@ class NoteBookConnectionFS (NoteBookConnection):
             nodeid = keepnote.notebook.new_nodeid()
 
         # determine parentid
-        if _root:
-            # we are creating the root node, therefore there is no parent
-            parentid = None
-        else:
-            # get parent from attr
-            parentids = attr.get("parentids", None)
-            # if parentids is None or [], use rootid as default
-            parentid = parentids[0] if parentids else self._rootid
+        parentids = attr.get("parentids", None)
+        # if parentids is None or [], use rootid as default
+        parentid = parentids[0] if parentids else self._rootid
 
         # if no path, use title to set path
         if _path is None:
@@ -656,18 +697,35 @@ class NoteBookConnectionFS (NoteBookConnection):
         except OSError, e:
             raise keepnote.notebook.NoteBookError(_("Cannot create node"), e)
         
+        # finish initializing root
+        if _root:
+            self._rootid = attr["nodeid"]
+            self._init_root()
+
         # update index
-        if not self._index:
-            self.create_dir(nodeid, NOTEBOOK_META_DIR)
-            self._index = notebook_index.NoteBookIndex(
-                self, self._get_index_file())
         self._index.add_node(nodeid, parentid, basename, attr, 
                              mtime=get_path_mtime(path))
 
 
         return nodeid
-    
+
+
+    def _init_root(self):
+        """Initialize root node"""
         
+        # make index
+        fn = os.path.dirname(self._get_index_file())
+        if not os.path.exists(fn):
+            os.makedirs(fn)
+        self.init_index()
+
+
+        # make lost and found        
+        lostdir = self._get_lostdir()
+        if not os.path.exists(lostdir):
+            os.makedirs(lostdir)
+
+    
     def _read_root(self):
         """Read root node attr"""
         if self._filename is None:
@@ -700,7 +758,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         # determine if parentid has changed
         parentid = self._get_parentid(nodeid) # old parent
         parentids2 = attr.get("parentids", None) # new parent
-        parentid2 = parentids2[0] if parentids2 else self._rootid
+        parentid2 = parentids2[0] if parentids2 else self.get_rootid()
         
         # determine if title has changed
         title_index = self._index.get_attr(nodeid, "title") # old title
@@ -925,13 +983,15 @@ class NoteBookConnectionFS (NoteBookConnection):
             out = safefile.open(filename, "w", codec="utf-8")
             out.write(u'<?xml version="1.0" encoding="UTF-8"?>\n'
                       u'<node>\n'
-                      u'<version>%d</version>\n' % attr["version"])
+                      u'<version>%d</version>\n' % 
+                      attr.get("version", 
+                               keepnote.notebook.NOTEBOOK_FORMAT_VERSION))
             plist.dump(self._attr_mask, out, indent=2, depth=0)
             out.write(u'</node>\n')
             out.close()
         except Exception, e:
             raise keepnote.notebook.NoteBookError(
-                _("Cannot write meta data"), e)
+                _("Cannot write meta data" + " " + filename + ":" + str(e)), e)
 
 
     def _read_attr(self, filename, recover=True):
@@ -992,33 +1052,25 @@ class NoteBookConnectionFS (NoteBookConnection):
         return True
 
 
-    # TODO: move into indexing framework
-    def read_data_as_plain_text(self, nodeid):
-        """Iterates over the lines of the data file as plain text"""
-        try:
-            infile = self.open_file(
-                nodeid, keepnote.notebook.PAGE_DATA_FILE, "r", codec="utf-8")
-            for line in keepnote.notebook.read_data_as_plain_text(infile):
-                yield line
-            infile.close()
-        except:
-            pass
-
-
-
     #===============
     # file API
     
-    def open_file(self, nodeid, filename, mode="r", 
-                        codec=None, _path=None):
-        """Open a node file"""        
+    def open_file(self, nodeid, filename, mode="r", codec=None, _path=None):
+        """Open a node file"""
+
+        if mode not in "rwa":
+            raise ConnectionError("mode must be 'r', 'w', or 'a'")
+        
         path = self._get_node_path(nodeid) if _path is None else _path
         fullname = get_node_filename(path, filename)
         dirpath = os.path.dirname(fullname)
         if not os.path.exists(dirpath):
             os.makedirs(dirpath)
-        
-        stream = safefile.open(fullname, mode, codec=codec)
+
+        # NOTE: always use binary mode to ensure no Window-specific line
+        # ending conversion
+
+        stream = safefile.open(fullname, mode + "b", codec=codec)
         
         # TODO: this should check and update the mtime
         # but only update if it was previously consistent (before the open)
@@ -1038,24 +1090,26 @@ class NoteBookConnectionFS (NoteBookConnection):
             shutil.rmtree(filepath)
 
     
-    def rename_file(self, nodeid, filename, new_filename):
+    def move_file(self, nodeid1, filename1, nodeid2, filename2,
+                  _path1=None, _path2=None):
         """Rename a node file"""
 
-        path = self._get_node_path(nodeid) if _path is None else _path
-        filepath = get_node_filename(path, filename)
-        new_filepath = get_node_filename(path, new_filename)
+        path1 = self._get_node_path(nodeid1) if _path1 is None else _path1
+        path2 = self._get_node_path(nodeid2) if _path2 is None else _path2
+        filepath1 = get_node_filename(path1, filename1)
+        filepath2 = get_node_filename(path2, filename2)
 
         # remove files in the way
-        if os.path.isfile(new_filepath):
-            os.remove(new_filepath)
-        if os.path.isdir(new_filename):
-            shutil.rmtree(new_filepath)
+        if os.path.isfile(filepath2):
+            os.remove(filepath2)
+        if os.path.isdir(filename2):
+            shutil.rmtree(filepath2)
 
         # rename file
-        os.rename(filepath, new_filepath)
+        os.rename(filepath1, filepath2)
         
 
-    def list_files(self, nodeid, filename="", _path=None):
+    def list_files(self, nodeid, filename="/", _path=None):
         """
         List data files in node
 
@@ -1064,7 +1118,7 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         path = self._get_node_path(nodeid) if _path is None else _path
         path = get_node_filename(path, filename)
-
+        
         try:
             filenames = os.listdir(path)
         except:
@@ -1087,13 +1141,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         path = self._get_node_path(nodeid) if _path is None else _path
         fullname = get_node_filename(path, filename)
         if not os.path.exists(fullname):
-            os.mkdir(fullname)
-    
-    def delete_dir(self, nodeid, filename, _path=None):
-        path = self._get_node_path(nodeid) if _path is None else _path
-        fullname = get_node_filename(path, filename)
-        if not os.path.exists(fullname):
-            shutil.rmtree(fullname)
+            os.makedirs(fullname)
         
 
     def file_exists(self, nodeid, filename, _path=None):
@@ -1101,30 +1149,12 @@ class NoteBookConnectionFS (NoteBookConnection):
         return os.path.exists(get_node_filename(path, filename))
 
     
-    def copy_node_files(self, nodeid1, nodeid2):
-        """
-        Copy all data files from nodeid1 to nodeid2
-        """
-        
-        path1 = self._get_node_path(nodeid1)
-        path2 = self._get_node_path(nodeid2)
-
-        for filename in self.list_files(nodeid1, path1):
-            fullname1 = get_node_filename(path1, filename)
-            fullname2 = get_node_filename(path2, filename)
-            
-            if os.path.isfile(fullname1):
-                shutil.copy(fullname1, fullname2)
-            elif os.path.isdir(fullname1):
-                shutil.copytree(fullname1, fullname2)
-
-    
-    def copy_node_file(self, nodeid1, filename1, nodeid2, filename2,
-                       _path1=None, _path2=None):
+    def copy_file(self, nodeid1, filename1, nodeid2, filename2,
+                  _path1=None, _path2=None):
         """
         Copy a file between two nodes
 
-        if node is None, filename is assumed to be a local file
+        if nodeid is None, filename is assumed to be a local file
         """
 
         if nodeid1 is None:
@@ -1142,12 +1172,22 @@ class NoteBookConnectionFS (NoteBookConnection):
         if os.path.isfile(fullname1):
             shutil.copy(fullname1, fullname2)
         elif os.path.isdir(fullname1):
+            # TODO: handle case where filename1 = "/" and 
+            # filename2 could be an existing directory
+
             shutil.copytree(fullname1, fullname2)
 
 
+    '''
     def new_filename(self, nodeid, new_filename, ext=u"", sep=u" ", number=2, 
                      return_number=False, use_number=False, ensure_valid=True,
                      _path=None):
+
+        return new_filename(self, nodeid, new_filename, 
+                            ext=ext, sep=sep, number=number, 
+                            return_number=return_number, 
+                            use_number=use_number, 
+                            ensure_valid=ensure_valid)
 
         # TODO: use proper local and node path's (get_node_filename)
 
@@ -1179,6 +1219,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             return keepnote.notebook.relpath(fullname, path), number
         else:
             return keepnote.notebook.relpath(fullname, path)
+        '''
 
 
     #---------------------------------
@@ -1202,7 +1243,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         
         # clear memory cache too
         self._path_cache.clear()
-        self._path_cache.add(self._rootid, self._filename, None)
+        self._path_cache.add(self.get_rootid(), self._filename, None)
 
         for node in self._index.index_all():
             yield node
@@ -1270,6 +1311,55 @@ class NoteBookConnectionFS (NoteBookConnection):
         return self._index.get_attr(nodeid, key)
 
     
+
+
+
+# TODO: need to keep namespace of files and node directories spearate.
+# Need to carefully define what valid filenames look like.
+#  - is it case-sensitive?
+#  - which characters are allowed?
+#  - would do a translation between what the user thinks the path is and
+#    what is actually used on disk.
+
+
+"""
+File path translation strategy.
+
+on disk            user-visible
+filename    =>     filename
+_filename   =>     filename
+__filename  =>     _filename
+
+user-visble       on disk 
+filename     =>  filename (if file 'filename' exists)
+filename     =>  _filename (if file 'filename' does not-exist)
+_filename    =>  __filename
+
+
+Within an attached directory naming scheme is 1-to-1
+
+
+
+Reading filename from disk:
+  filename = read_from_disk()
+  if filename.startswith("_"):
+    # unquote filename
+    return filename[1:]
+
+Looking for filename on disk:
+  if filename.startswith("_"):
+    # escape '_'
+    filename = "_" + filename
+  if simple_file_exists(filename):  # i.e. not a node dir
+    return filename
+  else:
+    # try quoted name
+    return "_" + filename
+
+
+node directories aren't allowed to start with '_'.
+
+"""
 
 
 
