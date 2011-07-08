@@ -246,51 +246,96 @@ class NoteBookConnection (object):
 
 
     #---------------------------------
-    # index management
-
-    def init_index(self):
-        """Initialize the index"""
-        pass
+    # indexing
     
-    def index_needed(self):
-        pass
+    def index(self, query):
 
-    def clear_index(self):
-        pass
+        # built-in queries
+        # ["index_attr", key, (index_value)]
+        # ["search", "title", text]
+        # ["search_fulltext", text]
+        # ["has_fulltext"]
+        # ["node_path", nodeid]
+        # ["get_attr", nodeid, key]
 
-    def index_all(self):
-        pass
+        if query[0] == "index_attr":
+            index_value = query[3] if len(query) == 4 else False
+            return self.index_attr(query[1], query[2], index_value)
+            
+        elif query[0] == "search":
+            assert query[1] == "title"
+            return self.search_node_titles(query[2])
 
+        elif query[0] == "search_fulltext":
+            return self.search_node_contents(query[1])
+
+        elif query[0] == "has_fulltext":
+            return self.has_fulltext_search()
+
+        elif query[0] == "node_path":
+            return self.get_node_path_by_id(query[1])
+
+        elif query[0] == "get_attr":
+            return self.get_attr_by_id(query[1], query[2])
+
+
+        # FS-specific
+        elif query[0] == "init":
+            return self.init_index()
+
+        elif query[0] == "index_needed":
+            return self.index_needed()
+
+        elif query[0] == "clear":
+            return self.clear_index()
+
+        elif query[0] == "index_all":
+            return self.index_all()
 
     #---------------------------------
     # indexing/querying
+    # TODO: perhaps deprecate this for generic index() calls
 
-    def index_attr(self, key, index_value=False):
+    def index_attr(self, key, datatype, index_value=False):
         """Add indexing for an attribute"""
-        pass
+        return self.index(["index_attr", key, datatype, index_value])
 
     def search_node_titles(self, text):
         """Search nodes by title"""
-        pass
+        return self.index(["search", "title", text])
 
     def search_node_contents(self, text):
         """Search nodes by content"""
-        pass
+        return self.index(["search_fulltext", text])
 
     def has_fulltext_search(self):
-        pass
-
-    def update_index_node(self, nodeid, attr):
-        """Update a node in the index"""
-        pass
+        return self.index(["has_fulltext"])
     
     def get_node_path_by_id(self, nodeid):
         """Lookup node path by nodeid"""
-        pass
+        return self.index(["node_path", nodeid])
 
     def get_attr_by_id(self, nodeid, key):
-        pass
+        return self.index(["get_attr", nodeid, key])
 
+
+
+    #---------------------------------------
+    # FS-specific index management
+    # TODO: try to deprecate
+
+    def init_index(self):
+        """Initialize the index"""
+        return self.index(["init"])
+    
+    def index_needed(self):
+        return self.index(["index_needed"])
+
+    def clear_index(self):
+        return self.index(["clear_index"])
+
+    def index_all(self):
+        return self.index(["index_all"])
 
 
 

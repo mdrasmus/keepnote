@@ -1263,8 +1263,10 @@ class NoteBookConnectionFS (NoteBookConnection):
     # indexing/querying
 
     def index_attr(self, key, datatype, index_value=False):
-                
-        if issubclass(datatype, basestring):
+        
+        if isinstance(datatype, basestring):
+            index_type = datatype
+        elif issubclass(datatype, basestring):
             index_type = "TEXT"
         elif issubclass(datatype, int):
             index_type = "INTEGER"
@@ -1289,16 +1291,6 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def has_fulltext_search(self):
         return self._index.has_fulltext_search()
-    
-
-    def update_index_node(self, nodeid, attr):
-        """Update a node in the index"""
-        
-        path = self._get_node_path(nodeid)
-        basename = os.path.basename(path)
-        parentid = attr["parentids"][0]
-        self._index.add_node(nodeid, parentid, basename, attr, 
-                             mtime=get_path_mtime(path))
 
     
     def get_node_path_by_id(self, nodeid):

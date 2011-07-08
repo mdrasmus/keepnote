@@ -156,7 +156,7 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                 stream.write(data)
                 stream.close()
 
-            self.send_response(201)
+            self.send_response(200) # ok
             self.send_header("content_type", "text/plain")
             self.end_headers()
             
@@ -169,26 +169,27 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
 
         parts, nodeid, filename = self.parse_path()
 
-        if nodeid == "":
-            # pure command
-
-            if parts.query == "save":
-                self.server.conn.save()
-            self.send_response(202)
-            self.send_header("content_type", "text/plain")
-            self.end_headers()
-            return
-
-
-        # TODO: add write file case
-
-        # read attr
         content_len = int(self.headers.get("Content-length", 0))
+        data = self.rfile.read(content_len)
 
         try:
-            data = self.rfile.read(content_len)
-            
-            if not filename:
+            if nodeid == "":
+                # pure command
+                
+                if parts.query == "save":
+                    self.server.conn.save()
+
+                elif parts.query == "query":
+                    query = plist.loads(data)
+                    res = self.server.conn.index(query)
+                    if hasattr(res, "next"):
+                        res = list(res)
+                    self.send_response(200) # ok
+                    self.send_header("content_type", "text/plain")
+                    self.end_headers()
+                    self.wfile.write(plist.dumps(res))
+                    return 
+            elif not filename:
                 # update node
                 attr = plist.loads(data)
                 attr["nodeid"] = nodeid
@@ -203,7 +204,7 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                 stream.write(data)
                 stream.close()
 
-            self.send_response(201)
+            self.send_response(200) # ok
             self.send_header("content_type", "text/plain")
             self.end_headers()
             
@@ -477,31 +478,21 @@ class NoteBookConnectionHttp (NoteBookConnection):
     #---------------------------------
     # indexing/querying
 
-    def index_attr(self, key, index_value=False):
-        """Add indexing for an attribute"""
-        pass
+    def index(self, query):
 
-    def search_node_titles(self, text):
-        """Search nodes by title"""
-        pass
+        # POST /?query
+        # query plist encoded
+        body_content = plist.dumps(query)
+        self._conn.request(
+            'POST', format_node_path(self._prefix) + "?query", body_content)
+        result = self._conn.getresponse()
+        if result.status == 200:
+            try:
+                return plist.load(result)
+            except:
+                return None
 
-    def search_node_contents(self, text):
-        """Search nodes by content"""
-        pass
 
-    def has_fulltext_search(self):
-        pass
-
-    def update_index_node(self, nodeid, attr):
-        """Update a node in the index"""
-        pass
-    
-    def get_node_path_by_id(self, nodeid):
-        """Lookup node path by nodeid"""
-        pass
-
-    def get_attr_by_id(self, nodeid, key):
-        pass
 
 #=============================================================================
 
@@ -562,9 +553,13 @@ stream.close()
 
 conn2.delete_file(nodeid, "myfile")
 
+conn2.index(["index_attr", "title", "TEXT"])
+print "QUERY", conn2.index(["search_fulltext", "a"])[:10]
+print "QUERY", conn2.search_node_titles("new")[:3]
+print "QUERY", conn2.get_node_path_by_id(nodeid)
 
 # delete node
-#conn2.delete_node(nodeid)
+conn2.delete_node(nodeid)
 
 # save
 conn2.save()
