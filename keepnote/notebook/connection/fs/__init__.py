@@ -90,7 +90,7 @@ from keepnote import safefile, plist, maskdict
 from keepnote import trans
 from keepnote.notebook.connection.fs import index as notebook_index
 from keepnote.notebook.connection import \
-    NoteBookConnection, UnknownNode, UnknownFile, NodeExists, \
+    NoteBookConnection, UnknownNode, FileError, UnknownFile, NodeExists, \
     CorruptIndex, ConnectionError, path_basename
 import keepnote
 import keepnote.notebook
@@ -168,7 +168,14 @@ def get_node_filename(node_path, filename):
     node_path  -- local path to a node
     filename   -- node path to attached file
     """
+    
+    if filename.startswith("/"):
+        filename = filename[1:]
+
     return os.path.join(node_path, path_node2local(filename))
+
+
+# TODO: think about how to handle "." and ".." in filenames
 
 
 #=============================================================================
@@ -1059,18 +1066,22 @@ class NoteBookConnectionFS (NoteBookConnection):
         """Open a node file"""
 
         if mode not in "rwa":
-            raise ConnectionError("mode must be 'r', 'w', or 'a'")
+            raise FileError("mode must be 'r', 'w', or 'a'")
         
         path = self._get_node_path(nodeid) if _path is None else _path
         fullname = get_node_filename(path, filename)
         dirpath = os.path.dirname(fullname)
-        if not os.path.exists(dirpath):
-            os.makedirs(dirpath)
-
-        # NOTE: always use binary mode to ensure no Window-specific line
-        # ending conversion
-
-        stream = safefile.open(fullname, mode + "b", codec=codec)
+        
+        try:
+            if not os.path.exists(dirpath):
+                os.makedirs(dirpath)
+            
+            # NOTE: always use binary mode to ensure no 
+            # Window-specific line ending conversion
+            stream = safefile.open(fullname, mode + "b", codec=codec)
+        except Exception, e:
+            raise FileError(
+                "cannot open file '%s' '%s': %s" % (nodeid, filename, str(e)), e)
         
         # TODO: this should check and update the mtime
         # but only update if it was previously consistent (before the open)
@@ -1080,14 +1091,23 @@ class NoteBookConnectionFS (NoteBookConnection):
         
         return stream
 
+
     def delete_file(self, nodeid, filename, _path=None):
         """Delete a node file"""
         path = self._get_node_path(nodeid) if _path is None else _path
         filepath = get_node_filename(path, filename)
-        if os.path.isfile(filepath):
-            os.remove(filepath)
-        else:
-            shutil.rmtree(filepath)
+
+        try:
+            if os.path.isfile(filepath):
+                os.remove(filepath)
+            elif os.path.isdir(filepath):
+                shutil.rmtree(filepath)
+            else:
+                # filename may not exist, delete is successful by default
+                pass
+        except Exception, e:
+            raise FileError("error deleting file '%s' '%s'" % 
+                            (nodeid, filename), e)
 
     
     def move_file(self, nodeid1, filename1, nodeid2, filename2,
@@ -1099,14 +1119,18 @@ class NoteBookConnectionFS (NoteBookConnection):
         filepath1 = get_node_filename(path1, filename1)
         filepath2 = get_node_filename(path2, filename2)
 
-        # remove files in the way
-        if os.path.isfile(filepath2):
-            os.remove(filepath2)
-        if os.path.isdir(filename2):
-            shutil.rmtree(filepath2)
+        try:
+            # remove files in the way
+            if os.path.isfile(filepath2):
+                os.remove(filepath2)
+            if os.path.isdir(filename2):
+                shutil.rmtree(filepath2)
 
-        # rename file
-        os.rename(filepath1, filepath2)
+            # rename file
+            os.rename(filepath1, filepath2)
+        except Exception, e:
+            raise FileError("could not move file '%s' '%s'" %
+                            (nodeid1, filename1), e)
         
 
     def list_files(self, nodeid, filename="/", _path=None):
@@ -1122,7 +1146,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         try:
             filenames = os.listdir(path)
         except:
-            raise UnknownFile()
+            raise UnknownFile("cannot file file '%s' '%s'" % (nodeid, filename))
 
         for filename in filenames:
             if (filename != NODE_META_FILE and 
@@ -1140,13 +1164,22 @@ class NoteBookConnectionFS (NoteBookConnection):
     def create_dir(self, nodeid, filename, _path=None):
         path = self._get_node_path(nodeid) if _path is None else _path
         fullname = get_node_filename(path, filename)
-        if not os.path.exists(fullname):
-            os.makedirs(fullname)
+
+        try:
+            if not os.path.isdir(fullname):
+                os.makedirs(fullname)
+        except Exception, e:
+            raise FileError(
+                "cannot create dir '%s' '%s'" % (nodeid, filename), e)
         
 
     def file_exists(self, nodeid, filename, _path=None):
         path = self._get_node_path(nodeid) if _path is None else _path
-        return os.path.exists(get_node_filename(path, filename))
+
+        if filename.endswith("/"):
+            return os.path.isdir(get_node_filename(path, filename))
+        else:
+            return os.path.isfile(get_node_filename(path, filename))
 
     
     def copy_file(self, nodeid1, filename1, nodeid2, filename2,
@@ -1169,58 +1202,24 @@ class NoteBookConnectionFS (NoteBookConnection):
             path2 = self._get_node_path(nodeid2) if not _path2 else _path2
             fullname2 = get_node_filename(path2, filename2)
         
-        if os.path.isfile(fullname1):
-            shutil.copy(fullname1, fullname2)
-        elif os.path.isdir(fullname1):
-            # TODO: handle case where filename1 = "/" and 
-            # filename2 could be an existing directory
+        try:
+            # remove files in the way
+            # TODO: make sure to handle case where filename2 is "/"
+            #if os.path.isfile(fullname2):
+            #    os.remove(fullname2)
+            #if os.path.isdir(fullname2):
+            #    shutil.rmtree(fullname2)
 
-            shutil.copytree(fullname1, fullname2)
+            if os.path.isfile(fullname1):
+                shutil.copy(fullname1, fullname2)
+            elif os.path.isdir(fullname1):
+                # TODO: handle case where filename1 = "/" and 
+                # filename2 could be an existing directory
 
-
-    '''
-    def new_filename(self, nodeid, new_filename, ext=u"", sep=u" ", number=2, 
-                     return_number=False, use_number=False, ensure_valid=True,
-                     _path=None):
-
-        return new_filename(self, nodeid, new_filename, 
-                            ext=ext, sep=sep, number=number, 
-                            return_number=return_number, 
-                            use_number=use_number, 
-                            ensure_valid=ensure_valid)
-
-        # TODO: use proper local and node path's (get_node_filename)
-
-        # TODO: move this out of the connection
-
-        # TODO: add assert for valid new_filename
-
-        path = self._get_node_path(nodeid) if _path is None else _path
-        if ext is None:
-            new_filename, ext = os.path.splitext(new_filename)
-
-        basename = path_basename(new_filename)
-        path2 = os.path.join(path, os.path.dirname(new_filename))
-
-        if ensure_valid:
-            fullname = get_valid_unique_filename(
-                path2, basename, ext, sep=sep, number=number)
-        else:
-            if return_number:
-                fullname, number = keepnote.notebook.get_unique_filename(
-                    path2, basename, ext, sep=sep, number=number,
-                    return_number=return_number, use_number=use_number)
-            else:
-                fullname = keepnote.notebook.get_unique_filename(
-                    path2, basename, ext, sep=sep, number=number,
-                    return_number=return_number, use_number=use_number)
-
-        if return_number:
-            return keepnote.notebook.relpath(fullname, path), number
-        else:
-            return keepnote.notebook.relpath(fullname, path)
-        '''
-
+                shutil.copytree(fullname1, fullname2)
+        except Exception, e:
+            raise FileError(
+                "unable to copy file '%s' '%s'" % (nodeid1, filename1), e)
 
     #---------------------------------
     # index management

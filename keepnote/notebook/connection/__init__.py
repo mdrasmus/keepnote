@@ -49,9 +49,13 @@ class NodeExists (ConnectionError):
     def __init__(self, msg="node exists"):
         ConnectionError.__init__(self, msg)
 
-class UnknownFile (ConnectionError):
+class FileError (ConnectionError):
+    def __init__(self, msg="file error", error=None):
+        ConnectionError.__init__(self, msg, error)
+
+class UnknownFile (FileError):
     def __init__(self, msg="unknown file"):
-        ConnectionError.__init__(self, msg)
+        FileError.__init__(self, msg)
 
 class CorruptIndex (ConnectionError):
     def __init__(self, msg="index error", error=None):
@@ -239,12 +243,6 @@ class NoteBookConnection (object):
 
             stream1.close()
             stream2.close()
-
-
-    # Is this needed inside the connection?  Can it be support outside?
-    #def new_filename(self, nodeid, new_filename, ext=u"", sep=u" ", number=2, 
-    #                 return_number=False, use_number=False, ensure_valid=True):
-    #    pass
 
 
     #---------------------------------

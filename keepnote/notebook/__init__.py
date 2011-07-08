@@ -918,11 +918,6 @@ class NoteBookNode (object):
     def _write_attr(self, attr):
         
         self._notebook._mask_attr.set_dict(attr)
-
-        #print
-        #print attr
-        #print self._notebook._mask_attr
-        
         self._conn.update_node(attr["nodeid"], self._notebook._mask_attr)
         #self._conn.update_node(attr["nodeid"], attr)
 
