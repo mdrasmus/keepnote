@@ -129,28 +129,28 @@ class NoteBookConnection (object):
     
     def create_node(self, nodeid, attr):
         """Create a node"""
-        pass
+        raise Unimplemented("create_node")
             
     def read_node(self, nodeid):
         """Read a node attr"""
-        pass
+        raise Unimplemented("read_node")
 
     def update_node(self, nodeid, attr):
         """Write node attr"""
-        pass
+        raise Unimplemented("update_node")
 
     def delete_node(self, nodeid):
         """Delete node"""
-        pass
+        raise Unimplemented("delete_node")
 
     def has_node(self, nodeid):
         """Returns True if node exists"""
-        return False
+        raise Unimplemented("has_node")
 
     # TODO: can this be simplified with a search query?
     def get_rootid(self):
         """Returns nodeid of notebook root node"""
-        pass
+        raise Unimplemented("get_rootid")
     
 
     #===============
@@ -165,25 +165,25 @@ class NoteBookConnection (object):
         mode     -- can be "r" (read), "w" (write), "a" (append)
         codec    -- read or write with an encoding (default: None)
         """
-        pass
+        raise Unimplemented("open_file")
 
 
     def delete_file(self, nodeid, filename):
         """Delete a file contained within a node"""
-        pass
+        raise Unimplemented("delete_file")
 
     def create_dir(self, nodeid, filename):
         """Create directory within node"""
-        pass
+        raise Unimplemented("create_dir")
 
     def list_files(self, nodeid, filename="/"):
         """
         List data files in node
         """
-        pass
+        raise Unimplemented("list_files")
     
-    def file_exists(self, nodeid, filename):
-        pass
+    def has_file(self, nodeid, filename):
+        raise Unimplemented("has_file")
 
     def move_file(self, nodeid, filename1, nodeid2, filename2):
         """
@@ -344,15 +344,15 @@ class NoteBookConnection (object):
     
     def get_node_path(self, nodeid):
         """Returns the path of the node"""
-        pass
+        raise Unimplemented("get_node_path")
     
     def get_node_basename(self, nodeid):
         """Returns the basename of the node"""
-        pass
+        raise Unimplemented("get_node_basename")
 
     # TODO: returning a fullpath to a file is not fully portable
     # will eventually need some kind of fetching mechanism    
     def get_file(self, nodeid, filename, _path=None):
-        pass
+        raise Unimplemented("get_file")
 
 

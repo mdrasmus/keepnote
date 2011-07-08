@@ -1484,7 +1484,7 @@ class NoteBook (NoteBookNode):
 
         filename = connection.path_join(
             NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR, basename)
-        if self._conn.file_exists(self._attr["nodeid"], filename):
+        if self._conn.has_file(self._attr["nodeid"], filename):
             return self._conn.get_file(self._attr["nodeid"], filename)
         else:
             return None
@@ -1549,7 +1549,7 @@ class NoteBook (NoteBookNode):
             newfilename_open += u"-open" + ext
 
             # see if it already exists
-            if self._conn.file_exists(self._attr["nodeid"], newfilename_open):
+            if self._conn.has_file(self._attr["nodeid"], newfilename_open):
                 number += 1
                 use_number = True
             else:

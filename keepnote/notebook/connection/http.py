@@ -273,7 +273,7 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                 exists = self.server.conn.has_node(nodeid)
             else:
                 # exists file/dir
-                exists = self.server.conn.file_exists(nodeid, filename)
+                exists = self.server.conn.has_file(nodeid, filename)
 
             if exists:
                 self.send_response(200)
@@ -474,7 +474,7 @@ class NoteBookConnectionHttp (NoteBookConnection):
             raise FileError("cannot list node")
         
     
-    def file_exists(self, nodeid, filename):
+    def has_file(self, nodeid, filename):
 
         # HEAD nodeid/filename
         self._conn.request(

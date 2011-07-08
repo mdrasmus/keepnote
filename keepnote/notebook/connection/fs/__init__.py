@@ -1173,7 +1173,7 @@ class NoteBookConnectionFS (NoteBookConnection):
                 "cannot create dir '%s' '%s'" % (nodeid, filename), e)
         
 
-    def file_exists(self, nodeid, filename, _path=None):
+    def has_file(self, nodeid, filename, _path=None):
         path = self._get_node_path(nodeid) if _path is None else _path
 
         if filename.endswith("/"):

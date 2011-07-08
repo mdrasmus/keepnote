@@ -91,13 +91,13 @@ def sync_files(conn1, nodeid1, conn2, nodeid2, path1="", path2=""):
     files = list(conn1.list_files(nodeid1, path1))
 
     # ensure target path exists
-    if not conn2.file_exists(nodeid2, path2):
+    if not conn2.has_file(nodeid2, path2):
         conn2.create_dir(nodeid2, path2)
 
     # remove files in node2 that don't exist in node1
     for f in list(conn2.list_files(nodeid2, path2)):
         f2 = path_join(path2, f)
-        if not conn1.file_exists(nodeid1, f2):
+        if not conn1.has_file(nodeid1, f2):
             conn2.delete_file(nodeid2, f2)
 
     # copy files from node1 to node2
