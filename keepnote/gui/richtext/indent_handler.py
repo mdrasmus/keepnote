@@ -7,7 +7,7 @@
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2011 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -114,7 +114,7 @@ class IndentHandler (object):
                     RichTextIndentTag.tag_name(indent + change,
                                                par_indent))
                 self._buf.clear_tag_class(tag, pos, par_end)
-                self._buf.apply_tag(tag, pos, par_end)
+                self._buf.apply_tag_selected(tag, pos, par_end)
                 
             elif indent > 0:
                 # remove indent and possible bullets

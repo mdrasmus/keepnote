@@ -54,6 +54,7 @@ def color_to_string(color):
     greenstr = hex(color.green)[2:]
     bluestr = hex(color.blue)[2:]
 
+    # pad with zeros
     while len(redstr) < 4:
         redstr = "0" + redstr
     while len(greenstr) < 4:
@@ -70,6 +71,7 @@ def color_tuple_to_string(color):
     greenstr = hex(color[1])[2:]
     bluestr = hex(color[2])[2:]
 
+    # pad with zeros
     while len(redstr) < 4:
         redstr = "0" + redstr
     while len(greenstr) < 4:

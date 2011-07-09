@@ -107,9 +107,7 @@ class FontHandler (gobject.GObject):
 
             # apply current style to inserted text if inserted text is
             # at cursor            
-            if action.cursor_insert and \
-               len(action.current_tags) > 0:
-
+            if action.cursor_insert and len(action.current_tags) > 0:
                 it = self._buf.get_iter_at_offset(action.pos)
                 it2 = it.copy()
                 it2.forward_chars(action.length)
@@ -124,7 +122,7 @@ class FontHandler (gobject.GObject):
 
         if mark is self._insert_mark:
 
-            # if cursor startline pick up opening tags,
+            # if cursor at startline pick up opening tags,
             # otherwise closing tags
             opening = it.starts_line()
             self.set_current_tags(

@@ -451,6 +451,9 @@ class paragraph_iter (object):
             self.buf.delete_mark(self.end_mark)
 
     def __iter__(self):
+        self.pos = self.buf.get_iter_at_mark(self.pos_mark)
+        self.end = self.buf.get_iter_at_mark(self.end_mark)
+
         while self.pos.compare(self.end) == -1:
             self.buf.move_mark(self.pos_mark, self.pos)
             yield self.pos
