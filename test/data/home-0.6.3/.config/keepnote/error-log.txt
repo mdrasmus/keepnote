@@ -1,0 +1,460 @@
+==============================================
+KeepNote 0.6.3: Mon Jul 19 11:23:54 2010
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:737: Warning: invalid (NULL) pointer instance
+  "app_options_dialog", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:737: Warning: g_signal_connect_data: assertion `G_TYPE_CHECK_INSTANCE (instance)' failed
+  "app_options_dialog", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:737: GtkWarning: gtk_settings_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  "app_options_dialog", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:737: Warning: g_object_get: assertion `G_IS_OBJECT (object)' failed
+  "app_options_dialog", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:757: GtkWarning: gtk_settings_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  self.overview.append_column(column)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:757: Warning: g_object_get: assertion `G_IS_OBJECT (object)' failed
+  self.overview.append_column(column)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:119: Warning: invalid (NULL) pointer instance
+  "general_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:119: Warning: g_signal_connect_data: assertion `G_TYPE_CHECK_INSTANCE (instance)' failed
+  "general_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:119: GtkWarning: gtk_settings_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  "general_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:119: Warning: g_object_get: assertion `G_IS_OBJECT (object)' failed
+  "general_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:119: GtkWarning: gdk_pango_context_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  "general_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:119: PangoWarning: pango_context_set_font_description: assertion `context != NULL' failed
+  "general_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:119: PangoWarning: pango_context_set_base_dir: assertion `context != NULL' failed
+  "general_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:119: PangoWarning: pango_context_set_language: assertion `context != NULL' failed
+  "general_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:119: PangoWarning: pango_layout_new: assertion `context != NULL' failed
+  "general_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:119: PangoWarning: pango_layout_set_attributes: assertion `layout != NULL' failed
+  "general_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:119: PangoWarning: pango_layout_set_text: assertion `layout != NULL' failed
+  "general_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:119: PangoWarning: pango_layout_get_unknown_glyphs_count: assertion `PANGO_IS_LAYOUT (layout)' failed
+  "general_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:119: Warning: g_object_unref: assertion `G_IS_OBJECT (object)' failed
+  "general_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:236: GtkWarning: gtk_settings_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  c = gtk.CheckButton(label)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:236: Warning: g_object_get: assertion `G_IS_OBJECT (object)' failed
+  c = gtk.CheckButton(label)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:254: Warning: invalid (NULL) pointer instance
+  c = gtk.combo_box_new_text(); c.show()
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:254: Warning: g_signal_connect_data: assertion `G_TYPE_CHECK_INSTANCE (instance)' failed
+  c = gtk.combo_box_new_text(); c.show()
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:255: GtkWarning: gdk_pango_context_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  c.append_text(_("Vertical"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:255: PangoWarning: pango_context_set_font_description: assertion `context != NULL' failed
+  c.append_text(_("Vertical"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:255: PangoWarning: pango_context_set_base_dir: assertion `context != NULL' failed
+  c.append_text(_("Vertical"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:255: PangoWarning: pango_context_set_language: assertion `context != NULL' failed
+  c.append_text(_("Vertical"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:255: PangoWarning: pango_layout_new: assertion `context != NULL' failed
+  c.append_text(_("Vertical"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:255: PangoWarning: pango_layout_set_single_paragraph_mode: assertion `PANGO_IS_LAYOUT (layout)' failed
+  c.append_text(_("Vertical"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:255: PangoWarning: pango_layout_set_ellipsize: assertion `PANGO_IS_LAYOUT (layout)' failed
+  c.append_text(_("Vertical"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:255: PangoWarning: pango_layout_set_width: assertion `layout != NULL' failed
+  c.append_text(_("Vertical"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:255: PangoWarning: pango_layout_set_wrap: assertion `PANGO_IS_LAYOUT (layout)' failed
+  c.append_text(_("Vertical"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:255: PangoWarning: pango_layout_set_alignment: assertion `layout != NULL' failed
+  c.append_text(_("Vertical"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:255: PangoWarning: pango_layout_set_attributes: assertion `layout != NULL' failed
+  c.append_text(_("Vertical"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:255: PangoWarning: pango_layout_get_pixel_extents: assertion `PANGO_IS_LAYOUT (layout)' failed
+  c.append_text(_("Vertical"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:255: Warning: g_object_unref: assertion `G_IS_OBJECT (object)' failed
+  c.append_text(_("Vertical"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:255: PangoWarning: pango_layout_set_text: assertion `layout != NULL' failed
+  c.append_text(_("Vertical"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:256: GtkWarning: gdk_pango_context_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  c.append_text(_("Horizontal"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:256: PangoWarning: pango_context_set_font_description: assertion `context != NULL' failed
+  c.append_text(_("Horizontal"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:256: PangoWarning: pango_context_set_base_dir: assertion `context != NULL' failed
+  c.append_text(_("Horizontal"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:256: PangoWarning: pango_context_set_language: assertion `context != NULL' failed
+  c.append_text(_("Horizontal"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:256: PangoWarning: pango_layout_new: assertion `context != NULL' failed
+  c.append_text(_("Horizontal"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:256: PangoWarning: pango_layout_set_single_paragraph_mode: assertion `PANGO_IS_LAYOUT (layout)' failed
+  c.append_text(_("Horizontal"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:256: PangoWarning: pango_layout_set_ellipsize: assertion `PANGO_IS_LAYOUT (layout)' failed
+  c.append_text(_("Horizontal"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:256: PangoWarning: pango_layout_set_width: assertion `layout != NULL' failed
+  c.append_text(_("Horizontal"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:256: PangoWarning: pango_layout_set_wrap: assertion `PANGO_IS_LAYOUT (layout)' failed
+  c.append_text(_("Horizontal"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:256: PangoWarning: pango_layout_set_alignment: assertion `layout != NULL' failed
+  c.append_text(_("Horizontal"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:256: PangoWarning: pango_layout_set_attributes: assertion `layout != NULL' failed
+  c.append_text(_("Horizontal"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:256: PangoWarning: pango_layout_get_pixel_extents: assertion `PANGO_IS_LAYOUT (layout)' failed
+  c.append_text(_("Horizontal"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:256: Warning: g_object_unref: assertion `G_IS_OBJECT (object)' failed
+  c.append_text(_("Horizontal"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:256: PangoWarning: pango_layout_set_text: assertion `layout != NULL' failed
+  c.append_text(_("Horizontal"))
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:302: Warning: invalid (NULL) pointer instance
+  c = gtk.combo_box_new_text(); c.show()
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:302: Warning: g_signal_connect_data: assertion `G_TYPE_CHECK_INSTANCE (instance)' failed
+  c = gtk.combo_box_new_text(); c.show()
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:305: GtkWarning: gdk_pango_context_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  c.append_text("default")
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:305: PangoWarning: pango_context_set_font_description: assertion `context != NULL' failed
+  c.append_text("default")
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:305: PangoWarning: pango_context_set_base_dir: assertion `context != NULL' failed
+  c.append_text("default")
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:305: PangoWarning: pango_context_set_language: assertion `context != NULL' failed
+  c.append_text("default")
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:305: PangoWarning: pango_layout_new: assertion `context != NULL' failed
+  c.append_text("default")
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:305: PangoWarning: pango_layout_set_single_paragraph_mode: assertion `PANGO_IS_LAYOUT (layout)' failed
+  c.append_text("default")
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:305: PangoWarning: pango_layout_set_ellipsize: assertion `PANGO_IS_LAYOUT (layout)' failed
+  c.append_text("default")
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:305: PangoWarning: pango_layout_set_width: assertion `layout != NULL' failed
+  c.append_text("default")
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:305: PangoWarning: pango_layout_set_wrap: assertion `PANGO_IS_LAYOUT (layout)' failed
+  c.append_text("default")
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:305: PangoWarning: pango_layout_set_alignment: assertion `layout != NULL' failed
+  c.append_text("default")
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:305: PangoWarning: pango_layout_set_attributes: assertion `layout != NULL' failed
+  c.append_text("default")
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:305: PangoWarning: pango_layout_get_pixel_extents: assertion `PANGO_IS_LAYOUT (layout)' failed
+  c.append_text("default")
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:305: Warning: g_object_unref: assertion `G_IS_OBJECT (object)' failed
+  c.append_text("default")
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:305: PangoWarning: pango_layout_set_text: assertion `layout != NULL' failed
+  c.append_text("default")
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:307: GtkWarning: gdk_pango_context_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  c.append_text(lang)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:307: PangoWarning: pango_context_set_font_description: assertion `context != NULL' failed
+  c.append_text(lang)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:307: PangoWarning: pango_context_set_base_dir: assertion `context != NULL' failed
+  c.append_text(lang)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:307: PangoWarning: pango_context_set_language: assertion `context != NULL' failed
+  c.append_text(lang)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:307: PangoWarning: pango_layout_new: assertion `context != NULL' failed
+  c.append_text(lang)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:307: PangoWarning: pango_layout_set_single_paragraph_mode: assertion `PANGO_IS_LAYOUT (layout)' failed
+  c.append_text(lang)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:307: PangoWarning: pango_layout_set_ellipsize: assertion `PANGO_IS_LAYOUT (layout)' failed
+  c.append_text(lang)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:307: PangoWarning: pango_layout_set_width: assertion `layout != NULL' failed
+  c.append_text(lang)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:307: PangoWarning: pango_layout_set_wrap: assertion `PANGO_IS_LAYOUT (layout)' failed
+  c.append_text(lang)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:307: PangoWarning: pango_layout_set_alignment: assertion `layout != NULL' failed
+  c.append_text(lang)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:307: PangoWarning: pango_layout_set_attributes: assertion `layout != NULL' failed
+  c.append_text(lang)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:307: PangoWarning: pango_layout_get_pixel_extents: assertion `PANGO_IS_LAYOUT (layout)' failed
+  c.append_text(lang)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:307: Warning: g_object_unref: assertion `G_IS_OBJECT (object)' failed
+  c.append_text(lang)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:307: PangoWarning: pango_layout_set_text: assertion `layout != NULL' failed
+  c.append_text(lang)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:429: Warning: invalid (NULL) pointer instance
+  "date_time_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:429: Warning: g_signal_connect_data: assertion `G_TYPE_CHECK_INSTANCE (instance)' failed
+  "date_time_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:429: GtkWarning: gdk_pango_context_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  "date_time_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:429: PangoWarning: pango_context_set_font_description: assertion `context != NULL' failed
+  "date_time_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:429: PangoWarning: pango_context_set_base_dir: assertion `context != NULL' failed
+  "date_time_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:429: PangoWarning: pango_context_set_language: assertion `context != NULL' failed
+  "date_time_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:429: PangoWarning: pango_layout_new: assertion `context != NULL' failed
+  "date_time_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:429: PangoWarning: pango_layout_set_attributes: assertion `layout != NULL' failed
+  "date_time_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:429: PangoWarning: pango_layout_set_text: assertion `layout != NULL' failed
+  "date_time_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:429: PangoWarning: pango_layout_get_unknown_glyphs_count: assertion `PANGO_IS_LAYOUT (layout)' failed
+  "date_time_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:429: Warning: g_object_unref: assertion `G_IS_OBJECT (object)' failed
+  "date_time_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:429: GtkWarning: gtk_settings_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  "date_time_frame", keepnote.GETTEXT_DOMAIN)
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:541: GtkWarning: gtk_settings_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  self.sw = gtk.ScrolledWindow()
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:558: GtkWarning: gtk_settings_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  self.install_button = gtk.Button("Install new extension")
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:558: Warning: g_object_get: assertion `G_IS_OBJECT (object)' failed
+  self.install_button = gtk.Button("Install new extension")
+enabling extension 'backup_tar'
+enabling extension 'new_file'
+enabling extension 'editor_insert_date'
+enabling extension 'command_basics'
+enabling extension 'export_html'
+enabling extension 'python_prompt'
+enabling extension 'keepnote'
+/mnt/big/archive/projects/keepnote/keepnote/gui/main_window.py:96: Warning: invalid (NULL) pointer instance
+  gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
+/mnt/big/archive/projects/keepnote/keepnote/gui/main_window.py:96: Warning: g_signal_connect_data: assertion `G_TYPE_CHECK_INSTANCE (instance)' failed
+  gtk.Window.__init__(self, gtk.WINDOW_TOPLEVEL)
+/mnt/big/archive/projects/keepnote/keepnote/gui/treeview.py:80: GtkWarning: gtk_settings_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  self.append_column(self.column)
+/mnt/big/archive/projects/keepnote/keepnote/gui/treeview.py:80: Warning: g_object_get: assertion `G_IS_OBJECT (object)' failed
+  self.append_column(self.column)
+/mnt/big/archive/projects/keepnote/keepnote/gui/listview.py:104: GtkWarning: gtk_settings_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  self.append_column(self.title_column)
+/mnt/big/archive/projects/keepnote/keepnote/gui/listview.py:104: Warning: g_object_get: assertion `G_IS_OBJECT (object)' failed
+  self.append_column(self.title_column)
+/mnt/big/archive/projects/keepnote/keepnote/gui/listview.py:125: GtkWarning: gtk_settings_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  self.append_column(column)
+/mnt/big/archive/projects/keepnote/keepnote/gui/listview.py:125: Warning: g_object_get: assertion `G_IS_OBJECT (object)' failed
+  self.append_column(column)
+/mnt/big/archive/projects/keepnote/keepnote/gui/listview.py:144: GtkWarning: gtk_settings_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  self.append_column(column)
+/mnt/big/archive/projects/keepnote/keepnote/gui/listview.py:144: Warning: g_object_get: assertion `G_IS_OBJECT (object)' failed
+  self.append_column(column)
+/mnt/big/archive/projects/keepnote/keepnote/gui/richtext/__init__.py:456: GtkWarning: gdk_pango_context_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  self._textbuffer.set_default_attr(self.get_default_attributes())
+/mnt/big/archive/projects/keepnote/keepnote/gui/richtext/__init__.py:456: PangoWarning: pango_context_set_font_description: assertion `context != NULL' failed
+  self._textbuffer.set_default_attr(self.get_default_attributes())
+/mnt/big/archive/projects/keepnote/keepnote/gui/richtext/__init__.py:456: PangoWarning: pango_context_set_base_dir: assertion `context != NULL' failed
+  self._textbuffer.set_default_attr(self.get_default_attributes())
+/mnt/big/archive/projects/keepnote/keepnote/gui/richtext/__init__.py:456: PangoWarning: pango_context_set_language: assertion `context != NULL' failed
+  self._textbuffer.set_default_attr(self.get_default_attributes())
+/mnt/big/archive/projects/keepnote/keepnote/gui/richtext/__init__.py:456: Warning: g_object_unref: assertion `G_IS_OBJECT (object)' failed
+  self._textbuffer.set_default_attr(self.get_default_attributes())
+/mnt/big/archive/projects/keepnote/keepnote/gui/richtext/__init__.py:456: GtkWarning: gtk_settings_get_for_screen: assertion `GDK_IS_SCREEN (screen)' failed
+  self._textbuffer.set_default_attr(self.get_default_attributes())
+/mnt/big/archive/projects/keepnote/keepnote/gui/richtext/__init__.py:456: GtkWarning: gdk_screen_get_display: assertion `GDK_IS_SCREEN (screen)' failed
+  self._textbuffer.set_default_attr(self.get_default_attributes())
+/mnt/big/archive/projects/keepnote/keepnote/gui/richtext/__init__.py:456: GtkWarning: gdk_keymap_get_for_display: assertion `GDK_IS_DISPLAY (display)' failed
+  self._textbuffer.set_default_attr(self.get_default_attributes())
+/mnt/big/archive/projects/keepnote/keepnote/gui/richtext/__init__.py:456: Warning: g_object_get: assertion `G_IS_OBJECT (object)' failed
+  self._textbuffer.set_default_attr(self.get_default_attributes())
+==============================================
+KeepNote 0.6.3: Mon Jul 19 11:27:45 2010
+enabling extension 'backup_tar'
+enabling extension 'new_file'
+enabling extension 'editor_insert_date'
+enabling extension 'command_basics'
+enabling extension 'export_html'
+enabling extension 'python_prompt'
+enabling extension 'keepnote'
+==============================================
+KeepNote 0.6.3: Mon Jul 19 11:28:05 2010
+enabling extension 'backup_tar'
+enabling extension 'new_file'
+enabling extension 'editor_insert_date'
+enabling extension 'command_basics'
+enabling extension 'export_html'
+enabling extension 'python_prompt'
+enabling extension 'keepnote'
+Traceback (most recent call last):
+  File "/mnt/big/archive/projects/keepnote/keepnote/gui/main_window.py", line 637, in func
+    task=task)
+  File "/mnt/big/archive/projects/keepnote/keepnote/__init__.py", line 890, in get_notebook
+    notebook = self.open_notebook(filename, window, task=task)
+  File "/mnt/big/archive/projects/keepnote/keepnote/gui/__init__.py", line 404, in open_notebook
+    version = notebooklib.get_notebook_version(filename)
+  File "/mnt/big/archive/projects/keepnote/keepnote/notebook/__init__.py", line 262, in get_notebook_version
+    raise NoteBookError(_("Cannot read notebook preferences"), e)
+keepnote.notebook.NoteBookError: IOError(2, 'No such file or directory')
+Cannot read notebook preferences
+==============================================
+KeepNote 0.6.3: Mon Jul 19 11:37:50 2010
+enabling extension 'backup_tar'
+enabling extension 'new_file'
+enabling extension 'editor_insert_date'
+enabling extension 'command_basics'
+enabling extension 'export_html'
+enabling extension 'python_prompt'
+enabling extension 'keepnote'
+
+Traceback (most recent call last):
+  File "/mnt/big/archive/projects/keepnote/keepnote/gui/__init__.py", line 405, in open_notebook
+    version = notebooklib.get_notebook_version(filename)
+  File "/mnt/big/archive/projects/keepnote/keepnote/notebook/__init__.py", line 262, in get_notebook_version
+    raise NoteBookError(_("Cannot read notebook preferences"), e)
+NoteBookError: IOError(2, 'No such file or directory')
+Cannot read notebook preferences
+==============================================
+KeepNote 0.6.4: Wed Jul 28 12:05:08 2010
+enabling extension 'backup_tar'
+enabling extension 'new_file'
+enabling extension 'editor_insert_date'
+enabling extension 'command_basics'
+enabling extension 'export_html'
+enabling extension 'python_prompt'
+enabling extension 'keepnote'
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:469: GtkWarning: GtkSpinButton: setting an adjustment with non-zero page size is deprecated
+  "notebook_frame", keepnote.GETTEXT_DOMAIN)
+==============================================
+KeepNote 0.6.4: Wed Jul 28 12:06:08 2010
+enabling extension 'backup_tar'
+enabling extension 'new_file'
+enabling extension 'editor_insert_date'
+enabling extension 'command_basics'
+enabling extension 'export_html'
+enabling extension 'python_prompt'
+enabling extension 'keepnote'
+Enabling new extensions:
+enabling extension 'import_notecase'
+
+Traceback (most recent call last):
+  File "/mnt/big/archive/projects/keepnote/keepnote/gui/extension.py", line 74, in on_new_window
+    self.on_add_ui(window)
+  File "test/data/home-0.6.3/.config/keepnote/extensions/import_notecase/__init__.py", line 111, in on_add_ui
+    self._action_groups.add_actions([
+AttributeError: 'dict' object has no attribute 'add_actions'
+==============================================
+KeepNote 0.6.4: Wed Jul 28 12:08:15 2010
+enabling extension 'backup_tar'
+enabling extension 'new_file'
+enabling extension 'editor_insert_date'
+enabling extension 'command_basics'
+enabling extension 'export_html'
+enabling extension 'python_prompt'
+enabling extension 'keepnote'
+enabling extension 'import_notecase'
+
+Traceback (most recent call last):
+  File "/mnt/big/archive/projects/keepnote/keepnote/gui/extension.py", line 74, in on_new_window
+    self.on_add_ui(window)
+  File "test/data/home-0.6.3/.config/keepnote/extensions/import_notecase/__init__.py", line 111, in on_add_ui
+    self._action_groups.add_actions([
+AttributeError: 'dict' object has no attribute 'add_actions'
+==============================================
+KeepNote 0.6.4: Wed Jul 28 12:08:42 2010
+enabling extension 'backup_tar'
+enabling extension 'new_file'
+enabling extension 'editor_insert_date'
+enabling extension 'command_basics'
+enabling extension 'export_html'
+enabling extension 'python_prompt'
+enabling extension 'keepnote'
+Enabling new extensions:
+enabling extension 'import_notecase'
+==============================================
+KeepNote 0.6.4: Wed Jul 28 12:50:03 2010
+enabling extension 'backup_tar'
+enabling extension 'new_file'
+enabling extension 'editor_insert_date'
+enabling extension 'command_basics'
+enabling extension 'export_html'
+enabling extension 'python_prompt'
+enabling extension 'keepnote'
+enabling extension 'import_notecase'
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:469: GtkWarning: GtkSpinButton: setting an adjustment with non-zero page size is deprecated
+  "notebook_frame", keepnote.GETTEXT_DOMAIN)
+test/data/home-0.6.3/.config/keepnote/extensions/import_basket/__init__.py:195: Warning: 'as' will become a reserved keyword in Python 2.6
+
+Traceback (most recent call last):
+  File "keepnote/__init__.py", line 1122, in get_extension
+    entry.ext = extension.import_extension(self, name, entry.filename)
+  File "/mnt/big/archive/projects/keepnote/keepnote/extension.py", line 102, in import_extension
+    filename, e)
+KeepNotePreferenceError: invalid syntax (__init__.py, line 195)
+cannot load extension 'test/data/home-0.6.3/.config/keepnote/extensions/import_basket'
+Enabling new extensions:
+Traceback (most recent call last):
+  File "/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py", line 639, in _on_install
+    self.app.install_extension(dialog.get_filename())
+  File "/mnt/big/archive/projects/keepnote/keepnote/gui/__init__.py", line 748, in install_extension
+    new_exts = keepnote.KeepNote.install_extension(self, filename)
+  File "keepnote/__init__.py", line 1212, in install_extension
+    log_message(_("enabling extension '%s'\n") % ext.key)
+AttributeError: 'NoneType' object has no attribute 'key'
+test/data/home-0.6.3/.config/keepnote/extensions/import_basket/__init__.py:195: Warning: 'as' will become a reserved keyword in Python 2.6
+
+Traceback (most recent call last):
+  File "keepnote/__init__.py", line 1122, in get_extension
+    entry.ext = extension.import_extension(self, name, entry.filename)
+  File "/mnt/big/archive/projects/keepnote/keepnote/extension.py", line 102, in import_extension
+    filename, e)
+KeepNotePreferenceError: invalid syntax (__init__.py, line 195)
+cannot load extension 'test/data/home-0.6.3/.config/keepnote/extensions/import_basket'
+test/data/home-0.6.3/.config/keepnote/extensions/import_basket/__init__.py:195: Warning: 'as' will become a reserved keyword in Python 2.6
+
+Traceback (most recent call last):
+  File "keepnote/__init__.py", line 1122, in get_extension
+    entry.ext = extension.import_extension(self, name, entry.filename)
+  File "/mnt/big/archive/projects/keepnote/keepnote/extension.py", line 102, in import_extension
+    filename, e)
+KeepNotePreferenceError: invalid syntax (__init__.py, line 195)
+cannot load extension 'test/data/home-0.6.3/.config/keepnote/extensions/import_basket'
+test/data/home-0.6.3/.config/keepnote/extensions/import_basket/__init__.py:195: Warning: 'as' will become a reserved keyword in Python 2.6
+
+Traceback (most recent call last):
+  File "keepnote/__init__.py", line 1122, in get_extension
+    entry.ext = extension.import_extension(self, name, entry.filename)
+  File "/mnt/big/archive/projects/keepnote/keepnote/extension.py", line 102, in import_extension
+    filename, e)
+KeepNotePreferenceError: invalid syntax (__init__.py, line 195)
+cannot load extension 'test/data/home-0.6.3/.config/keepnote/extensions/import_basket'
+==============================================
+KeepNote 0.6.4: Wed Jul 28 12:53:45 2010
+enabling extension 'backup_tar'
+enabling extension 'new_file'
+enabling extension 'editor_insert_date'
+enabling extension 'command_basics'
+enabling extension 'import_basket'
+enabling extension 'export_html'
+enabling extension 'python_prompt'
+enabling extension 'keepnote'
+enabling extension 'import_notecase'
+Traceback (most recent call last):
+  File "test/data/home-0.6.3/.config/keepnote/extensions/import_basket/__init__.py", line 148, in <lambda>
+    window.get_notebook())),
+  File "test/data/home-0.6.3/.config/keepnote/extensions/import_basket/__init__.py", line 186, in on_import_basket
+    import_basket_directory(window, basket_dir+"/baskets")
+  File "test/data/home-0.6.3/.config/keepnote/extensions/import_basket/__init__.py", line 197, in import_basket_directory
+    print "I/O error({0}): {1}".format(errno, strerror)
+AttributeError: 'str' object has no attribute 'format'
+==============================================
+KeepNote 0.6.4: Wed Jul 28 12:54:30 2010
+enabling extension 'backup_tar'
+enabling extension 'new_file'
+enabling extension 'editor_insert_date'
+enabling extension 'command_basics'
+enabling extension 'import_basket'
+enabling extension 'export_html'
+enabling extension 'python_prompt'
+enabling extension 'keepnote'
+enabling extension 'import_notecase'
+==============================================
+KeepNote 0.6.4: Wed Jul 28 12:55:44 2010
+enabling extension 'backup_tar'
+enabling extension 'new_file'
+enabling extension 'editor_insert_date'
+enabling extension 'command_basics'
+enabling extension 'import_basket'
+enabling extension 'export_html'
+enabling extension 'python_prompt'
+enabling extension 'keepnote'
+enabling extension 'import_notecase'
+==============================================
+KeepNote 0.6.4: Thu Jul 29 09:40:21 2010
+enabling extension 'backup_tar'
+enabling extension 'new_file'
+enabling extension 'editor_insert_date'
+enabling extension 'command_basics'
+enabling extension 'import_basket'
+enabling extension 'export_html'
+enabling extension 'python_prompt'
+enabling extension 'keepnote'
+enabling extension 'import_notecase'
+
+Traceback (most recent call last):
+  File "/mnt/big/archive/projects/keepnote/keepnote/gui/main_window.py", line 919, in on_view_node_external_app
+    self._app.run_external_app(app, os.path.realpath(filename))
+  File "keepnote/__init__.py", line 947, in run_external_app
+    raise KeepNoteError(_("Must specify '%s' program in Helper Applications" % app.title))
+KeepNoteError: Must specify 'File Explorer' program in Helper Applications
+/mnt/big/archive/projects/keepnote/keepnote/gui/dialog_app_options.py:469: GtkWarning: GtkSpinButton: setting an adjustment with non-zero page size is deprecated
+  "notebook_frame", keepnote.GETTEXT_DOMAIN)
