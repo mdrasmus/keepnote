@@ -518,3 +518,10 @@ class NoteBookConnectionHttp (NoteBookConnection):
                 return None
 
 
+    def get_path(self, nodeid):
+        
+        if nodeid == self.get_rootid():
+            nodeid == ""
+        return format_node_path(self._prefix, nodeid)
+
+
