@@ -116,8 +116,8 @@ def sync_files(conn1, nodeid1, conn2, nodeid2, path1="", path2=""):
 def copy_files(conn1, nodeid1, file1, conn2, nodeid2, file2):
     """Copy a file from conn1.nodeid1.file1 to conn2.nodeid2.file2"""
     
-    stream1 = conn1.open_file(nodeid1, file1, "rb")
-    stream2 = conn2.open_file(nodeid2, file2, "wb")
+    stream1 = conn1.open_file(nodeid1, file1, "r")
+    stream2 = conn2.open_file(nodeid2, file2, "w")
     
     while True:
         data = stream1.read(1024*4)

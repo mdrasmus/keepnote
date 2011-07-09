@@ -336,7 +336,7 @@ class RichTextEditor (KeepNoteEditor):
                     self._textview.get_buffer(),
                     self._page.get_page_file(),
                     stream=self._page.open_file(
-                        self._page.get_page_file()))
+                        self._page.get_page_file(), "r", "utf-8"))
                 self._load_cursor()
 
  
@@ -396,7 +396,7 @@ class RichTextEditor (KeepNoteEditor):
                     self._page.get_page_file(),
                     self._page.get_title(),
                     stream=self._page.open_file(
-                        self._page.get_page_file(), "w"))
+                        self._page.get_page_file(), "w", "utf-8"))
                 
                 # save meta data            
                 self._page.set_attr_timestamp("modified_time")

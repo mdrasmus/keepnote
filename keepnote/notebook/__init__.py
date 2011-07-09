@@ -307,7 +307,7 @@ def guess_file_mimetype(filename, default="application/octet-stream"):
 
 def write_empty_page(node, page_file=PAGE_DATA_FILE):
     """Initializes an empty page file for a node"""
-    out = node.open_file(page_file, "w")
+    out = node.open_file(page_file, "w", "utf-8")
     out.write(BLANK_NOTE)
     out.close()
 
@@ -1038,7 +1038,7 @@ class NoteBookNode (object):
     #=============================================
     # node file methods
 
-    def open_file(self, filename, mode="r", codec="utf-8"):
+    def open_file(self, filename, mode="r", codec=None):
         return self._conn.open_file(
             self._attr["nodeid"], filename, mode, codec=codec)
 
@@ -1746,6 +1746,6 @@ class NoteBook (NoteBookNode):
 
     def _recover_preferences(self):
         
-        out = self.open_file(PREF_FILE, "w")
-        out.write("<notebook></notebook>")
+        out = self.open_file(PREF_FILE, "w", "urf-8")
+        out.write(u"<notebook></notebook>")
         out.close()

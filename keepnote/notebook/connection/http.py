@@ -414,10 +414,13 @@ class NoteBookConnectionHttp (NoteBookConnection):
         # append: POST nodeid/file?mode=a
 
         class HttpFile (object):
-            def __init__(self):
+            def __init__(self, codec=None):
                 self.data = []
+                self.codec = codec
 
             def write(self, data):
+                if codec:
+                    data = data.encode(codec)
                 self.data.append(data)
 
 
@@ -428,7 +431,7 @@ class NoteBookConnectionHttp (NoteBookConnection):
             return result
 
         elif mode == "w":
-            stream = HttpFile()
+            stream = HttpFile(codec)
             def on_close():
                 body_content = "".join(stream.data)
                 self._conn.request(
@@ -439,7 +442,7 @@ class NoteBookConnectionHttp (NoteBookConnection):
             return stream
           
         elif mode == "a":
-            stream = HttpFile()
+            stream = HttpFile(codec)
             def on_close():
                 body_content = "".join(stream.data)
                 self._conn.request(

@@ -194,7 +194,7 @@ class TextEditor (KeepNoteEditor):
             try:
                 if page.has_attr("payload_filename"):
                     infile = page.open_file(
-                        page.get_attr("payload_filename"))
+                        page.get_attr("payload_filename"), "r", "utf-8")
                     text = infile.read()
                     infile.close()
                     self._textview.get_buffer().set_text(text)
@@ -263,7 +263,7 @@ class TextEditor (KeepNoteEditor):
                 text = unicode_gtk(buf.get_text(buf.get_start_iter(),
                                                 buf.get_end_iter()))
                 out = self._page.open_file(
-                    self._page.get_attr("payload_filename"), "w")
+                    self._page.get_attr("payload_filename"), "w", "utf-8")
                 out.write(text)
                 out.close()
                 
