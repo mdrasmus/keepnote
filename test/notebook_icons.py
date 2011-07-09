@@ -31,6 +31,7 @@ class Tests (unittest.TestCase):
         self.assertEqual(book.pref.get_quick_pick_icons(), ["x.png"])
 
         print book.pref.get_quick_pick_icons()
+        book.close()
         
 
     def test_notebook_read_icons2(self):        
@@ -40,6 +41,7 @@ class Tests (unittest.TestCase):
         book = app.get_notebook("test/data/notebook-v4")
 
         print book.pref.get_quick_pick_icons()
+        book.close()
 
 
 

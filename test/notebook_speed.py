@@ -17,7 +17,7 @@ class Speed (unittest.TestCase):
 
     def test_open(self):
 
-        filename = "test/data/notebook-v4"
+        filename = "test/data/notebook-v5"
         app = keepnote.KeepNote("keepnote")
 
         start = time.time()
@@ -30,12 +30,13 @@ class Speed (unittest.TestCase):
         
         t = time.time() - start
         print "seconds: ", t
+        book.close()
         
 
     def test_new_node(self):
         
         clean_dir("test/tmp/notebook_new_node")
-        shutil.copytree("test/data/notebook-v4",
+        shutil.copytree("test/data/notebook-v5",
                         "test/tmp/notebook_new_node")
 
         book = notebook.NoteBook()
@@ -52,6 +53,7 @@ class Speed (unittest.TestCase):
 
         t = time.time() - start
         print "seconds: ", t
+        book.close()
 
 
         
