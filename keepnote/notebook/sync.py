@@ -88,14 +88,14 @@ def sync_node(nodeid, conn1, conn2, attr=None,
 def sync_files(conn1, nodeid1, conn2, nodeid2, path1="", path2=""):
     """Sync files from conn1.nodeid1 to conn2.nodeid2"""
 
-    files = list(conn1.list_files(nodeid1, path1))
+    files = list(conn1.list_dir(nodeid1, path1))
 
     # ensure target path exists
     if not conn2.has_file(nodeid2, path2):
         conn2.create_dir(nodeid2, path2)
 
     # remove files in node2 that don't exist in node1
-    for f in list(conn2.list_files(nodeid2, path2)):
+    for f in list(conn2.list_dir(nodeid2, path2)):
         f2 = path_join(path2, f)
         if not conn1.has_file(nodeid1, f2):
             conn2.delete_file(nodeid2, f2)

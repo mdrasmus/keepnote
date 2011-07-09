@@ -1052,8 +1052,8 @@ class NoteBookNode (object):
             return_number=return_number, use_number=use_number, 
             ensure_valid=ensure_valid)
     
-    def list_files(self, filename=""):
-        return self._conn.list_files(self._attr["nodeid"], filename)
+    def list_dir(self, filename=""):
+        return self._conn.list_dir(self._attr["nodeid"], filename)
 
     def create_dir(self, filename):
         self._conn.create_dir(self._attr["nodeid"], filename)
@@ -1499,7 +1499,7 @@ class NoteBook (NoteBookNode):
         """Returns list of icons in notebook icon store"""
         filename = connection.path_join(
             NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR)
-        filenames = list(self._conn.list_files(self._attr["nodeid"], filename))
+        filenames = list(self._conn.list_dir(self._attr["nodeid"], filename))
         filenames.sort()
         return filenames
 

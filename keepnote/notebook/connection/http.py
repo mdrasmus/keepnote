@@ -143,7 +143,7 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
 
             elif filename.endswith("/"):
                 # list directory
-                files = list(self.server.conn.list_files(nodeid, filename))
+                files = list(self.server.conn.list_dir(nodeid, filename))
                 
                 self.send_response(200)
                 self.send_header("content_type", "text/plain")
@@ -471,7 +471,7 @@ class NoteBookConnectionHttp (NoteBookConnection):
             'PUT', format_node_path(self._prefix, nodeid, filename))
         result = self._conn.getresponse()
 
-    def list_files(self, nodeid, filename="/"):
+    def list_dir(self, nodeid, filename="/"):
         """
         List data files in node
         """

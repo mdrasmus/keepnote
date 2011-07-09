@@ -178,11 +178,11 @@ class NoteBookConnection (object):
         """Create directory within node"""
         raise Unimplemented("create_dir")
 
-    def list_files(self, nodeid, filename="/"):
+    def list_dir(self, nodeid, filename="/"):
         """
         List data files in node
         """
-        raise Unimplemented("list_files")
+        raise Unimplemented("list_dir")
     
     def has_file(self, nodeid, filename):
         raise Unimplemented("has_file")
@@ -218,7 +218,7 @@ class NoteBookConnection (object):
             # copy directory tree
             self.create_dir(nodeid2, filename2)
 
-            for filename in self.list_files(nodeid1):
+            for filename in self.list_dir(nodeid1):
                 self.copy_file(nodeid1, path_join(filename1, filename),
                                nodeid2, path_join(filename2, filename))
 
