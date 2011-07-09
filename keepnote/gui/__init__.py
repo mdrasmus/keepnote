@@ -468,21 +468,26 @@ class KeepNote (keepnote.KeepNote):
         """Open notebook"""
 
         from keepnote.gui import dialog_update_notebook
+        
+        # HACK
+        if isinstance(self._conns.get(filename), 
+                      keepnote.notebook.connection.fs.NoteBookConnectionFS):
 
-        try:
-            version = notebooklib.get_notebook_version(filename)
-        except Exception, e:
-            self.error(_("Could not load notebook '%s'.") % filename,
-                       e, sys.exc_info()[2])
-            return None
-        
-        
-        if version < notebooklib.NOTEBOOK_FORMAT_VERSION:
-            dialog = dialog_update_notebook.UpdateNoteBookDialog(self, window)
-            if not dialog.show(filename, version=version, task=task):
-                self.error(_("Cannot open notebook (version too old)"))
-                gtk.gdk.threads_leave()
+            try:
+                version = notebooklib.get_notebook_version(filename)
+            except Exception, e:
+                self.error(_("Could not load notebook '%s'.") % filename,
+                           e, sys.exc_info()[2])
                 return None
+
+            
+            if version < notebooklib.NOTEBOOK_FORMAT_VERSION:
+                dialog = dialog_update_notebook.UpdateNoteBookDialog(
+                    self, window)
+                if not dialog.show(filename, version=version, task=task):
+                    self.error(_("Cannot open notebook (version too old)"))
+                    gtk.gdk.threads_leave()
+                    return None
         
         
         # load notebook in background
@@ -495,8 +500,9 @@ class KeepNote (keepnote.KeepNote):
             # slow.  If updating the wait dialog wasn't so expensive, I would
             # simply do loading in the background thread.
             def func():
+                conn = self._conns.get(filename)
                 notebook = notebooklib.NoteBook()
-                notebook.load(filename)
+                notebook.load(filename, conn)
                 task.set_result(notebook)
                 sem.release() # notify that notebook is loaded
                 return False

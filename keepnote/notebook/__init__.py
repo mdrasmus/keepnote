@@ -1182,10 +1182,10 @@ class NoteBook (NoteBookNode):
     
     def __init__(self):
         
-        conn = connection_fs.NoteBookConnectionFS()
+        self._conn = None
         NoteBookNode.__init__(self, notebook=self, 
                               content_type=CONTENT_TYPE_DIR,
-                              init_attr=False, conn=conn)
+                              init_attr=False)
         
         self.pref = NoteBookPreferences()
         self._dirty = set()
@@ -1251,9 +1251,11 @@ class NoteBook (NoteBookNode):
     #===================================================
     # input/output
     
-    def create(self, filename):
-        """Initialize NoteBook on the file-system"""
+    def create(self, filename, conn=None):
+        """Initialize NoteBook at location 'filename'"""
         
+        self._conn = conn if conn else connection_fs.NoteBookConnectionFS()
+
         self._attr["created_time"] = get_timestamp()
         self._attr["modified_time"] = get_timestamp()
         self._attr["nodeid"] = new_nodeid()
@@ -1270,30 +1272,33 @@ class NoteBook (NoteBookNode):
         self._init_trash()
 
     
-    def load(self, filename):
-        """Load the NoteBook from the file-system"""
+    def load(self, filename, conn=None):
+        """Load the NoteBook from filename"""
 
-        # ensure filename points to notebook directory
-        filename = normalize_notebook_dirname(filename, longpath=False)
+        self._conn = conn if conn else connection_fs.NoteBookConnectionFS()
 
-        
-        # TODO: generalize. this is currently fs-specific
-        # cheat by reading preferences first so that we can set index_dir
-        # if needed.  Ideally this should be set in the app pref, but in a
-        # notebook-specific way
-        pref_file = os.path.join(filename, PREF_FILE)
-        if os.path.exists(pref_file):
-            try:
-                self.read_preferences(safefile.open(pref_file, codec="utf-8"),
-                                      recover=False)
+        if isinstance(self._conn, connection_fs.NoteBookConnectionFS):
+            # ensure filename points to notebook directory
+            filename = normalize_notebook_dirname(filename, longpath=False)
 
-                # TODO: temp solution. remove soon.
-                index_dir = self.pref.get("index_dir", default=u"")
-                if index_dir and os.path.exists(index_dir):
-                    self._conn._set_index_file(
-                        os.path.join(index_dir, notebook_index.INDEX_FILE))
-            except:
-                pass
+
+            # TODO: generalize. this is currently fs-specific
+            # cheat by reading preferences first so that we can set index_dir
+            # if needed.  Ideally this should be set in the app pref, but in a
+            # notebook-specific way
+            pref_file = os.path.join(filename, PREF_FILE)
+            if os.path.exists(pref_file):
+                try:
+                    self.read_preferences(
+                        safefile.open(pref_file, codec="utf-8"), recover=False)
+
+                    # TODO: temp solution. remove soon.
+                    index_dir = self.pref.get("index_dir", default=u"")
+                    if index_dir and os.path.exists(index_dir):
+                        self._conn._set_index_file(
+                            os.path.join(index_dir, notebook_index.INDEX_FILE))
+                except:
+                    pass
         
         # read basic info
         self._conn.connect(filename)
@@ -1353,8 +1358,8 @@ class NoteBook (NoteBookNode):
         # TODO: ideally I would like to do index_attr()'s before 
         # conn.init_index(), so that the initial indexing properly 
         # catches all the desired attr's
-        self._conn.index_attr("icon", unicode)
-        self._conn.index_attr("title", unicode, index_value=True)
+        self._conn.index_attr("icon", "TEXT")
+        self._conn.index_attr("title", "TEXT", index_value=True)
 
 
     #--------------------------------------

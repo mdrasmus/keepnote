@@ -2,7 +2,7 @@
 
     KeepNote    
     
-    Low-level Create-Read-Update-Delete (CRUD) interface for notebooks.
+    Syncing features for NoteBookConnection's
 
 """
 

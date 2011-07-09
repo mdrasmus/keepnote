@@ -1,13 +1,15 @@
 """
     KeepNote
-    plist module
+    extended plist module
     
     Apple's property list xml serialization
+
+    - added null type
 """
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2011 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -66,6 +68,7 @@ _unmarshallers = {
     "false": lambda x: False,
     "real": lambda x: float(x.text),
     "integer": lambda x: int(x.text),
+    "null": lambda x: None
 
 }
 
@@ -147,6 +150,9 @@ def dump(elm, out=sys.stdout, indent=0, depth=0, suppress=False):
     elif isinstance(elm, float):
         out.write(u"<real>%f</real>" % elm)
 
+    elif elm is None:
+        out.write(u"<null/>")
+
     elif isinstance(elm, Data):
         out.write(u"<data>")
         base64.encode(StringIO(elm), out)
@@ -201,6 +207,9 @@ def dump_etree(elm):
     elif isinstance(elm, float):
         elm2 = ET.Element("real")
         elm2.text = str(elm)
+
+    elif elm is None:
+        elm2 = ET.Element("null")
 
     elif isinstance(elm, Data):
         elm2 = ET.Element("data")

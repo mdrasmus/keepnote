@@ -53,6 +53,9 @@ from keepnote.notebook import \
     NoteBookError, \
     get_unique_filename_list
 import keepnote.notebook as notebooklib
+import keepnote.notebook.connection
+import keepnote.notebook.connection.fs
+import keepnote.notebook.connection.http
 import keepnote.timestamp
 import keepnote.xdg
 from keepnote.listening import Listeners
@@ -729,9 +732,14 @@ class KeepNote (object):
         # list of registered application commands
         self._commands = {}
 
-        # list of opened notebooks
+        # list of opened notebooks        
         self._notebooks = {}
         self._notebook_count = {} # notebook ref counts
+
+        # default protocols for notebooks
+        self._conns = keepnote.notebook.connection.NoteBookConnections()
+        self._conns.add("file", keepnote.notebook.connection.fs.NoteBookConnectionFS)
+        self._conns.add("http", keepnote.notebook.connection.http.NoteBookConnectionHttp)
 
         # external apps
         self._external_apps = []
@@ -857,8 +865,9 @@ class KeepNote (object):
         """Open a new notebook"""
         
         try:
+            conn = self._conns.get(filename)
             notebook = notebooklib.NoteBook()
-            notebook.load(filename)
+            notebook.load(filename, conn)
         except Exception:
             return None
         return notebook
@@ -901,7 +910,7 @@ class KeepNote (object):
                 filename, longpath=False)
             filename = os.path.realpath(filename)
         except:
-            return None
+            pass
 
         if filename not in self._notebooks:
             notebook = self.open_notebook(filename, window, task=task)

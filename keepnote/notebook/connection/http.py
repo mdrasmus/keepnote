@@ -120,7 +120,16 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
         parts, nodeid, filename = self.parse_path()
         
         try:
-            if filename is None:
+            if nodeid == "":
+                # get rootid
+                rootid = self.server.conn.get_rootid()
+
+                self.send_response(200)
+                self.send_header("content_type", "text/plain")
+                self.end_headers()
+                self.wfile.write(plist.dumps(rootid))
+
+            elif filename is None:
                 # return node attr
                 attr = self.server.conn.read_node(nodeid)
 
@@ -130,7 +139,7 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
 
                 if attr.get("parentids") == [None]:
                     del attr["parentids"]
-                self.wfile.write(plist.dumps(attr))
+                self.wfile.write(plist.dumps(attr).encode("utf8"))
 
             elif filename.endswith("/"):
                 # list directory
@@ -139,13 +148,13 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("content_type", "text/plain")
                 self.end_headers()
-                self.wfile.write(plist.dumps(files))
+                self.wfile.write(plist.dumps(files).encode("utf8"))
                 
             else:
                 # return node file
                 stream = self.server.conn.open_file(nodeid, filename)
                 self.send_response(200)
-                self.send_header("content_type", "text/plain")
+                self.send_header("content_type", "application/octet-stream")
                 self.end_headers()
                 self.wfile.write(stream.read())
                 stream.close()
@@ -162,7 +171,7 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
         parts, nodeid, filename = self.parse_path()
         
         # read attr
-        content_len = int(self.headers.get("Content-length"))
+        content_len = int(self.headers.get("Content-length", 0))
         
         try:
             if filename is None:
@@ -172,7 +181,7 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                 attr["nodeid"] = nodeid
                 self.server.conn.create_node(nodeid, attr)
                 
-            elif filename.endwith("/"):
+            elif filename.endswith("/"):
                 # create dir
                 self.serve.conn.create_dir(nodeid, filename)
 
@@ -213,7 +222,7 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                     self.send_response(200) # ok
                     self.send_header("content_type", "text/plain")
                     self.end_headers()
-                    self.wfile.write(plist.dumps(res))
+                    self.wfile.write(plist.dumps(res).encode("utf8"))
                     return 
 
             elif not filename:
@@ -287,9 +296,9 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_error(404, "cannot delete node: " + str(e))
 
 
-    def log_message(self, format, *args):
+    #def log_message(self, format, *args):
         # suppress logging
-        pass
+    #    pass
 
 
 
@@ -338,7 +347,7 @@ class NoteBookConnectionHttp (NoteBookConnection):
     
     def create_node(self, nodeid, attr):
         
-        body_content = plist.dumps(attr) + "\n"
+        body_content = plist.dumps(attr).encode("utf8")
         self._conn.request('PUT', format_node_path(self._prefix, nodeid), 
                            body_content)
         result = self._conn.getresponse()
@@ -359,7 +368,7 @@ class NoteBookConnectionHttp (NoteBookConnection):
 
     def update_node(self, nodeid, attr):
         
-        body_content = plist.dumps(attr) + "\n"
+        body_content = plist.dumps(attr).encode("utf8")
         self._conn.request('POST', format_node_path(self._prefix, nodeid), 
                            body_content)
         result = self._conn.getresponse()
@@ -380,10 +389,18 @@ class NoteBookConnectionHttp (NoteBookConnection):
         result = self._conn.getresponse()
         return result.status == 200
 
-    # TODO: can this be simplified with a search query?
+
     def get_rootid(self):
         """Returns nodeid of notebook root node"""
-        pass
+        # GET /
+        self._conn.request(
+            'GET', format_node_path(self._prefix))
+        result = self._conn.getresponse()
+        if result.status == 200:
+            return plist.load(result)
+        else:
+            raise UnknownNode()
+        
 
 
     #===============
@@ -490,7 +507,7 @@ class NoteBookConnectionHttp (NoteBookConnection):
 
         # POST /?index
         # query plist encoded
-        body_content = plist.dumps(query)
+        body_content = plist.dumps(query).encode("utf8")
         self._conn.request(
             'POST', format_node_path(self._prefix) + "?index", body_content)
         result = self._conn.getresponse()

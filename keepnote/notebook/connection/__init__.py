@@ -25,6 +25,8 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
+import urlparse
+
 
 #=============================================================================
 # errors
@@ -68,7 +70,7 @@ class Unimplemented (ConnectionError):
     
 
 #=============================================================================
-
+# file path functions
 
 def path_join(*parts):
     """
@@ -354,5 +356,31 @@ class NoteBookConnection (object):
     # will eventually need some kind of fetching mechanism    
     def get_file(self, nodeid, filename, _path=None):
         raise Unimplemented("get_file")
+
+
+
+#=============================================================================
+# Connection registration
+
+class NoteBookConnections (object):
+
+    def __init__(self):
+        self._protos = {}
+
+    def add(self, proto, connection_class):
+        self._protos[proto] = connection_class
+
+    def get(self, url):
+        parts = urlparse.urlsplit(url)
+        proto = parts.scheme if parts.scheme else "file"
+
+        conn_class = self._protos.get(proto, None)
+        if conn_class:
+            return conn_class()
+        else:
+            return None
+
+    def lookup(self, proto):
+        return self._protos.get(proto, None)
 
 
