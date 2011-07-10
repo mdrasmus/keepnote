@@ -41,7 +41,8 @@ from .richtextbase_tags import \
 
 # TODO: remove hard coding for 'Sans 10'
 # default indentation sizes
-MIN_INDENT = 5
+#MIN_INDENT = 5
+MIN_INDENT = 30 - 6
 INDENT_SIZE = 30
 BULLET_PAR_INDENT = 12  # hard-coded for 'Sans 10'
 BULLET_FONT_SIZE = 10
