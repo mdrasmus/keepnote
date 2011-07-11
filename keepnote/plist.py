@@ -144,7 +144,7 @@ def dump(elm, out=sys.stdout, indent=0, depth=0, suppress=False):
         else:
             out.write(u"<false/>")
 
-    elif isinstance(elm, int):
+    elif isinstance(elm, (int, long)):
         out.write(u"<integer>%d</integer>" % elm)
 
     elif isinstance(elm, float):
