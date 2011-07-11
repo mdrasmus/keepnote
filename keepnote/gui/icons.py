@@ -156,6 +156,9 @@ def get_icon_filename(icon_name, default=None):
     return _g_mime_icons.get_icon_filename(icon_name, default)
 
 
+# HACK: cache icon filenames
+_icon_basename_cache = {}
+
 def lookup_icon_filename(notebook, basename):
     """
     Lookup full filename of a icon from a notebook and builtins
@@ -163,19 +166,28 @@ def lookup_icon_filename(notebook, basename):
     notebook can be None
     """
 
+    # try cache first
+    if (notebook, basename) in _icon_basename_cache:
+        return _icon_basename_cache[(notebook, basename)]
+
+    
     # lookup in notebook icon store
     if notebook is not None:
         filename = notebook.get_icon_file(basename)
         if filename:
+            _icon_basename_cache[(notebook, basename)] = filename
             return filename
 
     # lookup in builtins
     filename = get_resource(keepnote.NODE_ICON_DIR, basename)
     if os.path.isfile(filename):
+        _icon_basename_cache[(notebook, basename)] = filename
         return filename
 
     # lookup mime types
-    return _g_mime_icons.get_icon_filename(basename)
+    filename = _g_mime_icons.get_icon_filename(basename)
+    _icon_basename_cache[(notebook, basename)] = filename
+    return filename
 
 #=============================================================================
 

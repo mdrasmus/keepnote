@@ -41,6 +41,10 @@ from keepnote.notebook.connection.fs import NoteBookConnectionFS
 from keepnote import plist
 
 
+XML_HEADER = u"""\
+<?xml version="1.0" encoding="UTF-8"?>
+"""
+
 #=============================================================================
 # Node URL scheme
 
@@ -66,6 +70,8 @@ def parse_node_path(path, prefixes=("/")):
     if i != -1:
         nodeid = path[:i]
         filename = path[i+1:]
+        if filename == "":
+            filename = "/"
     else:
         nodeid = path
         filename = None
@@ -96,6 +102,35 @@ def format_node_url(host, prefix, nodeid, filename=None, port=80):
 #=============================================================================
 # Notebook HTTP Server
 
+
+def write_tree(out, conn):
+    
+    def walk(conn, nodeid):
+        attr = conn.read_node(nodeid)
+
+        # TODO: needs escape
+        if attr.get("content_type", "") == "text/xhtml+xml":
+            url = format_node_path("", nodeid, "page.html")
+        elif "payload_filename" in attr:
+            url = format_node_path("", nodeid, 
+                                   attr["payload_filename"])
+        else:
+            url = format_node_path("", nodeid, "")
+        out.write(
+            "<a href='%s'>%s</a>" % (
+                url, attr.get("title", "page").encode("utf8")))
+        out.write("<ul>")
+
+        for childid in attr.get("childrenids", ()):
+            out.write("<li>")
+            walk(conn, childid)
+            out.write("</li>")
+
+        out.write("</ul>")
+    walk(conn, conn.get_rootid())
+
+
+
 class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
     """
     HTTP handler for NoteBook Server
@@ -121,12 +156,24 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
         
         try:
             if nodeid == "":
+                if parts.query == "all":
+                    self.send_response(200)
+                    self.send_header("content_type", "text/html")
+                    self.end_headers()
+
+                    self.wfile.write("<html><body>")
+                    write_tree(self.wfile, self.server.conn)
+                    self.wfile.write("</body></html>")
+                    return
+
+
                 # get rootid
                 rootid = self.server.conn.get_rootid()
 
                 self.send_response(200)
-                self.send_header("content_type", "text/plain")
+                self.send_header("content_type", "text/xml")
                 self.end_headers()
+                self.wfile.write(XML_HEADER)
                 self.wfile.write(plist.dumps(rootid))
 
             elif filename is None:
@@ -134,11 +181,12 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                 attr = self.server.conn.read_node(nodeid)
 
                 self.send_response(200)
-                self.send_header("content_type", "text/plain")
+                self.send_header("content_type", "text/xml")
                 self.end_headers()
 
                 if attr.get("parentids") == [None]:
                     del attr["parentids"]
+                self.wfile.write(XML_HEADER)
                 self.wfile.write(plist.dumps(attr).encode("utf8"))
 
             elif filename.endswith("/"):
@@ -146,8 +194,9 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                 files = list(self.server.conn.list_dir(nodeid, filename))
                 
                 self.send_response(200)
-                self.send_header("content_type", "text/plain")
+                self.send_header("content_type", "application/octet-stream")
                 self.end_headers()
+                self.wfile.write(XML_HEADER)
                 self.wfile.write(plist.dumps(files).encode("utf8"))
                 
             else:
@@ -183,7 +232,7 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                 
             elif filename.endswith("/"):
                 # create dir
-                self.serve.conn.create_dir(nodeid, filename)
+                self.server.conn.create_dir(nodeid, filename)
 
             else:
                 # create file
@@ -220,8 +269,9 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                     if hasattr(res, "next"):
                         res = list(res)
                     self.send_response(200) # ok
-                    self.send_header("content_type", "text/plain")
+                    self.send_header("content_type", "text/xml")
                     self.end_headers()
+                    self.wfile.write(XML_HEADER)
                     self.wfile.write(plist.dumps(res).encode("utf8"))
                     return 
 

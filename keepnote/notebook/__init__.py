@@ -1204,7 +1204,7 @@ class NoteBook (NoteBookNode):
         self._attr["order"] = 0
         self._attr["title"] = ""
 
-        
+
         # listeners
         self.node_changed = Listeners()  # signature = (node, recurse)
         self.closing_event = Listeners()
@@ -1486,7 +1486,6 @@ class NoteBook (NoteBookNode):
         
         # TODO: is there a better way to access icons?
         # directly by stream?
-
         filename = connection.path_join(
             NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR, basename)
         if self._conn.has_file(self._attr["nodeid"], filename):
