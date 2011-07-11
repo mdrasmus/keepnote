@@ -652,6 +652,7 @@ class NoteBookNode (object):
         self._attr["created_time"] = get_timestamp()
         self._attr["modified_time"] = get_timestamp()
         self._attr["parentids"] = [self._parent._attr["nodeid"]]
+        self._attr["childrenids"] = []
         if "nodeid" not in self._attr:
             self._attr["nodeid"] = new_nodeid()
 
