@@ -7,7 +7,7 @@
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2011 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -27,7 +27,6 @@
 
 
 # python imports
-import imp
 import os
 import shutil
 import sys
@@ -59,7 +58,6 @@ import keepnote.notebook.connection.http
 import keepnote.timestamp
 import keepnote.xdg
 from keepnote.listening import Listeners
-from keepnote.util import compose
 from keepnote import mswin
 import keepnote.trans
 from keepnote.trans import GETTEXT_DOMAIN

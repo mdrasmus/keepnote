@@ -571,7 +571,7 @@ class NoteBookConnectionHttp (NoteBookConnection):
                 return None
 
 
-    def get_path(self, nodeid):
+    def get_node_path(self, nodeid):
         
         if nodeid == self.get_rootid():
             nodeid == ""

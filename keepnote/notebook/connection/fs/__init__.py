@@ -108,6 +108,7 @@ NODE_META_FILE = u"node.xml"
 NOTEBOOK_META_DIR = u"__NOTEBOOK__"
 LOSTDIR = u"lost_found"
 MAX_LEN_NODE_FILENAME = 40
+NULL = object()
 
 
 #=============================================================================
@@ -367,16 +368,17 @@ class PathCache (object):
     """
 
     def __init__(self, rootid=None, rootpath=u""):
-        self._nodes = {None: None}
+        self._root_parent = object()
+        self._nodes = {None: self._root_parent}
         
         if rootid:
-            self.add(rootid, rootpath, None)
+            self.add(rootid, rootpath, self._root_parent)
 
 
     def clear(self):
         """Clears cache"""
         self._nodes.clear()
-        self._nodes[None] = None
+        self._nodes[None] = self._root_parent
 
 
     def has_node(self, nodeid):
@@ -397,7 +399,10 @@ class PathCache (object):
             return None
 
         # node is in cache, return path list
-        while node is not None:
+        while node is not self._root_parent:
+            if node is None:
+                # path is not fully cached
+                return None
             path_list.append(node.basename)
             node = node.parent
         path_list.reverse()
@@ -419,7 +424,10 @@ class PathCache (object):
             return None
 
         # node is in cache, return path list
-        while node is not None:
+        while node is not self._root_parent:
+            if node is None:
+                # path is not fully cached
+                return None
             path_list.append(node.basename)
             node = node.parent
         path_list.reverse()
@@ -445,7 +453,7 @@ class PathCache (object):
         Returns None if nodeid is not cached
         """
         node = self._nodes.get(nodeid, None)
-        if node and node.parent:
+        if node and node.parent and node.parent is not self._root_parent:
             return node.parent.nodeid
         else:
             return None
@@ -471,18 +479,18 @@ class PathCache (object):
     def add(self, nodeid, basename, parentid):
         """Add a new nodeid, basename, and parentid to the cache"""
         
-        parent = self._nodes.get(parentid, 0)
-        if parent is 0:
+        parent = self._nodes.get(parentid, None)
+        #if parent is 0:
             # TODO: should I allow unknown parent?
-            raise UnknownNode("unknown parent %s" % 
-                              repr((basename, parentid, self._nodes)))
+            #raise UnknownNode("unknown parent %s" % 
+            #                  repr((basename, parentid, self._nodes)))
         node = self._nodes.get(nodeid, None)
         if node:
             node.parent = parent
             node.basename = basename
         else:
             node = self._nodes[nodeid] = PathCacheNode(nodeid, basename, parent)
-        if parent:
+        if parent and parent is not self._root_parent:
             parent.children.add(node)
 
         
@@ -490,27 +498,26 @@ class PathCache (object):
         """Remove a nodeid from the cache"""
         if nodeid in self._nodes:
             node = self._nodes.get(nodeid)
-            node.parent.children.remove(node)
+            if node.parent and node.parent is not self._root_parent:
+                node.parent.children.remove(node)
             del self._nodes[nodeid]
 
 
     def move(self, nodeid, new_basename, parentid):
         """move nodeid to a new parent"""
         node = self._nodes.get(nodeid, None)
-        parent = self._nodes.get(parentid, 0)
+        parent = self._nodes.get(parentid, None)
         
         if node is not None:
-            if parent is not 0:
-                # update cache
+            if node.parent and node.parent is not self._root_parent:
                 node.parent.children.remove(node)
-                node.parent = parent
-                node.basename = new_basename
-                parent.children.add(node)
-            else:
-                # since new parent is not cached,
-                # remove node from cache
-                self.remove(nodeid)
 
+            node.parent = parent
+            node.basename = new_basename
+
+            if parent and parent is not self._root_parent:
+                # update cache
+                parent.children.add(node)
                 
 
 # TODO: figure out how to do attribute defs.  Is it really needed?  
