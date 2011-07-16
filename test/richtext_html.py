@@ -95,7 +95,6 @@ class Html (BufferBase):
 
     #===================================================
 
-
     def test_nested_tags(self):
         """Simple read/write, text should not change"""
         self.read_write("<nobr>x<u>a<i>b<b>c</b>d</i>e</u>y</nobr>")
@@ -122,14 +121,30 @@ class Html (BufferBase):
         self.read_write("&#09;&amp;&gt;&lt; &nbsp; &nbsp; &nbsp;")
 
     def test_spacing(self):
-        """First space will be literal, thus output should not be equal"""
-        self.read_write("&nbsp; &nbsp; &nbsp;",
-                        " &nbsp; &nbsp; ")
+        """Escaping multiple spaces"""
+        self.read_write("&nbsp; &nbsp; &nbsp;")
 
     def test_spacing2(self):
         """First space will be literal, thus output should not be equal"""
         self.read_write("line1\nline2",
                         "line1 line2")
+
+
+    def test_leading_space(self):
+        """Do leading spaces remain preserved"""
+        self.read_write("&nbsp;x")
+
+        self.buffer.clear()
+        self.read_write("&nbsp; x")
+        
+        self.buffer.clear()
+        self.read(self.buffer, StringIO.StringIO("<br>\n&nbsp;x"))
+        self.assertEquals([display_item(x) for x in self.get_contents()],
+                          ['\n x'])
+
+        self.buffer.clear()
+        self.read_write("<br/>\n&nbsp;x")
+
 
     def test_read_hr(self):
         self.read(self.buffer, StringIO.StringIO("line1<hr/>line2"))

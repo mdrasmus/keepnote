@@ -1010,11 +1010,14 @@ class HtmlBuffer (HTMLParser):
         
         if self._newline:
             #data = re.sub("^\r?\n[\r\n ]*", "", data)
-            #data = re.sub("[\r\n ]+", " ", data)
             data = re.sub(self.remove_first_whitespace, "", data)
+
+            # collapse a sequence of whitespace into one space char
+            #data = re.sub("[\r\n ]+", " ", data)
             data = re.sub(self.remove_whitespace, " ", data)
             self._newline = False
         else:
+            # collapse a sequence of whitespace into one space char
             #data = re.sub("[\r\n ]+", " ", data)
             data = re.sub(self.remove_whitespace, " ", data)
         
@@ -1107,6 +1110,13 @@ class HtmlBuffer (HTMLParser):
         text = text.replace(">", "&gt;")
         text = text.replace("<", "&lt;")
         text = text.replace("\t", "&#09;")
+        text = text.replace("\n ", "\n&nbsp;")
+        text = text.replace("\r ", "\r&nbsp;")
+
+        if text.startswith(" "):
+            # protect leading space
+            text = "&nbsp;" + text[1:]
+
         text = text.replace("  ", " &nbsp;")
         if xhtml:
             text = text.replace("\n", "<br/>\n")
