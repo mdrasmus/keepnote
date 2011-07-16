@@ -5,6 +5,7 @@ import unittest, os, sys, shutil
 # keepnote imports
 from keepnote import notebook, safefile
 import keepnote.notebook.connection as connlib
+import keepnote.notebook.sync as sync
 
 
 def clean_dir(path):
@@ -24,13 +25,13 @@ class Sync (unittest.TestCase):
         clean_dir("test/tmp/notebook_sync/n2")
         makedirs("test/tmp/notebook_sync")
 
-        notebook1 = notebook.NoteBook("test/tmp/notebook_sync/n1")
-        notebook1.create()
+        notebook1 = notebook.NoteBook()
+        notebook1.create("test/tmp/notebook_sync/n1")
 
-        notebook2 = notebook.NoteBook("test/tmp/notebook_sync/n2")
-        notebook2.create()
+        notebook2 = notebook.NoteBook()
+        notebook2.create("test/tmp/notebook_sync/n2")
 
-        print list(notebook1.list_files())
+        print list(notebook1.list_dir())
         
 
         # create a new node in notebook1
@@ -44,10 +45,10 @@ class Sync (unittest.TestCase):
         # transfer node to notebook2 (rename parent)
         attr = dict(n._attr)
         attr["parentids"] = [notebook2.get_attr("nodeid")]
-        connlib.sync_node(n.get_attr("nodeid"), 
-                          notebook1._conn,
-                          notebook2._conn,
-                          attr)
+        sync.sync_node(n.get_attr("nodeid"), 
+                       notebook1._conn,
+                       notebook2._conn,
+                       attr)
 
         # check that node was transfered
         attr = notebook2._conn.read_node(n.get_attr("nodeid"))
@@ -61,10 +62,10 @@ class Sync (unittest.TestCase):
         attr["modified_time"] += 1
         n.open_file("new_file", "w").close()
         n.delete_file("file3")
-        connlib.sync_node(attr["nodeid"], 
-                          notebook1._conn,
-                          notebook2._conn,
-                          attr)
+        sync.sync_node(attr["nodeid"], 
+                       notebook1._conn,
+                       notebook2._conn,
+                       attr)
         
         # check for newer node
         attr = notebook2._conn.read_node(n.get_attr("nodeid"))
@@ -75,10 +76,10 @@ class Sync (unittest.TestCase):
         # transfer should detect conflict and reject transfer
         attr["title"] = "node3"
         attr["modified_time"] -= 10
-        connlib.sync_node(attr["nodeid"], 
-                          notebook1._conn,
-                          notebook2._conn,
-                          attr)
+        sync.sync_node(attr["nodeid"], 
+                       notebook1._conn,
+                       notebook2._conn,
+                       attr)
 
         # check for original node
         attr = notebook2._conn.read_node(n.get_attr("nodeid"))
@@ -93,11 +94,11 @@ class Sync (unittest.TestCase):
         clean_dir("test/tmp/notebook_sync/n2")
         makedirs("test/tmp/notebook_sync")
 
-        notebook1 = notebook.NoteBook("test/tmp/notebook_sync/n1")
-        notebook1.create()
+        notebook1 = notebook.NoteBook()
+        notebook1.create("test/tmp/notebook_sync/n1")
 
-        notebook2 = notebook.NoteBook("test/tmp/notebook_sync/n2")
-        notebook2.create()
+        notebook2 = notebook.NoteBook()
+        notebook2.create("test/tmp/notebook_sync/n2")
         
         # create a new node in notebook1 with several files
         n = notebook1.new_child("text/html", "node1")
@@ -105,7 +106,7 @@ class Sync (unittest.TestCase):
             out = n.open_file("file" + str(i), "w")
             out.write("hello" + str(i))
             out.close()
-        n.mkdir("dir")
+        n.create_dir("dir")
         n.open_file("dir/hello", "w").close()
         
         # list files
@@ -113,13 +114,13 @@ class Sync (unittest.TestCase):
         print n.get_attr("nodeid"), notebook1._conn.has_node(nodeid)
         files = set(u"file" + str(i) for i in range(5))
         files.add(u"dir/")
-        self.assertEqual(set(n.list_files()), 
+        self.assertEqual(set(n.list_dir()), 
                          files)
-        self.assertEqual(list(n.list_files("dir/")), ["hello"])
-        print list(n.list_files())
-        print list(n.list_files("dir/"))
+        self.assertEqual(list(n.list_dir("dir/")), ["hello"])
+        print list(n.list_dir())
+        print list(n.list_dir("dir/"))
         try:
-            print list(n.list_files("dir-noexist/"))
+            print list(n.list_dir("dir-noexist/"))
             assert False
         except connlib.UnknownFile:
             # this exception should occur

@@ -48,7 +48,10 @@ _ = keepnote.translate
 
 
 
-CLIPBOARD_NAME = "CLIPBOARD"     
+if keepnote.get_platform() == "darwin":
+    CLIPBOARD_NAME = gdk.SELECTION_PRIMARY
+else:
+    CLIPBOARD_NAME = "CLIPBOARD"
 MIME_NODE_COPY = "application/x-keepnote-node-copy"
 MIME_TREE_COPY = "application/x-keepnote-tree-copy"
 MIME_NODE_CUT = "application/x-keepnote-node-cut"
@@ -642,7 +645,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
     def _get_selection_data(self, clipboard, selection_data, info, nodes):
         """Callback for when Clipboard needs selection data"""        
-
+        
         if MIME_NODE_CUT in selection_data.target:
             # set nodes
             selection_data.set(MIME_NODE_CUT, 8, 
