@@ -152,6 +152,7 @@ def parse_utf(text):
         len(text) > 3 and text[3] == '\x00'):
         return text.decode("utf16")
     else:
+        text = text.replace("\x00", "")
         return unicode(text, "utf8")
 
 

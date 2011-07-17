@@ -441,7 +441,9 @@ class HtmlTagModReader (HtmlTagReader):
 
     html2buffer_tag = {
         "b": "bold",
+        "strong": "bold",
         "i": "italic",
+        "em": "italic",
         "u": "underline",
         "strike": "strike",
         "tt": "tt",
@@ -513,6 +515,41 @@ class HtmlTagSpanReader (HtmlTagReader):
             if key == "style":
                 for tagstr in parse_css_style(value):
                     self._io.append_child(TagNameDom(tagstr), True)
+
+
+class HtmlTagFontReader (HtmlTagReader):
+    """<font> tags"""
+
+    def __init__(self, io):
+        HtmlTagReader.__init__(self, io, "font")
+
+
+    def parse_starttag(self, htmltag, attrs):
+        for key, value in attrs:
+            if key == "style":
+                for tagstr in parse_css_style(value):
+                    self._io.append_child(TagNameDom(tagstr), True)
+            elif key == "face":
+                self._io.append_child(TagNameDom("family " + value), True)
+            elif key == "size":
+                size = int(value)
+                if size < 0:
+                    sizept = 4
+                else:
+                    sizept = 4 + size * 2 #(default should be 10pt)
+                
+                self._io.append_child(TagNameDom("size " + str(sizept)), True)
+
+
+class HtmlTagCenterReader (HtmlTagReader):
+    """<center> tags"""
+
+    def __init__(self, io):
+        HtmlTagReader.__init__(self, io, "center")
+
+
+    def parse_starttag(self, htmltag, attrs):
+        self._io.append_child(TagNameDom("center"), True)
 
 
 class HtmlTagDivReader (HtmlTagReader):
@@ -608,7 +645,25 @@ class HtmlTagParReader (HtmlTagReader):
         HtmlTagReader.__init__(self, io, "p")
 
     def parse_starttag(self, htmltag, attrs):
-        self._io.append_text("\n")
+
+        # do not create a newline if one already exists
+        last_child = self._io.last_child()
+        #print last_child
+        #if isinstance(last_child, TextDom):
+        #    print last_child.lst
+
+        if (not isinstance(last_child, TextDom) or 
+            not last_child.get().endswith("\n")):
+            self._io.append_text("\n")
+
+
+        for key, value in attrs:
+            if key == "style":
+                for tagstr in parse_css_style(value):
+                    self._io.append_child(TagNameDom(tagstr), True)
+            elif key == "align":
+                if value.lower() in ("left", "right", "center"):
+                    self._io.append_child(TagNameDom(value.lower()), True)
 
     def parse_endtag(self, htmltag):
         self._io.append_text("\n")
@@ -827,7 +882,9 @@ class HtmlBuffer (HTMLParser):
 
         # mod tags
         self.add_tag_reader(HtmlTagModReader(self, "b"))
+        self.add_tag_reader(HtmlTagModReader(self, "strong"))
         self.add_tag_reader(HtmlTagModReader(self, "i"))
+        self.add_tag_reader(HtmlTagModReader(self, "em"))
         self.add_tag_reader(HtmlTagModReader(self, "u"))
         self.add_tag_reader(HtmlTagModReader(self, "strike"))
         self.add_tag_reader(HtmlTagModReader(self, "tt"))
@@ -836,6 +893,8 @@ class HtmlBuffer (HTMLParser):
 
         # span/div readers
         self.add_tag_reader(HtmlTagSpanReader(self))
+        self.add_tag_reader(HtmlTagFontReader(self))
+        self.add_tag_reader(HtmlTagCenterReader(self))
         self.add_tag_reader(HtmlTagDivReader(self))
 
         # span/div writers
@@ -935,6 +994,7 @@ class HtmlBuffer (HTMLParser):
 
     
     def append_text(self, text):
+        
         if len(text) > 0:
             last_child = self._dom_ptr.last_child()
             if isinstance(last_child, TextDom):
@@ -946,6 +1006,9 @@ class HtmlBuffer (HTMLParser):
         self._dom_ptr.append_child(child)
         if visit:
             self._dom_ptr = child
+
+    def last_child(self):
+        return self._dom_ptr.last_child()
         
     
     def handle_starttag(self, htmltag, attrs):
@@ -1021,23 +1084,23 @@ class HtmlBuffer (HTMLParser):
             return
         
         if self._newline:
-            #data = re.sub("^\r?\n[\r\n ]*", "", data)
+            #data = re.sub("^\r?\n[\r\n\t ]*", "", data)
             data = re.sub(self.remove_first_whitespace, "", data)
 
             # collapse a sequence of whitespace into one space char
-            #data = re.sub("[\r\n ]+", " ", data)
+            #data = re.sub("[\r\n\t ]+", " ", data)
             data = re.sub(self.remove_whitespace, " ", data)
             self._newline = False
         else:
             # collapse a sequence of whitespace into one space char
-            #data = re.sub("[\r\n ]+", " ", data)
+            #data = re.sub("[\r\n\t ]+", " ", data)
             data = re.sub(self.remove_whitespace, " ", data)
         
         if len(data) > 0:
             self.append_text(data)
 
-    remove_first_whitespace = re.compile("^\r?\n[\r\n ]*")
-    remove_whitespace = re.compile("[\r\n ]+")
+    remove_first_whitespace = re.compile("^\r?\n[\r\t\n ]*")
+    remove_whitespace = re.compile("[\r\n\t ]+")
 
     
     def handle_entityref(self, name):

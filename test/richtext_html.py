@@ -35,7 +35,7 @@ def display_item(item):
     elif item[0] == "end":
         return "END:" + item[2].get_property('name')
     else:
-        return item[0]
+        return item[0] + ":" + item[2]
 
 
 class BufferBase (TestCase):
@@ -202,6 +202,19 @@ class Html (BufferBase):
         self.read_write('line1<hr/><br/>\nline2')
         self.buffer.clear()        
         self.read_write('line1<hr/>line2')
+
+
+    def test_font_other(self):
+        contents = self.io.read(StringIO('<strong>hello</strong>'), 
+                                partial=True)
+        self.assertEqual(map(display_item, contents),
+                         ['beginstr:bold', 'hello', 'endstr:bold'])
+
+
+        contents = self.io.read(StringIO('<em>hello</em>'), 
+                                partial=True)
+        self.assertEqual(map(display_item, contents),
+                         ['beginstr:italic', 'hello', 'endstr:italic'])
 
 
 
@@ -696,9 +709,7 @@ class Html (BufferBase):
         self.assertEqual(contents, [('text', None, 'Hello world')])
 
 
-    def test_comments(self):
-
-        
+    def test_comments(self):       
         contents = self.io.read(StringIO(
                 """<style><!-- comment --></style> hello <!--nice--> bye"""), 
                                 partial=True)
