@@ -13,7 +13,7 @@ from keepnote.gui.richtext.richtext_html import HtmlBuffer, nest_indent_tags, \
      find_paragraphs, P_TAG
 from keepnote.gui.richtext import RichTextIO
 
-import StringIO
+from StringIO import StringIO
 from keepnote.gui.richtext.richtextbuffer import RichTextBuffer, ignore_tag, \
      RichTextIndentTag
 
@@ -84,8 +84,8 @@ class Html (BufferBase):
         if str_out is None:
             str_out = str_in
 
-        infile = StringIO.StringIO(str_in)
-        outfile = StringIO.StringIO()
+        infile = StringIO(str_in)
+        outfile = StringIO()
 
         # read/write
         self.read(self.buffer, infile)
@@ -138,7 +138,7 @@ class Html (BufferBase):
         self.read_write("&nbsp; x")
         
         self.buffer.clear()
-        self.read(self.buffer, StringIO.StringIO("<br>\n&nbsp;x"))
+        self.read(self.buffer, StringIO("<br>\n&nbsp;x"))
         self.assertEquals([display_item(x) for x in self.get_contents()],
                           ['\n x'])
 
@@ -147,14 +147,14 @@ class Html (BufferBase):
 
 
     def test_read_hr(self):
-        self.read(self.buffer, StringIO.StringIO("line1<hr/>line2"))
+        self.read(self.buffer, StringIO("line1<hr/>line2"))
         self.assertEquals([display_item(x) for x in self.get_contents()],
                           ['line1\n',
                            'anchor',
                            '\nline2'])
 
         self.buffer.clear()
-        self.read(self.buffer, StringIO.StringIO("line1<hr/><br/>\nline2"))
+        self.read(self.buffer, StringIO("line1<hr/><br/>\nline2"))
         self.assertEquals([display_item(x) for x in self.get_contents()],
                           ['line1\n',
                            'anchor',
@@ -162,7 +162,7 @@ class Html (BufferBase):
 
         # what if <hr/> has newlines around it in HTML?
         self.buffer.clear()
-        self.read(self.buffer, StringIO.StringIO("line1\n<hr/>\n<br/>\nline2"))
+        self.read(self.buffer, StringIO("line1\n<hr/>\n<br/>\nline2"))
         self.assertEquals([display_item(x) for x in self.get_contents()],
                           ['line1 \n',
                            'anchor',
@@ -175,7 +175,7 @@ class Html (BufferBase):
         self.read_write('<span style="font-size: 12pt">hello</span>')
 
     def test_font_justification(self):
-        self.read(self.buffer, StringIO.StringIO('<div style="text-align: center">hello<br/>\nagain</div>'))
+        self.read(self.buffer, StringIO('<div style="text-align: center">hello<br/>\nagain</div>'))
 
         contents = normalize_tags(find_paragraphs(
             nest_indent_tags(self.get_contents(), self.buffer.tag_table)),
@@ -234,7 +234,7 @@ class Html (BufferBase):
                         '</ul>\nline6</b>')
 
     def test_ol5(self):
-        infile = StringIO.StringIO(
+        infile = StringIO(
             'line0<ul><li style="list-style-type: none">line1<br/>\n'
             'line2<ul><li style="list-style-type: none">line3<br/>\n'
             'line4<br/>\n</li>\n</ul>\n</li>\n'
@@ -259,7 +259,7 @@ class Html (BufferBase):
                            'line6'])
 
     def test_ol6(self):
-        infile = StringIO.StringIO(
+        infile = StringIO(
             'line0<ul><li style="list-style-type: none">line1<br/>\n'
             'line2<ul><li style="list-style-type: none">line3<br/>\n'
             'line4<br/>\n</li>\n</ul>\n'
@@ -324,7 +324,7 @@ class Html (BufferBase):
                            'END:indent 1 bullet',
                            'end2\n'])
 
-        outfile = StringIO.StringIO()
+        outfile = StringIO()
         self.write(self.buffer, outfile)
 
         self.assertEquals(outfile.getvalue(),
@@ -343,7 +343,7 @@ class Html (BufferBase):
 
     def test_par(self):
 
-        self.read(self.buffer, StringIO.StringIO(
+        self.read(self.buffer, StringIO(
             """word1 <b>word2<br/>\nword3</b> word4<br/>\n"""))
 
         contents = list(normalize_tags(
@@ -508,7 +508,7 @@ class Html (BufferBase):
         Make sure blank lines b/w bullets do not disappear
         """
 
-        self.read(self.buffer, StringIO.StringIO(
+        self.read(self.buffer, StringIO(
             '<ul><li>line1</li>\n'
             '</ul>\n'
             '<ul><li>line2</li>\n'
@@ -543,7 +543,7 @@ class Html (BufferBase):
         Make sure blank lines b/w bullets do not disappear
         """
 
-        self.read(self.buffer, StringIO.StringIO(
+        self.read(self.buffer, StringIO(
             '<ol><li style="list-style-type: none"><ol><li style="list-style-type: disc">line1</li>\n</ol>\n</li>\n'
             '<li style="list-style-type: disc"></li>\n'
             '</ol>\n'))
@@ -568,7 +568,7 @@ class Html (BufferBase):
         Make sure newlines can be added at front of bullet
         """
 
-        self.read(self.buffer, StringIO.StringIO(
+        self.read(self.buffer, StringIO(
             '<ol><li style="list-style-type: disc">line1</li>\n'
             '</ol>\n'
             '<ol><li style="list-style-type: disc">line2</li>\n'
@@ -619,7 +619,7 @@ class Html (BufferBase):
     def test_bullet_undo(self):
         """Make sure bullets interact with undo correctly"""
 
-        self.read(self.buffer, StringIO.StringIO(
+        self.read(self.buffer, StringIO(
             '''<ul><li>line1</li>
 <li style="list-style-type: none"><ul><li>line2</li>
 </ul>
@@ -650,7 +650,7 @@ class Html (BufferBase):
     '''def test_bullet_delete(self):
         """Remove bullet with delete"""        
 
-        self.read(self.buffer, StringIO.StringIO(
+        self.read(self.buffer, StringIO(
             """<ul><li>hello</li></ul>\n"""))
 
         print [display_item(x) for x in self.get_contents()]
@@ -687,13 +687,25 @@ class Html (BufferBase):
 
     def test_body(self):
 
-        contents = list(self.io.read(StringIO.StringIO("<html><head><title>title</title></head><body>Hello world</body></html>"), 
+        contents = list(self.io.read(StringIO("<html><head><title>title</title></head><body>Hello world</body></html>"), 
                                      partial=False))
         self.assertEqual(contents, [('text', None, 'Hello world')])
 
-        contents = list(self.io.read(StringIO.StringIO("Hello world"), 
+        contents = list(self.io.read(StringIO("Hello world"), 
                                      partial=True))
         self.assertEqual(contents, [('text', None, 'Hello world')])
+
+
+    def test_comments(self):
+
+        
+        contents = self.io.read(StringIO(
+                """<style><!-- comment --></style> hello <!--nice--> bye"""), 
+                                partial=True)
+
+        self.assertEqual(map(display_item, contents),
+                         [' hello  bye'])
+                            
 
 
 

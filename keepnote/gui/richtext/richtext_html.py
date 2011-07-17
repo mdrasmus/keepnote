@@ -923,6 +923,16 @@ class HtmlBuffer (HTMLParser):
 
         walk(dom)
 
+
+    def ignore_input(self):
+        """Returns True if currently ignoring input"""
+        
+        for tag, ptr in self._tag_stack:
+            if tag in ("style", "script"):
+                return True
+
+        return (not self._within_body and not self._partial)
+
     
     def append_text(self, text):
         if len(text) > 0:
@@ -953,7 +963,8 @@ class HtmlBuffer (HTMLParser):
         
         elif htmltag in self._tag_readers:
             # use tag parser
-            self._tag_readers[htmltag].parse_starttag(htmltag, attrs)
+            if not self.ignore_input():
+                self._tag_readers[htmltag].parse_starttag(htmltag, attrs)
 
         elif htmltag == "html":
             # ignore html tag
@@ -989,7 +1000,8 @@ class HtmlBuffer (HTMLParser):
 
         elif htmltag in self._tag_readers:
             # use tag parser
-            self._tag_readers[htmltag].parse_endtag(htmltag)
+            if not self.ignore_input():
+                self._tag_readers[htmltag].parse_endtag(htmltag)
 
 
         # pop dom stack
@@ -1004,8 +1016,8 @@ class HtmlBuffer (HTMLParser):
     
     def handle_data(self, data):
         """Callback for character data"""
-
-        if not self._partial and not self._within_body:
+        
+        if self.ignore_input():
             return
         
         if self._newline:
