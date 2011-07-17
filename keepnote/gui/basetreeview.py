@@ -76,6 +76,7 @@ def parse_utf(text):
         len(text) > 3 and text[3] == '\x00'):
         return text.decode("utf16")
     else:
+        text = text.replace("\x00", "")
         return unicode(text, "utf8")
 
 
@@ -166,14 +167,27 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                                     gtk.gdk.ACTION_MOVE|
                                     gtk.gdk.ACTION_COPY|
                                     gtk.gdk.ACTION_LINK)
-        self.drag_dest_set(gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_MOTION,
-                           [DROP_TREE_MOVE, DROP_URI],
-                           gtk.gdk.ACTION_DEFAULT|
-                           gtk.gdk.ACTION_MOVE|
-                           gtk.gdk.ACTION_COPY|
-                           gtk.gdk.ACTION_LINK|
-                           gtk.gdk.ACTION_PRIVATE|
-                           gtk.gdk.ACTION_ASK)
+
+        if keepnote.get_platform() == "windows":
+            # gtk.DEST_DEFAULT_DROP, does not work on windows
+            # because will not match list of possible target 
+            # matches if you set anything besides a blank [] 
+            # for target on Microsoft windows, it will not call
+            # drop_data_received. So we might as well leave it
+            # like so and do your own detecting of the files 
+            # and what to do with them in drag_data_received.
+            #self.drag_dest_set(0, [], 0)
+            self.drag_dest_set(0, [], 0)
+        else:
+            self.drag_dest_set(
+                gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_MOTION,
+                [DROP_TREE_MOVE, DROP_URI],
+                gtk.gdk.ACTION_DEFAULT|
+                gtk.gdk.ACTION_MOVE|
+                gtk.gdk.ACTION_COPY|
+                gtk.gdk.ACTION_LINK|
+                gtk.gdk.ACTION_PRIVATE|
+                gtk.gdk.ACTION_ASK)
 
     
     def set_master_node(self, node):
@@ -861,8 +875,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         Callback for drag motion.
         Indicate which drops are allowed (cannot drop into descendant).
         Also record the destination for later use.
-        """        
-
+        """
+        
         # override gtk's default drag motion code
         self.stop_emission("drag-motion")
 
@@ -970,9 +984,13 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         """
         Callback for when data is received from source widget
         """
-
+        
         # override gtk's data received code
         self.stop_emission("drag-data-received")
+
+        # NOTE: force one more call to motion in order, since Windows ignores
+        # cross app drag calls
+        self._on_drag_motion(treeview, drag_context, x, y, eventtime)
 
         
         # if no destination, give up.  Occurs when drop is not allowed
@@ -997,12 +1015,15 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
                 uris = parse_utf(selection_data.data)
                 uris = [x for x in (urllib.unquote(uri.strip())
-                                for uri in uris.split("\n"))
+                                    for uri in uris.split("\n"))
                         if len(x) > 0 and x[0] != "#"]
 
                 for uri in reversed(uris):
                     if uri.startswith("file://"):
                         uri = uri[7:]
+                        if keepnote.get_platform() == "windows":
+                            # remove one more '/' for windows
+                            uri  = uri[1:]
                     self.emit("drop-file", parent, new_path[-1], uri)
             drag_context.finish(True, False, eventtime)
             

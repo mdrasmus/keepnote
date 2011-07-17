@@ -812,8 +812,13 @@ class NoteBookNode (object):
         self.delete()
 
         # reread node from other connection
-        new_child = parent._notebook._read_node(self._attr["nodeid"], parent)
-        parent.add_child(new_child, index=index)
+        try:
+            new_child = parent._notebook._read_node(
+                self._attr["nodeid"], parent)
+            parent.add_child(new_child, index=index)
+        except:
+            keepnote.log_error()
+            pass
 
 
     def rename(self, title):
@@ -974,7 +979,11 @@ class NoteBookNode (object):
         default_content_type = CONTENT_TYPE_DIR
         
         for childid in self._attr["childrenids"]:
-            attr = self._conn.read_node(childid)
+            try:
+                attr = self._conn.read_node(childid)
+            except:
+                keepnote.log_error()
+                continue
             node = NoteBookNode(
                 attr.get("title", DEFAULT_PAGE_NAME), 
                 parent=self, notebook=self._notebook,

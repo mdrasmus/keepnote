@@ -709,7 +709,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             self._write_attr(self._get_node_attr_file(nodeid, path), attr)
             self._path_cache.add(nodeid, basename, parentid)
         except OSError, e:
-            raise keepnote.notebook.NoteBookError(_("Cannot create node"), e)
+            raise ConnectionError(_("Cannot create node"), e)
         
         # finish initializing root
         if _root:
@@ -810,8 +810,8 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         try:
             os.rename(path, new_path)
-        except OSError, e:
-            raise keepnote.notebook.NoteBookError(
+        except Exception, e:
+            raise ConnectionError(
                 _(u"Cannot rename '%s' to '%s'" % (path, new_path)), e)
         
         # update index
@@ -836,8 +836,8 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         try:
             shutil.rmtree(self._get_node_path(nodeid))
-        except OSError, e:
-            raise keepnote.notebook.NoteBookError(
+        except Exception, e:
+            raise ConnectionError(
                 _(u"Do not have permission to delete"), e)
 
         # TODO: remove from index entire subtree
@@ -871,8 +871,8 @@ class NoteBookConnectionFS (NoteBookConnection):
         
         try:    
             files = os.listdir(path)
-        except:
-            raise keepnote.notebook.NoteBookError(
+        except Exception, e:
+            raise ConnectionError(
                 _(u"Do not have permission to read folder contents: %s") 
                 % path, e)           
         
@@ -881,7 +881,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             if os.path.exists(get_node_meta_file(path2)):
                 try:
                     yield self._read_node(nodeid, path2, _full=_full)
-                except keepnote.notebook.NoteBookError, e:
+                except ConnectionError, e:
                     keepnote.log_error(u"error reading %s" % path2)
                     continue
                     # TODO: raise warning, not all children read
@@ -1008,7 +1008,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             out.write(u'</node>\n')
             out.close()
         except Exception, e:
-            raise keepnote.notebook.NoteBookError(
+            raise ConnectionError(
                 _("Cannot write meta data" + " " + filename + ":" + str(e)), e)
 
 
@@ -1022,13 +1022,13 @@ class NoteBookConnectionFS (NoteBookConnection):
                 self._recover_attr(filename)
                 return self._read_attr(filename, recover=False)
             
-            raise keepnote.notebook.NoteBookError(
+            raise ConnectionError(
                 _(u"Error reading meta data file '%s'" % filename), e)
 
         # check root
         root = tree.getroot()
         if root.tag != "node":
-            raise keepnote.notebook.NoteBookError(_("Root tag is not 'node'"))
+            raise ConnectionError(_("Root tag is not 'node'"))
         
         # iterate children
         attr = {}
