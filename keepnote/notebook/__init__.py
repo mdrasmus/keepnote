@@ -1756,6 +1756,6 @@ class NoteBook (NoteBookNode):
 
     def _recover_preferences(self):
         
-        out = self.open_file(PREF_FILE, "w", "urf-8")
+        out = self.open_file(PREF_FILE, "w", "utf-8")
         out.write(u"<notebook></notebook>")
         out.close()
