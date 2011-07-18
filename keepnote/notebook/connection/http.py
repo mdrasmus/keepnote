@@ -70,14 +70,14 @@ def parse_node_path(path, prefixes=("/")):
     i = path.find("/")
     if i != -1:
         nodeid = path[:i]
-        filename = path[i+1:]
+        filename = urllib.unquote(path[i+1:])
         if filename == "":
             filename = "/"
     else:
         nodeid = path
         filename = None
 
-    return urllib.unquote(nodeid), urllib.unquote(filename)
+    return urllib.unquote(nodeid), filename
 
 
 def format_node_path(prefix, nodeid="", filename=None):
