@@ -77,7 +77,7 @@ def parse_node_path(path, prefixes=("/")):
         nodeid = path
         filename = None
 
-    return nodeid, filename
+    return urllib.unquote(nodeid), urllib.unquote(filename)
 
 
 def format_node_path(prefix, nodeid="", filename=None):
@@ -86,9 +86,9 @@ def format_node_path(prefix, nodeid="", filename=None):
     """
     nodeid = nodeid.replace("/", "%2F")
     if filename is not None:
-        return "%s%s/%s" % (prefix, nodeid, filename)
+        return urllib.quote("%s%s/%s" % (prefix, nodeid, filename))
     else:
-        return prefix + nodeid
+        return urllib.quote(prefix + nodeid)
 
 
 def format_node_url(host, prefix, nodeid, filename=None, port=80):
@@ -486,8 +486,8 @@ class NoteBookConnectionHttp (NoteBookConnection):
         if mode == "r":
             self._conn.request(
                 'GET', format_node_path(self._prefix, nodeid, filename))
+            result = self._conn.getresponse()
             if result.status == httplib.OK:
-                result = self._conn.getresponse()
                 return result
             else:
                 raise connlib.FileError()

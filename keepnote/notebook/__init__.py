@@ -1718,6 +1718,7 @@ class NoteBook (NoteBookNode):
             raise NoteBookError(_("Cannot read notebook preferences %s")
                                 % self.get_file(PREF_FILE) , e)
         except Exception, e:
+            keepnote.log_error(e)
             if recover:
                 if infile:
                     infile.close()
