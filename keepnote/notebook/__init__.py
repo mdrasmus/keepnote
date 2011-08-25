@@ -56,6 +56,7 @@ import keepnote
 
 # currently imported for extensions that expect this here
 from keepnote.notebook.connection.fs import get_valid_unique_filename
+from keepnote.notebook.connection.fs import index as notebook_index
 from keepnote.notebook import sync
 
 _ = trans.translate
