@@ -33,7 +33,7 @@ import urlparse
 
 
 class ConnectionError (StandardError):
-    def __init__(self, msg, error=None):
+    def __init__(self, msg="", error=None):
         StandardError.__init__(self, msg)
         self.error = error
 
@@ -214,7 +214,7 @@ class NoteBookConnection (object):
 
         """
 
-        if fullname1.endswith("/"):
+        if filename1.endswith("/"):
             # copy directory tree
             self.create_dir(nodeid2, filename2)
 
