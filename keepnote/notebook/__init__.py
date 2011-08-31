@@ -891,7 +891,7 @@ class NoteBookNode (object):
 
         # copy attributes
         for key, value in self.iter_attr():
-            if key not in ("nodeid", "order", "parentids"):
+            if key not in ("nodeid", "order", "parentids", "childrenids"):
                 node._attr[key] = value
 
         # record the nodeid of the original node
