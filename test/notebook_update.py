@@ -53,6 +53,16 @@ class Update (unittest.TestCase):
         notebook_update_v5_6.update(u"test/tmp/notebook_update/n1")
 
 
+    def test_v4_5(self):
+        
+        # initialize two notebooks
+        make_clean_dir("test/tmp/notebook_update")
+
+        shutil.copytree("test/data/notebook-v4",
+                        "test/tmp/notebook_update/n1")
+        update.update_notebook(u"test/tmp/notebook_update/n1", 5)
+
+
     def test_gui(self):
         """test notebook update through gui"""
 

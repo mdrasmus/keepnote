@@ -109,15 +109,16 @@ def update_notebook(filename, desired_version, warn=lambda w: False,
 
         # upgrade 4 --> 5
         elif version == 4:
+            from keepnote.compat import notebook_v4 as old_notebooklib
             
             # try to load old notebook (may raise exceptions)
-            notebook = notebooklib.NoteBook()
+            notebook = old_notebooklib.NoteBook()
             notebook.load(filename)
             notebook.pref.set("version", 5)
             notebook.save(force=True)
 
-            if notebook.index_needed():
-                notebook.clear_index()
+            #if notebook.index_needed():
+            #    notebook.clear_index()
 
             notebook.close()
             version = 5
