@@ -117,7 +117,12 @@ def read_attr_v5(filename, attr_defs=g_attr_defs_lookup):
     if root.tag != "node":
         raise Except("Root tag is not 'node'")
 
-    assert int(root.find("version").text) <= 5, root.find("version").text
+    version = int(root.find("version").text)
+    if version >= 6:
+        # check if node somehow already converted
+        if root.find("dict"):
+            return
+        # try to read with old format anyways
 
     # iterate children
     for child in root:
@@ -137,7 +142,6 @@ def read_attr_v5(filename, attr_defs=g_attr_defs_lookup):
 
     
 def write_attr_v6(filename, attr):
-
     out = safefile.open(filename, "w", codec="utf-8")
     out.write(u'<?xml version="1.0" encoding="UTF-8"?>\n'
               u'<node>\n'
@@ -150,14 +154,15 @@ def write_attr_v6(filename, attr):
 def convert_node_attr(filename, filename2, attr_defs=g_attr_defs_lookup):
     """Convert a node.xml file from version 5 to 6"""
 
-    keepnote.log_message("converting '%s'...\n" % filename)
-
+    keepnote.log_message("converting '%s'...\n" % filename2)
+    
     try:
         attr = read_attr_v5(filename, attr_defs)
         attr["version"] = 6
         write_attr_v6(filename2, attr)
     except Exception, e:
-        keepnote.log_error()
+        keepnote.log_error("cannot convert %s: %s\n" % (filename, str(e)), 
+                           sys.exc_info()[2])
                            
     
 

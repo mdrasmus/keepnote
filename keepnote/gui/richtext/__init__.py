@@ -124,6 +124,9 @@ MIME_TEXT = ["text/plain",
              "COMPOUND_TEXT",
              "TEXT"]
 
+MIME_HTML = ["HTML Format",
+             "text/html"]
+
 
 # globals
 _g_clipboard_contents = None
@@ -370,10 +373,8 @@ class RichTextView (gtk.TextView):
         self._html_buffer = HtmlBuffer()
         self._accel_group = None
         self._accel_path = CONTEXT_MENU_ACCEL_PATH
-        self.dragdrop = RichTextDragDrop(MIME_IMAGES + \
-                                             ["text/uri-list",
-                                              "text/html",
-                                              "text/plain"])
+        self.dragdrop = RichTextDragDrop(MIME_IMAGES +  ["text/uri-list"] +
+                                         MIME_HTML + MIME_TEXT)
         
 
         if textbuffer is None:
@@ -656,14 +657,18 @@ class RichTextView (gtk.TextView):
             self.insert_html("<br />".join(links))
             
                 
-        elif target == "text/html":
+        elif target in MIME_HTML:
             # process html drop
 
             html = parse_utf(selection_data.data)
+            if taget == "HTML Format":
+                # skip over headers
+                html = html[html.find("\r\n\r\n")+4:]
+
             self.insert_html(html)
             
         
-        elif target == "text/plain":
+        elif target in MIME_TEXT:
             # process text drop
             self._textbuffer.insert_at_cursor(selection_data.get_text())
 
@@ -744,9 +749,9 @@ class RichTextView (gtk.TextView):
            contents[0][0] == "anchor" and \
            isinstance(contents[0][2][0], RichTextImage):
             # copy image
-            targets = [(MIME_RICHTEXT, gtk.TARGET_SAME_APP, RICHTEXT_ID),
-                       ("text/html", 0, RICHTEXT_ID)] + \
-                      [(x, 0, RICHTEXT_ID) for x in MIME_IMAGES]
+            targets = [(MIME_RICHTEXT, gtk.TARGET_SAME_APP, RICHTEXT_ID)] + \
+                [(x, 0, RICHTEXT_ID) for x in MIME_HTML] + \
+                [(x, 0, RICHTEXT_ID) for x in MIME_IMAGES]
             
             clipboard.set_with_data(targets, self._get_selection_data, 
                                     self._clear_selection_data,
@@ -754,9 +759,9 @@ class RichTextView (gtk.TextView):
 
         else:
             # copy text
-            targets = [(MIME_RICHTEXT, gtk.TARGET_SAME_APP, RICHTEXT_ID),
-                       ("text/html", 0, RICHTEXT_ID)] + \
-                      [(x, 0, RICHTEXT_ID) for x in MIME_TEXT]
+            targets = [(MIME_RICHTEXT, gtk.TARGET_SAME_APP, RICHTEXT_ID)] + \
+                [(x, 0, RICHTEXT_ID) for x in MIME_HTML] + \
+                [(x, 0, RICHTEXT_ID) for x in MIME_TEXT]
             
             text = start.get_text(end)
             clipboard.set_with_data(targets, self._get_selection_data, 
@@ -798,21 +803,24 @@ class RichTextView (gtk.TextView):
             # request RICHTEXT contents object
             clipboard.request_contents(MIME_RICHTEXT, self._do_paste_object)
             
-        elif "text/html" in targets:
-            # request HTML
-            clipboard.request_contents("text/html", self._do_paste_html)
-            
-        else:
+        for mime_html in MIME_HTML:
+            if mime_html in targets:
+                # request HTML
+                if mime_html == "HTML Format":
+                    clipboard.request_contents(mime_html, 
+                                               self._do_paste_html_headers)
+                else:
+                    clipboard.request_contents(mime_html, self._do_paste_html)
+                return
 
-            # test image formats
-            for mime_image in MIME_IMAGES:
-                if mime_image in targets:
-                    clipboard.request_contents(mime_image,
-                                               self._do_paste_image)
-                    break
-            else:
-                # request text
-                clipboard.request_text(self._do_paste_text)
+        # test image formats
+        for mime_image in MIME_IMAGES:
+            if mime_image in targets:
+                clipboard.request_contents(mime_image, self._do_paste_image)
+                return
+
+        # request text
+        clipboard.request_text(self._do_paste_text)
 
     
     def paste_clipboard_as_text(self):
@@ -851,7 +859,7 @@ class RichTextView (gtk.TextView):
 
     def _do_paste_html(self, clipboard, selection_data, data):
         """Paste HTML into buffer"""
-        
+
         html = parse_utf(selection_data.data)        
         
         try:
@@ -863,6 +871,27 @@ class RichTextView (gtk.TextView):
             self.scroll_mark_onscreen(self._textbuffer.get_insert())
         except Exception, e:
             pass
+
+
+    def _do_paste_html_headers(self, clipboard, selection_data, data):
+        """Paste HTML into buffer"""
+
+        html = parse_utf(selection_data.data)
+
+        # skip over headers
+        index = html.find("\r\n\r\n")
+        html = html[index+4:]
+        
+        try:
+            self._textbuffer.begin_user_action()
+            self._textbuffer.delete_selection(False, True)
+            self.insert_html(html)
+            self._textbuffer.end_user_action()
+        
+            self.scroll_mark_onscreen(self._textbuffer.get_insert())
+        except Exception, e:
+            pass
+    
     
     def _do_paste_image(self, clipboard, selection_data, data):
         """Paste image into buffer"""
@@ -907,7 +936,8 @@ class RichTextView (gtk.TextView):
             # set rich text
             selection_data.set(MIME_RICHTEXT, 8, "<richtext>")
             
-        elif "text/html" in selection_data.target:
+        elif len([x for x in MIME_HTML
+                  if x in selection_data.target]) > 0:
             # set html
             stream = StringIO.StringIO()
             self._html_buffer.set_output(stream)

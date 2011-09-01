@@ -321,8 +321,9 @@ def parse_css_style(stylestr):
 
             if statement.startswith("font-size"):
                 # font size
-                size = int("".join(filter(lambda x: x.isdigit(),
-                                          statement.split(":")[1])))
+                size = int(float(
+                        "".join(filter(lambda x: x.isdigit() or x == ".",
+                                          statement.split(":")[1]))))
                 yield "size " + str(size)
 
             elif statement.startswith("font-family"):

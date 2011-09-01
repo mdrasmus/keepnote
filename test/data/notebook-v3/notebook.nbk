@@ -1,13 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <notebook>
 <version>3</version>
-<pref>
-    <dict>
-        <key>version</key><integer>3</integer>
-        <key>index_dir</key><string></string>
-        <key>quick_pick_icons</key><array>
-            <string>x.png</string>
-        </array>
-    </dict>
-</pref>
 </notebook>

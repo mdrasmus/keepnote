@@ -371,14 +371,18 @@ class NoteBookConnections (object):
         self._protos[proto] = connection_class
 
     def get(self, url):
-        parts = urlparse.urlsplit(url)
-        proto = parts.scheme if parts.scheme else "file"
+        if "://" not in url:
+            proto = "file"
+        else:
+            parts = urlparse.urlsplit(url)
+            proto = parts.scheme if parts.scheme else "file"
 
         conn_class = self._protos.get(proto, None)
         if conn_class:
             return conn_class()
         else:
-            return None
+            # fallback to 'file' protocol
+            return self._protos.get("file", None)
 
     def lookup(self, proto):
         return self._protos.get(proto, None)
