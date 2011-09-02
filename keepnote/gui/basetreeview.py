@@ -168,7 +168,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                                     gtk.gdk.ACTION_COPY|
                                     gtk.gdk.ACTION_LINK)
 
-        if keepnote.get_platform() == "windows":
+        #if keepnote.get_platform() == "windows":
             # gtk.DEST_DEFAULT_DROP, does not work on windows
             # because will not match list of possible target 
             # matches if you set anything besides a blank [] 
@@ -177,8 +177,9 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             # like so and do your own detecting of the files 
             # and what to do with them in drag_data_received.
             #self.drag_dest_set(0, [], 0)
-            self.drag_dest_set(0, [], 0)
-        else:
+            #self.drag_dest_set(0, [], 0)
+        #else:
+        if 1:
             self.drag_dest_set(
                 gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_MOTION,
                 [DROP_TREE_MOVE, DROP_URI],
@@ -990,7 +991,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
         # NOTE: force one more call to motion in order, since Windows ignores
         # cross app drag calls
-        self._on_drag_motion(treeview, drag_context, x, y, eventtime)
+        #self._on_drag_motion(treeview, drag_context, x, y, eventtime)
 
         
         # if no destination, give up.  Occurs when drop is not allowed

@@ -802,6 +802,7 @@ class RichTextView (gtk.TextView):
         if MIME_RICHTEXT in targets:
             # request RICHTEXT contents object
             clipboard.request_contents(MIME_RICHTEXT, self._do_paste_object)
+            return
             
         for mime_html in MIME_HTML:
             if mime_html in targets:
