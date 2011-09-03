@@ -26,6 +26,7 @@
 #
 
 
+# python imports
 import sys
 import os
 import httplib
@@ -34,7 +35,9 @@ import urlparse
 import thread
 import select
 import BaseHTTPServer
+from collections import defaultdict
 
+# keepnote imports
 from keepnote import notebook
 import keepnote.notebook.connection as connlib
 from keepnote.notebook.connection import NoteBookConnection
@@ -263,7 +266,7 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                 # pure command                
                 if parts.query == "save":
                     self.server.conn.save()
-
+                    
                 elif parts.query == "index":
                     query = plist.loads(data)
                     res = self.server.conn.index(query)
@@ -370,6 +373,8 @@ class NoteBookConnectionHttp (NoteBookConnection):
         self._netloc = ""
         self._prefix = "/"
         self._conn = None
+        self._title_cache = NodeTitleCache()
+        
         
     def connect(self, url):
         
@@ -378,6 +383,7 @@ class NoteBookConnectionHttp (NoteBookConnection):
         self._netloc = parts.netloc
         self._prefix = parts.path
         self._conn =  httplib.HTTPConnection(self._netloc)
+        self._title_cache.clear()
         #self._conn.set_debuglevel(1)
 
     def close(self):
@@ -415,6 +421,8 @@ class NoteBookConnectionHttp (NoteBookConnection):
             raise connlib.connlib.ConnectionError(
                 "unexpected error '%s'" % str(e), e)
 
+        self._title_cache.update_attr(attr)
+
 
     def read_node(self, nodeid):
 
@@ -422,11 +430,12 @@ class NoteBookConnectionHttp (NoteBookConnection):
         result = self._conn.getresponse()
         if result.status == httplib.OK:
             try:
-                return plist.load(result)
+                attr = plist.load(result)
+                self._title_cache.update_attr(attr)
+                return attr
             except Exception, e:
-                if result.status != httplib.OK:
-                    raise connlib.ConnectionError(
-                        "unexpected error '%s'" % str(e), e)
+                raise connlib.ConnectionError(
+                    "unexpected error '%s'" % str(e), e)
         else:
             raise connlib.UnknownNode(nodeid)
 
@@ -439,6 +448,8 @@ class NoteBookConnectionHttp (NoteBookConnection):
         result = self._conn.getresponse()
         if result.status != httplib.OK:
             raise connlib.ConnectionError()
+        self._title_cache.update_attr(attr)
+
         
     def delete_node(self, nodeid):
         
@@ -446,6 +457,7 @@ class NoteBookConnectionHttp (NoteBookConnection):
         result = self._conn.getresponse()
         if result.status != httplib.OK:
             raise connlib.ConnectionError()
+        self._title_cache.remove(nodeid)
 
 
     def has_node(self, nodeid):
@@ -580,7 +592,7 @@ class NoteBookConnectionHttp (NoteBookConnection):
     #---------------------------------
     # indexing/querying
 
-    def index(self, query):
+    def index_raw(self, query):
 
         # POST /?index
         # query plist encoded
@@ -596,6 +608,20 @@ class NoteBookConnectionHttp (NoteBookConnection):
                     "unexpected response '%s'" % str(e), e)
 
 
+    def index(self, query):
+
+        if len(query) > 2 and query[:2] == ["search", "title"]:
+            if not self._title_cache.is_complete():
+                result = self.index_raw(["search", "title", "%"])
+                for nodeid, title in result:
+                    self._title_cache.add(nodeid, title)
+                self._title_cache.set_complete()
+
+            return list(self._title_cache.get(query[2]))
+        else:
+            return self.index_raw(query)
+
+
     def get_node_path(self, nodeid):
         
         if nodeid == self.get_rootid():
@@ -603,3 +629,71 @@ class NoteBookConnectionHttp (NoteBookConnection):
         return format_node_path(self._prefix, nodeid)
 
 
+
+
+class NodeTitleCache (object):
+    def __init__(self):
+        self._titles = defaultdict(lambda:set())
+        self._nodeids = {}
+        self._complete = False
+
+    def is_complete(self):
+        return self._complete
+    
+
+    def set_complete(self, val=True):
+        self._complete = val
+                     
+
+    def update_attr(self, attr):
+        nodeid = attr.get("nodeid", None)
+        title = attr.get("nodeid", None)
+
+        # do nothing if nodeid is not present
+        if nodeid is None:
+            return
+
+        # if nodeid is in cache, remove it
+        self.remove(nodeid)
+
+        # if title is not present, do not cache anything
+        if title is None:
+            return
+
+        self._titles[title].add(nodeid)
+
+
+    def remove_attr(self, attr):
+
+        nodeid = attr.get("nodeid", None)
+        
+        # do nothing if nodeid is not present
+        if nodeid is None:
+            return
+        
+        self.remove(nodeid)
+
+
+    def add(self, nodeid, title):
+        self._titles[title.lower()].add(nodeid)
+
+
+    def remove(self, nodeid):
+        
+        # if nodeid is in cache, remove it
+        if nodeid in self._nodeids:
+            old_title = self._nodeids[nodeid]
+            self._titles[old_title].remove(nodeid)
+
+        
+    def get(self, query):
+        query = query.lower()
+        for title in self._titles.iterkeys():
+            if query in title:
+                for nodeid in self._titles[title]:
+                    yield (nodeid, title)
+
+
+    def clear(self):
+        self._titles.clear()
+        self._complete = False
