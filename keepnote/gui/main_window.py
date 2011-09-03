@@ -651,6 +651,7 @@ class KeepNoteWindow (gtk.Window):
             filename = ensure_unicode(filename, FS_ENCODING)
             notebook = notebooklib.NoteBook()
             notebook.create(filename)
+            notebook.set_attr("title", os.path.basename(filename))
             notebook.close()
             self.set_status(_("Created '%s'") % notebook.get_title())
         except NoteBookError, e:

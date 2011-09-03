@@ -612,13 +612,13 @@ class NoteBookConnectionHttp (NoteBookConnection):
 
         if len(query) > 2 and query[:2] == ["search", "title"]:
             if not self._title_cache.is_complete():
-                print "full index"
+                #print "full index"
                 result = self.index_raw(["search", "title", "%"])
                 for nodeid, title in result:
                     self._title_cache.add(nodeid, title)
                 self._title_cache.set_complete()
 
-            print len(self._title_cache._titles), query
+            #print len(self._title_cache._titles), query
             return list(self._title_cache.get(query[2]))
         else:
             return self.index_raw(query)
@@ -662,7 +662,7 @@ class NodeTitleCache (object):
         if title is None:
             return
 
-        self._titles[title].add(nodeid)
+        self.add(nodeid, title)
 
 
     def remove_attr(self, attr):
@@ -678,6 +678,7 @@ class NodeTitleCache (object):
 
     def add(self, nodeid, title):
         self._titles[title.lower()].add(nodeid)
+        self._nodeids[nodeid] = title
 
 
     def remove(self, nodeid):
@@ -686,6 +687,7 @@ class NodeTitleCache (object):
         if nodeid in self._nodeids:
             old_title = self._nodeids[nodeid]
             self._titles[old_title].remove(nodeid)
+            del self._nodeids[nodeid]
 
         
     def get(self, query):
@@ -693,9 +695,10 @@ class NodeTitleCache (object):
         for title in self._titles.iterkeys():
             if query in title:
                 for nodeid in self._titles[title]:
-                    yield (nodeid, title)
+                    yield (nodeid, self._nodeids[nodeid])
 
 
     def clear(self):
         self._titles.clear()
+        self._nodeids.clear()
         self._complete = False
