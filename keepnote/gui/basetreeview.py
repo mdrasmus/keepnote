@@ -168,27 +168,16 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                                     gtk.gdk.ACTION_COPY|
                                     gtk.gdk.ACTION_LINK)
 
-        #if keepnote.get_platform() == "windows":
-            # gtk.DEST_DEFAULT_DROP, does not work on windows
-            # because will not match list of possible target 
-            # matches if you set anything besides a blank [] 
-            # for target on Microsoft windows, it will not call
-            # drop_data_received. So we might as well leave it
-            # like so and do your own detecting of the files 
-            # and what to do with them in drag_data_received.
-            #self.drag_dest_set(0, [], 0)
-            #self.drag_dest_set(0, [], 0)
-        #else:
-        if 1:
-            self.drag_dest_set(
-                gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_MOTION,
-                [DROP_TREE_MOVE, DROP_URI],
-                gtk.gdk.ACTION_DEFAULT|
-                gtk.gdk.ACTION_MOVE|
-                gtk.gdk.ACTION_COPY|
-                gtk.gdk.ACTION_LINK|
-                gtk.gdk.ACTION_PRIVATE|
-                gtk.gdk.ACTION_ASK)
+        
+        self.drag_dest_set(
+            gtk.DEST_DEFAULT_HIGHLIGHT | gtk.DEST_DEFAULT_MOTION,
+            [DROP_TREE_MOVE, DROP_URI],
+            gtk.gdk.ACTION_DEFAULT|
+            gtk.gdk.ACTION_MOVE|
+            gtk.gdk.ACTION_COPY|
+            gtk.gdk.ACTION_LINK|
+            gtk.gdk.ACTION_PRIVATE|
+            gtk.gdk.ACTION_ASK)
 
     
     def set_master_node(self, node):
@@ -871,7 +860,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         gobject.timeout_add(200, self._on_drag_timer)
 
         
-    def _on_drag_motion(self, treeview, drag_context, x, y, eventtime):
+    def _on_drag_motion(self, treeview, drag_context, x, y, eventtime,
+                        stop_emit=True):
         """
         Callback for drag motion.
         Indicate which drops are allowed (cannot drop into descendant).
@@ -879,7 +869,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         """
         
         # override gtk's default drag motion code
-        self.stop_emission("drag-motion")
+        if stop_emit:
+            self.stop_emission("drag-motion")
 
         # if reordering is disabled then terminate the drag
         if self._reorder == REORDER_NONE:
@@ -991,7 +982,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
         # NOTE: force one more call to motion in order, since Windows ignores
         # cross app drag calls
-        #self._on_drag_motion(treeview, drag_context, x, y, eventtime)
+        self._on_drag_motion(treeview, drag_context, x, y, eventtime,
+                             stop_emit=False)
 
         
         # if no destination, give up.  Occurs when drop is not allowed
