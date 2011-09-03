@@ -93,7 +93,9 @@ else:
     if not isdir(join(basedir, "images")):
         # we must be running (3)
         basedir = dirname(realpath(sys.argv[0]))
-    
+
+keepnote.set_basedir(basedir)
+
 
 
 
