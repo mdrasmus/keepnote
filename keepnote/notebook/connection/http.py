@@ -612,11 +612,13 @@ class NoteBookConnectionHttp (NoteBookConnection):
 
         if len(query) > 2 and query[:2] == ["search", "title"]:
             if not self._title_cache.is_complete():
+                print "full index"
                 result = self.index_raw(["search", "title", "%"])
                 for nodeid, title in result:
                     self._title_cache.add(nodeid, title)
                 self._title_cache.set_complete()
 
+            print len(self._title_cache._titles), query
             return list(self._title_cache.get(query[2]))
         else:
             return self.index_raw(query)
