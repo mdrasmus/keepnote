@@ -146,7 +146,7 @@ class Extension (keepnote.gui.extension.Extension):
     def on_temp_extension(self, app, args):
 
         for filename in args[1:]:
-            entry = app.add_extension_entry(filename, "temp")
+            entry = app.add_extension(filename, "temp")
             ext = app.get_extension(entry.get_key())
             if ext:
                 app.init_extensions_windows(windows=None, exts=[ext])

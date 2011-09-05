@@ -520,12 +520,6 @@ class PathCache (object):
                 parent.children.add(node)
                 
 
-# TODO: figure out how to do attribute defs.  Is it really needed?  
-# Maybe storage should always know datatype of attr, so attr defs are not
-# needed.
-# would I want to enable validation though?  and managed attr using attrids?
-# or does this not belong at the connection level.
-
 
 class NoteBookConnectionFS (NoteBookConnection):
     def __init__(self):
@@ -542,10 +536,6 @@ class NoteBookConnectionFS (NoteBookConnection):
         self._attr_suppress = set(["parentids", "childrenids"])
         self._attr_mask = maskdict.MaskDict({}, self._attr_suppress)
 
-        # NOTES:
-        # - I only use the notebook object for assesing attrdefs and
-        # for setuping up the index.
-        # try to remove.
     
 
     #================================
@@ -1364,79 +1354,3 @@ node directories aren't allowed to start with '_'.
 """
 
 
-
-
-'''
-    def _write_attr2(self, filename, attr, attr_defs):
-        """Write a node meta data file"""
-        
-        try:
-            out = safefile.open(filename, "w", codec="utf-8")
-            out.write(XML_HEADER)
-            out.write("<node>\n"
-                      "<version>%s</version>\n" % 
-                      keepnote.notebook.NOTEBOOK_FORMAT_VERSION)
-            
-            for key, val in attr.iteritems():
-                if key in self._attr_suppress:
-                    continue
-
-                attr_def = attr_defs.get(key, None)
-                
-                if attr_def is not None:
-                    out.write('<attr key="%s">%s</attr>\n' %
-                              (key, escape(attr_def.write(val))))
-                elif key == "version":
-                    # skip version attr
-                    pass
-                elif isinstance(val, keepnote.notebook.UnknownAttr):
-                    # write unknown attrs if they are strings
-                    out.write('<attr key="%s">%s</attr>\n' %
-                              (key, escape(val.value)))
-                else:
-                    # drop attribute
-                    pass
-                
-            out.write("</node>\n")
-            out.close()
-        except Exception, e:
-            raise keepnote.notebook.NoteBookError(
-                _("Cannot write meta data"), e)
-
-
-    def _read_attr2(self, filename, attr_defs, recover=True):
-        """Read a node meta data file"""
-        
-        attr = {}
-
-        try:
-            tree = ET.ElementTree(file=filename)
-        except Exception, e:
-            if recover:
-                self._recover_attr(filename)
-                return self._read_attr(filename, attr_defs, recover=False)
-            
-            raise keepnote.notebook.NoteBookError(
-                _("Error reading meta data file '%s'" % filename), e)
-
-        # check root
-        root = tree.getroot()
-        if root.tag != "node":
-            raise keepnote.notebook.NoteBookError(_("Root tag is not 'node'"))
-        
-        # iterate children
-        for child in root:
-            if child.tag == "version":
-                attr["version"] = int(child.text)
-            elif child.tag == "attr":
-                key = child.get("key", None)
-                if key is not None:
-                    attr_parser = attr_defs.get(key, None)
-                    if attr_parser is not None:
-                        attr[key] = attr_parser.read(child.text)
-                    else:
-                        # unknown attribute is read as a UnknownAttr
-                        attr[key] = keepnote.notebook.UnknownAttr(child.text)
-
-        return attr
-'''

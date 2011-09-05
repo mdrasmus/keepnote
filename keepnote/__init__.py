@@ -1220,17 +1220,17 @@ class KeepNote (object):
         ext_type        -- "user"/"system"
         """
         for filename in extension.scan_extensions_dir(extensions_path):
-            self._add_extension_entry(filename, ext_type)
+            self.add_extension(filename, ext_type)
 
-
-    def _add_extension_entry(self, filename, ext_type):
+    
+    def add_extension(self, filename, ext_type):
         """Add an extension filename to the app's extension entries"""        
         entry = ExtensionEntry(filename, ext_type, None)
         self._extensions[entry.get_key()] = entry
         return entry
                 
 
-    def _remove_extension_entry(self, ext_key):
+    def remove_extension(self, ext_key):
         """Remove an extension entry"""
         
        # retrieve information about extension
@@ -1242,6 +1242,23 @@ class KeepNote (object):
 
             # unregister extension from app
             del self._extensions[ext_key]
+
+
+    def get_extension(self, name):
+        """Get an extension module by name"""
+        
+        # return None if extension name is unknown
+        if name not in self._extensions:
+            return None
+        
+        # get extension information
+        entry = self._extensions[name]
+
+        # load if first use
+        if entry.ext is None:
+            self._import_extension(entry)
+        
+        return entry.ext
 
 
     def get_installed_extensions(self):
@@ -1261,23 +1278,6 @@ class KeepNote (object):
         for ext in self.get_imported_extensions():
             if ext.is_enabled():
                 yield ext
-
-
-    def get_extension(self, name):
-        """Get an extension module by name"""
-        
-        # return None if extension name is unknown
-        if name not in self._extensions:
-            return None
-        
-        # get extension information
-        entry = self._extensions[name]
-
-        # load if first use
-        if entry.ext is None:
-            self._import_extension(entry)
-        
-        return entry.ext
 
 
     def _import_extension(self, entry):
@@ -1391,15 +1391,8 @@ class KeepNote (object):
             self.error(_("KeepNote can only uninstall user extensions"))
             return False
 
-        # if extension is imported, make sure it is disabled, unregistered
-        ext = entry.ext
-        if ext:
-            # disable extension
-            ext.enable(False)
-
-            # unregister extension from app
-            del self._extensions[ext.key]
-
+        # remove extension from runtime
+        self.remove_extensions(ext_key)
 
         # delete extension from filesystem
         try:      
