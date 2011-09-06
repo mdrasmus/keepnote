@@ -685,9 +685,12 @@ class NodeTitleCache (object):
         
         # if nodeid is in cache, remove it
         if nodeid in self._nodeids:
-            old_title = self._nodeids[nodeid]
-            self._titles[old_title].remove(nodeid)
-            del self._nodeids[nodeid]
+            try:
+                old_title = self._nodeids[nodeid]
+                self._titles[old_title].remove(nodeid)
+                del self._nodeids[nodeid]
+            except:
+                pass
 
         
     def get(self, query):
