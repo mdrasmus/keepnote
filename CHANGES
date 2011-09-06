@@ -8,6 +8,7 @@ keepnote-0.7.5
 - fixed uneven indent
 - fixed leading white-space bug
 - fixed windows portable mode bug
+- fixed clipboard bug on mac
 - improved rich text copy/paste
   - fixed pasting HTML comments bug
   

@@ -880,8 +880,11 @@ class RichTextView (gtk.TextView):
         html = parse_utf(selection_data.data)
 
         # skip over headers
-        index = html.find("\r\n\r\n")
-        html = html[index+4:]
+        index = html.find("<!--StartFragment")
+        if index == -1:
+            return
+        index = html.find(">", index)
+        html = html[index+1:]
         
         try:
             self._textbuffer.begin_user_action()
