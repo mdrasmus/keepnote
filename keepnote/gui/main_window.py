@@ -632,7 +632,7 @@ class KeepNoteWindow (gtk.Window):
             self.error(_("Reloading only works when a notebook is open."))
             return
         
-        filename = notebook.get_path()
+        filename = notebook.get_filename()
         self._app.close_all_notebook(notebook, False)
         self.open_notebook(filename)
         

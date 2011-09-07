@@ -1188,18 +1188,16 @@ class NoteBookPreferences (Pref):
 
 class NoteBook (NoteBookNode):
     """Class represents a NoteBook"""
-
-    # TODO: should I make a base class without a filename argument?
-    # TODO: should I require rootdir here or in create function?
     
     def __init__(self):
         
-        self._conn = None
+        self._conn = None # Note: this comes first in order satify base class
         NoteBookNode.__init__(self, notebook=self, 
                               content_type=CONTENT_TYPE_DIR,
                               init_attr=False)
         
         self.pref = NoteBookPreferences()
+        self._filename = None
         self._dirty = set()
         self._trash = None
         self.attr_defs = {}
@@ -1267,6 +1265,7 @@ class NoteBook (NoteBookNode):
         """Initialize NoteBook at location 'filename'"""
         
         self._conn = conn if conn else connection_fs.NoteBookConnectionFS()
+        self._filename = filename
 
         self._attr["created_time"] = get_timestamp()
         self._attr["modified_time"] = get_timestamp()
@@ -1313,6 +1312,7 @@ class NoteBook (NoteBookNode):
                     pass
         
         # read basic info
+        self._filename = filename
         self._conn.connect(filename)
         self._init_index()
 
@@ -1362,6 +1362,10 @@ class NoteBook (NoteBookNode):
     def get_connection(self):
         """Returns the notebook connection"""
         return self._conn
+
+
+    def get_filename(self):
+        return self._filename
 
 
     def _init_index(self):
