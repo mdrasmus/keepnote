@@ -1083,12 +1083,14 @@ class KeepNote (object):
 
             elif node.has_attr("payload_filename"):
                 # get payload file
-                filename =node.get_file(node.get_attr("payload_filename"))
+                filename = node.get_file(node.get_attr("payload_filename"))
             else:
                 raise KeepNoteError(_("Unable to determine note type."))
 
+        #if not filename.startswith("http://"):
+        #    filename = os.path.realpath(filename)
 
-        self.run_external_app(app_key, os.path.realpath(filename), wait=wait)
+        self.run_external_app(app_key, filename, wait=wait)
 
 
     def open_webpage(self, url):
