@@ -109,7 +109,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         self.rich_model = None
         self._notebook = None
         self._master_node = None
-        self.editing = False
+        self.editing_path = False
         self.__sel_nodes = []
         self.__sel_nodes2 = []
         self.__scroll = (0, 0)
@@ -428,9 +428,9 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         pass
 
     def cancel_editing(self):
-        if self.editing:
-            self.set_cursor_on_cell(self.editing, None, None, False)
-            #self.cell_text.stop_editing(True)
+        if self.editing_path:
+            self.set_cursor_on_cell(self.editing_path, None, None, False)
+            
 
 
     #===========================================
@@ -490,8 +490,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
         iters = self.get_selected_iters()
         if len(iters) == 0:
-            if self.editing:
-                node = self._get_node_from_path(self.editing)
+            if self.editing_path:
+                node = self._get_node_from_path(self.editing_path)
                 if node:
                     return [node]
             return []
@@ -520,13 +520,13 @@ class KeepNoteBaseTreeView (gtk.TreeView):
     def on_editing_started(self, cellrenderer, editable, path):
         """Callback for start of title editing"""
         # remember editing state
-        self.editing = path
+        self.editing_path = path
         gobject.idle_add(lambda: self.scroll_to_cell(path))
     
     def on_editing_canceled(self, cellrenderer):
         """Callback for canceled of title editing"""
         # remember editing state
-        self.editing = None
+        self.editing_path = None
         
 
 
@@ -534,7 +534,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         """Callback for completion of title editing"""
 
         # remember editing state
-        self.editing = None
+        self.editing_path = None
 
         new_text = unicode_gtk(new_text)
 

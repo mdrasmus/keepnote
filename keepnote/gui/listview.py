@@ -74,35 +74,50 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         self.set_rules_hint(True)
         self.set_fixed_height_mode(True)
         
+        self._columns = ["title", "created_time", "modified_time"]
+
+
+        def make_column(column, column_name):
+            column_data = self.rich_model.get_column_by_name(column_name)
+
+            column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
+            column.set_property("resizable", True)
+            #column.set_title()
+            
+            #print column_name, column_data.attr, self._notebook
+            
         
         # title column
         cell_icon = gtk.CellRendererPixbuf()
-        self.title_text = gtk.CellRendererText()
-        self.title_column = gtk.TreeViewColumn()
-        self.title_column.set_title(_("Title"))
-        self.title_column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
-        self.title_column.set_min_width(10)
-        self.title_column.set_fixed_width(250)
-        self.title_column.set_property("resizable", True)
-        self.title_column.pack_start(cell_icon, False)
-        self.title_column.pack_start(self.title_text, True)
-        #self.title_column.connect("clicked", self.on_column_clicked)
-        self.title_text.set_fixed_height_from_font(1)
-        self.title_text.connect("edited", self.on_edit_title)
-        self.title_text.connect("editing-started", self.on_editing_started)
-        self.title_text.connect("editing-canceled", self.on_editing_canceled)        
-        self.title_text.set_property("editable", True)
-        self.title_column.set_sort_column_id(
+        title_text = gtk.CellRendererText()
+        title_column = gtk.TreeViewColumn()
+        title_column.set_title(_("Title"))
+        make_column(title_column, "title")
+
+        title_column.pack_start(cell_icon, False)
+        title_column.pack_start(title_text, True)
+        title_text.set_fixed_height_from_font(1)
+        title_text.connect("edited", self.on_edit_title)
+        title_text.connect("editing-started", self.on_editing_started)
+        title_text.connect("editing-canceled", self.on_editing_canceled)        
+        title_text.set_property("editable", True)
+        title_column.set_sort_column_id(
             self.rich_model.get_column_by_name("title_sort").pos)
         # map cells to columns in model
-        self.title_column.add_attribute(cell_icon, 'pixbuf',
+        title_column.add_attribute(cell_icon, 'pixbuf',
             self.rich_model.get_column_by_name("icon").pos)
-        self.title_column.add_attribute(cell_icon, 'pixbuf-expander-open',
+        title_column.add_attribute(cell_icon, 'pixbuf-expander-open',
             self.rich_model.get_column_by_name("icon_open").pos)
-        self.title_column.add_attribute(self.title_text, 'text',
+        title_column.add_attribute(title_text, 'text',
             self.rich_model.get_column_by_name("title").pos)
-        self.append_column(self.title_column)
-        self.set_expander_column(self.title_column)
+        title_column.set_min_width(10)
+        title_column.set_fixed_width(250)
+
+        self.append_column(title_column)
+        self.set_expander_column(title_column)
+
+        self.title_text = title_text
+        self.title_column = title_column
         
         
         # created column
@@ -110,18 +125,16 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         cell_text.set_fixed_height_from_font(1)        
         column = gtk.TreeViewColumn()
         column.set_title(_("Created"))
-        column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
-        column.set_property("resizable", True)
-        column.set_min_width(10)
-        column.set_fixed_width(150)
+        make_column(column, "created_time")
+
         column.set_sort_column_id(
             self.rich_model.get_column_by_name("created_time_sort").pos)
-        #column.connect("clicked", self.on_column_clicked)
-        #column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-        #column.set_property("min-width", 5)
         column.pack_start(cell_text, True)
         column.add_attribute(cell_text, 'text',
             self.rich_model.get_column_by_name("created_time").pos)
+        column.set_min_width(10)
+        column.set_fixed_width(150)
+
         self.append_column(column)
     
         # modified column
@@ -129,18 +142,15 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         cell_text.set_fixed_height_from_font(1)
         column = gtk.TreeViewColumn()
         column.set_title(_("Modified"))
-        column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
-        column.set_property("resizable", True)
-        column.set_min_width(10)
-        column.set_fixed_width(150)
+        make_column(column, "modified_time")
+        
         column.set_sort_column_id(
             self.rich_model.get_column_by_name("modified_time_sort").pos)
-        #column.connect("clicked", self.on_column_clicked)
-        #column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-        #column.set_property("min-width", 5)
         column.pack_start(cell_text, True)
         column.add_attribute(cell_text, 'text',
             self.rich_model.get_column_by_name("modified_time").pos)
+        column.set_min_width(10)
+        column.set_fixed_width(150)
         self.append_column(column)
         
         
@@ -221,7 +231,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         """Callback for key release events"""
 
         # no special processing while editing nodes
-        if self.editing:
+        if self.editing_path:
             return
 
         if event.keyval == gtk.keysyms.Delete:
@@ -350,7 +360,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         def walk(node):
             npages = 1
             if (self.rich_model.get_nested() and 
-                (node.get_attr("expanded2"))):
+                (node.get_attr("expanded2", False))):
                 for child in node.get_children():
                     npages += walk(child)
             return npages
@@ -402,8 +412,8 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
     def load_sorting(self, node, model):
         """Load sorting information from node"""
 
-        info_sort = node.get_attr("info_sort")
-        sort_dir = node.get_attr("info_sort_dir")
+        info_sort = node.get_attr("info_sort", "order")
+        sort_dir = node.get_attr("info_sort_dir", 1)
             
         if sort_dir:
             sort_dir = gtk.SORT_ASCENDING

@@ -469,8 +469,7 @@ class NoteBookNode (object):
     """A general base class for all nodes in a NoteBook"""
 
     def __init__(self, title=u"", parent=None, notebook=None,
-                 content_type=CONTENT_TYPE_DIR, conn=None,
-                 init_attr=True):
+                 content_type=CONTENT_TYPE_DIR, conn=None):
         self._notebook = notebook
         self._conn = conn if conn else self._notebook._conn
         self._parent = parent
@@ -479,13 +478,9 @@ class NoteBookNode (object):
         self._valid = True
         self._attr = {"title": title,
                       "content_type": content_type}
-
         
-        if init_attr:
-            self.clear_attr(title=title, content_type=content_type)
-
-        # TODO: add a mechanism to register implict attrs that in turn do lookup
-        # "parent", "nchildren"
+        #if init_attr:
+        #    self.clear_attr(title=title, content_type=content_type)
         
         
     def is_valid(self):
@@ -525,14 +520,17 @@ class NoteBookNode (object):
         
         # TODO: get keys from a default attr list of some sort
         self._attr.clear()
-        keys = ["order", "expanded", "expanded2", 
-                "info_sort", "info_sort_dir", "created_time", "modified_time"]
-        for key in keys:
-            self._attr[key] = self._notebook.attr_defs[key].default()
+        #keys = ["order"]
+        # "info_sort", "info_sort_dir"
+        # "info_sort", "info_sort_dir"
+        # "expanded", "expanded2"
+        #for key in keys:
+        #    self._attr[key] = self._notebook.attr_defs[key].default()
 
         # set title and content_type
         self._attr["title"] = title
         self._attr["content_type"] = content_type
+        self._attr["order"] = sys.maxint
         
     
     def get_attr(self, name, default=None):
@@ -975,8 +973,7 @@ class NoteBookNode (object):
             node = NoteBookNode(
                 attr.get("title", DEFAULT_PAGE_NAME), 
                 parent=self, notebook=self._notebook,
-                content_type=attr.get("content_type", default_content_type),
-                init_attr=False)
+                content_type=attr.get("content_type", default_content_type))
             node._init_attr(attr)
             yield node
     
@@ -1181,8 +1178,7 @@ class NoteBook (NoteBookNode):
         
         self._conn = None # Note: this comes first in order satify base class
         NoteBookNode.__init__(self, notebook=self, 
-                              content_type=CONTENT_TYPE_DIR,
-                              init_attr=False)
+                              content_type=CONTENT_TYPE_DIR)
         
         self.pref = NoteBookPreferences()
         self._filename = None
@@ -1197,11 +1193,10 @@ class NoteBook (NoteBookNode):
 
         # init notebook attributes
         self._init_default_attr()
-        self.clear_attr()
+        #self.clear_attr()
 
         self._attr["order"] = 0
-        self._attr["title"] = ""
-
+        #self._attr["title"] = ""
 
         # listeners
         self.node_changed = Listeners()  # signature = (node, recurse)
@@ -1380,8 +1375,8 @@ class NoteBook (NoteBookNode):
         
         node = NoteBookNode(attr.get("title", DEFAULT_PAGE_NAME), 
                             parent=parent, notebook=self,
-                            content_type=content_type,
-                            init_attr=False)
+                            content_type=content_type)
+        attr["nodeid"] = new_nodeid()
         node._init_attr(attr)
         node.create()
         return node
@@ -1435,8 +1430,7 @@ class NoteBook (NoteBookNode):
         node = NoteBookNode(
             attr.get("title", DEFAULT_PAGE_NAME), 
             parent=parent, notebook=self,
-            content_type=attr.get("content_type", default_content_type),
-            init_attr=False)
+            content_type=attr.get("content_type", default_content_type))
         node._init_attr(attr)
         return node
 
