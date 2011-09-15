@@ -925,9 +925,9 @@ class NoteBookNode (object):
 
     def _write_attr(self, attr):
         
-        self._notebook._mask_attr.set_dict(attr)
-        self._conn.update_node(attr["nodeid"], self._notebook._mask_attr)
-        #self._conn.update_node(attr["nodeid"], attr)
+        #self._notebook._mask_attr.set_dict(attr)
+        #self._conn.update_node(attr["nodeid"], self._notebook._mask_attr)
+        self._conn.update_node(attr["nodeid"], attr)
 
 
     #==================================
@@ -1203,8 +1203,8 @@ class NoteBook (NoteBookNode):
         self.attr_defs = {}
         self._necessary_attrs = []
         
-        self._mask_attr = maskdict.MaskDict(
-            {}, ["icon_open_load", "icon_load"])
+        #self._mask_attr = maskdict.MaskDict(
+        #    {}, ["icon_open_load", "icon_load"])
         
 
         # init notebook attributes
