@@ -388,6 +388,7 @@ class NoteBookVersionError (NoteBookError):
 #=============================================================================
 # notebook attributes
 
+# TODO: I might need to make default a static value, not a function.
 
 class AttrDef (object):
     """
@@ -397,35 +398,32 @@ class AttrDef (object):
 
     def __init__(self, key, datatype, name, default=None):
 
-        self.name = name
-        self.datatype = datatype
         self.key = key
+        self.datatype = datatype
+        self.name = name
 
         # default function
         if default is None:
             self.default = datatype
         else:
             self.default = default
-        
-        # writer function
-        if datatype == bool:
-            self.write = lambda x: unicode(int(x))
-        else:
-            self.write = unicode
 
-        # reader function
-        if datatype == bool:
-            self.read = lambda x: bool(int(x))
-        else:
-            self.read = datatype
 
-        
+    def get_dict(self):
+        """
+        Returns dict representation
+        """
 
-class UnknownAttr (object):
-    """A value that belongs to an unknown AttrDef"""
+        types = {unicode: "string",
+                 float: "float",
+                 int: "integer",
+                 bool: "bool"}
+                 
 
-    def __init__(self, value):
-        self.value = value
+        return {"key": self.key,
+                "datatype": types[self.datatype],
+                "name": self.name,
+                "default": self.default()}
 
 
 g_default_attr_defs = [
@@ -462,14 +460,6 @@ default_notebook_table = NoteBookTable("default", attrs=[title_attr,
 '''
 
 
-# TODO: parent might be an implict attr
-
-
-# 1. attrs should be data that is optional (although keepnote has a few
-# required entries).
-# 2. attrs can appear in listview
-
-
 
 
 #=============================================================================
@@ -487,7 +477,9 @@ class NoteBookNode (object):
         self._children = None
         self._has_children = None
         self._valid = True
-        self._attr = {}
+        self._attr = {"title": title,
+                      "content_type": content_type}
+
         
         if init_attr:
             self.clear_attr(title=title, content_type=content_type)
@@ -551,12 +543,7 @@ class NoteBookNode (object):
         """Set the value of an attribute"""
         oldvalue = self._attr.get(name, NULL)
         self._attr[name] = value
-
-        # if attr is one that the notebook manages then we are dirty
-        # TODO: should have additional test that attr needs to be saved
-        # this test is added for the icon_loaded attr, which is not needed to
-        # to be saved
-        if name in self._notebook.attr_defs and value != oldvalue:
+        if value != oldvalue:
             self._set_dirty(True)
 
     def has_attr(self, name):
@@ -570,9 +557,7 @@ class NoteBookNode (object):
         # TODO: check against un-deletable attributes
         if name in self._attr:
             del self._attr[name]
-
-        if name in self._notebook.attr_defs:
-            self._set_dirty(True)
+        self._set_dirty(True)
         
 
     def iter_attr(self):
@@ -650,13 +635,15 @@ class NoteBookNode (object):
     def create(self):
         """Initializes the node on disk (create required files/directories)"""
 
-        self._attr["created_time"] = get_timestamp()
-        self._attr["modified_time"] = get_timestamp()
-        self._attr["parentids"] = [self._parent._attr["nodeid"]]
-        self._attr["childrenids"] = []
         if "nodeid" not in self._attr:
             self._attr["nodeid"] = new_nodeid()
-
+        self._attr["parentids"] = [self._parent._attr["nodeid"]]
+        self._attr["childrenids"] = []
+        t = get_timestamp()
+        self._attr["created_time"] = t
+        self._attr["modified_time"] = t
+        self._attr["order"] = sys.maxint
+        
         self._conn.create_node(self._attr["nodeid"], self._attr)
         self._set_dirty(False)
        
@@ -988,7 +975,8 @@ class NoteBookNode (object):
             node = NoteBookNode(
                 attr.get("title", DEFAULT_PAGE_NAME), 
                 parent=self, notebook=self._notebook,
-                content_type=attr.get("content_type", default_content_type))
+                content_type=attr.get("content_type", default_content_type),
+                init_attr=False)
             node._init_attr(attr)
             yield node
     
@@ -996,7 +984,7 @@ class NoteBookNode (object):
     def _set_child_order(self):
         """Ensures that child know their order in the children list"""
         for i, child in enumerate(self._children):
-            if child._attr["order"] != i:
+            if child._attr.get("order") != i:
                 child._attr["order"] = i
                 child._set_dirty(True)
         
@@ -1227,7 +1215,8 @@ class NoteBook (NoteBookNode):
     def _init_default_attr(self):
         """Initialize default notebook attributes"""
         
-        self._necessary_attrs = ["nodeid", "created_time", "modified_time"]
+        self._necessary_attrs = ["nodeid", "created_time", "modified_time",
+                                 "order"]
         self.clear_attr_defs()
         for attr in g_default_attr_defs:
             self.add_attr_def(attr)
@@ -1391,7 +1380,8 @@ class NoteBook (NoteBookNode):
         
         node = NoteBookNode(attr.get("title", DEFAULT_PAGE_NAME), 
                             parent=parent, notebook=self,
-                            content_type=content_type)
+                            content_type=content_type,
+                            init_attr=False)
         node._init_attr(attr)
         node.create()
         return node
@@ -1445,7 +1435,8 @@ class NoteBook (NoteBookNode):
         node = NoteBookNode(
             attr.get("title", DEFAULT_PAGE_NAME), 
             parent=parent, notebook=self,
-            content_type=attr.get("content_type", default_content_type))
+            content_type=attr.get("content_type", default_content_type),
+            init_attr=False)
         node._init_attr(attr)
         return node
 
