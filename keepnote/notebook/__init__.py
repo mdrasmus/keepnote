@@ -388,7 +388,11 @@ class NoteBookVersionError (NoteBookError):
 #=============================================================================
 # notebook attributes
 
-# TODO: I might need to make default a static value, not a function.
+_datatype_defaults = {
+    "string": "",
+    "integer": 0,
+    "float": 0.0,
+    "bool": False}
 
 class AttrDef (object):
     """
@@ -402,9 +406,9 @@ class AttrDef (object):
         self.datatype = datatype
         self.name = name
 
-        # default function
+        # default value
         if default is None:
-            self.default = datatype
+            self.default = _datatype_defaults.get(datatype, None)
         else:
             self.default = default
 
@@ -414,34 +418,33 @@ class AttrDef (object):
         Returns dict representation
         """
 
-        types = {unicode: "string",
-                 float: "float",
-                 int: "integer",
-                 bool: "bool"}
-                 
-
         return {"key": self.key,
-                "datatype": types[self.datatype],
+                "datatype": self.datatype,
                 "name": self.name,
-                "default": self.default()}
+                "default": self.default}
 
+
+def parse_attr_def(attr_def_dict):
+    return AttrDef(attr_def_dict["key"],
+                   attr_def_dict["datatype"],
+                   attr_def_dict.get("name", attr_def_dict["key"]),
+                   attr_def_dict.get("default", None))
 
 g_default_attr_defs = [
-    AttrDef("nodeid", unicode, "Node ID", default=new_nodeid),
-    AttrDef("content_type", unicode, "Content type", 
-            default=lambda: CONTENT_TYPE_DIR),
-    AttrDef("title", unicode, "Title"),
-    AttrDef("order", int, "Order", default=lambda: sys.maxint),
-    AttrDef("created_time", int, "Created time", default=get_timestamp),
-    AttrDef("modified_time", int, "Modified time", default=get_timestamp),
-    AttrDef("expanded", bool, "Expaned", default=lambda: True),
-    AttrDef("expanded2", bool, "Expanded2", default=lambda: True),
-    AttrDef("info_sort", unicode, "Folder sort", default=lambda: "order"),
-    AttrDef("info_sort_dir", int, "Folder sort direction", default=lambda: 1),
-    AttrDef("icon", unicode, "Icon"),
-    AttrDef("icon_open", unicode, "Icon open"),
-    AttrDef("payload_filename", unicode, "Filename"),
-    AttrDef("duplicate_of", unicode, "Duplicate of")
+    AttrDef("nodeid", "string", "Node ID"),
+    AttrDef("content_type", "string", "Content type", default=CONTENT_TYPE_DIR),
+    AttrDef("title", "string", "Title"),
+    AttrDef("order", "integer", "Order", default=sys.maxint),
+    AttrDef("created_time", "integer", "Created time"),
+    AttrDef("modified_time", "integer", "Modified time"),
+    AttrDef("expanded", "bool", "Expaned", default=True),
+    AttrDef("expanded2", "bool", "Expanded2", default=True),
+    AttrDef("info_sort", "string", "Folder sort", default="order"),
+    AttrDef("info_sort_dir", "integer", "Folder sort direction", default=1),
+    AttrDef("icon", "string", "Icon"),
+    AttrDef("icon_open", "string", "Icon open"),
+    AttrDef("payload_filename", "string", "Filename"),
+    AttrDef("duplicate_of", "string", "Duplicate of")
 ]
 
 
@@ -465,22 +468,26 @@ default_notebook_table = NoteBookTable("default", attrs=[title_attr,
 #=============================================================================
 # Notebook nodes
 
+BUILTIN_ATTR = ("nodeid", "parentids", "childrenids", "order")
+
 class NoteBookNode (object):
     """A general base class for all nodes in a NoteBook"""
 
     def __init__(self, title=u"", parent=None, notebook=None,
-                 content_type=CONTENT_TYPE_DIR, conn=None):
+                 content_type=CONTENT_TYPE_DIR, conn=None,
+                 attr=None):
         self._notebook = notebook
         self._conn = conn if conn else self._notebook._conn
         self._parent = parent
         self._children = None
         self._has_children = None
         self._valid = True
-        self._attr = {"title": title,
+
+        self._attr = {"version": NOTEBOOK_FORMAT_VERSION,
+                      "title": title,
                       "content_type": content_type}
-        
-        #if init_attr:
-        #    self.clear_attr(title=title, content_type=content_type)
+        if attr:
+            self._attr.update(attr)
         
         
     def is_valid(self):
@@ -517,20 +524,13 @@ class NoteBookNode (object):
     
     def clear_attr(self, title="", content_type=CONTENT_TYPE_DIR):
         """Clear attributes (set them to defaults)"""
+        for key in self._attr.keys():
+            if key not in BUILTIN_ATTR:
+                del self._attr[key]
         
-        # TODO: get keys from a default attr list of some sort
-        self._attr.clear()
-        #keys = ["order"]
-        # "info_sort", "info_sort_dir"
-        # "info_sort", "info_sort_dir"
-        # "expanded", "expanded2"
-        #for key in keys:
-        #    self._attr[key] = self._notebook.attr_defs[key].default()
-
         # set title and content_type
         self._attr["title"] = title
         self._attr["content_type"] = content_type
-        self._attr["order"] = sys.maxint
         
     
     def get_attr(self, name, default=None):
@@ -563,12 +563,12 @@ class NoteBookNode (object):
         return self._attr.iteritems()
     
 
-    def _init_attr(self, attr):
+    def _init_attr(self):
         """Initialize attributes from a dict"""
-        attr.setdefault("version", NOTEBOOK_FORMAT_VERSION)
-        if self._notebook.set_attr_defaults(attr):
-            self._set_dirty(True)
-        self._attr.update(attr)
+        t = get_timestamp()
+        self._attr.setdefault("created_time", t)
+        self._attr.setdefault("modified_time", t)
+
 
     #========================================
     # special attr methods
@@ -637,10 +637,11 @@ class NoteBookNode (object):
             self._attr["nodeid"] = new_nodeid()
         self._attr["parentids"] = [self._parent._attr["nodeid"]]
         self._attr["childrenids"] = []
+        self._attr["order"] = sys.maxint
+
         t = get_timestamp()
         self._attr["created_time"] = t
         self._attr["modified_time"] = t
-        self._attr["order"] = sys.maxint
         
         self._conn.create_node(self._attr["nodeid"], self._attr)
         self._set_dirty(False)
@@ -962,20 +963,13 @@ class NoteBookNode (object):
            Returns temporary node objects
         """
         
-        default_content_type = CONTENT_TYPE_DIR
-        
-        for childid in self._attr["childrenids"]:
+        for childid in self._attr["childrenids"]: 
             try:
-                attr = self._conn.read_node(childid)
+                yield self._notebook._read_node(childid, parent=self)
             except:
                 keepnote.log_error()
                 continue
-            node = NoteBookNode(
-                attr.get("title", DEFAULT_PAGE_NAME), 
-                parent=self, notebook=self._notebook,
-                content_type=attr.get("content_type", default_content_type))
-            node._init_attr(attr)
-            yield node
+
     
     
     def _set_child_order(self):
@@ -1230,17 +1224,7 @@ class NoteBook (NoteBookNode):
     def get_necessary_attrs(self):
         """Returns necessary attributes"""
         return self._necessary_attrs
-
-
-    def set_attr_defaults(self, attr):
-        """Set default attributes in an attr dict"""
-        modified = False
-        for key in self._necessary_attrs:
-            if key not in attr:
-                attr[key] = self.attr_defs[key].default()
-                modified = True
-        return modified
-
+    
     
     #===================================================
     # input/output
@@ -1251,9 +1235,12 @@ class NoteBook (NoteBookNode):
         self._conn = conn if conn else connection_fs.NoteBookConnectionFS()
         self._filename = filename
 
-        self._attr["created_time"] = get_timestamp()
-        self._attr["modified_time"] = get_timestamp()
         self._attr["nodeid"] = new_nodeid()
+
+        t = get_timestamp()
+        self._attr["created_time"] = t
+        self._attr["modified_time"] = t
+
 
         self._conn.connect(filename)
         self._conn.create_node(self._attr["nodeid"],  self._attr)
@@ -1301,7 +1288,8 @@ class NoteBook (NoteBookNode):
         self._init_index()
 
         attr = self._conn.read_node(self._conn.get_rootid())
-        self._init_attr(attr)
+        self._attr.update(attr)
+        self._init_attr()
 
         self._init_trash()
 
@@ -1375,9 +1363,10 @@ class NoteBook (NoteBookNode):
         
         node = NoteBookNode(attr.get("title", DEFAULT_PAGE_NAME), 
                             parent=parent, notebook=self,
-                            content_type=content_type)
-        attr["nodeid"] = new_nodeid()
-        node._init_attr(attr)
+                            content_type=content_type, 
+                            attr=attr)
+        #attr["nodeid"] = new_nodeid()
+        #node._init_attr(attr)
         node.create()
         return node
 
@@ -1421,17 +1410,17 @@ class NoteBook (NoteBookNode):
         return node in self._dirty
 
 
-    def _read_node(self, nodeid, parent=None, attr=None, 
+    def _read_node(self, nodeid, parent=None, 
                    default_content_type=CONTENT_TYPE_DIR):
 
-        if attr is None:
-            attr = self._conn.read_node(nodeid)
-        
+        attr = self._conn.read_node(nodeid)
         node = NoteBookNode(
             attr.get("title", DEFAULT_PAGE_NAME), 
             parent=parent, notebook=self,
-            content_type=attr.get("content_type", default_content_type))
-        node._init_attr(attr)
+            content_type=attr.get("content_type", default_content_type),
+            attr=attr)
+        node._init_attr()
+
         return node
 
     #=====================================
