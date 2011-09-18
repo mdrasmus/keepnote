@@ -1303,6 +1303,8 @@ class NoteBookConnectionFS (NoteBookConnection):
     def has_fulltext_search(self):
         return self._index.has_fulltext_search()
 
+    def enable_fulltext_search(self, enabled):
+        return self._index.enable_fulltext_search(enabled)
     
     def get_node_path_by_id(self, nodeid):
         """Lookup node by nodeid"""
