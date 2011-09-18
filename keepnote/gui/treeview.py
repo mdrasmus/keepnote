@@ -109,7 +109,7 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
         """Process key presses"""
         
         # no special processing while editing nodes
-        if self.editing:
+        if self.editing_path:
             return
 
         if event.keyval == gtk.keysyms.Delete:

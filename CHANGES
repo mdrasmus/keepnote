@@ -1,8 +1,20 @@
 KeepNote Change Log
 -------------------
 
-keepnote-0.7.4
+keepnote-0.7.5
 --------------
+- added drag and drop attachment for windows
+- fixed indent at start of first line bug
+- fixed uneven indent
+- fixed leading white-space bug
+- fixed windows portable mode bug
+- fixed clipboard bug on mac
+- improved rich text copy/paste
+  - fixed pasting HTML comments bug
+  
+
+keepnote-0.7.4 (2011.7.9)
+-------------------------
 - added Slovak language
 - fixed notebook loading speed on Windows 
 - fixed basedir bug

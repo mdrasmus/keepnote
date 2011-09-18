@@ -342,6 +342,9 @@ class NoteBookIndex (object):
             for attr in self._attrs.itervalues():
                 attr.init(self.cur)
 
+            # NOTE: re-claim space in the index
+            con.execute("VACUUM;")
+
             con.commit()
 
             # check whether index is uptodate

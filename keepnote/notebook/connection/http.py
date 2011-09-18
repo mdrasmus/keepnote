@@ -346,7 +346,7 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
             self.end_headers()
             
         except Exception, e:
-            # TDOD: fix response
+            # TODO: fix response
             self.send_error(httplib.NOT_FOUND, "cannot delete node: " + str(e))
 
 
@@ -626,10 +626,16 @@ class NoteBookConnectionHttp (NoteBookConnection):
 
     def get_node_path(self, nodeid):
         
-        if nodeid == self.get_rootid():
-            nodeid == ""
-        return format_node_path(self._prefix, nodeid)
+        #if nodeid == self.get_rootid():
+        #    nodeid == ""
+        #return format_node_path(self._prefix, nodeid)
 
+        return format_node_url(self._netloc, self._prefix, nodeid)
+
+
+    def get_file(self, nodeid, filename):
+
+        return format_node_url(self._netloc, self._prefix, nodeid, filename)
 
 
 
@@ -685,9 +691,12 @@ class NodeTitleCache (object):
         
         # if nodeid is in cache, remove it
         if nodeid in self._nodeids:
-            old_title = self._nodeids[nodeid]
-            self._titles[old_title.lower()].remove(nodeid)
-            del self._nodeids[nodeid]
+            try:
+                old_title = self._nodeids[nodeid]
+                self._titles[old_title.lower()].remove(nodeid)
+                del self._nodeids[nodeid]
+            except:
+                pass
 
         
     def get(self, query):

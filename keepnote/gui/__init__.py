@@ -57,7 +57,7 @@ import keepnote.gui.dialog_app_options
 import keepnote.gui.dialog_node_icon
 import keepnote.gui.dialog_wait
 from keepnote.gui.icons import \
-    DEFAULT_QUICK_PICK_ICONS
+    DEFAULT_QUICK_PICK_ICONS, uncache_node_icon
     
 _ = keepnote.translate
 
@@ -686,8 +686,8 @@ class KeepNote (keepnote.KeepNote):
             elif icon_open_file is not None:
                 node.set_attr("icon_open", icon_open_file)
 
-            node.del_attr("icon_load")
-            node.del_attr("icon_open_load")
+            # uncache pixbufs
+            uncache_node_icon(node)
 
 
 

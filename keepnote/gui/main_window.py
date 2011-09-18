@@ -532,7 +532,7 @@ class KeepNoteWindow (gtk.Window):
                 filechooser.response(gtk.RESPONSE_OK)
                         
         dialog.connect("current-folder-changed", on_folder_changed)
-
+        
         path = self._app.get_default_path("new_notebook_path")
         if os.path.exists(path):
             dialog.set_current_folder(path)
@@ -546,20 +546,63 @@ class KeepNoteWindow (gtk.Window):
         file_filter.add_pattern("*")
         file_filter.set_name(_("All files (*.*)"))
         dialog.add_filter(file_filter)
-        
+
         response = dialog.run()
         
         if response == gtk.RESPONSE_OK:
-            path = dialog.get_current_folder()
+
+            path = ensure_unicode(dialog.get_current_folder(), FS_ENCODING)
             if path:
                 self._app.pref.set("default_paths", "new_notebook_path", 
                                    os.path.dirname(path))
 
-            notebook_file = unicode_gtk(dialog.get_filename())
+            notebook_file = ensure_unicode(dialog.get_filename(), FS_ENCODING)
             if notebook_file:
                 self.open_notebook(notebook_file)
 
         dialog.destroy()
+
+
+    
+    def on_open_notebook_url(self):
+        """Launches Open NoteBook from URL dialog"""
+        
+        dialog = gtk.Dialog("Open Notebook from URL", self,
+                            gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT)
+        
+        p = dialog.get_content_area()
+        
+        h = gtk.HBox()
+        h.show()
+        p.pack_start(h, expand=False, fill=True, padding=0)
+
+        # url label
+        l = gtk.Label("URL: ")
+        l.show()
+        h.pack_start(l, expand=False, fill=True, padding=0)
+
+        # url entry
+        entry = gtk.Entry()
+        entry.set_width_chars(80)
+        entry.connect("activate", lambda w: 
+                      dialog.response(gtk.RESPONSE_OK))
+        entry.show()
+        h.pack_start(entry, expand=True, fill=True, padding=0)
+        
+
+        # actions
+        dialog.add_button("_Cancel", gtk.RESPONSE_CANCEL)
+        dialog.add_button("_Open", gtk.RESPONSE_OK)
+
+        response = dialog.run()
+        
+        if response == gtk.RESPONSE_OK:
+            url = unicode_gtk(entry.get_text())
+            if url:
+                self.open_notebook(url)
+
+        dialog.destroy()
+
 
     
     def _on_close(self):
@@ -632,7 +675,7 @@ class KeepNoteWindow (gtk.Window):
             self.error(_("Reloading only works when a notebook is open."))
             return
         
-        filename = notebook.get_path()
+        filename = notebook.get_filename()
         self._app.close_all_notebook(notebook, False)
         self.open_notebook(filename)
         
@@ -1155,6 +1198,10 @@ class KeepNoteWindow (gtk.Window):
              "", _("Close the current notebook"),
              lambda w: self._app.close_all_notebook(self.get_notebook())),
             
+            ("Empty Trash", gtk.STOCK_DELETE, _("Empty _Trash"),
+             "", None,
+             lambda w: self.on_empty_trash()),
+
             ("Export", None, _("_Export Notebook")),
 
             ("Import", None, _("_Import Notebook")),
@@ -1189,10 +1236,11 @@ class KeepNoteWindow (gtk.Window):
             ("Paste", gtk.STOCK_PASTE, None,
              "<control>V", None,
              lambda w: self.on_paste()),
-
-            ("Empty Trash", gtk.STOCK_DELETE, _("Empty _Trash"),
+            
+            ("KeepNote Preferences", gtk.STOCK_PREFERENCES, _("_Preferences"),
              "", None,
-             lambda w: self.on_empty_trash()),
+             lambda w: self._app.app_options_dialog.show(self)),
+
             
             #========================================
             ("Search", None, _("_Search")),
@@ -1238,10 +1286,10 @@ class KeepNoteWindow (gtk.Window):
             ("Update Notebook Index", None, _("_Update Notebook Index"),
              "", None,
              lambda w: self.update_index(clear=True)),
-            
-            ("KeepNote Preferences", gtk.STOCK_PREFERENCES, _("_Preferences"),
+
+            ("Open Notebook URL", None, _("_Open Notebook from URL"),
              "", None,
-             lambda w: self._app.app_options_dialog.show(self)),
+             lambda w: self.on_open_notebook_url()),
 
             #=========================================
             ("Window", None, _("Window")),
@@ -1347,6 +1395,7 @@ class KeepNoteWindow (gtk.Window):
   <menu action="Tools">
     <placeholder name="Viewer"/>
     <menuitem action="Update Notebook Index"/>
+    <menuitem action="Open Notebook URL"/>
     <placeholder name="Extensions"/>
   </menu>
 

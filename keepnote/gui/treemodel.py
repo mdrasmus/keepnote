@@ -485,13 +485,16 @@ class KeepNoteTreeModel (BaseTreeModel):
                             get=lambda node: get_node_icon(node, True,
                                                            node in self.fades)))
         self.append_column(
-            TreeModelColumn("title", str, get=lambda node: node.get_title()))
+            TreeModelColumn("title", str, 
+                            attr="title",
+                            get=lambda node: node.get_title()))
         self.append_column(
             TreeModelColumn("title_sort", str,
                             attr="title",
                             get=lambda node: node.get_title().lower()))
         self.append_column(
             TreeModelColumn("created_time", str,
+                            attr="created_time",
                             get=lambda node: self.get_time_text(node,
                                                             "created_time")))
         self.append_column(
@@ -500,6 +503,7 @@ class KeepNoteTreeModel (BaseTreeModel):
                             get=lambda node: node.get_attr("created_time", 0)))
         self.append_column(
             TreeModelColumn("modified_time", str,
+                            attr="modified_time",
                             get=lambda node: self.get_time_text(node,
                                                          "modified_time")))
         self.append_column(
