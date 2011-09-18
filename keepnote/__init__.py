@@ -795,7 +795,6 @@ class KeepNote (object):
         self.pref.get("extensions", define=True)
 
 
-
     def save_preferences(self):
         """Save information into preferences"""
         

@@ -186,6 +186,7 @@ class NoteBookIndex (object):
         self._need_index = False
         self._corrupt = False
         self._has_fulltext = False
+        self._use_fulltext = True
         
         self.con = None # sqlite connection
         self.cur = None # sqlite cursor
@@ -421,6 +422,10 @@ class NoteBookIndex (object):
     def has_fulltext_search(self):
         return self._has_fulltext
     
+
+    def enable_fulltext_search(self, enabled):
+        self._use_fulltext = enabled
+
 
     #-------------------------------------
     # add/remove nodes from index
@@ -747,7 +752,7 @@ class NoteBookIndex (object):
         text = text.replace('"', "")
 
         # fallback if fts3 is not available
-        if not self._has_fulltext:
+        if not self._has_fulltext or not self._use_fulltext:
             words = [x.lower() for x in text.strip().split()]
             return self._search_manual(words)
         
