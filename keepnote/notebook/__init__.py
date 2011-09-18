@@ -637,11 +637,9 @@ class NoteBookNode (object):
             self._attr["nodeid"] = new_nodeid()
         self._attr["parentids"] = [self._parent._attr["nodeid"]]
         self._attr["childrenids"] = []
-        self._attr["order"] = sys.maxint
-
-        t = get_timestamp()
-        self._attr["created_time"] = t
-        self._attr["modified_time"] = t
+        self._attr.setdefault("order", sys.maxint)
+        
+        self._init_attr()
         
         self._conn.create_node(self._attr["nodeid"], self._attr)
         self._set_dirty(False)
@@ -1181,16 +1179,10 @@ class NoteBook (NoteBookNode):
         self.attr_defs = {}
         self._necessary_attrs = []
         
-        #self._mask_attr = maskdict.MaskDict(
-        #    {}, ["icon_open_load", "icon_load"])
-        
-
         # init notebook attributes
         self._init_default_attr()
-        #self.clear_attr()
 
         self._attr["order"] = 0
-        #self._attr["title"] = ""
 
         # listeners
         self.node_changed = Listeners()  # signature = (node, recurse)
@@ -1204,6 +1196,7 @@ class NoteBook (NoteBookNode):
     def _init_default_attr(self):
         """Initialize default notebook attributes"""
         
+        # TODO: not being used right now
         self._necessary_attrs = ["nodeid", "created_time", "modified_time",
                                  "order"]
         self.clear_attr_defs()
@@ -1224,6 +1217,15 @@ class NoteBook (NoteBookNode):
     def get_necessary_attrs(self):
         """Returns necessary attributes"""
         return self._necessary_attrs
+
+
+    def _create_attr_defs(self):
+
+        defs = []
+        for attr_def in g_default_attr_defs:
+            defs.append(attr_def.get_dict())
+
+        self._attr["attr_defs"] = defs
     
     
     #===================================================
@@ -1236,10 +1238,9 @@ class NoteBook (NoteBookNode):
         self._filename = filename
 
         self._attr["nodeid"] = new_nodeid()
+        self._init_attr()
 
-        t = get_timestamp()
-        self._attr["created_time"] = t
-        self._attr["modified_time"] = t
+        self._create_attr_defs()
 
 
         self._conn.connect(filename)
@@ -1292,6 +1293,9 @@ class NoteBook (NoteBookNode):
         self._init_attr()
 
         self._init_trash()
+
+        if "attr_defs" not in self._attr:
+            self._create_attr_defs()
 
         self.read_preferences()
 
@@ -1365,8 +1369,6 @@ class NoteBook (NoteBookNode):
                             parent=parent, notebook=self,
                             content_type=content_type, 
                             attr=attr)
-        #attr["nodeid"] = new_nodeid()
-        #node._init_attr(attr)
         node.create()
         return node
 
