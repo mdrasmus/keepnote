@@ -671,7 +671,7 @@ class ThreePaneViewer (Viewer):
             while ptr:
                 if ptr in treenodes:
                     # if parent path is already selected then quit
-                    #path = []
+                    path = []
                     break
                 path.append(ptr)
                 ptr = ptr.get_parent()
@@ -685,7 +685,10 @@ class ThreePaneViewer (Viewer):
             # make selections
             if node2:
                 self.treeview.select_nodes([node2])
-            self.listview.select_nodes([node])
+
+            # This test might be needed for windows crash
+            if node2 != node:
+                self.listview.select_nodes([node])
                     
 
 
