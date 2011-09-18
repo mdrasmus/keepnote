@@ -656,21 +656,22 @@ class ThreePaneViewer (Viewer):
                 return
             node = nodes[0]
         
-        treenodes = self.treeview.get_selected_nodes()
 
         if direct:
             # direct goto: open up treeview all the way to the node
             self.treeview.select_nodes([node])
         else:
-            # indirect goto: donot open up treeview, only listview
-            
+            # indirect goto: do not open up treeview, only listview
+        
+            treenodes = self.treeview.get_selected_nodes()
+    
             # get path to root
             path = []
             ptr = node
             while ptr:
                 if ptr in treenodes:
-                    # if parent path is allready selected then quit
-                    path = []
+                    # if parent path is already selected then quit
+                    #path = []
                     break
                 path.append(ptr)
                 ptr = ptr.get_parent()
