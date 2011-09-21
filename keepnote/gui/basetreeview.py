@@ -514,7 +514,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
 
     #============================================
-    # editing titles
+    # editing attr
 
 
     def on_editing_started(self, cellrenderer, editable, path):
@@ -523,13 +523,49 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         self.editing_path = path
         gobject.idle_add(lambda: self.scroll_to_cell(path))
     
+
     def on_editing_canceled(self, cellrenderer):
         """Callback for canceled of title editing"""
         # remember editing state
         self.editing_path = None
+                
+
+    def on_edit_attr(self, cellrenderertext, path, attr, new_text, 
+                     validate=None):
+        """Callback for completion of title editing"""
+
+        # remember editing state
+        self.editing_path = None
+
+        new_text = unicode_gtk(new_text)
+
+        # get node being edited
+        node = self.model.get_value(self.model.get_iter(path), self._node_col)
+        if node is None:
+            return
         
+        # validate new_text
+        if validate and not validate(new_text):
+            return
+
+        # set new title and catch errors
+        try:
+            node.set_attr(attr, new_text)
+        except NoteBookError, e:
+            self.emit("error", e.msg, e)
+
+        # reselect node 
+        # need to get path again because sorting may have changed
+        path = get_path_from_node(self.model, node,
+                                  self.rich_model.get_node_column_pos())
+        if path is not None:
+            self.set_cursor(path)
+            gobject.idle_add(lambda: self.scroll_to_cell(path))
+
+        self.emit("edit-node", node, attr, new_text)
 
 
+    '''
     def on_edit_title(self, cellrenderertext, path, new_text):
         """Callback for completion of title editing"""
 
@@ -548,28 +584,21 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             return
 
         # set new title and catch errors
-        if new_text != node.get_title():
-            try:
-                node.rename(new_text)
-            except NoteBookError, e:
-                self.emit("error", e.msg, e)
+        try:
+            node.rename(new_text)
+        except NoteBookError, e:
+            self.emit("error", e.msg, e)
 
         # reselect node 
-        # NOTE: I select the root inorder for set_cursor(path) to really take
-        # effect (gtk seems to ignore a select call if it "thinks" the path
-        # is selected)
-        #if self.model.iter_n_children(None) > 0:
-        #    self.set_cursor((0,))
-        
+        # need to get path again because sorting may have changed
         path = get_path_from_node(self.model, node,
                                   self.rich_model.get_node_column_pos())
         if path is not None:
             self.set_cursor(path)
             gobject.idle_add(lambda: self.scroll_to_cell(path))
 
-        self.emit("edit-title", node, new_text)
-        
-
+        self.emit("edit-node", node, new_text)
+    '''
 
     #=============================================
     # copy and paste
@@ -1133,9 +1162,9 @@ gobject.signal_new("paste-clipboard", KeepNoteBaseTreeView,
 gobject.signal_new("select-nodes", KeepNoteBaseTreeView,
                    gobject.SIGNAL_RUN_LAST, 
                    gobject.TYPE_NONE, (object,))
-gobject.signal_new("edit-title", KeepNoteBaseTreeView,
+gobject.signal_new("edit-node", KeepNoteBaseTreeView,
                    gobject.SIGNAL_RUN_LAST, 
-                   gobject.TYPE_NONE, (object, str))
+                   gobject.TYPE_NONE, (object, str, str))
 gobject.signal_new("drop-file", KeepNoteBaseTreeView,
                    gobject.SIGNAL_RUN_LAST, 
                    gobject.TYPE_NONE, (object, int, str))

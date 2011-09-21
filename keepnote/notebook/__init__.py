@@ -430,13 +430,15 @@ def parse_attr_def(attr_def_dict):
                    attr_def_dict.get("name", attr_def_dict["key"]),
                    attr_def_dict.get("default", None))
 
+# typedef timestamp integer
+
 g_default_attr_defs = [
     AttrDef("nodeid", "string", "Node ID"),
     AttrDef("content_type", "string", "Content type", default=CONTENT_TYPE_DIR),
     AttrDef("title", "string", "Title"),
     AttrDef("order", "integer", "Order", default=sys.maxint),
-    AttrDef("created_time", "integer", "Created time"),
-    AttrDef("modified_time", "integer", "Modified time"),
+    AttrDef("created_time", "timestamp", "Created time"),
+    AttrDef("modified_time", "timestamp", "Modified time"),
     AttrDef("expanded", "bool", "Expaned", default=True),
     AttrDef("expanded2", "bool", "Expanded2", default=True),
     AttrDef("info_sort", "string", "Folder sort", default="order"),
@@ -805,14 +807,22 @@ class NoteBookNode (object):
             keepnote.log_error()
             pass
 
-
+    
     def rename(self, title):
         """Renames the title of the node"""
+                
+        self.set_attr("title", title)
+        self.save()
+
+        # TODO: generalize notify for all attrs that might appear in listview
+        # or other GUI widgets
+        self.notify_change(False)
         
+        '''
         # do nothing if title is the same
         if title == self._attr["title"]:
             return
-        
+
         if self._parent is None:
             # don't rename the directory of the notebook itself
             # just change the title
@@ -826,9 +836,10 @@ class NoteBookNode (object):
             except NoteBookError, e:
                 self._attr["title"] = oldtitle
                 raise
-        
-        self.notify_change(False)
 
+        self.notify_change(False)
+        '''
+        
 
     def new_child(self, content_type, title, index=None):
         """Add a new node under this node"""

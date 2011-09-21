@@ -109,7 +109,7 @@ class ThreePaneViewer (Viewer):
         self.treeview.connect("select-nodes", self._on_tree_select)
         self.treeview.connect("delete-node", self.on_delete_node)
         self.treeview.connect("error", lambda w,t,e: self.emit("error", t, e))
-        self.treeview.connect("edit-title", self._on_edit_title)
+        self.treeview.connect("edit-node", self._on_edit_node)
         self.treeview.connect("goto-node", self.on_goto_node)
         self.treeview.connect("activate-node", self.on_activate_node)
         self.treeview.connect("drop-file", self._on_attach_file)
@@ -124,7 +124,7 @@ class ThreePaneViewer (Viewer):
         self.listview.connect("goto-parent-node",
                               lambda w: self.on_goto_parent_node())
         self.listview.connect("error", lambda w,t,e: self.emit("error", t, e))
-        self.listview.connect("edit-title", self._on_edit_title)
+        self.listview.connect("edit-node", self._on_edit_node)
         self.listview.connect("drop-file", self._on_attach_file)
         self.listview.on_status = self.set_status  # TODO: clean up
         
@@ -544,7 +544,7 @@ class ThreePaneViewer (Viewer):
             self.goto_node(parent, direct=False)
 
 
-    def _on_edit_title(self, widget, node, title):
+    def _on_edit_node(self, widget, node, attr, value):
         """Callback for title edit finishing"""
 
         # move cursor to editor after new page has been created
