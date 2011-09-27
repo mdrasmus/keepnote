@@ -396,8 +396,7 @@ _datatype_defaults = {
 
 class AttrDef (object):
     """
-    A AttrDef is a metadata attribute that can be associated to
-    nodes in a NoteBook.
+    An AttrDef defines the type of an notebook attr
     """
 
     def __init__(self, key, datatype, name, default=None):
@@ -413,7 +412,7 @@ class AttrDef (object):
             self.default = default
 
 
-    def get_dict(self):
+    def format(self):
         """
         Returns dict representation
         """
@@ -424,11 +423,51 @@ class AttrDef (object):
                 "default": self.default}
 
 
+class AttrDefs (object):
+    """ 
+    A collection of AttrDef's
+    """
+
+    def __init__(self):
+        self._attr_defs = {}
+
+    def add(self, attr_def):
+        self._attr_defs[attr_def.key] = attr_def
+
+    def remove(self, key):
+        if key in self._attr_defs:
+            del self._attr_defs[key]
+
+    def clear(self):
+        self._attr_defs.clear()
+
+    def get(self, key):
+        return self._attr_defs.get(key, None)
+
+    def parse(self, lst):
+        for item in lst:
+            self.add(parse_attr_def(item))
+
+    def format(self):
+        return [attr_def.format()
+                for attr_def in self._attr_defs.itervalues()]
+
+
+
+def format_attr_def(attr_def):
+    return attr_def.format()
+
+
 def parse_attr_def(attr_def_dict):
     return AttrDef(attr_def_dict["key"],
                    attr_def_dict["datatype"],
                    attr_def_dict.get("name", attr_def_dict["key"]),
                    attr_def_dict.get("default", None))
+
+def iter_attr_defs(lst):
+    for item in lst:
+        yield parse_attr_def(item)
+
 
 # typedef timestamp integer
 
@@ -1187,7 +1226,7 @@ class NoteBook (NoteBookNode):
         self._filename = None
         self._dirty = set()
         self._trash = None
-        self.attr_defs = {}
+        self.attr_defs = AttrDefs()
         self._necessary_attrs = []
         
         # init notebook attributes
@@ -1210,14 +1249,22 @@ class NoteBook (NoteBookNode):
         # TODO: not being used right now
         self._necessary_attrs = ["nodeid", "created_time", "modified_time",
                                  "order"]
-        self.clear_attr_defs()
-        for attr in g_default_attr_defs:
-            self.add_attr_def(attr)
+        self.attr_defs.clear()
+        self._attr["attr_defs"] = []
+        for attr_def in g_default_attr_defs:
+            self.attr_defs.add(attr_def)
+            self._attr["attr_defs"].append(attr_def.format())
+
+
+        self._attr["column_widths"] = {
+            "title": 250,
+            "created_time": 150,
+            "modified_time": 150}
         
 
     def add_attr_def(self, attr_def):
         """Adds a new attribute definition to the notebook"""
-        self.attr_defs[attr_def.key] = attr_def
+        self.attr_defs.add(attr_def)
     
 
     def clear_attr_defs(self):
@@ -1230,13 +1277,14 @@ class NoteBook (NoteBookNode):
         return self._necessary_attrs
 
 
-    def _create_attr_defs(self):
+    def _read_attr_defs(self):
+        self._init_default_attr()
+        for dct in self._attr.get("attr_defs", ()):
+            self.attr_defs.add(parse_attr_def(dct))
 
-        defs = []
-        for attr_def in g_default_attr_defs:
-            defs.append(attr_def.get_dict())
+    def _write_attr_defs(self):
+        self._attr["attr_defs"] = self.attr_defs.format()
 
-        self._attr["attr_defs"] = defs
     
     
     #===================================================
@@ -1250,8 +1298,6 @@ class NoteBook (NoteBookNode):
 
         self._attr["nodeid"] = new_nodeid()
         self._init_attr()
-
-        self._create_attr_defs()
 
 
         self._conn.connect(filename)
@@ -1305,8 +1351,7 @@ class NoteBook (NoteBookNode):
 
         self._init_trash()
 
-        if "attr_defs" not in self._attr:
-            self._create_attr_defs()
+        self._read_attr_defs()
 
         self.read_preferences()
 
@@ -1320,6 +1365,7 @@ class NoteBook (NoteBookNode):
         # TODO: keepnote copy of old pref.  only save pref if its changed.
 
         if force or self in self._dirty:
+            self._write_attr_defs()
             self._write_attr(self._attr)
             #self._conn.update_node(self._attr["nodeid"], self._attr)
             self.write_preferences()

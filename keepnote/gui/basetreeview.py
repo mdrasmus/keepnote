@@ -225,9 +225,9 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         if self.model is not None:
             self.rich_model.disconnect(self.changed_start_id)
             self.rich_model.disconnect(self.changed_end_id)
-            self.rich_model.disconnect(self.insert_id)
-            self.rich_model.disconnect(self.delete_id)
-            self.rich_model.disconnect(self.has_child_id)
+            self.model.disconnect(self.insert_id)
+            self.model.disconnect(self.delete_id)
+            self.model.disconnect(self.has_child_id)
 
             self._node_col = None
             self._get_icon = None

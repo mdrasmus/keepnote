@@ -154,6 +154,8 @@ class BaseTreeModel (gtk.GenericTreeModel):
 
     def append_column(self, column):
         """Append a new column to the treemodel"""
+        assert column.name not in self._columns_lookup
+        
         column.pos = len(self._columns)
         self._columns.append(column)
         self._columns_lookup[column.name] = column
@@ -170,36 +172,6 @@ class BaseTreeModel (gtk.GenericTreeModel):
     def get_column_by_name(self, colname):
         """Returns a columns with the given name""" 
         return self._columns_lookup.get(colname, None)
-
-    def get_attr_column(self, attr, key=lambda x: x):
-        assert self._notebook is not None
-
-        col = self._columns_lookup.get(attr, None)
-        if col is None:
-            # TODO: make an API for querying attr_defs
-            attr_defs = self._notebook.get_attr("attr_defs")
-            for attr_def in attr_defs:
-                if attr_def.get("key") == attr:
-                    break
-            else:
-                attr_def = None
-            datatype = attr_def.get("datatype", "string") if attr_def else \
-                "string"
-
-            get = lambda node: key(node.get_attr(attr))
-            
-            if datatype == "string":
-                coltype = str
-            elif datatype == "integer":
-                coltype = int
-            elif datatype == "timestamp":
-                coltype = str
-            else:
-                coltype = str
-
-            col = TreeModelColumn(attr, coltype, attr=attr, get=get)
-            self.append_column(col)
-        return col
     
     def get_node_column_pos(self):
         """Returns the column position containing node objects"""
@@ -523,24 +495,24 @@ class KeepNoteTreeModel (BaseTreeModel):
             TreeModelColumn("title_sort", str,
                             attr="title",
                             get=lambda node: node.get_title().lower()))
-        self.append_column(
-            TreeModelColumn("created_time2", str,
-                            attr="created_time",
-                            get=lambda node: self.get_time_text(node,
-                                                            "created_time")))
-        self.append_column(
-            TreeModelColumn("created_time_sort", int,
-                            attr="created_time",
-                            get=lambda node: node.get_attr("created_time", 0)))
-        self.append_column(
-            TreeModelColumn("modified_time", str,
-                            attr="modified_time",
-                            get=lambda node: self.get_time_text(node,
-                                                         "modified_time")))
-        self.append_column(
-            TreeModelColumn("modified_time_sort", int,
-                            attr="modified_time",
-                            get=lambda node: node.get_attr("modified_time", 0)))
+        #self.append_column(
+        #    TreeModelColumn("created_time2", str,
+        #                    attr="created_time",
+        #                    get=lambda node: self.get_time_text(node,
+        #                                                    "created_time")))
+        #self.append_column(
+        #    TreeModelColumn("created_time2_sort", int,
+        #                    attr="created_time",
+        #                    get=lambda node: node.get_attr("created_time", 0)))
+        #self.append_column(
+        #    TreeModelColumn("modified_time", str,
+        #                    attr="modified_time",
+        #                    get=lambda node: self.get_time_text(node,
+        #                                                 "modified_time")))
+        #self.append_column(
+        #    TreeModelColumn("modified_time_sort", int,
+        #                    attr="modified_time",
+        #                    get=lambda node: node.get_attr("modified_time", 0)))
         self.append_column(
             TreeModelColumn("order", int,
                             attr="order",
