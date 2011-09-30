@@ -38,6 +38,7 @@ from keepnote.gui import \
      get_resource, \
      get_resource_image, \
      get_resource_pixbuf
+from keepnote.gui.icons import get_node_icon
 from keepnote.gui import treemodel
 from keepnote import notebook
 from keepnote.notebook import NoteBookError
@@ -52,6 +53,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
     def __init__(self):
         basetreeview.KeepNoteBaseTreeView.__init__(self)
         self._sel_nodes = None
+        self._date_formats = {}
 
         # configurable callback for setting window status
         self.on_status = None        
@@ -71,6 +73,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
 
         # init model
         self.set_model(gtk.TreeModelSort(treemodel.KeepNoteTreeModel()))
+        
         self.setup_columns()
 
 
@@ -84,37 +87,6 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         for col in reversed(self.get_columns()):
             self.remove_column(col)
 
-    '''
-    def get_attr_column(self, attr, key=lambda x: x):
-        assert self._notebook is not None
-        
-        col = self._columns_lookup.get(attr, None)
-        if col is None:
-            # TODO: make an API for querying attr_defs
-            attr_defs = self._notebook.get_attr("attr_defs")
-            for attr_def in attr_defs:
-                if attr_def.get("key") == attr:
-                    break
-            else:
-                attr_def = None
-            datatype = attr_def.get("datatype", "string") if attr_def else \
-                "string"
-            
-            get = lambda node: key(node.get_attr(attr))
-            
-            if datatype == "string":
-                coltype = str
-            elif datatype == "integer":
-                coltype = int
-            elif datatype == "timestamp":
-                coltype = str
-            else:
-                coltype = str
-                
-            col = TreeModelColumn(attr, coltype, attr=attr, get=get)
-            self.append_column(col)
-        return col
-    '''
 
     def setup_columns(self):
 
@@ -122,92 +94,28 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             self.clear_columns()
             return
         
-
+        # TODO: eventually columns may change when ever master node changes
+        # TODO: load columns from notebook
         self._columns = ["title", "created_time", "modified_time"]
-
-        # TODO: columns actually need to be set when notebook is loaded
-        # eventually columns may change when ever master node changes
         
         
-        # title column
-        title_column = gtk.TreeViewColumn()
-        title_column.set_title(_("Title"))
-        title_column.set_sort_column_id(
-            self.rich_model.get_column_by_name("title_sort").pos)
+        # add columns        
+        for attr in self._columns:
+            col = self._add_column(attr)
+            if attr == "title":
+                self.title_column = col
 
-        title_column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
-        title_column.set_property("resizable", True)
-        title_column.set_min_width(10)
-        title_column.set_fixed_width(250)
-
-        # title icon
-        cell_icon = gtk.CellRendererPixbuf()
-        title_column.pack_start(cell_icon, False)
-        title_column.add_attribute(cell_icon, 'pixbuf',
-            self.rich_model.get_column_by_name("icon").pos)
-        title_column.add_attribute(cell_icon, 'pixbuf-expander-open',
-            self.rich_model.get_column_by_name("icon_open").pos)
-
-        # title text
-        title_text = gtk.CellRendererText()
-        title_column.pack_start(title_text, True)
-        title_text.set_fixed_height_from_font(1)
-        title_text.connect("edited", lambda r,p,t: self.on_edit_attr(
-            r, p, "title", t, validate=lambda t: t != ""))
-        title_text.connect("editing-started", self.on_editing_started)
-        title_text.connect("editing-canceled", self.on_editing_canceled)        
-        title_text.set_property("editable", True)
-        title_column.add_attribute(title_text, 'text',
-            self.rich_model.get_column_by_name("title").pos)
-
-        self.append_column(title_column)
-        self.set_expander_column(title_column)
-        
-        self.title_text = title_text
-        self.title_column = title_column
-        
-        
-        # add columns
-        self.add_column("created_time")
-        self.add_column("modified_time")
-
-        '''
-        column = gtk.TreeViewColumn()
-        column.set_title(_("Created"))
-        column.set_sort_column_id(
-            self.rich_model.get_column_by_name("created_time2_sort").pos)
-        make_column(column, "created_time")
-
-        cell_text = gtk.CellRendererText()
-        cell_text.set_fixed_height_from_font(1)
-        column.pack_start(cell_text, True)
-        column.add_attribute(cell_text, 'text',
-            self.rich_model.get_column_by_name("created_time2").pos)
-        
-        self.append_column(column)        
-        '''
-
-        '''
-        # modified column
-        column = gtk.TreeViewColumn()
-        column.set_title(_("Modified"))
-        column.set_sort_column_id(
-            self.rich_model.get_column_by_name("modified_time_sort").pos)
-        make_column(column, "modified_time")
-        
-        cell_text = gtk.CellRendererText()
-        cell_text.set_fixed_height_from_font(1)        
-        column.pack_start(cell_text, True)
-        column.add_attribute(cell_text, 'text',
-            self.rich_model.get_column_by_name("modified_time").pos)
-        
-        self.append_column(column)
-        '''
+        # add model columns
+        self._add_model_column("order")
         
         # NOTE: must create a new TreeModelSort whenever we add new columns
         # to the rich_model that could be used in sorting
         # Perhaps something is being cached
         self.set_model(gtk.TreeModelSort(self.rich_model))
+        
+        
+        # config columns view
+        self.set_expander_column(self.get_column(0))
 
         # TODO: load correct sorting right away
         # set default sorting
@@ -219,12 +127,11 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         
 
     def format_timestamp(self, timestamp):
-        return (get_str_timestamp(timestamp, 
-                                  formats=self.rich_model._date_formats)
+        return (get_str_timestamp(timestamp, formats=self._date_formats)
                 if timestamp is not None else u"")
 
 
-    def add_column(self, attr):
+    def _add_column(self, attr, cell_attr=None):
         
         # get attribute definition from notebook
         attr_def = self._notebook.attr_defs.get(attr)
@@ -237,6 +144,9 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             datatype = "string"
             col_title = attr
 
+        # get/make model column
+        self._add_model_column(attr)
+
         # create column view
         column = gtk.TreeViewColumn()
         column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
@@ -246,9 +156,44 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             self._notebook.get_attr("column_widths", {}).get(attr, 150))
         column.set_title(col_title)
 
+        # define column sorting
+        attr_sort = attr + "_sort"
+        col =  self.rich_model.get_column_by_name(attr_sort)
+        if col:
+            column.set_sort_column_id(col.pos)
 
-        # get/make model column
-        self._add_model_column(attr)
+        # add cell renders
+        if attr == "title":
+            self._add_title_render(column, attr)
+        else:
+            self._add_text_render(column, attr)
+
+
+        self.append_column(column)
+
+        return column
+
+
+    def _add_title_render(self, column, attr):
+
+        attr_icon = "icon"
+        attr_icon_open = "icon_open"
+
+        # make sure icon attributes are in model
+        self._add_model_column(attr_icon)
+        self._add_model_column(attr_icon_open)
+
+        # add renders
+        cell_icon = self._add_pixbuf_render(column, attr_icon, attr_icon_open)
+        title_text = self._add_text_render(column, attr, editable=True)
+
+        # record reference to title_text renderer
+        self.title_text = title_text
+
+        return cell_icon, title_text
+
+
+    def _add_text_render(self, column, attr, editable=False):
 
         # cell renderer text
         cell_text = gtk.CellRendererText()
@@ -256,17 +201,32 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         column.pack_start(cell_text, True)
         column.add_attribute(cell_text, 'text', 
                              self.rich_model.get_column_by_name(attr).pos)
+        
+        # set edit callbacks
+        if editable:
+            cell_text.connect("edited", lambda r,p,t: self.on_edit_attr(
+                    r, p, attr, t, validate=lambda t: t != ""))
+            cell_text.connect("editing-started", self.on_editing_started)
+            cell_text.connect("editing-canceled", self.on_editing_canceled)
+            cell_text.set_property("editable", True)
 
-        # define column sorting
-        attr_sort = attr + "_sort"
-        column.set_sort_column_id(
-            self.rich_model.get_column_by_name(attr_sort).pos)
+        return cell_text
 
 
-        self.append_column(column)
+    def _add_pixbuf_render(self, column, attr, attr_open=None):
+        
+        cell = gtk.CellRendererPixbuf()
+        column.pack_start(cell, False)
+        column.add_attribute(cell, 'pixbuf',
+            self.rich_model.get_column_by_name(attr).pos)
+        if attr_open:
+            column.add_attribute(cell, 'pixbuf-expander-open',
+                self.rich_model.get_column_by_name(attr_open).pos)
 
+        return cell
     
-    def _add_model_column(self, attr):
+    
+    def _add_model_column(self, attr, add_sort=True):
  
         # get attribute definition from notebook
         attr_def = self._notebook.attr_defs.get(attr)
@@ -279,45 +239,59 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             datatype = "string"
             default = ""
 
+        # value fetching
+        get = lambda node: mapfunc(node.get_attr(attr, default))
+        get_sort = lambda node: mapfunc_sort(node.get_attr(attr, default))
+
+        # get coltype
+        mapfunc = lambda x: x
+        mapfunc_sort = lambda x: x
+        if datatype == "string":
+            coltype = str
+            coltype_sort = str
+            mapfunc_sort = lambda x: x.lower()
+        elif datatype == "integer":
+            coltype = int
+            coltype_sort = int
+        elif datatype == "float":
+            coltype = float
+            coltype_sort = float
+        elif datatype == "timestamp":
+            mapfunc = self.format_timestamp
+            coltype = str
+            coltype_sort = int
+        else:
+            coltype = str
+            coltype_sort = str
+        
+        
+        # builtin column types
+        if attr == "icon":
+            coltype = gdk.Pixbuf
+            coltype_sort = None
+            get = lambda node: get_node_icon(node, False,
+                                             node in self.rich_model.fades)
+        elif attr == "icon_open":
+            coltype = gdk.Pixbuf
+            coltype_sort = None
+            get = lambda node: get_node_icon(node, True,
+                                             node in self.rich_model.fades)
+
+
         # get/make model column
         col = self.rich_model.get_column_by_name(attr)
         if col is None:
-            mapfunc = lambda x: x
-
-            # get coltype
-            if datatype == "string":
-                coltype = str
-                coltype_sort = str
-            elif datatype == "integer":
-                coltype = int
-                coltype_sort = int
-            elif datatype == "float":
-                coltype = float
-                coltype_sort = float
-            elif datatype == "timestamp":
-                mapfunc = self.format_timestamp
-                coltype = str
-                coltype_sort = int
-            else:
-                coltype = str
-                coltype_sort = str
-
-            get = lambda node: mapfunc(node.get_attr(attr, default))
-            
             col = treemodel.TreeModelColumn(attr, coltype, attr=attr, get=get)
             self.rich_model.append_column(col)
         
         # define column sorting
-        attr_sort = attr + "_sort"
-        col = self.rich_model.get_column_by_name(attr_sort)
-        if col is None:
-            col = treemodel.TreeModelColumn(
-                attr_sort, coltype_sort,
-                attr=attr,
-                get=lambda node: node.get_attr(attr, default))
-            self.rich_model.append_column(col)
-        
-
+        if coltype_sort is not None:
+            attr_sort = attr + "_sort"
+            col = self.rich_model.get_column_by_name(attr_sort)
+            if col is None:
+                col = treemodel.TreeModelColumn(
+                    attr_sort, coltype_sort, attr=attr, get=get_sort)
+                self.rich_model.append_column(col)
 
     
     def set_notebook(self, notebook):
@@ -336,9 +310,9 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
 
 
     def set_date_formats(self, formats):
-        """Set the date formats used for dates"""
-        if self.rich_model:
-            self.rich_model.set_date_formats(formats)
+        """Sets the date formats of the treemodel"""
+        self._date_formats = formats
+
 
     def get_root_nodes(self):
         """Returns the root nodes displayed in listview"""
@@ -581,6 +555,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         if info_sort == "":
             info_sort = "order"
 
+        # TODO: do not rely on *_sort convention
         for col in self.rich_model.get_columns():
             if info_sort == col.attr and col.name.endswith("_sort"):
                 model.set_sort_column_id(col.pos, sort_dir)
@@ -613,3 +588,45 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         self.display_page_count()
 
 
+
+
+
+
+'''
+        # title column
+        title_column = gtk.TreeViewColumn()
+        title_column.set_title(_("Title"))
+        title_column.set_sort_column_id(
+            self.rich_model.get_column_by_name("title_sort").pos)
+
+        title_column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
+        title_column.set_property("resizable", True)
+        title_column.set_min_width(10)
+        title_column.set_fixed_width(250)
+
+        # title icon
+        cell_icon = gtk.CellRendererPixbuf()
+        title_column.pack_start(cell_icon, False)
+        title_column.add_attribute(cell_icon, 'pixbuf',
+            self.rich_model.get_column_by_name("icon").pos)
+        title_column.add_attribute(cell_icon, 'pixbuf-expander-open',
+            self.rich_model.get_column_by_name("icon_open").pos)
+
+        # title text
+        title_text = gtk.CellRendererText()
+        title_column.pack_start(title_text, True)
+        title_text.set_fixed_height_from_font(1)
+        title_text.connect("edited", lambda r,p,t: self.on_edit_attr(
+            r, p, "title", t, validate=lambda t: t != ""))
+        title_text.connect("editing-started", self.on_editing_started)
+        title_text.connect("editing-canceled", self.on_editing_canceled)        
+        title_text.set_property("editable", True)
+        title_column.add_attribute(title_text, 'text',
+            self.rich_model.get_column_by_name("title").pos)
+        
+        self.append_column(title_column)
+
+        # save references
+        self.title_text = title_text
+        self.title_column = title_column
+'''        

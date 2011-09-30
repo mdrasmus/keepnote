@@ -120,7 +120,6 @@ class BaseTreeModel (gtk.GenericTreeModel):
         self._notebook = None
         self._roots = []
         self._master_node = None
-        self._date_formats = None
         self._nested = True
 
         self._columns = []
@@ -128,6 +127,13 @@ class BaseTreeModel (gtk.GenericTreeModel):
         self._node_column = None
 
         self.set_root_nodes(roots)
+
+
+        # add default node column
+        self.append_column(TreeModelColumn("node", object,
+                                           get=lambda node: node))
+        self.set_node_column(self.get_column_by_name("node"))
+
 
 
 
@@ -476,25 +482,31 @@ class KeepNoteTreeModel (BaseTreeModel):
 
         self.fades = set()
 
+        # add default node column
+        #self.append_column(TreeModelColumn("node", object,
+        #                                   get=lambda node: node))
+        #self.set_node_column(self.get_column_by_name("node"))
+
+
 
         # TODO: move to treeviewer
         # init default columns
-        self.append_column(
-            TreeModelColumn("icon", gdk.Pixbuf,
-                            get=lambda node: get_node_icon(node, False,
-                                                           node in self.fades)))
-        self.append_column(
-            TreeModelColumn("icon_open", gdk.Pixbuf,
-                            get=lambda node: get_node_icon(node, True,
-                                                           node in self.fades)))
-        self.append_column(
-            TreeModelColumn("title", str, 
-                            attr="title",
-                            get=lambda node: node.get_attr("title")))
-        self.append_column(
-            TreeModelColumn("title_sort", str,
-                            attr="title",
-                            get=lambda node: node.get_title().lower()))
+        #self.append_column(
+        #    TreeModelColumn("icon", gdk.Pixbuf,
+        #                    get=lambda node: get_node_icon(node, False,
+        #                                                   node in self.fades)))
+        #self.append_column(
+        #    TreeModelColumn("icon_open", gdk.Pixbuf,
+        #                    get=lambda node: get_node_icon(node, True,
+        #                                                   node in self.fades)))
+        #self.append_column(
+        #    TreeModelColumn("title", str, 
+        #                    attr="title",
+        #                    get=lambda node: node.get_attr("title")))
+        #self.append_column(
+        #    TreeModelColumn("title_sort", str,
+        #                    attr="title",
+        #                    get=lambda node: node.get_title().lower()))
         #self.append_column(
         #    TreeModelColumn("created_time2", str,
         #                    attr="created_time",
@@ -513,30 +525,8 @@ class KeepNoteTreeModel (BaseTreeModel):
         #    TreeModelColumn("modified_time_sort", int,
         #                    attr="modified_time",
         #                    get=lambda node: node.get_attr("modified_time", 0)))
-        self.append_column(
-            TreeModelColumn("order", int,
-                            attr="order",
-                            get=lambda node: node.get_attr("order")))
-        self.append_column(TreeModelColumn("node", object,
-                                           get=lambda node: node))
-
-
-        self.set_node_column(self.get_column_by_name("node"))
-
-
-    
-
-
-    def get_time_text(self, node, attr_key):
-        """Returns the string for a timestamp"""
-        timestamp = node.get_attr(attr_key, None)
-        if timestamp is None:
-            return u""
-        else:
-            return get_str_timestamp(timestamp, formats=self._date_formats)
-
-    def set_date_formats(self, formats):
-        """Sets the date formats of the treemodel"""
-        self._date_formats = formats
-
+        #self.append_column(
+        #    TreeModelColumn("order", int,
+        #                    attr="order",
+        #                    get=lambda node: node.get_attr("order")))
 

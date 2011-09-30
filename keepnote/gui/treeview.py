@@ -34,6 +34,8 @@ from gtk import gdk
 # keepnote imports
 from keepnote.gui import treemodel
 from keepnote.gui import basetreeview
+from keepnote.gui.icons import get_node_icon
+
 
 
 class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
@@ -58,9 +60,6 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
         
         self.set_headers_visible(False)
 
-        # make treeview searchable
-        self.set_search_column(self.model.get_column_by_name("title").pos)
-        #self.set_fixed_height_mode(True)       
 
         # tree style
         try:
@@ -68,6 +67,30 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
             self.set_property("enable-tree-lines", True)
         except TypeError, e:
             pass
+
+
+
+        # setup model
+        self.model.append_column(
+            treemodel.TreeModelColumn(
+                "icon", gdk.Pixbuf,
+                get=lambda node: get_node_icon(node, False,
+                                               node in self.model.fades)))
+        self.model.append_column(
+            treemodel.TreeModelColumn(
+                "icon_open", gdk.Pixbuf,
+                get=lambda node: get_node_icon(node, True,
+                                               node in self.model.fades)))
+        self.model.append_column(
+            treemodel.TreeModelColumn(
+                "title", str, 
+                attr="title",
+                get=lambda node: node.get_attr("title")))
+        self.model.append_column(
+            treemodel.TreeModelColumn(
+                "title_sort", str,
+                attr="title",
+                get=lambda node: node.get_title().lower()))
 
 
         # create the treeview column
@@ -98,6 +121,10 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
 
 
         self.set_sensitive(False)
+
+        # make treeview searchable
+        self.set_search_column(self.model.get_column_by_name("title").pos)
+        #self.set_fixed_height_mode(True)       
 
 
         

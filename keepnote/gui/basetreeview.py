@@ -774,7 +774,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         
         nodes = list(self.rich_model.fades)
         self.rich_model.fades.clear()
-        self._notebook.notify_changes(nodes, False)
+        if self._notebook:
+            self._notebook.notify_changes(nodes, False)
 
     def _fade_nodes(self, nodes):
 
