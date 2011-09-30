@@ -96,7 +96,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         
         # TODO: eventually columns may change when ever master node changes
         # TODO: load columns from notebook
-        self._columns = ["title", "created_time", "modified_time"]
+        self._columns = ["title", "order", "created_time", "modified_time"]
         
         
         # add columns        
