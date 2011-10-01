@@ -47,6 +47,9 @@ import keepnote
 _ = keepnote.translate
 
 
+DEFAULT_ATTR_COL_WIDTH = 150
+DEFAULT_TITLE_COL_WIDTH = 250
+
 
 class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
     
@@ -54,6 +57,8 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         basetreeview.KeepNoteBaseTreeView.__init__(self)
         self._sel_nodes = None
         self._date_formats = {}
+        self._attr_col_widths = {"title": DEFAULT_TITLE_COL_WIDTH}
+        self._columns = ["title", "created_time", "modified_time"]
 
         # configurable callback for setting window status
         self.on_status = None        
@@ -75,6 +80,61 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         self.set_model(gtk.TreeModelSort(treemodel.KeepNoteTreeModel()))
         
         self.setup_columns()
+    
+    
+    def load_preferences(self, app_pref, first_open=False):
+        """Load application preferences"""
+        self.set_date_formats(app_pref.get("timestamp_formats"))
+        self.set_rules_hint(
+            app_pref.get("look_and_feel", "listview_rules",
+                         default=True))
+
+
+    def save_preferences(self, app_pref):
+        """Save application preferences"""
+        pass                
+
+
+    def set_notebook(self, notebook):
+        """Set the notebook for listview"""
+
+        #if self._notebook is not None:
+        #    # save notebook prefs
+        #    self.save()
+
+        basetreeview.KeepNoteBaseTreeView.set_notebook(self, notebook)
+        
+        if self.rich_model is not None:
+            self.rich_model.set_root_nodes([])
+
+        if notebook:
+            # load notebook prefs
+            self.set_sensitive(True)
+            
+            # load attr column widths
+            for attr, width in notebook.get_attr("column_widths", {}).items():
+                self._attr_col_widths[attr] = width
+
+
+        else:
+            self.set_sensitive(False)
+
+        self.setup_columns()
+
+
+    def save(self):
+        """Save notebook preferences"""
+        
+        # save attr column widths
+        widths = self._notebook.get_attr("column_widths", {})
+        for i, attr in enumerate(self._columns):
+            widths[attr] = self.get_column(i).get_width()
+        self._notebook.set_attr("column_widths", widths)
+        self._notebook.mark_modified()
+
+
+    #==================================
+    # model and view setup
 
 
     def set_model(self, model):
@@ -96,7 +156,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         
         # TODO: eventually columns may change when ever master node changes
         # TODO: load columns from notebook
-        self._columns = ["title", "order", "created_time", "modified_time"]
+        self._columns = ["title", "created_time", "modified_time"]
         
         
         # add columns        
@@ -126,11 +186,6 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         self.set_reorder(basetreeview.REORDER_ALL)
         
 
-    def format_timestamp(self, timestamp):
-        return (get_str_timestamp(timestamp, formats=self._date_formats)
-                if timestamp is not None else u"")
-
-
     def _add_column(self, attr, cell_attr=None):
         
         # get attribute definition from notebook
@@ -153,7 +208,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         column.set_property("resizable", True)
         column.set_min_width(10)
         column.set_fixed_width(
-            self._notebook.get_attr("column_widths", {}).get(attr, 150))
+            self._attr_col_widths.get(attr, DEFAULT_ATTR_COL_WIDTH))
         column.set_title(col_title)
 
         # define column sorting
@@ -293,33 +348,16 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
                     attr_sort, coltype_sort, attr=attr, get=get_sort)
                 self.rich_model.append_column(col)
 
-    
-    def set_notebook(self, notebook):
-        """Set the notebook for listview"""
-        basetreeview.KeepNoteBaseTreeView.set_notebook(self, notebook)
-        
-        if self.rich_model is not None:
-            self.rich_model.set_root_nodes([])
-
-        if notebook:
-            self.set_sensitive(True)
-        else:
-            self.set_sensitive(False)
-
-        self.setup_columns()
-
 
     def set_date_formats(self, formats):
         """Sets the date formats of the treemodel"""
         self._date_formats = formats
 
 
-    def get_root_nodes(self):
-        """Returns the root nodes displayed in listview"""
-        if self.rich_model:
-            return self.rich_model.get_root_nodes()
-        else:
-            return []
+    def format_timestamp(self, timestamp):
+        return (get_str_timestamp(timestamp, formats=self._date_formats)
+                if timestamp is not None else u"")
+
 
     #=============================================
     # gui callbacks    
@@ -453,6 +491,15 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
 
         self.emit("select-nodes", [])
 
+
+
+    def get_root_nodes(self):
+        """Returns the root nodes displayed in listview"""
+        if self.rich_model:
+            return self.rich_model.get_root_nodes()
+        else:
+            return []
+    
 
     def append_node(self, node):
 

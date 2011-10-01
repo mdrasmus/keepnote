@@ -213,7 +213,7 @@ class ThreePaneViewer (Viewer):
         if self.treeview.get_popup_menu():
             self.treeview.get_popup_menu().iconmenu.set_notebook(notebook)
             self.listview.get_popup_menu().iconmenu.set_notebook(notebook)
-
+        
         # restore selections
         self._load_selections()
 
@@ -231,11 +231,8 @@ class ThreePaneViewer (Viewer):
         self.paned2.set_position(p.get("vsash_pos", DEFAULT_VSASH_POS))
         self.hpaned.set_position(p.get("hsash_pos", DEFAULT_HSASH_POS))
 
-
-        self.listview.set_date_formats(app_pref.get("timestamp_formats"))
-        self.listview.set_rules_hint(
-            app_pref.get("look_and_feel", "listview_rules",
-                         default=True))
+        self.listview.load_preferences(app_pref, first_open)
+        
         try:
             # if this version of GTK doesn't have tree-lines, ignore it
             self.treeview.set_property(
@@ -260,12 +257,14 @@ class ThreePaneViewer (Viewer):
         p["vsash_pos"] = self.paned2.get_position()
         p["hsash_pos"] = self.hpaned.get_position()
 
+        self.listview.save_preferences(app_pref)
         self.editor.save_preferences(app_pref)
 
 
     def save(self):
         """Save the current notebook"""
 
+        self.listview.save()
         self.editor.save()
         self._save_selections()
                
@@ -352,6 +351,7 @@ class ThreePaneViewer (Viewer):
                     for i in info.get(
                         "selected_listview_nodes", []))
                      if node is not None]
+
             self.listview.select_nodes(nodes)
 
     def _save_selections(self):
@@ -369,7 +369,7 @@ class ThreePaneViewer (Viewer):
                 node.get_attr("nodeid")
                 for node in self.listview.get_selected_nodes()]
             self._notebook.set_preferences_dirty()
-
+            
 
     #===============================================
     # node operations

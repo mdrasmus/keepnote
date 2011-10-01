@@ -578,12 +578,14 @@ class NoteBookNode (object):
         """Get the value of an attribute"""
         return self._attr.get(name, default)
 
+
     def set_attr(self, name, value):
         """Set the value of an attribute"""
         oldvalue = self._attr.get(name, NULL)
         self._attr[name] = value
         if value != oldvalue:
             self._set_dirty(True)
+
 
     def has_attr(self, name):
         """Returns True if node has the attribute"""
@@ -1254,12 +1256,6 @@ class NoteBook (NoteBookNode):
         for attr_def in g_default_attr_defs:
             self.attr_defs.add(attr_def)
             self._attr["attr_defs"].append(attr_def.format())
-
-
-        self._attr["column_widths"] = {
-            "title": 250,
-            "created_time": 150,
-            "modified_time": 150}
         
 
     def add_attr_def(self, attr_def):
