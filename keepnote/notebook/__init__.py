@@ -489,21 +489,67 @@ g_default_attr_defs = [
 ]
 
 
-'''
-class NoteBookTable (object):
-    def __init__(self, name, attrs=[]):
+
+class AttrTable (object):
+    def __init__(self, key, name, attrs=[]):
+        self.key = key
         self.name = name
         self.attrs = list(attrs)
-
-        # TODO: add col widths
-        # NoteBooks have tables and attrs
-
-default_notebook_table = NoteBookTable("default", attrs=[title_attr,
-                                                         created_time_attr,
-                                                         modified_time_attr])
-'''
+        
+    def format(self):
+        return {"key": self.key,
+                "name": self.name,
+                "attrs": list(self.attrs)}
 
 
+class AttrTables (object):
+    """ 
+    A collection of AttrTable's
+    """
+
+    def __init__(self):
+        self._attr_tables = {}
+
+    def add(self, attr_table):
+        self._attr_tables[attr_table.key] = attr_table
+
+    def remove(self, key):
+        if key in self._attr_tables:
+            del self._attr_tables[key]
+
+    def clear(self):
+        self._attr_tables.clear()
+
+    def get(self, key):
+        return self._attr_tables.get(key, None)
+
+    def parse(self, lst):
+        for item in lst:
+            self.add(parse_attr_table(item))
+
+    def format(self):
+        return [attr_table.format()
+                for attr_table in self._attr_tables.itervalues()]
+
+
+
+g_default_attr_tables = [
+    AttrTable(
+        "default", "Default Table", 
+        attrs=["title", "created_time", "modified_time"])]
+
+
+def format_attr_table(attr_table):
+    return attr_table.format()
+
+
+def parse_attr_table(dct):
+    return AttrTable(dct["key"], dct["name"], dct["attrs"])
+
+
+def iter_attr_tables(lst):
+    for item in lst:
+        yield parse_attr_table(item)
 
 
 #=============================================================================
@@ -1229,6 +1275,7 @@ class NoteBook (NoteBookNode):
         self._dirty = set()
         self._trash = None
         self.attr_defs = AttrDefs()
+        self.attr_tables = AttrTables()
         self._necessary_attrs = []
         
         # init notebook attributes
@@ -1251,12 +1298,21 @@ class NoteBook (NoteBookNode):
         # TODO: not being used right now
         self._necessary_attrs = ["nodeid", "created_time", "modified_time",
                                  "order"]
+
+        # init attr defs
         self.attr_defs.clear()
-        self._attr["attr_defs"] = []
+        #self._attr["attr_defs"] = []
         for attr_def in g_default_attr_defs:
             self.attr_defs.add(attr_def)
-            self._attr["attr_defs"].append(attr_def.format())
-        
+            #self._attr["attr_defs"].append(attr_def.format())
+
+        # init attr tables
+        self.attr_tables.clear()
+        #self._attr["attr_tables"] = []
+        for attr_table in g_default_attr_tables:
+            self.attr_tables.add(attr_table)
+            #self._attr["attr_tables"].append(attr_table.format())
+
 
     def add_attr_def(self, attr_def):
         """Adds a new attribute definition to the notebook"""
@@ -1275,12 +1331,16 @@ class NoteBook (NoteBookNode):
 
     def _read_attr_defs(self):
         self._init_default_attr()
-        for dct in self._attr.get("attr_defs", ()):
-            self.attr_defs.add(parse_attr_def(dct))
+        
+        self.attr_defs.parse(self._attr.get("attr_defs", ()))
+        self.attr_tables.parse(self._attr.get("attr_tables", ()))
+
+        print self.attr_tables.get("default").attrs
+
 
     def _write_attr_defs(self):
         self._attr["attr_defs"] = self.attr_defs.format()
-
+        self._attr["attr_tables"] = self.attr_tables.format()
     
     
     #===================================================
