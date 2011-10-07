@@ -462,7 +462,7 @@ def parse_attr_def(attr_def_dict):
     return AttrDef(attr_def_dict["key"],
                    attr_def_dict["datatype"],
                    attr_def_dict.get("name", attr_def_dict["key"]),
-                   attr_def_dict.get("default", None))
+                   default=attr_def_dict.get("default", None))
 
 def iter_attr_defs(lst):
     for item in lst:
@@ -485,7 +485,8 @@ g_default_attr_defs = [
     AttrDef("icon", "string", "Icon"),
     AttrDef("icon_open", "string", "Icon open"),
     AttrDef("payload_filename", "string", "Filename"),
-    AttrDef("duplicate_of", "string", "Duplicate of")
+    AttrDef("duplicate_of", "string", "Duplicate of"),
+    AttrDef("title_bgcolor", "string", "Title Background Color")
 ]
 
 
@@ -1334,8 +1335,6 @@ class NoteBook (NoteBookNode):
         
         self.attr_defs.parse(self._attr.get("attr_defs", ()))
         self.attr_tables.parse(self._attr.get("attr_tables", ()))
-
-        print self.attr_tables.get("default").attrs
 
 
     def _write_attr_defs(self):

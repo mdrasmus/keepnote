@@ -56,6 +56,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
     def __init__(self):
         basetreeview.KeepNoteBaseTreeView.__init__(self)
         self._sel_nodes = None
+
         self._date_formats = {}
         self._attr_col_widths = {"title": DEFAULT_TITLE_COL_WIDTH}
         self._columns = ["title", "created_time", "modified_time"]
@@ -97,11 +98,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
 
     def set_notebook(self, notebook):
         """Set the notebook for listview"""
-
-        #if self._notebook is not None:
-        #    # save notebook prefs
-        #    self.save()
-
+        
         basetreeview.KeepNoteBaseTreeView.set_notebook(self, notebook)
         
         if self.rich_model is not None:
@@ -161,7 +158,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         # add columns        
         for attr in self._columns:
             col = self._add_column(attr)
-            if attr == "title":
+            if attr == self._attr_title:
                 self.title_column = col
 
         # add model columns
@@ -217,7 +214,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             column.set_sort_column_id(col.pos)
 
         # add cell renders
-        if attr == "title":
+        if attr == self._attr_title:
             self._add_title_render(column, attr)
         else:
             self._add_text_render(column, attr)
@@ -227,18 +224,16 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
 
         return column
 
-
+    '''
     def _add_title_render(self, column, attr):
-
-        attr_icon = "icon"
-        attr_icon_open = "icon_open"
-
+        
         # make sure icon attributes are in model
-        self._add_model_column(attr_icon)
-        self._add_model_column(attr_icon_open)
+        self._add_model_column(self._attr_icon)
+        self._add_model_column(self._attr_icon_open)
 
         # add renders
-        cell_icon = self._add_pixbuf_render(column, attr_icon, attr_icon_open)
+        cell_icon = self._add_pixbuf_render(
+            column, self._attr_icon, self._attr_icon_open)
         title_text = self._add_text_render(column, attr, editable=True)
 
         # record reference to title_text renderer
@@ -256,6 +251,15 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         column.add_attribute(cell_text, 'text', 
                              self.rich_model.get_column_by_name(attr).pos)
         
+        
+        column.add_attribute(
+            cell_text, 'cell-background',
+            self._get_model_column("title_bgcolor").pos)
+        #column.add_attribute(
+        #    cell_text, 'foreground',
+        #    self.rich_model.get_column_by_name("title_fgcolor").pos)
+
+
         # set edit callbacks
         if editable:
             cell_text.connect("edited", lambda r,p,t: self.on_edit_attr(
@@ -273,15 +277,27 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         column.pack_start(cell, False)
         column.add_attribute(cell, 'pixbuf',
             self.rich_model.get_column_by_name(attr).pos)
+        column.add_attribute(
+            cell, 'cell-background',
+            self._get_model_column("title_bgcolor").pos)
+
         if attr_open:
             column.add_attribute(cell, 'pixbuf-expander-open',
                 self.rich_model.get_column_by_name(attr_open).pos)
 
         return cell
     
+
+    def _get_model_column(self, attr):
+        col = self.rich_model.get_column_by_name(attr)
+        if col is None:
+            self._add_model_column(attr, add_sort=False)
+            col = self.rich_model.get_column_by_name(attr)
+        return col
+
     
     def _add_model_column(self, attr, add_sort=True):
- 
+
         # get attribute definition from notebook
         attr_def = self._notebook.attr_defs.get(attr)
 
@@ -292,6 +308,8 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         else:
             datatype = "string"
             default = ""
+
+        print attr_def, attr, default
 
         # value fetching
         get = lambda node: mapfunc(node.get_attr(attr, default))
@@ -320,12 +338,12 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         
         
         # builtin column types
-        if attr == "icon":
+        if attr == self._attr_icon:
             coltype = gdk.Pixbuf
             coltype_sort = None
             get = lambda node: get_node_icon(node, False,
                                              node in self.rich_model.fades)
-        elif attr == "icon_open":
+        elif attr == self._attr_icon_open:
             coltype = gdk.Pixbuf
             coltype_sort = None
             get = lambda node: get_node_icon(node, True,
@@ -346,7 +364,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
                 col = treemodel.TreeModelColumn(
                     attr_sort, coltype_sort, attr=attr, get=get_sort)
                 self.rich_model.append_column(col)
-
+    '''
 
     def set_date_formats(self, formats):
         """Sets the date formats of the treemodel"""
