@@ -655,7 +655,7 @@ class NodeTitleCache (object):
 
     def update_attr(self, attr):
         nodeid = attr.get("nodeid", None)
-        title = attr.get("nodeid", None)
+        title = attr.get("title", None)
 
         # do nothing if nodeid is not present
         if nodeid is None:
