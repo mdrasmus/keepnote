@@ -73,6 +73,10 @@ DEFAULT_FONT_FAMILY = "Sans"
 DEFAULT_FONT_SIZE = 10
 DEFAULT_FONT = "%s %d" % (DEFAULT_FONT_FAMILY, DEFAULT_FONT_SIZE)
 
+if keepnote.get_platform() == "darwin":
+    CLIPBOARD_NAME = gdk.SELECTION_PRIMARY
+else:
+    CLIPBOARD_NAME = "CLIPBOARD"
 
 
 #=============================================================================
@@ -205,7 +209,6 @@ def update_file_preview(file_chooser, preview):
     file_chooser.set_preview_widget_active(have_preview)
 
 
-
 class FileChooserDialog (gtk.FileChooserDialog):
     """File Chooser Dialog with a persistent path"""
 
@@ -235,6 +238,7 @@ class FileChooserDialog (gtk.FileChooserDialog):
                 self._persistent_path, unicode_gtk(self.get_current_folder()))
             
         return response
+
 
 
 

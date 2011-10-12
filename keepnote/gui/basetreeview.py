@@ -43,16 +43,12 @@ from keepnote.notebook import NoteBookError
 from keepnote.gui.icons import get_node_icon
 from keepnote.gui.treemodel import \
      get_path_from_node, iter_children
-from keepnote.gui import treemodel
+from keepnote.gui import treemodel, CLIPBOARD_NAME
 
 _ = keepnote.translate
 
 
 
-if keepnote.get_platform() == "darwin":
-    CLIPBOARD_NAME = gdk.SELECTION_PRIMARY
-else:
-    CLIPBOARD_NAME = "CLIPBOARD"
 MIME_NODE_COPY = "application/x-keepnote-node-copy"
 MIME_TREE_COPY = "application/x-keepnote-tree-copy"
 MIME_NODE_CUT = "application/x-keepnote-node-cut"

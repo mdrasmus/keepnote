@@ -65,6 +65,7 @@ from keepnote.gui import \
      ToggleAction, \
      add_actions, \
      CONTEXT_MENU_ACCEL_PATH, \
+     CLIPBOARD_NAME, \
      FileChooserDialog, \
      init_key_shortcuts, \
      UIManager
@@ -83,8 +84,6 @@ from keepnote.gui.tabbed_viewer import TabbedViewer
 
 
 _ = keepnote.translate
-
-CLIPBOARD_NAME = "CLIPBOARD"
 
 
 

@@ -81,11 +81,11 @@ from .richtext_tags import \
 # richtext io
 from .richtext_html import HtmlBuffer, HtmlError
 
-from keepnote import safefile
 
-
+#from keepnote import safefile
 import keepnote
-_ = keepnote.translate
+#from keepnote.gui import get_clipboard_name
+from keepnote import translate as _
 
 
 
@@ -93,6 +93,7 @@ _ = keepnote.translate
 # constants
 DEFAULT_FONT = "Sans 10"
 TEXTVIEW_MARGIN = 5
+#CLIPBOARD_NAME = keepnote.gui.get_clipboard_name()
 if keepnote.get_platform() == "darwin":
     CLIPBOARD_NAME = gdk.SELECTION_PRIMARY
 else:
@@ -228,7 +229,8 @@ class RichTextIO (object):
             if stream:
                 out = stream
             else:
-                out = safefile.open(filename, "wb", codec="utf-8")
+                out = codecs.open(filename, "w", "utf-8")
+                #out = safefile.open(filename, "w", codec="utf-8")
             self._html_buffer.set_output(out)
             self._html_buffer.write(buffer_contents,
                                     textbuffer.tag_table,
@@ -265,7 +267,8 @@ class RichTextIO (object):
             if stream:
                 infile = stream
             else:
-                infile = safefile.open(filename, "r", codec="utf-8")
+                infile = codecs.open(filename, "r", "utf-8")
+                #infile = safefile.open(filename, "r", codec="utf-8")
             buffer_contents = self._html_buffer.read(infile)
             textbuffer.insert_contents(buffer_contents,
                                        textbuffer.get_start_iter())
