@@ -69,28 +69,15 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
             pass
 
 
+        self._setup_columns()
+        self.set_sensitive(False)
 
-        # setup model
-        self.model.append_column(
-            treemodel.TreeModelColumn(
-                "icon", gdk.Pixbuf,
-                get=lambda node: get_node_icon(node, False,
-                                               node in self.model.fades)))
-        self.model.append_column(
-            treemodel.TreeModelColumn(
-                "icon_open", gdk.Pixbuf,
-                get=lambda node: get_node_icon(node, True,
-                                               node in self.model.fades)))
-        self.model.append_column(
-            treemodel.TreeModelColumn(
-                "title", str, 
-                attr="title",
-                get=lambda node: node.get_attr("title")))
-        self.model.append_column(
-            treemodel.TreeModelColumn(
-                "title_sort", str,
-                attr="title",
-                get=lambda node: node.get_title().lower()))
+
+    def _setup_columns(self):
+
+        if self._notebook is None:
+            self.clear_columns()
+            return
 
 
         # create the treeview column
@@ -98,29 +85,8 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
         self.column.set_clickable(False)
         self.append_column(self.column)
 
-        # create a cell renderers
-        self.cell_icon = gtk.CellRendererPixbuf()
-        self.cell_text = gtk.CellRendererText()
-        self.cell_text.connect("editing-started", self.on_editing_started)
-        self.cell_text.connect("editing-canceled", self.on_editing_canceled)
-        self.cell_text.connect("edited", lambda r,p,t: self.on_edit_attr(
-            r, p, "title", t, validate=lambda t: t != ""))
-        self.cell_text.set_property("editable", True)
-
-        # add the cells to column
-        self.column.pack_start(self.cell_icon, False)
-        self.column.pack_start(self.cell_text, True)
-
-        # map cells to columns in treestore
-        self.column.add_attribute(self.cell_icon, 'pixbuf',
-                                  self.model.get_column_by_name("icon").pos)
-        self.column.add_attribute(self.cell_icon, 'pixbuf-expander-open',
-                                  self.model.get_column_by_name("icon_open").pos)
-        self.column.add_attribute(self.cell_text, 'text',
-                                  self.model.get_column_by_name("title").pos)
-
-
-        self.set_sensitive(False)
+        self._add_model_column("title")
+        self._add_title_render(self.column, "title")
 
         # make treeview searchable
         self.set_search_column(self.model.get_column_by_name("title").pos)
@@ -183,6 +149,8 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
             model.set_root_nodes([root])
             self.set_model(model)
             
+            self._setup_columns()
+
             if root.get_attr("expanded", True):
                 self.expand_to_path((0,))
 
@@ -190,7 +158,7 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
     def edit_node(self, node):
         path = treemodel.get_path_from_node(self.model, node,
                                             self.rich_model.get_node_column_pos())
-        gobject.idle_add(lambda: self.set_cursor_on_cell(path, self.column, self.cell_text, True))
+        gobject.idle_add(lambda: self.set_cursor_on_cell(path, self.column, self.title_text, True))
         #gobject.idle_add(lambda: self.scroll_to_cell(path))
 
 

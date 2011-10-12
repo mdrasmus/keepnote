@@ -204,7 +204,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                 self.model.get_model().set_notebook(notebook)
             else:
                 self.model.set_notebook(notebook)
-            
+
 
     def set_get_node(self, get_node_func=None):
 
@@ -302,6 +302,12 @@ class KeepNoteBaseTreeView (gtk.TreeView):
     #========================================
     # columns
 
+
+    def clear_columns(self):
+        for col in reversed(self.get_columns()):
+            self.remove_column(col)
+
+
     def _add_title_render(self, column, attr):
         
         # make sure icon attributes are in model
@@ -322,20 +328,20 @@ class KeepNoteBaseTreeView (gtk.TreeView):
     def _add_text_render(self, column, attr, editable=False):
 
         # cell renderer text
-        cell_text = gtk.CellRendererText()
-        cell_text.set_fixed_height_from_font(1)
-        column.pack_start(cell_text, True)
-        column.add_attribute(cell_text, 'text', 
+        cell = gtk.CellRendererText()
+        cell.set_fixed_height_from_font(1)
+        column.pack_start(cell, True)
+        column.add_attribute(cell, 'text', 
                              self.rich_model.get_column_by_name(attr).pos)
         
         
         column.add_attribute(
-            cell_text, 'cell-background',
+            cell, 'cell-background',
             self.rich_model.add_column(
                 "title_bgcolor", str,
                 lambda node: node.get_attr("title_bgcolor", None)).pos)
         column.add_attribute(
-            cell_text, 'foreground',
+            cell, 'foreground',
             self.rich_model.add_column(
                 "title_fgcolor", str,
                 lambda node: node.get_attr("title_fgcolor", None)).pos)
@@ -343,13 +349,13 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
         # set edit callbacks
         if editable:
-            cell_text.connect("edited", lambda r,p,t: self.on_edit_attr(
+            cell.connect("edited", lambda r,p,t: self.on_edit_attr(
                     r, p, attr, t, validate=lambda t: t != ""))
-            cell_text.connect("editing-started", self.on_editing_started)
-            cell_text.connect("editing-canceled", self.on_editing_canceled)
-            cell_text.set_property("editable", True)
+            cell.connect("editing-started", self.on_editing_started)
+            cell.connect("editing-canceled", self.on_editing_canceled)
+            cell.set_property("editable", True)
 
-        return cell_text
+        return cell
 
 
     def _add_pixbuf_render(self, column, attr, attr_open=None):

@@ -139,12 +139,6 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         self.model.connect("sort-column-changed", self._sort_column_changed)
 
 
-
-    def clear_columns(self):
-        for col in reversed(self.get_columns()):
-            self.remove_column(col)
-
-
     def setup_columns(self):
 
         if self._notebook is None:
