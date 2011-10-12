@@ -609,7 +609,7 @@ class NoteBookConnectionHttp (NoteBookConnection):
 
 
     def index(self, query):
-
+        
         if len(query) > 2 and query[:2] == ["search", "title"]:
             if not self._title_cache.is_complete():
                 #print "full index"
@@ -620,6 +620,11 @@ class NoteBookConnectionHttp (NoteBookConnection):
 
             #print len(self._title_cache._titles), query
             return list(self._title_cache.get(query[2]))
+
+        elif len(query) == 3 and query[0] == "get_attr" and query[2] == "icon":
+            # HACK: fetching icons is too slow right now
+            return None
+        
         else:
             return self.index_raw(query)
 
