@@ -331,17 +331,14 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         
         column.add_attribute(
             cell_text, 'cell-background',
-            self._get_model_column("title_bgcolor").pos)
-
-        # TODO: make a better get_model_column function
-        #column.add_attribute(
-        #    cell_text, 'cell-background-set',
-        #    self._get_model_column("title_bgcolor", 
-        #                           mapfunc=lambda x: x!="").pos)
-
-        #column.add_attribute(
-        #    cell_text, 'foreground',
-        #    self.rich_model.get_column_by_name("title_fgcolor").pos)
+            self.rich_model.add_column(
+                "title_bgcolor", str,
+                lambda node: node.get_attr("title_bgcolor", None)).pos)
+        column.add_attribute(
+            cell_text, 'foreground',
+            self.rich_model.add_column(
+                "title_fgcolor", str,
+                lambda node: node.get_attr("title_fgcolor", None)).pos)
 
 
         # set edit callbacks
@@ -363,7 +360,9 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             self.rich_model.get_column_by_name(attr).pos)
         column.add_attribute(
             cell, 'cell-background',
-            self._get_model_column("title_bgcolor").pos)
+            self.rich_model.add_column(
+                "title_bgcolor", str,
+                lambda node: node.get_attr("title_bgcolor", None)).pos)
 
         if attr_open:
             column.add_attribute(cell, 'pixbuf-expander-open',

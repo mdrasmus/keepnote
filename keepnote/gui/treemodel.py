@@ -179,6 +179,14 @@ class BaseTreeModel (gtk.GenericTreeModel):
         """Returns a columns with the given name""" 
         return self._columns_lookup.get(colname, None)
     
+    def add_column(self, name, coltype, get):
+        """Append column only if it does not already exist"""
+        col = self.get_column_by_name(name)
+        if col is None:
+            col = TreeModelColumn(name, coltype, get=get)
+            self.append_column(col)
+        return col
+
     def get_node_column_pos(self):
         """Returns the column position containing node objects"""
         assert self._node_column is not None
