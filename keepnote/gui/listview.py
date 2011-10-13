@@ -32,7 +32,7 @@ pygtk.require('2.0')
 import gtk, gobject, pango
 from gtk import gdk
 
-from keepnote.timestamp import get_str_timestamp
+
 from keepnote.gui import basetreeview
 from keepnote.gui import \
      get_resource, \
@@ -57,7 +57,6 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         basetreeview.KeepNoteBaseTreeView.__init__(self)
         self._sel_nodes = None
 
-        self._date_formats = {}
         self._attr_col_widths = {"title": DEFAULT_TITLE_COL_WIDTH}
         self._columns = ["title", "created_time", "modified_time"]
 
@@ -217,157 +216,6 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         self.append_column(column)
 
         return column
-
-    '''
-    def _add_title_render(self, column, attr):
-        
-        # make sure icon attributes are in model
-        self._add_model_column(self._attr_icon)
-        self._add_model_column(self._attr_icon_open)
-
-        # add renders
-        cell_icon = self._add_pixbuf_render(
-            column, self._attr_icon, self._attr_icon_open)
-        title_text = self._add_text_render(column, attr, editable=True)
-
-        # record reference to title_text renderer
-        self.title_text = title_text
-
-        return cell_icon, title_text
-
-
-    def _add_text_render(self, column, attr, editable=False):
-
-        # cell renderer text
-        cell_text = gtk.CellRendererText()
-        cell_text.set_fixed_height_from_font(1)
-        column.pack_start(cell_text, True)
-        column.add_attribute(cell_text, 'text', 
-                             self.rich_model.get_column_by_name(attr).pos)
-        
-        
-        column.add_attribute(
-            cell_text, 'cell-background',
-            self._get_model_column("title_bgcolor").pos)
-        #column.add_attribute(
-        #    cell_text, 'foreground',
-        #    self.rich_model.get_column_by_name("title_fgcolor").pos)
-
-
-        # set edit callbacks
-        if editable:
-            cell_text.connect("edited", lambda r,p,t: self.on_edit_attr(
-                    r, p, attr, t, validate=lambda t: t != ""))
-            cell_text.connect("editing-started", self.on_editing_started)
-            cell_text.connect("editing-canceled", self.on_editing_canceled)
-            cell_text.set_property("editable", True)
-
-        return cell_text
-
-
-    def _add_pixbuf_render(self, column, attr, attr_open=None):
-        
-        cell = gtk.CellRendererPixbuf()
-        column.pack_start(cell, False)
-        column.add_attribute(cell, 'pixbuf',
-            self.rich_model.get_column_by_name(attr).pos)
-        column.add_attribute(
-            cell, 'cell-background',
-            self._get_model_column("title_bgcolor").pos)
-
-        if attr_open:
-            column.add_attribute(cell, 'pixbuf-expander-open',
-                self.rich_model.get_column_by_name(attr_open).pos)
-
-        return cell
-    
-
-    def _get_model_column(self, attr):
-        col = self.rich_model.get_column_by_name(attr)
-        if col is None:
-            self._add_model_column(attr, add_sort=False)
-            col = self.rich_model.get_column_by_name(attr)
-        return col
-
-    
-    def _add_model_column(self, attr, add_sort=True):
-
-        # get attribute definition from notebook
-        attr_def = self._notebook.attr_defs.get(attr)
-
-        # get datatype
-        if attr_def is not None:
-            datatype = attr_def.datatype
-            default = attr_def.default
-        else:
-            datatype = "string"
-            default = ""
-
-        print attr_def, attr, default
-
-        # value fetching
-        get = lambda node: mapfunc(node.get_attr(attr, default))
-        get_sort = lambda node: mapfunc_sort(node.get_attr(attr, default))
-
-        # get coltype
-        mapfunc = lambda x: x
-        mapfunc_sort = lambda x: x
-        if datatype == "string":
-            coltype = str
-            coltype_sort = str
-            mapfunc_sort = lambda x: x.lower()
-        elif datatype == "integer":
-            coltype = int
-            coltype_sort = int
-        elif datatype == "float":
-            coltype = float
-            coltype_sort = float
-        elif datatype == "timestamp":
-            mapfunc = self.format_timestamp
-            coltype = str
-            coltype_sort = int
-        else:
-            coltype = str
-            coltype_sort = str
-        
-        
-        # builtin column types
-        if attr == self._attr_icon:
-            coltype = gdk.Pixbuf
-            coltype_sort = None
-            get = lambda node: get_node_icon(node, False,
-                                             node in self.rich_model.fades)
-        elif attr == self._attr_icon_open:
-            coltype = gdk.Pixbuf
-            coltype_sort = None
-            get = lambda node: get_node_icon(node, True,
-                                             node in self.rich_model.fades)
-
-
-        # get/make model column
-        col = self.rich_model.get_column_by_name(attr)
-        if col is None:
-            col = treemodel.TreeModelColumn(attr, coltype, attr=attr, get=get)
-            self.rich_model.append_column(col)
-        
-        # define column sorting
-        if coltype_sort is not None:
-            attr_sort = attr + "_sort"
-            col = self.rich_model.get_column_by_name(attr_sort)
-            if col is None:
-                col = treemodel.TreeModelColumn(
-                    attr_sort, coltype_sort, attr=attr, get=get_sort)
-                self.rich_model.append_column(col)
-    '''
-
-    def set_date_formats(self, formats):
-        """Sets the date formats of the treemodel"""
-        self._date_formats = formats
-
-
-    def format_timestamp(self, timestamp):
-        return (get_str_timestamp(timestamp, formats=self._date_formats)
-                if timestamp is not None else u"")
 
 
     #=============================================
