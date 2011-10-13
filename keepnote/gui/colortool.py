@@ -33,7 +33,7 @@ import gtk.glade
 import gobject
 import pango
 
-from keepnote.gui import get_resource_image
+from keepnote.gui import get_resource_image, get_resource_pixbuf
 
 
 FONT_LETTER = "A"
@@ -77,6 +77,9 @@ DEFAULT_COLORS = [
             (.1*m, .1*m, .1*m),                    
             (0, 0, 0),                    
         ]
+
+# convert to ints
+DEFAULT_COLORS = [map(int, color) for color in DEFAULT_COLORS]
 
 # TODO: share the same pallete between color menus
 
@@ -241,9 +244,7 @@ class ColorMenu (gtk.Menu):
 
     def on_new_color(self, menu):
         """Callback for new color"""
-        dialog = gtk.ColorSelectionDialog("Choose color")
-        dialog.colorsel.set_has_palette(True)
-        dialog.colorsel.set_has_opacity_control(False)
+        dialog = ColorSelectionDialog("Choose color")
 
         settings = gtk.settings_get_default()
         #settings.set_property("gtk-color-palette",
@@ -387,3 +388,193 @@ class BgColorTool (ColorTool):
 
         self.color = color
         self.emit("set-color", color)
+
+
+
+class ColorSelectionDialog (gtk.ColorSelectionDialog):
+
+    def __init__(self, title="Choose color"):
+        gtk.ColorSelectionDialog.__init__(self, title)
+        self.colorsel.set_has_opacity_control(False)
+
+        # hide default gtk pallete
+        self.colorsel.set_has_palette(False)
+
+        # structure of ColorSelection widget
+        # colorsel = VBox(HBox(selector, VBox(Table, VBox(Label, pallete), 
+        #                                     my_pallete)))
+        # pallete = Table(Frame(DrawingArea), ...)
+        #
+        #vbox = self.colorsel.get_children()[0].get_children()[1].get_children()[1]
+        #pallete = vbox.get_children()[1]
+
+
+        vbox = self.colorsel.get_children()[0].get_children()[1]
+
+        # label
+        label = gtk.Label(_("Pallete:"))
+        label.set_alignment(0, .5)
+        label.show()
+        vbox.pack_start(label, expand=False, fill=True, padding=0)
+
+        # pallete
+        self.pallete = ColorPallete(DEFAULT_COLORS)
+        self.pallete.connect("pick-color", self.on_pick_pallete_color)
+        self.pallete.show()
+        vbox.pack_start(self.pallete, expand=False, fill=True, padding=0)
+        
+        # pallete buttons
+        hbox = gtk.HBox(True, 5)
+        hbox.show()
+        vbox.pack_start(hbox, expand=False, fill=False, padding=0)
+        
+        # remove color
+        button = gtk.Button("new", stock=gtk.STOCK_NEW)
+        button.connect("clicked", self.on_new_color)
+        button.show()
+        hbox.pack_start(button, expand=False, fill=False, padding=0)
+
+        button = gtk.Button("delete", stock=gtk.STOCK_DELETE)
+        button.connect("clicked", self.on_delete_color)
+        button.show()
+        hbox.pack_start(button, expand=False, fill=False, padding=0)
+
+        # colorsel signals
+        def func(w):
+            color = self.colorsel.get_current_color()
+            self.pallete.set_color((color.red, color.green, color.blue))
+        self.colorsel.connect("color-changed", func)
+                              
+
+
+    def on_pick_pallete_color(self, widget, color):
+        
+        self.colorsel.set_current_color(gtk.gdk.Color(* color))
+
+
+    def on_new_color(self, widget):
+        
+        color = self.colorsel.get_current_color()
+        self.pallete.append_color((color.red, color.green, color.blue))
+
+
+    def on_delete_color(self, widget):
+        
+        self.pallete.remove_selected()
+
+
+
+class ColorPallete (gtk.IconView):
+    def __init__(self, colors=DEFAULT_COLORS, nrows=1, ncols=7):
+        gtk.IconView.__init__(self)
+        self._model = gtk.ListStore(gtk.gdk.Pixbuf, object)
+        self.colors = []
+
+        self.set_model(self._model)
+        self.set_reorderable(True)
+        self.set_property("columns", 7)
+        self.set_property("spacing", 0)
+        self.set_property("column-spacing", 0)
+        self.set_property("row-spacing", 0)
+        self.set_property("item-padding", 1)
+        self.set_property("margin", 1)
+        self.set_pixbuf_column(0)
+
+        self.connect("selection-changed", self._on_selection_changed)
+
+        self.set_colors(colors)
+
+        # TODO: could ImageColorText become a DrawingArea widget?
+        
+
+    def clear_colors(self):
+        self.colors = []
+        self._model.clear()
+
+
+    def set_colors(self, colors):
+
+        self.clear_colors()
+        self.colors = list(colors)
+
+        for color in colors:
+            self.append_color(color)
+
+
+    def append_color(self, color):
+
+        width = 30
+        height = 20
+
+        # make pixbuf
+        pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8, width, height)
+        self._draw_color(pixbuf, color, 0, 0, width, height)
+        
+        self._model.append([pixbuf, color])
+
+
+    def remove_selected(self):
+        
+        for path in self.get_selected_items():
+            self._model.remove(self._model.get_iter(path))
+
+
+    def set_color(self, color):
+
+        width = 30
+        height = 20
+
+        it = self._get_selected_iter()
+        if it:
+            pixbuf = self._model.get_value(it, 0)
+            self._draw_color(pixbuf, color, 0, 0, width, height)
+            self._model.set_value(it, 1, color)
+        pass
+
+
+    def _get_selected_iter(self):
+
+        for path in self.get_selected_items():
+            return self._model.get_iter(path)
+        return None
+        
+
+    def _on_selection_changed(self, view):
+
+        it = self._get_selected_iter()
+        if it:
+            color = self._model.get_value(it, 1)
+            self.emit("pick-color", color)
+
+        
+
+    def _draw_color(self, pixbuf, color, x, y, width, height):
+
+        border_color = (0, 0, 0)
+
+        # create pixmap
+        pixmap = gdk.Pixmap(None, width, height, 24)
+        cmap = pixmap.get_colormap()
+        gc = pixmap.new_gc()
+        color1 = cmap.alloc_color(* color)
+        color2 = cmap.alloc_color(* border_color)
+
+        # draw fill
+        gc.foreground = color1 #gtk.gdk.Color(* color)
+        pixmap.draw_rectangle(gc, True, 0, 0, width, height)
+        
+        # draw border
+        gc.foreground = color2 #gtk.gdk.Color(* border_color)
+        pixmap.draw_rectangle(gc, False, 0, 0, width-1, height-1)
+
+        pixbuf.get_from_drawable(pixmap, cmap, 0, 0, 0, 0, width, height)
+
+
+
+gobject.type_register(ColorPallete)
+gobject.signal_new("pick-color", ColorPallete, gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, (object,))
+
+
+
+
