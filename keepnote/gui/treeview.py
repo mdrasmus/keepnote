@@ -7,7 +7,7 @@
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2011 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -75,10 +75,10 @@ class KeepNoteTreeView (basetreeview.KeepNoteBaseTreeView):
 
     def _setup_columns(self):
 
-        if self._notebook is None:
-            self.clear_columns()
-            return
+        self.clear_columns()
 
+        if self._notebook is None:    
+            return
 
         # create the treeview column
         self.column = gtk.TreeViewColumn()

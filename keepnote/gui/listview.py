@@ -140,8 +140,9 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
 
     def setup_columns(self):
 
+        self.clear_columns()
+
         if self._notebook is None:
-            self.clear_columns()
             return
         
         # TODO: eventually columns may change when ever master node changes
