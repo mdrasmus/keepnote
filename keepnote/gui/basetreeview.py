@@ -44,6 +44,7 @@ from keepnote.gui.icons import get_node_icon
 from keepnote.gui.treemodel import \
      get_path_from_node, iter_children
 from keepnote.gui import treemodel, CLIPBOARD_NAME
+from keepnote.timestamp import get_str_timestamp
 
 _ = keepnote.translate
 
@@ -114,6 +115,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         self._node_col = None
         self._get_icon = None
         self._get_node = self._get_node_default
+        self._date_formats = {}
 
         self._menu = None
         
@@ -406,9 +408,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             return lambda x: x
 
     
-    def _add_model_column(self, attr, add_sort=True, 
-                          mapfunc=lambda x: x):
-
+    def _add_model_column(self, attr, add_sort=True, mapfunc=lambda x: x):
+        
         # get attribute definition from notebook
         attr_def = self._notebook.attr_defs.get(attr)
 
@@ -423,7 +424,6 @@ class KeepNoteBaseTreeView (gtk.TreeView):
 
         # value fetching
         get = lambda node: mapfunc(node.get_attr(attr, default))
-        get_sort = lambda node: mapfunc_sort(node.get_attr(attr, default))
 
         # get coltype
         mapfunc_sort = lambda x: x
@@ -466,13 +466,25 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             self.rich_model.append_column(col)
         
         # define column sorting
-        if coltype_sort is not None:
+        if add_sort and coltype_sort is not None:
             attr_sort = attr + "_sort"
             col = self.rich_model.get_column_by_name(attr_sort)
             if col is None:
+                get_sort = lambda node: mapfunc_sort(
+                    node.get_attr(attr, default))
                 col = treemodel.TreeModelColumn(
                     attr_sort, coltype_sort, attr=attr, get=get_sort)
                 self.rich_model.append_column(col)
+
+
+    def set_date_formats(self, formats):
+        """Sets the date formats of the treemodel"""
+        self._date_formats = formats
+
+
+    def format_timestamp(self, timestamp):
+        return (get_str_timestamp(timestamp, formats=self._date_formats)
+                if timestamp is not None else u"")
 
 
     #=========================================
