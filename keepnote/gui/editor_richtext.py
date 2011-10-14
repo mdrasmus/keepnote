@@ -57,7 +57,7 @@ from keepnote.gui.richtext.richtext_tags import \
 from keepnote.gui.icons import \
     get_node_icon, lookup_icon_filename
 from keepnote.gui.font_selector import FontSelector
-from keepnote.gui.colortool import FgColorTool, BgColorTool
+from keepnote.gui.colortool import FgColorTool, BgColorTool, DEFAULT_COLORS
 from keepnote.gui.richtext.richtext_tags import color_tuple_to_string
 from keepnote.gui.popupwindow import PopupWindow
 from keepnote.gui.linkcomplete import LinkPickerPopup
@@ -254,7 +254,11 @@ class RichTextEditor (KeepNoteEditor):
         else:
             # no new notebook, clear the view
             self.clear_view()
-        
+
+    def get_notebook(self):
+        """Returns notebook"""
+        return self._notebook
+
     
     def load_preferences(self, app_pref, first_open=False):
         """Load application preferences"""
@@ -882,6 +886,7 @@ class EditorMenus (gobject.GObject):
         self._uis = []
         self._font_ui_signals = []     # list of font ui widgets
         self.spell_check_toggle = None
+        self._colors = DEFAULT_COLORS
 
         self._removed_widgets = []
 
@@ -997,7 +1002,18 @@ class EditorMenus (gobject.GObject):
             self._editor.get_textview().set_font_bg_color(colorstr)
         else:
             raise Exception("unknown color type '%s'" % str(kind))
-        
+
+
+    def _on_colors_set(self, colors):
+        """Set color pallete"""
+        self._colors = list(colors)
+        self.fg_color_button.set_colors(colors)
+        self.bg_color_button.set_colors(colors)
+
+        notebook = self._editor.get_notebook()
+        if notebook:
+            pass
+
 
     def _on_choose_font(self):
         """Callback for opening Choose Font Dialog"""
@@ -1455,8 +1471,14 @@ class EditorMenus (gobject.GObject):
         #lambda ui, font:
                 #ui.widget.set_active(font.par_type == "bullet"))
 
-
+        # init colors
+        notebook = self._editor.get_notebook()
+        if notebook:
+            self._colors = DEFAULT_COLORS
+        else:
+            self._colors = DEFAULT_COLORS
         
+
         # family combo
         font_family_combo = FontSelector()
         font_family_combo.set_size_request(150, 25)
@@ -1507,10 +1529,13 @@ class EditorMenus (gobject.GObject):
         # font fg color
         # TODO: code in proper default color
         self.fg_color_button = FgColorTool(14, 15, (0, 0, 0))
+        self.fg_color_button.set_colors(self._colors)
         self.fg_color_button.set_homogeneous(False)
         self.fg_color_button.connect("set-color",
             lambda w, color: self._on_color_set(
                 "fg", self.fg_color_button, color))
+        self.fg_color_button.connect("set-colors",
+            lambda w, colors: self._on_colors_set(colors))
 
         w = uimanager.get_widget("/main_tool_bar/Viewer/Editor/Font Fg Color Tool")
         if w:
@@ -1522,11 +1547,14 @@ class EditorMenus (gobject.GObject):
 
         # font bg color
         self.bg_color_button = BgColorTool(14, 15, (65535, 65535, 65535))
+        self.bg_color_button.set_colors(self._colors)
         self.bg_color_button.set_homogeneous(False)
         self.bg_color_button.connect(
             "set-color",
             lambda w, color: self._on_color_set(
                 "bg", self.bg_color_button, color))
+        self.bg_color_button.connect("set-colors",
+            lambda w, colors: self._on_colors_set(colors))
 
         w = uimanager.get_widget("/main_tool_bar/Viewer/Editor/Font Bg Color Tool")
         if w:
