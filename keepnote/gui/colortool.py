@@ -543,6 +543,7 @@ class ColorPallete (gtk.IconView):
     def __init__(self, colors=DEFAULT_COLORS, nrows=1, ncols=7):
         gtk.IconView.__init__(self)
         self._model = gtk.ListStore(gtk.gdk.Pixbuf, object)
+        self._cell_size = [30, 20]
 
         self.set_model(self._model)
         self.set_reorderable(True)
@@ -580,10 +581,10 @@ class ColorPallete (gtk.IconView):
             lambda m, p, i: colors.append(m.get_value(i, 1)))
         return colors
 
+
     def append_color(self, color):
         """Append color to pallete"""
-        width = 30
-        height = 20
+        width, height = self._cell_size
 
         # make pixbuf
         pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, False, 8, width, height)
@@ -607,9 +608,8 @@ class ColorPallete (gtk.IconView):
 
     def set_color(self, color):
         """Sets the color of the selected cell"""
-        width = 30
-        height = 20
-
+        width, height = self._cell_size
+        
         it = self._get_selected_iter()
         if it:
             pixbuf = self._model.get_value(it, 0)
