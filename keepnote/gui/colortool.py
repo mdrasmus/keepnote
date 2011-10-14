@@ -444,7 +444,7 @@ class ColorSelectionDialog (gtk.ColorSelectionDialog):
 
         # reset colors
         button = gtk.Button(stock=gtk.STOCK_UNDO)
-        button.get_children()[0].get_child().get_children()[1].set_text("_Reset")
+        button.get_children()[0].get_child().get_children()[1].set_text_with_mnemonic("_Reset")
         button.set_relief(gtk.RELIEF_NONE)
         button.connect("clicked", self.on_reset_colors)
         button.show()
