@@ -139,9 +139,9 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
 
 
     def setup_columns(self):
-
+        
         self.clear_columns()
-
+        
         if self._notebook is None:
             return
         

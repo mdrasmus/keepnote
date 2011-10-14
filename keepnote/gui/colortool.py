@@ -33,8 +33,9 @@ import gtk.glade
 import gobject
 import pango
 
-from keepnote.gui import get_resource_image, get_resource_pixbuf
 
+#=============================================================================
+# constants
 
 FONT_LETTER = "A"
 
@@ -78,12 +79,48 @@ DEFAULT_COLORS = [
         ]
 
 # convert to ints
-m = 65535
-DEFAULT_COLORS = [tuple(int(m*c) for c in color) for color in DEFAULT_COLORS]
+DEFAULT_COLORS = [tuple(int(65535*c) for c in color) 
+                  for color in DEFAULT_COLORS]
 
-# TODO: share the same pallete between color menus
+#=============================================================================
+# color conversions
+
+def color_float_to_int8(color):
+    return (int(256*color[0]), int(256*color[1]), int(256*color[2]))
+
+def color_float_to_int16(color):
+    return (int(65535*color[0]), int(65535*color[1]), int(65535*color[2]))
+
+def color_int8_to_int16(color):
+    return (256*color[0], 256*color[1], 256*color[2])
+
+def color_int16_to_int8(color):
+    return (color[0]//256, color[1]//256, color[2]//256)
+
+def color_str_to_int8(colorstr):
+    
+    # "#AABBCC" ==> (170, 187, 204)
+    return (int(colorstr[1:3], 16),
+            int(colorstr[3:5], 16),
+            int(colorstr[5:7], 16))
+
+def color_str_to_int16(colorstr):
+    
+    # "#AABBCC" ==> (43520, 47872, 52224)
+    return (int(colorstr[1:3], 16)*256,
+            int(colorstr[3:5], 16)*256,
+            int(colorstr[5:7], 16)*256)
+
+def color_int16_to_str(color):
+    return "#%02x%02x%02x" % (color[0]//256, color[1]//256, color[2]//256)
+
+def color_int8_to_str(color):
+    return "#%02x%02x%02x" % (color[0], color[1], color[2])
 
 
+
+#=============================================================================
+# color menus
 
 class ColorTextImage (gtk.Image):
     """Image widget that display a color box with and without text"""
@@ -119,9 +156,7 @@ class ColorTextImage (gtk.Image):
 
 
     def init_colors(self):
-        self._pixmap = gdk.Pixmap(self.parent.window,
-                                  self.width, self.height, -1)
-        self.set_from_pixmap(self._pixmap, None)
+        self._pixmap = gdk.Pixmap(None, self.width, self.height, 24)
         self._colormap = self._pixmap.get_colormap()
         #self._colormap = gtk.gdk.colormap_get_system()
         #gtk.gdk.screen_get_default().get_default_colormap()
@@ -228,6 +263,8 @@ class ColorMenu (gtk.Menu):
     def on_new_color(self, menu):
         """Callback for new color"""
         dialog = ColorSelectionDialog("Choose color")
+        dialog.set_modal(True)
+        dialog.set_transient_for(self.get_toplevel()) # TODO: does this work?
         response = dialog.run()
 
         if response == gtk.RESPONSE_OK:                    
@@ -343,10 +380,6 @@ class ColorTool (gtk.MenuToolButton):
 
         self.connect("clicked", self.use_color)
         self.connect("show-menu", self.on_show_menu)
-
-        # TODO: make my own menu drop with a smaller drop arrow
-        #self.child.get_children()[1].set_image(
-        #    get_resource_image("cut.png"))
 
 
     def on_set_color(self, menu, color):
