@@ -7,7 +7,7 @@
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2011 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -38,48 +38,48 @@ from keepnote.gui import get_resource_image, get_resource_pixbuf
 
 FONT_LETTER = "A"
 
-m = 65535
-DEFAULT_COLORS = [
 
+DEFAULT_COLORS = [
             # lights
-            (m, .6*m, .6*m),
-            (m, .8*m, .6*m),
-            (m, m, .6*m),
-            (.6*m, m, .6*m),
-            (.6*m, m, m),
-            (.6*m, .6*m, m),
-            (m, .6*m, m),
+            (1, .6, .6),
+            (1, .8, .6),
+            (1, 1, .6),
+            (.6, 1, .6),
+            (.6, 1, 1),
+            (.6, .6, 1),
+            (1, .6, 1),
 
             # trues
-            (m, 0, 0),                    
-            (m, m*.64, 0),
-            (m, m, 0),                    
-            (0, m, 0),
-            (0, m, m),
-            (0, 0, m),
-            (m, 0, m),
+            (1, 0, 0),                    
+            (1, .64, 0),
+            (1, 1, 0),                    
+            (0, 1, 0),
+            (0, 1, 1),
+            (0, 0, 1),
+            (1, 0, 1),
 
             # darks
-            (.5*m, 0, 0),
-            (.5*m, .32*m, 0),
-            (.5*m, .5*m, 0),
-            (0, .5*m, 0),
-            (0, .5*m, .5*m),
-            (0, 0, .5*m),
-            (.5*m, 0, .5*m),
+            (.5, 0, 0),
+            (.5, .32, 0),
+            (.5, .5, 0),
+            (0, .5, 0),
+            (0, .5, .5),
+            (0, 0, .5),
+            (.5, 0, .5),
 
             # white, gray, black
-            (m, m, m),
-            (.9*m, .9*m, .9*m),
-            (.75*m, .75*m, .75*m),
-            (.5*m, .5*m, .5*m),
-            (.25*m, .25*m, .25*m),
-            (.1*m, .1*m, .1*m),                    
+            (1, 1, 1),
+            (.9, .9, .9),
+            (.75, .75, .75),
+            (.5, .5, .5),
+            (.25, .25, .25),
+            (.1, .1, .1),                    
             (0, 0, 0),                    
         ]
 
 # convert to ints
-DEFAULT_COLORS = [map(int, color) for color in DEFAULT_COLORS]
+m = 65535
+DEFAULT_COLORS = [tuple(int(m*c) for c in color) for color in DEFAULT_COLORS]
 
 # TODO: share the same pallete between color menus
 
@@ -424,20 +424,32 @@ class ColorSelectionDialog (gtk.ColorSelectionDialog):
         vbox.pack_start(self.pallete, expand=False, fill=True, padding=0)
         
         # pallete buttons
-        hbox = gtk.HBox(True, 5)
+        hbox = gtk.HButtonBox()
         hbox.show()
-        vbox.pack_start(hbox, expand=False, fill=False, padding=0)
+        vbox.pack_start(hbox, expand=False, fill=True, padding=0)
         
-        # remove color
+        # new color
         button = gtk.Button("new", stock=gtk.STOCK_NEW)
+        button.set_relief(gtk.RELIEF_NONE)
         button.connect("clicked", self.on_new_color)
         button.show()
         hbox.pack_start(button, expand=False, fill=False, padding=0)
 
+        # delete color
         button = gtk.Button("delete", stock=gtk.STOCK_DELETE)
+        button.set_relief(gtk.RELIEF_NONE)
         button.connect("clicked", self.on_delete_color)
         button.show()
         hbox.pack_start(button, expand=False, fill=False, padding=0)
+
+        # reset colors
+        button = gtk.Button(stock=gtk.STOCK_UNDO)
+        button.get_children()[0].get_child().get_children()[1].set_text_with_mnemonic("_Reset")
+        button.set_relief(gtk.RELIEF_NONE)
+        button.connect("clicked", self.on_reset_colors)
+        button.show()
+        hbox.pack_start(button, expand=False, fill=False, padding=0)
+        
 
         # colorsel signals
         def func(w):
@@ -455,12 +467,17 @@ class ColorSelectionDialog (gtk.ColorSelectionDialog):
     def on_new_color(self, widget):
         
         color = self.colorsel.get_current_color()
-        self.pallete.append_color((color.red, color.green, color.blue))
+        self.pallete.new_color((color.red, color.green, color.blue))
 
 
     def on_delete_color(self, widget):
         
         self.pallete.remove_selected()
+
+
+    def on_reset_colors(self, widget):
+        
+        self.pallete.set_colors(DEFAULT_COLORS)
 
 
 
@@ -517,6 +534,13 @@ class ColorPallete (gtk.IconView):
         
         for path in self.get_selected_items():
             self._model.remove(self._model.get_iter(path))
+
+
+    def new_color(self, color):
+        
+        self.append_color(color)
+        n = self._model.iter_n_children(None)
+        self.select_path((n-1,))
 
 
     def set_color(self, color):
