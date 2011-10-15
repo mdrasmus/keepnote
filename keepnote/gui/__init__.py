@@ -8,7 +8,7 @@
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2011 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -77,6 +77,58 @@ if keepnote.get_platform() == "darwin":
     CLIPBOARD_NAME = gdk.SELECTION_PRIMARY
 else:
     CLIPBOARD_NAME = "CLIPBOARD"
+
+
+
+DEFAULT_COLORS_FLOAT = [
+            # lights
+            (1, .6, .6),
+            (1, .8, .6),
+            (1, 1, .6),
+            (.6, 1, .6),
+            (.6, 1, 1),
+            (.6, .6, 1),
+            (1, .6, 1),
+
+            # trues
+            (1, 0, 0),                    
+            (1, .64, 0),
+            (1, 1, 0),                    
+            (0, 1, 0),
+            (0, 1, 1),
+            (0, 0, 1),
+            (1, 0, 1),
+
+            # darks
+            (.5, 0, 0),
+            (.5, .32, 0),
+            (.5, .5, 0),
+            (0, .5, 0),
+            (0, .5, .5),
+            (0, 0, .5),
+            (.5, 0, .5),
+
+            # white, gray, black
+            (1, 1, 1),
+            (.9, .9, .9),
+            (.75, .75, .75),
+            (.5, .5, .5),
+            (.25, .25, .25),
+            (.1, .1, .1),                    
+            (0, 0, 0),                    
+        ]
+
+
+def color_float_to_int8(color):
+    return (int(255*color[0]), int(255*color[1]), int(255*color[2]))
+
+def color_int8_to_str(color):
+    return "#%02x%02x%02x" % (color[0], color[1], color[2])
+
+
+DEFAULT_COLORS = [color_int8_to_str(color_float_to_int8(color))
+                  for color in DEFAULT_COLORS_FLOAT]
+
 
 
 #=============================================================================
@@ -557,18 +609,32 @@ class KeepNote (keepnote.KeepNote):
                        e, task.exc_info()[2])
             return None
 
+        self._init_notebook(notebook)
+            
+        return notebook
+
+
+    def _init_notebook(self, notebook):
+
+        write_needed = False
+
         # install default quick pick icons
         if len(notebook.pref.get_quick_pick_icons()) == 0:
             notebook.pref.set_quick_pick_icons(
                 list(DEFAULT_QUICK_PICK_ICONS))
             notebook.set_preferences_dirty()
+            write_needed = True
 
-            # TODO: use listeners to invoke saving
+        # install default quick pick icons
+        if len(notebook.pref.get("colors", default=())) == 0:
+            notebook.pref.set("colors", DEFAULT_COLORS)
+            notebook.set_preferences_dirty()
+            write_needed = True
+
+        # TODO: use listeners to invoke saving
+        if write_needed:
             notebook.write_preferences()
-
-            
-        return notebook
-
+        
 
     def save_notebooks(self, silent=False):
         """Save all opened notebooks"""

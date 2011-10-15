@@ -116,9 +116,7 @@ def color_int8_to_str(color):
 
 
 
-# convert to ints
-#DEFAULT_COLORS = [tuple(int(65535*c) for c in color) 
-#                  for color in DEFAULT_COLORS]
+# convert to str
 DEFAULT_COLORS = [color_int8_to_str(color_float_to_int8(color))
                   for color in DEFAULT_COLORS_FLOAT]
 
@@ -269,18 +267,22 @@ class ColorMenu (gtk.Menu):
         dialog = ColorSelectionDialog("Choose color")
         dialog.set_modal(True)
         dialog.set_transient_for(self.get_toplevel()) # TODO: does this work?
+        dialog.set_colors(self.colors)
+        
         response = dialog.run()
 
         if response == gtk.RESPONSE_OK:                    
             color = dialog.colorsel.get_current_color()
+            color = color_int16_to_str((color.red, color.green, color.blue))
             self.set_colors(dialog.get_colors())
             
-            #TODO: add new colors to pallete
-            #self.append_color([color.red, color.green, color.blue])
+            # add new color to pallete
+            if color not in self.colors:
+                self.colors.append(color)
+                self.append_color(color)
 
             self.emit("set-colors", self.colors)
-            self.emit("set-color", 
-                      color_int16_to_str((color.red, color.green, color.blue)))
+            self.emit("set-color", color)
 
         dialog.destroy()
 

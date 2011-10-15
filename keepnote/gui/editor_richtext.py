@@ -57,9 +57,7 @@ from keepnote.gui.richtext.richtext_tags import \
 from keepnote.gui.icons import \
     get_node_icon, lookup_icon_filename
 from keepnote.gui.font_selector import FontSelector
-from keepnote.gui.colortool import FgColorTool, BgColorTool, DEFAULT_COLORS, \
-    color_int16_to_str
-from keepnote.gui.richtext.richtext_tags import color_tuple_to_string
+from keepnote.gui.colortool import FgColorTool, BgColorTool
 from keepnote.gui.popupwindow import PopupWindow
 from keepnote.gui.linkcomplete import LinkPickerPopup
 from keepnote.gui.link_editor import LinkEditor
@@ -67,6 +65,7 @@ from keepnote.gui.editor import KeepNoteEditor
 from keepnote.gui import \
     CONTEXT_MENU_ACCEL_PATH, \
     DEFAULT_FONT, \
+    DEFAULT_COLORS, \
     FileChooserDialog, \
     get_pixbuf, \
     get_resource, \
@@ -412,6 +411,12 @@ class RichTextEditor (KeepNoteEditor):
 
             except NoteBookError, e:
                 self.emit("error", e.msg, e)
+
+
+        # save colors
+        if self._notebook:
+            self._notebook.pref.set("colors", list(self.editor_menus._colors))
+            self._notebook.set_preferences_dirty()
 
 
     def save_needed(self):
@@ -991,12 +996,7 @@ class EditorMenus (gobject.GObject):
         
         if color == 0:
             color = widget.color            
-
-        #if color is not None:
-        #    colorstr = color_int16_to_str(color)
-        #else:
-        #    colorstr = None
-
+        
         if kind == "fg":
             self._editor.get_textview().set_font_fg_color(color)
         elif kind == "bg":
@@ -1089,7 +1089,6 @@ class EditorMenus (gobject.GObject):
         # remove action group
         window.get_uimanager().remove_action_group(self._action_group)
         self._action_group = None
-        
 
 
     def get_actions(self):
@@ -1475,7 +1474,7 @@ class EditorMenus (gobject.GObject):
         # init colors
         notebook = self._editor.get_notebook()
         if notebook:
-            self._colors = DEFAULT_COLORS
+            self._colors = notebook.pref.get("colors", default=DEFAULT_COLORS)
         else:
             self._colors = DEFAULT_COLORS
         
