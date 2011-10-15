@@ -40,7 +40,7 @@ import pango
 FONT_LETTER = "A"
 
 
-DEFAULT_COLORS = [
+DEFAULT_COLORS_FLOAT = [
             # lights
             (1, .6, .6),
             (1, .8, .6),
@@ -78,15 +78,12 @@ DEFAULT_COLORS = [
             (0, 0, 0),                    
         ]
 
-# convert to ints
-DEFAULT_COLORS = [tuple(int(65535*c) for c in color) 
-                  for color in DEFAULT_COLORS]
 
 #=============================================================================
 # color conversions
 
 def color_float_to_int8(color):
-    return (int(256*color[0]), int(256*color[1]), int(256*color[2]))
+    return (int(255*color[0]), int(255*color[1]), int(255*color[2]))
 
 def color_float_to_int16(color):
     return (int(65535*color[0]), int(65535*color[1]), int(65535*color[2]))
@@ -117,6 +114,13 @@ def color_int16_to_str(color):
 def color_int8_to_str(color):
     return "#%02x%02x%02x" % (color[0], color[1], color[2])
 
+
+
+# convert to ints
+#DEFAULT_COLORS = [tuple(int(65535*c) for c in color) 
+#                  for color in DEFAULT_COLORS]
+DEFAULT_COLORS = [color_int8_to_str(color_float_to_int8(color))
+                  for color in DEFAULT_COLORS_FLOAT]
 
 
 #=============================================================================
@@ -165,14 +169,14 @@ class ColorTextImage (gtk.Image):
         self._context = self.get_pango_context()
         self._fontdesc = pango.FontDescription("sans bold 10")
 
-        if isinstance(self.fg_color, tuple):
-            self.fg_color = self._colormap.alloc_color(*self.fg_color)
+        if isinstance(self.fg_color, basestring):
+            self.fg_color = self._colormap.alloc_color(self.fg_color)
         elif self.fg_color is None:
             self.fg_color = self._colormap.alloc_color(
                 self.get_style().text[gtk.STATE_NORMAL])
 
-        if isinstance(self.bg_color, tuple):
-            self.bg_color = self._colormap.alloc_color(*self.bg_color)
+        if isinstance(self.bg_color, basestring):
+            self.bg_color = self._colormap.alloc_color(self.bg_color)
         elif self.bg_color is None:
             self.bg_color = self._colormap.alloc_color(
                 self.get_style().bg[gtk.STATE_NORMAL])
@@ -181,24 +185,24 @@ class ColorTextImage (gtk.Image):
         self.refresh()
 
 
-    def set_fg_color(self, red, green, blue, refresh=True):
+    def set_fg_color(self, color, refresh=True):
         """Set the color of the color chooser"""
         if self._colormap:
-            self.fg_color = self._colormap.alloc_color(red, green, blue)
+            self.fg_color = self._colormap.alloc_color(color)
             if refresh:
                 self.refresh()
         else:
-            self.fg_color = (red, green, blue)
+            self.fg_color = color
 
 
-    def set_bg_color(self, red, green, blue, refresh=True):
+    def set_bg_color(self, color, refresh=True):
         """Set the color of the color chooser"""
-        if self.bg_color:
-            self.bg_color = self._colormap.alloc_color(red, green, blue)
+        if self._colormap:
+            self.bg_color = self._colormap.alloc_color(color)
             if refresh:
                 self.refresh()
         else:
-            self.bg_color = (red, green, blue)        
+            self.bg_color = color
         
 
     def refresh(self):
@@ -275,7 +279,8 @@ class ColorMenu (gtk.Menu):
             #self.append_color([color.red, color.green, color.blue])
 
             self.emit("set-colors", self.colors)
-            self.emit("set-color", (color.red, color.green, color.blue))
+            self.emit("set-color", 
+                      color_int16_to_str((color.red, color.green, color.blue)))
 
         dialog.destroy()
 
@@ -307,7 +312,7 @@ class ColorMenu (gtk.Menu):
 
         self.colors = list(colors)
         for color in self.colors:
-            self.append_color(map(int, color), False)
+            self.append_color(color, False)
 
         # make change visible
         self.unrealize()
@@ -337,7 +342,7 @@ class ColorMenu (gtk.Menu):
         child = gtk.MenuItem("")
         child.remove(child.child)
         img = ColorTextImage(15, 15, False)                
-        img.set_bg_color(* color)
+        img.set_bg_color(color)
         child.add(img)
         child.child.show()
         child.show()
@@ -408,7 +413,7 @@ class ColorTool (gtk.MenuToolButton):
         """Set default color"""
         self.default = color
         if self.default_set:
-            self.icon.set_fg_color(*self.default)
+            self.icon.set_fg_color(self.default)
 
     def on_show_menu(self, widget):
         """Callback for when menu is displayed"""
@@ -427,8 +432,8 @@ class FgColorTool (ColorTool):
     
     def __init__(self, width, height, default):
         self.icon = ColorTextImage(width, height, True, True)
-        self.icon.set_fg_color(default[0], default[1], default[2])
-        self.icon.set_bg_color(65535, 65535, 65535)
+        self.icon.set_fg_color(default)
+        self.icon.set_bg_color("#ffffff")
         ColorTool.__init__(self, self.icon, default)
 
 
@@ -436,10 +441,10 @@ class FgColorTool (ColorTool):
         """Callback from menu"""
         if color is None:
             self.default_set = True
-            self.icon.set_fg_color(*self.default)
+            self.icon.set_fg_color(self.default)
         else:
             self.default_set = False
-            self.icon.set_fg_color(color[0], color[1], color[2])
+            self.icon.set_fg_color(color)
 
         self.color = color
         self.emit("set-color", color)
@@ -451,7 +456,7 @@ class BgColorTool (ColorTool):
     
     def __init__(self, width, height, default):
         self.icon = ColorTextImage(width, height, False, True)
-        self.icon.set_bg_color(default[0], default[1], default[2])
+        self.icon.set_bg_color(default)
         ColorTool.__init__(self, self.icon, default)
 
     
@@ -459,10 +464,10 @@ class BgColorTool (ColorTool):
         """Callback from menu"""
         if color is None:
             self.default_set = True
-            self.icon.set_bg_color(*self.default)
+            self.icon.set_bg_color(self.default)
         else:
             self.default_set = False
-            self.icon.set_bg_color(color[0], color[1], color[2])
+            self.icon.set_bg_color(color)
 
         self.color = color
         self.emit("set-color", color)
@@ -536,7 +541,8 @@ class ColorSelectionDialog (gtk.ColorSelectionDialog):
         # colorsel signals
         def func(w):
             color = self.colorsel.get_current_color()
-            self.pallete.set_color((color.red, color.green, color.blue))
+            self.pallete.set_color(
+                color_int16_to_str((color.red, color.green, color.blue)))
         self.colorsel.connect("color-changed", func)
 
 
@@ -552,13 +558,14 @@ class ColorSelectionDialog (gtk.ColorSelectionDialog):
 
     def on_pick_pallete_color(self, widget, color):
         
-        self.colorsel.set_current_color(gtk.gdk.Color(* color))
+        self.colorsel.set_current_color(gtk.gdk.Color(color))
 
 
     def on_new_color(self, widget):
         
         color = self.colorsel.get_current_color()
-        self.pallete.new_color((color.red, color.green, color.blue))
+        self.pallete.new_color(
+            color_int16_to_str((color.red, color.green, color.blue)))
 
 
     def on_delete_color(self, widget):
@@ -611,7 +618,7 @@ class ColorPallete (gtk.IconView):
         """Returns colors in pallete"""
         colors = []
         self._model.foreach(
-            lambda m, p, i: colors.append(m.get_value(i, 1)))
+                lambda m, p, i: colors.append(m.get_value(i, 1)))
         return colors
 
 
@@ -642,7 +649,7 @@ class ColorPallete (gtk.IconView):
     def set_color(self, color):
         """Sets the color of the selected cell"""
         width, height = self._cell_size
-        
+
         it = self._get_selected_iter()
         if it:
             pixbuf = self._model.get_value(it, 0)
@@ -667,14 +674,14 @@ class ColorPallete (gtk.IconView):
 
     def _draw_color(self, pixbuf, color, x, y, width, height):
         """Draws a color cell"""
-        border_color = (0, 0, 0)
+        border_color = "#000000"
 
         # create pixmap
         pixmap = gdk.Pixmap(None, width, height, 24)
         cmap = pixmap.get_colormap()
         gc = pixmap.new_gc()
-        color1 = cmap.alloc_color(* color)
-        color2 = cmap.alloc_color(* border_color)
+        color1 = cmap.alloc_color(color)
+        color2 = cmap.alloc_color(border_color)
 
         # draw fill
         gc.foreground = color1 #gtk.gdk.Color(* color)

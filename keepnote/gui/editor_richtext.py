@@ -57,7 +57,8 @@ from keepnote.gui.richtext.richtext_tags import \
 from keepnote.gui.icons import \
     get_node_icon, lookup_icon_filename
 from keepnote.gui.font_selector import FontSelector
-from keepnote.gui.colortool import FgColorTool, BgColorTool, DEFAULT_COLORS
+from keepnote.gui.colortool import FgColorTool, BgColorTool, DEFAULT_COLORS, \
+    color_int16_to_str
 from keepnote.gui.richtext.richtext_tags import color_tuple_to_string
 from keepnote.gui.popupwindow import PopupWindow
 from keepnote.gui.linkcomplete import LinkPickerPopup
@@ -991,15 +992,15 @@ class EditorMenus (gobject.GObject):
         if color == 0:
             color = widget.color            
 
-        if color is not None:
-            colorstr = color_tuple_to_string(color)
-        else:
-            colorstr = None
+        #if color is not None:
+        #    colorstr = color_int16_to_str(color)
+        #else:
+        #    colorstr = None
 
         if kind == "fg":
-            self._editor.get_textview().set_font_fg_color(colorstr)
+            self._editor.get_textview().set_font_fg_color(color)
         elif kind == "bg":
-            self._editor.get_textview().set_font_bg_color(colorstr)
+            self._editor.get_textview().set_font_bg_color(color)
         else:
             raise Exception("unknown color type '%s'" % str(kind))
 
@@ -1528,7 +1529,7 @@ class EditorMenus (gobject.GObject):
 
         # font fg color
         # TODO: code in proper default color
-        self.fg_color_button = FgColorTool(14, 15, (0, 0, 0))
+        self.fg_color_button = FgColorTool(14, 15, "#000000")
         self.fg_color_button.set_colors(self._colors)
         self.fg_color_button.set_homogeneous(False)
         self.fg_color_button.connect("set-color",
@@ -1546,7 +1547,7 @@ class EditorMenus (gobject.GObject):
             w.set_homogeneous(False)
 
         # font bg color
-        self.bg_color_button = BgColorTool(14, 15, (65535, 65535, 65535))
+        self.bg_color_button = BgColorTool(14, 15, "#ffffff")
         self.bg_color_button.set_colors(self._colors)
         self.bg_color_button.set_homogeneous(False)
         self.bg_color_button.connect(
