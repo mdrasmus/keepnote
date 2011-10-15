@@ -1254,6 +1254,8 @@ class KeepNoteWindow (gtk.Window):
             #========================================
             ("View", None, _("_View")),
 
+            ("View Note As", gtk.STOCK_OPEN, _("_View Note As")),
+
             ("View Note in File Explorer", gtk.STOCK_OPEN,
              _("View Note in File Explorer"),
              "", None,

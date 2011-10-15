@@ -54,7 +54,8 @@ from keepnote.gui import \
     Action, \
     ToggleAction, \
     FileChooserDialog, \
-    CONTEXT_MENU_ACCEL_PATH
+    CONTEXT_MENU_ACCEL_PATH, \
+    DEFAULT_COLORS
 from keepnote.history import NodeHistory
 from keepnote import notebook as notebooklib
 from keepnote.gui import richtext
@@ -71,6 +72,7 @@ from keepnote.gui.treemodel import iter_children
 from keepnote.gui.viewer import Viewer
 from keepnote.gui.icons import \
      lookup_icon_filename
+from keepnote.gui.colortool import ColorMenu
 
 _ = keepnote.translate
 
@@ -213,7 +215,13 @@ class ThreePaneViewer (Viewer):
         if self.treeview.get_popup_menu():
             self.treeview.get_popup_menu().iconmenu.set_notebook(notebook)
             self.listview.get_popup_menu().iconmenu.set_notebook(notebook)
-        
+
+            colors = self._notebook.pref.get("colors", default=DEFAULT_COLORS) \
+                if self._notebook else DEFAULT_COLORS
+            self.treeview.get_popup_menu().fgcolor_menu.set_colors(colors)
+            self.listview.get_popup_menu().bgcolor_menu.set_colors(colors)
+
+
         # restore selections
         self._load_selections()
 
@@ -840,11 +848,28 @@ class ThreePaneViewer (Viewer):
         self.treeview.set_popup_menu(menu1)
         menu1.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
         menu1.set_accel_group(uimanager.get_accel_group())
+
+        # treeview icon menu
         menu1.iconmenu = self._setup_icon_menu()
         item = uimanager.get_widget(
             "/popup_menus/treeview_popup/Change Note Icon")
         item.set_submenu(menu1.iconmenu)
         item.show()
+
+        # treeview fg color menu
+        menu1.fgcolor_menu = self._setup_color_menu("fg")
+        item = uimanager.get_widget(
+            "/popup_menus/treeview_popup/Change Fg Color")
+        item.set_submenu(menu1.fgcolor_menu)
+        item.show()
+
+        # treeview bg color menu
+        menu1.bgcolor_menu = self._setup_color_menu("bg")
+        item = uimanager.get_widget(
+            "/popup_menus/treeview_popup/Change Bg Color")
+        item.set_submenu(menu1.bgcolor_menu)
+        item.show()
+
 
 
         # listview context menu
@@ -853,10 +878,26 @@ class ThreePaneViewer (Viewer):
         self.listview.set_popup_menu(menu2)
         menu2.set_accel_group(uimanager.get_accel_group())
         menu2.set_accel_path(CONTEXT_MENU_ACCEL_PATH)
+
+        # listview icon menu
         menu2.iconmenu = self._setup_icon_menu()
         item = uimanager.get_widget(
             "/popup_menus/listview_popup/Change Note Icon")
         item.set_submenu(menu2.iconmenu)
+        item.show()
+
+        # listview fg color menu
+        menu2.fgcolor_menu = self._setup_color_menu("fg")
+        item = uimanager.get_widget(
+            "/popup_menus/listview_popup/Change Fg Color")
+        item.set_submenu(menu2.fgcolor_menu)
+        item.show()
+
+        # listview bg color menu
+        menu2.bgcolor_menu = self._setup_color_menu("bg")
+        item = uimanager.get_widget(
+            "/popup_menus/listview_popup/Change Bg Color")
+        item.set_submenu(menu2.bgcolor_menu)
         item.show()
         
 
@@ -874,6 +915,35 @@ class ThreePaneViewer (Viewer):
         iconmenu.set_notebook(self._notebook)
 
         return iconmenu
+
+
+    def _setup_color_menu(self, kind):
+        """Setup the icon menu"""
+
+        def on_set_color(w, color):
+            for node in self.get_selected_nodes():
+                if kind == "fg":
+                    attr = "title_fgcolor"
+                else:
+                    attr = "title_bgcolor"                    
+                if color:
+                    node.set_attr(attr, color)
+                else:
+                    node.del_attr(attr)
+
+        def on_set_colors(w, colors):
+            if self._notebook:
+                self._notebook.pref.set("colors", list(colors))
+            
+        colors = self._notebook.pref.get("colors", default=DEFAULT_COLORS) \
+            if self._notebook else DEFAULT_COLORS
+
+        menu = ColorMenu(colors)
+
+        menu.connect("set-color", on_set_color)
+        menu.connect("set-colors", on_set_colors)
+
+        return menu
 
 
 
@@ -982,11 +1052,14 @@ class ThreePaneViewer (Viewer):
             <menuitem action="Delete Note"/>
             <menuitem action="Rename Note"/>
             <menuitem action="Change Note Icon"/>
-            <separator/>
-            <menuitem action="View Note in File Explorer"/>
-            <menuitem action="View Note in Text Editor"/>
-            <menuitem action="View Note in Web Browser"/>
-            <menuitem action="Open File"/>
+            <menuitem action="Change Fg Color"/>
+            <menuitem action="Change Bg Color"/>
+            <menu action="View Note As">
+              <menuitem action="View Note in File Explorer"/>
+              <menuitem action="View Note in Text Editor"/>
+              <menuitem action="View Note in Web Browser"/>
+              <menuitem action="Open File"/>
+            </menu>
           </menu>
 
           <menu action="listview_popup">
@@ -1007,11 +1080,14 @@ class ThreePaneViewer (Viewer):
             <menuitem action="Delete Note"/>
             <menuitem action="Rename Note"/>
             <menuitem action="Change Note Icon"/>
-            <separator/>
-            <menuitem action="View Note in File Explorer"/>
-            <menuitem action="View Note in Text Editor"/>
-            <menuitem action="View Note in Web Browser"/>
-            <menuitem action="Open File"/>
+            <menuitem action="Change Fg Color"/>
+            <menuitem action="Change Bg Color"/>
+            <menu action="View Note As">
+              <menuitem action="View Note in File Explorer"/>
+              <menuitem action="View Note in Text Editor"/>
+              <menuitem action="View Note in Web Browser"/>
+              <menuitem action="Open File"/>
+            </menu>
           </menu>
         </menubar>
 
@@ -1111,6 +1187,10 @@ class ThreePaneViewer (Viewer):
             ("Change Note Icon", None, _("_Change Note Icon"),
              "", None, lambda w: None,
              lookup_icon_filename(None, u"folder-red.png")),
+
+            ("Change Fg Color", None, _("Change _Fg Color")),
+
+            ("Change Bg Color", None, _("Change _Bg Color")),
 
         ])
 
