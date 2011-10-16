@@ -62,7 +62,6 @@ class Listeners (object):
 
     def suppress(self, listener=None):
         """Suppress notification"""
-        
         if listener is not None:
             self._suppress[listener] += 1
         else:

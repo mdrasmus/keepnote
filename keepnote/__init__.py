@@ -749,6 +749,8 @@ class KeepNote (object):
         self._extensions = {}
         self._disabled_extensions = []
 
+        # listeners
+        self._listeners = {}
 
 
     def init(self):
@@ -978,8 +980,18 @@ class KeepNote (object):
 
 
     #================================
-    # external apps
+    # listeners
 
+    def get_listeners(self, key):
+        listeners = self._listeners.get(key, None)
+        if listeners is None:
+            listeners = Listeners()
+            self._listeners[key] = listeners
+        return listeners
+        
+
+    #================================
+    # external apps
 
     def _load_external_app_preferences(self):
         

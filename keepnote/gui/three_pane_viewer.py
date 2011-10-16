@@ -219,6 +219,8 @@ class ThreePaneViewer (Viewer):
             colors = self._notebook.pref.get("colors", default=DEFAULT_COLORS) \
                 if self._notebook else DEFAULT_COLORS
             self.treeview.get_popup_menu().fgcolor_menu.set_colors(colors)
+            self.treeview.get_popup_menu().bgcolor_menu.set_colors(colors)
+            self.listview.get_popup_menu().fgcolor_menu.set_colors(colors)
             self.listview.get_popup_menu().bgcolor_menu.set_colors(colors)
 
 
@@ -934,6 +936,12 @@ class ThreePaneViewer (Viewer):
         def on_set_colors(w, colors):
             if self._notebook:
                 self._notebook.pref.set("colors", list(colors))
+                self._app.get_listeners("colors_changed").notify(
+                    self._notebook, colors)
+
+        def on_new_colors(notebook, colors):
+            if self._notebook == notebook:
+                menu.set_colors(colors)
             
         colors = self._notebook.pref.get("colors", default=DEFAULT_COLORS) \
             if self._notebook else DEFAULT_COLORS
@@ -942,7 +950,8 @@ class ThreePaneViewer (Viewer):
 
         menu.connect("set-color", on_set_color)
         menu.connect("set-colors", on_set_colors)
-
+        self._app.get_listeners("colors_changed").add(on_new_colors)
+        
         return menu
 
 

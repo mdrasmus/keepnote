@@ -413,12 +413,6 @@ class RichTextEditor (KeepNoteEditor):
                 self.emit("error", e.msg, e)
 
 
-        # save colors
-        if self._notebook:
-            self._notebook.pref.set("colors", list(self.editor_menus._colors))
-            self._notebook.set_preferences_dirty()
-
-
     def save_needed(self):
         """Returns True if textview is modified"""
         return self._textview.is_modified()
@@ -892,7 +886,6 @@ class EditorMenus (gobject.GObject):
         self._uis = []
         self._font_ui_signals = []     # list of font ui widgets
         self.spell_check_toggle = None
-        self._colors = DEFAULT_COLORS
 
         self._removed_widgets = []
 
@@ -1007,13 +1000,16 @@ class EditorMenus (gobject.GObject):
 
     def _on_colors_set(self, colors):
         """Set color pallete"""
-        self._colors = list(colors)
-        self.fg_color_button.set_colors(colors)
-        self.bg_color_button.set_colors(colors)
 
-        notebook = self._editor.get_notebook()
+        # save colors
+        notebook = self._editor._notebook
         if notebook:
-            pass
+            notebook.pref.set("colors", list(colors))
+            notebook.set_preferences_dirty()
+
+        self._app.get_listeners("colors_changed").notify(notebook, colors)
+        
+
 
 
     def _on_choose_font(self):
@@ -1470,13 +1466,6 @@ class EditorMenus (gobject.GObject):
             update_toggle(ui, font.par_type == "bullet"))
         #lambda ui, font:
                 #ui.widget.set_active(font.par_type == "bullet"))
-
-        # init colors
-        notebook = self._editor.get_notebook()
-        if notebook:
-            self._colors = notebook.pref.get("colors", default=DEFAULT_COLORS)
-        else:
-            self._colors = DEFAULT_COLORS
         
 
         # family combo
@@ -1526,16 +1515,32 @@ class EditorMenus (gobject.GObject):
                            ui.widget.set_value(font.size)))
 
 
+
+        def on_new_colors(notebook, colors):
+            if self._editor.get_notebook() == notebook:
+                self.fg_color_button.set_colors(colors)
+                self.bg_color_button.set_colors(colors)
+
+
+
+        # init colors
+        notebook = self._editor.get_notebook()
+        if notebook:
+            colors = notebook.pref.get("colors", default=DEFAULT_COLORS)
+        else:
+            colors = DEFAULT_COLORS        
+
         # font fg color
         # TODO: code in proper default color
         self.fg_color_button = FgColorTool(14, 15, "#000000")
-        self.fg_color_button.set_colors(self._colors)
+        self.fg_color_button.set_colors(colors)
         self.fg_color_button.set_homogeneous(False)
         self.fg_color_button.connect("set-color",
             lambda w, color: self._on_color_set(
                 "fg", self.fg_color_button, color))
         self.fg_color_button.connect("set-colors",
             lambda w, colors: self._on_colors_set(colors))
+
 
         w = uimanager.get_widget("/main_tool_bar/Viewer/Editor/Font Fg Color Tool")
         if w:
@@ -1547,7 +1552,7 @@ class EditorMenus (gobject.GObject):
 
         # font bg color
         self.bg_color_button = BgColorTool(14, 15, "#ffffff")
-        self.bg_color_button.set_colors(self._colors)
+        self.bg_color_button.set_colors(colors)
         self.bg_color_button.set_homogeneous(False)
         self.bg_color_button.connect(
             "set-color",
@@ -1563,6 +1568,8 @@ class EditorMenus (gobject.GObject):
             w.add(self.bg_color_button)
             self.bg_color_button.show()
             w.set_homogeneous(False)
+
+        self._app.get_listeners("colors_changed").add(on_new_colors)
 
 
         # get spell check toggle

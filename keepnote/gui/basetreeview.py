@@ -366,11 +366,11 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         column.pack_start(cell, False)
         column.add_attribute(cell, 'pixbuf',
             self.rich_model.get_column_by_name(attr).pos)
-        column.add_attribute(
-            cell, 'cell-background',
-            self.rich_model.add_column(
-                "title_bgcolor", str,
-                lambda node: node.get_attr("title_bgcolor", None)).pos)
+        #column.add_attribute(
+        #    cell, 'cell-background',
+        #    self.rich_model.add_column(
+        #        "title_bgcolor", str,
+        #        lambda node: node.get_attr("title_bgcolor", None)).pos)
 
         if attr_open:
             column.add_attribute(cell, 'pixbuf-expander-open',

@@ -299,8 +299,10 @@ class ColorMenu (gtk.Menu):
 
     def clear_colors(self):
         """Clears color pallete"""
+        children = set(self.get_children())
         for item in reversed(self.color_items):
-            self.remove(item)
+            if item in children:
+                self.remove(item)
         self.posi = 4
         self.posj = 0
         self.color_items = []
@@ -316,6 +318,7 @@ class ColorMenu (gtk.Menu):
         for color in self.colors:
             self.append_color(color, False)
 
+        # TODO: add check for visible
         # make change visible
         self.unrealize()
         self.realize()
@@ -360,6 +363,8 @@ gobject.type_register(ColorMenu)
 gobject.signal_new("set-color", ColorMenu, gobject.SIGNAL_RUN_LAST, 
                    gobject.TYPE_NONE, (object,))
 gobject.signal_new("set-colors", ColorMenu, gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, (object,))
+gobject.signal_new("get-colors", ColorMenu, gobject.SIGNAL_RUN_LAST, 
                    gobject.TYPE_NONE, (object,))
 
 
@@ -419,6 +424,7 @@ class ColorTool (gtk.MenuToolButton):
 
     def on_show_menu(self, widget):
         """Callback for when menu is displayed"""
+        self.emit("get-colors")
         self.menu.set_colors(self.colors)
 
 
@@ -427,6 +433,8 @@ gobject.signal_new("set-color", ColorTool, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, (object,))
 gobject.signal_new("set-colors", ColorTool, gobject.SIGNAL_RUN_LAST, 
                    gobject.TYPE_NONE, (object,))
+gobject.signal_new("get-colors", ColorTool, gobject.SIGNAL_RUN_LAST, 
+                   gobject.TYPE_NONE, ())
 
 
 class FgColorTool (ColorTool):
