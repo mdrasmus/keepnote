@@ -1421,6 +1421,16 @@ class EditorMenus (gobject.GObject):
                 widget = ui.widget.get_proxies()[0]
                 widget.set_active(active)
 
+        def replace_widget(path, widget):
+            w = uimanager.get_widget(path)
+            if w:
+                self._removed_widgets.append(w.child)
+                w.remove(w.child)
+                w.add(widget)
+                widget.show()
+                w.set_homogeneous(False)
+
+
         self.setup_font_toggle(
             uimanager, "/main_tool_bar/Viewer/Editor/Bold Tool", 
             update_func=lambda ui, font: update_toggle(ui, font.mods["bold"]))
@@ -1464,30 +1474,20 @@ class EditorMenus (gobject.GObject):
             uimanager, "/main_tool_bar/Viewer/Editor/Bullet List Tool", 
             update_func=lambda ui, font:
             update_toggle(ui, font.par_type == "bullet"))
-        #lambda ui, font:
-                #ui.widget.set_active(font.par_type == "bullet"))
         
 
         # family combo
         font_family_combo = FontSelector()
         font_family_combo.set_size_request(150, 25)
-
-
-        # TODO: make proper custom tools
-        
-        w = uimanager.get_widget("/main_tool_bar/Viewer/Editor/Font Selector Tool")
-        if w:
-            self._removed_widgets.append(w.child)
-            w.remove(w.child)
-            w.add(font_family_combo)
-            font_family_combo.show()
-            font_family_id = font_family_combo.connect("changed",
-                                                       self._on_family_set)
-            self._font_ui_signals.append(
-                FontUI(font_family_combo,
-                       font_family_id,
-                       update_func=lambda ui, font: 
-                       ui.widget.set_family(font.family)))
+        replace_widget("/main_tool_bar/Viewer/Editor/Font Selector Tool",
+                       font_family_combo)
+        font_family_id = font_family_combo.connect("changed",
+                                                   self._on_family_set)
+        self._font_ui_signals.append(
+            FontUI(font_family_combo,
+                   font_family_id,
+                   update_func=lambda ui, font: 
+                   ui.widget.set_family(font.family)))
 
         # font size
         DEFAULT_FONT_SIZE = 10
@@ -1497,31 +1497,26 @@ class EditorMenus (gobject.GObject):
         font_size_button.set_size_request(-1, 25)
         font_size_button.set_value(DEFAULT_FONT_SIZE)
         font_size_button.set_editable(False)
-        
-        w = uimanager.get_widget("/main_tool_bar/Viewer/Editor/Font Size Tool")
-        if w:
-            self._removed_widgets.append(w.child)
-            w.remove(w.child)
-            w.add(font_size_button)
-            font_size_button.show()
-            w.set_homogeneous(False)
-            font_size_id = font_size_button.connect("value-changed",
-                lambda w: 
-                self._on_font_size_change(font_size_button.get_value()))
-            self._font_ui_signals.append(
-                FontUI(font_size_button,
-                       font_size_id,
-                       update_func=lambda ui, font:
-                           ui.widget.set_value(font.size)))
+        replace_widget("/main_tool_bar/Viewer/Editor/Font Size Tool",
+                       font_size_button)
 
+        font_size_id = font_size_button.connect(
+            "value-changed",
+            lambda w: 
+            self._on_font_size_change(font_size_button.get_value()))
+        self._font_ui_signals.append(
+            FontUI(font_size_button,
+                   font_size_id,
+                   update_func=lambda ui, font:
+                       ui.widget.set_value(font.size)))
 
 
         def on_new_colors(notebook, colors):
             if self._editor.get_notebook() == notebook:
                 self.fg_color_button.set_colors(colors)
                 self.bg_color_button.set_colors(colors)
-
-
+        self._app.get_listeners("colors_changed").add(on_new_colors)
+        
 
         # init colors
         notebook = self._editor.get_notebook()
@@ -1529,6 +1524,7 @@ class EditorMenus (gobject.GObject):
             colors = notebook.pref.get("colors", default=DEFAULT_COLORS)
         else:
             colors = DEFAULT_COLORS        
+
 
         # font fg color
         # TODO: code in proper default color
@@ -1540,15 +1536,8 @@ class EditorMenus (gobject.GObject):
                 "fg", self.fg_color_button, color))
         self.fg_color_button.connect("set-colors",
             lambda w, colors: self._on_colors_set(colors))
-
-
-        w = uimanager.get_widget("/main_tool_bar/Viewer/Editor/Font Fg Color Tool")
-        if w:
-            self._removed_widgets.append(w.child)
-            w.remove(w.child)
-            w.add(self.fg_color_button)
-            self.fg_color_button.show()
-            w.set_homogeneous(False)
+        replace_widget("/main_tool_bar/Viewer/Editor/Font Fg Color Tool",
+                       self.fg_color_button)
 
         # font bg color
         self.bg_color_button = BgColorTool(14, 15, "#ffffff")
@@ -1560,16 +1549,8 @@ class EditorMenus (gobject.GObject):
                 "bg", self.bg_color_button, color))
         self.bg_color_button.connect("set-colors",
             lambda w, colors: self._on_colors_set(colors))
-
-        w = uimanager.get_widget("/main_tool_bar/Viewer/Editor/Font Bg Color Tool")
-        if w:
-            self._removed_widgets.append(w.child)
-            w.remove(w.child)
-            w.add(self.bg_color_button)
-            self.bg_color_button.show()
-            w.set_homogeneous(False)
-
-        self._app.get_listeners("colors_changed").add(on_new_colors)
+        replace_widget("/main_tool_bar/Viewer/Editor/Font Bg Color Tool",
+                       self.bg_color_button)
 
 
         # get spell check toggle
