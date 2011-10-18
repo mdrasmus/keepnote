@@ -898,7 +898,9 @@ class NoteBookNode (object):
     
     def rename(self, title):
         """Renames the title of the node"""
-                
+        
+        # TODO: keep attach file names in sync
+
         self.set_attr("title", title)
         self.save()
 

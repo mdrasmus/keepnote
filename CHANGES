@@ -1,8 +1,18 @@
 KeepNote Change Log
 -------------------
 
-keepnote-0.7.5
+keepnote-0.7.6
 --------------
+- added foreground and background colors to treeview and listview
+- added color palletes saving
+- added listview column width saving
+- added frequent VACUUM sqlite command to notebook index
+- fixed windows My Documents location within virtual folders
+- fixed windows linking bug
+
+
+keepnote-0.7.5 (2011.9.14)
+--------------------------
 - added drag and drop attachment for windows
 - fixed indent at start of first line bug
 - fixed uneven indent
