@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: keepnote 0.5.3\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2011-07-08 09:49-0400\n"
+"POT-Creation-Date: 2011-10-19 11:01-0400\n"
 "PO-Revision-Date: 2009-07-09 07:47+0300\n"
 "Last-Translator: Yuce Tekol <yucetekol@gmail.com>\n"
 "Language-Team: Turkish\n"
@@ -17,16 +17,16 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-#: keepnote/__init__.py:682
+#: keepnote/__init__.py:683
 msgid "Cannot save preferences"
 msgstr ""
 
-#: keepnote/__init__.py:1027 keepnote/__init__.py:1029
+#: keepnote/__init__.py:1045 keepnote/__init__.py:1047
 #, python-format
 msgid "Must specify '%s' program in Helper Applications"
 msgstr ""
 
-#: keepnote/__init__.py:1050
+#: keepnote/__init__.py:1068
 #, python-format
 msgid ""
 "Error occurred while opening file with %s.\n"
@@ -38,88 +38,88 @@ msgid ""
 "error: %s"
 msgstr ""
 
-#: keepnote/__init__.py:1081
+#: keepnote/__init__.py:1099
 msgid "Unable to determine note type."
 msgstr ""
 
-#: keepnote/__init__.py:1111
+#: keepnote/__init__.py:1131
 msgid "You must specify a Screen Shot program in Application Options"
 msgstr ""
 
-#: keepnote/__init__.py:1123
+#: keepnote/__init__.py:1143
 #, python-format
 msgid "The screenshot program did not create the necessary image file '%s'"
 msgstr ""
 
-#: keepnote/__init__.py:1144
+#: keepnote/__init__.py:1164
 #, python-format
 msgid "command '%s' already exists"
 msgstr ""
 
-#: keepnote/__init__.py:1174 keepnote/__init__.py:1366
+#: keepnote/__init__.py:1194 keepnote/__init__.py:1386
 #, python-format
 msgid "enabling extension '%s'\n"
 msgstr ""
 
-#: keepnote/__init__.py:1179
+#: keepnote/__init__.py:1199
 #, python-format
 msgid "  skipping extension '%s':\n"
 msgstr ""
 
-#: keepnote/__init__.py:1182
+#: keepnote/__init__.py:1202
 #, python-format
 msgid "    failed dependency: %s\n"
 msgstr ""
 
-#: keepnote/__init__.py:1349
+#: keepnote/__init__.py:1369
 #, python-format
 msgid "Unable to install extension '%s'"
 msgstr ""
 
-#: keepnote/__init__.py:1355
+#: keepnote/__init__.py:1375
 #, python-format
 msgid "removing '%s'"
 msgstr ""
 
-#: keepnote/__init__.py:1364
+#: keepnote/__init__.py:1384
 msgid "Enabling new extensions:\n"
 msgstr ""
 
-#: keepnote/__init__.py:1379
+#: keepnote/__init__.py:1399
 #, python-format
 msgid "Unable to uninstall unknown extension '%s'."
 msgstr ""
 
-#: keepnote/__init__.py:1384
+#: keepnote/__init__.py:1404
 msgid "KeepNote can only uninstall user extensions"
 msgstr ""
 
-#: keepnote/__init__.py:1401
+#: keepnote/__init__.py:1414
 msgid "Unable to uninstall extension.  Do not have permission."
 msgstr ""
 
-#: keepnote/gui/editor_text.py:407 keepnote/gui/editor_sourceview.py:473
-#: keepnote/gui/editor_richtext.py:1103
+#: keepnote/gui/editor_text.py:407 keepnote/gui/editor_sourceview.py:474
+#: keepnote/gui/editor_richtext.py:1115
 msgid "_Find In Page..."
 msgstr "Sayfada _Bul..."
 
-#: keepnote/gui/editor_text.py:411 keepnote/gui/editor_sourceview.py:477
-#: keepnote/gui/editor_richtext.py:1107
+#: keepnote/gui/editor_text.py:411 keepnote/gui/editor_sourceview.py:478
+#: keepnote/gui/editor_richtext.py:1119
 msgid "Find _Next In Page..."
 msgstr "_Sonraki Sayfada Bul..."
 
-#: keepnote/gui/editor_text.py:416 keepnote/gui/editor_sourceview.py:482
-#: keepnote/gui/editor_richtext.py:1112
+#: keepnote/gui/editor_text.py:416 keepnote/gui/editor_sourceview.py:483
+#: keepnote/gui/editor_richtext.py:1124
 msgid "Find Pre_vious In Page..."
 msgstr "_Önceki Sayfada Bul..."
 
-#: keepnote/gui/editor_text.py:421 keepnote/gui/editor_sourceview.py:487
-#: keepnote/gui/editor_richtext.py:1117
+#: keepnote/gui/editor_text.py:421 keepnote/gui/editor_sourceview.py:488
+#: keepnote/gui/editor_richtext.py:1129
 msgid "_Replace In Page..."
 msgstr "Sayfada _Değiştir..."
 
-#: keepnote/gui/editor_text.py:427 keepnote/gui/editor_sourceview.py:493
-#: keepnote/gui/editor_richtext.py:1231
+#: keepnote/gui/editor_text.py:427 keepnote/gui/editor_sourceview.py:494
+#: keepnote/gui/editor_richtext.py:1243
 msgid "_Spell Check"
 msgstr "_Yazım Denetimi"
 
@@ -139,301 +139,308 @@ msgstr "genişlik:"
 msgid "height:"
 msgstr "yükseklik:"
 
-#: keepnote/gui/main_window.py:504
+#: keepnote/gui/colortool.py:512
+msgid "Pallete:"
+msgstr ""
+
+#: keepnote/gui/main_window.py:503
 msgid "New Notebook"
 msgstr "Yeni Defter"
 
-#: keepnote/gui/main_window.py:506 keepnote/gui/main_window.py:526
+#: keepnote/gui/main_window.py:505 keepnote/gui/main_window.py:525
 #: keepnote/gui/dialog_app_options.py:59
-#: keepnote/gui/dialog_app_options.py:692 keepnote/gui/__init__.py:750
+#: keepnote/gui/dialog_app_options.py:692 keepnote/gui/__init__.py:826
 #: keepnote/gui/dialog_update_notebook.py:134
-#: keepnote/gui/editor_richtext.py:650 keepnote/gui/editor_richtext.py:794
+#: keepnote/gui/editor_richtext.py:654 keepnote/gui/editor_richtext.py:798
 #: keepnote/gui/dialog_node_icon.py:62
 msgid "Cancel"
 msgstr "İptal"
 
-#: keepnote/gui/main_window.py:507
+#: keepnote/gui/main_window.py:506
 msgid "New"
 msgstr "Yeni"
 
-#: keepnote/gui/main_window.py:524
+#: keepnote/gui/main_window.py:523
 msgid "Open Notebook"
 msgstr "Defter Aç"
 
-#: keepnote/gui/main_window.py:527 keepnote/gui/dialog_app_options.py:60
+#: keepnote/gui/main_window.py:526 keepnote/gui/dialog_app_options.py:60
 #: keepnote/gui/dialog_app_options.py:693 keepnote/gui/dialog_node_icon.py:63
 msgid "Open"
 msgstr "Aç"
 
-#: keepnote/gui/main_window.py:542
+#: keepnote/gui/main_window.py:541
 msgid "Notebook (*.nbk)"
 msgstr "Defter (*.nbk)"
 
-#: keepnote/gui/main_window.py:547 keepnote/gui/dialog_app_options.py:704
+#: keepnote/gui/main_window.py:546 keepnote/gui/dialog_app_options.py:704
 msgid "All files (*.*)"
 msgstr "Tüm dosyalar (*.*)"
 
-#: keepnote/gui/main_window.py:618
+#: keepnote/gui/main_window.py:660
 msgid "Notebook saved"
 msgstr "Defter kaydedildi"
 
-#: keepnote/gui/main_window.py:622
+#: keepnote/gui/main_window.py:664
 msgid "Could not save notebook."
 msgstr "Defter kaydedilemedi."
 
-#: keepnote/gui/main_window.py:623
+#: keepnote/gui/main_window.py:665
 msgid "Error saving notebook"
 msgstr "Defteri kaydederken hata oluştu"
 
-#: keepnote/gui/main_window.py:632
+#: keepnote/gui/main_window.py:674
 msgid "Reloading only works when a notebook is open."
 msgstr "Tekrar yükleme sadece bir defter açıkken yapılabilir."
 
-#: keepnote/gui/main_window.py:639
+#: keepnote/gui/main_window.py:681
 msgid "Notebook reloaded"
 msgstr "Defter tekrar yüklendi"
 
-#: keepnote/gui/main_window.py:655
+#: keepnote/gui/main_window.py:698
 #, python-format
 msgid "Created '%s'"
 msgstr "'%s' yaratıldı"
 
-#: keepnote/gui/main_window.py:657
+#: keepnote/gui/main_window.py:700
 msgid "Could not create new notebook."
 msgstr "Yeni defter yaratılamadı."
 
-#: keepnote/gui/main_window.py:805
-#, python-format
-msgid "Could note find notebook '%s'."
-msgstr ""
-
-#: keepnote/gui/main_window.py:818
+#: keepnote/gui/main_window.py:861
 #, python-format
 msgid "Loaded '%s'"
 msgstr "'%s' yüklendi"
 
-#: keepnote/gui/main_window.py:835
+#: keepnote/gui/main_window.py:878
 msgid "Notebook closed"
 msgstr "Defter kapatıldı"
 
-#: keepnote/gui/main_window.py:870
+#: keepnote/gui/main_window.py:913
 msgid "Error during index"
 msgstr ""
 
-#: keepnote/gui/main_window.py:874
+#: keepnote/gui/main_window.py:917
 msgid "Indexing notebook"
 msgstr ""
 
-#: keepnote/gui/main_window.py:874
+#: keepnote/gui/main_window.py:917
 msgid "Indexing..."
 msgstr ""
 
-#: keepnote/gui/main_window.py:898
+#: keepnote/gui/main_window.py:941
 msgid "Notebook modified"
 msgstr "Defter değştirildi"
 
-#: keepnote/gui/main_window.py:933 keepnote/compat/notebook_v3.py:1278
-#: keepnote/notebook/__init__.py:1404
+#: keepnote/gui/main_window.py:976 keepnote/compat/notebook_v4.py:1404
+#: keepnote/compat/notebook_v3.py:1278 keepnote/notebook/__init__.py:1509
 msgid "The Trash folder cannot be deleted."
 msgstr "Çöp klasörü silinemez."
 
-#: keepnote/gui/main_window.py:936
+#: keepnote/gui/main_window.py:979
 msgid "The top-level folder cannot be deleted."
 msgstr "En üst seviye klasör silinemez."
 
-#: keepnote/gui/main_window.py:940
+#: keepnote/gui/main_window.py:983
 msgid "Do you want to delete this note and all of its children?"
 msgstr "Bu notu ve tüm altnotlarını silmek mi istiyorsunuz?"
 
-#: keepnote/gui/main_window.py:942
+#: keepnote/gui/main_window.py:985
 msgid "Do you want to delete this note?"
 msgstr "Bu notu silmek mi istiyorsunuz"
 
-#: keepnote/gui/main_window.py:944
+#: keepnote/gui/main_window.py:987
 msgid "Delete Note"
 msgstr ""
 
-#: keepnote/gui/main_window.py:957
+#: keepnote/gui/main_window.py:1000
 msgid "Could not empty trash."
 msgstr "Çöp boşaltılamadı"
 
-#: keepnote/gui/main_window.py:972
+#: keepnote/gui/main_window.py:1015
 msgid "No notes are selected."
 msgstr "Hiç not seçilmedi."
 
-#: keepnote/gui/main_window.py:1036 keepnote/gui/main_window.py:1047
+#: keepnote/gui/main_window.py:1079 keepnote/gui/main_window.py:1090
 msgid "Could not open error log"
 msgstr "Hata kaydı açılamadı."
 
-#: keepnote/gui/main_window.py:1131
+#: keepnote/gui/main_window.py:1174
 msgid "_File"
 msgstr "_Dosya"
 
-#: keepnote/gui/main_window.py:1133
+#: keepnote/gui/main_window.py:1176
 msgid "_New Notebook..."
 msgstr "_Yeni Defter"
 
-#: keepnote/gui/main_window.py:1134
+#: keepnote/gui/main_window.py:1177
 msgid "Start a new notebook"
 msgstr "Yeni bir deftere başla"
 
-#: keepnote/gui/main_window.py:1137
+#: keepnote/gui/main_window.py:1180
 msgid "_Open Notebook..."
 msgstr "Defter _Aç..."
 
-#: keepnote/gui/main_window.py:1138
+#: keepnote/gui/main_window.py:1181
 msgid "Open an existing notebook"
 msgstr "Varolan bir defteri aç"
 
-#: keepnote/gui/main_window.py:1142
+#: keepnote/gui/main_window.py:1185
 msgid "Open Re_cent Notebook"
 msgstr ""
 
-#: keepnote/gui/main_window.py:1145
+#: keepnote/gui/main_window.py:1188
 msgid "_Reload Notebook"
 msgstr "Defteri _Tekrar Yükle"
 
-#: keepnote/gui/main_window.py:1146
+#: keepnote/gui/main_window.py:1189
 msgid "Reload the current notebook"
 msgstr "Güncel defteri tekrar yükle"
 
-#: keepnote/gui/main_window.py:1149
+#: keepnote/gui/main_window.py:1192
 msgid "_Save Notebook"
 msgstr "Defteri _Kaydet"
 
-#: keepnote/gui/main_window.py:1150
+#: keepnote/gui/main_window.py:1193
 msgid "Save the current notebook"
 msgstr "Güncel defteri kaydet"
 
-#: keepnote/gui/main_window.py:1153
+#: keepnote/gui/main_window.py:1196
 msgid "_Close Notebook"
 msgstr "Defteri K_apat"
 
-#: keepnote/gui/main_window.py:1154
+#: keepnote/gui/main_window.py:1197
 msgid "Close the current notebook"
 msgstr "Güncel defteri kapat"
 
-#: keepnote/gui/main_window.py:1157
-msgid "_Export Notebook"
-msgstr ""
-
-#: keepnote/gui/main_window.py:1159
-msgid "_Import Notebook"
-msgstr ""
-
-#: keepnote/gui/main_window.py:1161 keepnote/gui/main_window.py:1391
-msgid "_Quit"
-msgstr "_Çıkış"
-
-#: keepnote/gui/main_window.py:1162 keepnote/gui/main_window.py:1392
-msgid "Quit KeepNote"
-msgstr "KeepNote uygulamasından çık"
-
-#: keepnote/gui/main_window.py:1166
-msgid "_Edit"
-msgstr ""
-
-#: keepnote/gui/main_window.py:1192
+#: keepnote/gui/main_window.py:1200
 msgid "Empty _Trash"
 msgstr "Çöpü _Boşalt"
 
-#: keepnote/gui/main_window.py:1197
-msgid "_Search"
-msgstr "_Aramak"
-
-#: keepnote/gui/main_window.py:1199
-msgid "_Search All Notes"
-msgstr "_Tüm notları ara"
-
 #: keepnote/gui/main_window.py:1204
-msgid "_Go"
+msgid "_Export Notebook"
 msgstr ""
 
-#: keepnote/gui/main_window.py:1207
-msgid "_View"
-msgstr "_Göster"
-
-#: keepnote/gui/main_window.py:1210
-msgid "View Note in File Explorer"
-msgstr "Notu Dosya Yöneticisinde Göster"
-
-#: keepnote/gui/main_window.py:1216
-msgid "View Note in Text Editor"
-msgstr "Notu Metin Düzenleyicide Göster"
-
-#: keepnote/gui/main_window.py:1222
-msgid "View Note in Web Browser"
-msgstr "Notu Web Tarayıcısında Göster"
-
-#: keepnote/gui/main_window.py:1228
-msgid "_Open File"
-msgstr "_Belge Aç"
-
-#: keepnote/gui/main_window.py:1235
-msgid "_Tools"
+#: keepnote/gui/main_window.py:1206
+msgid "_Import Notebook"
 msgstr ""
 
-#: keepnote/gui/main_window.py:1237
-msgid "_Update Notebook Index"
+#: keepnote/gui/main_window.py:1208 keepnote/gui/main_window.py:1442
+msgid "_Quit"
+msgstr "_Çıkış"
+
+#: keepnote/gui/main_window.py:1209 keepnote/gui/main_window.py:1443
+msgid "Quit KeepNote"
+msgstr "KeepNote uygulamasından çık"
+
+#: keepnote/gui/main_window.py:1213
+msgid "_Edit"
 msgstr ""
 
-#: keepnote/gui/main_window.py:1241 keepnote/gui/main_window.py:1388
+#: keepnote/gui/main_window.py:1239 keepnote/gui/main_window.py:1439
 msgid "_Preferences"
 msgstr "_Seçenekleri"
 
-#: keepnote/gui/main_window.py:1246
-msgid "Window"
-msgstr ""
+#: keepnote/gui/main_window.py:1245
+msgid "_Search"
+msgstr "_Aramak"
 
-#: keepnote/gui/main_window.py:1248
-msgid "New Window"
-msgstr ""
-
-#: keepnote/gui/main_window.py:1249
-msgid "Open a new window"
-msgstr ""
+#: keepnote/gui/main_window.py:1247
+msgid "_Search All Notes"
+msgstr "_Tüm notları ara"
 
 #: keepnote/gui/main_window.py:1252
-msgid "Close Window"
+msgid "_Go"
 msgstr ""
 
-#: keepnote/gui/main_window.py:1253
-msgid "Close window"
-msgstr ""
+#: keepnote/gui/main_window.py:1255
+msgid "_View"
+msgstr "_Göster"
 
-#: keepnote/gui/main_window.py:1258
-msgid "_Help"
+#: keepnote/gui/main_window.py:1257
+msgid "_View Note As"
 msgstr ""
 
 #: keepnote/gui/main_window.py:1260
+msgid "View Note in File Explorer"
+msgstr "Notu Dosya Yöneticisinde Göster"
+
+#: keepnote/gui/main_window.py:1266
+msgid "View Note in Text Editor"
+msgstr "Notu Metin Düzenleyicide Göster"
+
+#: keepnote/gui/main_window.py:1272
+msgid "View Note in Web Browser"
+msgstr "Notu Web Tarayıcısında Göster"
+
+#: keepnote/gui/main_window.py:1278
+msgid "_Open File"
+msgstr "_Belge Aç"
+
+#: keepnote/gui/main_window.py:1285
+msgid "_Tools"
+msgstr ""
+
+#: keepnote/gui/main_window.py:1287
+msgid "_Update Notebook Index"
+msgstr ""
+
+#: keepnote/gui/main_window.py:1291
+msgid "_Open Notebook from URL"
+msgstr ""
+
+#: keepnote/gui/main_window.py:1296
+msgid "Window"
+msgstr ""
+
+#: keepnote/gui/main_window.py:1298
+msgid "New Window"
+msgstr ""
+
+#: keepnote/gui/main_window.py:1299
+msgid "Open a new window"
+msgstr ""
+
+#: keepnote/gui/main_window.py:1302
+msgid "Close Window"
+msgstr ""
+
+#: keepnote/gui/main_window.py:1303
+msgid "Close window"
+msgstr ""
+
+#: keepnote/gui/main_window.py:1308
+msgid "_Help"
+msgstr ""
+
+#: keepnote/gui/main_window.py:1310
 msgid "View _Error Log..."
 msgstr "_Hata Kaydını Göster..."
 
-#: keepnote/gui/main_window.py:1264
+#: keepnote/gui/main_window.py:1314
 msgid "View Preference Files..."
 msgstr ""
 
-#: keepnote/gui/main_window.py:1267
+#: keepnote/gui/main_window.py:1317
 msgid "Drag and Drop Test..."
 msgstr "Sürükle ve Bırak Testi..."
 
-#: keepnote/gui/main_window.py:1271 keepnote/gui/main_window.py:1394
+#: keepnote/gui/main_window.py:1321 keepnote/gui/main_window.py:1445
 msgid "_About"
 msgstr "_Hakkında"
 
-#: keepnote/gui/main_window.py:1277 keepnote/gui/main_window.py:1279
+#: keepnote/gui/main_window.py:1327 keepnote/gui/main_window.py:1329
 msgid "Search All Notes"
 msgstr "_Tüm notları ara"
 
-#: keepnote/gui/main_window.py:1578 keepnote/gui/main_window.py:1612
+#: keepnote/gui/main_window.py:1629 keepnote/gui/main_window.py:1663
 msgid "Unexpected error"
 msgstr ""
 
-#: keepnote/gui/main_window.py:1624
+#: keepnote/gui/main_window.py:1675
 msgid "Searching notebook"
 msgstr "Defterde aranıyor"
 
-#: keepnote/gui/main_window.py:1624
+#: keepnote/gui/main_window.py:1675
 msgid "Searching..."
 msgstr "Aranıyor..."
 
@@ -575,25 +582,25 @@ msgstr ""
 msgid "Switch to previous tab"
 msgstr ""
 
-#: keepnote/gui/__init__.py:475 keepnote/gui/__init__.py:540
-#: keepnote/gui/__init__.py:546
+#: keepnote/gui/__init__.py:535 keepnote/gui/__init__.py:602
+#: keepnote/gui/__init__.py:608
 #, python-format
 msgid "Could not load notebook '%s'."
 msgstr "Defter '%s' yüklenemedi."
 
-#: keepnote/gui/__init__.py:483
+#: keepnote/gui/__init__.py:544
 msgid "Cannot open notebook (version too old)"
 msgstr "Defter açılamadı (sürümü çok eski)"
 
-#: keepnote/gui/__init__.py:516
+#: keepnote/gui/__init__.py:578
 msgid "Opening notebook"
 msgstr ""
 
-#: keepnote/gui/__init__.py:516
+#: keepnote/gui/__init__.py:578
 msgid "Loading..."
 msgstr ""
 
-#: keepnote/gui/__init__.py:530
+#: keepnote/gui/__init__.py:592
 #, python-format
 msgid ""
 "This version of %s cannot read this notebook.\n"
@@ -602,82 +609,70 @@ msgstr ""
 "Bu sürümdeki %s bu defteri okuyamaz.\n"
 "Bu defterin sürümü %d. %s sadece %d sürümü okuyabilir."
 
-#: keepnote/gui/__init__.py:748
+#: keepnote/gui/__init__.py:824
 msgid "Attach File..."
 msgstr "Dosya Ekle..."
 
-#: keepnote/gui/__init__.py:751
+#: keepnote/gui/__init__.py:827
 msgid "Attach"
 msgstr "Ekle"
 
-#: keepnote/gui/__init__.py:807
+#: keepnote/gui/__init__.py:883
 #, python-format
 msgid "Error while attaching files %s."
 msgstr ""
 
-#: keepnote/gui/__init__.py:811
+#: keepnote/gui/__init__.py:887
 #, python-format
 msgid "Error while attaching file '%s'."
 msgstr "'%s' dosyasını eklerken hata oluştu."
 
-#: keepnote/gui/__init__.py:836
+#: keepnote/gui/__init__.py:912
 msgid "Error"
 msgstr ""
 
-#: keepnote/gui/__init__.py:942
+#: keepnote/gui/__init__.py:1018
 #, python-format
 msgid "Do you want to install the extension \"%s\"?"
 msgstr ""
 
-#: keepnote/gui/__init__.py:951
+#: keepnote/gui/__init__.py:1027
 #, python-format
 msgid "Extension \"%s\" is now installed."
 msgstr ""
 
-#: keepnote/gui/__init__.py:952
+#: keepnote/gui/__init__.py:1028
 msgid "Install Successful"
 msgstr ""
 
-#: keepnote/gui/__init__.py:961
+#: keepnote/gui/__init__.py:1037
 #, python-format
 msgid "Do you want to uninstall the extension \"%s\"?"
 msgstr ""
 
-#: keepnote/gui/__init__.py:962
+#: keepnote/gui/__init__.py:1038
 msgid "Extension Uninstall"
 msgstr ""
 
-#: keepnote/gui/__init__.py:964
+#: keepnote/gui/__init__.py:1040
 #, python-format
 msgid "Extension \"%s\" is now uninstalled."
 msgstr ""
 
-#: keepnote/gui/__init__.py:966
+#: keepnote/gui/__init__.py:1042
 msgid "Uninstall Successful"
 msgstr ""
 
-#: keepnote/gui/listview.py:82
-msgid "Title"
-msgstr ""
-
-#: keepnote/gui/listview.py:112
-msgid "Created"
-msgstr ""
-
-#: keepnote/gui/listview.py:131
-msgid "Modified"
-msgstr ""
-
-#: keepnote/gui/listview.py:341
+#: keepnote/gui/listview.py:389
 #, python-format
 msgid "%d pages"
 msgstr ""
 
-#: keepnote/gui/listview.py:343
+#: keepnote/gui/listview.py:391
 msgid "1 page"
 msgstr ""
 
-#: keepnote/gui/richtext/__init__.py:991
+#: keepnote/gui/richtext/__init__.py:1033
 msgid "Paste As Plain Text"
 msgstr ""
 
@@ -734,7 +729,7 @@ msgstr ""
 msgid "Backup canceled."
 msgstr ""
 
-#: keepnote/gui/editor_richtext.py:619
+#: keepnote/gui/editor_richtext.py:623
 #, python-format
 msgid ""
 "The screenshot program encountered an error:\n"
@@ -743,230 +738,230 @@ msgstr ""
 "Ekran görüntüsü yakalayıcı program şu hatayı bildirdi:\n"
 " %s"
 
-#: keepnote/gui/editor_richtext.py:629
+#: keepnote/gui/editor_richtext.py:633
 #, python-format
 msgid "%s was unable to remove temp file for screenshot"
 msgstr "%s ekran görüntüsü geçici dosyasını kaldıramadı"
 
-#: keepnote/gui/editor_richtext.py:648
+#: keepnote/gui/editor_richtext.py:652
 msgid "Insert Image From File"
 msgstr "Dosyadan Resim Ekle"
 
-#: keepnote/gui/editor_richtext.py:651
+#: keepnote/gui/editor_richtext.py:655
 msgid "Insert"
 msgstr "Ekle"
 
-#: keepnote/gui/editor_richtext.py:703
+#: keepnote/gui/editor_richtext.py:707
 #, python-format
 msgid "Could not insert image '%s'"
 msgstr "'%s' resmi eklenemedi"
 
-#: keepnote/gui/editor_richtext.py:792
+#: keepnote/gui/editor_richtext.py:796
 msgid "Save Image As..."
 msgstr "Farklı Kaydet..."
 
-#: keepnote/gui/editor_richtext.py:795
+#: keepnote/gui/editor_richtext.py:799
 msgid "Save"
 msgstr "Kaydet"
 
-#: keepnote/gui/editor_richtext.py:804
+#: keepnote/gui/editor_richtext.py:808
 msgid "Must specify a filename for the image."
 msgstr "Resim için bir dosya adı belirtmelisiniz."
 
-#: keepnote/gui/editor_richtext.py:811
+#: keepnote/gui/editor_richtext.py:815
 #, python-format
 msgid "Could not save image '%s'."
 msgstr "'%s' resmi kaydedilemedi."
 
-#: keepnote/gui/editor_richtext.py:828
+#: keepnote/gui/editor_richtext.py:832
 msgid "_View Image..."
 msgstr "Resmi _Göster..."
 
-#: keepnote/gui/editor_richtext.py:830
+#: keepnote/gui/editor_richtext.py:834
 msgid "<b>_View Image...</b>"
 msgstr "<b>Resmi _Göster...</b>"
 
-#: keepnote/gui/editor_richtext.py:834
+#: keepnote/gui/editor_richtext.py:838
 msgid "_Edit Image..."
 msgstr "Resmi _Düzenle..."
 
-#: keepnote/gui/editor_richtext.py:839
+#: keepnote/gui/editor_richtext.py:843
 msgid "_Resize Image..."
 msgstr "Resmi _Boyutlandır..."
 
-#: keepnote/gui/editor_richtext.py:845
+#: keepnote/gui/editor_richtext.py:849
 msgid "_Save Image As..."
 msgstr "Resmi Farklı _Kaydet..."
 
-#: keepnote/gui/editor_richtext.py:1007
+#: keepnote/gui/editor_richtext.py:1020
 msgid "Choose Font"
 msgstr "_Font Seç"
 
-#: keepnote/gui/editor_richtext.py:1084
+#: keepnote/gui/editor_richtext.py:1096
 msgid "Insert _Horizontal Rule"
 msgstr "_Yatay Çizgi Ekle"
 
-#: keepnote/gui/editor_richtext.py:1088
+#: keepnote/gui/editor_richtext.py:1100
 msgid "Insert _Image..."
 msgstr "_Resim Ekle..."
 
-#: keepnote/gui/editor_richtext.py:1092
+#: keepnote/gui/editor_richtext.py:1104
 msgid "Insert _New Image..."
 msgstr ""
 
-#: keepnote/gui/editor_richtext.py:1093
+#: keepnote/gui/editor_richtext.py:1105
 msgid "Insert a new image"
 msgstr ""
 
-#: keepnote/gui/editor_richtext.py:1096
+#: keepnote/gui/editor_richtext.py:1108
 msgid "Insert _Screenshot..."
 msgstr "_Ekran Görüntüsü Ekle..."
 
-#: keepnote/gui/editor_richtext.py:1121
+#: keepnote/gui/editor_richtext.py:1133
 msgid "Fo_rmat"
 msgstr "_Biçim"
 
-#: keepnote/gui/editor_richtext.py:1125
+#: keepnote/gui/editor_richtext.py:1137
 msgid "_Bold"
 msgstr "_Kalın"
 
-#: keepnote/gui/editor_richtext.py:1126
+#: keepnote/gui/editor_richtext.py:1138
 msgid "Bold"
 msgstr "_Kalın"
 
-#: keepnote/gui/editor_richtext.py:1130
+#: keepnote/gui/editor_richtext.py:1142
 msgid "_Italic"
 msgstr "_İtalik"
 
-#: keepnote/gui/editor_richtext.py:1131
+#: keepnote/gui/editor_richtext.py:1143
 msgid "Italic"
 msgstr "_İtalik"
 
-#: keepnote/gui/editor_richtext.py:1135
+#: keepnote/gui/editor_richtext.py:1147
 msgid "_Underline"
 msgstr ""
 
-#: keepnote/gui/editor_richtext.py:1136
+#: keepnote/gui/editor_richtext.py:1148
 msgid "Underline"
 msgstr ""
 
-#: keepnote/gui/editor_richtext.py:1140
+#: keepnote/gui/editor_richtext.py:1152
 msgid "S_trike"
 msgstr "Üstü _Çizili"
 
-#: keepnote/gui/editor_richtext.py:1141
+#: keepnote/gui/editor_richtext.py:1153
 msgid "Strike"
 msgstr "Üstü _Çizili"
 
-#: keepnote/gui/editor_richtext.py:1145
+#: keepnote/gui/editor_richtext.py:1157
 msgid "_Monospace"
 msgstr "Sabit _Aralıklı"
 
-#: keepnote/gui/editor_richtext.py:1146
+#: keepnote/gui/editor_richtext.py:1158
 msgid "Monospace"
 msgstr "Sabit _Aralıklı"
 
-#: keepnote/gui/editor_richtext.py:1150
+#: keepnote/gui/editor_richtext.py:1162
 msgid "Lin_k"
 msgstr "_Bağlantı"
 
-#: keepnote/gui/editor_richtext.py:1151
+#: keepnote/gui/editor_richtext.py:1163
 msgid "Make Link"
 msgstr ""
 
-#: keepnote/gui/editor_richtext.py:1155
+#: keepnote/gui/editor_richtext.py:1167
 msgid "No _Wrapping"
 msgstr "_Sözcük Kaydırma Yok"
 
-#: keepnote/gui/editor_richtext.py:1156
+#: keepnote/gui/editor_richtext.py:1168
 msgid "No Wrapping"
 msgstr "_Sözcük Kaydırma Yok"
 
-#: keepnote/gui/editor_richtext.py:1160
+#: keepnote/gui/editor_richtext.py:1172
 msgid "_Left Align"
 msgstr "S_ola Yasla"
 
-#: keepnote/gui/editor_richtext.py:1161
+#: keepnote/gui/editor_richtext.py:1173
 msgid "Left Align"
 msgstr ""
 
-#: keepnote/gui/editor_richtext.py:1165
+#: keepnote/gui/editor_richtext.py:1177
 msgid "C_enter Align"
 msgstr "_Ortala"
 
-#: keepnote/gui/editor_richtext.py:1166
+#: keepnote/gui/editor_richtext.py:1178
 msgid "Center Align"
 msgstr "_Ortala"
 
-#: keepnote/gui/editor_richtext.py:1170
+#: keepnote/gui/editor_richtext.py:1182
 msgid "_Right Align"
 msgstr "S_ağa Yasla"
 
-#: keepnote/gui/editor_richtext.py:1171
+#: keepnote/gui/editor_richtext.py:1183
 msgid "Right Align"
 msgstr "S_ağa Yasla"
 
-#: keepnote/gui/editor_richtext.py:1175
+#: keepnote/gui/editor_richtext.py:1187
 msgid "_Justify Align"
 msgstr "_İki Yana Yasla"
 
-#: keepnote/gui/editor_richtext.py:1176
+#: keepnote/gui/editor_richtext.py:1188
 msgid "Justify Align"
 msgstr "_İki Yana Yasla"
 
-#: keepnote/gui/editor_richtext.py:1180
+#: keepnote/gui/editor_richtext.py:1192
 msgid "_Bullet List"
 msgstr "Liste"
 
-#: keepnote/gui/editor_richtext.py:1181
+#: keepnote/gui/editor_richtext.py:1193
 msgid "Bullet List"
 msgstr "Liste"
 
-#: keepnote/gui/editor_richtext.py:1187
+#: keepnote/gui/editor_richtext.py:1199
 msgid "Set Font Face"
 msgstr ""
 
-#: keepnote/gui/editor_richtext.py:1188
+#: keepnote/gui/editor_richtext.py:1200
 msgid "Set Font Size"
 msgstr ""
 
-#: keepnote/gui/editor_richtext.py:1189
+#: keepnote/gui/editor_richtext.py:1201
 msgid "Set Text Color"
 msgstr "Metin Rengi _Uygula"
 
-#: keepnote/gui/editor_richtext.py:1190
+#: keepnote/gui/editor_richtext.py:1202
 msgid "Set Background Color"
 msgstr "Arkaplan _Rengini Uygula"
 
-#: keepnote/gui/editor_richtext.py:1192
+#: keepnote/gui/editor_richtext.py:1204
 msgid "Indent M_ore"
 msgstr "Daha _Fazla Girinti"
 
-#: keepnote/gui/editor_richtext.py:1197
+#: keepnote/gui/editor_richtext.py:1209
 msgid "Indent Le_ss"
 msgstr "_Daha Az Girinti"
 
-#: keepnote/gui/editor_richtext.py:1202
+#: keepnote/gui/editor_richtext.py:1214
 msgid "Increase Font _Size"
 msgstr "Yazı Tipinin Büyüklüğünü A_rtır"
 
-#: keepnote/gui/editor_richtext.py:1206
+#: keepnote/gui/editor_richtext.py:1218
 msgid "_Decrease Font Size"
 msgstr "Yazı Tipinin Büyüklüğünü A_zalt"
 
-#: keepnote/gui/editor_richtext.py:1210
+#: keepnote/gui/editor_richtext.py:1222
 msgid "_Apply Text Color"
 msgstr "Metin Rengi _Uygula"
 
-#: keepnote/gui/editor_richtext.py:1215
+#: keepnote/gui/editor_richtext.py:1227
 msgid "A_pply Background Color"
 msgstr "Arkaplan _Rengini Uygula"
 
-#: keepnote/gui/editor_richtext.py:1220
+#: keepnote/gui/editor_richtext.py:1232
 msgid "Choose _Font"
 msgstr "_Font Seç"
 
-#: keepnote/gui/editor_richtext.py:1225
+#: keepnote/gui/editor_richtext.py:1237
 msgid "Go to Lin_k"
 msgstr "_Bağlantıya Git"
 
@@ -978,151 +973,235 @@ msgstr ""
 msgid "Choose Open Icon"
 msgstr ""
 
-#: keepnote/gui/three_pane_viewer.py:1025
+#: keepnote/gui/three_pane_viewer.py:1115
 msgid "Copy _Tree"
 msgstr ""
 
-#: keepnote/gui/three_pane_viewer.py:1026
+#: keepnote/gui/three_pane_viewer.py:1116
 msgid "Copy entire tree"
 msgstr ""
 
-#: keepnote/gui/three_pane_viewer.py:1029
+#: keepnote/gui/three_pane_viewer.py:1119
 msgid "New _Page"
 msgstr "Yeni _Sayfa"
 
-#: keepnote/gui/three_pane_viewer.py:1030
+#: keepnote/gui/three_pane_viewer.py:1120
 msgid "Create a new page"
 msgstr "Yeni bir sayfa yarat"
 
-#: keepnote/gui/three_pane_viewer.py:1033
+#: keepnote/gui/three_pane_viewer.py:1123
 msgid "New _Child Page"
 msgstr "Yeni _Alt Sayfa"
 
-#: keepnote/gui/three_pane_viewer.py:1034
+#: keepnote/gui/three_pane_viewer.py:1124
 msgid "Create a new child page"
 msgstr "Yeni bir alt sayfa yarat"
 
-#: keepnote/gui/three_pane_viewer.py:1038
+#: keepnote/gui/three_pane_viewer.py:1128
 msgid "New _Folder"
 msgstr "Yeni K_lasör"
 
-#: keepnote/gui/three_pane_viewer.py:1039
+#: keepnote/gui/three_pane_viewer.py:1129
 msgid "Create a new folder"
 msgstr "Yeni bir klasör yarat"
 
-#: keepnote/gui/three_pane_viewer.py:1043
+#: keepnote/gui/three_pane_viewer.py:1133
 msgid "_Attach File..."
 msgstr "Dosya Ekle..."
 
-#: keepnote/gui/three_pane_viewer.py:1044
+#: keepnote/gui/three_pane_viewer.py:1134
 msgid "Attach a file to the notebook"
 msgstr "Deftere bir dosya ekle"
 
-#: keepnote/gui/three_pane_viewer.py:1048
+#: keepnote/gui/three_pane_viewer.py:1138
 msgid "_Back"
 msgstr ""
 
-#: keepnote/gui/three_pane_viewer.py:1051
+#: keepnote/gui/three_pane_viewer.py:1141
 msgid "_Forward"
 msgstr ""
 
-#: keepnote/gui/three_pane_viewer.py:1054
+#: keepnote/gui/three_pane_viewer.py:1144
 msgid "Go to _Note"
 msgstr "_Nota Git"
 
-#: keepnote/gui/three_pane_viewer.py:1058
+#: keepnote/gui/three_pane_viewer.py:1148
 msgid "Go to _Parent Note"
 msgstr "_Ana Nota git"
 
-#: keepnote/gui/three_pane_viewer.py:1062
+#: keepnote/gui/three_pane_viewer.py:1152
 msgid "Go to Next N_ote"
 msgstr "_Sonraki Nota Git"
 
-#: keepnote/gui/three_pane_viewer.py:1066
+#: keepnote/gui/three_pane_viewer.py:1156
 msgid "Go to _Previous Note"
 msgstr "_Önceki Nota Git"
 
-#: keepnote/gui/three_pane_viewer.py:1070
+#: keepnote/gui/three_pane_viewer.py:1160
 msgid "E_xpand Note"
 msgstr "Notu _Genişlet"
 
-#: keepnote/gui/three_pane_viewer.py:1074
+#: keepnote/gui/three_pane_viewer.py:1164
 msgid "_Collapse Note"
 msgstr "Notu _Daralt"
 
-#: keepnote/gui/three_pane_viewer.py:1078
+#: keepnote/gui/three_pane_viewer.py:1168
 msgid "Expand _All Child Notes"
 msgstr "_Tüm Altnotları Genişlet"
 
-#: keepnote/gui/three_pane_viewer.py:1082
+#: keepnote/gui/three_pane_viewer.py:1172
 msgid "Collapse A_ll Child Notes"
 msgstr "T_üm Altnotları Daralt"
 
-#: keepnote/gui/three_pane_viewer.py:1087
+#: keepnote/gui/three_pane_viewer.py:1177
 msgid "Go to _Tree View"
 msgstr "_Ağaç Görünümüne Git"
 
-#: keepnote/gui/three_pane_viewer.py:1091
+#: keepnote/gui/three_pane_viewer.py:1181
 msgid "Go to _List View"
 msgstr "_Liste Görünümüne Git"
 
-#: keepnote/gui/three_pane_viewer.py:1095
+#: keepnote/gui/three_pane_viewer.py:1185
 msgid "Go to _Editor"
 msgstr "_Düzenleyiciye Git"
 
-#: keepnote/gui/three_pane_viewer.py:1099
+#: keepnote/gui/three_pane_viewer.py:1189
 msgid "_Delete"
 msgstr ""
 
-#: keepnote/gui/three_pane_viewer.py:1102
+#: keepnote/gui/three_pane_viewer.py:1192
 msgid "_Rename"
 msgstr "_Adını Değiştir"
 
-#: keepnote/gui/three_pane_viewer.py:1106
+#: keepnote/gui/three_pane_viewer.py:1196
 msgid "_Change Note Icon"
 msgstr "_Simgeyi Değiştir"
 
-#: keepnote/compat/notebook_v3.py:261 keepnote/compat/notebook_v3.py:1836
-#: keepnote/notebook/__init__.py:248
+#: keepnote/gui/three_pane_viewer.py:1200
+msgid "Change _Fg Color"
+msgstr ""
+
+#: keepnote/gui/three_pane_viewer.py:1202
+msgid "Change _Bg Color"
+msgstr ""
+
+#: keepnote/compat/notebook_v4.py:199 keepnote/compat/notebook_v3.py:1514
+#: keepnote/notebook/__init__.py:197
+#, python-format
+msgid "Cannot find notebook '%s'"
+msgstr ""
+
+#: keepnote/compat/notebook_v4.py:248 keepnote/compat/notebook_v3.py:261
+#: keepnote/compat/notebook_v3.py:1836 keepnote/notebook/__init__.py:246
 msgid "Cannot read notebook preferences"
 msgstr ""
 
-#: keepnote/compat/notebook_v3.py:263 keepnote/compat/notebook_v3.py:282
-#: keepnote/compat/notebook_v3.py:1838 keepnote/notebook/__init__.py:250
-#: keepnote/notebook/__init__.py:270 keepnote/notebook/__init__.py:1718
+#: keepnote/compat/notebook_v4.py:250 keepnote/compat/notebook_v4.py:270
+#: keepnote/compat/notebook_v4.py:1718 keepnote/compat/notebook_v3.py:263
+#: keepnote/compat/notebook_v3.py:282 keepnote/compat/notebook_v3.py:1838
+#: keepnote/notebook/__init__.py:248 keepnote/notebook/__init__.py:268
+#: keepnote/notebook/__init__.py:1823
 msgid "Notebook preference data is corrupt"
+msgstr ""
+
+#: keepnote/compat/notebook_v4.py:266 keepnote/compat/notebook_v3.py:278
+#: keepnote/notebook/__init__.py:264
+msgid "Unknown version string"
+msgstr ""
+
+#: keepnote/compat/notebook_v4.py:642 keepnote/compat/notebook_v3.py:1249
+#: keepnote/notebook/__init__.py:713
+#, python-format
+msgid "Cannot copy file '%s'"
+msgstr ""
+
+#: keepnote/compat/notebook_v4.py:702 keepnote/compat/notebook_v3.py:720
+#: keepnote/notebook/__init__.py:776
+msgid "This node is not part of any notebook"
+msgstr ""
+
+#: keepnote/compat/notebook_v4.py:1392 keepnote/compat/notebook_v3.py:1273
+#: keepnote/notebook/__init__.py:1497
+msgid "The Trash folder must be a top-level folder."
+msgstr ""
+
+#: keepnote/compat/notebook_v4.py:1463 keepnote/compat/notebook_v3.py:1641
+#: keepnote/notebook/__init__.py:1568
+msgid "Cannot create Trash folder"
+msgstr ""
+
+#: keepnote/compat/notebook_v4.py:1695 keepnote/compat/notebook_v3.py:1357
+#: keepnote/compat/notebook_v3.py:1826 keepnote/notebook/__init__.py:1799
+msgid "Cannot save notebook preferences"
+msgstr ""
+
+#: keepnote/compat/notebook_v4.py:1697 keepnote/compat/notebook_v3.py:1828
+#: keepnote/notebook/__init__.py:1801
+msgid "File format error"
+msgstr ""
+
+#: keepnote/compat/notebook_v4.py:1709 keepnote/notebook/__init__.py:1813
+#: keepnote/notebook/__init__.py:1846
+#, python-format
+msgid "Cannot read notebook preferences %s"
+msgstr ""
+
+#: keepnote/compat/notebook_connection_fs_v4.py:635
+#: keepnote/compat/notebook_connection_fs_v4.py:733
+#: keepnote/notebook/connection/fs/__init__.py:680
+#: keepnote/notebook/connection/fs/__init__.py:797
+msgid "New Page"
+msgstr ""
+
+#: keepnote/compat/notebook_connection_fs_v4.py:658
+#: keepnote/compat/notebook_v3.py:674
+#: keepnote/notebook/connection/fs/__init__.py:702
+msgid "Cannot create node"
+msgstr ""
+
+#: keepnote/compat/notebook_connection_fs_v4.py:741
+#: keepnote/compat/notebook_v3.py:817
+#: keepnote/notebook/connection/fs/__init__.py:805
+#, python-format
+msgid "Cannot rename '%s' to '%s'"
+msgstr ""
+
+#: keepnote/compat/notebook_connection_fs_v4.py:767
+#: keepnote/compat/notebook_v3.py:693
+#: keepnote/notebook/connection/fs/__init__.py:831
+msgid "Do not have permission to delete"
+msgstr ""
+
+#: keepnote/compat/notebook_connection_fs_v4.py:802
+#: keepnote/notebook/connection/fs/__init__.py:866
+#, python-format
+msgid "Do not have permission to read folder contents: %s"
+msgstr ""
+
+#: keepnote/compat/notebook_connection_fs_v4.py:953
+#: keepnote/compat/notebook_v3.py:1974
+#: keepnote/notebook/connection/fs/__init__.py:1002
+msgid "Cannot write meta data"
+msgstr ""
+
+#: keepnote/compat/notebook_connection_fs_v4.py:969
+#: keepnote/notebook/connection/fs/__init__.py:1016
+#, python-format
+msgid "Error reading meta data file '%s'"
+msgstr ""
+
+#: keepnote/compat/notebook_connection_fs_v4.py:974
+#: keepnote/compat/notebook_v3.py:1991
+#: keepnote/notebook/connection/fs/__init__.py:1021
+msgid "Root tag is not 'node'"
 msgstr ""
 
 #: keepnote/compat/notebook_v3.py:275
 msgid "No version tag found"
 msgstr ""
 
-#: keepnote/compat/notebook_v3.py:278 keepnote/notebook/__init__.py:266
-msgid "Unknown version string"
-msgstr ""
-
-#: keepnote/compat/notebook_v3.py:674
-#: keepnote/notebook/connection/fs/__init__.py:658
-msgid "Cannot create node"
-msgstr ""
-
-#: keepnote/compat/notebook_v3.py:693
-#: keepnote/notebook/connection/fs/__init__.py:767
-msgid "Do not have permission to delete"
-msgstr ""
-
-#: keepnote/compat/notebook_v3.py:720 keepnote/notebook/__init__.py:702
-msgid "This node is not part of any notebook"
-msgstr ""
-
 #: keepnote/compat/notebook_v3.py:769
 msgid "Do not have permission for move"
-msgstr ""
-
-#: keepnote/compat/notebook_v3.py:817
-#: keepnote/notebook/connection/fs/__init__.py:741
-#, python-format
-msgid "Cannot rename '%s' to '%s'"
 msgstr ""
 
 #: keepnote/compat/notebook_v3.py:960
@@ -1139,65 +1218,8 @@ msgstr ""
 msgid "New File"
 msgstr ""
 
-#: keepnote/compat/notebook_v3.py:1249 keepnote/notebook/__init__.py:642
-#, python-format
-msgid "Cannot copy file '%s'"
-msgstr ""
-
-#: keepnote/compat/notebook_v3.py:1273 keepnote/notebook/__init__.py:1392
-msgid "The Trash folder must be a top-level folder."
-msgstr ""
-
-#: keepnote/compat/notebook_v3.py:1357 keepnote/compat/notebook_v3.py:1826
-#: keepnote/notebook/__init__.py:1695
-msgid "Cannot save notebook preferences"
-msgstr ""
-
-#: keepnote/compat/notebook_v3.py:1514 keepnote/notebook/__init__.py:199
-#, python-format
-msgid "Cannot find notebook '%s'"
-msgstr ""
-
-#: keepnote/compat/notebook_v3.py:1641 keepnote/notebook/__init__.py:1463
-msgid "Cannot create Trash folder"
-msgstr ""
-
-#: keepnote/compat/notebook_v3.py:1828 keepnote/notebook/__init__.py:1697
-msgid "File format error"
-msgstr ""
-
-#: keepnote/compat/notebook_v3.py:1974
-#: keepnote/notebook/connection/fs/__init__.py:953
-msgid "Cannot write meta data"
-msgstr ""
-
 #: keepnote/compat/notebook_v3.py:1986
 msgid "Error reading meta data file"
-msgstr ""
-
-#: keepnote/compat/notebook_v3.py:1991
-#: keepnote/notebook/connection/fs/__init__.py:974
-msgid "Root tag is not 'node'"
-msgstr ""
-
-#: keepnote/notebook/connection/fs/__init__.py:635
-#: keepnote/notebook/connection/fs/__init__.py:733
-msgid "New Page"
-msgstr ""
-
-#: keepnote/notebook/connection/fs/__init__.py:802
-#, python-format
-msgid "Do not have permission to read folder contents: %s"
-msgstr ""
-
-#: keepnote/notebook/connection/fs/__init__.py:969
-#, python-format
-msgid "Error reading meta data file '%s'"
-msgstr ""
-
-#: keepnote/notebook/__init__.py:1709
-#, python-format
-msgid "Cannot read notebook preferences %s"
 msgstr ""
 
 #: keepnote/rc/keepnote.glade.h:1

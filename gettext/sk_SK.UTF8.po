@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: keepnote 0.7.3\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2011-07-08 09:49-0400\n"
+"POT-Creation-Date: 2011-10-19 11:01-0400\n"
 "PO-Revision-Date: 2011-07-08 08:43+0200\n"
 "Last-Translator: Slavko <linux@slavino.sk>\n"
 "Language-Team: Slovak <nomail@nomail.sk>\n"
@@ -18,16 +18,16 @@ msgstr ""
 "Content-Transfer-Encoding: 8-bit\n"
 "Plural-Forms: nplurals=3; plural=(n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2;\n"
 
-#: keepnote/__init__.py:682
+#: keepnote/__init__.py:683
 msgid "Cannot save preferences"
 msgstr "Nemožno uložiť nastavenia"
 
-#: keepnote/__init__.py:1027 keepnote/__init__.py:1029
+#: keepnote/__init__.py:1045 keepnote/__init__.py:1047
 #, python-format
 msgid "Must specify '%s' program in Helper Applications"
 msgstr "Musíte zadať '%s' program v Pomocných aplikáciách"
 
-#: keepnote/__init__.py:1050
+#: keepnote/__init__.py:1068
 #, python-format
 msgid ""
 "Error occurred while opening file with %s.\n"
@@ -46,89 +46,89 @@ msgstr ""
 "\n"
 "chyba: %s"
 
-#: keepnote/__init__.py:1081
+#: keepnote/__init__.py:1099
 msgid "Unable to determine note type."
 msgstr "Nemožno určiť typ poznámky"
 
-#: keepnote/__init__.py:1111
+#: keepnote/__init__.py:1131
 msgid "You must specify a Screen Shot program in Application Options"
 msgstr "Musíte zadať program na snímanie obrazovky v Nastaveniach"
 
-#: keepnote/__init__.py:1123
+#: keepnote/__init__.py:1143
 #, python-format
 msgid "The screenshot program did not create the necessary image file '%s'"
 msgstr ""
 "Program na snímanie obrazovky nevytvoril požadovaný súbor obrázka \"%s\""
 
-#: keepnote/__init__.py:1144
+#: keepnote/__init__.py:1164
 #, python-format
 msgid "command '%s' already exists"
 msgstr "príkaz '%s' už existuje"
 
-#: keepnote/__init__.py:1174 keepnote/__init__.py:1366
+#: keepnote/__init__.py:1194 keepnote/__init__.py:1386
 #, python-format
 msgid "enabling extension '%s'\n"
 msgstr "zapínanie rozšírenia '%s'\n"
 
-#: keepnote/__init__.py:1179
+#: keepnote/__init__.py:1199
 #, python-format
 msgid "  skipping extension '%s':\n"
 msgstr "  preskakovanie rozšírenia '%s':\n"
 
-#: keepnote/__init__.py:1182
+#: keepnote/__init__.py:1202
 #, python-format
 msgid "    failed dependency: %s\n"
 msgstr "    zlyhala závislosť : %s\n"
 
-#: keepnote/__init__.py:1349
+#: keepnote/__init__.py:1369
 #, python-format
 msgid "Unable to install extension '%s'"
 msgstr "Nemožno nainštalovať rozšírenie '%s'"
 
-#: keepnote/__init__.py:1355
+#: keepnote/__init__.py:1375
 #, python-format
 msgid "removing '%s'"
 msgstr "odstraňovanie '%s'"
 
-#: keepnote/__init__.py:1364
+#: keepnote/__init__.py:1384
 msgid "Enabling new extensions:\n"
 msgstr "Zapínanie nových rozšírení:\n"
 
-#: keepnote/__init__.py:1379
+#: keepnote/__init__.py:1399
 #, python-format
 msgid "Unable to uninstall unknown extension '%s'."
 msgstr "Nemožno odinštalovať neznáme rozšírenie '%s'."
 
-#: keepnote/__init__.py:1384
+#: keepnote/__init__.py:1404
 msgid "KeepNote can only uninstall user extensions"
 msgstr "KeepNote môže odinštalovať len používateľské rozšírenia"
 
-#: keepnote/__init__.py:1401
+#: keepnote/__init__.py:1414
 msgid "Unable to uninstall extension.  Do not have permission."
 msgstr "Nemožno odinštalovať rozšírenie.  Nemáte na to práva."
 
-#: keepnote/gui/editor_text.py:407 keepnote/gui/editor_sourceview.py:473
-#: keepnote/gui/editor_richtext.py:1103
+#: keepnote/gui/editor_text.py:407 keepnote/gui/editor_sourceview.py:474
+#: keepnote/gui/editor_richtext.py:1115
 msgid "_Find In Page..."
 msgstr "_Nájsť v stránke..."
 
-#: keepnote/gui/editor_text.py:411 keepnote/gui/editor_sourceview.py:477
-#: keepnote/gui/editor_richtext.py:1107
+#: keepnote/gui/editor_text.py:411 keepnote/gui/editor_sourceview.py:478
+#: keepnote/gui/editor_richtext.py:1119
 msgid "Find _Next In Page..."
 msgstr "Nájsť v ďalšej _stránke..."
 
-#: keepnote/gui/editor_text.py:416 keepnote/gui/editor_sourceview.py:482
-#: keepnote/gui/editor_richtext.py:1112
+#: keepnote/gui/editor_text.py:416 keepnote/gui/editor_sourceview.py:483
+#: keepnote/gui/editor_richtext.py:1124
 msgid "Find Pre_vious In Page..."
 msgstr "Nájsť v pre_došlej stránke..."
 
-#: keepnote/gui/editor_text.py:421 keepnote/gui/editor_sourceview.py:487
-#: keepnote/gui/editor_richtext.py:1117
+#: keepnote/gui/editor_text.py:421 keepnote/gui/editor_sourceview.py:488
+#: keepnote/gui/editor_richtext.py:1129
 msgid "_Replace In Page..."
 msgstr "N_ahradiť v stránke..."
 
-#: keepnote/gui/editor_text.py:427 keepnote/gui/editor_sourceview.py:493
-#: keepnote/gui/editor_richtext.py:1231
+#: keepnote/gui/editor_text.py:427 keepnote/gui/editor_sourceview.py:494
+#: keepnote/gui/editor_richtext.py:1243
 msgid "_Spell Check"
 msgstr "_Kontrola preklepov"
 
@@ -148,301 +148,308 @@ msgstr "šírka:"
 msgid "height:"
 msgstr "výška:"
 
-#: keepnote/gui/main_window.py:504
+#: keepnote/gui/colortool.py:512
+msgid "Pallete:"
+msgstr ""
+
+#: keepnote/gui/main_window.py:503
 msgid "New Notebook"
 msgstr "Nový zápisník"
 
-#: keepnote/gui/main_window.py:506 keepnote/gui/main_window.py:526
+#: keepnote/gui/main_window.py:505 keepnote/gui/main_window.py:525
 #: keepnote/gui/dialog_app_options.py:59
-#: keepnote/gui/dialog_app_options.py:692 keepnote/gui/__init__.py:750
+#: keepnote/gui/dialog_app_options.py:692 keepnote/gui/__init__.py:826
 #: keepnote/gui/dialog_update_notebook.py:134
-#: keepnote/gui/editor_richtext.py:650 keepnote/gui/editor_richtext.py:794
+#: keepnote/gui/editor_richtext.py:654 keepnote/gui/editor_richtext.py:798
 #: keepnote/gui/dialog_node_icon.py:62
 msgid "Cancel"
 msgstr "Zrušiť"
 
-#: keepnote/gui/main_window.py:507
+#: keepnote/gui/main_window.py:506
 msgid "New"
 msgstr "Nový"
 
-#: keepnote/gui/main_window.py:524
+#: keepnote/gui/main_window.py:523
 msgid "Open Notebook"
 msgstr "Otvoriť zápisník"
 
-#: keepnote/gui/main_window.py:527 keepnote/gui/dialog_app_options.py:60
+#: keepnote/gui/main_window.py:526 keepnote/gui/dialog_app_options.py:60
 #: keepnote/gui/dialog_app_options.py:693 keepnote/gui/dialog_node_icon.py:63
 msgid "Open"
 msgstr "Otvoriť"
 
-#: keepnote/gui/main_window.py:542
+#: keepnote/gui/main_window.py:541
 msgid "Notebook (*.nbk)"
 msgstr "Zápisník (*.nbk)"
 
-#: keepnote/gui/main_window.py:547 keepnote/gui/dialog_app_options.py:704
+#: keepnote/gui/main_window.py:546 keepnote/gui/dialog_app_options.py:704
 msgid "All files (*.*)"
 msgstr "Všetky súbory (*.*)"
 
-#: keepnote/gui/main_window.py:618
+#: keepnote/gui/main_window.py:660
 msgid "Notebook saved"
 msgstr "Zápisník uložený"
 
-#: keepnote/gui/main_window.py:622
+#: keepnote/gui/main_window.py:664
 msgid "Could not save notebook."
 msgstr "Nemožno uložiť zápisník."
 
-#: keepnote/gui/main_window.py:623
+#: keepnote/gui/main_window.py:665
 msgid "Error saving notebook"
 msgstr "Chyba pri ukladaní zápisníka"
 
-#: keepnote/gui/main_window.py:632
+#: keepnote/gui/main_window.py:674
 msgid "Reloading only works when a notebook is open."
 msgstr "Znova načítanie funguje len keď je zápisník otvorený."
 
-#: keepnote/gui/main_window.py:639
+#: keepnote/gui/main_window.py:681
 msgid "Notebook reloaded"
 msgstr "Zápisník znova načítaný"
 
-#: keepnote/gui/main_window.py:655
+#: keepnote/gui/main_window.py:698
 #, python-format
 msgid "Created '%s'"
 msgstr "Vytvorený '%s'"
 
-#: keepnote/gui/main_window.py:657
+#: keepnote/gui/main_window.py:700
 msgid "Could not create new notebook."
 msgstr "Nemožno vytvoriť nový zápisník."
 
-#: keepnote/gui/main_window.py:805
-#, python-format
-msgid "Could note find notebook '%s'."
-msgstr "Nemožno nájsť zápisník '%s'."
-
-#: keepnote/gui/main_window.py:818
+#: keepnote/gui/main_window.py:861
 #, python-format
 msgid "Loaded '%s'"
 msgstr "Načítaný '%s'"
 
-#: keepnote/gui/main_window.py:835
+#: keepnote/gui/main_window.py:878
 msgid "Notebook closed"
 msgstr "Zápisník zatvorený"
 
-#: keepnote/gui/main_window.py:870
+#: keepnote/gui/main_window.py:913
 msgid "Error during index"
 msgstr "Chyba počas indexovania"
 
-#: keepnote/gui/main_window.py:874
+#: keepnote/gui/main_window.py:917
 msgid "Indexing notebook"
 msgstr "Indexovanie zápisníka"
 
-#: keepnote/gui/main_window.py:874
+#: keepnote/gui/main_window.py:917
 msgid "Indexing..."
 msgstr "Indexovanie..."
 
-#: keepnote/gui/main_window.py:898
+#: keepnote/gui/main_window.py:941
 msgid "Notebook modified"
 msgstr "Zápisník zmenený"
 
-#: keepnote/gui/main_window.py:933 keepnote/compat/notebook_v3.py:1278
-#: keepnote/notebook/__init__.py:1404
+#: keepnote/gui/main_window.py:976 keepnote/compat/notebook_v4.py:1404
+#: keepnote/compat/notebook_v3.py:1278 keepnote/notebook/__init__.py:1509
 msgid "The Trash folder cannot be deleted."
 msgstr "Zložku koša nemožno odstrániť."
 
-#: keepnote/gui/main_window.py:936
+#: keepnote/gui/main_window.py:979
 msgid "The top-level folder cannot be deleted."
 msgstr "Zložku najvyššej úrovne nemožno odstrániť."
 
-#: keepnote/gui/main_window.py:940
+#: keepnote/gui/main_window.py:983
 msgid "Do you want to delete this note and all of its children?"
 msgstr "Chcete odstrániť túto poznámku a všetkých potomkov?"
 
-#: keepnote/gui/main_window.py:942
+#: keepnote/gui/main_window.py:985
 msgid "Do you want to delete this note?"
 msgstr "Chcete odstrániť túto poznámku?"
 
-#: keepnote/gui/main_window.py:944
+#: keepnote/gui/main_window.py:987
 msgid "Delete Note"
 msgstr "Odstránenie poznámky"
 
-#: keepnote/gui/main_window.py:957
+#: keepnote/gui/main_window.py:1000
 msgid "Could not empty trash."
 msgstr "Nemožno vyprázdniť kôš."
 
-#: keepnote/gui/main_window.py:972
+#: keepnote/gui/main_window.py:1015
 msgid "No notes are selected."
 msgstr "Nie sú zvolené poznámky."
 
-#: keepnote/gui/main_window.py:1036 keepnote/gui/main_window.py:1047
+#: keepnote/gui/main_window.py:1079 keepnote/gui/main_window.py:1090
 msgid "Could not open error log"
 msgstr "Nemožno otvoriť záznam chýb"
 
-#: keepnote/gui/main_window.py:1131
+#: keepnote/gui/main_window.py:1174
 msgid "_File"
 msgstr "_Súbor"
 
-#: keepnote/gui/main_window.py:1133
+#: keepnote/gui/main_window.py:1176
 msgid "_New Notebook..."
 msgstr "_Nový zápisník..."
 
-#: keepnote/gui/main_window.py:1134
+#: keepnote/gui/main_window.py:1177
 msgid "Start a new notebook"
 msgstr "Spustí nový zápisník"
 
-#: keepnote/gui/main_window.py:1137
+#: keepnote/gui/main_window.py:1180
 msgid "_Open Notebook..."
 msgstr "_Otvoriť zápisník..."
 
-#: keepnote/gui/main_window.py:1138
+#: keepnote/gui/main_window.py:1181
 msgid "Open an existing notebook"
 msgstr "Otvorí existujúci zápisník"
 
-#: keepnote/gui/main_window.py:1142
+#: keepnote/gui/main_window.py:1185
 msgid "Open Re_cent Notebook"
 msgstr "Otvoriť ne_dávny zápisník"
 
-#: keepnote/gui/main_window.py:1145
+#: keepnote/gui/main_window.py:1188
 msgid "_Reload Notebook"
 msgstr "Zn_ova načítať zápisník"
 
-#: keepnote/gui/main_window.py:1146
+#: keepnote/gui/main_window.py:1189
 msgid "Reload the current notebook"
 msgstr "Znova načíta nový zápisník"
 
-#: keepnote/gui/main_window.py:1149
+#: keepnote/gui/main_window.py:1192
 msgid "_Save Notebook"
 msgstr "_Uložiť zápisník"
 
-#: keepnote/gui/main_window.py:1150
+#: keepnote/gui/main_window.py:1193
 msgid "Save the current notebook"
 msgstr "Uloží aktuálny zápisník"
 
-#: keepnote/gui/main_window.py:1153
+#: keepnote/gui/main_window.py:1196
 msgid "_Close Notebook"
 msgstr "_Zatvoriť zápisník"
 
-#: keepnote/gui/main_window.py:1154
+#: keepnote/gui/main_window.py:1197
 msgid "Close the current notebook"
 msgstr "Zatvorí aktuálny zápisník"
 
-#: keepnote/gui/main_window.py:1157
-msgid "_Export Notebook"
-msgstr "_Exportovať zápisník"
-
-#: keepnote/gui/main_window.py:1159
-msgid "_Import Notebook"
-msgstr "_Importovať zápisník"
-
-#: keepnote/gui/main_window.py:1161 keepnote/gui/main_window.py:1391
-msgid "_Quit"
-msgstr "_Skončiť"
-
-#: keepnote/gui/main_window.py:1162 keepnote/gui/main_window.py:1392
-msgid "Quit KeepNote"
-msgstr "Skončí KeepNote"
-
-#: keepnote/gui/main_window.py:1166
-msgid "_Edit"
-msgstr "_Upraviť"
-
-#: keepnote/gui/main_window.py:1192
+#: keepnote/gui/main_window.py:1200
 msgid "Empty _Trash"
 msgstr "Vyprázdniť _kôš"
 
-#: keepnote/gui/main_window.py:1197
-msgid "_Search"
-msgstr "_Hľadať"
-
-#: keepnote/gui/main_window.py:1199
-msgid "_Search All Notes"
-msgstr "_Hľadať vo všetkých"
-
 #: keepnote/gui/main_window.py:1204
-msgid "_Go"
-msgstr "_Prejsť"
+msgid "_Export Notebook"
+msgstr "_Exportovať zápisník"
 
-#: keepnote/gui/main_window.py:1207
-msgid "_View"
-msgstr "_Zobraziť"
+#: keepnote/gui/main_window.py:1206
+msgid "_Import Notebook"
+msgstr "_Importovať zápisník"
 
-#: keepnote/gui/main_window.py:1210
-msgid "View Note in File Explorer"
-msgstr "Zobraziť v _správcovi súborov"
+#: keepnote/gui/main_window.py:1208 keepnote/gui/main_window.py:1442
+msgid "_Quit"
+msgstr "_Skončiť"
 
-#: keepnote/gui/main_window.py:1216
-msgid "View Note in Text Editor"
-msgstr "Zobraziť v textovom _editore"
+#: keepnote/gui/main_window.py:1209 keepnote/gui/main_window.py:1443
+msgid "Quit KeepNote"
+msgstr "Skončí KeepNote"
 
-#: keepnote/gui/main_window.py:1222
-msgid "View Note in Web Browser"
-msgstr "Zobraziť vo _webovom prehliadači"
+#: keepnote/gui/main_window.py:1213
+msgid "_Edit"
+msgstr "_Upraviť"
 
-#: keepnote/gui/main_window.py:1228
-msgid "_Open File"
-msgstr "_Otvoriť súbor"
-
-#: keepnote/gui/main_window.py:1235
-msgid "_Tools"
-msgstr "_Nástroje"
-
-#: keepnote/gui/main_window.py:1237
-msgid "_Update Notebook Index"
-msgstr "_Aktualizovať index zápisníka"
-
-#: keepnote/gui/main_window.py:1241 keepnote/gui/main_window.py:1388
+#: keepnote/gui/main_window.py:1239 keepnote/gui/main_window.py:1439
 msgid "_Preferences"
 msgstr "_Nastavenia"
 
-#: keepnote/gui/main_window.py:1246
+#: keepnote/gui/main_window.py:1245
+msgid "_Search"
+msgstr "_Hľadať"
+
+#: keepnote/gui/main_window.py:1247
+msgid "_Search All Notes"
+msgstr "_Hľadať vo všetkých"
+
+#: keepnote/gui/main_window.py:1252
+msgid "_Go"
+msgstr "_Prejsť"
+
+#: keepnote/gui/main_window.py:1255
+msgid "_View"
+msgstr "_Zobraziť"
+
+#: keepnote/gui/main_window.py:1257
+msgid "_View Note As"
+msgstr ""
+
+#: keepnote/gui/main_window.py:1260
+msgid "View Note in File Explorer"
+msgstr "Zobraziť v _správcovi súborov"
+
+#: keepnote/gui/main_window.py:1266
+msgid "View Note in Text Editor"
+msgstr "Zobraziť v textovom _editore"
+
+#: keepnote/gui/main_window.py:1272
+msgid "View Note in Web Browser"
+msgstr "Zobraziť vo _webovom prehliadači"
+
+#: keepnote/gui/main_window.py:1278
+msgid "_Open File"
+msgstr "_Otvoriť súbor"
+
+#: keepnote/gui/main_window.py:1285
+msgid "_Tools"
+msgstr "_Nástroje"
+
+#: keepnote/gui/main_window.py:1287
+msgid "_Update Notebook Index"
+msgstr "_Aktualizovať index zápisníka"
+
+#: keepnote/gui/main_window.py:1291
+msgid "_Open Notebook from URL"
+msgstr ""
+
+#: keepnote/gui/main_window.py:1296
 msgid "Window"
 msgstr "_Okno"
 
-#: keepnote/gui/main_window.py:1248
+#: keepnote/gui/main_window.py:1298
 msgid "New Window"
 msgstr "_Nové okno"
 
-#: keepnote/gui/main_window.py:1249
+#: keepnote/gui/main_window.py:1299
 msgid "Open a new window"
 msgstr "Otvorí nové okno"
 
-#: keepnote/gui/main_window.py:1252
+#: keepnote/gui/main_window.py:1302
 msgid "Close Window"
 msgstr "_Zatvoriť okno"
 
-#: keepnote/gui/main_window.py:1253
+#: keepnote/gui/main_window.py:1303
 msgid "Close window"
 msgstr "Zavrie okno"
 
-#: keepnote/gui/main_window.py:1258
+#: keepnote/gui/main_window.py:1308
 msgid "_Help"
 msgstr "_Pomocník"
 
-#: keepnote/gui/main_window.py:1260
+#: keepnote/gui/main_window.py:1310
 msgid "View _Error Log..."
 msgstr "Záznam _chýb..."
 
-#: keepnote/gui/main_window.py:1264
+#: keepnote/gui/main_window.py:1314
 msgid "View Preference Files..."
 msgstr "Súbory _nastavení..."
 
-#: keepnote/gui/main_window.py:1267
+#: keepnote/gui/main_window.py:1317
 msgid "Drag and Drop Test..."
 msgstr "Test Ťahaj&Pusť"
 
-#: keepnote/gui/main_window.py:1271 keepnote/gui/main_window.py:1394
+#: keepnote/gui/main_window.py:1321 keepnote/gui/main_window.py:1445
 msgid "_About"
 msgstr "_O programe"
 
-#: keepnote/gui/main_window.py:1277 keepnote/gui/main_window.py:1279
+#: keepnote/gui/main_window.py:1327 keepnote/gui/main_window.py:1329
 msgid "Search All Notes"
 msgstr "Hľadať vo všetkých poznámkach"
 
-#: keepnote/gui/main_window.py:1578 keepnote/gui/main_window.py:1612
+#: keepnote/gui/main_window.py:1629 keepnote/gui/main_window.py:1663
 msgid "Unexpected error"
 msgstr "Neočakávaná chyba"
 
-#: keepnote/gui/main_window.py:1624
+#: keepnote/gui/main_window.py:1675
 msgid "Searching notebook"
 msgstr "Prehľadávanie zápisníka"
 
-#: keepnote/gui/main_window.py:1624
+#: keepnote/gui/main_window.py:1675
 msgid "Searching..."
 msgstr "Hľadanie..."
 
@@ -586,25 +593,25 @@ msgstr "_Predošlá záložka"
 msgid "Switch to previous tab"
 msgstr "Prepne na predošlú záložku"
 
-#: keepnote/gui/__init__.py:475 keepnote/gui/__init__.py:540
-#: keepnote/gui/__init__.py:546
+#: keepnote/gui/__init__.py:535 keepnote/gui/__init__.py:602
+#: keepnote/gui/__init__.py:608
 #, python-format
 msgid "Could not load notebook '%s'."
 msgstr "Nemožno načítať zápisník '%s'."
 
-#: keepnote/gui/__init__.py:483
+#: keepnote/gui/__init__.py:544
 msgid "Cannot open notebook (version too old)"
 msgstr "Nemožno otvoriť zápisník (príliš stará verzia)"
 
-#: keepnote/gui/__init__.py:516
+#: keepnote/gui/__init__.py:578
 msgid "Opening notebook"
 msgstr "Otváranie zápisníka"
 
-#: keepnote/gui/__init__.py:516
+#: keepnote/gui/__init__.py:578
 msgid "Loading..."
 msgstr "Načítanie..."
 
-#: keepnote/gui/__init__.py:530
+#: keepnote/gui/__init__.py:592
 #, python-format
 msgid ""
 "This version of %s cannot read this notebook.\n"
@@ -613,82 +620,70 @@ msgstr ""
 "Táto verzia %s nemôž čítať tento zápisník.\n"
 "Zápisník má verziu %d.  %s môže čítať len %d."
 
-#: keepnote/gui/__init__.py:748
+#: keepnote/gui/__init__.py:824
 msgid "Attach File..."
 msgstr "Pripojiť súbor..."
 
-#: keepnote/gui/__init__.py:751
+#: keepnote/gui/__init__.py:827
 msgid "Attach"
 msgstr "Pripojiť"
 
-#: keepnote/gui/__init__.py:807
+#: keepnote/gui/__init__.py:883
 #, python-format
 msgid "Error while attaching files %s."
 msgstr "Chyba pri pripájaní súborov %s."
 
-#: keepnote/gui/__init__.py:811
+#: keepnote/gui/__init__.py:887
 #, python-format
 msgid "Error while attaching file '%s'."
 msgstr "Chyba pri pripájaní súboru %s."
 
-#: keepnote/gui/__init__.py:836
+#: keepnote/gui/__init__.py:912
 msgid "Error"
 msgstr "Chyba"
 
-#: keepnote/gui/__init__.py:942
+#: keepnote/gui/__init__.py:1018
 #, python-format
 msgid "Do you want to install the extension \"%s\"?"
 msgstr "Chcete nainštalovať rozšírenie \"%s\"?"
 
-#: keepnote/gui/__init__.py:951
+#: keepnote/gui/__init__.py:1027
 #, python-format
 msgid "Extension \"%s\" is now installed."
 msgstr "Rozšírenie \"%s\" je teraz nainštalované."
 
-#: keepnote/gui/__init__.py:952
+#: keepnote/gui/__init__.py:1028
 msgid "Install Successful"
 msgstr "Inštalácia úspešná"
 
-#: keepnote/gui/__init__.py:961
+#: keepnote/gui/__init__.py:1037
 #, python-format
 msgid "Do you want to uninstall the extension \"%s\"?"
 msgstr "Chcete odinštalovať rozšírenie \"%s\"?"
 
-#: keepnote/gui/__init__.py:962
+#: keepnote/gui/__init__.py:1038
 msgid "Extension Uninstall"
 msgstr "Odinštalovanie rozšírenia"
 
-#: keepnote/gui/__init__.py:964
+#: keepnote/gui/__init__.py:1040
 #, python-format
 msgid "Extension \"%s\" is now uninstalled."
 msgstr "Rozšírenie \"%s\" je teraz odinštalované."
 
-#: keepnote/gui/__init__.py:966
+#: keepnote/gui/__init__.py:1042
 msgid "Uninstall Successful"
 msgstr "Odinštalovanie úspešné"
 
-#: keepnote/gui/listview.py:82
-msgid "Title"
-msgstr "Titulok"
-
-#: keepnote/gui/listview.py:112
-msgid "Created"
-msgstr "Vytvorené"
-
-#: keepnote/gui/listview.py:131
-msgid "Modified"
-msgstr "Upravené"
-
-#: keepnote/gui/listview.py:341
+#: keepnote/gui/listview.py:389
 #, python-format
 msgid "%d pages"
 msgstr "%d stránky/ok"
 
-#: keepnote/gui/listview.py:343
+#: keepnote/gui/listview.py:391
 msgid "1 page"
 msgstr "1 stránka"
 
-#: keepnote/gui/richtext/__init__.py:991
+#: keepnote/gui/richtext/__init__.py:1033
 msgid "Paste As Plain Text"
 msgstr "Vložiť ako prostý text"
 
@@ -745,7 +740,7 @@ msgstr "Pri zálohovaní sa vyskytla chyba."
 msgid "Backup canceled."
 msgstr "Zálohovanie zrušené."
 
-#: keepnote/gui/editor_richtext.py:619
+#: keepnote/gui/editor_richtext.py:623
 #, python-format
 msgid ""
 "The screenshot program encountered an error:\n"
@@ -754,230 +749,230 @@ msgstr ""
 "Program na snímanie obrazovky vyvolal chybu:\n"
 " %s"
 
-#: keepnote/gui/editor_richtext.py:629
+#: keepnote/gui/editor_richtext.py:633
 #, python-format
 msgid "%s was unable to remove temp file for screenshot"
 msgstr "%s nemohol odstrániť dočasní súbor snímku obrazovky"
 
-#: keepnote/gui/editor_richtext.py:648
+#: keepnote/gui/editor_richtext.py:652
 msgid "Insert Image From File"
 msgstr "Vložiť obrázok zo súboru"
 
-#: keepnote/gui/editor_richtext.py:651
+#: keepnote/gui/editor_richtext.py:655
 msgid "Insert"
 msgstr "Vložiť"
 
-#: keepnote/gui/editor_richtext.py:703
+#: keepnote/gui/editor_richtext.py:707
 #, python-format
 msgid "Could not insert image '%s'"
 msgstr "Nemožno vložiť obrázok '%s'"
 
-#: keepnote/gui/editor_richtext.py:792
+#: keepnote/gui/editor_richtext.py:796
 msgid "Save Image As..."
 msgstr "Uložiť obrázok ako..."
 
-#: keepnote/gui/editor_richtext.py:795
+#: keepnote/gui/editor_richtext.py:799
 msgid "Save"
 msgstr "Uložiť"
 
-#: keepnote/gui/editor_richtext.py:804
+#: keepnote/gui/editor_richtext.py:808
 msgid "Must specify a filename for the image."
 msgstr "Musíte zadať meno súboru pre obrázok."
 
-#: keepnote/gui/editor_richtext.py:811
+#: keepnote/gui/editor_richtext.py:815
 #, python-format
 msgid "Could not save image '%s'."
 msgstr "Nemožno uložiť obrázok '%s'."
 
-#: keepnote/gui/editor_richtext.py:828
+#: keepnote/gui/editor_richtext.py:832
 msgid "_View Image..."
 msgstr "_Zobraziť obrázok..."
 
-#: keepnote/gui/editor_richtext.py:830
+#: keepnote/gui/editor_richtext.py:834
 msgid "<b>_View Image...</b>"
 msgstr "<b>_Zobraziť obrázok...</b>"
 
-#: keepnote/gui/editor_richtext.py:834
+#: keepnote/gui/editor_richtext.py:838
 msgid "_Edit Image..."
 msgstr "_Upraviť obrázok..."
 
-#: keepnote/gui/editor_richtext.py:839
+#: keepnote/gui/editor_richtext.py:843
 msgid "_Resize Image..."
 msgstr "Zmeniť _veľkosť"
 
-#: keepnote/gui/editor_richtext.py:845
+#: keepnote/gui/editor_richtext.py:849
 msgid "_Save Image As..."
 msgstr "_Uložiť obrázok ako..."
 
-#: keepnote/gui/editor_richtext.py:1007
+#: keepnote/gui/editor_richtext.py:1020
 msgid "Choose Font"
 msgstr "Zvoľte písmo"
 
-#: keepnote/gui/editor_richtext.py:1084
+#: keepnote/gui/editor_richtext.py:1096
 msgid "Insert _Horizontal Rule"
 msgstr "Vložiť _vodorovnú čaru"
 
-#: keepnote/gui/editor_richtext.py:1088
+#: keepnote/gui/editor_richtext.py:1100
 msgid "Insert _Image..."
 msgstr "Vlož_iť obrázok"
 
-#: keepnote/gui/editor_richtext.py:1092
+#: keepnote/gui/editor_richtext.py:1104
 msgid "Insert _New Image..."
 msgstr "Vložiť _nový obrázok..."
 
-#: keepnote/gui/editor_richtext.py:1093
+#: keepnote/gui/editor_richtext.py:1105
 msgid "Insert a new image"
 msgstr "Vloží nový obrázok"
 
-#: keepnote/gui/editor_richtext.py:1096
+#: keepnote/gui/editor_richtext.py:1108
 msgid "Insert _Screenshot..."
 msgstr "Vložiť sní_mok obrazovky"
 
-#: keepnote/gui/editor_richtext.py:1121
+#: keepnote/gui/editor_richtext.py:1133
 msgid "Fo_rmat"
 msgstr "_Formát"
 
-#: keepnote/gui/editor_richtext.py:1125
+#: keepnote/gui/editor_richtext.py:1137
 msgid "_Bold"
 msgstr "_Tučné"
 
-#: keepnote/gui/editor_richtext.py:1126
+#: keepnote/gui/editor_richtext.py:1138
 msgid "Bold"
 msgstr "Tučné"
 
-#: keepnote/gui/editor_richtext.py:1130
+#: keepnote/gui/editor_richtext.py:1142
 msgid "_Italic"
 msgstr "Š_ikmé"
 
-#: keepnote/gui/editor_richtext.py:1131
+#: keepnote/gui/editor_richtext.py:1143
 msgid "Italic"
 msgstr "Šikmé"
 
-#: keepnote/gui/editor_richtext.py:1135
+#: keepnote/gui/editor_richtext.py:1147
 msgid "_Underline"
 msgstr "_Podčiarknuté"
 
-#: keepnote/gui/editor_richtext.py:1136
+#: keepnote/gui/editor_richtext.py:1148
 msgid "Underline"
 msgstr "Podčiarknuté"
 
-#: keepnote/gui/editor_richtext.py:1140
+#: keepnote/gui/editor_richtext.py:1152
 msgid "S_trike"
 msgstr "P_rečiarknuté"
 
-#: keepnote/gui/editor_richtext.py:1141
+#: keepnote/gui/editor_richtext.py:1153
 msgid "Strike"
 msgstr "Prečiarknuté"
 
-#: keepnote/gui/editor_richtext.py:1145
+#: keepnote/gui/editor_richtext.py:1157
 msgid "_Monospace"
 msgstr "_Pevná šírka"
 
-#: keepnote/gui/editor_richtext.py:1146
+#: keepnote/gui/editor_richtext.py:1158
 msgid "Monospace"
 msgstr "Pevná šírka"
 
-#: keepnote/gui/editor_richtext.py:1150
+#: keepnote/gui/editor_richtext.py:1162
 msgid "Lin_k"
 msgstr "Od_kaz"
 
-#: keepnote/gui/editor_richtext.py:1151
+#: keepnote/gui/editor_richtext.py:1163
 msgid "Make Link"
 msgstr "Vytvorí odkaz"
 
-#: keepnote/gui/editor_richtext.py:1155
+#: keepnote/gui/editor_richtext.py:1167
 msgid "No _Wrapping"
 msgstr "Ne_zalamovať"
 
-#: keepnote/gui/editor_richtext.py:1156
+#: keepnote/gui/editor_richtext.py:1168
 msgid "No Wrapping"
 msgstr "Nezalamovať"
 
-#: keepnote/gui/editor_richtext.py:1160
+#: keepnote/gui/editor_richtext.py:1172
 msgid "_Left Align"
 msgstr "Zarovnať vľ_avo"
 
-#: keepnote/gui/editor_richtext.py:1161
+#: keepnote/gui/editor_richtext.py:1173
 msgid "Left Align"
 msgstr "Zarovnať vľavo"
 
-#: keepnote/gui/editor_richtext.py:1165
+#: keepnote/gui/editor_richtext.py:1177
 msgid "C_enter Align"
 msgstr "Zarovnať na _stred"
 
-#: keepnote/gui/editor_richtext.py:1166
+#: keepnote/gui/editor_richtext.py:1178
 msgid "Center Align"
 msgstr "Zarovnať na stred"
 
-#: keepnote/gui/editor_richtext.py:1170
+#: keepnote/gui/editor_richtext.py:1182
 msgid "_Right Align"
 msgstr "Zarovnať vprav_o"
 
-#: keepnote/gui/editor_richtext.py:1171
+#: keepnote/gui/editor_richtext.py:1183
 msgid "Right Align"
 msgstr "Zarovnať vpravo"
 
-#: keepnote/gui/editor_richtext.py:1175
+#: keepnote/gui/editor_richtext.py:1187
 msgid "_Justify Align"
 msgstr "Zarovnať do _bloku"
 
-#: keepnote/gui/editor_richtext.py:1176
+#: keepnote/gui/editor_richtext.py:1188
 msgid "Justify Align"
 msgstr "Zarovnať do bloku"
 
-#: keepnote/gui/editor_richtext.py:1180
+#: keepnote/gui/editor_richtext.py:1192
 msgid "_Bullet List"
 msgstr "_Zoznam"
 
-#: keepnote/gui/editor_richtext.py:1181
+#: keepnote/gui/editor_richtext.py:1193
 msgid "Bullet List"
 msgstr "Zoznam"
 
-#: keepnote/gui/editor_richtext.py:1187
+#: keepnote/gui/editor_richtext.py:1199
 msgid "Set Font Face"
 msgstr "Nastaviť vzhľad písma"
 
-#: keepnote/gui/editor_richtext.py:1188
+#: keepnote/gui/editor_richtext.py:1200
 msgid "Set Font Size"
 msgstr "Nastaviť veľkosť písma"
 
-#: keepnote/gui/editor_richtext.py:1189
+#: keepnote/gui/editor_richtext.py:1201
 msgid "Set Text Color"
 msgstr "Nastaviť farbu písma"
 
-#: keepnote/gui/editor_richtext.py:1190
+#: keepnote/gui/editor_richtext.py:1202
 msgid "Set Background Color"
 msgstr "Nastaviť farbu pozadia"
 
-#: keepnote/gui/editor_richtext.py:1192
+#: keepnote/gui/editor_richtext.py:1204
 msgid "Indent M_ore"
 msgstr "Z_väčšiť odsadenie"
 
-#: keepnote/gui/editor_richtext.py:1197
+#: keepnote/gui/editor_richtext.py:1209
 msgid "Indent Le_ss"
 msgstr "Z_menšiť odsadenie"
 
-#: keepnote/gui/editor_richtext.py:1202
+#: keepnote/gui/editor_richtext.py:1214
 msgid "Increase Font _Size"
 msgstr "Zväčšiť veľ_kosť písma"
 
-#: keepnote/gui/editor_richtext.py:1206
+#: keepnote/gui/editor_richtext.py:1218
 msgid "_Decrease Font Size"
 msgstr "Zmenšiť v_eľkosť písma"
 
-#: keepnote/gui/editor_richtext.py:1210
+#: keepnote/gui/editor_richtext.py:1222
 msgid "_Apply Text Color"
 msgstr "Použiť farbu _textu"
 
-#: keepnote/gui/editor_richtext.py:1215
+#: keepnote/gui/editor_richtext.py:1227
 msgid "A_pply Background Color"
 msgstr "Použiť _farbu pozadia"
 
-#: keepnote/gui/editor_richtext.py:1220
+#: keepnote/gui/editor_richtext.py:1232
 msgid "Choose _Font"
 msgstr "Zvoliť pí_smo"
 
-#: keepnote/gui/editor_richtext.py:1225
+#: keepnote/gui/editor_richtext.py:1237
 msgid "Go to Lin_k"
 msgstr "Prejsť na od_kaz"
 
@@ -989,152 +984,236 @@ msgstr "Zvoľte ikonu"
 msgid "Choose Open Icon"
 msgstr "Zvoľte otvorenú ikonu"
 
-#: keepnote/gui/three_pane_viewer.py:1025
+#: keepnote/gui/three_pane_viewer.py:1115
 msgid "Copy _Tree"
 msgstr "Kopírovať s_trom"
 
-#: keepnote/gui/three_pane_viewer.py:1026
+#: keepnote/gui/three_pane_viewer.py:1116
 msgid "Copy entire tree"
 msgstr "Kopíruje celý strom"
 
-#: keepnote/gui/three_pane_viewer.py:1029
+#: keepnote/gui/three_pane_viewer.py:1119
 msgid "New _Page"
 msgstr "Nová stránka"
 
-#: keepnote/gui/three_pane_viewer.py:1030
+#: keepnote/gui/three_pane_viewer.py:1120
 msgid "Create a new page"
 msgstr "Vytvorí novú stránku"
 
-#: keepnote/gui/three_pane_viewer.py:1033
+#: keepnote/gui/three_pane_viewer.py:1123
 msgid "New _Child Page"
 msgstr "Nová _vnorená stránka"
 
-#: keepnote/gui/three_pane_viewer.py:1034
+#: keepnote/gui/three_pane_viewer.py:1124
 msgid "Create a new child page"
 msgstr "Vytvorí novú vnorenú stránku"
 
-#: keepnote/gui/three_pane_viewer.py:1038
+#: keepnote/gui/three_pane_viewer.py:1128
 msgid "New _Folder"
 msgstr "Nová _zložka"
 
-#: keepnote/gui/three_pane_viewer.py:1039
+#: keepnote/gui/three_pane_viewer.py:1129
 msgid "Create a new folder"
 msgstr "Vytvorí novú zložku"
 
-#: keepnote/gui/three_pane_viewer.py:1043
+#: keepnote/gui/three_pane_viewer.py:1133
 msgid "_Attach File..."
 msgstr "Prip_ojiť súbor"
 
-#: keepnote/gui/three_pane_viewer.py:1044
+#: keepnote/gui/three_pane_viewer.py:1134
 msgid "Attach a file to the notebook"
 msgstr "Pripojí k zápisníku súbor"
 
-#: keepnote/gui/three_pane_viewer.py:1048
+#: keepnote/gui/three_pane_viewer.py:1138
 msgid "_Back"
 msgstr "_Späť"
 
-#: keepnote/gui/three_pane_viewer.py:1051
+#: keepnote/gui/three_pane_viewer.py:1141
 msgid "_Forward"
 msgstr "_Vpred"
 
-#: keepnote/gui/three_pane_viewer.py:1054
+#: keepnote/gui/three_pane_viewer.py:1144
 msgid "Go to _Note"
 msgstr "Prejsť na p_oznámku"
 
-#: keepnote/gui/three_pane_viewer.py:1058
+#: keepnote/gui/three_pane_viewer.py:1148
 msgid "Go to _Parent Note"
 msgstr "Prejsť na _rodičovskú"
 
-#: keepnote/gui/three_pane_viewer.py:1062
+#: keepnote/gui/three_pane_viewer.py:1152
 msgid "Go to Next N_ote"
 msgstr "Prejsť na ďalšiu p_oznámku"
 
-#: keepnote/gui/three_pane_viewer.py:1066
+#: keepnote/gui/three_pane_viewer.py:1156
 msgid "Go to _Previous Note"
 msgstr "Prejsť na predošlú poznámk_u"
 
-#: keepnote/gui/three_pane_viewer.py:1070
+#: keepnote/gui/three_pane_viewer.py:1160
 msgid "E_xpand Note"
 msgstr "Roz_baliť poznámku"
 
-#: keepnote/gui/three_pane_viewer.py:1074
+#: keepnote/gui/three_pane_viewer.py:1164
 msgid "_Collapse Note"
 msgstr "Zba_liť poznámku"
 
-#: keepnote/gui/three_pane_viewer.py:1078
+#: keepnote/gui/three_pane_viewer.py:1168
 msgid "Expand _All Child Notes"
 msgstr "Rozbaliť všet_ky vnorené"
 
-#: keepnote/gui/three_pane_viewer.py:1082
+#: keepnote/gui/three_pane_viewer.py:1172
 msgid "Collapse A_ll Child Notes"
 msgstr "Zbaliť _všetky vnorené"
 
-#: keepnote/gui/three_pane_viewer.py:1087
+#: keepnote/gui/three_pane_viewer.py:1177
 msgid "Go to _Tree View"
 msgstr "Prejsť na _strom"
 
-#: keepnote/gui/three_pane_viewer.py:1091
+#: keepnote/gui/three_pane_viewer.py:1181
 msgid "Go to _List View"
 msgstr "Prejsť na zoz_nam"
 
-#: keepnote/gui/three_pane_viewer.py:1095
+#: keepnote/gui/three_pane_viewer.py:1185
 msgid "Go to _Editor"
 msgstr "Prejsť na _editor"
 
-#: keepnote/gui/three_pane_viewer.py:1099
+#: keepnote/gui/three_pane_viewer.py:1189
 msgid "_Delete"
 msgstr "O_dstrániť"
 
-#: keepnote/gui/three_pane_viewer.py:1102
+#: keepnote/gui/three_pane_viewer.py:1192
 msgid "_Rename"
 msgstr "P_remenovať"
 
-#: keepnote/gui/three_pane_viewer.py:1106
+#: keepnote/gui/three_pane_viewer.py:1196
 msgid "_Change Note Icon"
 msgstr "Zmeniť _ikonu"
 
-#: keepnote/compat/notebook_v3.py:261 keepnote/compat/notebook_v3.py:1836
-#: keepnote/notebook/__init__.py:248
+#: keepnote/gui/three_pane_viewer.py:1200
+msgid "Change _Fg Color"
+msgstr ""
+
+#: keepnote/gui/three_pane_viewer.py:1202
+msgid "Change _Bg Color"
+msgstr ""
+
+#: keepnote/compat/notebook_v4.py:199 keepnote/compat/notebook_v3.py:1514
+#: keepnote/notebook/__init__.py:197
+#, python-format
+msgid "Cannot find notebook '%s'"
+msgstr "Nemožno nájsť zápisník '%s'"
+
+#: keepnote/compat/notebook_v4.py:248 keepnote/compat/notebook_v3.py:261
+#: keepnote/compat/notebook_v3.py:1836 keepnote/notebook/__init__.py:246
 msgid "Cannot read notebook preferences"
 msgstr "Nemožno čítať nastavenia zápisníka"
 
-#: keepnote/compat/notebook_v3.py:263 keepnote/compat/notebook_v3.py:282
-#: keepnote/compat/notebook_v3.py:1838 keepnote/notebook/__init__.py:250
-#: keepnote/notebook/__init__.py:270 keepnote/notebook/__init__.py:1718
+#: keepnote/compat/notebook_v4.py:250 keepnote/compat/notebook_v4.py:270
+#: keepnote/compat/notebook_v4.py:1718 keepnote/compat/notebook_v3.py:263
+#: keepnote/compat/notebook_v3.py:282 keepnote/compat/notebook_v3.py:1838
+#: keepnote/notebook/__init__.py:248 keepnote/notebook/__init__.py:268
+#: keepnote/notebook/__init__.py:1823
 msgid "Notebook preference data is corrupt"
 msgstr "Dáta nastavenia zápisníka sú poškodené"
+
+#: keepnote/compat/notebook_v4.py:266 keepnote/compat/notebook_v3.py:278
+#: keepnote/notebook/__init__.py:264
+msgid "Unknown version string"
+msgstr "Neznámy reťazec verzie"
+
+#: keepnote/compat/notebook_v4.py:642 keepnote/compat/notebook_v3.py:1249
+#: keepnote/notebook/__init__.py:713
+#, python-format
+msgid "Cannot copy file '%s'"
+msgstr "Nemožno kopírovať súbor '%s'"
+
+#: keepnote/compat/notebook_v4.py:702 keepnote/compat/notebook_v3.py:720
+#: keepnote/notebook/__init__.py:776
+msgid "This node is not part of any notebook"
+msgstr "Táto poznámka nie je časťou žiadneho zápisníka"
+
+#: keepnote/compat/notebook_v4.py:1392 keepnote/compat/notebook_v3.py:1273
+#: keepnote/notebook/__init__.py:1497
+msgid "The Trash folder must be a top-level folder."
+msgstr "Zložka koša musí byť zložkou najvyššej úrovne."
+
+#: keepnote/compat/notebook_v4.py:1463 keepnote/compat/notebook_v3.py:1641
+#: keepnote/notebook/__init__.py:1568
+msgid "Cannot create Trash folder"
+msgstr "Nemožno vytvoriť zložku koša"
+
+#: keepnote/compat/notebook_v4.py:1695 keepnote/compat/notebook_v3.py:1357
+#: keepnote/compat/notebook_v3.py:1826 keepnote/notebook/__init__.py:1799
+msgid "Cannot save notebook preferences"
+msgstr "Nemožno uložiť nastavenia zápisníka"
+
+#: keepnote/compat/notebook_v4.py:1697 keepnote/compat/notebook_v3.py:1828
+#: keepnote/notebook/__init__.py:1801
+msgid "File format error"
+msgstr "Chyba formátu súboru"
+
+#: keepnote/compat/notebook_v4.py:1709 keepnote/notebook/__init__.py:1813
+#: keepnote/notebook/__init__.py:1846
+#, python-format
+msgid "Cannot read notebook preferences %s"
+msgstr "Nemožno čítať nastavenia zápisníka %s"
+
+#: keepnote/compat/notebook_connection_fs_v4.py:635
+#: keepnote/compat/notebook_connection_fs_v4.py:733
+#: keepnote/notebook/connection/fs/__init__.py:680
+#: keepnote/notebook/connection/fs/__init__.py:797
+msgid "New Page"
+msgstr "Nová stránka"
+
+#: keepnote/compat/notebook_connection_fs_v4.py:658
+#: keepnote/compat/notebook_v3.py:674
+#: keepnote/notebook/connection/fs/__init__.py:702
+msgid "Cannot create node"
+msgstr "Nemožno vytvoriť uzol"
+
+#: keepnote/compat/notebook_connection_fs_v4.py:741
+#: keepnote/compat/notebook_v3.py:817
+#: keepnote/notebook/connection/fs/__init__.py:805
+#, python-format
+msgid "Cannot rename '%s' to '%s'"
+msgstr "Nemožno premenovať '%s' na '%s'"
+
+#: keepnote/compat/notebook_connection_fs_v4.py:767
+#: keepnote/compat/notebook_v3.py:693
+#: keepnote/notebook/connection/fs/__init__.py:831
+msgid "Do not have permission to delete"
+msgstr "Nemáte práva na odstránenie"
+
+#: keepnote/compat/notebook_connection_fs_v4.py:802
+#: keepnote/notebook/connection/fs/__init__.py:866
+#, python-format
+msgid "Do not have permission to read folder contents: %s"
+msgstr "Nemáte práva na čítanie obsahu zložky: %s"
+
+#: keepnote/compat/notebook_connection_fs_v4.py:953
+#: keepnote/compat/notebook_v3.py:1974
+#: keepnote/notebook/connection/fs/__init__.py:1002
+msgid "Cannot write meta data"
+msgstr "Nemožno zapísať metadáta"
+
+#: keepnote/compat/notebook_connection_fs_v4.py:969
+#: keepnote/notebook/connection/fs/__init__.py:1016
+#, python-format
+msgid "Error reading meta data file '%s'"
+msgstr "Chyba čítania súboru metadát '%s'"
+
+#: keepnote/compat/notebook_connection_fs_v4.py:974
+#: keepnote/compat/notebook_v3.py:1991
+#: keepnote/notebook/connection/fs/__init__.py:1021
+msgid "Root tag is not 'node'"
+msgstr "Koreňová značka nie je 'uzol'"
 
 #: keepnote/compat/notebook_v3.py:275
 msgid "No version tag found"
 msgstr "Nebola nájdená značka verzie"
 
-#: keepnote/compat/notebook_v3.py:278 keepnote/notebook/__init__.py:266
-msgid "Unknown version string"
-msgstr "Neznámy reťazec verzie"
-
-#: keepnote/compat/notebook_v3.py:674
-#: keepnote/notebook/connection/fs/__init__.py:658
-msgid "Cannot create node"
-msgstr "Nemožno vytvoriť uzol"
-
-#: keepnote/compat/notebook_v3.py:693
-#: keepnote/notebook/connection/fs/__init__.py:767
-msgid "Do not have permission to delete"
-msgstr "Nemáte práva na odstránenie"
-
-#: keepnote/compat/notebook_v3.py:720 keepnote/notebook/__init__.py:702
-msgid "This node is not part of any notebook"
-msgstr "Táto poznámka nie je časťou žiadneho zápisníka"
-
 #: keepnote/compat/notebook_v3.py:769
 msgid "Do not have permission for move"
 msgstr "Nemáte práva na presunutie"
-
-#: keepnote/compat/notebook_v3.py:817
-#: keepnote/notebook/connection/fs/__init__.py:741
-#, python-format
-msgid "Cannot rename '%s' to '%s'"
-msgstr "Nemožno premenovať '%s' na '%s'"
 
 #: keepnote/compat/notebook_v3.py:960
 msgid "Do not have permission to read folder contents"
@@ -1150,66 +1229,9 @@ msgstr "Nemožno inicializovať súbor richtext '%s'"
 msgid "New File"
 msgstr "Nový súbor"
 
-#: keepnote/compat/notebook_v3.py:1249 keepnote/notebook/__init__.py:642
-#, python-format
-msgid "Cannot copy file '%s'"
-msgstr "Nemožno kopírovať súbor '%s'"
-
-#: keepnote/compat/notebook_v3.py:1273 keepnote/notebook/__init__.py:1392
-msgid "The Trash folder must be a top-level folder."
-msgstr "Zložka koša musí byť zložkou najvyššej úrovne."
-
-#: keepnote/compat/notebook_v3.py:1357 keepnote/compat/notebook_v3.py:1826
-#: keepnote/notebook/__init__.py:1695
-msgid "Cannot save notebook preferences"
-msgstr "Nemožno uložiť nastavenia zápisníka"
-
-#: keepnote/compat/notebook_v3.py:1514 keepnote/notebook/__init__.py:199
-#, python-format
-msgid "Cannot find notebook '%s'"
-msgstr "Nemožno nájsť zápisník '%s'"
-
-#: keepnote/compat/notebook_v3.py:1641 keepnote/notebook/__init__.py:1463
-msgid "Cannot create Trash folder"
-msgstr "Nemožno vytvoriť zložku koša"
-
-#: keepnote/compat/notebook_v3.py:1828 keepnote/notebook/__init__.py:1697
-msgid "File format error"
-msgstr "Chyba formátu súboru"
-
-#: keepnote/compat/notebook_v3.py:1974
-#: keepnote/notebook/connection/fs/__init__.py:953
-msgid "Cannot write meta data"
-msgstr "Nemožno zapísať metadáta"
-
 #: keepnote/compat/notebook_v3.py:1986
 msgid "Error reading meta data file"
 msgstr "Chyba čítania súboru metadát"
-
-#: keepnote/compat/notebook_v3.py:1991
-#: keepnote/notebook/connection/fs/__init__.py:974
-msgid "Root tag is not 'node'"
-msgstr "Koreňová značka nie je 'uzol'"
-
-#: keepnote/notebook/connection/fs/__init__.py:635
-#: keepnote/notebook/connection/fs/__init__.py:733
-msgid "New Page"
-msgstr "Nová stránka"
-
-#: keepnote/notebook/connection/fs/__init__.py:802
-#, python-format
-msgid "Do not have permission to read folder contents: %s"
-msgstr "Nemáte práva na čítanie obsahu zložky: %s"
-
-#: keepnote/notebook/connection/fs/__init__.py:969
-#, python-format
-msgid "Error reading meta data file '%s'"
-msgstr "Chyba čítania súboru metadát '%s'"
-
-#: keepnote/notebook/__init__.py:1709
-#, python-format
-msgid "Cannot read notebook preferences %s"
-msgstr "Nemožno čítať nastavenia zápisníka %s"
 
 #: keepnote/rc/keepnote.glade.h:1
 #, c-format
@@ -1664,3 +1686,15 @@ msgstr "nastaviť ikonu"
 #: keepnote/rc/keepnote.glade.h:111
 msgid "set open-icon"
 msgstr "nastaviť otvorenú ikonu"
+
+#~ msgid "Could note find notebook '%s'."
+#~ msgstr "Nemožno nájsť zápisník '%s'."
+
+#~ msgid "Title"
+#~ msgstr "Titulok"
+
+#~ msgid "Created"
+#~ msgstr "Vytvorené"
+
+#~ msgid "Modified"
+#~ msgstr "Upravené"

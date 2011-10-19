@@ -114,6 +114,7 @@ COPYRIGHT = u"Copyright Matt Rasmussen 2011."
 TRANSLATOR_CREDITS = (
     u"Chinese: hu dachuan <hdccn@sina.com>\n"
     u"French: tb <thibaut.bethune@gmail.com>\n"
+    u"French: Sebastien KALT <skalt@throka.org>\n"
     u"German: Jan Rimmek <jan.rimmek@mhinac.de>\n"
     u"Japanese: Toshiharu Kudoh <toshi.kd2@gmail.com>\n"
     u"Italian: Davide Melan <davide.melan@gmail.com>\n"
