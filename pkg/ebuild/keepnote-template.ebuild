@@ -10,7 +10,7 @@ HOMEPAGE="http://keepnote.org/keepnote/"
 SRC_URI="http://keepnote.org/keepnote/download/${P}.tar.gz"
 
 LICENSE="GPL-2"
-KEYWORDS="amd64 ~ppc64 ~sparc x86"
+KEYWORDS="amd64 ~ppc64 ~sparc x86 ppc"
 SLOT="0"
 IUSE="spell"
 

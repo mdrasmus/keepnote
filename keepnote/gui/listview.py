@@ -58,7 +58,8 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         self._sel_nodes = None
 
         self._attr_col_widths = {"title": DEFAULT_TITLE_COL_WIDTH}
-        self._columns = ["title", "created_time", "modified_time"]
+        self._columns_set = False
+        self._current_table = "default"
 
         # configurable callback for setting window status
         self.on_status = None        
@@ -71,10 +72,12 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         self.connect("button-press-event", self.on_button_press)
         self.connect("row-expanded", self._on_listview_row_expanded)
         self.connect("row-collapsed", self._on_listview_row_collapsed)
-        
+        self.connect("columns-changed", self._on_columns_changed)
+
         self.set_rules_hint(True)
         self.set_fixed_height_mode(True)
-        self.set_sensitive(False)        
+        self.set_sensitive(False)
+                
 
         # init model
         self.set_model(gtk.TreeModelSort(treemodel.KeepNoteTreeModel()))
@@ -123,9 +126,14 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         
         # save attr column widths
         widths = self._notebook.get_attr("column_widths", {})
-        for i, attr in enumerate(self._columns):
-            widths[attr] = self.get_column(i).get_width()
+        
+        for col in self.get_columns():
+            widths[col.attr] = col.get_width()
         self._notebook.set_attr("column_widths", widths)
+
+        table = self._notebook.attr_tables.get(self._current_table)
+        table.attrs = [col.attr for col in self.get_columns()]
+
         self._notebook.mark_modified()
 
 
@@ -143,15 +151,17 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         self.clear_columns()
         
         if self._notebook is None:
+            self._columns_set = False
             return
         
         # TODO: eventually columns may change when ever master node changes
-        self._columns = self._notebook.attr_tables.get("default").attrs
+        attrs = self._notebook.attr_tables.get(self._current_table).attrs
         
         
         # add columns        
-        for attr in self._columns:
+        for attr in attrs:
             col = self._add_column(attr)
+            col.set_reorderable(True) # allow column reordering
             if attr == self._attr_title:
                 self.title_column = col
 
@@ -174,6 +184,8 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             self.rich_model.get_column_by_name("order").pos,
             gtk.SORT_ASCENDING)
         self.set_reorder(basetreeview.REORDER_ALL)
+
+        self._columns_set = True
         
 
     def _add_column(self, attr, cell_attr=None):
@@ -194,6 +206,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
 
         # create column view
         column = gtk.TreeViewColumn()
+        column.attr = attr
         column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
         column.set_property("resizable", True)
         column.set_min_width(10)
@@ -305,6 +318,17 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
 
         # TODO: document this more
         return self.get_master_node() is not None
+
+
+    def _on_columns_changed(self, treeview):
+        """Callback for when columns change order"""
+
+        if not self._columns_set:
+            return
+
+        # config columns view
+        self.set_expander_column(self.get_column(0))
+
     
     #====================================================
     # actions
