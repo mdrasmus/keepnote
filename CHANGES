@@ -11,7 +11,7 @@ keepnote-0.7.6
 - fixed windows linking bug
 
 
-keepnote-0.7.5 (2011.9.14)
+keepnote-0.7.5 (2011/9/14)
 --------------------------
 - added drag and drop attachment for windows
 - fixed indent at start of first line bug
@@ -23,7 +23,7 @@ keepnote-0.7.5 (2011.9.14)
   - fixed pasting HTML comments bug
   
 
-keepnote-0.7.4 (2011.7.9)
+keepnote-0.7.4 (2011/7/9)
 -------------------------
 - added Slovak language
 - fixed notebook loading speed on Windows 
@@ -33,13 +33,13 @@ keepnote-0.7.4 (2011.7.9)
 - fixed lostdir bug
 
 
-keepnote-0.7.3 (2011.06.18)
+keepnote-0.7.3 (2011/06/18)
 ---------------------------
 - added close button on tabs
 - bug fixes to notebook indexing, healing, and tamper detection
 
 
-keepnote-0.7.2 (2011.5.12)
+keepnote-0.7.2 (2011/5/12)
 --------------------------
 - added moving/copying notes between notebooks
 - fixed extension disable bug
@@ -174,7 +174,7 @@ keepnote-0.5.3 (2009/7/8)
 - Bug fix: horizontal rules now auto-resize
 
 
-keepnote-0.5.2 (2009/12/4)
+keepnote-0.5.2 (2008/12/4)
 --------------------------
 - customizable node icons
 - any node can have child nodes (e.g. "pages" can have children)

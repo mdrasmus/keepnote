@@ -309,6 +309,12 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         for col in reversed(self.get_columns()):
             self.remove_column(col)
 
+    def get_column_by_attr(self, attr):
+        for col in self.get_columns():
+            if col.attr == attr:
+                return col
+        return None
+
 
     def _add_title_render(self, column, attr):
         

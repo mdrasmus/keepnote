@@ -56,10 +56,9 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
     def __init__(self):
         basetreeview.KeepNoteBaseTreeView.__init__(self)
         self._sel_nodes = None
-
-        self._attr_col_widths = {"title": DEFAULT_TITLE_COL_WIDTH}
         self._columns_set = False
         self._current_table = "default"
+        self._col_widths = {}
 
         # configurable callback for setting window status
         self.on_status = None        
@@ -101,6 +100,10 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
     def set_notebook(self, notebook):
         """Set the notebook for listview"""
         
+        if notebook != self._notebook and self._notebook is not None:
+            self._notebook.get_listeners("table_changed").remove(
+                self._on_table_changed)
+
         basetreeview.KeepNoteBaseTreeView.set_notebook(self, notebook)
         
         if self.rich_model is not None:
@@ -109,12 +112,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         if notebook:
             # load notebook prefs
             self.set_sensitive(True)
-            
-            # load attr column widths
-            for attr, width in notebook.get_attr("column_widths", {}).items():
-                self._attr_col_widths[attr] = width
-
-
+            notebook.get_listeners("table_changed").add(self._on_table_changed)
         else:
             self.set_sensitive(False)
 
@@ -124,17 +122,68 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
     def save(self):
         """Save notebook preferences"""
         
+        if self._notebook is None:
+            return
+
+        self._save_column_widths()
+        self._save_column_order()
+
+        self._notebook.mark_modified()
+
+
+    def _save_column_widths(self):
+
         # save attr column widths
         widths = self._notebook.get_attr("column_widths", {})
-        
         for col in self.get_columns():
             widths[col.attr] = col.get_width()
         self._notebook.set_attr("column_widths", widths)
+        
 
+    def _save_column_order(self):
+
+        # save column attrs
         table = self._notebook.attr_tables.get(self._current_table)
         table.attrs = [col.attr for col in self.get_columns()]
+        
+        # TODO: notify table change
 
-        self._notebook.mark_modified()
+
+    def _load_column_widths(self):
+
+        widths = self._notebook.get_attr("column_widths", {})
+        for col in self.get_columns():
+            width = widths.get(col.attr, DEFAULT_ATTR_COL_WIDTH)
+            if col.get_width() != width and width > 0:
+                col.set_fixed_width(width)
+                widths[col.attr] = width
+        
+
+    def _load_column_order(self):
+
+        current_attrs = [col.attr for col in self.get_columns()]
+
+        table = self._notebook.attr_tables.get(self._current_table)
+        
+        if table.attrs != current_attrs:
+            if set(current_attrs) == set(table.attrs):
+                # only order changed
+                lookup = dict((col.attr, col) for col in self.get_columns())
+                prev = None
+                for attr in table.attrs:
+                    col = lookup[attr]
+                    self.move_column_after(col, prev)
+                    prev = col
+            else:
+                # resetup all columns
+                self.setup_columns()
+            
+
+    def _on_table_changed(self, notebook, table):
+        
+        if self._notebook == notebook and table == self._current_table:
+            self._load_column_widths()
+            self._load_column_order()
 
 
     #==================================
@@ -209,9 +258,11 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         column.attr = attr
         column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
         column.set_property("resizable", True)
+        column.connect("notify::width", self._on_column_width_change)
         column.set_min_width(10)
         column.set_fixed_width(
-            self._attr_col_widths.get(attr, DEFAULT_ATTR_COL_WIDTH))
+            self._notebook.get_attr("column_widths").get(
+                attr, DEFAULT_ATTR_COL_WIDTH))
         column.set_title(col_title)
 
         # define column sorting
@@ -327,8 +378,25 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
             return
 
         # config columns view
-        self.set_expander_column(self.get_column(0))
+        col = self.get_column(0)
+        if col:
+            self.set_expander_column(col)
 
+        if self._notebook:
+            self._save_column_order()
+            self._notebook.get_listeners("table_changed").notify(
+                self._notebook, self._current_table)
+
+    def _on_column_width_change(self, col, width):
+
+        width = col.get_width()
+        if (self._notebook and 
+            self._col_widths.get(col.attr, None) != width):
+            self._col_widths[col.attr] = width
+            self._save_column_widths()
+            self._notebook.get_listeners("table_changed").notify(
+                self._notebook, self._current_table)
+        
     
     #====================================================
     # actions

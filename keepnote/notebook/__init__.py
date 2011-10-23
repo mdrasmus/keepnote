@@ -1287,9 +1287,19 @@ class NoteBook (NoteBookNode):
         self._attr["order"] = 0
 
         # listeners
+        self.listeners = {}
         self.node_changed = Listeners()  # signature = (node, recurse)
         self.closing_event = Listeners()
         self.close_event = Listeners()
+
+
+    def get_listeners(self, key):
+        """Get custom listener"""
+        listeners = self.listeners.get(key, None)
+        if listeners is None:
+            listeners = Listeners()
+            self.listeners[key] = listeners
+        return listeners
 
 
     #=====================================
@@ -1304,17 +1314,13 @@ class NoteBook (NoteBookNode):
 
         # init attr defs
         self.attr_defs.clear()
-        #self._attr["attr_defs"] = []
         for attr_def in g_default_attr_defs:
             self.attr_defs.add(attr_def)
-            #self._attr["attr_defs"].append(attr_def.format())
 
         # init attr tables
         self.attr_tables.clear()
-        #self._attr["attr_tables"] = []
         for attr_table in g_default_attr_tables:
             self.attr_tables.add(attr_table)
-            #self._attr["attr_tables"].append(attr_table.format())
 
 
     def add_attr_def(self, attr_def):
