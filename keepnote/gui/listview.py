@@ -261,7 +261,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         column.connect("notify::width", self._on_column_width_change)
         column.set_min_width(10)
         column.set_fixed_width(
-            self._notebook.get_attr("column_widths").get(
+            self._notebook.get_attr("column_widths", {}).get(
                 attr, DEFAULT_ATTR_COL_WIDTH))
         column.set_title(col_title)
 

@@ -73,24 +73,6 @@ class Update (unittest.TestCase):
         update.update_notebook(u"test/tmp/notebook_update/n1", 6)
 
 
-    def test_gui(self):
-        """test notebook update through gui"""
-
-        new_version = notebooklib.NOTEBOOK_FORMAT_VERSION
-        old_notebook_filename = "test/data/notebook-v3"
-        new_notebook_filename = "test/data/notebook-v%d-update" % new_version
-        
-
-        # make copy of old notebook
-        if os.path.exists(new_notebook_filename):
-            shutil.rmtree(new_notebook_filename)
-        shutil.copytree(old_notebook_filename,
-                        new_notebook_filename)
-
-        self.assertEquals(
-            os.system("bin/keepnote --newproc %s" % new_notebook_filename), 0)
-
-
 if __name__ == "__main__":
-    unittest.main()
+    test_main()
 

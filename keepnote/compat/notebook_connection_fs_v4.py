@@ -93,7 +93,7 @@ from keepnote.compat.notebook_connection_v4 import \
     NoteBookConnection, UnknownNode, UnknownFile, NodeExists, \
     CorruptIndex, ConnectionError, path_basename
 import keepnote
-import keepnote.notebook
+import keepnote.compat.notebook_v4
 
 _ = trans.translate
 
@@ -119,7 +119,7 @@ def get_node_meta_file(nodepath):
 
 def get_pref_file(nodepath):
     """Returns the filename of the notebook preference file"""
-    return os.path.join(nodepath, keepnote.notebook.PREF_FILE)
+    return os.path.join(nodepath, keepnote.compat.notebook_v4.PREF_FILE)
 
 def get_lostdir(nodepath):
     return os.path.join(nodepath, NOTEBOOK_META_DIR, LOSTDIR)
@@ -208,7 +208,7 @@ def get_valid_filename(filename, default=u"folder",
 
 def get_valid_unique_filename(path, filename, ext=u"", sep=u" ", number=2):
     """Returns a valid and unique version of a filename for a given path"""
-    return keepnote.notebook.get_unique_filename(
+    return keepnote.compat.notebook_v4.get_unique_filename(
         path, get_valid_filename(filename), ext, sep, number)
     
 
@@ -564,7 +564,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         if not os.path.exists(lostdir):
             os.makedirs(lostdir)
 
-        new_filename = keepnote.notebook.get_unique_filename(
+        new_filename = keepnote.compat.notebook_v4.get_unique_filename(
             lostdir, os.path.basename(filename),  sep=u"-")
         
         keepnote.log_message(u"moving data to lostdir '%s' => '%s'\n" % 
@@ -618,7 +618,7 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         # generate a new nodeid if one is not given
         if nodeid is None:
-            nodeid = keepnote.notebook.new_nodeid()
+            nodeid = keepnote.compat.notebook_v4.new_nodeid()
 
         # determine parentid
         if _root:
@@ -655,7 +655,7 @@ class NoteBookConnectionFS (NoteBookConnection):
                              attr, self._attr_defs)
             self._path_cache.add(nodeid, basename, parentid)
         except OSError, e:
-            raise keepnote.notebook.NoteBookError(_("Cannot create node"), e)
+            raise keepnote.compat.notebook_v4.NoteBookError(_("Cannot create node"), e)
         
         # update index
         if not self._index:
@@ -737,7 +737,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         try:
             os.rename(path, new_path)
         except OSError, e:
-            raise keepnote.notebook.NoteBookError(
+            raise keepnote.compat.notebook_v4.NoteBookError(
                 _(u"Cannot rename '%s' to '%s'" % (path, new_path)), e)
         
         # update index
@@ -763,7 +763,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         try:
             shutil.rmtree(self._get_node_path(nodeid))
         except OSError, e:
-            raise keepnote.notebook.NoteBookError(
+            raise keepnote.compat.notebook_v4.NoteBookError(
                 _(u"Do not have permission to delete"), e)
 
         # TODO: remove from index entire subtree
@@ -785,7 +785,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         parentid = self._path_cache.get_parentid(nodeid)
         if parentid is None:
             node = self._index.get_node(nodeid)
-            if node and node["parentid"] != keepnote.notebook.UNIVERSAL_ROOT:
+            if node and node["parentid"] != keepnote.compat.notebook_v4.UNIVERSAL_ROOT:
                 return node["parentid"]
         return parentid
 
@@ -798,7 +798,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         try:    
             files = os.listdir(path)
         except:
-            raise keepnote.notebook.NoteBookError(
+            raise keepnote.compat.notebook_v4.NoteBookError(
                 _(u"Do not have permission to read folder contents: %s") 
                 % path, e)           
         
@@ -807,7 +807,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             if os.path.exists(get_node_meta_file(path2)):
                 try:
                     yield self._read_node(nodeid, path2, _full=_full)
-                except keepnote.notebook.NoteBookError, e:
+                except keepnote.compat.notebook_v4.NoteBookError, e:
                     keepnote.log_error(u"error reading %s" % path2)
                     continue
                     # TODO: raise warning, not all children read
@@ -924,7 +924,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             out.write(XML_HEADER)
             out.write(u"<node>\n"
                       u"<version>%s</version>\n" % 
-                      keepnote.notebook.NOTEBOOK_FORMAT_VERSION)
+                      keepnote.compat.notebook_v4.NOTEBOOK_FORMAT_VERSION)
             
             for key, val in attr.iteritems():
                 if key in self._attr_suppress:
@@ -938,7 +938,7 @@ class NoteBookConnectionFS (NoteBookConnection):
                 elif key == "version":
                     # skip version attr
                     pass
-                elif isinstance(val, keepnote.notebook.UnknownAttr):
+                elif isinstance(val, keepnote.compat.notebook_v4.UnknownAttr):
                     # write unknown attrs if they are strings
                     out.write(u'<attr key="%s">%s</attr>\n' %
                               (key, escape(val.value)))
@@ -949,7 +949,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             out.write(u"</node>\n")
             out.close()
         except Exception, e:
-            raise keepnote.notebook.NoteBookError(
+            raise keepnote.compat.notebook_v4.NoteBookError(
                 _("Cannot write meta data"), e)
 
 
@@ -965,13 +965,13 @@ class NoteBookConnectionFS (NoteBookConnection):
                 self._recover_attr(filename)
                 return self._read_attr(filename, attr_defs, recover=False)
             
-            raise keepnote.notebook.NoteBookError(
+            raise keepnote.compat.notebook_v4.NoteBookError(
                 _(u"Error reading meta data file '%s'" % filename), e)
 
         # check root
         root = tree.getroot()
         if root.tag != "node":
-            raise keepnote.notebook.NoteBookError(_("Root tag is not 'node'"))
+            raise keepnote.compat.notebook_v4.NoteBookError(_("Root tag is not 'node'"))
         
         # iterate children
         for child in root:
@@ -985,7 +985,7 @@ class NoteBookConnectionFS (NoteBookConnection):
                         attr[key] = attr_parser.read(child.text)
                     else:
                         # unknown attribute is read as a UnknownAttr
-                        attr[key] = keepnote.notebook.UnknownAttr(child.text)
+                        attr[key] = keepnote.compat.notebook_v4.UnknownAttr(child.text)
 
         return attr
 
@@ -1007,7 +1007,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         
         nodeid = attr.get("nodeid", None)
         if nodeid is None:
-            nodeid = attr["nodeid"] = keepnote.notebook.new_nodeid()
+            nodeid = attr["nodeid"] = keepnote.compat.notebook_v4.new_nodeid()
             return False
 
         # TODO: ensure no duplicated nodeid's
@@ -1020,8 +1020,8 @@ class NoteBookConnectionFS (NoteBookConnection):
         """Iterates over the lines of the data file as plain text"""
         try:
             infile = self.open_file(
-                nodeid, keepnote.notebook.PAGE_DATA_FILE, "r", codec="utf-8")
-            for line in keepnote.notebook.read_data_as_plain_text(infile):
+                nodeid, keepnote.compat.notebook_v4.PAGE_DATA_FILE, "r", codec="utf-8")
+            for line in keepnote.compat.notebook_v4.read_data_as_plain_text(infile):
                 yield line
             infile.close()
         except:
@@ -1190,18 +1190,18 @@ class NoteBookConnectionFS (NoteBookConnection):
                 path2, basename, ext, sep=sep, number=number)
         else:
             if return_number:
-                fullname, number = keepnote.notebook.get_unique_filename(
+                fullname, number = keepnote.compat.notebook_v4.get_unique_filename(
                     path2, basename, ext, sep=sep, number=number,
                     return_number=return_number, use_number=use_number)
             else:
-                fullname = keepnote.notebook.get_unique_filename(
+                fullname = keepnote.compat.notebook_v4.get_unique_filename(
                     path2, basename, ext, sep=sep, number=number,
                     return_number=return_number, use_number=use_number)
 
         if return_number:
-            return keepnote.notebook.relpath(fullname, path), number
+            return keepnote.compat.notebook_v4.relpath(fullname, path), number
         else:
-            return keepnote.notebook.relpath(fullname, path)
+            return keepnote.compat.notebook_v4.relpath(fullname, path)
 
 
     #---------------------------------
