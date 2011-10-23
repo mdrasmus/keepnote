@@ -1402,6 +1402,12 @@ class NoteBook (NoteBookNode):
                             os.path.join(index_dir, notebook_index.INDEX_FILE))
                 except:
                     pass
+
+            # check version
+            version = get_notebook_version(filename)
+            if version > NOTEBOOK_FORMAT_VERSION:
+                raise NoteBookVersionError(version, NOTEBOOK_FORMAT_VERSION)
+
         
         # read basic info
         self._filename = filename

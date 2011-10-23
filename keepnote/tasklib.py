@@ -150,12 +150,7 @@ class Task (object):
                 self.finish()
             
         except Exception, e:
-            self._lock.acquire()
-            self._exc_info = sys.exc_info()
-            self._aborted = True
-            self._state = STOPPED
-            self._lock.release()
-
+            self.set_exc_info()
             self.change_event.notify()
 
 
@@ -201,3 +196,10 @@ class Task (object):
         #self._lock.release()
         return a
 
+
+    def set_exc_info(self, exc_info=None):
+        self._lock.acquire()
+        self._exc_info = sys.exc_info() if exc_info is None else exc_info
+        self._aborted = True
+        self._state = STOPPED
+        self._lock.release()

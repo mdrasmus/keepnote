@@ -73,6 +73,27 @@ class Update (unittest.TestCase):
         update.update_notebook(u"test/tmp/notebook_update/n1", 6)
 
 
+    def test_high(self):
+        
+        # initialize two notebooks
+        make_clean_dir("test/tmp/notebook_update")
+
+        shutil.copytree("test/data/notebook-vHIGH",
+                        "test/tmp/notebook_update/n1")
+        update.update_notebook(u"test/tmp/notebook_update/n1")
+
+
+        book = notebooklib.NoteBook()
+        try:
+            book.load(u"test/tmp/notebook_update/n1")
+        except notebooklib.NoteBookVersionError:
+            print "Correctly detects version error"
+        else:
+            print "Error not detected"
+            self.assert_(False)
+
+
+
 if __name__ == "__main__":
     test_main()
 

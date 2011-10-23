@@ -33,7 +33,9 @@ from keepnote import safefile
 from keepnote.compat import notebook_update_v1_2, notebook_update_v5_6
 
 
-def update_notebook(filename, desired_version, warn=lambda w: False,
+def update_notebook(filename, 
+                    desired_version=notebooklib.NOTEBOOK_FORMAT_VERSION, 
+                    warn=lambda w: False,
                     verify=True):
     """Updates a notebook to the desired version (downgrading not implemented)"""
 

@@ -556,12 +556,18 @@ class KeepNote (keepnote.KeepNote):
             # slow.  If updating the wait dialog wasn't so expensive, I would
             # simply do loading in the background thread.
             def func():
-                conn = self._conns.get(filename)
-                notebook = notebooklib.NoteBook()
-                notebook.load(filename, conn)
-                task.set_result(notebook)
+                try:
+                    conn = self._conns.get(filename)
+                    notebook = notebooklib.NoteBook()
+                    notebook.load(filename, conn)
+                    task.set_result(notebook)
+                except Exception, e:
+                    task.set_exc_info()
+                    task.stop()
+                    print "HERE"
                 sem.release() # notify that notebook is loaded
                 return False
+                    
             gobject.idle_add(func)
 
             # wait for notebook to load
