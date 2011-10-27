@@ -7,8 +7,8 @@
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
-#  Author: Matt Rasmussen <rasmus@mit.edu>
+#  Copyright (c) 2008-2011 Matt Rasmussen
+#  Author: Matt Rasmussen <rasmus@alum.mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -328,7 +328,10 @@ def parse_css_style(stylestr):
 
             elif statement.startswith("font-family"):
                 # font family
-                yield "family " + statement.split(":")[1].strip()
+                family = statement.split(":")[1].strip()
+                family = [x.replace('"', '').replace("'", "") 
+                          for x in family.split(",")][0]
+                yield "family " + family
 
             elif statement.startswith("text-align"):
                 # text justification

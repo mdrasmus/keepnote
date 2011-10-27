@@ -564,7 +564,6 @@ class KeepNote (keepnote.KeepNote):
                 except Exception, e:
                     task.set_exc_info()
                     task.stop()
-                    print "HERE"
                 sem.release() # notify that notebook is loaded
                 return False
                     
