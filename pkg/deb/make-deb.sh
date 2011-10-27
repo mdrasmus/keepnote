@@ -7,7 +7,7 @@ fi
 
 # configure
 export DEBFULLNAME="Matt Rasmussen"
-export DEBEMAIL="rasmus@mit.edu"
+export DEBEMAIL="rasmus@alum.mit.edu"
 PKG_NAME=keepnote
 PKG_VERSION="$1"
 

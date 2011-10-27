@@ -6,6 +6,7 @@ import gtk
 import keepnote.gui
 from keepnote import notebook
 
+from test.testing import *
 
 
 class Tests (unittest.TestCase):
@@ -99,5 +100,5 @@ class Tests (unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    test_main()
 

@@ -753,7 +753,7 @@ class RichTextView (gtk.TextView):
            isinstance(contents[0][2][0], RichTextImage):
             # copy image
             targets = [(MIME_RICHTEXT, gtk.TARGET_SAME_APP, RICHTEXT_ID)] + \
-                [(x, 0, RICHTEXT_ID) for x in MIME_HTML] + \
+                [("text/html", 0, RICHTEXT_ID)] + \
                 [(x, 0, RICHTEXT_ID) for x in MIME_IMAGES]
             
             clipboard.set_with_data(targets, self._get_selection_data, 
@@ -763,7 +763,7 @@ class RichTextView (gtk.TextView):
         else:
             # copy text
             targets = [(MIME_RICHTEXT, gtk.TARGET_SAME_APP, RICHTEXT_ID)] + \
-                [(x, 0, RICHTEXT_ID) for x in MIME_HTML] + \
+                [("text/html", 0, RICHTEXT_ID)] + \
                 [(x, 0, RICHTEXT_ID) for x in MIME_TEXT]
             
             text = start.get_text(end)
@@ -943,8 +943,7 @@ class RichTextView (gtk.TextView):
             # set rich text
             selection_data.set(MIME_RICHTEXT, 8, "<richtext>")
             
-        elif len([x for x in MIME_HTML
-                  if x in selection_data.target]) > 0:
+        elif "text/html" in selection_data.target:
             # set html
             stream = StringIO.StringIO()
             self._html_buffer.set_output(stream)

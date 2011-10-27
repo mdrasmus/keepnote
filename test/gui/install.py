@@ -1,4 +1,6 @@
 import os, shutil, unittest
+from test.testing import *
+
 from keepnote import PROGRAM_NAME, PROGRAM_VERSION_TEXT
 
 def mk_clean_dir(dirname):
@@ -61,6 +63,7 @@ class TestCaseInstall (unittest.TestCase):
         self.assertEquals(os.system(cmd), 0)
 
 
+
 if __name__ == "__main__":
-    unittest.main()
+    test_main()
 

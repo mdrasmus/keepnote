@@ -1,7 +1,7 @@
 
 
 
-from testing import *
+from test.testing import *
 
 # python imports
 import unittest, os, sys, shutil, time
@@ -40,8 +40,8 @@ class Test (unittest.TestCase):
         make_clean_dir("test/tmp/notebook_struct")
 
         print "creating notebook"
-        book = notebook.NoteBook("test/tmp/notebook_struct/n1")
-        book.create()
+        book = notebook.NoteBook()
+        book.create("test/tmp/notebook_struct/n1")
         make_notebook(book, struct)
 
         c1id = book.get_children()[1].get_children()[1].get_children()[0]
@@ -49,8 +49,8 @@ class Test (unittest.TestCase):
         book.close()
 
         print "load"
-        book = notebook.NoteBook("test/tmp/notebook_struct/n1")
-        book.load()
+        book = notebook.NoteBook()
+        book.load("test/tmp/notebook_struct/n1")
         
         a2 = book.get_children()[0].get_children()[1]
         b = book.get_children()[1]
@@ -72,8 +72,8 @@ class Test (unittest.TestCase):
         make_clean_dir("test/tmp/notebook_struct")
 
         print "creating notebook"
-        book = notebook.NoteBook("test/tmp/notebook_struct/n1")
-        book.create()
+        book = notebook.NoteBook()
+        book.create("test/tmp/notebook_struct/n1")
         make_notebook(book, struct)
 
         c1 = book.get_children()[1].get_children()[1].get_children()[0]
@@ -83,8 +83,8 @@ class Test (unittest.TestCase):
 
 
         print "load"
-        book = notebook.NoteBook("test/tmp/notebook_struct/n1")
-        book.load()
+        book = notebook.NoteBook()
+        book.load("test/tmp/notebook_struct/n1")
         display_notebook(book)
         book.close()
 
@@ -101,8 +101,8 @@ class Test (unittest.TestCase):
         make_clean_dir("test/tmp/notebook_struct")
 
         print "creating notebook"
-        book = notebook.NoteBook("test/tmp/notebook_struct/n1")
-        book.create()
+        book = notebook.NoteBook()
+        book.create("test/tmp/notebook_struct/n1")
         make_notebook(book, struct)
 
         c1id = book.get_children()[1].get_children()[1].get_children()[0].get_attr("nodeid")
@@ -110,8 +110,8 @@ class Test (unittest.TestCase):
         book.close()
 
         print "load"
-        book = notebook.NoteBook("test/tmp/notebook_struct/n1")
-        book.load()
+        book = notebook.NoteBook()
+        book.load("test/tmp/notebook_struct/n1")
         
         c1 = book.get_node_by_id(c1id)
         print "found", c1.get_title()
@@ -123,5 +123,5 @@ class Test (unittest.TestCase):
 
         
 if __name__ == "__main__":
-    unittest.main()
+    test_main()
 
