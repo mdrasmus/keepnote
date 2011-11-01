@@ -7,7 +7,7 @@
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2011 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -37,7 +37,6 @@ import urllib2
 import uuid
 
 # xml imports
-from xml.sax.saxutils import escape
 import xml.etree.cElementTree as ET
 
 
@@ -1706,7 +1705,7 @@ class NoteBook (NoteBookNode):
 
         path = self._conn.get_node_path_by_id(nodeid)
         if path is None:
-            keepnote.log_message("node %s not found" % nodeid)
+            keepnote.log_message("node %s not found\n" % nodeid)
             return None
         
         def walk(node, path, i):
@@ -1720,7 +1719,7 @@ class NoteBook (NoteBookNode):
                     return walk(child, path, i+1)
             
             # node not found
-            keepnote.log_message("node %s not found" % str(path))
+            keepnote.log_message("node %s not found\n" % str(path))
             return None
         return walk(self._notebook, path[1:], 0)
     
@@ -1738,12 +1737,19 @@ class NoteBook (NoteBookNode):
 
     def has_fulltext_search(self):
         """Returns True if full text indexed search is availble"""
-        return self._conn.has_fulltext_search()
+        return self._conn.index(["has_fulltext"])
+
+    def enable_fulltext_search(self, enabled):
+        """Returns True if full text indexed search is availble"""
+        return self._conn.index(["enable_fulltext", enabled])
 
     def get_attr_by_id(self, nodeid, key):
         """Returns attr value for a node with id 'nodeid'"""
         return self._conn.get_attr_by_id(nodeid, key)
     
+    def index(self, query):
+        return self._conn.index(query)
+
 
     #----------------------------------------
     # index interface (temparary until fully transparent)

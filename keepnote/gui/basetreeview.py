@@ -1207,7 +1207,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # override gtk's data received code
         self.stop_emission("drag-data-received")
 
-        # NOTE: force one more call to motion in order, since Windows ignores
+        # NOTE: force one more call to motion, since Windows ignores
         # cross app drag calls
         self._on_drag_motion(treeview, drag_context, x, y, eventtime,
                              stop_emit=False)

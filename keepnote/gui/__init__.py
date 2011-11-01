@@ -467,7 +467,10 @@ class KeepNote (keepnote.KeepNote):
         # let windows load their preferences
         for window in self._windows:
             window.load_preferences()
-        
+
+        for notebook in self._notebooks.itervalues():
+            notebook.enable_fulltext_search(p.get("use_fulltext_search",
+                                                  default=True))
         
         # start autosave loop, if requested
         self.begin_auto_save()
@@ -635,6 +638,10 @@ class KeepNote (keepnote.KeepNote):
             notebook.pref.set("colors", DEFAULT_COLORS)
             notebook.set_preferences_dirty()
             write_needed = True
+
+        notebook.enable_fulltext_search(self.pref.get("use_fulltext_search",
+                                                      default=True))
+
 
         # TODO: use listeners to invoke saving
         if write_needed:

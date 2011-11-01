@@ -252,6 +252,8 @@ class NoteBookConnection (object):
     
     def index(self, query):
 
+        # TODO: make this plugable
+
         # built-in queries
         # ["index_attr", key, (index_value)]
         # ["search", "title", text]
@@ -272,7 +274,7 @@ class NoteBookConnection (object):
             return self.search_node_contents(query[1])
 
         elif query[0] == "has_fulltext":
-            return self.has_fulltext_search()
+            return False
 
         elif query[0] == "node_path":
             return self.get_node_path_by_id(query[1])
@@ -309,9 +311,6 @@ class NoteBookConnection (object):
     def search_node_contents(self, text):
         """Search nodes by content"""
         return self.index(["search_fulltext", text])
-
-    def has_fulltext_search(self):
-        return self.index(["has_fulltext"])
     
     def get_node_path_by_id(self, nodeid):
         """Lookup node path by nodeid"""

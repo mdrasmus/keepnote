@@ -1642,7 +1642,8 @@ class SearchBox (gtk.Entry):
             try:
                 nodes = (notebook.get_node_by_id(nodeid)
                          for nodeid in 
-                         notebook.search_node_contents(" ".join(words)))
+                         notebook.search_node_contents(" ".join(words))
+                         if nodeid)
             except:
                 keepnote.log_error()
 

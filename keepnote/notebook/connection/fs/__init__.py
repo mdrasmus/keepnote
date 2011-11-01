@@ -81,7 +81,6 @@ from os.path import join, isdir, isfile
 from os import listdir
 
 # xml imports
-from xml.sax.saxutils import escape
 import xml.etree.cElementTree as ET
 
 
@@ -1262,6 +1261,18 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     #---------------------------------
     # indexing/querying
+
+    def index(self, query):
+        
+        if query[0] == "has_fulltext":
+            return self._index.has_fulltext_search()
+
+        elif query[0] == "enable_fulltext":
+            return self._index.enable_fulltext_search(query[1])
+
+        else:
+            NoteBookConnection.index(query)
+
 
     def index_attr(self, key, datatype, index_value=False):
         

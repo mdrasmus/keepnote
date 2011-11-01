@@ -7,7 +7,7 @@
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2011 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -771,7 +771,7 @@ class NoteBookIndex (object):
     def _search_manual(self, words):
         """Recursively search nodes under node for occurrence of words"""
 
-        keepnote.log_message("manual search")
+        keepnote.log_message("manual search\n")
 
         nodeid = self._nconn.get_rootid()
         

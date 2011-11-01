@@ -214,6 +214,10 @@ class GeneralSection (Section):
         self.xml.get_widget("window_stick_check").set_active(
             app.pref.get("window", "stick"))
 
+        self.xml.get_widget("use_fulltext_check").set_active(
+            app.pref.get("use_fulltext_search", default=True))
+
+
 
     def save_options(self, app):
         if self.xml.get_widget("last_notebook_radio").get_active():
@@ -257,6 +261,10 @@ class GeneralSection (Section):
         app.pref.set(
             "window", "stick",
             self.xml.get_widget("window_stick_check").get_active())
+
+        app.pref.set(
+            "use_fulltext_search",
+            self.xml.get_widget("use_fulltext_check").get_active())
 
 
 class LookAndFeelSection (Section):
