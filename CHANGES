@@ -7,6 +7,7 @@ keepnote-0.7.6
 - added color palletes saving
 - added listview column order and width saving
 - added frequent VACUUM sqlite command to notebook index
+- added optional fulltext indexing
 - fixed windows My Documents location within virtual folders
 - fixed windows linking bug
 

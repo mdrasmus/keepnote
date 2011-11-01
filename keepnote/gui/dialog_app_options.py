@@ -7,7 +7,7 @@
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2011 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -401,10 +401,6 @@ class LanguageSection (Section):
             # set default
             app.pref.set("language", "")
 
-        # XXX: may be I should not change translation during execution
-        #if app.pref.language != keepnote.trans.get_lang():
-        #    keepnote.trans.set_lang(app.pref.language)
- 
 
 
 
