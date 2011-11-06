@@ -4,7 +4,7 @@ KeepNote Change Log
 keepnote-0.7.6
 --------------
 - added foreground and background colors to treeview and listview
-- added color palletes saving
+- added color palette saving
 - added listview column order and width saving
 - added frequent VACUUM sqlite command to notebook index
 - added optional fulltext indexing
@@ -80,7 +80,7 @@ keepnote-0.6.7 (2010/11/23)
 
 keepnote-0.6.6 (2010/11/16)
 ---------------------------
-- multple window persistence
+- multiple window persistence
 - faster HTML loading
 - added separate close window and quit commands
 - fixed bugs
