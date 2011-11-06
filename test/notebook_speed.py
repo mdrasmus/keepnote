@@ -7,6 +7,7 @@ import os, shutil, unittest, thread, threading, traceback, sys, time
 import keepnote
 from keepnote import notebook
 
+from test.testing import *
 
 
 class Speed (unittest.TestCase):
@@ -17,7 +18,7 @@ class Speed (unittest.TestCase):
 
     def test_open(self):
 
-        filename = "test/data/notebook-v5"
+        filename = "test/data/notebook-v6"
         app = keepnote.KeepNote("keepnote")
 
         start = time.time()
@@ -36,7 +37,7 @@ class Speed (unittest.TestCase):
     def test_new_node(self):
         
         clean_dir("test/tmp/notebook_new_node")
-        shutil.copytree("test/data/notebook-v5",
+        shutil.copytree("test/data/notebook-v6",
                         "test/tmp/notebook_new_node")
 
         book = notebook.NoteBook()
@@ -45,7 +46,7 @@ class Speed (unittest.TestCase):
 
         start = time.time()
 
-        n = book.get_node_by_id("8827eb8f-f7eb-4ef4-a0e5-8a5c00f8dd18")
+        n = book.get_node_by_id("76363514-ac2c-4090-a348-58aa1721db68")
         print n
         for i in range(100):
             print i
@@ -59,5 +60,5 @@ class Speed (unittest.TestCase):
         
 
 if __name__ == "__main__":
-    unittest.main()
+    test_main()
 
