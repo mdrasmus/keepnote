@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <notebook>
-<version>5</version>
+<version>6</version>
 <pref>
     <dict>
-        <key>version</key><integer>5</integer>
+        <key>version</key><integer>6</integer>
         <key>quick_pick_icons</key><array>
             <string>x.png</string>
         </array>
@@ -43,6 +43,36 @@
                 </dict>
             </dict>
         </dict>
+        <key>colors</key><array>
+            <string>#ff9999</string>
+            <string>#ffcc99</string>
+            <string>#ffff99</string>
+            <string>#99ff99</string>
+            <string>#99ffff</string>
+            <string>#9999ff</string>
+            <string>#ff99ff</string>
+            <string>#ff0000</string>
+            <string>#ffa300</string>
+            <string>#ffff00</string>
+            <string>#00ff00</string>
+            <string>#00ffff</string>
+            <string>#0000ff</string>
+            <string>#ff00ff</string>
+            <string>#7f0000</string>
+            <string>#7f5100</string>
+            <string>#7f7f00</string>
+            <string>#007f00</string>
+            <string>#007f7f</string>
+            <string>#00007f</string>
+            <string>#7f007f</string>
+            <string>#ffffff</string>
+            <string>#e5e5e5</string>
+            <string>#bfbfbf</string>
+            <string>#7f7f7f</string>
+            <string>#3f3f3f</string>
+            <string>#191919</string>
+            <string>#000000</string>
+        </array>
     </dict>
 </pref>
 </notebook>

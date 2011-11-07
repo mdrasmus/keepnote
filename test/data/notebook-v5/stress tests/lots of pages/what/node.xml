@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <node>
 <version>3</version>
-<dict>
-  <key>version</key><integer>3</integer>
-  <key>content_type</key><string>application/x-notebook-dir</string>
-  <key>title</key><string>New Page</string>
-  <key>created_time</key><integer>1320361675</integer>
-  <key>nodeid</key><string>1e34d879-fb61-408c-95e9-e4b55a681917</string>
-  <key>modified_time</key><integer>1320361675</integer>
-  <key>order</key><integer>565</integer>
-</dict>
+<attr key="title">what is up?</attr>
+<attr key="expanded">0</attr>
+<attr key="nodeid">4921fe2a-8038-4225-9740-33721b3dd387</attr>
+<attr key="modified_time">1208104747</attr>
+<attr key="expanded2">0</attr>
+<attr key="content_type">text/xhtml+xml</attr>
+<attr key="created_time">1208104747</attr>
+<attr key="info_sort_dir">1</attr>
+<attr key="order">799</attr>
+<attr key="info_sort">0</attr>
 </node>

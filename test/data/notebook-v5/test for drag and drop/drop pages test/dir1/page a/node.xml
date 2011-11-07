@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <node>
 <version>3</version>
-<dict>
-  <key>version</key><integer>3</integer>
-  <key>content_type</key><string>application/x-notebook-dir</string>
-  <key>title</key><string>New Page</string>
-  <key>created_time</key><integer>1320361675</integer>
-  <key>nodeid</key><string>b855c1ef-bbf0-493a-8b7e-a15aabf10514</string>
-  <key>modified_time</key><integer>1320361675</integer>
-  <key>order</key><integer>1</integer>
-</dict>
+<attr key="title">page a</attr>
+<attr key="expanded">0</attr>
+<attr key="nodeid">8941f9f8-b5d2-4150-a933-735745b40297</attr>
+<attr key="modified_time">1219244028</attr>
+<attr key="expanded2">0</attr>
+<attr key="content_type">text/xhtml+xml</attr>
+<attr key="created_time">1207982392</attr>
+<attr key="info_sort_dir">1</attr>
+<attr key="order">0</attr>
+<attr key="info_sort">1</attr>
 </node>

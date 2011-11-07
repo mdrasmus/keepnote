@@ -87,7 +87,7 @@ class Extension (keepnote.gui.extension.Extension):
                        metavar="TEXT",
                        help="search notes by title"),
             AppCommand("upgrade", self.on_upgrade_notebook,
-                       metavar="[-v VERSION] NOTEBOOK...",
+                       metavar="[v VERSION] NOTEBOOK...",
                        help="upgrade a notebook"),
 
             # misc
@@ -311,7 +311,7 @@ class Extension (keepnote.gui.extension.Extension):
         version = keepnote.notebook.NOTEBOOK_FORMAT_VERSION
         i = 1
         while i < len(args):
-            if args[i] == "-v":
+            if args[i] == "v":
                 try:
                     version = int(args[i+1])
                     i += 2
@@ -323,6 +323,7 @@ class Extension (keepnote.gui.extension.Extension):
         files = args[i:]
 
         for filename in files:
-            keepnote.log_message("upgrading notebook: %s\n" % filename)
+            keepnote.log_message("upgrading notebook to version %d: %s\n" % 
+                                 (version, filename))
             keepnote.notebook.update.update_notebook(filename, version, 
                                                      verify=True)

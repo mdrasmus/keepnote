@@ -1,13 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <node>
 <version>3</version>
-<dict>
-  <key>version</key><integer>3</integer>
-  <key>content_type</key><string>application/x-notebook-dir</string>
-  <key>title</key><string>New Page</string>
-  <key>created_time</key><integer>1320361675</integer>
-  <key>nodeid</key><string>e9553fac-8455-45dc-90d8-e32670b6e6ba</string>
-  <key>modified_time</key><integer>1320361675</integer>
-  <key>order</key><integer>0</integer>
-</dict>
+<attr key="title">drop pages test</attr>
+<attr key="expanded">1</attr>
+<attr key="nodeid">c0410aa7-131c-4337-b4c8-bdaa9c4f4f3e</attr>
+<attr key="modified_time">1207982374</attr>
+<attr key="expanded2">0</attr>
+<attr key="content_type">application/x-notebook-dir</attr>
+<attr key="created_time">1207982374</attr>
+<attr key="info_sort_dir">1</attr>
+<attr key="order">1</attr>
+<attr key="info_sort">1</attr>
 </node>
