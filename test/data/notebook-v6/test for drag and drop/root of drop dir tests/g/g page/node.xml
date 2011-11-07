@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<node>
+<version>3</version>
+<dict>
+  <key>version</key><integer>3</integer>
+  <key>content_type</key><string>application/x-notebook-dir</string>
+  <key>title</key><string>New Page</string>
+  <key>created_time</key><integer>1320361675</integer>
+  <key>nodeid</key><string>c07eb289-a746-4b22-96f9-a9fdcfbb76c1</string>
+  <key>modified_time</key><integer>1320361675</integer>
+  <key>order</key><integer>0</integer>
+</dict>
+</node>

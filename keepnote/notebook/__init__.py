@@ -315,6 +315,18 @@ def write_empty_page(node, page_file=PAGE_DATA_FILE):
 #=============================================================================
 # adding content to a notebook/nodes
 
+
+def new_page(parent, title=None, index=None):
+    """Add a new page to a node in a notebook"""
+
+    if title is None:
+        title = DEFAULT_PAGE_NAME
+
+    child = parent.new_child(CONTENT_TYPE_PAGE, title, index)
+    write_empty_page(child)
+    return child
+
+
 def attach_file(filename, node, index=None):
     """Attach a file to a node in a notebook"""
 
@@ -339,16 +351,6 @@ def attach_file(filename, node, index=None):
             child.delete()
         raise e
 
-
-def new_page(parent, title=None, index=None):
-    """Add a new page to a node in a notebook"""
-
-    if title is None:
-        title = DEFAULT_PAGE_NAME
-
-    child = parent.new_child(CONTENT_TYPE_PAGE, title, index)
-    write_empty_page(child)
-    return child
 
 
 

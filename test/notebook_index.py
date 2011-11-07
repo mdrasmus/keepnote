@@ -3,6 +3,7 @@ import os, shutil, unittest, thread, threading, traceback, sys
 # keepnote imports
 from keepnote import notebook, safefile
 
+from test.testing import *
 
 
 class Index (unittest.TestCase):
@@ -29,20 +30,20 @@ class Index (unittest.TestCase):
     def test_notebook_lookup_node(self):        
 
         nodeid = "0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"
-        path = os.path.join("test/data/notebook-v3", "stress tests")
+        path = os.path.join("test/data/notebook", "stress tests")
         
         book = notebook.NoteBook()
-        book.load("test/data/notebook-v3")
+        book.load("test/data/notebook")
         
         print "indexing..."
-        for node in book._index.index_all(): pass
+        for node in book.index_all(): pass
 
         path2 = book.get_node_path_by_id(nodeid)
         self.assertEqual(path, path2)
         book.close()
 
         book2 = notebook.NoteBook()
-        book2.load("test/data/notebook-v3")
+        book2.load("test/data/notebook")
         
         path2 = book2.get_node_path_by_id(nodeid)
         self.assertEqual(path, path2)
@@ -52,15 +53,15 @@ class Index (unittest.TestCase):
     def test_notebook_move_deja_vu(self):
 
         book = notebook.NoteBook()
-        book.load("test/data/notebook-v3")
+        book.load("test/data/notebook")
         #book._index.index_all()
 
         # get the page u"Deja vu")
-        nodeids = book._index.search_titles(u"vu")
+        nodeids = book.search_node_titles(u"vu")
         print nodeids
         nodea = book.get_node_by_id(nodeids[0][0])
 
-        nodeids = book._index.search_titles("e")
+        nodeids = book.search_node_titles("e")
         nodeb = book.get_node_by_id(nodeids[0][0])
 
         print
@@ -80,14 +81,13 @@ class Index (unittest.TestCase):
 
     def test_notebook_title(self):
 
-        nodeid = "0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"        
-        path = os.path.join("test/data/notebook-v3", "stress tests")
-        
         book = notebook.NoteBook()
-        book.load("test/data/notebook-v3")
+        book.load("test/data/notebook")
 
-        print book._index.search_titles("STRESS")
-        print book._index.search_titles("aaa")
+        print book.search_node_titles("STRESS")
+        print book.search_node_titles("aaa")
+
+        self.assert_(len(book.search_node_titles("STRESS")) > 0)
 
 
     def test_notebook_threads(self):
@@ -96,7 +96,7 @@ class Index (unittest.TestCase):
 
         print
         book = notebook.NoteBook()
-        book.load("test/data/notebook-v3")
+        book.load("test/data/notebook")
         book.save()
 
         class Task (threading.Thread):
@@ -109,7 +109,7 @@ class Index (unittest.TestCase):
                     path = book.get_node_path_by_id(nodeid)
                     print "path:", path
                     test.assertEqual(path,
-                              os.path.join("test/data/notebook-v3", "stress tests"))
+                              os.path.join("test/data/notebook", "stress tests"))
                     #book.save()
 
                 except Exception, e:
@@ -133,7 +133,7 @@ class Index (unittest.TestCase):
 
         print
         book = notebook.NoteBook()
-        book.load("test/data/notebook-v3")
+        book.load("test/data/notebook")
         book.save()
 
         nodeid = "0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"
@@ -197,7 +197,7 @@ class Index (unittest.TestCase):
                      fts3(nodeid TEXT, content TEXT);""")
 
         book = notebook.NoteBook()
-        book.load("test/data/notebook-v3")
+        book.load("test/data/notebook")
         
         def walk(node):
 
@@ -221,5 +221,5 @@ class Index (unittest.TestCase):
 
         
 if __name__ == "__main__":
-    unittest.main()
+    test_main()
 

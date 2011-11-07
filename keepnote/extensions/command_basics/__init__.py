@@ -36,6 +36,7 @@ import gobject
 import keepnote
 from keepnote import AppCommand
 import keepnote.notebook
+import keepnote.notebook.update
 import keepnote.extension
 import keepnote.gui.extension
 
@@ -50,6 +51,7 @@ class Extension (keepnote.gui.extension.Extension):
         self.enabled.add(self.on_enabled)
 
         self.commands = [
+            # window commands
             AppCommand("focus", lambda app, args: app.focus_windows(),
                        help="focus all open windows"),
             AppCommand("minimize", self.on_minimize_windows,
@@ -57,9 +59,7 @@ class Extension (keepnote.gui.extension.Extension):
             AppCommand("toggle_windows", self.on_toggle_windows,
                        help="toggle all windows"),
 
-
-            AppCommand("screenshot", self.on_screenshot,
-                       help="insert a new screenshot"),
+            # extension commands
             AppCommand("install", self.on_install_extension,
                        metavar="FILENAME",
                        help="install a new extension"),
@@ -76,16 +76,24 @@ class Extension (keepnote.gui.extension.Extension):
                        gobject.idle_add(app.quit),
                        help="close all KeepNote windows"),
 
+            # notebook commands
             AppCommand("view", self.on_view_note,
                        metavar="NOTE_URL",
                        help="view a note"),
             AppCommand("new", self.on_new_note,
                        metavar="PARENT_URL",
                        help="add a new note"),
-
             AppCommand("search-titles", self.on_search_titles,
                        metavar="TEXT",
-                       help="search notes by title")
+                       help="search notes by title"),
+            AppCommand("upgrade", self.on_upgrade_notebook,
+                       metavar="[-v VERSION] NOTEBOOK...",
+                       help="upgrade a notebook"),
+
+            # misc
+            AppCommand("screenshot", self.on_screenshot,
+                       help="insert a new screenshot"),
+
 
             ]
 
@@ -296,3 +304,25 @@ class Extension (keepnote.gui.extension.Extension):
             return None, None
         notebook = window.get_notebook()
         return window, notebook
+
+
+    def on_upgrade_notebook(self, app, args):
+        
+        version = keepnote.notebook.NOTEBOOK_FORMAT_VERSION
+        i = 1
+        while i < len(args):
+            if args[i] == "-v":
+                try:
+                    version = int(args[i+1])
+                    i += 2
+                except:
+                    raise Exception("excepted version number")
+            else:
+                break
+
+        files = args[i:]
+
+        for filename in files:
+            keepnote.log_message("upgrading notebook: %s\n" % filename)
+            keepnote.notebook.update.update_notebook(filename, version, 
+                                                     verify=True)
