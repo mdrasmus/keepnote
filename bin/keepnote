@@ -26,6 +26,7 @@ from os.path import basename, dirname, realpath, join, isdir
 import time
 import optparse
 import thread
+import threading
 import traceback
 
 
@@ -233,21 +234,26 @@ def gui_exec(function, *args, **kw):
     import gtk.gdk
     import gobject
 
-    wait = [True]
+    sem = threading.Semaphore()
+    sem.acquire()
+    #wait = [True]
 
     def idle_func():
         gtk.gdk.threads_enter()
         try:
             function(*args, **kw)
-            wait[0] = False
+            #wait[0] = False
             return False
         finally:
+            sem.release() # notify that command is done
             gtk.gdk.threads_leave()
     gobject.idle_add(idle_func)
 
-    # wait for execute, TODO: don't use busy wait
-    while wait[0]:
-        pass
+    # wait for command to execute
+    sem.acquire()
+    #while wait[0]:
+    #    pass
+    
 
 
 def start_gui(argv, options, args, cmd_exec):

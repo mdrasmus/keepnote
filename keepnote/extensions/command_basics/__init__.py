@@ -56,7 +56,7 @@ class Extension (keepnote.gui.extension.Extension):
                        help="focus all open windows"),
             AppCommand("minimize", self.on_minimize_windows,
                        help="minimize all windows"),
-            AppCommand("toggle_windows", self.on_toggle_windows,
+            AppCommand("toggle-windows", self.on_toggle_windows,
                        help="toggle all windows"),
 
             # extension commands
@@ -307,7 +307,7 @@ class Extension (keepnote.gui.extension.Extension):
 
 
     def on_upgrade_notebook(self, app, args):
-        
+
         version = keepnote.notebook.NOTEBOOK_FORMAT_VERSION
         i = 1
         while i < len(args):

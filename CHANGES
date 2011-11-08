@@ -8,6 +8,7 @@ keepnote-0.7.6
 - added listview column order and width saving
 - added frequent VACUUM sqlite command to notebook index
 - added optional fulltext indexing
+- added HTTP notebook forwarding
 - fixed windows My Documents location within virtual folders
 - fixed windows linking bug
 

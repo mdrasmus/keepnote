@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extension>
+  <dict>
+    <key>version</key>
+    <string>1.0</string>
+    <key>name</key>
+    <string>Notebook HTTP</string>
+    <key>author</key>
+    <string>Matt Rasmussen</string>
+    <key>email</key>
+    <string>rasmus@alum.mit.edu</string>
+    <key>website</key>
+    <string>http://keepnote.org</string>
+    <key>description</key>
+    <string>Connect to notebook through HTTP</string>
+  </dict>
+</extension>
