@@ -1271,7 +1271,7 @@ class NoteBookConnectionFS (NoteBookConnection):
             return self._index.enable_fulltext_search(query[1])
 
         else:
-            NoteBookConnection.index(query)
+            return NoteBookConnection.index(self, query)
 
 
     def index_attr(self, key, datatype, index_value=False):
