@@ -38,6 +38,7 @@ import BaseHTTPServer
 from collections import defaultdict
 
 # keepnote imports
+import keepnote
 from keepnote import notebook
 import keepnote.notebook.connection as connlib
 from keepnote.notebook.connection import NoteBookConnection
@@ -302,6 +303,7 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
             
         except Exception, e:
             # FIX response
+            keepnote.log_error()
             self.send_error(httplib.NOT_FOUND, "cannot create node: " + str(e))
 
 
