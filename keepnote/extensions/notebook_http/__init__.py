@@ -27,30 +27,17 @@
 
 # python imports
 import sys
-import os
-import httplib
-import urllib
-import urlparse
 import thread
-import select
-import BaseHTTPServer
-from StringIO import StringIO
-
-# gtk imports
-import gobject
 
 # keepnote imports
 import keepnote
 from keepnote import AppCommand
 import keepnote.notebook
-import keepnote.notebook.update
 import keepnote.extension
 import keepnote.gui.extension
-from keepnote.notebook.connection import NoteBookConnection
 from keepnote.notebook.connection.fs import NoteBookConnectionFS
-from keepnote.notebook.connection.http import \
-    NoteBookConnectionHttp, NoteBookHttpServer
-from keepnote import plist
+from keepnote.notebook.connection.http import NoteBookHttpServer
+
 
 
 
@@ -67,12 +54,12 @@ class Extension (keepnote.gui.extension.Extension):
 
         self.commands = [
             # window commands
-            AppCommand("start-http-server", 
-                       self.start_http_server,
+            AppCommand("start-http", 
+                       self.start_http,
                        metavar="PORT NOTEBOOK",
                        help="start HTTP server on PORT with NOTEBOOK"),
-            AppCommand("stop-http-server", 
-                       self.stop_http_server,
+            AppCommand("stop-http", 
+                       self.stop_http,
                        metavar="PORT",
                        help="stop HTTP server on port PORT")
             ]
@@ -102,7 +89,7 @@ class Extension (keepnote.gui.extension.Extension):
     #====================================================
     # commands
 
-    def start_http_server(self, app, args):
+    def start_http(self, app, args):
         
         port = int(args[1])
         notebook_path = unicode(args[2])
@@ -128,7 +115,7 @@ class Extension (keepnote.gui.extension.Extension):
             keepnote.log_message("NOTE: server is local only.  Use ssh port forwarding for security.\n")
 
 
-    def stop_http_server(self, app, args):
+    def stop_http(self, app, args):
         
         port = int(args[1])
 

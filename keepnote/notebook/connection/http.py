@@ -418,7 +418,7 @@ class NoteBookConnectionHttp (NoteBookConnection):
                       body_content)
         result = self._conn.getresponse()
         if result.status != httplib.OK:
-            raise connlib.connlib.ConnectionError(
+            raise connlib.ConnectionError(
                 "unexpected error '%s'" % str(e), e)
 
         self._title_cache.update_attr(attr)
