@@ -675,8 +675,11 @@ class KeepNote (keepnote.KeepNote):
         """
         keepnote.KeepNote._on_closing_notebook(self, notebook, save)
         
-        if save:
-            self.save()
+        try:
+            if save:
+                self.save()
+        except:
+            keepnote.log_error("Error while closing notebook")
 
         for window in self._windows:
             window.close_notebook(notebook)

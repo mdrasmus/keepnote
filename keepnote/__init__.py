@@ -882,7 +882,10 @@ class KeepNote (object):
     def close_all_notebook(self, notebook, save=True):
         """Close all instances of a notebook"""
 
-        notebook.close(save)
+        try:
+            notebook.close(save)
+        except:
+            keepnote.log_error()
 
         notebook.closing_event.remove(self._on_closing_notebook)
         del self._notebook_count[notebook]
