@@ -34,9 +34,6 @@ class Index (unittest.TestCase):
         
         book = notebook.NoteBook()
         book.load("test/data/notebook")
-        
-        print "indexing..."
-        for node in book.index_all(): pass
 
         path2 = book.get_node_path_by_id(nodeid)
         self.assertEqual(path, path2)
@@ -54,7 +51,6 @@ class Index (unittest.TestCase):
 
         book = notebook.NoteBook()
         book.load("test/data/notebook")
-        #book._index.index_all()
 
         # get the page u"Deja vu")
         nodeids = book.search_node_titles(u"vu")
@@ -232,6 +228,18 @@ class Index (unittest.TestCase):
 
         book1.close()
         book2.close()
+
+
+    def test_index_all(self):
+
+        book = notebook.NoteBook()
+        book.load("test/data/notebook")
+
+        for node in book.index_all():
+            print node
+
+        book.close()
+
 
         
 if __name__ == "__main__":
