@@ -219,6 +219,20 @@ class Index (unittest.TestCase):
         book.close()
 
 
+    def test_concurrent(self):
+        
+        book1 = notebook.NoteBook()
+        book1.load("test/data/notebook")
+
+        book2= notebook.NoteBook()
+        book2.load("test/data/notebook")
+
+        print list(book1.iter_attr())
+        print list(book2.iter_attr())
+
+        book1.close()
+        book2.close()
+
         
 if __name__ == "__main__":
     test_main()

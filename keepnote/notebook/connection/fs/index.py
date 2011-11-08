@@ -474,13 +474,15 @@ class NoteBookIndex (object):
         else:
             return 0.0
 
-    def set_node_mtime(self, nodeid, mtime=None):
+    def set_node_mtime(self, nodeid, mtime=None, commit=True):
 
         if mtime is None:
             mtime = time.time()
 
-        self.con.execute("""UPDATE NodeGraph SET mtime = ? WHERE nodeid = ?;""",
+        self.cur.execute("""UPDATE NodeGraph SET mtime = ? WHERE nodeid = ?;""",
                          (mtime, nodeid))
+        if commit:
+            self.con.commit()
 
 
     def get_mtime(self):
@@ -488,14 +490,14 @@ class NoteBookIndex (object):
         return os.stat(self._index_file).st_mtime
 
     
-    def add_node(self, nodeid, parentid, basename, attr, mtime):
+    def add_node(self, nodeid, parentid, basename, attr, mtime, commit=True):
         """Add a node to the index"""               
         
         # TODO: remove single parent assumption        
         
         if self.con is None:
             return
-
+        
         try:
             # get info
             if parentid is None:
@@ -514,15 +516,18 @@ class NoteBookIndex (object):
 
             # update fulltext
             infile = read_data_as_plain_text(self._nconn, nodeid)
-            self.index_node_text(nodeid, attr, infile)
+            self.index_node_text(nodeid, attr, infile, commit=False)
             
+            if commit:
+                self.con.commit()
+
         except Exception, e:
             keepnote.log_error("error index node %s '%s'" % 
                                (nodeid, attr.get("title", "")))
             self._on_corrupt(e, sys.exc_info()[2])
 
 
-    def remove_node(self, nodeid):
+    def remove_node(self, nodeid, commit=True):
         """Remove node from index using nodeid"""
 
         if self.con is None:
@@ -541,20 +546,25 @@ class NoteBookIndex (object):
             #    u"SELECT nodeid FROM NodeGraph WHERE parentid=?", (nodeid,)):
             #    self.remove_node(childid)
 
+            self.remove_text(nodeid, commit=False)
+
+            if commit:
+                self.con.commit()
+
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
 
 
-    def index_node_text(self, nodeid, attr, infile):
+    def index_node_text(self, nodeid, attr, infile, commit=True):
 
         try:
             text = attr.get("title", "") + "\n" + "".join(infile)
-            self.insert_text(nodeid, text)
+            self.insert_text(nodeid, text, commit=commit)
         except Exception, e:
             keepnote.log_error()
 
 
-    def insert_text(self, nodeid, text):
+    def insert_text(self, nodeid, text, commit=True):
         
         if not self._has_fulltext:
             return
@@ -568,6 +578,18 @@ class NoteBookIndex (object):
             self.cur.execute(u"INSERT INTO fulltext VALUES (?, ?);",
                              (nodeid, text))
 
+        if commit:
+            self.con.commit()
+
+
+    def remove_text(self, nodeid, commit=True):
+        
+        if not self._has_fulltext:
+            return
+
+        self.cur.execute(u"DELETE FROM fulltext WHERE nodeid = ?", (nodeid,))
+        if commit:
+            self.con.commit()
 
 
     #-------------------------
