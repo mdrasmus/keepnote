@@ -7,7 +7,7 @@
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2011 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -95,6 +95,17 @@ def compute_new_path(model, target, drop_position):
             str(drop_position))
 
 
+class TextRendererValidator (object):
+    def __init__(self, format=lambda x: x, parse=lambda x: x, 
+                 validate=lambda x: True):
+
+        def parse2(x):
+            if not validate(x):
+                raise Exception("Invalid")
+            return parse(x)
+
+        self.format = format
+        self.parse = parse2
 
 
 class KeepNoteBaseTreeView (gtk.TreeView):
@@ -325,7 +336,9 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # add renders
         cell_icon = self._add_pixbuf_render(
             column, self._attr_icon, self._attr_icon_open)
-        title_text = self._add_text_render(column, attr, editable=True)
+        title_text = self._add_text_render(
+            column, attr, editable=True,
+            validator=TextRendererValidator(validate=lambda x: x != ""))
         
         # record reference to title_text renderer
         self.title_text = title_text
@@ -333,7 +346,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         return cell_icon, title_text
 
 
-    def _add_text_render(self, column, attr, editable=False):
+    def _add_text_render(self, column, attr, editable=False,
+                         validator=TextRendererValidator()):
 
         # cell renderer text
         cell = gtk.CellRendererText()
@@ -358,8 +372,9 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         # set edit callbacks
         if editable:
             cell.connect("edited", lambda r,p,t: self.on_edit_attr(
-                    r, p, attr, t, validate=lambda t: t != ""))
-            cell.connect("editing-started", self.on_editing_started)
+                    r, p, attr, t, validator=validator))
+            cell.connect("editing-started", lambda r,e,p: 
+                         self.on_editing_started(r, e, p, attr, validator))
             cell.connect("editing-canceled", self.on_editing_canceled)
             cell.set_property("editable", True)
 
@@ -714,10 +729,21 @@ class KeepNoteBaseTreeView (gtk.TreeView):
     # editing attr
 
 
-    def on_editing_started(self, cellrenderer, editable, path):
+    def on_editing_started(self, cellrenderer, editable, path, attr,
+                           validator=TextRendererValidator()):
         """Callback for start of title editing"""
         # remember editing state
         self.editing_path = path
+
+        # get node being edited and init gtk.Entry widget
+        node = self.model.get_value(self.model.get_iter(path), self._node_col)
+        if node is not None:
+            val = node.get_attr(attr)
+            try:
+                editable.set_text(validator.format(val))
+            except:
+                pass
+
         gobject.idle_add(lambda: self.scroll_to_cell(path))
     
 
@@ -728,7 +754,7 @@ class KeepNoteBaseTreeView (gtk.TreeView):
                 
 
     def on_edit_attr(self, cellrenderertext, path, attr, new_text, 
-                     validate=None):
+                     validator=TextRendererValidator()):
         """Callback for completion of title editing"""
 
         # remember editing state
@@ -741,13 +767,16 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         if node is None:
             return
         
-        # validate new_text
-        if validate and not validate(new_text):
+        # determine value from new_text
+        try:
+            new_val = validator.parse(new_text)
+        except:
+            # invalid new_text, ignore it
             return
 
-        # set new title and catch errors
+        # set new attr and catch errors
         try:
-            node.set_attr(attr, new_text)
+            node.set_attr(attr, new_val)
         except NoteBookError, e:
             self.emit("error", e.msg, e)
 
@@ -759,43 +788,8 @@ class KeepNoteBaseTreeView (gtk.TreeView):
             self.set_cursor(path)
             gobject.idle_add(lambda: self.scroll_to_cell(path))
 
-        self.emit("edit-node", node, attr, new_text)
+        self.emit("edit-node", node, attr, new_val)
 
-
-    '''
-    def on_edit_title(self, cellrenderertext, path, new_text):
-        """Callback for completion of title editing"""
-
-        # remember editing state
-        self.editing_path = None
-
-        new_text = unicode_gtk(new_text)
-
-        # get node being edited
-        node = self.model.get_value(self.model.get_iter(path), self._node_col)
-        if node is None:
-            return
-        
-        # do not allow empty names
-        if new_text.strip() == "":
-            return
-
-        # set new title and catch errors
-        try:
-            node.rename(new_text)
-        except NoteBookError, e:
-            self.emit("error", e.msg, e)
-
-        # reselect node 
-        # need to get path again because sorting may have changed
-        path = get_path_from_node(self.model, node,
-                                  self.rich_model.get_node_column_pos())
-        if path is not None:
-            self.set_cursor(path)
-            gobject.idle_add(lambda: self.scroll_to_cell(path))
-
-        self.emit("edit-node", node, new_text)
-    '''
 
     #=============================================
     # copy and paste

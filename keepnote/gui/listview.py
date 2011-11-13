@@ -43,12 +43,14 @@ from keepnote.gui import treemodel
 from keepnote import notebook
 from keepnote.notebook import NoteBookError
 import keepnote
+import keepnote.timestamp
 
 _ = keepnote.translate
 
 
 DEFAULT_ATTR_COL_WIDTH = 150
 DEFAULT_TITLE_COL_WIDTH = 250
+
 
 
 class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
@@ -59,6 +61,7 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         self._columns_set = False
         self._current_table = "default"
         self._col_widths = {}
+        self.time_edit_format = "%Y/%m/%d %H:%M:%S"
 
         # configurable callback for setting window status
         self.on_status = None        
@@ -274,6 +277,13 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
         # add cell renders
         if attr == self._attr_title:
             self._add_title_render(column, attr)
+        elif datatype == "timestamp":
+            self._add_text_render(column, attr, editable=True,
+                                  validator=basetreeview.TextRendererValidator(
+                    lambda x: keepnote.timestamp.format_timestamp(
+                        x, self.time_edit_format),
+                    lambda x: keepnote.timestamp.parse_timestamp(
+                        x, self.time_edit_format)))
         else:
             self._add_text_render(column, attr)
 
@@ -474,7 +484,6 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
     def display_page_count(self, npages=None):
 
         if npages is None:
-            #npages = len(self.get_root_nodes())
             npages = self.count_pages(self.get_root_nodes())
 
         if npages != 1:
@@ -590,42 +599,3 @@ class KeepNoteListView (basetreeview.KeepNoteBaseTreeView):
 
 
 
-
-'''
-        # title column
-        title_column = gtk.TreeViewColumn()
-        title_column.set_title(_("Title"))
-        title_column.set_sort_column_id(
-            self.rich_model.get_column_by_name("title_sort").pos)
-
-        title_column.set_property("sizing", gtk.TREE_VIEW_COLUMN_FIXED)
-        title_column.set_property("resizable", True)
-        title_column.set_min_width(10)
-        title_column.set_fixed_width(250)
-
-        # title icon
-        cell_icon = gtk.CellRendererPixbuf()
-        title_column.pack_start(cell_icon, False)
-        title_column.add_attribute(cell_icon, 'pixbuf',
-            self.rich_model.get_column_by_name("icon").pos)
-        title_column.add_attribute(cell_icon, 'pixbuf-expander-open',
-            self.rich_model.get_column_by_name("icon_open").pos)
-
-        # title text
-        title_text = gtk.CellRendererText()
-        title_column.pack_start(title_text, True)
-        title_text.set_fixed_height_from_font(1)
-        title_text.connect("edited", lambda r,p,t: self.on_edit_attr(
-            r, p, "title", t, validate=lambda t: t != ""))
-        title_text.connect("editing-started", self.on_editing_started)
-        title_text.connect("editing-canceled", self.on_editing_canceled)        
-        title_text.set_property("editable", True)
-        title_column.add_attribute(title_text, 'text',
-            self.rich_model.get_column_by_name("title").pos)
-        
-        self.append_column(title_column)
-
-        # save references
-        self.title_text = title_text
-        self.title_column = title_column
-'''        

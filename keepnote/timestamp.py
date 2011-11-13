@@ -36,6 +36,10 @@ import time
 SEC_OFFSET = 3600 * 24 * 31
 EPOC = time.mktime((1970, 2, 1, 0, 0, 0, 3, 1, 0)) - time.timezone - SEC_OFFSET
 
+ENCODING = locale.getdefaultlocale()[1]
+if ENCODING is None:
+    ENCODING = "utf-8"
+
 
 """
 
@@ -119,10 +123,6 @@ def get_str_timestamp(timestamp, current=None,
     # multibyte character.  This is a hack until python issue
     # http://bugs.python.org/issue2782 is resolved.
 
-    encoding = locale.getdefaultlocale()[1]
-    if encoding is None:
-        encoding = "utf-8"
-
     if formats is None:
         formats = DEFAULT_TIMESTAMP_FORMATS
 
@@ -134,19 +134,31 @@ def get_str_timestamp(timestamp, current=None,
         if local[TM_YEAR] == current[TM_YEAR]:
             if local[TM_MON] == current[TM_MON]:
                 if local[TM_MDAY] == current[TM_MDAY]:
-                    return time.strftime(formats["same_day"].encode(encoding), 
-                                         local).decode(encoding)
+                    return time.strftime(formats["same_day"].encode(ENCODING), 
+                                         local).decode(ENCODING)
                 else:
-                    return time.strftime(formats["same_month"].encode(encoding),
-                                         local).decode(encoding)
+                    return time.strftime(formats["same_month"].encode(ENCODING),
+                                         local).decode(ENCODING)
             else:
-                return time.strftime(formats["same_year"].encode(encoding), 
-                                     local).decode(encoding)
+                return time.strftime(formats["same_year"].encode(ENCODING), 
+                                     local).decode(ENCODING)
         else:
-            return time.strftime(formats["diff_year"].encode(encoding), 
-                                 local).decode(encoding)
+            return time.strftime(formats["diff_year"].encode(ENCODING), 
+                                 local).decode(ENCODING)
     except:
         return u"[formatting error]"
 
 
+def format_timestamp(timestamp, format):
+    
+    local = time.localtime(timestamp + EPOC)
+    return time.strftime(format.encode(ENCODING), local).decode(ENCODING)
+
+
+def parse_timestamp(timestamp_str, format):
+
+    # raises error if timestamp cannot be parsed
+    tstruct = time.strptime(timestamp_str, format)
+    local = time.mktime(tstruct)
+    return int(local - EPOC)
 
