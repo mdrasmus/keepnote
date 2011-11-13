@@ -1,8 +1,15 @@
 KeepNote Change Log
 -------------------
 
-keepnote-0.7.6
+keepnote-0.7.7
 --------------
+- added creation/modification time editing
+- added --continue option to command-line
+- improved support for concurrent reading (fewer database lock errors)
+
+
+keepnote-0.7.6 (2011/11/10)
+---------------------------
 - added foreground and background colors to treeview and listview
 - added color palette saving
 - added listview column order and width saving
