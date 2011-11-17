@@ -101,7 +101,7 @@ class Extension (keepnote.gui.extension.Extension):
         # start server in another thread
         host = "localhost"
         url = "http://%s:%d/" % (host, port)
-        server = NoteBookHttpServer(conn, port=port)
+        server = NoteBookHttpServer(conn, port=port, host="localhost")
 
         if port in self._ports:
             raise Exception("Server already on port %d" % port)

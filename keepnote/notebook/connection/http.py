@@ -214,6 +214,7 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
                 stream.close()
 
         except Exception, e:
+            keepnote.log_error()
             self.send_error(404, "node not found " + str(e))
 
 
@@ -252,6 +253,7 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
             
         except Exception, e:
             # FIX response
+            keepnote.log_error()
             self.send_error(httplib.NOT_FOUND, "cannot create node: " + str(e))
 
 
@@ -325,6 +327,7 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
             
         except Exception, e:
             # TDOD: fix response
+            keepnote.log_error()
             self.send_error(httplib.NOT_FOUND, "cannot delete node: " + str(e))
 
 
@@ -349,7 +352,8 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
             
         except Exception, e:
             # TODO: fix response
-            self.send_error(httplib.NOT_FOUND, "cannot delete node: " + str(e))
+            keepnote.log_error()
+            self.send_error(httplib.NOT_FOUND, "cannot find node: " + str(e))
 
 
     #def log_message(self, format, *args):
@@ -360,10 +364,10 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
 
 class NoteBookHttpServer (BaseHTTPServer.HTTPServer):
 
-    def __init__(self, conn, prefix="/", port=8000):
+    def __init__(self, conn, prefix="/", port=8000, host=""):
         self.conn = conn
         self.prefixes = [prefix]
-        self.server_address = ('', port)
+        self.server_address = (host, port)
         BaseHTTPServer.HTTPServer.__init__(self, self.server_address, 
                                            HttpHandler)
 

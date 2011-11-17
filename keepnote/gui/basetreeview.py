@@ -767,11 +767,10 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         if node is None:
             return
         
-        # determine value from new_text
+        # determine value from new_text, if invalid, ignore it
         try:
             new_val = validator.parse(new_text)
         except:
-            # invalid new_text, ignore it
             return
 
         # set new attr and catch errors
