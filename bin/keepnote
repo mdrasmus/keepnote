@@ -128,6 +128,9 @@ o.add_option("-i", "--info", dest="info",
 o.add_option("--no-gui", dest="no_gui",
              action="store_true",
              help="run in non-gui mode")
+o.add_option("-t", "--continue", dest="cont",
+             action="store_true",
+             help="continue to run after command execution")
 o.add_option("", "--show-errors", dest="show_errors",
              action="store_true",
              help="show errors on console")
@@ -236,13 +239,11 @@ def gui_exec(function, *args, **kw):
 
     sem = threading.Semaphore()
     sem.acquire()
-    #wait = [True]
 
     def idle_func():
         gtk.gdk.threads_enter()
         try:
             function(*args, **kw)
-            #wait[0] = False
             return False
         finally:
             sem.release() # notify that command is done
@@ -251,8 +252,6 @@ def gui_exec(function, *args, **kw):
 
     # wait for command to execute
     sem.acquire()
-    #while wait[0]:
-    #    pass
     
 
 
@@ -425,6 +424,12 @@ def main(argv):
     else:
         # this is a command process, send command to main process
         cmd_exec.execute(argv)
+
+    # wait for other threads to close application
+    if options.cont:
+        while True:
+            time.sleep(1000)
+
 
 
 #=============================================================================

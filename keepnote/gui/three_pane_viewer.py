@@ -629,15 +629,6 @@ class ThreePaneViewer (Viewer):
             self.treeview.edit_node(node)
         else:
             self.listview.edit_node(node)
-        
-        #widget = self.get_focused_widget()
-        #
-        #if widget == self.treeview:
-        #    self.treeview.expand_node(node.get_parent())
-        #    self.treeview.edit_node(node)
-        #else:
-        #    self.listview.expand_node(node.get_parent())
-        #    self.listview.edit_node(node)
 
 
 
@@ -648,12 +639,8 @@ class ThreePaneViewer (Viewer):
         if len(nodes) == 0:
             return
 
-        widget = self.get_focused_widget()
-        
-        if widget == self.treeview:
-            self.treeview.edit_node(nodes[0])
-        else:
-            self.listview.edit_node(nodes[0])
+        widget = self.get_focused_widget(self.listview)        
+        widget.edit_node(nodes[0])
 
 
     def goto_node(self, node, direct=False):
@@ -724,7 +711,7 @@ class ThreePaneViewer (Viewer):
     def goto_prev_node(self):
         """Move focus to the 'previous' node"""
         
-        widget = self.get_focused_widget()
+        widget = self.get_focused_widget(self.treeview)
         path, col = widget.get_cursor()
 
         if path and path[-1] > 0:
