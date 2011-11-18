@@ -364,7 +364,7 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
 
 class NoteBookHttpServer (BaseHTTPServer.HTTPServer):
 
-    def __init__(self, conn, prefix="/", port=8000, host=""):
+    def __init__(self, conn, prefix="/", host="", port=8000):
         self.conn = conn
         self.prefixes = [prefix]
         self.server_address = (host, port)
