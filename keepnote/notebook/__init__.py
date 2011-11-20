@@ -1,3 +1,4 @@
+
 """
 
     KeepNote    
@@ -1394,7 +1395,7 @@ class NoteBook (NoteBookNode):
             if os.path.exists(pref_file):
                 try:
                     self.read_preferences(
-                        safefile.open(pref_file, codec="utf-8"), recover=False)
+                        safefile.open(pref_file, codec="utf-8"))
 
                     # TODO: temp solution. remove soon.
                     index_dir = self.pref.get("index_dir", default=u"")
@@ -1821,7 +1822,7 @@ class NoteBook (NoteBookNode):
             raise NoteBookError(_("File format error"), e)
 
     
-    def read_preferences(self, infile=None, recover=True):
+    def read_preferences(self, infile=None):
         """Reads the NoteBook's preferneces"""
         
         try:
@@ -1834,12 +1835,12 @@ class NoteBook (NoteBookNode):
                                 % self.get_file(PREF_FILE) , e)
         except Exception, e:
             keepnote.log_error(e)
-            if recover:
-                if infile:
-                    infile.close()
-                    infile = None
-                self._recover_preferences()
-                return self.read_preferences(recover=False)
+            #if recover:
+            #    if infile:
+            #        infile.close()
+            #        infile = None
+            #    self._recover_preferences()
+            #    return self.read_preferences(recover=False)
             raise NoteBookError(_("Notebook preference data is corrupt"), e)
         finally:
             if infile:

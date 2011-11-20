@@ -4,7 +4,9 @@
 
 
 # python imports
-import unittest, os, sys, shutil
+import os, sys, shutil
+
+from testing import *
 
 # keepnote imports
 from keepnote import notebook, safefile
@@ -47,5 +49,5 @@ class Conn (unittest.TestCase):
 
         
 if __name__ == "__main__":
-    unittest.main()
+    test_main()
 

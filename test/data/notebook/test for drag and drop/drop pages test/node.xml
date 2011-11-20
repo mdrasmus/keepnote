@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<node>
+<version>6</version>
+<dict>
+  <key>title</key><string>drop pages test</string>
+  <key>expanded</key><true/>
+  <key>nodeid</key><string>c0410aa7-131c-4337-b4c8-bdaa9c4f4f3e</string>
+  <key>modified_time</key><integer>1207982374</integer>
+  <key>expanded2</key><false/>
+  <key>version</key><integer>6</integer>
+  <key>content_type</key><string>application/x-notebook-dir</string>
+  <key>created_time</key><integer>1207982374</integer>
+  <key>info_sort_dir</key><integer>1</integer>
+  <key>order</key><integer>1</integer>
+  <key>info_sort</key><string>1</string>
+</dict>
+</node>

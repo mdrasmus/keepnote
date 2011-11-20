@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<node>
+<version>6</version>
+<dict>
+  <key>title</key><string>New Page</string>
+  <key>expanded</key><false/>
+  <key>nodeid</key><string>2dd6f8f1-3547-41aa-9a26-e6729f457ee9</string>
+  <key>modified_time</key><integer>1207979431</integer>
+  <key>expanded2</key><false/>
+  <key>version</key><integer>6</integer>
+  <key>content_type</key><string>text/xhtml+xml</string>
+  <key>created_time</key><integer>1207979431</integer>
+  <key>info_sort_dir</key><integer>1</integer>
+  <key>order</key><integer>401</integer>
+  <key>info_sort</key><string>0</string>
+</dict>
+</node>

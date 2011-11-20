@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<node>
+<version>6</version>
+<dict>
+  <key>title</key><string>dir1</string>
+  <key>expanded</key><true/>
+  <key>nodeid</key><string>8827eb8f-f7eb-4ef4-a0e5-8a5c00f8dd18</string>
+  <key>modified_time</key><integer>1207982383</integer>
+  <key>expanded2</key><false/>
+  <key>version</key><integer>6</integer>
+  <key>content_type</key><string>application/x-notebook-dir</string>
+  <key>created_time</key><integer>1207982383</integer>
+  <key>info_sort_dir</key><integer>0</integer>
+  <key>order</key><integer>0</integer>
+  <key>info_sort</key><string>3</string>
+</dict>
+</node>
