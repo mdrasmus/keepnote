@@ -7,6 +7,8 @@ import unittest
 from StringIO import StringIO
 from unittest import TestCase
 
+from testing import *
+
 
 # keepnote imports
 from keepnote.gui.richtext.richtext_html import HtmlBuffer, nest_indent_tags, \
@@ -34,6 +36,8 @@ def display_item(item):
         return "BEGIN:" + item[2].get_property('name')
     elif item[0] == "end":
         return "END:" + item[2].get_property('name')
+    elif item[0] == "anchor":
+        return item[0]
     else:
         return item[0] + ":" + item[2]
 
@@ -733,5 +737,5 @@ class Speed (TestCase):
         
 
 if __name__ == "__main__":
-    unittest.main()
+    test_main()
 

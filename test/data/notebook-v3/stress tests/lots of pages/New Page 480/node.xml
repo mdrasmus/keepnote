@@ -1,14 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <node>
 <version>3</version>
-<attr key="title">New Page</attr>
-<attr key="expanded">0</attr>
-<attr key="nodeid">5ef797d7-8558-4802-b765-82d924c19939</attr>
-<attr key="modified_time">1207979443</attr>
-<attr key="expanded2">0</attr>
-<attr key="content_type">text/xhtml+xml</attr>
-<attr key="created_time">1207979443</attr>
-<attr key="info_sort_dir">1</attr>
-<attr key="order">477</attr>
-<attr key="info_sort">0</attr>
+<dict>
+  <key>version</key><integer>3</integer>
+  <key>nodeid</key><string>f4116026-ca1d-4d33-bb3a-cb5044fc33de</string>
+</dict>
 </node>

@@ -1,5 +1,7 @@
 import os, shutil, unittest, thread, threading, traceback, sys
 
+from testing import *
+
 # keepnote imports
 import keepnote
 from keepnote import notebook
@@ -34,5 +36,5 @@ class NoteBookReload (unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    test_main()
 

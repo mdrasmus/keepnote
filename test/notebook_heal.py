@@ -19,8 +19,8 @@ class Heal (unittest.TestCase):
         # initialize two notebooks
         make_clean_dir("test/tmp/notebook_heal")
 
-        book = notebook.NoteBook("test/tmp/notebook_heal/n1")
-        book.create()
+        book = notebook.NoteBook()
+        book.create("test/tmp/notebook_heal/n1")
         book.close()
 
         # remove index
@@ -34,60 +34,13 @@ class Heal (unittest.TestCase):
         book.close()
 
 
-    def test_bad_node(self):
-        
-        # initialize two notebooks
-        make_clean_dir("test/tmp/notebook_heal")
-
-        book = notebook.NoteBook("test/tmp/notebook_heal/n1")
-        book.create()
-        book.close()
-
-        # corrupt node
-        out = open("test/tmp/notebook_heal/n1/node.xml", "w")
-        out.write("jsakhdfjhdsfh")
-        out.close()
-
-        # try to load again
-        book = notebook.NoteBook()
-        book.load("test/tmp/notebook_heal/n1")
-        book.close()
-
-        # check that node is valid xml
-        assert open("test/tmp/notebook_heal/n1/node.xml").read().startswith("<?xml")
-
-        # check that old node file was stored in lost and found
-        assert "node.xml" in os.listdir(
-            "test/tmp/notebook_heal/n1/__NOTEBOOK__/lost_found")
-        
-
-
-        # corrupt node
-        out = open("test/tmp/notebook_heal/n1/node.xml", "w")
-        out.write("jsakhdfjhdsfh")
-        out.close()
-
-        # try to load again
-        book = notebook.NoteBook()
-        book.load("test/tmp/notebook_heal/n1")
-        book.close()
-
-        # check that node is valid xml
-        assert open("test/tmp/notebook_heal/n1/node.xml").read().startswith("<?xml")
-
-        # check that old node file was stored in lost and found
-        assert "node.xml-2" in os.listdir(
-            "test/tmp/notebook_heal/n1/__NOTEBOOK__/lost_found")
-
-
-
     def test_bad_index(self):
         
         # initialize two notebooks
         make_clean_dir("test/tmp/notebook_heal")
 
-        book = notebook.NoteBook("test/tmp/notebook_heal/n1")
-        book.create()
+        book = notebook.NoteBook()
+        book.create("test/tmp/notebook_heal/n1")
         book.close()
 
         # corrupt index
@@ -103,7 +56,33 @@ class Heal (unittest.TestCase):
         print "index_needed", book.index_needed()
 
         book.close()
+
+
+
+    def test_bad_node(self):
         
+        # initialize two notebooks
+        make_clean_dir("test/tmp/notebook_heal")
+
+        book = notebook.NoteBook()
+        book.create("test/tmp/notebook_heal/n1")
+        book.close()
+
+        # corrupt node
+        out = open("test/tmp/notebook_heal/n1/node.xml", "w")
+        out.write("jsakhdfjhdsfh")
+        out.close()
+
+        # try to load again
+        try:
+            book = notebook.NoteBook()
+            book.load("test/tmp/notebook_heal/n1")
+            book.close()
+        except:
+            print "correctly stopped reading bad node file"
+        else:
+            print "correctly read bad node file"
+            assert False        
 
 
     def test_bad_notebook_pref(self):
@@ -111,8 +90,8 @@ class Heal (unittest.TestCase):
         # initialize two notebooks
         make_clean_dir("test/tmp/notebook_heal")
 
-        book = notebook.NoteBook("test/tmp/notebook_heal/n1")
-        book.create()
+        book = notebook.NoteBook()
+        book.create("test/tmp/notebook_heal/n1")
         book.close()
 
         # corrupt node
@@ -121,16 +100,15 @@ class Heal (unittest.TestCase):
         out.close()
 
         # try to load again
-        book = notebook.NoteBook()
-        book.load("test/tmp/notebook_heal/n1")
-        book.save(True)
-        book.close()
-
-        # check that node is valid xml
-        os.system("cat test/tmp/notebook_heal/n1/notebook.nbk")
-        assert open("test/tmp/notebook_heal/n1/notebook.nbk").read().startswith("<?xml")
-
-        
+        try:
+            book = notebook.NoteBook()
+            book.load("test/tmp/notebook_heal/n1")
+        except:
+            print "correctly stopped from reading a bad pref file"
+        else:
+            print "incorrectly read a bad pref file"
+            assert False
+            
 
     def test_tamper(self):
 
@@ -148,8 +126,8 @@ class Heal (unittest.TestCase):
         make_clean_dir("test/tmp/notebook_tamper")
 
         print "creating notebook"
-        book = notebook.NoteBook("test/tmp/notebook_tamper/n1")
-        book.create()
+        book = notebook.NoteBook()
+        book.create("test/tmp/notebook_tamper/n1")
         make_notebook(book, struct)
         book.close()
 
@@ -181,5 +159,5 @@ class Heal (unittest.TestCase):
 
         
 if __name__ == "__main__":
-    unittest.main()
+    test_main()
 

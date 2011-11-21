@@ -1007,9 +1007,9 @@ class NoteBookConnectionFS (NoteBookConnection):
         try:
             tree = ET.ElementTree(file=filename)
         except Exception, e:
-            if recover:
-                self._recover_attr(filename)
-                return self._read_attr(filename, recover=False)
+            #if recover:
+            #    self._recover_attr(filename)
+            #    return self._read_attr(filename, recover=False)
             
             raise ConnectionError(
                 _(u"Error reading meta data file '%s'" % filename), e)
