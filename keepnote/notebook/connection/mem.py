@@ -44,8 +44,16 @@ class Node (object):
         self.attr = dict(attr)
         self.files = {}
 
+class File (StringIO):
+    def close(self):
+        self.closed = True
 
-class NoteBookConnectionMem (object):
+    def reopen(self):
+        self.closed = False
+        self.seek(0)
+
+
+class NoteBookConnectionMem (NoteBookConnection):
     def __init__(self):
         self._nodes = {}
         self._rootid = None
@@ -72,7 +80,10 @@ class NoteBookConnectionMem (object):
         """Create a node"""
         if nodeid in self._nodes:
             raise connlib.NodeExists()
+        if self._rootid is None:
+            self._rootid = nodeid
         self._nodes[nodeid] = Node(attr)
+        
             
     def read_node(self, nodeid):
         """Read a node attr"""
@@ -100,10 +111,9 @@ class NoteBookConnectionMem (object):
         return nodeid in self._nodes
 
 
-    # TODO: can this be simplified with a search query?
     def get_rootid(self):
         """Returns nodeid of notebook root node"""
-        raise Unimplemented("get_rootid")
+        return self._rootid
     
 
     #===============
@@ -123,7 +133,12 @@ class NoteBookConnectionMem (object):
             raise connlib.UnknownNode()
         if filename.endswith("/"):
             raise connlib.FileError()
-        node.files[filename] = StringIO()
+        stream = node.files.get(filename)
+        if stream is None:
+            stream = node.files[filename] = File()
+        else:
+            stream.reopen()
+        return stream
 
 
     def delete_file(self, nodeid, filename):
@@ -155,7 +170,7 @@ class NoteBookConnectionMem (object):
         if not filename.endswith("/"):
             raise connlib.FileError()
         files = [f for f in node.files.iterkeys()
-                 if f.startswith(filename)]
+                 if f.startswith(filename) and f != filename]
                 
     def has_file(self, nodeid, filename):
         node = self._nodes.get(nodeid)
@@ -170,6 +185,7 @@ class NoteBookConnectionMem (object):
     def index(self, query):
 
         # TODO: make this plugable
+        # also plug-ability will ensure safer fall back to unhandeled queries
 
         # built-in queries
         # ["index_attr", key, (index_value)]
@@ -186,10 +202,11 @@ class NoteBookConnectionMem (object):
         elif query[0] == "search":
             assert query[1] == "title"
             return [(nodeid, node.attr["title"])
-                    for nodeid, node in self._nodes.iteritems():
+                    for nodeid, node in self._nodes.iteritems()
                         if query[2] in node.attr.get("title", "")]
 
         elif query[0] == "search_fulltext":
+            # TODO: could implement brute-force backup
             return []
 
         elif query[0] == "has_fulltext":
@@ -200,9 +217,12 @@ class NoteBookConnectionMem (object):
             path = []
             node = self._nodes.get(nodeid)
             while node:
-                path.append(node)
-                parentid = node.attr.get("parentids", [None])[0]
-                node = self._nodes.get(parentid)
+                path.append(node.attr["nodeid"])
+                parentids = node.attr.get("parentids")
+                if parentids:
+                    node = self._nodes.get(parentids[0])
+                else:
+                    break
             path.reverse()
             return path
 

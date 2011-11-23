@@ -131,6 +131,10 @@ class NoteBookConnection (object):
     
     def create_node(self, nodeid, attr):
         """Create a node"""
+        # TODO: document root creation
+        # proposal 1: if rootid is not set yet, then this node is root
+        # proposal 2: if parentids is [], then this node is root
+        # proposal 3: try to remove root concept from connection
         raise Unimplemented("create_node")
             
     def read_node(self, nodeid):

@@ -660,6 +660,8 @@ class NoteBookNode (object):
         t = get_timestamp()
         self._attr.setdefault("created_time", t)
         self._attr.setdefault("modified_time", t)
+        self._attr.setdefault("childrenids", [])
+        self._attr.setdefault("parentids", [])
 
 
     #========================================
@@ -1798,11 +1800,11 @@ class NoteBook (NoteBookNode):
         """Writes the NoteBooks preferences"""
         try:
             # ensure preference directory exists
-            self._conn.create_dir(self._attr["nodeid"], NOTEBOOK_META_DIR)
+            self._conn.create_dir(self._attr["nodeid"], NOTEBOOK_META_DIR + "/")
                 
             # ensure icon directory exists
             self._conn.create_dir(self._attr["nodeid"], 
-                             NOTEBOOK_META_DIR + "/" +  NOTEBOOK_ICON_DIR)
+                             NOTEBOOK_META_DIR + "/" +  NOTEBOOK_ICON_DIR + "/")
 
             data = self.pref.get_data()
 
