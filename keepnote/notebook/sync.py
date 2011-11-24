@@ -85,7 +85,7 @@ def sync_node(nodeid, conn1, conn2, attr=None,
 
 
 
-def sync_files(conn1, nodeid1, conn2, nodeid2, path1="", path2=""):
+def sync_files(conn1, nodeid1, conn2, nodeid2, path1="/", path2="/"):
     """Sync files from conn1.nodeid1 to conn2.nodeid2"""
 
     files = list(conn1.list_dir(nodeid1, path1))
@@ -110,10 +110,10 @@ def sync_files(conn1, nodeid1, conn2, nodeid2, path1="", path2=""):
             sync_files(conn1, nodeid1, conn2, nodeid2, file1, file2)
             continue
         
-        copy_files(conn1, nodeid1, file1, conn2, nodeid2, file2)
+        copy_file(conn1, nodeid1, file1, conn2, nodeid2, file2)
 
 
-def copy_files(conn1, nodeid1, file1, conn2, nodeid2, file2):
+def copy_file(conn1, nodeid1, file1, conn2, nodeid2, file2):
     """Copy a file from conn1.nodeid1.file1 to conn2.nodeid2.file2"""
     
     stream1 = conn1.open_file(nodeid1, file1, "r")
