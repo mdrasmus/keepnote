@@ -9,8 +9,8 @@
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2010 Matt Rasmussen
-#  Author: Matt Rasmussen <rasmus@mit.edu>
+#  Copyright (c) 2008-2011 Matt Rasmussen
+#  Author: Matt Rasmussen <rasmus@alum.mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -173,9 +173,9 @@ setup(
         - HTML export
     """,
     author='Matt Rasmussen',
-    author_email='rasmus@mit.edu',
+    author_email='rasmus@alum.mit.edu',
     url='http://keepnote.org',
-    download_url='http://keepnote.org/keepnote/download/keepnote-%s.tar.gz' % KEEPNOTE_VERSION,
+    download_url='http://keepnote.org/download/keepnote-%s.tar.gz' % KEEPNOTE_VERSION,
     
     classifiers=[
           'Development Status :: 5 - Production/Stable',
