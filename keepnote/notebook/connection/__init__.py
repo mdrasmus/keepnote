@@ -131,6 +131,10 @@ class NoteBookConnection (object):
     
     def create_node(self, nodeid, attr):
         """Create a node"""
+        # TODO: document root creation
+        # proposal 1: if rootid is not set yet, then this node is root
+        # proposal 2: if parentids is [], then this node is root
+        # proposal 3: try to remove root concept from connection
         raise Unimplemented("create_node")
             
     def read_node(self, nodeid):
@@ -370,18 +374,21 @@ class NoteBookConnections (object):
         self._protos[proto] = connection_class
 
     def get(self, url):
-        if "://" not in url:
-            proto = "file"
-        else:
-            parts = urlparse.urlsplit(url)
-            proto = parts.scheme if parts.scheme else "file"
-
+        proto = self.get_proto(url)
         conn_class = self._protos.get(proto, None)
         if conn_class:
             return conn_class()
         else:
             # fallback to 'file' protocol
             return self._protos.get("file", None)
+
+    def get_proto(self, url):
+        if "://" not in url:
+            proto = "file"
+        else:
+            parts = urlparse.urlsplit(url)
+            proto = parts.scheme if parts.scheme else "file"
+        return proto
 
     def lookup(self, proto):
         return self._protos.get(proto, None)

@@ -1162,6 +1162,13 @@ class NoteBookConnectionFS (NoteBookConnection):
 
 
     def create_dir(self, nodeid, filename, _path=None):
+        """
+        Create directory within node
+        """
+
+        if not filename.endswith("/"):
+            raise FileError("filename '%s' does not end with '/'" % filename)
+
         path = self._get_node_path(nodeid) if _path is None else _path
         fullname = get_node_filename(path, filename)
 
