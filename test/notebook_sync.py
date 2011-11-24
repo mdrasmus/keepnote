@@ -10,13 +10,6 @@ import keepnote.notebook.connection as connlib
 import keepnote.notebook.sync as sync
 
 
-def clean_dir(path):
-    if os.path.exists(path):
-        shutil.rmtree(path)
-
-def makedirs(path):
-    if not os.path.exists(path):
-        os.makedirs(path)
 
 class Sync (unittest.TestCase):
 
