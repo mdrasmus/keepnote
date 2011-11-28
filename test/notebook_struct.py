@@ -10,6 +10,7 @@ import unittest, os, sys, shutil, time
 from keepnote import notebook, safefile
 import keepnote.notebook.connection as connlib
 import keepnote.notebook.connection.fs as fs
+from keepnote.notebook import new_nodeid
 
 
 def display_notebook(node, depth=0):
@@ -119,6 +120,65 @@ class Test (unittest.TestCase):
         book.close()
 
         
+
+    def test_orphans(self):
+        
+        
+        clean_dir("test/tmp/conn")
+
+        # create new notebook
+        conn = fs.NoteBookConnectionFS()
+        conn.connect("test/tmp/conn")
+        rootid = new_nodeid()
+        conn.create_node(rootid, {"nodeid": rootid,
+                                  "parentids": [],
+                                  "key": 12})
+
+
+        # check orphan dir
+        assert os.path.exists("test/tmp/conn/__NOTEBOOK__/orphans")
+
+        # make orphan
+        nodeid = new_nodeid()
+        conn.create_node(nodeid, {"nodeid": nodeid,
+                                  "aaa": 3.4})
+        attr = conn.read_node(nodeid)
+        print attr
+
+        # check orphan node dir
+        assert os.path.exists("test/tmp/conn/__NOTEBOOK__/orphans/%s/%s"
+                              % (nodeid[:2], nodeid[2:]))
+
+        # update orphan
+        attr["aaa"] = 0
+        conn.update_node(nodeid, attr)
+        attr = conn.read_node(nodeid)
+        print attr
+
+        # check orphan node dir
+        print open("test/tmp/conn/__NOTEBOOK__/orphans/%s/%s/node.xml"
+                   % (nodeid[:2], nodeid[2:])).read()
+
+
+        # move orphan out of orphandir
+        attr["parentids"] = [rootid]
+        conn.update_node(nodeid, attr)
+        print conn.read_node(nodeid)
+
+        # check orphan node dir is gone
+        assert not os.path.exists("test/tmp/conn/__NOTEBOOK__/orphans/%s/%s"
+                                  % (nodeid[:2], nodeid[2:]))
+
+
+        # move node into orphandir
+        attr["parentids"] = []
+        conn.update_node(nodeid, attr)
+        print conn.read_node(nodeid)
+
+        # check orphan node dir is gone
+        assert os.path.exists("test/tmp/conn/__NOTEBOOK__/orphans/%s/%s"
+                              % (nodeid[:2], nodeid[2:]))
+
 
 
         

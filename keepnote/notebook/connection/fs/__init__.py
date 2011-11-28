@@ -69,6 +69,17 @@ UPDATE: Perhaps at this time unmanaged changes to payload files are not
 
 """
 
+
+# TODO: orphan behavior
+
+# Unknown parent behavior options
+# 1. Perhaps we allow nodes without parentids, but if they have parentids then
+#    they need to point to a valid node?  
+# 2. Or we allow parentids pointing to unknown nodes and store the data
+#    in the orphandir until parent arrives.
+# Maybe option 2 would work better with UnionConnection
+
+
 # python imports
 import gettext
 import mimetypes
@@ -106,6 +117,7 @@ XML_HEADER = u"""\
 NODE_META_FILE = u"node.xml"
 NOTEBOOK_META_DIR = u"__NOTEBOOK__"
 LOSTDIR = u"lost_found"
+ORPHANDIR = u"orphans"
 MAX_LEN_NODE_FILENAME = 40
 NULL = object()
 
@@ -124,6 +136,12 @@ def get_pref_file(nodepath):
 def get_lostdir(nodepath):
     return os.path.join(nodepath, NOTEBOOK_META_DIR, LOSTDIR)
 
+def get_orphandir(nodepath, nodeid=None):
+    if nodeid is not None:
+        return os.path.join(nodepath, NOTEBOOK_META_DIR, ORPHANDIR,
+                            nodeid[:2], nodeid[2:])
+    else:
+        return os.path.join(nodepath, NOTEBOOK_META_DIR, ORPHANDIR)
 
 def path_local2node(filename):
     """
@@ -607,6 +625,9 @@ class NoteBookConnectionFS (NoteBookConnection):
     def _get_lostdir(self):
         return get_lostdir(self._filename)
 
+    def _get_orphandir(self, nodeid=None):
+        return get_orphandir(self._filename, nodeid)
+
     def _move_to_lostdir(self, filename):
         """Moves a file/dir to the lost_found directory"""
         
@@ -654,7 +675,9 @@ class NoteBookConnectionFS (NoteBookConnection):
         if self._rootid is None:
             if self._filename is None:
                 raise ConnectionError("connect() has not been called")
-            assert attr.get("parentids", (None,))[0] is None, attr
+            parentids = attr.get("parentids", ())
+            if parentids != []:
+                raise ConnectionError("root node must have parentids = []")
             _path = self._filename
             _root = True
         else:
@@ -669,22 +692,32 @@ class NoteBookConnectionFS (NoteBookConnection):
         if nodeid is None:
             nodeid = keepnote.notebook.new_nodeid()
 
+        # TODO: handle case where parent does not currently exist
+        # TODO: handle case where parent finally shows up and
+        # reunites with its children in the orphans dir
+
         # determine parentid
-        parentids = attr.get("parentids", None)
-        # if parentids is None or [], use rootid as default
-        parentid = parentids[0] if parentids else self._rootid
+        parentids = attr.get("parentids", ())
+        if not parentids:
+            # if parentids is None or [], it is orphan
+            parentid = None
+        else:
+            parentid = parentids[0]
 
         # if no path, use title to set path
         if _path is None:
             title = attr.get("title", _("New Page"))
-
-            # TODO: handle case where parent does not currently exist
-            # TODO: also handle case where parent finally shows up and
-            # reunites with its children in the orphans dir
-            parent_path = self._get_node_path(parentid)
-            path = get_valid_unique_filename(parent_path, title)
+            if parentid is not None:
+                # TODO: handle case where parentid is unknown
+                # and therefore node is orphan
+                parent_path = self._get_node_path(parentid)
+                path = get_valid_unique_filename(parent_path, title)
+            else:
+                path = self._get_orphandir(nodeid)
         else:
             path = _path
+
+        print "path", path
             
         # initialize with no children
         attr["childrenids"] = []
@@ -694,7 +727,7 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         # make directory and write attr
         try:
-            os.mkdir(path)
+            os.makedirs(path)
             self._write_attr(self._get_node_attr_file(nodeid, path), attr)
             self._path_cache.add(nodeid, basename, parentid)
         except OSError, e:
@@ -728,6 +761,12 @@ class NoteBookConnectionFS (NoteBookConnection):
         if not os.path.exists(lostdir):
             os.makedirs(lostdir)
 
+        # make orhpan dir
+        orphandir = self._get_orphandir()
+        if not os.path.exists(orphandir):
+            os.makedirs(orphandir)
+
+
     
     def _read_root(self):
         """Read root node attr"""
@@ -736,6 +775,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         
         attr = self._read_node(None, self._filename)
         self._rootid = attr["nodeid"]
+        self._init_root()
         return attr
     
     
@@ -756,7 +796,7 @@ class NoteBookConnectionFS (NoteBookConnection):
     def update_node(self, nodeid, attr):
         """Write node attr"""
         
-        # TODO: support mutltiple parents 
+        # TODO: support mutltiple parents
 
         # determine if parentid has changed
         parentid = self._get_parentid(nodeid) # old parent
@@ -764,8 +804,8 @@ class NoteBookConnectionFS (NoteBookConnection):
         if nodeid == self.get_rootid():
             parentid2 = None
         else:
-            parentids2 = attr.get("parentids", None) # new parent
-            parentid2 = parentids2[0] if parentids2 else self.get_rootid()
+            parentids2 = attr.get("parentids", ()) # new parent
+            parentid2 = parentids2[0] if parentids2 else None
         
         # determine if title has changed
         title_index = self._index.get_attr(nodeid, "title") # old title
@@ -791,11 +831,17 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def _rename_node_dir(self, nodeid, attr, parentid, new_parentid, path):
         """Renames a node directory to resemble attr['title']"""
-        
-        # try to pick a path that closely resembles the title
-        title = attr.get("title", _("New Page"))
-        new_parent_path = self._get_node_path(new_parentid)
-        new_path = get_valid_unique_filename(new_parent_path, title)
+
+        if new_parentid is not None:
+            # try to pick a path that closely resembles the title
+            title = attr.get("title", _("New Page"))
+            new_parent_path = self._get_node_path(new_parentid)
+            new_path = get_valid_unique_filename(new_parent_path, title)
+            basename = os.path.basename(new_path)
+        else:
+            # make orphan
+            new_path = self._get_orphandir(nodeid)
+            basename = new_path           
 
         try:
             os.rename(path, new_path)
@@ -804,15 +850,15 @@ class NoteBookConnectionFS (NoteBookConnection):
                 _(u"Cannot rename '%s' to '%s'" % (path, new_path)), e)
         
         # update index
-        basename = os.path.basename(new_path)
         self._path_cache.move(nodeid, basename, new_parentid)
         self._index.add_node(nodeid, new_parentid, basename, attr, 
                              mtime=get_path_mtime(new_path))
 
         # update parent too
-        self._index.set_node_mtime(
-            parentid, get_path_mtime(os.path.dirname(path)))
-        if new_parentid != parentid:
+        if parentid:
+            self._index.set_node_mtime(
+                parentid, get_path_mtime(os.path.dirname(path)))
+        if new_parentid and new_parentid != parentid:
             self._index.set_node_mtime(
                 new_parentid, get_path_mtime(new_parent_path))
 
@@ -913,7 +959,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         metafile = get_node_meta_file(path)
 
         attr = self._read_attr(metafile)
-        attr["parentids"] = [parentid]
+        attr["parentids"] = ([parentid] if parentid else [])
         if not self._validate_attr(attr):
             self._write_attr(metafile, attr)
 
@@ -1250,6 +1296,9 @@ class NoteBookConnectionFS (NoteBookConnection):
         # clear memory cache too
         self._path_cache.clear()
         self._path_cache.add(self.get_rootid(), self._filename, None)
+
+        # TODO: index orphans
+        # may need private method to iterate orphans
 
         for node in self._index.index_all():
             yield node
