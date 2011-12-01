@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: keepnote 0.5.3\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2011-10-19 11:01-0400\n"
+"POT-Creation-Date: 2011-11-30 21:40-0500\n"
 "PO-Revision-Date: 2011-09-19 12:39+0100\n"
 "Last-Translator: Sebastien KALT <skalt@throka.org>\n"
 "Language-Team: French\n"
@@ -21,16 +21,16 @@ msgstr ""
 "X-Poedit-Country: FRANCE\n"
 "X-Poedit-Bookmarks: 59,233,-1,-1,-1,-1,-1,-1,-1,-1\n"
 
-#: keepnote/__init__.py:683
+#: keepnote/__init__.py:684
 msgid "Cannot save preferences"
 msgstr "Impossible de sauvegarder le réglage des préférences"
 
-#: keepnote/__init__.py:1045 keepnote/__init__.py:1047
+#: keepnote/__init__.py:1049 keepnote/__init__.py:1051
 #, python-format
 msgid "Must specify '%s' program in Helper Applications"
 msgstr "Vous devez préciser le logiciel de '%s' dans Applications associées"
 
-#: keepnote/__init__.py:1068
+#: keepnote/__init__.py:1072
 #, python-format
 msgid ""
 "Error occurred while opening file with %s.\n"
@@ -49,65 +49,65 @@ msgstr ""
 "\n"
 "erreur : %s"
 
-#: keepnote/__init__.py:1099
+#: keepnote/__init__.py:1103
 msgid "Unable to determine note type."
 msgstr "Impossible de déterminer le type de note."
 
-#: keepnote/__init__.py:1131
+#: keepnote/__init__.py:1135
 msgid "You must specify a Screen Shot program in Application Options"
 msgstr ""
 "Vous devez préciser un logiciel de capture d'écran dans Applications "
 "associées"
 
-#: keepnote/__init__.py:1143
+#: keepnote/__init__.py:1147
 #, python-format
 msgid "The screenshot program did not create the necessary image file '%s'"
 msgstr "Le logiciel de capture d'écran n'a pas créé le fichier '%s' requis"
 
-#: keepnote/__init__.py:1164
+#: keepnote/__init__.py:1168
 #, python-format
 msgid "command '%s' already exists"
 msgstr "la commande '%s' existe déjà"
 
-#: keepnote/__init__.py:1194 keepnote/__init__.py:1386
+#: keepnote/__init__.py:1198 keepnote/__init__.py:1390
 #, python-format
 msgid "enabling extension '%s'\n"
 msgstr "activation de l'extension '%s'\n"
 
-#: keepnote/__init__.py:1199
+#: keepnote/__init__.py:1203
 #, python-format
 msgid "  skipping extension '%s':\n"
 msgstr "  omission de l'extension '%s':\n"
 
-#: keepnote/__init__.py:1202
+#: keepnote/__init__.py:1206
 #, python-format
 msgid "    failed dependency: %s\n"
 msgstr "    dépendance non satisfaite : %s\n"
 
-#: keepnote/__init__.py:1369
+#: keepnote/__init__.py:1373
 #, python-format
 msgid "Unable to install extension '%s'"
 msgstr "Impossible d'installer l'extension '%s'"
 
-#: keepnote/__init__.py:1375
+#: keepnote/__init__.py:1379
 #, python-format
 msgid "removing '%s'"
 msgstr "suppression de '%s'"
 
-#: keepnote/__init__.py:1384
+#: keepnote/__init__.py:1388
 msgid "Enabling new extensions:\n"
 msgstr "Activation des nouvelles extensions : \n"
 
-#: keepnote/__init__.py:1399
+#: keepnote/__init__.py:1403
 #, python-format
 msgid "Unable to uninstall unknown extension '%s'."
 msgstr "Impossible de désinstaller l'extension inconnue '%s'."
 
-#: keepnote/__init__.py:1404
+#: keepnote/__init__.py:1408
 msgid "KeepNote can only uninstall user extensions"
 msgstr "Seules les extensions propres à l'utilisateur sont désinstallables"
 
-#: keepnote/__init__.py:1414
+#: keepnote/__init__.py:1418
 msgid "Unable to uninstall extension.  Do not have permission."
 msgstr "Impossible de désinstaller l'extension. Vous n'avez pas les droits."
 
@@ -162,7 +162,7 @@ msgstr "Nouveau carnet"
 
 #: keepnote/gui/main_window.py:505 keepnote/gui/main_window.py:525
 #: keepnote/gui/dialog_app_options.py:59
-#: keepnote/gui/dialog_app_options.py:692 keepnote/gui/__init__.py:826
+#: keepnote/gui/dialog_app_options.py:696 keepnote/gui/__init__.py:841
 #: keepnote/gui/dialog_update_notebook.py:134
 #: keepnote/gui/editor_richtext.py:654 keepnote/gui/editor_richtext.py:798
 #: keepnote/gui/dialog_node_icon.py:62
@@ -178,7 +178,7 @@ msgid "Open Notebook"
 msgstr "Ouvrir un carnet"
 
 #: keepnote/gui/main_window.py:526 keepnote/gui/dialog_app_options.py:60
-#: keepnote/gui/dialog_app_options.py:693 keepnote/gui/dialog_node_icon.py:63
+#: keepnote/gui/dialog_app_options.py:697 keepnote/gui/dialog_node_icon.py:63
 msgid "Open"
 msgstr "Ouvrir"
 
@@ -186,7 +186,7 @@ msgstr "Ouvrir"
 msgid "Notebook (*.nbk)"
 msgstr "Carnet (*.nbk)"
 
-#: keepnote/gui/main_window.py:546 keepnote/gui/dialog_app_options.py:704
+#: keepnote/gui/main_window.py:546 keepnote/gui/dialog_app_options.py:708
 msgid "All files (*.*)"
 msgstr "Tous les fichiers (*.*)"
 
@@ -245,7 +245,7 @@ msgid "Notebook modified"
 msgstr "Carnet modifié"
 
 #: keepnote/gui/main_window.py:976 keepnote/compat/notebook_v4.py:1404
-#: keepnote/compat/notebook_v3.py:1278 keepnote/notebook/__init__.py:1509
+#: keepnote/compat/notebook_v3.py:1278 keepnote/notebook/__init__.py:1525
 msgid "The Trash folder cannot be deleted."
 msgstr "La corbeille ne peut être supprimée."
 
@@ -445,15 +445,15 @@ msgstr "_A propos"
 msgid "Search All Notes"
 msgstr "Rechercher dans les notes"
 
-#: keepnote/gui/main_window.py:1629 keepnote/gui/main_window.py:1663
+#: keepnote/gui/main_window.py:1629 keepnote/gui/main_window.py:1664
 msgid "Unexpected error"
 msgstr "Erreur inattendue"
 
-#: keepnote/gui/main_window.py:1675
+#: keepnote/gui/main_window.py:1676
 msgid "Searching notebook"
 msgstr "Recherche dans le carnet"
 
-#: keepnote/gui/main_window.py:1675
+#: keepnote/gui/main_window.py:1676
 msgid "Searching..."
 msgstr "Recherche ..."
 
@@ -461,54 +461,54 @@ msgstr "Recherche ..."
 msgid "Choose Default Notebook"
 msgstr "Sélectionner le carnet par défaut"
 
-#: keepnote/gui/dialog_app_options.py:279
+#: keepnote/gui/dialog_app_options.py:287
 msgid "show lines in treeview"
 msgstr "afficher les pointillés dans l'arborescence"
 
-#: keepnote/gui/dialog_app_options.py:281
+#: keepnote/gui/dialog_app_options.py:289
 msgid "use ruler hints in listview"
 msgstr "teinter les lignes en alternance dans la liste des notes"
 
-#: keepnote/gui/dialog_app_options.py:283
+#: keepnote/gui/dialog_app_options.py:291
 msgid "use GTK stock icons in toolbar"
 msgstr "utiliser la collection d'icônes GTK dans la barre d'icônes"
 
-#: keepnote/gui/dialog_app_options.py:285
+#: keepnote/gui/dialog_app_options.py:293
 msgid "use minimal toolbar"
 msgstr "utiliser la barre d'icônes minimale"
 
-#: keepnote/gui/dialog_app_options.py:291
+#: keepnote/gui/dialog_app_options.py:299
 msgid "Application Font Size:"
 msgstr "Taille de la police de caractère du logiciel :"
 
-#: keepnote/gui/dialog_app_options.py:305
+#: keepnote/gui/dialog_app_options.py:313
 msgid "Listview Layout:"
 msgstr "Agencement de la liste des notes :"
 
-#: keepnote/gui/dialog_app_options.py:308
+#: keepnote/gui/dialog_app_options.py:316
 msgid "Vertical"
 msgstr "Vertical"
 
-#: keepnote/gui/dialog_app_options.py:309
+#: keepnote/gui/dialog_app_options.py:317
 msgid "Horizontal"
 msgstr "Horizontal"
 
-#: keepnote/gui/dialog_app_options.py:358
+#: keepnote/gui/dialog_app_options.py:366
 msgid "Language:"
 msgstr "Langage :"
 
-#: keepnote/gui/dialog_app_options.py:457
+#: keepnote/gui/dialog_app_options.py:461
 #, python-format
 msgid "Choose %s"
 msgstr "Choisir %s"
 
-#: keepnote/gui/dialog_app_options.py:459
+#: keepnote/gui/dialog_app_options.py:463
 #: keepnote/extensions/new_file/__init__.py:451
 #: keepnote/rc/keepnote.glade.h:39
 msgid "Browse..."
 msgstr "Parcourir..."
 
-#: keepnote/gui/dialog_app_options.py:514
+#: keepnote/gui/dialog_app_options.py:518
 msgid ""
 "This section contains options that are saved on a per notebook basis (e.g. "
 "notebook-specific font).   A subsection will appear for each notebook that "
@@ -518,47 +518,47 @@ msgstr ""
 "distincte pour chaque carnet (ex : police de caractère spécifique à un "
 "carnet). Une sous-section apparaîtra pour chaque carnet actuellement ouvert."
 
-#: keepnote/gui/dialog_app_options.py:547
+#: keepnote/gui/dialog_app_options.py:551
 msgid "Choose alternative notebook index directory"
 msgstr "Sélectionner un autre dossier pour stocker l'index du carnet "
 
-#: keepnote/gui/dialog_app_options.py:690
+#: keepnote/gui/dialog_app_options.py:694
 msgid "Install New Extension"
 msgstr "Installer la nouvelle extension"
 
-#: keepnote/gui/dialog_app_options.py:699
+#: keepnote/gui/dialog_app_options.py:703
 msgid "KeepNote Extension (*.kne)"
 msgstr "Extension pour KeepNote (*.kne)"
 
-#: keepnote/gui/dialog_app_options.py:767
+#: keepnote/gui/dialog_app_options.py:771
 msgid "Enabled"
 msgstr "Activé"
 
-#: keepnote/gui/dialog_app_options.py:779
+#: keepnote/gui/dialog_app_options.py:783
 msgid "Uninstall"
 msgstr "Désinstaller"
 
-#: keepnote/gui/dialog_app_options.py:896
+#: keepnote/gui/dialog_app_options.py:900
 msgid "Look and Feel"
 msgstr "Apparence"
 
-#: keepnote/gui/dialog_app_options.py:900
+#: keepnote/gui/dialog_app_options.py:904
 msgid "Language"
 msgstr "Langage"
 
-#: keepnote/gui/dialog_app_options.py:904
+#: keepnote/gui/dialog_app_options.py:908
 msgid "Date and Time"
 msgstr "Date et heure"
 
-#: keepnote/gui/dialog_app_options.py:908
+#: keepnote/gui/dialog_app_options.py:912
 msgid "Helper Applications"
 msgstr "Applications associées"
 
-#: keepnote/gui/dialog_app_options.py:912
+#: keepnote/gui/dialog_app_options.py:916
 msgid "Notebook Options"
 msgstr "Options du carnet"
 
-#: keepnote/gui/dialog_app_options.py:915
+#: keepnote/gui/dialog_app_options.py:919
 msgid "Extensions"
 msgstr "Extensions"
 
@@ -598,25 +598,25 @@ msgstr "Onglet _précédent"
 msgid "Switch to previous tab"
 msgstr "Aller à l'onglet précédent"
 
-#: keepnote/gui/__init__.py:535 keepnote/gui/__init__.py:602
-#: keepnote/gui/__init__.py:608
+#: keepnote/gui/__init__.py:538 keepnote/gui/__init__.py:610
+#: keepnote/gui/__init__.py:616
 #, python-format
 msgid "Could not load notebook '%s'."
 msgstr "Le carnet '%s' n'a pas pu être ouvert."
 
-#: keepnote/gui/__init__.py:544
+#: keepnote/gui/__init__.py:547
 msgid "Cannot open notebook (version too old)"
 msgstr "La version du carnet est trop ancienne pour être ouverte"
 
-#: keepnote/gui/__init__.py:578
+#: keepnote/gui/__init__.py:586
 msgid "Opening notebook"
 msgstr "Ouverture du carnet"
 
-#: keepnote/gui/__init__.py:578
+#: keepnote/gui/__init__.py:586
 msgid "Loading..."
 msgstr "Chargement ..."
 
-#: keepnote/gui/__init__.py:592
+#: keepnote/gui/__init__.py:600
 #, python-format
 msgid ""
 "This version of %s cannot read this notebook.\n"
@@ -625,70 +625,70 @@ msgstr ""
 "Cette version de %s ne peut lire ce carnet.\n"
 "La version du carnet est %d.  %s peut seulement lire %d."
 
-#: keepnote/gui/__init__.py:824
+#: keepnote/gui/__init__.py:839
 msgid "Attach File..."
 msgstr "Joindre un fichier ..."
 
-#: keepnote/gui/__init__.py:827
+#: keepnote/gui/__init__.py:842
 msgid "Attach"
 msgstr "Joindre"
 
-#: keepnote/gui/__init__.py:883
+#: keepnote/gui/__init__.py:898
 #, python-format
 msgid "Error while attaching files %s."
 msgstr "Une erreur est survenue en essayant d'attacher le fichier %s."
 
-#: keepnote/gui/__init__.py:887
+#: keepnote/gui/__init__.py:902
 #, python-format
 msgid "Error while attaching file '%s'."
 msgstr "Une erreur est survenue en essayant d'attacher le fichier '%s'."
 
-#: keepnote/gui/__init__.py:912
+#: keepnote/gui/__init__.py:927
 msgid "Error"
 msgstr "Erreur"
 
-#: keepnote/gui/__init__.py:1018
+#: keepnote/gui/__init__.py:1033
 #, python-format
 msgid "Do you want to install the extension \"%s\"?"
 msgstr "Voulez-vous installer l'extension \"%s\"?"
 
-#: keepnote/gui/__init__.py:1027
+#: keepnote/gui/__init__.py:1042
 #, python-format
 msgid "Extension \"%s\" is now installed."
 msgstr "L'extension \"%s\" a été installée."
 
-#: keepnote/gui/__init__.py:1028
+#: keepnote/gui/__init__.py:1043
 msgid "Install Successful"
 msgstr "Installation réussie"
 
-#: keepnote/gui/__init__.py:1037
+#: keepnote/gui/__init__.py:1052
 #, python-format
 msgid "Do you want to uninstall the extension \"%s\"?"
 msgstr "Voulez-vous désinstaller l'extension  \"%s\"?"
 
-#: keepnote/gui/__init__.py:1038
+#: keepnote/gui/__init__.py:1053
 msgid "Extension Uninstall"
 msgstr "Extension désinstallée"
 
-#: keepnote/gui/__init__.py:1040
+#: keepnote/gui/__init__.py:1055
 #, python-format
 msgid "Extension \"%s\" is now uninstalled."
 msgstr "L'extension \"%s\" a été désinstallée."
 
-#: keepnote/gui/__init__.py:1042
+#: keepnote/gui/__init__.py:1057
 msgid "Uninstall Successful"
 msgstr "Désinstallation réussie"
 
-#: keepnote/gui/listview.py:389
+#: keepnote/gui/listview.py:490
 #, python-format
 msgid "%d pages"
 msgstr "%d pages"
 
-#: keepnote/gui/listview.py:391
+#: keepnote/gui/listview.py:492
 msgid "1 page"
 msgstr "1 page"
 
-#: keepnote/gui/richtext/__init__.py:1033
+#: keepnote/gui/richtext/__init__.py:1032
 msgid "Paste As Plain Text"
 msgstr "Coller comme texte simple"
 
@@ -989,115 +989,115 @@ msgstr "Choisir l'icône des nœuds"
 msgid "Choose Open Icon"
 msgstr "Choisir l'icône des nœuds dépliés"
 
-#: keepnote/gui/three_pane_viewer.py:1115
+#: keepnote/gui/three_pane_viewer.py:1102
 msgid "Copy _Tree"
 msgstr "Copier l'_arborescence"
 
-#: keepnote/gui/three_pane_viewer.py:1116
+#: keepnote/gui/three_pane_viewer.py:1103
 msgid "Copy entire tree"
 msgstr "Copier l'arborescence entière"
 
-#: keepnote/gui/three_pane_viewer.py:1119
+#: keepnote/gui/three_pane_viewer.py:1106
 msgid "New _Page"
 msgstr "Nouvelle _page"
 
-#: keepnote/gui/three_pane_viewer.py:1120
+#: keepnote/gui/three_pane_viewer.py:1107
 msgid "Create a new page"
 msgstr "Créer une nouvelle page"
 
-#: keepnote/gui/three_pane_viewer.py:1123
+#: keepnote/gui/three_pane_viewer.py:1110
 msgid "New _Child Page"
 msgstr "Nouvelle page aff_iliée"
 
-#: keepnote/gui/three_pane_viewer.py:1124
+#: keepnote/gui/three_pane_viewer.py:1111
 msgid "Create a new child page"
 msgstr "Créer une nouvelle page affiliée"
 
-#: keepnote/gui/three_pane_viewer.py:1128
+#: keepnote/gui/three_pane_viewer.py:1115
 msgid "New _Folder"
 msgstr "Nouveau _dossier"
 
-#: keepnote/gui/three_pane_viewer.py:1129
+#: keepnote/gui/three_pane_viewer.py:1116
 msgid "Create a new folder"
 msgstr "Créer un nouveau dossier"
 
-#: keepnote/gui/three_pane_viewer.py:1133
+#: keepnote/gui/three_pane_viewer.py:1120
 msgid "_Attach File..."
 msgstr "_Joindre un fichier..."
 
-#: keepnote/gui/three_pane_viewer.py:1134
+#: keepnote/gui/three_pane_viewer.py:1121
 msgid "Attach a file to the notebook"
 msgstr "Joindre un fichier au carnet"
 
-#: keepnote/gui/three_pane_viewer.py:1138
+#: keepnote/gui/three_pane_viewer.py:1125
 msgid "_Back"
 msgstr "_Précédent"
 
-#: keepnote/gui/three_pane_viewer.py:1141
+#: keepnote/gui/three_pane_viewer.py:1128
 msgid "_Forward"
 msgstr "_Suivant"
 
-#: keepnote/gui/three_pane_viewer.py:1144
+#: keepnote/gui/three_pane_viewer.py:1131
 msgid "Go to _Note"
 msgstr "Aller à la _Note"
 
-#: keepnote/gui/three_pane_viewer.py:1148
+#: keepnote/gui/three_pane_viewer.py:1135
 msgid "Go to _Parent Note"
 msgstr "Aller à la note pa_rente"
 
-#: keepnote/gui/three_pane_viewer.py:1152
+#: keepnote/gui/three_pane_viewer.py:1139
 msgid "Go to Next N_ote"
 msgstr "Aller à la note sui_vante"
 
-#: keepnote/gui/three_pane_viewer.py:1156
+#: keepnote/gui/three_pane_viewer.py:1143
 msgid "Go to _Previous Note"
 msgstr "Aller à la note pré_cédente"
 
-#: keepnote/gui/three_pane_viewer.py:1160
+#: keepnote/gui/three_pane_viewer.py:1147
 msgid "E_xpand Note"
 msgstr "_Afficher les notes affiliées"
 
-#: keepnote/gui/three_pane_viewer.py:1164
+#: keepnote/gui/three_pane_viewer.py:1151
 msgid "_Collapse Note"
 msgstr "_Masquer les notes affiliées"
 
-#: keepnote/gui/three_pane_viewer.py:1168
+#: keepnote/gui/three_pane_viewer.py:1155
 msgid "Expand _All Child Notes"
 msgstr "Afficher _toutes les notes affiliées"
 
-#: keepnote/gui/three_pane_viewer.py:1172
+#: keepnote/gui/three_pane_viewer.py:1159
 msgid "Collapse A_ll Child Notes"
 msgstr "Masquer t_outes les notes affiliées"
 
-#: keepnote/gui/three_pane_viewer.py:1177
+#: keepnote/gui/three_pane_viewer.py:1164
 msgid "Go to _Tree View"
 msgstr "Aller à l'ar_borescence des notes"
 
-#: keepnote/gui/three_pane_viewer.py:1181
+#: keepnote/gui/three_pane_viewer.py:1168
 msgid "Go to _List View"
 msgstr "Aller à la _liste des notes"
 
-#: keepnote/gui/three_pane_viewer.py:1185
+#: keepnote/gui/three_pane_viewer.py:1172
 msgid "Go to _Editor"
 msgstr "Aller à l'édit_eur de notes"
 
-#: keepnote/gui/three_pane_viewer.py:1189
+#: keepnote/gui/three_pane_viewer.py:1176
 msgid "_Delete"
 msgstr "_Supprimer"
 
-#: keepnote/gui/three_pane_viewer.py:1192
+#: keepnote/gui/three_pane_viewer.py:1179
 msgid "_Rename"
 msgstr "_Renommer"
 
-#: keepnote/gui/three_pane_viewer.py:1196
+#: keepnote/gui/three_pane_viewer.py:1183
 msgid "_Change Note Icon"
 msgstr "Ch_anger l'icône"
 
-#: keepnote/gui/three_pane_viewer.py:1200
+#: keepnote/gui/three_pane_viewer.py:1187
 msgid "Change _Fg Color"
 msgstr ""
 
-#: keepnote/gui/three_pane_viewer.py:1202
+#: keepnote/gui/three_pane_viewer.py:1189
 msgid "Change _Bg Color"
 msgstr ""
 
@@ -1116,7 +1116,7 @@ msgstr "Impossible d'accéder aux préférences du carnet"
 #: keepnote/compat/notebook_v4.py:1718 keepnote/compat/notebook_v3.py:263
 #: keepnote/compat/notebook_v3.py:282 keepnote/compat/notebook_v3.py:1838
 #: keepnote/notebook/__init__.py:248 keepnote/notebook/__init__.py:268
-#: keepnote/notebook/__init__.py:1823
+#: keepnote/notebook/__init__.py:1846
 msgid "Notebook preference data is corrupt"
 msgstr "Les informations de préférences du carnet sont endommagées"
 
@@ -1126,89 +1126,89 @@ msgid "Unknown version string"
 msgstr "Version de chaîne inconnue"
 
 #: keepnote/compat/notebook_v4.py:642 keepnote/compat/notebook_v3.py:1249
-#: keepnote/notebook/__init__.py:713
+#: keepnote/notebook/__init__.py:717
 #, python-format
 msgid "Cannot copy file '%s'"
 msgstr "Le fichier '%s' ne peut être copié"
 
 #: keepnote/compat/notebook_v4.py:702 keepnote/compat/notebook_v3.py:720
-#: keepnote/notebook/__init__.py:776
+#: keepnote/notebook/__init__.py:780
 msgid "This node is not part of any notebook"
 msgstr "Ce nœud ne fait partie d'aucun carnet"
 
 #: keepnote/compat/notebook_v4.py:1392 keepnote/compat/notebook_v3.py:1273
-#: keepnote/notebook/__init__.py:1497
+#: keepnote/notebook/__init__.py:1513
 msgid "The Trash folder must be a top-level folder."
 msgstr "Le dossier de la corbeille doit être à la racine de l'arborescence "
 
 #: keepnote/compat/notebook_v4.py:1463 keepnote/compat/notebook_v3.py:1641
-#: keepnote/notebook/__init__.py:1568
+#: keepnote/notebook/__init__.py:1584
 msgid "Cannot create Trash folder"
 msgstr "Le dossier Corbeille n'a pu être créé"
 
 #: keepnote/compat/notebook_v4.py:1695 keepnote/compat/notebook_v3.py:1357
-#: keepnote/compat/notebook_v3.py:1826 keepnote/notebook/__init__.py:1799
+#: keepnote/compat/notebook_v3.py:1826 keepnote/notebook/__init__.py:1822
 msgid "Cannot save notebook preferences"
 msgstr "Les préférences du carnet n'ont pu être sauvegardées"
 
 #: keepnote/compat/notebook_v4.py:1697 keepnote/compat/notebook_v3.py:1828
-#: keepnote/notebook/__init__.py:1801
+#: keepnote/notebook/__init__.py:1824
 msgid "File format error"
 msgstr "Erreur de format de fichier"
 
-#: keepnote/compat/notebook_v4.py:1709 keepnote/notebook/__init__.py:1813
-#: keepnote/notebook/__init__.py:1846
+#: keepnote/compat/notebook_v4.py:1709 keepnote/notebook/__init__.py:1836
+#: keepnote/notebook/__init__.py:1869
 #, python-format
 msgid "Cannot read notebook preferences %s"
 msgstr "Impossible d'accéder au réglage des préférences du carnet %s"
 
 #: keepnote/compat/notebook_connection_fs_v4.py:635
 #: keepnote/compat/notebook_connection_fs_v4.py:733
-#: keepnote/notebook/connection/fs/__init__.py:680
-#: keepnote/notebook/connection/fs/__init__.py:797
+#: keepnote/notebook/connection/fs/__init__.py:709
+#: keepnote/notebook/connection/fs/__init__.py:837
 msgid "New Page"
 msgstr "Nouvelle page"
 
 #: keepnote/compat/notebook_connection_fs_v4.py:658
 #: keepnote/compat/notebook_v3.py:674
-#: keepnote/notebook/connection/fs/__init__.py:702
+#: keepnote/notebook/connection/fs/__init__.py:734
 msgid "Cannot create node"
 msgstr "Impossible de créer le nœud"
 
 #: keepnote/compat/notebook_connection_fs_v4.py:741
 #: keepnote/compat/notebook_v3.py:817
-#: keepnote/notebook/connection/fs/__init__.py:805
+#: keepnote/notebook/connection/fs/__init__.py:850
 #, python-format
 msgid "Cannot rename '%s' to '%s'"
 msgstr "Impossible de renommer '%s' en '%s'"
 
 #: keepnote/compat/notebook_connection_fs_v4.py:767
 #: keepnote/compat/notebook_v3.py:693
-#: keepnote/notebook/connection/fs/__init__.py:831
+#: keepnote/notebook/connection/fs/__init__.py:876
 msgid "Do not have permission to delete"
 msgstr "Vous n'avez pas les droits pour supprimer"
 
 #: keepnote/compat/notebook_connection_fs_v4.py:802
-#: keepnote/notebook/connection/fs/__init__.py:866
+#: keepnote/notebook/connection/fs/__init__.py:911
 #, python-format
 msgid "Do not have permission to read folder contents: %s"
 msgstr "Vous n'avez pas les droits pour accéder au dossier %s"
 
 #: keepnote/compat/notebook_connection_fs_v4.py:953
 #: keepnote/compat/notebook_v3.py:1974
-#: keepnote/notebook/connection/fs/__init__.py:1002
+#: keepnote/notebook/connection/fs/__init__.py:1047
 msgid "Cannot write meta data"
 msgstr "Impossible d'écrire les métadonnées"
 
 #: keepnote/compat/notebook_connection_fs_v4.py:969
-#: keepnote/notebook/connection/fs/__init__.py:1016
+#: keepnote/notebook/connection/fs/__init__.py:1061
 #, python-format
 msgid "Error reading meta data file '%s'"
 msgstr "Impossible de lire les métadonnées du fichier '%s'"
 
 #: keepnote/compat/notebook_connection_fs_v4.py:974
 #: keepnote/compat/notebook_v3.py:1991
-#: keepnote/notebook/connection/fs/__init__.py:1021
+#: keepnote/notebook/connection/fs/__init__.py:1066
 msgid "Root tag is not 'node'"
 msgstr "L'étiquette de la racine n'est pas 'nœud'"
 

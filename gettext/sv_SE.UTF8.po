@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: keepnote 0.7.1\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2011-10-19 11:01-0400\n"
+"POT-Creation-Date: 2011-11-30 21:40-0500\n"
 "PO-Revision-Date: 2011-04-29 23:11+0200\n"
 "Last-Translator: Morgan Antonsson <morgan.antonsson@gmail.com>\n"
 "Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
@@ -18,16 +18,16 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: keepnote/__init__.py:683
+#: keepnote/__init__.py:684
 msgid "Cannot save preferences"
 msgstr "Kan inte spara inställningar"
 
-#: keepnote/__init__.py:1045 keepnote/__init__.py:1047
+#: keepnote/__init__.py:1049 keepnote/__init__.py:1051
 #, python-format
 msgid "Must specify '%s' program in Helper Applications"
 msgstr "Måste välja %s-program i hjälpapplikationer"
 
-#: keepnote/__init__.py:1068
+#: keepnote/__init__.py:1072
 #, python-format
 msgid ""
 "Error occurred while opening file with %s.\n"
@@ -46,64 +46,64 @@ msgstr ""
 "\n"
 "fel: %s"
 
-#: keepnote/__init__.py:1099
+#: keepnote/__init__.py:1103
 msgid "Unable to determine note type."
 msgstr "Kan inte bestämma typ av anteckning."
 
-#: keepnote/__init__.py:1131
+#: keepnote/__init__.py:1135
 msgid "You must specify a Screen Shot program in Application Options"
 msgstr ""
 "Du måste ange ett program för att skapa skärmbilder i applikationsalternativ"
 
-#: keepnote/__init__.py:1143
+#: keepnote/__init__.py:1147
 #, python-format
 msgid "The screenshot program did not create the necessary image file '%s'"
 msgstr "Skärmbildsprogrammet skapade inte den förväntade bildfilen '%s'"
 
-#: keepnote/__init__.py:1164
+#: keepnote/__init__.py:1168
 #, python-format
 msgid "command '%s' already exists"
 msgstr "Kommandot '%s' finns redan"
 
-#: keepnote/__init__.py:1194 keepnote/__init__.py:1386
+#: keepnote/__init__.py:1198 keepnote/__init__.py:1390
 #, python-format
 msgid "enabling extension '%s'\n"
 msgstr "aktivera utökning '%s'\n"
 
-#: keepnote/__init__.py:1199
+#: keepnote/__init__.py:1203
 #, python-format
 msgid "  skipping extension '%s':\n"
 msgstr "  hoppar över utökning '%s':\n"
 
-#: keepnote/__init__.py:1202
+#: keepnote/__init__.py:1206
 #, python-format
 msgid "    failed dependency: %s\n"
 msgstr "    felaktigt beroende: %s\n"
 
-#: keepnote/__init__.py:1369
+#: keepnote/__init__.py:1373
 #, python-format
 msgid "Unable to install extension '%s'"
 msgstr "Kan inte installera utökning '%s'"
 
-#: keepnote/__init__.py:1375
+#: keepnote/__init__.py:1379
 #, python-format
 msgid "removing '%s'"
 msgstr "tar bort '%s'"
 
-#: keepnote/__init__.py:1384
+#: keepnote/__init__.py:1388
 msgid "Enabling new extensions:\n"
 msgstr "Aktiverar nya utökningar:\n"
 
-#: keepnote/__init__.py:1399
+#: keepnote/__init__.py:1403
 #, python-format
 msgid "Unable to uninstall unknown extension '%s'."
 msgstr "Kan inte ta bort okänd utökning '%s'."
 
-#: keepnote/__init__.py:1404
+#: keepnote/__init__.py:1408
 msgid "KeepNote can only uninstall user extensions"
 msgstr "KeepNote kan bara ta bort användarutökningar"
 
-#: keepnote/__init__.py:1414
+#: keepnote/__init__.py:1418
 msgid "Unable to uninstall extension.  Do not have permission."
 msgstr "Kan inte installera utökning. Saknar rättigheter."
 
@@ -158,7 +158,7 @@ msgstr "Nytt anteckningsblock"
 
 #: keepnote/gui/main_window.py:505 keepnote/gui/main_window.py:525
 #: keepnote/gui/dialog_app_options.py:59
-#: keepnote/gui/dialog_app_options.py:692 keepnote/gui/__init__.py:826
+#: keepnote/gui/dialog_app_options.py:696 keepnote/gui/__init__.py:841
 #: keepnote/gui/dialog_update_notebook.py:134
 #: keepnote/gui/editor_richtext.py:654 keepnote/gui/editor_richtext.py:798
 #: keepnote/gui/dialog_node_icon.py:62
@@ -174,7 +174,7 @@ msgid "Open Notebook"
 msgstr "Öppna anteckningsblock"
 
 #: keepnote/gui/main_window.py:526 keepnote/gui/dialog_app_options.py:60
-#: keepnote/gui/dialog_app_options.py:693 keepnote/gui/dialog_node_icon.py:63
+#: keepnote/gui/dialog_app_options.py:697 keepnote/gui/dialog_node_icon.py:63
 msgid "Open"
 msgstr "Öppna"
 
@@ -182,7 +182,7 @@ msgstr "Öppna"
 msgid "Notebook (*.nbk)"
 msgstr "Anteckningsblock (*.nbk)"
 
-#: keepnote/gui/main_window.py:546 keepnote/gui/dialog_app_options.py:704
+#: keepnote/gui/main_window.py:546 keepnote/gui/dialog_app_options.py:708
 msgid "All files (*.*)"
 msgstr "Alla filer (*.*)"
 
@@ -241,7 +241,7 @@ msgid "Notebook modified"
 msgstr "Anteckningsblock modifierat"
 
 #: keepnote/gui/main_window.py:976 keepnote/compat/notebook_v4.py:1404
-#: keepnote/compat/notebook_v3.py:1278 keepnote/notebook/__init__.py:1509
+#: keepnote/compat/notebook_v3.py:1278 keepnote/notebook/__init__.py:1525
 msgid "The Trash folder cannot be deleted."
 msgstr "Papperskorgen kan inte tas bort."
 
@@ -441,15 +441,15 @@ msgstr "_Om"
 msgid "Search All Notes"
 msgstr "Sök i alla anteckningar"
 
-#: keepnote/gui/main_window.py:1629 keepnote/gui/main_window.py:1663
+#: keepnote/gui/main_window.py:1629 keepnote/gui/main_window.py:1664
 msgid "Unexpected error"
 msgstr "Oväntat fel"
 
-#: keepnote/gui/main_window.py:1675
+#: keepnote/gui/main_window.py:1676
 msgid "Searching notebook"
 msgstr "Söker i anteckningsblock"
 
-#: keepnote/gui/main_window.py:1675
+#: keepnote/gui/main_window.py:1676
 msgid "Searching..."
 msgstr "Söker..."
 
@@ -457,54 +457,54 @@ msgstr "Söker..."
 msgid "Choose Default Notebook"
 msgstr "Välj förvalt anteckningsblock"
 
-#: keepnote/gui/dialog_app_options.py:279
+#: keepnote/gui/dialog_app_options.py:287
 msgid "show lines in treeview"
 msgstr "visa linjer i trädvyn"
 
-#: keepnote/gui/dialog_app_options.py:281
+#: keepnote/gui/dialog_app_options.py:289
 msgid "use ruler hints in listview"
 msgstr "använd olika färger för rader i listvyn"
 
-#: keepnote/gui/dialog_app_options.py:283
+#: keepnote/gui/dialog_app_options.py:291
 msgid "use GTK stock icons in toolbar"
 msgstr "använd GTK-ikoner i verktygsfältet"
 
-#: keepnote/gui/dialog_app_options.py:285
+#: keepnote/gui/dialog_app_options.py:293
 msgid "use minimal toolbar"
 msgstr "använd minimalt verktygsfält"
 
-#: keepnote/gui/dialog_app_options.py:291
+#: keepnote/gui/dialog_app_options.py:299
 msgid "Application Font Size:"
 msgstr "Fontstorlek:"
 
-#: keepnote/gui/dialog_app_options.py:305
+#: keepnote/gui/dialog_app_options.py:313
 msgid "Listview Layout:"
 msgstr "Listvyns utseende:"
 
-#: keepnote/gui/dialog_app_options.py:308
+#: keepnote/gui/dialog_app_options.py:316
 msgid "Vertical"
 msgstr "Vertikal"
 
-#: keepnote/gui/dialog_app_options.py:309
+#: keepnote/gui/dialog_app_options.py:317
 msgid "Horizontal"
 msgstr "Horisontell"
 
-#: keepnote/gui/dialog_app_options.py:358
+#: keepnote/gui/dialog_app_options.py:366
 msgid "Language:"
 msgstr "Språk:"
 
-#: keepnote/gui/dialog_app_options.py:457
+#: keepnote/gui/dialog_app_options.py:461
 #, python-format
 msgid "Choose %s"
 msgstr "Välj %s"
 
-#: keepnote/gui/dialog_app_options.py:459
+#: keepnote/gui/dialog_app_options.py:463
 #: keepnote/extensions/new_file/__init__.py:451
 #: keepnote/rc/keepnote.glade.h:39
 msgid "Browse..."
 msgstr "Bläddra..."
 
-#: keepnote/gui/dialog_app_options.py:514
+#: keepnote/gui/dialog_app_options.py:518
 msgid ""
 "This section contains options that are saved on a per notebook basis (e.g. "
 "notebook-specific font).   A subsection will appear for each notebook that "
@@ -514,47 +514,47 @@ msgstr ""
 "ex. teckensnitt). En underavdelning visas för varje anteckningsblock som är "
 "öppet."
 
-#: keepnote/gui/dialog_app_options.py:547
+#: keepnote/gui/dialog_app_options.py:551
 msgid "Choose alternative notebook index directory"
 msgstr "Välj alternativ indexmapp för anteckningsblock"
 
-#: keepnote/gui/dialog_app_options.py:690
+#: keepnote/gui/dialog_app_options.py:694
 msgid "Install New Extension"
 msgstr "Installera ny utökning"
 
-#: keepnote/gui/dialog_app_options.py:699
+#: keepnote/gui/dialog_app_options.py:703
 msgid "KeepNote Extension (*.kne)"
 msgstr "KeepNote utökning (*.kne)"
 
-#: keepnote/gui/dialog_app_options.py:767
+#: keepnote/gui/dialog_app_options.py:771
 msgid "Enabled"
 msgstr "Aktiverad"
 
-#: keepnote/gui/dialog_app_options.py:779
+#: keepnote/gui/dialog_app_options.py:783
 msgid "Uninstall"
 msgstr "Ta bort"
 
-#: keepnote/gui/dialog_app_options.py:896
+#: keepnote/gui/dialog_app_options.py:900
 msgid "Look and Feel"
 msgstr "Utseende"
 
-#: keepnote/gui/dialog_app_options.py:900
+#: keepnote/gui/dialog_app_options.py:904
 msgid "Language"
 msgstr "Språk"
 
-#: keepnote/gui/dialog_app_options.py:904
+#: keepnote/gui/dialog_app_options.py:908
 msgid "Date and Time"
 msgstr "Datum och tid"
 
-#: keepnote/gui/dialog_app_options.py:908
+#: keepnote/gui/dialog_app_options.py:912
 msgid "Helper Applications"
 msgstr "Hjälpapplikationer"
 
-#: keepnote/gui/dialog_app_options.py:912
+#: keepnote/gui/dialog_app_options.py:916
 msgid "Notebook Options"
 msgstr "Anteckningsblocksalternativ"
 
-#: keepnote/gui/dialog_app_options.py:915
+#: keepnote/gui/dialog_app_options.py:919
 msgid "Extensions"
 msgstr "Utökningar"
 
@@ -594,25 +594,25 @@ msgstr "_Föregående flik"
 msgid "Switch to previous tab"
 msgstr "Byt till föregående flik"
 
-#: keepnote/gui/__init__.py:535 keepnote/gui/__init__.py:602
-#: keepnote/gui/__init__.py:608
+#: keepnote/gui/__init__.py:538 keepnote/gui/__init__.py:610
+#: keepnote/gui/__init__.py:616
 #, python-format
 msgid "Could not load notebook '%s'."
 msgstr "Kunde inte läsa anteckningsblock '%s'."
 
-#: keepnote/gui/__init__.py:544
+#: keepnote/gui/__init__.py:547
 msgid "Cannot open notebook (version too old)"
 msgstr "Kan inte öppna anteckningsblock (för gammal version)"
 
-#: keepnote/gui/__init__.py:578
+#: keepnote/gui/__init__.py:586
 msgid "Opening notebook"
 msgstr "Öppnar anteckningsblock"
 
-#: keepnote/gui/__init__.py:578
+#: keepnote/gui/__init__.py:586
 msgid "Loading..."
 msgstr "Läser in..."
 
-#: keepnote/gui/__init__.py:592
+#: keepnote/gui/__init__.py:600
 #, python-format
 msgid ""
 "This version of %s cannot read this notebook.\n"
@@ -621,70 +621,70 @@ msgstr ""
 "Denna version av %s kan inte läsa det här anteckningsblocket.\n"
 "Anteckningsblockets version är %d. %s kan bara läsa %d."
 
-#: keepnote/gui/__init__.py:824
+#: keepnote/gui/__init__.py:839
 msgid "Attach File..."
 msgstr "Bifoga fil..."
 
-#: keepnote/gui/__init__.py:827
+#: keepnote/gui/__init__.py:842
 msgid "Attach"
 msgstr "Bifoga"
 
-#: keepnote/gui/__init__.py:883
+#: keepnote/gui/__init__.py:898
 #, python-format
 msgid "Error while attaching files %s."
 msgstr "Fel när filer bifogades: %s."
 
-#: keepnote/gui/__init__.py:887
+#: keepnote/gui/__init__.py:902
 #, python-format
 msgid "Error while attaching file '%s'."
 msgstr "Fel när fil '%s' bifogades"
 
-#: keepnote/gui/__init__.py:912
+#: keepnote/gui/__init__.py:927
 msgid "Error"
 msgstr "Fel"
 
-#: keepnote/gui/__init__.py:1018
+#: keepnote/gui/__init__.py:1033
 #, python-format
 msgid "Do you want to install the extension \"%s\"?"
 msgstr "Vill du installera utökningen \"%s\"?"
 
-#: keepnote/gui/__init__.py:1027
+#: keepnote/gui/__init__.py:1042
 #, python-format
 msgid "Extension \"%s\" is now installed."
 msgstr "Utökning \"%s\" är nu installerad."
 
-#: keepnote/gui/__init__.py:1028
+#: keepnote/gui/__init__.py:1043
 msgid "Install Successful"
 msgstr "Installationen lyckades"
 
-#: keepnote/gui/__init__.py:1037
+#: keepnote/gui/__init__.py:1052
 #, python-format
 msgid "Do you want to uninstall the extension \"%s\"?"
 msgstr "Vill du installera utökningen \"%s\"?"
 
-#: keepnote/gui/__init__.py:1038
+#: keepnote/gui/__init__.py:1053
 msgid "Extension Uninstall"
 msgstr "Ta bort utökning"
 
-#: keepnote/gui/__init__.py:1040
+#: keepnote/gui/__init__.py:1055
 #, python-format
 msgid "Extension \"%s\" is now uninstalled."
 msgstr "Utökningen \"%s\" är nu borttagen."
 
-#: keepnote/gui/__init__.py:1042
+#: keepnote/gui/__init__.py:1057
 msgid "Uninstall Successful"
 msgstr "Borttagningen lyckades"
 
-#: keepnote/gui/listview.py:389
+#: keepnote/gui/listview.py:490
 #, python-format
 msgid "%d pages"
 msgstr "%d sidor"
 
-#: keepnote/gui/listview.py:391
+#: keepnote/gui/listview.py:492
 msgid "1 page"
 msgstr "1 sida"
 
-#: keepnote/gui/richtext/__init__.py:1033
+#: keepnote/gui/richtext/__init__.py:1032
 msgid "Paste As Plain Text"
 msgstr "Klistra in oformatterad text"
 
@@ -985,115 +985,115 @@ msgstr "Välj ikon"
 msgid "Choose Open Icon"
 msgstr "Välj utfälld ikon"
 
-#: keepnote/gui/three_pane_viewer.py:1115
+#: keepnote/gui/three_pane_viewer.py:1102
 msgid "Copy _Tree"
 msgstr "Kopiera _träd"
 
-#: keepnote/gui/three_pane_viewer.py:1116
+#: keepnote/gui/three_pane_viewer.py:1103
 msgid "Copy entire tree"
 msgstr "Kopiera hela trädet"
 
-#: keepnote/gui/three_pane_viewer.py:1119
+#: keepnote/gui/three_pane_viewer.py:1106
 msgid "New _Page"
 msgstr "Ny s_ida"
 
-#: keepnote/gui/three_pane_viewer.py:1120
+#: keepnote/gui/three_pane_viewer.py:1107
 msgid "Create a new page"
 msgstr "Skapa en ny sida"
 
-#: keepnote/gui/three_pane_viewer.py:1123
+#: keepnote/gui/three_pane_viewer.py:1110
 msgid "New _Child Page"
 msgstr "Ny _undersida"
 
-#: keepnote/gui/three_pane_viewer.py:1124
+#: keepnote/gui/three_pane_viewer.py:1111
 msgid "Create a new child page"
 msgstr "Skapa en ny undersida"
 
-#: keepnote/gui/three_pane_viewer.py:1128
+#: keepnote/gui/three_pane_viewer.py:1115
 msgid "New _Folder"
 msgstr "Ny _mapp"
 
-#: keepnote/gui/three_pane_viewer.py:1129
+#: keepnote/gui/three_pane_viewer.py:1116
 msgid "Create a new folder"
 msgstr "Skapa en ny mapp"
 
-#: keepnote/gui/three_pane_viewer.py:1133
+#: keepnote/gui/three_pane_viewer.py:1120
 msgid "_Attach File..."
 msgstr "Bifoga _fil..."
 
-#: keepnote/gui/three_pane_viewer.py:1134
+#: keepnote/gui/three_pane_viewer.py:1121
 msgid "Attach a file to the notebook"
 msgstr "Bifoga en fil till anteckningen"
 
-#: keepnote/gui/three_pane_viewer.py:1138
+#: keepnote/gui/three_pane_viewer.py:1125
 msgid "_Back"
 msgstr "_Bakåt"
 
-#: keepnote/gui/three_pane_viewer.py:1141
+#: keepnote/gui/three_pane_viewer.py:1128
 msgid "_Forward"
 msgstr "Fra_måt"
 
-#: keepnote/gui/three_pane_viewer.py:1144
+#: keepnote/gui/three_pane_viewer.py:1131
 msgid "Go to _Note"
 msgstr "Gå till _anteckning"
 
-#: keepnote/gui/three_pane_viewer.py:1148
+#: keepnote/gui/three_pane_viewer.py:1135
 msgid "Go to _Parent Note"
 msgstr "Gå till _överliggande anteckning"
 
-#: keepnote/gui/three_pane_viewer.py:1152
+#: keepnote/gui/three_pane_viewer.py:1139
 msgid "Go to Next N_ote"
 msgstr "Gå till n_ästa anteckning"
 
-#: keepnote/gui/three_pane_viewer.py:1156
+#: keepnote/gui/three_pane_viewer.py:1143
 msgid "Go to _Previous Note"
 msgstr "Gå till före_gående anteckning"
 
-#: keepnote/gui/three_pane_viewer.py:1160
+#: keepnote/gui/three_pane_viewer.py:1147
 msgid "E_xpand Note"
 msgstr "Fäll _ut anteckning"
 
-#: keepnote/gui/three_pane_viewer.py:1164
+#: keepnote/gui/three_pane_viewer.py:1151
 msgid "_Collapse Note"
 msgstr "Fäll _ihop anteckning"
 
-#: keepnote/gui/three_pane_viewer.py:1168
+#: keepnote/gui/three_pane_viewer.py:1155
 msgid "Expand _All Child Notes"
 msgstr "Fäll ut alla un_deranteckningar"
 
-#: keepnote/gui/three_pane_viewer.py:1172
+#: keepnote/gui/three_pane_viewer.py:1159
 msgid "Collapse A_ll Child Notes"
 msgstr "Fäll i_hop alla underanteckningar"
 
-#: keepnote/gui/three_pane_viewer.py:1177
+#: keepnote/gui/three_pane_viewer.py:1164
 msgid "Go to _Tree View"
 msgstr "Gå till _trädvyn"
 
-#: keepnote/gui/three_pane_viewer.py:1181
+#: keepnote/gui/three_pane_viewer.py:1168
 msgid "Go to _List View"
 msgstr "Gå till _listvyn"
 
-#: keepnote/gui/three_pane_viewer.py:1185
+#: keepnote/gui/three_pane_viewer.py:1172
 msgid "Go to _Editor"
 msgstr "Öppna _redigerare"
 
-#: keepnote/gui/three_pane_viewer.py:1189
+#: keepnote/gui/three_pane_viewer.py:1176
 msgid "_Delete"
 msgstr "_Ta bort"
 
-#: keepnote/gui/three_pane_viewer.py:1192
+#: keepnote/gui/three_pane_viewer.py:1179
 msgid "_Rename"
 msgstr "_Byt namn"
 
-#: keepnote/gui/three_pane_viewer.py:1196
+#: keepnote/gui/three_pane_viewer.py:1183
 msgid "_Change Note Icon"
 msgstr "_Ändra anteckningsikon"
 
-#: keepnote/gui/three_pane_viewer.py:1200
+#: keepnote/gui/three_pane_viewer.py:1187
 msgid "Change _Fg Color"
 msgstr ""
 
-#: keepnote/gui/three_pane_viewer.py:1202
+#: keepnote/gui/three_pane_viewer.py:1189
 msgid "Change _Bg Color"
 msgstr ""
 
@@ -1112,7 +1112,7 @@ msgstr "Kan inte läsa inställningar för anteckningsblock"
 #: keepnote/compat/notebook_v4.py:1718 keepnote/compat/notebook_v3.py:263
 #: keepnote/compat/notebook_v3.py:282 keepnote/compat/notebook_v3.py:1838
 #: keepnote/notebook/__init__.py:248 keepnote/notebook/__init__.py:268
-#: keepnote/notebook/__init__.py:1823
+#: keepnote/notebook/__init__.py:1846
 msgid "Notebook preference data is corrupt"
 msgstr "Anteckningsblockets inställningar är oläsbara"
 
@@ -1122,89 +1122,89 @@ msgid "Unknown version string"
 msgstr "Okänd versionssträng"
 
 #: keepnote/compat/notebook_v4.py:642 keepnote/compat/notebook_v3.py:1249
-#: keepnote/notebook/__init__.py:713
+#: keepnote/notebook/__init__.py:717
 #, python-format
 msgid "Cannot copy file '%s'"
 msgstr "Kan inte kopiera filen '%s'"
 
 #: keepnote/compat/notebook_v4.py:702 keepnote/compat/notebook_v3.py:720
-#: keepnote/notebook/__init__.py:776
+#: keepnote/notebook/__init__.py:780
 msgid "This node is not part of any notebook"
 msgstr "Den här noden tillhör inte någon anteckning"
 
 #: keepnote/compat/notebook_v4.py:1392 keepnote/compat/notebook_v3.py:1273
-#: keepnote/notebook/__init__.py:1497
+#: keepnote/notebook/__init__.py:1513
 msgid "The Trash folder must be a top-level folder."
 msgstr "Papperskorgen måste ligga på toppnivån."
 
 #: keepnote/compat/notebook_v4.py:1463 keepnote/compat/notebook_v3.py:1641
-#: keepnote/notebook/__init__.py:1568
+#: keepnote/notebook/__init__.py:1584
 msgid "Cannot create Trash folder"
 msgstr "Kan inte skapa papperskorgsmappen"
 
 #: keepnote/compat/notebook_v4.py:1695 keepnote/compat/notebook_v3.py:1357
-#: keepnote/compat/notebook_v3.py:1826 keepnote/notebook/__init__.py:1799
+#: keepnote/compat/notebook_v3.py:1826 keepnote/notebook/__init__.py:1822
 msgid "Cannot save notebook preferences"
 msgstr "Kan inte spara inställningar för anteckningsblock"
 
 #: keepnote/compat/notebook_v4.py:1697 keepnote/compat/notebook_v3.py:1828
-#: keepnote/notebook/__init__.py:1801
+#: keepnote/notebook/__init__.py:1824
 msgid "File format error"
 msgstr "Fel filformat"
 
-#: keepnote/compat/notebook_v4.py:1709 keepnote/notebook/__init__.py:1813
-#: keepnote/notebook/__init__.py:1846
+#: keepnote/compat/notebook_v4.py:1709 keepnote/notebook/__init__.py:1836
+#: keepnote/notebook/__init__.py:1869
 #, python-format
 msgid "Cannot read notebook preferences %s"
 msgstr "Kan inte läsa inställningar för anteckningsblock %s"
 
 #: keepnote/compat/notebook_connection_fs_v4.py:635
 #: keepnote/compat/notebook_connection_fs_v4.py:733
-#: keepnote/notebook/connection/fs/__init__.py:680
-#: keepnote/notebook/connection/fs/__init__.py:797
+#: keepnote/notebook/connection/fs/__init__.py:709
+#: keepnote/notebook/connection/fs/__init__.py:837
 msgid "New Page"
 msgstr "Ny sida"
 
 #: keepnote/compat/notebook_connection_fs_v4.py:658
 #: keepnote/compat/notebook_v3.py:674
-#: keepnote/notebook/connection/fs/__init__.py:702
+#: keepnote/notebook/connection/fs/__init__.py:734
 msgid "Cannot create node"
 msgstr "Kan inte skapa nod"
 
 #: keepnote/compat/notebook_connection_fs_v4.py:741
 #: keepnote/compat/notebook_v3.py:817
-#: keepnote/notebook/connection/fs/__init__.py:805
+#: keepnote/notebook/connection/fs/__init__.py:850
 #, python-format
 msgid "Cannot rename '%s' to '%s'"
 msgstr "Kan inte byta namn på '%s' till '%s'"
 
 #: keepnote/compat/notebook_connection_fs_v4.py:767
 #: keepnote/compat/notebook_v3.py:693
-#: keepnote/notebook/connection/fs/__init__.py:831
+#: keepnote/notebook/connection/fs/__init__.py:876
 msgid "Do not have permission to delete"
 msgstr "Saknar rättigheter att ta bort"
 
 #: keepnote/compat/notebook_connection_fs_v4.py:802
-#: keepnote/notebook/connection/fs/__init__.py:866
+#: keepnote/notebook/connection/fs/__init__.py:911
 #, python-format
 msgid "Do not have permission to read folder contents: %s"
 msgstr "Saknar rättigheter att läsa mappen: %s"
 
 #: keepnote/compat/notebook_connection_fs_v4.py:953
 #: keepnote/compat/notebook_v3.py:1974
-#: keepnote/notebook/connection/fs/__init__.py:1002
+#: keepnote/notebook/connection/fs/__init__.py:1047
 msgid "Cannot write meta data"
 msgstr "Kan inte skriva metada"
 
 #: keepnote/compat/notebook_connection_fs_v4.py:969
-#: keepnote/notebook/connection/fs/__init__.py:1016
+#: keepnote/notebook/connection/fs/__init__.py:1061
 #, python-format
 msgid "Error reading meta data file '%s'"
 msgstr ""
 
 #: keepnote/compat/notebook_connection_fs_v4.py:974
 #: keepnote/compat/notebook_v3.py:1991
-#: keepnote/notebook/connection/fs/__init__.py:1021
+#: keepnote/notebook/connection/fs/__init__.py:1066
 msgid "Root tag is not 'node'"
 msgstr "Rottag är inte 'node'"
 
