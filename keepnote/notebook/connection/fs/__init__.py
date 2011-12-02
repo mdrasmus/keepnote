@@ -753,7 +753,8 @@ class NoteBookConnectionFS (NoteBookConnection):
         fn = os.path.dirname(self._get_index_file())
         if not os.path.exists(fn):
             os.makedirs(fn)
-        self.init_index()
+        if self._index is None:
+            self.init_index()
 
 
         # make lost and found        

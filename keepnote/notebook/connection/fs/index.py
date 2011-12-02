@@ -739,7 +739,7 @@ class NoteBookIndex (object):
 
     def search_titles(self, query):
         """Return nodeids of nodes with matching titles"""
-
+        
         if "title" not in self._attrs:
             return []
 
