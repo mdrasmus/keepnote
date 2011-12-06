@@ -7,7 +7,7 @@
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2011 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@alum.mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -28,14 +28,15 @@
 # python imports
 import codecs
 import gettext
-import sys
+from itertools import chain
 import os
 import tempfile
 import re
 import random
-import urllib2
 import StringIO
-from itertools import chain
+import urlparse
+import uuid
+from xml.sax.saxutils import escape
 
 
 # pygtk imports
@@ -82,9 +83,7 @@ from .richtext_tags import \
 from .richtext_html import HtmlBuffer, HtmlError
 
 
-#from keepnote import safefile
 import keepnote
-#from keepnote.gui import get_clipboard_name
 from keepnote import translate as _
 
 
@@ -93,7 +92,6 @@ from keepnote import translate as _
 # constants
 DEFAULT_FONT = "Sans 10"
 TEXTVIEW_MARGIN = 5
-#CLIPBOARD_NAME = keepnote.gui.get_clipboard_name()
 if keepnote.get_platform() == "darwin":
     CLIPBOARD_NAME = gdk.SELECTION_PRIMARY
 else:
@@ -160,13 +158,47 @@ def parse_utf(text):
         return unicode(text, "utf8")
 
 
+def parse_ie_html_format(text):
+    """Extract HTML from IE's 'HTML Format' clipboard data"""
+    index = text.find("<!--StartFragment")
+    if index == -1:
+        return None
+    index = text.find(">", index)
+    return text[index+1:]
+
+
 
 def is_relative_file(filename):
     """Returns True if filename is relative"""
     
     return (not re.match("[^:/]+://", filename) and 
             not os.path.isabs(filename))
-        
+
+
+def replace_vars(text, values):
+
+    textlen = len(text)
+    out = []
+    i = 0
+
+    while i < textlen:
+        if text[i] == "\\" and i < textlen - 1:
+            # escape
+            out.append(text[i+1])
+            i += 2
+
+        elif text[i] == "%" and i < textlen - 1:
+            # variable
+            varname = text[i:i+2]
+            out.append(values.get(varname, ""))
+            i += 2
+
+        else:
+            # literal
+            out.append(text[i])
+            i += 1
+
+    return "".join(out)
 
 
 #=============================================================================
@@ -230,7 +262,6 @@ class RichTextIO (object):
                 out = stream
             else:
                 out = codecs.open(filename, "w", "utf-8")
-                #out = safefile.open(filename, "w", codec="utf-8")
             self._html_buffer.set_output(out)
             self._html_buffer.write(buffer_contents,
                                     textbuffer.tag_table,
@@ -268,7 +299,6 @@ class RichTextIO (object):
                 infile = stream
             else:
                 infile = codecs.open(filename, "r", "utf-8")
-                #infile = safefile.open(filename, "r", codec="utf-8")
             buffer_contents = self._html_buffer.read(infile)
             textbuffer.insert_contents(buffer_contents,
                                        textbuffer.get_start_iter())
@@ -789,27 +819,25 @@ class RichTextView (gtk.TextView):
         if not self._textbuffer:
             return
         
+        # get available targets for paste
         targets = clipboard.wait_for_targets()
         if targets is None:
-            # nothing on clipboard
             return
         targets = set(targets)
-        
         
         # check that insert is allowed
         it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
         if not self._textbuffer.is_insert_allowed(it):            
             return
 
-        
+        # try to paste richtext
         if MIME_RICHTEXT in targets:
-            # request RICHTEXT contents object
             clipboard.request_contents(MIME_RICHTEXT, self._do_paste_object)
             return
-            
+        
+        # try to paste html
         for mime_html in MIME_HTML:
             if mime_html in targets:
-                # request HTML
                 if mime_html == "HTML Format":
                     clipboard.request_contents(mime_html, 
                                                self._do_paste_html_headers)
@@ -817,13 +845,13 @@ class RichTextView (gtk.TextView):
                     clipboard.request_contents(mime_html, self._do_paste_html)
                 return
 
-        # test image formats
+        # try to paste image
         for mime_image in MIME_IMAGES:
             if mime_image in targets:
                 clipboard.request_contents(mime_image, self._do_paste_image)
                 return
 
-        # request text
+        # paste plain text as last resort
         clipboard.request_text(self._do_paste_text)
 
     
@@ -846,7 +874,88 @@ class RichTextView (gtk.TextView):
 
         # request text
         clipboard.request_text(self._do_paste_text)
+
+
+    def paste_clipboard_as_quote(self):
+        """Callback for paste action"""    
+        clipboard = self.get_clipboard(selection=CLIPBOARD_NAME)
         
+        quote_format = u'from <a href="%u">%h</a>:<br/>%s'
+
+        if not self._textbuffer:
+            return
+        
+        targets = clipboard.wait_for_targets()
+        if targets is None:
+            # nothing on clipboard
+            return
+        
+        # check that insert is allowed
+        it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
+        if not self._textbuffer.is_insert_allowed(it):            
+            return
+
+        # TODO: add 'HTML Format'
+        if "text/x-moz-url-priv" in targets:
+            selection_data = clipboard.wait_for_contents("text/x-moz-url-priv")
+            url = parse_utf(selection_data.data)
+        else:
+            url = None
+
+        # setup variables
+        if url is not None:
+            parts = urlparse.urlsplit(url)
+            url = escape(url)
+            if parts.hostname:
+                host = escape(parts.hostname)
+            else:
+                host = u"unknown source"
+        else:
+            url = u""
+            host = u"unknown source"
+        unique = str(uuid.uuid4())
+
+        # replace variables
+        quote_format = replace_vars(quote_format, {"%u": url, 
+                                                   "%h": host,
+                                                   "%s": unique})
+
+        # prepare quote data
+        contents = self.parse_html(quote_format)
+        before = []
+        after = []
+        for i, item in enumerate(contents):
+            if item[0] == "text":
+                text = item[2]
+                if unique in text:
+                    j = text.find(unique)
+                    before.append(("text", item[1], text[:j]))
+                    after = [("text", item[1], text[j+len(unique):])]
+                    after.extend(contents[i+1:])
+                    break
+            before.append(item)
+
+        # TODO: paste is not considered a single action yet
+        
+        # perform paste of contents
+        self._textbuffer.begin_user_action()
+        offset1 = it.get_offset()
+        self.paste_clipboard(clipboard, False, True)
+        end = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
+        start = self._textbuffer.get_iter_at_offset(offset1)
+
+        # get pasted contents
+        contents2 = list(iter_buffer_contents(self._textbuffer, start, end))
+        
+        # repaste with quote
+        self._textbuffer.delete(start, end)
+        self._textbuffer.insert_contents(before)
+        self._textbuffer.insert_contents(contents2)
+        self._textbuffer.insert_contents(after)
+        self._textbuffer.end_user_action()
+
+
+
     
     def _do_paste_text(self, clipboard, text, data):
         """Paste text into buffer"""
@@ -865,30 +974,20 @@ class RichTextView (gtk.TextView):
         """Paste HTML into buffer"""
 
         html = parse_utf(selection_data.data)        
-        
-        try:
-            self._textbuffer.begin_user_action()
-            self._textbuffer.delete_selection(False, True)
-            self.insert_html(html)
-            self._textbuffer.end_user_action()
-        
-            self.scroll_mark_onscreen(self._textbuffer.get_insert())
-        except Exception, e:
-            pass
+        self._paste_html(html)
 
 
     def _do_paste_html_headers(self, clipboard, selection_data, data):
-        """Paste HTML into buffer"""
+        """Paste 'HTML Format' into buffer"""
 
         html = parse_utf(selection_data.data)
+        html = parse_ie_html_format(html)
+        self._paste_html(html)
 
-        # skip over headers
-        index = html.find("<!--StartFragment")
-        if index == -1:
-            return
-        index = html.find(">", index)
-        html = html[index+1:]
-        
+
+    def _paste_html(self, html):
+        """Perform paste of HTML from string"""
+
         try:
             self._textbuffer.begin_user_action()
             self._textbuffer.delete_selection(False, True)
@@ -898,7 +997,7 @@ class RichTextView (gtk.TextView):
             self.scroll_mark_onscreen(self._textbuffer.get_insert())
         except Exception, e:
             pass
-    
+            
     
     def _do_paste_image(self, clipboard, selection_data, data):
         """Paste image into buffer"""
@@ -1026,16 +1125,21 @@ class RichTextView (gtk.TextView):
         
         self._popup_menu = menu        
 
-        # insert "paste as plain text" after paste
-        item = gtk.ImageMenuItem(stock_id=gtk.STOCK_PASTE,
-                                 accel_group=None)        
+        # position of 'paste' option
+        pos = 3
+
+        # insert additional menu options after paste
+        item = gtk.ImageMenuItem(stock_id=gtk.STOCK_PASTE, accel_group=None)
         item.child.set_text(_("Paste As Plain Text"))
         item.connect("activate", lambda item: self.paste_clipboard_as_text())
-        #item.add_accelerator("activate", self._accel_group, ord("V"),
-        #                     gtk.gdk.CONTROL_MASK | gtk.gdk.SHIFT_MASK,
-        #                     gtk.ACCEL_VISIBLE)
         item.show()
-        menu.insert(item, 3)
+        menu.insert(item, pos)
+
+        item = gtk.ImageMenuItem(stock_id=gtk.STOCK_PASTE, accel_group=None)
+        item.child.set_text(_("Paste As Quote"))
+        item.connect("activate", lambda item: self.paste_clipboard_as_quote())
+        item.show()
+        menu.insert(item, pos+1)
 
 
         menu.set_accel_path(self._accel_path)
@@ -1119,16 +1223,17 @@ class RichTextView (gtk.TextView):
     def insert_html(self, html):
         """Insert HTML content into Buffer"""
 
-        if not self._textbuffer:
-            return
+        if self._textbuffer:
+            self._textbuffer.insert_contents(self.parse_html(html))
+
+
+    def parse_html(self, html):
         
-        contents = list(self._html_buffer.read(StringIO.StringIO(html),
-                                               partial=True,
-                                               ignore_errors=True))
+        contents = list(self._html_buffer.read(
+                StringIO.StringIO(html), partial=True, ignore_errors=True))
 
         # scan contents
         for kind, pos, param in contents:
-            
             # download images included in html
             if kind == "anchor" and isinstance(param[0], RichTextImage):
                 img = param[0]
@@ -1141,9 +1246,7 @@ class RichTextView (gtk.TextView):
                         # Be robust to errors from loading from the web.
                         pass
         
-        # add to buffer
-        self._textbuffer.insert_contents(contents)
-
+        return contents
 
 
     def get_link(self, it=None):
