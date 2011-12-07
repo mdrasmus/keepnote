@@ -98,6 +98,7 @@ else:
     CLIPBOARD_NAME = "CLIPBOARD"
 RICHTEXT_ID = -3    # application defined integer for the clipboard
 CONTEXT_MENU_ACCEL_PATH = "<main>/richtext_context_menu"
+QUOTE_FORMAT = u'from <a href="%u">%h</a>:<br/>%s'
 
 # mime types
 # richtext mime type is process specific
@@ -165,6 +166,19 @@ def parse_ie_html_format(text):
         return None
     index = text.find(">", index)
     return text[index+1:]
+
+def parse_ie_html_format_headers(text):
+    headers = {}
+    for line in text.splitlines():
+        if line.startswith("<"):
+            break
+        i = line.find(":")
+        if i == -1:
+            break
+        key = line[:i]
+        val = line[i+1:]
+        headers[key] = val
+    return headers
 
 
 
@@ -408,7 +422,7 @@ class RichTextView (gtk.TextView):
         self._accel_path = CONTEXT_MENU_ACCEL_PATH
         self.dragdrop = RichTextDragDrop(MIME_IMAGES +  ["text/uri-list"] +
                                          MIME_HTML + MIME_TEXT)
-        
+        self._quote_format = QUOTE_FORMAT
 
         if textbuffer is None:
             textbuffer = RichTextBuffer() 
@@ -880,7 +894,7 @@ class RichTextView (gtk.TextView):
         """Callback for paste action"""    
         clipboard = self.get_clipboard(selection=CLIPBOARD_NAME)
         
-        quote_format = u'from <a href="%u">%h</a>:<br/>%s'
+        quote_format = self._quote_format
 
         if not self._textbuffer:
             return
@@ -894,11 +908,15 @@ class RichTextView (gtk.TextView):
         it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
         if not self._textbuffer.is_insert_allowed(it):            
             return
-
-        # TODO: add 'HTML Format'
+        
         if "text/x-moz-url-priv" in targets:
             selection_data = clipboard.wait_for_contents("text/x-moz-url-priv")
             url = parse_utf(selection_data.data)
+            url = url.strip("\n\r\0")
+        elif "HTML Format" in targets:
+            selection_data = clipboard.wait_for_contents("HTML Format")
+            headers = parse_ie_html_format_headers(selection_data.data)
+            url = headers.get("SourceURL")
         else:
             url = None
 
@@ -919,7 +937,7 @@ class RichTextView (gtk.TextView):
         quote_format = replace_vars(quote_format, {"%u": url, 
                                                    "%h": host,
                                                    "%s": unique})
-
+        
         # prepare quote data
         contents = self.parse_html(quote_format)
         before = []
@@ -953,6 +971,7 @@ class RichTextView (gtk.TextView):
         self._textbuffer.insert_contents(contents2)
         self._textbuffer.insert_contents(after)
         self._textbuffer.end_user_action()
+
 
 
 
@@ -1068,6 +1087,14 @@ class RichTextView (gtk.TextView):
         global _g_clipboard_contents
         _g_clipboard_contents = None
                     
+
+    def set_quote_format(self, format):
+        self._quote_format = format
+
+    def get_quote_format(self):
+        return self._quote_format
+
+
 
     #=============================================
     # State

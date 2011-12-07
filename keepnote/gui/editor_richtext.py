@@ -267,15 +267,24 @@ class RichTextEditor (KeepNoteEditor):
             app_pref.get("editors", "general", "spell_check",
                          default=True))
 
+        try:
+            format = app_pref.get("editors", "general", "quote_format")
+            self._textview.set_quote_format(format)
+        except:
+            pass
+
         self.load_notebook_preferences()
 
 
     def save_preferences(self, app_pref):
         """Save application preferences"""
-
+        
         # record state in preferences
         app_pref.set("editors", "general", "spell_check", 
                      self._textview.is_spell_check_enabled())
+        app_pref.set("editors", "general", "quote_format", 
+                     self._textview.get_quote_format())
+
 
     def load_notebook_preferences(self):
         """Load notebook-specific preferences"""

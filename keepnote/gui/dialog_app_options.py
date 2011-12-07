@@ -509,6 +509,46 @@ class DatesSection (Section):
                 self.date_xml.get_widget("date_%s_entry" % name).get_text()))
         
 
+class EditorSection (Section):
+    
+    def __init__(self, key, dialog, app, label=u"", icon=None):
+        Section.__init__(self, key, dialog, app, label, icon)
+
+        w = self.get_default_widget()
+        v = gtk.VBox(False, 5)
+        v.show()
+        w.add(v)
+        
+        # language combo
+        h = gtk.HBox(False, 5); h.show()
+        l = gtk.Label(_("Quote format:")); l.show()
+        h.pack_start(l, False, False, 0)
+        e = gtk.Entry(); e.show()
+        e.set_width_chars(40)
+        
+        # pack entry
+        h.pack_start(e, False, False, 0)
+        v.pack_start(h)
+        self.quote_format = e
+        
+
+
+    def load_options(self, app):
+
+        try:
+            quote_format = app.pref.get("editors", "general", "quote_format")
+            self.quote_format.set_text(quote_format)
+        except:
+            pass
+
+
+    def save_options(self, app):
+        
+        quote_format = self.quote_format.get_text()
+        if quote_format:
+            app.pref.set("editors", "general", "quote_format", quote_format)
+
+
 class AllNoteBooksSection (Section):
     
     def __init__(self, key, dialog, app, label=u"", icon="folder.png"):
@@ -906,6 +946,10 @@ class ApplicationOptionsDialog (object):
         self.add_section(
             DatesSection("date_and_time", self.dialog, self.app, 
                          _("Date and Time")), 
+            "general")
+        self.add_section(
+            EditorSection("ediotr", self.dialog, self.app, 
+                         _("Editor")), 
             "general")
         self.add_section(
             HelperAppsSection("helper_apps", self.dialog, 
