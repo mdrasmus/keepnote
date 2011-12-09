@@ -3,9 +3,11 @@ KeepNote Change Log
 
 keepnote-0.7.7
 --------------
+- added "Paste As Quote"
 - added creation/modification time editing
 - added --continue option to command-line
 - improved support for concurrent reading (fewer database lock errors)
+- fixed goto_prev_node bug
 
 
 keepnote-0.7.6 (2011/11/10)

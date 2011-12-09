@@ -890,7 +890,7 @@ class RichTextView (gtk.TextView):
         clipboard.request_text(self._do_paste_text)
 
 
-    def paste_clipboard_as_quote(self):
+    def paste_clipboard_as_quote(self, plain_text=False):
         """Callback for paste action"""    
         clipboard = self.get_clipboard(selection=CLIPBOARD_NAME)
         
@@ -958,7 +958,10 @@ class RichTextView (gtk.TextView):
         # perform paste of contents
         self._textbuffer.begin_user_action()
         offset1 = it.get_offset()
-        self.paste_clipboard(clipboard, False, True)
+        if plain_text:
+            self.paste_clipboard_as_text()
+        else:
+            self.paste_clipboard(clipboard, False, True)
         end = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
         start = self._textbuffer.get_iter_at_offset(offset1)
 
@@ -1168,6 +1171,12 @@ class RichTextView (gtk.TextView):
         item.show()
         menu.insert(item, pos+1)
 
+        item = gtk.ImageMenuItem(stock_id=gtk.STOCK_PASTE, accel_group=None)
+        item.child.set_text(_("Paste As Plain Text Quote"))
+        item.connect("activate", 
+            lambda item: self.paste_clipboard_as_quote(plain_text=True))
+        item.show()
+        menu.insert(item, pos+2)
 
         menu.set_accel_path(self._accel_path)
         if self._accel_group:

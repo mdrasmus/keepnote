@@ -63,10 +63,6 @@ class CorruptIndex (ConnectionError):
     def __init__(self, msg="index error", error=None):
         ConnectionError.__init__(self, msg, error)
 
-
-class Unimplemented (ConnectionError):
-    def __init__(self, msg="unimplemented"):
-        ConnectionError.__init__(self, msg)
     
 
 #=============================================================================
@@ -135,28 +131,28 @@ class NoteBookConnection (object):
         # proposal 1: if rootid is not set yet, then this node is root
         # proposal 2: if parentids is [], then this node is root
         # proposal 3: try to remove root concept from connection
-        raise Unimplemented("create_node")
+        raise NotImplementedError("create_node")
             
     def read_node(self, nodeid):
         """Read a node attr"""
-        raise Unimplemented("read_node")
+        raise NotImplementedError("read_node")
 
     def update_node(self, nodeid, attr):
         """Write node attr"""
-        raise Unimplemented("update_node")
+        raise NotImplementedError("update_node")
 
     def delete_node(self, nodeid):
         """Delete node"""
-        raise Unimplemented("delete_node")
+        raise NotImplementedError("delete_node")
 
     def has_node(self, nodeid):
         """Returns True if node exists"""
-        raise Unimplemented("has_node")
+        raise NotImplementedError("has_node")
 
     # TODO: can this be simplified with a search query?
     def get_rootid(self):
         """Returns nodeid of notebook root node"""
-        raise Unimplemented("get_rootid")
+        raise NotImplementedError("get_rootid")
     
 
     #===============
@@ -171,25 +167,25 @@ class NoteBookConnection (object):
         mode     -- can be "r" (read), "w" (write), "a" (append)
         codec    -- read or write with an encoding (default: None)
         """
-        raise Unimplemented("open_file")
+        raise NotImplementedError("open_file")
 
 
     def delete_file(self, nodeid, filename):
         """Delete a file contained within a node"""
-        raise Unimplemented("delete_file")
+        raise NotImplementedError("delete_file")
 
     def create_dir(self, nodeid, filename):
         """Create directory within node"""
-        raise Unimplemented("create_dir")
+        raise NotImplementedError("create_dir")
 
     def list_dir(self, nodeid, filename="/"):
         """
         List data files in node
         """
-        raise Unimplemented("list_dir")
+        raise NotImplementedError("list_dir")
     
     def has_file(self, nodeid, filename):
-        raise Unimplemented("has_file")
+        raise NotImplementedError("has_file")
 
     def move_file(self, nodeid, filename1, nodeid2, filename2):
         """
@@ -349,16 +345,16 @@ class NoteBookConnection (object):
     
     def get_node_path(self, nodeid):
         """Returns the path of the node"""
-        raise Unimplemented("get_node_path")
+        raise NotImplementedError("get_node_path")
     
     def get_node_basename(self, nodeid):
         """Returns the basename of the node"""
-        raise Unimplemented("get_node_basename")
+        raise NotImplementedError("get_node_basename")
 
     # TODO: returning a fullpath to a file is not fully portable
     # will eventually need some kind of fetching mechanism    
     def get_file(self, nodeid, filename, _path=None):
-        raise Unimplemented("get_file")
+        raise NotImplementedError("get_file")
 
 
 

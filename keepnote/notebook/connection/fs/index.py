@@ -45,152 +45,33 @@ except Exception, e:
 # keepnote imports
 import keepnote
 import keepnote.notebook
-
+from keepnote.notebook.connection.index import AttrIndex, NodeIndex
 
 
 # index filename
 INDEX_FILE = u"index.sqlite"
 INDEX_VERSION = 3
 
-
-NULL = object()
-
-
-
-def match_words(infile, words):
-    """Returns True if all of the words in list 'words' appears in the
-       node title or data file"""
-
-    matches = dict.fromkeys(words, False)
-
-    for line in infile:
-        line = line.lower()
-        for word in words:
-            if word in line:
-                matches[word] = True
-
-    # return True if all words are found (AND)
-    for val in matches.itervalues():
-        if not val:
-            return False
-    
-    return True
-
-
-def read_data_as_plain_text(conn, nodeid):
-    """Iterates over the lines of the data file as plain text"""
-    try:
-        infile = conn.open_file(
-            nodeid, keepnote.notebook.PAGE_DATA_FILE, "r", codec="utf-8")
-        for line in keepnote.notebook.read_data_as_plain_text(infile):
-            yield line
-        infile.close()
-    except:
-        pass
-
-
-
-class AttrIndex (object):
-    """Indexing information for an attribute"""
-
-    def __init__(self, name, type, multivalue=False, index_value=False):
-        self._name = name
-        self._type = type
-        self._table_name = "Attr_" + name
-        self._index_name = "IdxAttr_" + name + "_nodeid"
-        self._multivalue = multivalue
-        self._index_value = index_value
-        self._index_value_name = "IdxAttr_" + name + "_value"
-
-
-    def get_name(self):
-        return self._name
-
-    def get_table_name(self):
-        return self._table_name
-
-    def is_multivalue(self):
-        return self._multivalue
-
-    def init(self, cur):
-        """Initialize attribute index for database"""
-
-        # multivalue is not implemented yet
-        assert not self._multivalue
-
-        cur.execute(u"""CREATE TABLE IF NOT EXISTS %s
-                           (nodeid TEXT,
-                            value %s,
-                            UNIQUE(nodeid) ON CONFLICT REPLACE);
-                        """ % (self._table_name, self._type))
-        cur.execute(u"""CREATE INDEX IF NOT EXISTS %s
-                           ON %s (nodeid);""" % (self._index_name,
-                                                 self._table_name))
-
-        if self._index_value:
-            cur.execute(u"""CREATE INDEX IF NOT EXISTS %s
-                           ON %s (value);""" % (self._index_value_name,
-                                                self._table_name))
-
-    def drop(self, cur):
-        cur.execute(u"DROP TABLE IF EXISTS %s" % self._table_name)
-            
-
-    def add_node(self, cur, nodeid, attr):
-        val = attr.get(self._name, NULL)
-        if val is not NULL:
-            self.set(cur, nodeid, val)
-
-
-    def remove_node(self, cur, nodeid):
-        """Remove node from index"""
-        cur.execute(u"DELETE FROM %s WHERE nodeid=?" % self._table_name, 
-                    (nodeid,))
-
-
-    def get(self, cur, nodeid):
-        """Get information for a node from the index"""
-        cur.execute(u"""SELECT value FROM %s WHERE nodeid = ?""" % 
-                    self._table_name, (nodeid,))
-        values = [row[0] for row in cur.fetchall()]
-
-        # return value
-        if self._multivalue:
-            return values
-        else:
-            if len(values) == 0:
-                return None
-            else:
-                return values[0]
-
-    def set(self, cur, nodeid, value):
-        """Set the information for a node in the index"""
-
-        # insert new row
-        cur.execute(u"""INSERT INTO %s VALUES (?, ?)""" % self._table_name,
-                        (nodeid, value))
+#=============================================================================
 
 
 # TODO: remove uniroot
 
-class NoteBookIndex (object):
+class NoteBookIndex (NodeIndex):
     """Index for a NoteBook"""
 
     def __init__(self, conn, index_file):
-        self._nconn = conn
+        NodeIndex.__init__(self, conn)
         self._index_file = index_file
         self._uniroot = keepnote.notebook.UNIVERSAL_ROOT
-        self._attrs = {}
+        self.con = None     # sqlite connection
+        self.cur = None     # sqlite cursor
+
 
         # index state/capabilities
         self._need_index = False
         self._corrupt = False
-        self._has_fulltext = False
-        self._use_fulltext = True
         
-        self.con = None # sqlite connection
-        self.cur = None # sqlite cursor
-
         # start index
         self.open()
 
@@ -303,44 +184,14 @@ class NoteBookIndex (object):
                             symlink BOOLEAN,
                             UNIQUE(nodeid) ON CONFLICT REPLACE);
                         """)
-
             con.execute(u"""CREATE INDEX IF NOT EXISTS IdxNodeGraphNodeid 
                            ON NodeGraph (nodeid);""")
             con.execute(u"""CREATE INDEX IF NOT EXISTS IdxNodeGraphParentid 
                            ON NodeGraph (parentid);""")
             
-
-            # full text table
-            try:
-                # test for fts3 availability
-                con.execute(u"DROP TABLE IF EXISTS fts3test;")
-                con.execute(
-                    "CREATE VIRTUAL TABLE fts3test USING fts3(col TEXT);")
-                con.execute("DROP TABLE fts3test;")
-
-                # create fulltext table if it does not already exist
-                if not list(con.execute(u"""SELECT 1 FROM sqlite_master 
-                                   WHERE name == 'fulltext';""")):
-                    con.execute(u"""CREATE VIRTUAL TABLE 
-                                fulltext USING 
-                                fts3(nodeid TEXT, content TEXT,
-                                     tokenize=porter);""")
-                self._has_fulltext = True
-            except Exception, e:
-                keepnote.log_error(e)
-                self._has_fulltext = False
-
-            # TODO: make an Attr table
-            # this will let me query whether an attribute is currently being
-            # indexed and in what table it is in.
-            #con.execute(u"""CREATE TABLE IF NOT EXISTS AttrDefs
-            #               (attr TEXT,
-            #                type );
-            #            """)
-
-            # initialize attribute tables
-            for attr in self._attrs.itervalues():
-                attr.init(self.cur)
+            # init attribute indexes
+            self.init_attrs(self.cur)
+            
 
             # NOTE: re-claim space in the index
             con.execute("VACUUM;")
@@ -387,27 +238,12 @@ class NoteBookIndex (object):
         # TODO: reload database?
 
 
-    def add_attr(self, attr):
-        """Add indexing for a node attribute using AttrIndex"""
-        self._attrs[attr.get_name()] = attr
-        if self.cur:
-            attr.init(self.cur)
-        return attr
-
-
     def _drop_tables(self):
         """drop NodeGraph tables"""
         self.con.execute(u"DROP TABLE IF EXISTS NodeGraph")
         self.con.execute(u"DROP INDEX IF EXISTS IdxNodeGraphNodeid")
         self.con.execute(u"DROP INDEX IF EXISTS IdxNodeGraphParentid")
-        self.con.execute(u"DROP TABLE IF EXISTS fulltext;")
-        
-        # drop attribute tables
-        table_names = [x for (x,) in self.con.execute(
-            u"""SELECT name FROM sqlite_master WHERE name LIKE 'Attr_%'""")]
-
-        for table_name in table_names:
-            self.con.execute(u"""DROP TABLE %s;""" % table_name)
+        self.drop_attrs(self.cur)
         
 
     
@@ -419,12 +255,6 @@ class NoteBookIndex (object):
     def set_index_needed(self, val=True):
         self._need_index = val
     
-    def has_fulltext_search(self):
-        return self._has_fulltext
-    
-
-    def enable_fulltext_search(self, enabled):
-        self._use_fulltext = enabled
 
 
     #-------------------------------------
@@ -457,6 +287,7 @@ class NoteBookIndex (object):
 
 
         # perform indexing
+        # simply by walking through the tree, all nodes will index themselves
         for nodeid in preorder(conn, rootid):
             yield nodeid
 
@@ -510,13 +341,7 @@ class NoteBookIndex (object):
                 u"""INSERT INTO NodeGraph VALUES (?, ?, ?, ?, ?)""", 
                 (nodeid, parentid, basename, mtime, symlink))
 
-            # update attrs
-            for attrindex in self._attrs.itervalues():
-                attrindex.add_node(self.cur, nodeid, attr)
-
-            # update fulltext
-            infile = read_data_as_plain_text(self._nconn, nodeid)
-            self.index_node_text(nodeid, attr, infile, commit=False)
+            self.add_node_attr(self.cur, nodeid, attr)
             
             if commit:
                 self.con.commit()
@@ -537,16 +362,7 @@ class NoteBookIndex (object):
             # delete node
             self.cur.execute(u"DELETE FROM NodeGraph WHERE nodeid=?", (nodeid,))
 
-            # update attrs
-            for attr in self._attrs.itervalues():
-                attr.remove_node(self.cur, nodeid)
-
-            # delete children
-            #for (childid,) in self.cur.execute(
-            #    u"SELECT nodeid FROM NodeGraph WHERE parentid=?", (nodeid,)):
-            #    self.remove_node(childid)
-
-            self.remove_text(nodeid, commit=False)
+            self.remove_node_attr(self.cur, nodeid)
 
             if commit:
                 self.con.commit()
@@ -554,42 +370,6 @@ class NoteBookIndex (object):
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
 
-
-    def index_node_text(self, nodeid, attr, infile, commit=True):
-
-        try:
-            text = attr.get("title", "") + "\n" + "".join(infile)
-            self.insert_text(nodeid, text, commit=commit)
-        except Exception, e:
-            keepnote.log_error()
-
-
-    def insert_text(self, nodeid, text, commit=True):
-        
-        if not self._has_fulltext:
-            return
-
-        if list(self.cur.execute(u"SELECT 1 FROM fulltext WHERE nodeid = ?",
-                                 (nodeid,))):
-            self.cur.execute(
-                u"UPDATE fulltext SET content = ? WHERE nodeid = ?;",
-                (text, nodeid))
-        else:
-            self.cur.execute(u"INSERT INTO fulltext VALUES (?, ?);",
-                             (nodeid, text))
-
-        if commit:
-            self.con.commit()
-
-
-    def remove_text(self, nodeid, commit=True):
-        
-        if not self._has_fulltext:
-            return
-
-        self.cur.execute(u"DELETE FROM fulltext WHERE nodeid = ?", (nodeid,))
-        if commit:
-            self.con.commit()
 
 
     #-------------------------
@@ -702,6 +482,10 @@ class NoteBookIndex (object):
             self._on_corrupt(e, sys.exc_info()[2])
             raise
 
+
+    def get_attr(self, nodeid, attr):
+        return self.get_node_attr(self.cur, nodeid, attr)
+
         
     def has_node(self, nodeid):
         """Returns True if index has node"""
@@ -737,83 +521,25 @@ class NoteBookIndex (object):
             raise
 
 
-    def search_titles(self, query):
-        """Return nodeids of nodes with matching titles"""
-        
-        if "title" not in self._attrs:
-            return []
+    def search_titles(self, title):
 
         try:
-            # order titles by exact matches and then alphabetically
-            self.cur.execute(
-                u"""SELECT nodeid, value FROM %s WHERE value LIKE ?
-                           ORDER BY value != ?, value """ % 
-                self._attrs["title"].get_table_name(),
-                (u"%" + query + u"%", query))
-
-            return list(self.cur.fetchall())
-
+            return self.search_node_titles(self.cur, title)
         except sqlite.DatabaseError, e:
             self._on_corrupt(e, sys.exc_info()[2])
             raise
 
 
-    def get_attr(self, nodeid, key):
-        """Query indexed attribute for a node"""
-        attr = self._attrs.get(key, None)
-        if attr:
-            return attr.get(self.cur, nodeid)
-        else:
-            return None
-
-
     def search_contents(self, text):
 
-        # TODO: implement fully general fix
-        # crude cleaning
-        text = text.replace('"', "")
-
-        # fallback if fts3 is not available
-        if not self._has_fulltext or not self._use_fulltext:
-            words = [x.lower() for x in text.strip().split()]
-            return self._search_manual(words)
-        
         cur = self.con.cursor()
-
-        # search db with fts3
         try:
-            res = cur.execute("""SELECT nodeid FROM fulltext 
-                             WHERE content MATCH ?;""", (text,))
-            return (row[0] for row in res)
+            for res in self.search_node_contents(cur, text):
+                yield res            
         except:
             keepnote.log_error("SQLITE error while performing search")
-            return []
-
-
-    def _search_manual(self, words):
-        """Recursively search nodes under node for occurrence of words"""
-
-        keepnote.log_message("manual search\n")
-
-        nodeid = self._nconn.get_rootid()
-        
-        stack = [nodeid]
-        while len(stack) > 0:
-            nodeid = stack.pop()
-            
-            title = self._nconn.read_node(nodeid).get("title", "").lower()
-            infile = chain([title], 
-                           read_data_as_plain_text(self._nconn, nodeid))
-
-            if match_words(infile, words):
-                yield nodeid
-            else:
-                # return frequently so that search does not block long
-                yield None
-
-            children = self._nconn._list_children_nodeids(nodeid)
-            stack.extend(children)
-
+        finally:
+            cur.close()
 
 
 
