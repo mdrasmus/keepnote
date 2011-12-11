@@ -228,7 +228,10 @@ class NoteBookIndex (NodeIndex):
                     
 
     def _on_corrupt(self, error, tracebk=None):
-
+        """
+        Called when database appears corrupt
+        Logs error and schedules re-indexing
+        """
         self._corrupt = True
         self._need_index = True
 
@@ -253,6 +256,7 @@ class NoteBookIndex (NodeIndex):
 
 
     def set_index_needed(self, val=True):
+        """Returns True if re-indexing is needed"""
         self._need_index = val
     
 
@@ -296,6 +300,7 @@ class NoteBookIndex (NodeIndex):
 
 
     def get_node_mtime(self, nodeid):
+        """Get the last indexed mtime for a node"""
         
         self.cur.execute(u"""SELECT mtime FROM NodeGraph
                              WHERE nodeid=?""", (nodeid,))
@@ -306,6 +311,7 @@ class NoteBookIndex (NodeIndex):
             return 0.0
 
     def set_node_mtime(self, nodeid, mtime=None, commit=True):
+        """Set the last indexed mtime for a node"""
 
         if mtime is None:
             mtime = time.time()
@@ -484,6 +490,7 @@ class NoteBookIndex (NodeIndex):
 
 
     def get_attr(self, nodeid, attr):
+        """Return a nodes's attribute value"""
         return self.get_node_attr(self.cur, nodeid, attr)
 
         
@@ -496,7 +503,8 @@ class NoteBookIndex (NodeIndex):
 
 
     def list_children(self, nodeid):
-                
+        """List children indexed for node"""
+
         try:
             self.cur.execute(u"""SELECT nodeid, basename
                                 FROM NodeGraph
@@ -509,6 +517,7 @@ class NoteBookIndex (NodeIndex):
 
 
     def has_children(self, nodeid):
+        """Returns True if node has children"""
         
         try:
             self.cur.execute(u"""SELECT nodeid
@@ -522,6 +531,7 @@ class NoteBookIndex (NodeIndex):
 
 
     def search_titles(self, title):
+        """Search node titles"""
 
         try:
             return self.search_node_titles(self.cur, title)
@@ -531,6 +541,7 @@ class NoteBookIndex (NodeIndex):
 
 
     def search_contents(self, text):
+        """Search node contents"""
 
         cur = self.con.cursor()
         try:

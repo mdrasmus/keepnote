@@ -27,10 +27,6 @@
 
 # python imports
 from itertools import chain
-import os
-import sys
-import time
-import traceback
 
 # import sqlite
 try:
@@ -355,7 +351,10 @@ class NodeIndex (object):
 
     def search_node_titles(self, cur, query):
         """Return nodeids of nodes with matching titles"""
-        
+
+        # TODO: can this be generalized?
+        # similar to get_node_attr(nodeid, attr)
+
         if not self.has_attr("title"):
             return []
 
