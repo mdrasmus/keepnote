@@ -68,8 +68,8 @@ class KeepNoteEditor (gtk.VBox):
     def clear_view(self):
         """Clear editor view"""
     
-    def view_pages(self, pages):
-        """View a page in the editor"""
+    def view_nodes(self, nodes):
+        """View a node(s) in the editor"""
     
     def save(self):
         """Save the loaded page"""

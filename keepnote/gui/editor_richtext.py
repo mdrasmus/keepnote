@@ -318,19 +318,19 @@ class RichTextEditor (KeepNoteEditor):
         """Redo the last action in the viewer"""
         self._textview.redo()
     
-    def view_pages(self, pages):
+    def view_nodes(self, nodes):
         """View a page in the editor"""
         
-        # editor cannot view multiple pages at once
+        # editor cannot view multiple nodes at once
         # if asked to, it will view none
-        if len(pages) > 1:
-            pages = []
+        if len(nodes) > 1:
+            nodes = []
 
-        # save current page before changing pages
+        # save current page before changing nodes
         self.save()
         self._save_cursor()
 
-        pages = [node for node in pages
+        pages = [node for node in nodes
                  if node.get_attr("content_type") ==
                     notebooklib.CONTENT_TYPE_PAGE]
         

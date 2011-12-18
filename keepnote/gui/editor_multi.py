@@ -53,7 +53,7 @@ class MultiEditor (KeepNoteEditor):
         self.show_all()
 
         self._notebook = None
-        self._pages = []
+        self._nodes = []
         self._editor = None
         self._window = None
 
@@ -77,7 +77,7 @@ class MultiEditor (KeepNoteEditor):
         
         # tear down old editor, if it exists
         if self._editor:
-            self._editor.view_pages([])
+            self._editor.view_nodes([])
             self._editor.save_preferences(self._app.pref)
             self._disconnect_signals(self._editor)
             if self._window:
@@ -96,7 +96,7 @@ class MultiEditor (KeepNoteEditor):
             if self._window:
                 self._editor.add_ui(self._window)
             self._editor.load_preferences(self._app.pref)
-            self._editor.view_pages(self._pages)
+            self._editor.view_nodes(self._nodes)
 
 
     def get_editor(self):
@@ -152,14 +152,14 @@ class MultiEditor (KeepNoteEditor):
         if self._editor:
             return self._editor.clear_view()
     
-    def view_pages(self, pages):
+    def view_nodes(self, nodes):
         """View a page in the editor"""
-        self._pages = pages[:]
+        self._nodes = nodes[:]
         if self._editor:
-            return self._editor.view_pages(pages)
+            return self._editor.view_nodes(nodes)
     
     def save(self):
-        """Save the loaded page"""
+        """Save the loaded node"""
         if self._editor:
             return self._editor.save()
 
@@ -237,12 +237,12 @@ class ContentEditor (MultiEditor):
     #=============================
     # Editor Interface
 
-    def view_pages(self, pages):
+    def view_nodes(self, nodes):
 
-        if len(pages) != 1:
-            MultiEditor.view_pages(self, [])
+        if len(nodes) != 1:
+            MultiEditor.view_nodes(self, [])
         else:
-            content_type = pages[0].get_attr("content_type").split("/")
+            content_type = nodes[0].get_attr("content_type").split("/")
 
             for i in xrange(len(content_type), 0, -1):
                 editor = self._editors.get("/".join(content_type[:i]), None)
@@ -252,5 +252,5 @@ class ContentEditor (MultiEditor):
             else:
                 self.set_editor(self._default_editor)
 
-            MultiEditor.view_pages(self, pages)
+            MultiEditor.view_nodes(self, nodes)
 

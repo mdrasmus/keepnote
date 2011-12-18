@@ -170,24 +170,24 @@ class TextEditor (KeepNoteEditor):
         """Redo the last action in the viewer"""
         self._textview.redo()
     
-    def view_pages(self, pages):
-        """View a page in the editor"""
+    def view_nodes(self, nodes):
+        """View a node(s) in the editor"""
         
-        # editor cannot view multiple pages at once
+        # editor cannot view multiple nodes at once
         # if asked to, it will view none
-        if len(pages) > 1:
-            pages = []
+        if len(nodes) > 1:
+            nodes = []
 
-        # save current page before changing pages
+        # save current page before changing nodes
         self.save()
         self._save_cursor()
         
         
-        if len(pages) == 0:            
+        if len(nodes) == 0:            
             self.clear_view()
                 
         else:
-            page = pages[0]
+            page = nodes[0]
             self._page = page
             self._textview.enable()
 
@@ -213,8 +213,8 @@ class TextEditor (KeepNoteEditor):
                 self.clear_view()
                 self.emit("error", "Unknown error", e)
 
-        if len(pages) > 0:
-            self.emit("view-node", pages[0])
+        if len(nodes) > 0:
+            self.emit("view-node", nodes[0])
 
 
     def _save_cursor(self):

@@ -145,7 +145,7 @@ class ThreePaneViewer (Viewer):
         self.editor.connect("error", lambda w,t,e: self.emit("error", t, e))
         self.editor.connect("window-request", lambda w,t: 
                             self.emit("window-request", t))
-        self.editor.view_pages([])
+        self.editor.view_nodes([])
         
         self.editor_pane = gtk.VBox(False, 5)
         self.editor_pane.pack_start(self.editor, True, True, 0)
@@ -499,20 +499,20 @@ class ThreePaneViewer (Viewer):
         self.listview.select_nodes(nodes)
 
     
-    def _on_list_select(self, listview, pages):
+    def _on_list_select(self, listview, nodes):
         """Callback for listview selection change"""
         
         # remember the selected node
-        if len(pages) == 1:
-            self._current_page = pages[0]
+        if len(nodes) == 1:
+            self._current_page = nodes[0]
         else:
             self._current_page = None
 
         try:
-            self.editor.view_pages(pages)
+            self.editor.view_nodes(nodes)
         except RichTextError, e:
             self.emit("error", 
-                      "Could not load page '%s'." % pages[0].get_title(), e)
+                      "Could not load page '%s'." % nodes[0].get_title(), e)
 
         self.emit("current-node", self._current_page)
 
