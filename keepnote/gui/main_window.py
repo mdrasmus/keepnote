@@ -281,9 +281,9 @@ class KeepNoteWindow (gtk.Window):
         return self.viewer.get_notebook()
 
     
-    def get_current_page(self):
-        """Returns the currently selected page"""
-        return self.viewer.get_current_page()
+    def get_current_node(self):
+        """Returns the currently selected node"""
+        return self.viewer.get_current_node()
         
         
 
@@ -931,7 +931,7 @@ class KeepNoteWindow (gtk.Window):
         else:
             title = notebook.get_attr("title", u"")
             if node is None:
-                node = self.get_current_page()
+                node = self.get_current_node()
             if node is not None:
                 title += u": " + node.get_attr("title", "")
 

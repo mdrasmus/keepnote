@@ -69,6 +69,7 @@ class MultiEditor (KeepNoteEditor):
 
 
     def set_editor(self, editor):
+        """Set the current child editor"""
 
         # do nothing if editor is already set
         if editor == self._editor:
@@ -99,11 +100,12 @@ class MultiEditor (KeepNoteEditor):
 
 
     def get_editor(self):
+        """Get the current child editor"""
         return self._editor
 
 
     def _connect_signals(self, editor):
-
+        """Connect all signals for child editor"""
         def make_callback(sig):
             return lambda *args: self.emit(sig, *args[1:])
 
@@ -111,7 +113,9 @@ class MultiEditor (KeepNoteEditor):
             self._signal_ids.append(
                 editor.connect(sig, make_callback(sig)))
     
+
     def _disconnect_signals(self, editor):
+        """Disconnect al signals for child editor"""
         for sigid in self._signal_ids:
             editor.disconnect(sigid)
         self._signal_ids = []
@@ -179,21 +183,25 @@ class MultiEditor (KeepNoteEditor):
         
 
     def add_ui(self, window):
+        """Add editor UI to window"""
         self._window = window
         if self._editor:
             return self._editor.add_ui(window)
 
 
     def remove_ui(self, window):
+        """Remove editor from UI"""
         self._window = None
         if self._editor:
             return self._editor.remove_ui(window)
                          
     def undo(self):
+        """Undo last editor action"""
         if self._editor:
             return self._editor.undo()
 
     def redo(self):
+        """Redo last editor action"""
         if self._editor:
             return self._editor.redo()
 
@@ -211,15 +219,19 @@ class ContentEditor (MultiEditor):
 
 
     def add_editor(self, content_type, editor):
+        """Add an editor for a content-type"""
         self._editors[content_type] = editor
 
     def removed_editor(self, content_type):
+        """Remove editor for a content-type"""
         del self._editors[content_type]
 
     def get_editor_content(self, content_type):
+        """Get editor associated with content-type"""
         return self._editors[content_type]
 
     def set_default_editor(self, editor):
+        """Set the default editor"""
         self._default_editor = editor
 
     #=============================

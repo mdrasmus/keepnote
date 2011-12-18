@@ -7,7 +7,7 @@
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2011 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@alum.mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -385,7 +385,7 @@ class ThreePaneViewer (Viewer):
     # node operations
 
 
-    def get_current_page(self):
+    def get_current_node(self):
         """Returns the currently focused page"""
         return self._current_page
 

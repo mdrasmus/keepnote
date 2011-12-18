@@ -159,7 +159,7 @@ class TabbedViewer (Viewer):
             old_viewer = self._current_viewer
             if old_viewer is not None:
                 viewer.set_notebook(old_viewer.get_notebook())
-                node = old_viewer.get_current_page()
+                node = old_viewer.get_current_node()
                 if node:
                     viewer.goto_node(node)
         elif init == "none":
@@ -220,7 +220,7 @@ class TabbedViewer (Viewer):
 
         # notify listeners of new current tab
         def func():
-            self.emit("current-node", self._current_viewer.get_current_page())
+            self.emit("current-node", self._current_viewer.get_current_node())
             notebook = self._current_viewer.get_notebook()
             if notebook:
                 self.emit("modified", notebook.save_needed())
@@ -306,7 +306,7 @@ class TabbedViewer (Viewer):
         self._tab_names[viewer] = name
 
         if name is None:
-            self.on_tab_current_node(viewer, viewer.get_current_page())
+            self.on_tab_current_node(viewer, viewer.get_current_node())
     
 
     #==============================================
@@ -433,7 +433,7 @@ class TabbedViewer (Viewer):
             if notebook:
                 tabs = notebook.pref.get(
                     "viewers", "ids", self._viewerid, "tabs")
-                node = viewer.get_current_page()
+                node = viewer.get_current_node()
                 name = self._tab_names[viewer]
                 tabs.append(
                     {"viewer_type": viewer.get_name(),
@@ -467,9 +467,9 @@ class TabbedViewer (Viewer):
         return self._current_viewer.new_node(kind, pos, parent)
 
 
-    def get_current_page(self):
+    def get_current_node(self):
         """Returns the currently focused page"""
-        return self._current_viewer.get_current_page()
+        return self._current_viewer.get_current_node()
 
 
     def get_selected_nodes(self):

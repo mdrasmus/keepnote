@@ -67,7 +67,6 @@ class KeepNoteEditor (gtk.VBox):
 
     def clear_view(self):
         """Clear editor view"""
-        self._page = None
     
     def view_pages(self, pages):
         """View a page in the editor"""
