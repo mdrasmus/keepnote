@@ -98,7 +98,7 @@ else:
     CLIPBOARD_NAME = "CLIPBOARD"
 RICHTEXT_ID = -3    # application defined integer for the clipboard
 CONTEXT_MENU_ACCEL_PATH = "<main>/richtext_context_menu"
-QUOTE_FORMAT = u'from <a href="%u">%h</a>:<br/>%s'
+QUOTE_FORMAT = u'from <a href="%u">%t</a>:<br/>%s'
 
 # mime types
 # richtext mime type is process specific
@@ -180,6 +180,18 @@ def parse_ie_html_format_headers(text):
         headers[key] = val
     return headers
 
+
+def parse_richtext_headers(text):
+    headers = {}
+    for line in text.splitlines():
+        i = line.find(":")
+        if i > -1:
+            headers[line[:i]] = line[i+1:]
+    return headers
+
+
+def format_richtext_headers(values):
+    return "\n".join(key + ":" + val.replace("\n", "") for key, val in values)
 
 
 def is_relative_file(filename):
@@ -423,6 +435,8 @@ class RichTextView (gtk.TextView):
         self.dragdrop = RichTextDragDrop(MIME_IMAGES +  ["text/uri-list"] +
                                          MIME_HTML + MIME_TEXT)
         self._quote_format = QUOTE_FORMAT
+        self._current_url = ""
+        self._current_title = ""
 
         if textbuffer is None:
             textbuffer = RichTextBuffer() 
@@ -542,6 +556,15 @@ class RichTextView (gtk.TextView):
 
     def set_accel_path(self, accel_path):
         self._accel_path = accel_path
+
+
+    def set_current_url(self, url, title=""):
+        self._current_url = url
+        self._current_title = title
+
+
+    def get_current_url(self):
+        return self._current_url
 
 
     #======================================================
@@ -790,30 +813,34 @@ class RichTextView (gtk.TextView):
         
         start, end = sel
         contents = list(self._textbuffer.copy_contents(start, end))
-
+        headers = format_richtext_headers([
+                    ("title", self._current_title),
+                    ("url", self._current_url)])
         
         if len(contents) == 1 and \
            contents[0][0] == "anchor" and \
            isinstance(contents[0][2][0], RichTextImage):
             # copy image
             targets = [(MIME_RICHTEXT, gtk.TARGET_SAME_APP, RICHTEXT_ID)] + \
+                [("text/x-moz-url-priv", 0, RICHTEXT_ID)] + \
                 [("text/html", 0, RICHTEXT_ID)] + \
                 [(x, 0, RICHTEXT_ID) for x in MIME_IMAGES]
             
             clipboard.set_with_data(targets, self._get_selection_data, 
                                     self._clear_selection_data,
-                                    (contents, ""))
+                                    (headers, contents, ""))
 
         else:
             # copy text
             targets = [(MIME_RICHTEXT, gtk.TARGET_SAME_APP, RICHTEXT_ID)] + \
+                [("text/x-moz-url-priv", 0, RICHTEXT_ID)] + \
                 [("text/html", 0, RICHTEXT_ID)] + \
                 [(x, 0, RICHTEXT_ID) for x in MIME_TEXT]
             
             text = start.get_text(end)
             clipboard.set_with_data(targets, self._get_selection_data, 
                                     self._clear_selection_data,
-                                    (contents, text))
+                                    (headers, contents, text))
 
 
 
@@ -908,24 +935,33 @@ class RichTextView (gtk.TextView):
         it = self._textbuffer.get_iter_at_mark(self._textbuffer.get_insert())
         if not self._textbuffer.is_insert_allowed(it):            
             return
-        
-        if "text/x-moz-url-priv" in targets:
+
+        if MIME_RICHTEXT in targets:
+            selection_data = clipboard.wait_for_contents(MIME_RICHTEXT)
+            headers = parse_richtext_headers(parse_utf(selection_data.data))
+            url = headers.get("url")
+            title = headers.get("title")
+        elif "text/x-moz-url-priv" in targets:
             selection_data = clipboard.wait_for_contents("text/x-moz-url-priv")
             url = parse_utf(selection_data.data)
             url = url.strip("\n\r\0")
+            title = None
         elif "HTML Format" in targets:
             selection_data = clipboard.wait_for_contents("HTML Format")
-            headers = parse_ie_html_format_headers(selection_data.data)
+            headers = parse_ie_html_format_headers(
+                parse_utf(selection_data.data))
             url = headers.get("SourceURL")
+            title = None
         else:
             url = None
+            title = None
 
         # setup variables
         if url is not None:
             parts = urlparse.urlsplit(url)
-            url = escape(url)
+            url = url
             if parts.hostname:
-                host = escape(parts.hostname)
+                host = parts.hostname
             else:
                 host = u"unknown source"
         else:
@@ -933,9 +969,12 @@ class RichTextView (gtk.TextView):
             host = u"unknown source"
         unique = str(uuid.uuid4())
 
+        if title is None:
+            title = host
+
         # replace variables
-        quote_format = replace_vars(quote_format, {"%u": url, 
-                                                   "%h": host,
+        quote_format = replace_vars(quote_format, {"%u": escape(url), 
+                                                   "%t": escape(title),
                                                    "%s": unique})
         
         # prepare quote data
@@ -1055,14 +1094,16 @@ class RichTextView (gtk.TextView):
         
         global _g_clipboard_contents
 
-        contents, text = data
+        headers, contents, text = data
         
         _g_clipboard_contents = contents
 
+        if "text/x-moz-url-priv" in selection_data.target:
+            selection_data.set("text/x-moz-url-priv", 8, self._current_url)
         
-        if MIME_RICHTEXT in selection_data.target:
+        elif MIME_RICHTEXT in selection_data.target:
             # set rich text
-            selection_data.set(MIME_RICHTEXT, 8, "<richtext>")
+            selection_data.set(MIME_RICHTEXT, 8, headers)
             
         elif "text/html" in selection_data.target:
             # set html

@@ -342,7 +342,9 @@ class RichTextEditor (KeepNoteEditor):
             self._page = page
             self._textview.enable()
             
-            try:
+            try:                
+                self._textview.set_current_url(page.get_url(), 
+                                               title=page.get_title())
                 self._textview_io.set_node(self._page)
                 self._textview_io.load(
                     self._textview,

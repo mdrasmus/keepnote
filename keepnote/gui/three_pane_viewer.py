@@ -281,9 +281,6 @@ class ThreePaneViewer (Viewer):
 
     def on_notebook_node_changed(self, nodes):
         """Callback for when notebook node is changed"""
-
-        #if self._current_page in nodes:
-        #    self.emit("current-node", self._current_page)
         self.emit("modified", True)
 
 
@@ -297,7 +294,8 @@ class ThreePaneViewer (Viewer):
 
 
     def get_editor(self):
-        return self.editor
+        """Returns node editor"""
+        return self.editor.get_editor()
 
 
     def set_status(self, text, bar="status"):
