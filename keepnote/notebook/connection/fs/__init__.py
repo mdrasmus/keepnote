@@ -716,9 +716,7 @@ class NoteBookConnectionFS (NoteBookConnection):
                 path = self._get_orphandir(nodeid)
         else:
             path = _path
-
-        print "path", path
-            
+        
         # initialize with no children
         attr["childrenids"] = []
 

@@ -1274,20 +1274,25 @@ class KeepNoteBaseTreeView (gtk.TreeView):
         if len(source_nodes) == 0:
             drag_context.finish(False, False, eventtime)
             return
+
+        # determine new parent and index
+        new_parent_path = new_path[:-1]
+        new_parent = self._get_node_from_path(new_parent_path)
+        index = new_path[-1]
         
-        # determine if drop is allowed
+        # move each source node
         for source_node in source_nodes:
+            # determine if drop is allowed
             if not self._drop_allowed(source_node, target_node, drop_position):
                 drag_context.finish(False, False, eventtime)
                 continue
 
-            # determine new parent
-            new_parent_path = new_path[:-1]
-            new_parent = self._get_node_from_path(new_parent_path)
-
             # perform move in notebook model
             try:
-                source_node.move(new_parent, new_path[-1])
+                source_node.move(new_parent, index)
+                index = new_parent.get_children().index(source_node)
+                # NOTE: we update index in case moving source_node changes
+                # the drop path
             except NoteBookError, e:
                 # TODO: think about whether finish should always be false
                 drag_context.finish(False, False, eventtime)

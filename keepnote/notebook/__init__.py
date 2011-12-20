@@ -1,4 +1,3 @@
-
 """
 
     KeepNote    
@@ -61,7 +60,8 @@ from keepnote.notebook import sync
 
 _ = trans.translate
 
-
+#=============================================================================
+# constants
 
 # NOTE: the <?xml ?> header is left off to keep it compatiable with IE,
 # for the time being.
@@ -809,6 +809,7 @@ class NoteBookNode (object):
         
         # TODO: if parent is in another notebook, accessory data like icons 
         # might need to be transferred.
+        #  Maybe I won't support that.
 
         # TODO: with multiple parents, we need to specify here which 
         # parent relationship we are breaking.
@@ -830,7 +831,7 @@ class NoteBookNode (object):
         # make sure new parents children are loaded
         parent.get_children()
 
-        # perform on-disk move if new parent
+        # perform actual move if new parent
         if old_parent != parent:
             try:
                 self._attr["parentids"] = [parent._attr["nodeid"]]
@@ -839,7 +840,7 @@ class NoteBookNode (object):
                 self._attr["parentids"] = [old_parent._attr["nodeid"]]
                 raise
 
-        # perform move in data structure
+        # perform move in NoteBook data structure
         self._parent._remove_child(self)
         if self._parent != parent:
             self._parent._set_child_order()
