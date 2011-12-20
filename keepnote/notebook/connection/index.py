@@ -291,7 +291,7 @@ class NodeIndex (object):
         for attr in self._attrs.itervalues():
             attr.remove_node(cur, nodeid)
             
-        self.remove_text(cur, nodeid)
+        self._remove_text(cur, nodeid)
 
 
     def get_node_attr(self, cur, nodeid, key):

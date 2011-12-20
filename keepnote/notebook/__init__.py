@@ -742,6 +742,11 @@ class NoteBookNode (object):
     def delete(self):
         """Deletes this node from the notebook"""
 
+        # when deleting multiple nodes, some nodes (children) might already
+        # be invalid.  Therefore, ignore them.
+        if not self._valid:
+            return
+
         # check whether this is allowed
         allowed, error = self._notebook.delete_allowed(self)
         if not allowed:
@@ -912,28 +917,6 @@ class NoteBookNode (object):
         # TODO: generalize notify for all attrs that might appear in listview
         # or other GUI widgets
         self.notify_change(False)
-        
-        '''
-        # do nothing if title is the same
-        if title == self._attr["title"]:
-            return
-
-        if self._parent is None:
-            # don't rename the directory of the notebook itself
-            # just change the title
-            self._attr["title"] = title
-            self._set_dirty(True)
-        else:
-            oldtitle = self._attr.get("title", "")
-            try:
-                self._attr["title"] = title
-                self.save(True)
-            except NoteBookError, e:
-                self._attr["title"] = oldtitle
-                raise
-
-        self.notify_change(False)
-        '''
         
 
     def new_child(self, content_type, title, index=None):
