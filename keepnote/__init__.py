@@ -130,8 +130,6 @@ TRANSLATOR_CREDITS = (
 
 
 BASEDIR = os.path.dirname(unicode(__file__, FS_ENCODING))
-IMAGE_DIR = u"images"
-NODE_ICON_DIR = os.path.join(IMAGE_DIR, u"node_icons")
 PLATFORM = None
 
 USER_PREF_DIR = u"keepnote"
@@ -141,11 +139,6 @@ USER_ERROR_LOG = u"error-log.txt"
 USER_EXTENSIONS_DIR = u"extensions"
 USER_EXTENSIONS_DATA_DIR = u"extensions_data"
 PORTABLE_FILE = u"portable.txt"
-
-
-DEFAULT_WINDOW_SIZE = (1024, 600)
-DEFAULT_WINDOW_POS = (-1, -1)
-DEFAULT_AUTOSAVE_TIME = 10 * 1000 # 10 sec (in msec)
 
 
 

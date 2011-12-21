@@ -8,7 +8,7 @@
 
 #
 #  KeepNote
-#  Copyright (c) 2008-2009 Matt Rasmussen
+#  Copyright (c) 2008-2011 Matt Rasmussen
 #  Author: Matt Rasmussen <rasmus@alum.mit.edu>
 #
 # This program is free software; you can redistribute it and/or modify
@@ -44,7 +44,10 @@ from keepnote import get_resource
 import keepnote.notebook as notebooklib
 
 
+#=============================================================================
+# globals/constants
 
+NODE_ICON_DIR = os.path.join(u"images", u"node_icons")
 
 _g_default_node_icon_filenames = {
     notebooklib.CONTENT_TYPE_TRASH: (u"trash.png", u"trash.png"),
@@ -179,7 +182,7 @@ def lookup_icon_filename(notebook, basename):
             return filename
 
     # lookup in builtins
-    filename = get_resource(keepnote.NODE_ICON_DIR, basename)
+    filename = get_resource(NODE_ICON_DIR, basename)
     if os.path.isfile(filename):
         _icon_basename_cache[(notebook, basename)] = filename
         return filename

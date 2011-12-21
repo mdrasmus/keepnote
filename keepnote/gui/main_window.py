@@ -85,6 +85,14 @@ from keepnote.gui.tabbed_viewer import TabbedViewer
 
 _ = keepnote.translate
 
+#=============================================================================
+# constants
+
+DEFAULT_WINDOW_SIZE = (1024, 600)
+DEFAULT_WINDOW_POS = (-1, -1)
+
+
+#=============================================================================
 
 
 class KeepNoteWindow (gtk.Window):
@@ -123,7 +131,7 @@ class KeepNoteWindow (gtk.Window):
     def init_layout(self):
         # init main window
         self.set_title(keepnote.PROGRAM_NAME)
-        self.set_default_size(*keepnote.DEFAULT_WINDOW_SIZE)
+        self.set_default_size(*DEFAULT_WINDOW_SIZE)
         self.set_icon_list(get_resource_pixbuf("keepnote-16x16.png"),
                            get_resource_pixbuf("keepnote-32x32.png"),
                            get_resource_pixbuf("keepnote-64x64.png"))
@@ -396,7 +404,7 @@ class KeepNoteWindow (gtk.Window):
 
         # notebook
         window_size = p.get("window", "window_size", 
-                            default=keepnote.DEFAULT_WINDOW_SIZE)
+                            default=DEFAULT_WINDOW_SIZE)
         window_maximized = p.get("window", "window_maximized", default=True)
 
 

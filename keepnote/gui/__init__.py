@@ -61,12 +61,16 @@ from keepnote.gui.icons import \
     
 _ = keepnote.translate
 
-
-
+#=============================================================================
 # constants
+
 MAX_RECENT_NOTEBOOKS = 20
 ACCEL_FILE = u"accel.txt"
+IMAGE_DIR = u"images"
 CONTEXT_MENU_ACCEL_PATH = "<main>/context_menu"
+
+DEFAULT_AUTOSAVE_TIME = 10 * 1000 # 10 sec (in msec)
+
 
 # font constants
 DEFAULT_FONT_FAMILY = "Sans"
@@ -184,7 +188,7 @@ is_pixbuf_cached = pixbufs.is_pixbuf_cached
 def get_resource_image(*path_list):
     """Returns gtk.Image from resource path"""
     
-    filename = get_resource(keepnote.IMAGE_DIR, *path_list)
+    filename = get_resource(IMAGE_DIR, *path_list)
     img = gtk.Image()
     img.set_from_file(filename)
     return img
@@ -192,8 +196,7 @@ def get_resource_image(*path_list):
 def get_resource_pixbuf(*path_list, **options):
     """Returns cached pixbuf from resource path"""
     # raises GError
-    return pixbufs.get_pixbuf(get_resource(keepnote.IMAGE_DIR, *path_list),
-                              **options)
+    return pixbufs.get_pixbuf(get_resource(IMAGE_DIR, *path_list), **options)
 
 
 def fade_pixbuf(pixbuf, alpha=128):
@@ -457,7 +460,7 @@ class KeepNote (keepnote.KeepNote):
         # set defaults for auto save
         p = self.pref
         use_autosave = p.get("autosave", default=True)
-        p.get("autosave_time", default=keepnote.DEFAULT_AUTOSAVE_TIME)
+        p.get("autosave_time", default=DEFAULT_AUTOSAVE_TIME)
         
 
         # set style
