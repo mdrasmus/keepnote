@@ -926,6 +926,23 @@ class KeepNoteWindow (gtk.Window):
                          tasklib.Task(update))
 
 
+    def compact_index(self, notebook=None):
+        """Update notebook index"""
+
+        if notebook is None:
+            notebook = self.viewer.get_notebook()
+        if notebook is None:
+            return
+
+        def update(task):
+            notebook.index("compact")
+
+        # launch task
+        self.wait_dialog(_("Compacting notebook index"), _("Compacting..."),
+                         tasklib.Task(update))
+
+
+
     #=====================================================
     # viewer callbacks
     
@@ -1296,6 +1313,10 @@ class KeepNoteWindow (gtk.Window):
              "", None,
              lambda w: self.update_index(clear=True)),
 
+            ("Compact Notebook Index", None, _("_Compact Notebook Index"),
+             "", None,
+             lambda w: self.compact_index()),
+
             ("Open Notebook URL", None, _("_Open Notebook from URL"),
              "", None,
              lambda w: self.on_open_notebook_url()),
@@ -1404,6 +1425,7 @@ class KeepNoteWindow (gtk.Window):
   <menu action="Tools">
     <placeholder name="Viewer"/>
     <menuitem action="Update Notebook Index"/>
+    <menuitem action="Compact Notebook Index"/>
     <menuitem action="Open Notebook URL"/>
     <placeholder name="Extensions"/>
   </menu>

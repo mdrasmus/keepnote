@@ -1325,6 +1325,9 @@ class NoteBookConnectionFS (NoteBookConnection):
         elif query[0] == "enable_fulltext":
             return self._index.enable_fulltext_search(query[1])
 
+        elif query[0] == "compact":
+            return self._index.compact()
+
         else:
             return NoteBookConnection.index(self, query)
 

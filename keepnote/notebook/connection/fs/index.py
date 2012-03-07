@@ -86,8 +86,8 @@ class NoteBookIndex (NodeIndex):
             self._corrupt = False
             self._need_index = False
             self.con = sqlite.connect(self._index_file, 
-                                      #isolation_level="DEFERRED",
-                                      isolation_level="IMMEDIATE",
+                                      isolation_level="DEFERRED",
+                                      #isolation_level="IMMEDIATE",
                                       check_same_thread=False)
             self.cur = self.con.cursor()
             #self.con.execute(u"PRAGMA read_uncommitted = true;")
@@ -191,10 +191,6 @@ class NoteBookIndex (NodeIndex):
             
             # init attribute indexes
             self.init_attrs(self.cur)
-            
-
-            # NOTE: re-claim space in the index
-            con.execute("VACUUM;")
 
             con.commit()
 
@@ -297,6 +293,15 @@ class NoteBookIndex (NodeIndex):
 
         # record index complete
         self._need_index = False
+
+
+    def compact(self):
+        """
+        Try to compact the index by reclaiming space
+        """
+        keepnote.log_message("compacting index '%s'\n" % self._index_file)
+        self.con.execute("VACUUM;")
+        self.con.comment()
 
 
     def get_node_mtime(self, nodeid):
