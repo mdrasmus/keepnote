@@ -95,7 +95,7 @@ except ImportError:
 PROGRAM_NAME = u"KeepNote"
 PROGRAM_VERSION_MAJOR = 0
 PROGRAM_VERSION_MINOR = 7
-PROGRAM_VERSION_RELEASE = 7
+PROGRAM_VERSION_RELEASE = 8
 PROGRAM_VERSION = (PROGRAM_VERSION_MAJOR,
                    PROGRAM_VERSION_MINOR,
                    PROGRAM_VERSION_RELEASE)
@@ -237,7 +237,9 @@ def print_runtime_info(out=None):
 
     out.write("Python runtime\n"
               "--------------\n"
-              +sys.version+"\n"
+              "sys.version=" + sys.version+"\n"
+              "sys.getdefaultencoding()="+DEFAULT_ENCODING+"\n"
+              "sys.getfilesystemencoding()="+FS_ENCODING+"\n"
               "PYTHONPATH="
               "  "+"\n  ".join(sys.path)+"\n"
               "\n"
@@ -1056,6 +1058,8 @@ class KeepNote (object):
         cmd = map(lambda x: unicode(x), cmd)
         if get_platform() == "windows":
             cmd = [x.encode('mbcs') for x in cmd]
+        else:
+            cmd = [x.encode(FS_ENCODING) for x in cmd]
         
         # execute command
         try:
