@@ -1252,7 +1252,7 @@ class KeepNote (object):
         if entry:
             if entry.ext:
                 # disable extension
-                ext.enable(False)
+                entry.ext.enable(False)
 
             # unregister extension from app
             del self._extensions[ext_key]
@@ -1406,7 +1406,7 @@ class KeepNote (object):
             return False
 
         # remove extension from runtime
-        self.remove_extensions(ext_key)
+        self.remove_extension(ext_key)
 
         # delete extension from filesystem
         try:      
