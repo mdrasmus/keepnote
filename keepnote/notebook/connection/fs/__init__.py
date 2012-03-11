@@ -200,7 +200,7 @@ def get_node_filename(node_path, filename):
 # functions for ensuring valid filenames in notebooks
 
 REGEX_SLASHES = re.compile(ur"[/\\]")
-REGEX_BAD_CHARS = re.compile(ur"[\?'&<>|`:;]")
+REGEX_BAD_CHARS = re.compile(ur"[\*\?'&<>|`:;]")
 REGEX_LEADING_UNDERSCORE = re.compile(ur"^__+")
 
 def get_valid_filename(filename, default=u"folder", 
