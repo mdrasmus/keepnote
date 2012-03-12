@@ -364,6 +364,39 @@ def mark_path_outdated(path):
         del _mtime_cache[path]
 
 
+
+def read_attr(filename):
+    """
+    Read a node meta data file
+
+    filename -- a filename or stream
+    """
+
+    try:
+        tree = ET.ElementTree(file=filename)
+    except Exception, e:
+        raise ConnectionError(
+            _(u"Error reading meta data file '%s'" % filename), e)
+
+    # check root
+    root = tree.getroot()
+    if root.tag != "node":
+        raise ConnectionError(_("Root tag is not 'node'"))
+
+    # iterate children
+    attr = {}
+    version = None
+    for child in root:
+        if child.tag == "dict":
+            attr = plist.load_etree(child)
+        if child.tag == "version":
+            version = int(child.text)
+
+    if version:
+        attr["version"] = version
+
+    return attr
+
 #=============================================================================
 # path cache
 
@@ -956,8 +989,8 @@ class NoteBookConnectionFS (NoteBookConnection):
         """Reads a node from disk"""
         
         metafile = get_node_meta_file(path)
-
-        attr = self._read_attr(metafile)
+        
+        attr = read_attr(metafile)
         attr["parentids"] = ([parentid] if parentid else [])
         if not self._validate_attr(attr):
             self._write_attr(metafile, attr)
@@ -1048,35 +1081,8 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def _read_attr(self, filename, recover=True):
         """Read a node meta data file"""
-        
-        try:
-            tree = ET.ElementTree(file=filename)
-        except Exception, e:
-            #if recover:
-            #    self._recover_attr(filename)
-            #    return self._read_attr(filename, recover=False)
-            
-            raise ConnectionError(
-                _(u"Error reading meta data file '%s'" % filename), e)
-
-        # check root
-        root = tree.getroot()
-        if root.tag != "node":
-            raise ConnectionError(_("Root tag is not 'node'"))
-        
-        # iterate children
-        attr = {}
-        version = None
-        for child in root:
-            if child.tag == "dict":
-                attr = plist.load_etree(child)
-            if child.tag == "version":
-                version = int(child.text)
-
-        if version:
-            attr["version"] = version
-        
-        return attr
+                
+        return read_attr(filename)
 
 
     def _recover_attr(self, filename):
