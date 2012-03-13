@@ -367,7 +367,7 @@ def mark_path_outdated(path):
 
 def read_attr(filename):
     """
-    Read a node meta data file
+    Read a node meta data file. Returns an attr dict
 
     filename -- a filename or stream
     """
@@ -396,6 +396,31 @@ def read_attr(filename):
         attr["version"] = version
 
     return attr
+
+
+def write_attr(filename, attr):
+    """
+    Write a node meta file
+
+    filename -- a filename or stream
+    attr     -- attribute dict
+    """
+
+    if isinstance(filename, basestring):
+        out = safefile.open(filename, "w", codec="utf-8")
+        
+    out.write(u'<?xml version="1.0" encoding="UTF-8"?>\n'
+              u'<node>\n'
+              u'<version>%d</version>\n' % 
+              attr.get("version", 
+                       keepnote.notebook.NOTEBOOK_FORMAT_VERSION))
+    plist.dump(attr, out, indent=2, depth=0)
+    out.write(u'</node>\n')
+
+    if isinstance(filename, basestring):
+        out.close()
+
+
 
 #=============================================================================
 # path cache
@@ -1065,15 +1090,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         self._attr_mask.set_dict(attr)
 
         try:
-            out = safefile.open(filename, "w", codec="utf-8")
-            out.write(u'<?xml version="1.0" encoding="UTF-8"?>\n'
-                      u'<node>\n'
-                      u'<version>%d</version>\n' % 
-                      attr.get("version", 
-                               keepnote.notebook.NOTEBOOK_FORMAT_VERSION))
-            plist.dump(self._attr_mask, out, indent=2, depth=0)
-            out.write(u'</node>\n')
-            out.close()
+            write_attr(filename, self._attr_mask)
         except Exception, e:
             raise ConnectionError(
                 _("Cannot write meta data" + " " + filename + ":" + str(e)), e)
