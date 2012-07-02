@@ -119,12 +119,10 @@ class NoteBookIndex (NodeIndex):
             mtime = time.time()
             self.con.execute("""UPDATE NodeGraph SET mtime = ? WHERE nodeid = ?;""",
                              (mtime, self._nconn.get_rootid()))
-
-            if self.con is not None:
-                try:
-                    self.con.commit()
-                except:
-                    self.open()
+            try:
+                self.con.commit()
+            except:
+                self.open()
         except Exception, e:
             self._on_corrupt(e, sys.exc_info()[2])
 
@@ -315,7 +313,7 @@ class NoteBookIndex (NodeIndex):
         else:
             return 0.0
 
-    def set_node_mtime(self, nodeid, mtime=None, commit=True):
+    def set_node_mtime(self, nodeid, mtime=None, commit=False):
         """Set the last indexed mtime for a node"""
 
         if mtime is None:
@@ -332,7 +330,7 @@ class NoteBookIndex (NodeIndex):
         return os.stat(self._index_file).st_mtime
 
     
-    def add_node(self, nodeid, parentid, basename, attr, mtime, commit=True):
+    def add_node(self, nodeid, parentid, basename, attr, mtime, commit=False):
         """Add a node to the index"""               
         
         # TODO: remove single parent assumption        
@@ -363,7 +361,7 @@ class NoteBookIndex (NodeIndex):
             self._on_corrupt(e, sys.exc_info()[2])
 
 
-    def remove_node(self, nodeid, commit=True):
+    def remove_node(self, nodeid, commit=False):
         """Remove node from index using nodeid"""
 
         if self.con is None:
