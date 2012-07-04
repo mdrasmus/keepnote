@@ -1690,8 +1690,7 @@ class NoteBook (NoteBookNode):
     def get_node_by_id(self, nodeid):
         """Lookup node by nodeid"""
 
-        # TODO: could make this more efficient by not loading all uncles
-
+        # TODO: could make this more efficient by not loading all uncles        
         path = self._conn.get_node_path_by_id(nodeid)
         if path is None:
             keepnote.log_message("node %s not found\n" % nodeid)
