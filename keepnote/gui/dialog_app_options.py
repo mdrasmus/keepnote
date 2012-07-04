@@ -490,7 +490,7 @@ class DatesSection (Section):
     
     def __init__(self, key, dialog, app, label=u"", icon="time.png"):
         Section.__init__(self, key, dialog, app, label, icon)
-
+        
         self.date_xml = gtk.glade.XML(get_resource("rc", "keepnote.glade"),
                                    "date_time_frame", keepnote.GETTEXT_DOMAIN)
         self.date_xml.signal_autoconnect(self)

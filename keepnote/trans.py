@@ -105,7 +105,7 @@ def set_lang(lang=None, localedir=None):
         localedir = _locale_dir
     gettext.bindtextdomain(GETTEXT_DOMAIN, localedir)
     gettext.textdomain(GETTEXT_DOMAIN)
-
+    
     # search for language file
     langfile = gettext.find(GETTEXT_DOMAIN, localedir, languages)
 

@@ -427,8 +427,7 @@ class KeepNote (keepnote.KeepNote):
 
         # shared gui resources
         self._tag_table = keepnote.gui.richtext.richtext_tags.RichTextTagTable()
-        self.app_options_dialog = keepnote.gui.dialog_app_options.ApplicationOptionsDialog(self)
-        self.node_icon_dialog = keepnote.gui.dialog_node_icon.NodeIconDialog(self)
+        self.init_dialogs()
 
         # auto save
         self._auto_saving = False          # True if autosave is on
@@ -439,6 +438,11 @@ class KeepNote (keepnote.KeepNote):
     def init(self):
         """Initialize application from disk"""
         keepnote.KeepNote.init(self)        
+
+
+    def init_dialogs(self):
+        self.app_options_dialog = keepnote.gui.dialog_app_options.ApplicationOptionsDialog(self)
+        self.node_icon_dialog = keepnote.gui.dialog_node_icon.NodeIconDialog(self)        
 
         
     def set_lang(self):
@@ -451,6 +455,9 @@ class KeepNote (keepnote.KeepNote):
                                  keepnote.get_locale_dir())
         gtk.glade.textdomain(keepnote.GETTEXT_DOMAIN)
 
+        # re-initialize dialogs
+        self.init_dialogs()
+        
 
     def load_preferences(self):
         """Load information from preferences"""
