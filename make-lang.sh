@@ -32,3 +32,6 @@ for L in $LANGS; do
     echo; echo
 done
 
+# remove ~ files
+rm gettext/*~
+
