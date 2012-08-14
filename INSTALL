@@ -27,6 +27,24 @@ Linux Install
     with the command
 
       $ dpkg -i keepnote_X.Y.Z-1_all.deb
+
+  Gentoo Linux:
+
+    To install from the ebuild provided perform the following:
+
+    1. unremark the line "PORTAGE_OVERLAY=/usr/local/portage" in 
+       /etc/portage/make.conf file
+
+    2. create directories /usr/local/portage/app-text, 
+       /usr/local/portage/app-text/keepnote
+
+    3. place keepnote-0.7.9.ebuild under /usr/local/portage/app-text/keepnote
+
+    4. cd to /usr/local/portage/app-text/keepnote and run:
+
+       ebuild keepnote-0.7.9.ebuild digest
+       emerge app-text/keepnote
+       keepnote & 
       
   Other Linux distributions:
 
