@@ -817,13 +817,14 @@ class RichTextEditor (KeepNoteEditor):
 
             if not dialog.get_filename():
                 self.emit("error", _("Must specify a filename for the image."),
-                          None, None)
+                          None)
             else:
                 filename = unicode_gtk(dialog.get_filename())
                 try:                
                     image.write(filename)
                 except Exception, e:
-                    self.error(_("Could not save image '%s'.") % filename)
+                    self.emit("error", _("Could not save image '%s'.")
+                              % filename, None)
 
         dialog.destroy()
     
