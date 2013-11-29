@@ -69,6 +69,10 @@ $(EBUILD):
 clean:
 	rm -rf $(TMP_FILES) $(UPLOAD_FILES) $(WINDIR) $(WININSTALLER_SRC)
 
+cq:
+	pep8 keepnote/*.py keepnote/gui | grep -v tarfile || true
+	pyflakes keepnote/*.py keepnote/gui | grep -v tarfile || true
+
 # show makefile actions
 help:
 	grep '^[^$$][^\w=]*:[^=]*$$' Makefile | sed 's/:.*//'
