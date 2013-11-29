@@ -23,19 +23,16 @@
 #
 
 
-import os
 import imp
-import sys
+import os
 try:
     import xml.etree.cElementTree as ET
 except ImportError:
     import xml.etree.elementtree.ElementTree as ET
 
-
 import keepnote
 from keepnote.listening import Listeners
-from keepnote import orderdict, plist
-
+from keepnote import plist
 
 
 # globals
@@ -45,11 +42,9 @@ INFO_FILE = u"info.xml"
 
 class DependencyError (StandardError):
     """Exception for dependency error"""
-
     def __init__(self, ext, dep):
         self.ext = ext
         self.dep = dep
-
 
     def __str__(self):
         return "Extension '%s' has failed dependency %s" % \
@@ -61,9 +56,10 @@ class DependencyError (StandardError):
 
 
 def init_user_extensions(pref_dir=None, home=None):
-    """Ensure users extensions are initialized
-       Install defaults if needed"""
-
+    """
+    Ensure users extensions are initialized
+    Install defaults if needed
+    """
     if pref_dir is None:
         pref_dir = keepnote.get_user_pref_dir(home)
 
@@ -78,22 +74,18 @@ def init_user_extensions(pref_dir=None, home=None):
         os.makedirs(extensions_data_dir, 0700)
 
 
-
 def scan_extensions_dir(extensions_dir):
     """Iterate through the extensions in directory"""
-
     for filename in os.listdir(extensions_dir):
         path = os.path.join(extensions_dir, filename)
         if os.path.isdir(path):
             yield path
 
 
-
 def import_extension(app, name, filename):
     """Import an Extension"""
-
     filename2 = os.path.join(filename, u"__init__.py")
-    
+
     try:
         infile = open(filename2)
     except Exception, e:
@@ -108,7 +100,7 @@ def import_extension(app, name, filename):
         ext.read_info()
         infile.close()
         return ext
-                
+
     except Exception, e:
         infile.close()
         raise keepnote.KeepNotePreferenceError("cannot load extension '%s'" %
@@ -122,21 +114,19 @@ def get_extension_info_file(filename):
 
 def read_extension_info(filename):
     """Reads an extensions info"""
-    
     tree = ET.ElementTree(file=get_extension_info_file(filename))
-            
+
     # parse xml
     # check tree structure matches current version
     root = tree.getroot()
     if root.tag != "extension":
         raise keepnote.KeepNotePreferenceError("bad extension info format")
-    
+
     p = root.find("dict")
     if p is None:
         raise keepnote.KeepNotePreferenceError("bad extension info format")
 
-    return plist.load_etree(p)    
-
+    return plist.load_etree(p)
 
 
 def dependency_satisfied(ext, dep):
@@ -145,24 +135,29 @@ def dependency_satisfied(ext, dep):
 
     if ext is None, only the 'no' rel is checked
     """
-
     name, rel, version = dep
 
     if ext is None:
         return (rel == "no")
 
     if rel == ">":
-        if not (ext.version > version): return False
+        if not (ext.version > version):
+            return False
     elif rel == ">=":
-        if not (ext.version >= version): return False
+        if not (ext.version >= version):
+            return False
     elif rel == "==":
-        if not (ext.version == version): return False
+        if not (ext.version == version):
+            return False
     elif rel == "<=":
-        if not (ext.version <= version): return False
+        if not (ext.version <= version):
+            return False
     elif rel == "<":
-        if not (ext.version < version): return False
+        if not (ext.version < version):
+            return False
     elif rel == "!=":
-        if not (ext.version != version): return False
+        if not (ext.version != version):
+            return False
 
     return True
 
@@ -193,19 +188,15 @@ class Extension (object):
     description = "base extension"
     visible = True
 
-
     def __init__(self, app):
-        
         self._app = app
         self._info = {}
         self._enabled = False
         self.type = "system"
         self.enabled = Listeners()
 
-
     def read_info(self):
         """Populate extension info"""
-
         path = self.get_base_dir(False)
         self._info = read_extension_info(path)
 
@@ -216,38 +207,33 @@ class Extension (object):
         self.website = self._info["website"]
         self.description = self._info["description"]
 
-        
     def get_info(self, key):
         return self._info.get(key, None)
-        
 
     def enable(self, enable):
         """Enable/disable extension"""
 
         # check dependencies
         self.check_depends()
-        
+
         # mark extension as enabled
         self._enabled = enable
-        
+
         # notify listeners
         self.enabled.notify(enable)
-        
+
         # return whether the extension is enabled
         return self._enabled
-
 
     def is_enabled(self):
         """Returns True if extension is enabled"""
         return self._enabled
-
 
     def check_depends(self):
         """Checks whether dependencies are met.  Throws exception on failure"""
         for dep in self.get_depends():
             if not self._app.dependency_satisfied(dep):
                 raise DependencyError(self, dep)
-
 
     def get_depends(self):
         """
@@ -269,22 +255,18 @@ class Extension (object):
             '<'    the version must be less than
             '!='   the version must not be equal to
 
-          Other relations.  
+          Other relations.
             'no'   the extension must not exist.  EXTRA is None.
-
 
         Possible values for EXTRA:
 
           VERSION   This is a tuple representing a version number.
             ex: the tuple (0, 6, 1) represents version 0.6.1
 
-
         All dependencies must be met to enable an extension.  A extension
         name can appear more than once if several relations are required
         (such as specifying a range of valid version numbers).
-
         """
-
         return [("keepnote", ">=", (0, 6, 1))]
 
     #===============================
@@ -300,7 +282,6 @@ class Extension (object):
         if exist and not os.path.exists(path):
             os.makedirs(path)
         return path
-
 
     def get_data_dir(self, exist=True):
         """
@@ -320,4 +301,3 @@ class Extension (object):
         If 'exists' is True, create directory if it does not exists.
         """
         return os.path.join(self.get_data_dir(exist), filename)
-

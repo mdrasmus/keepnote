@@ -5,7 +5,6 @@
 
 """
 
-
 #
 #  KeepNote
 #  Copyright (c) 2008-2009 Matt Rasmussen
@@ -25,16 +24,15 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
-
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
-from gtk import gdk
 import gtk.glade
 import gobject
 
 # keepnote imports
 import keepnote
+
 
 _ = keepnote.translate
 
@@ -51,7 +49,6 @@ class KeepNoteEditor (gtk.VBox):
         self._textview = None
         self.show_all()
 
-
     def set_notebook(self, notebook):
         """Set notebook for editor"""
 
@@ -67,13 +64,13 @@ class KeepNoteEditor (gtk.VBox):
 
     def clear_view(self):
         """Clear editor view"""
-    
+
     def view_nodes(self, nodes):
         """View a node(s) in the editor"""
-    
+
     def save(self):
         """Save the loaded page"""
-        
+
     def save_needed(self):
         """Returns True if textview is modified"""
         return False
@@ -100,20 +97,18 @@ class KeepNoteEditor (gtk.VBox):
 # add new signals to KeepNoteEditor
 gobject.type_register(KeepNoteEditor)
 gobject.signal_new("view-node", KeepNoteEditor, gobject.SIGNAL_RUN_LAST,
-    gobject.TYPE_NONE, (object,))
-gobject.signal_new("visit-node", KeepNoteEditor, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object,))
-gobject.signal_new("modified", KeepNoteEditor, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object, bool))
-gobject.signal_new("font-change", KeepNoteEditor, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object,))
-gobject.signal_new("error", KeepNoteEditor, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (str, object))
-gobject.signal_new("child-activated", KeepNoteEditor, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object, object))
-gobject.signal_new("window-request", KeepNoteEditor, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (str,))
+                   gobject.TYPE_NONE, (object,))
+gobject.signal_new("visit-node", KeepNoteEditor, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, (object,))
+gobject.signal_new("modified", KeepNoteEditor, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, (object, bool))
+gobject.signal_new("font-change", KeepNoteEditor, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, (object,))
+gobject.signal_new("error", KeepNoteEditor, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, (str, object))
+gobject.signal_new("child-activated", KeepNoteEditor, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, (object, object))
+gobject.signal_new("window-request", KeepNoteEditor, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, (str,))
 gobject.signal_new("make-link", KeepNoteEditor, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, ())
-
-

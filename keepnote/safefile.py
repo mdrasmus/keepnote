@@ -24,8 +24,11 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
+import codecs
+import os
+import sys
+import tempfile
 
-import os, tempfile, codecs, sys
 
 # NOTE: bypass easy_install's monkey patching of file
 # easy_install does not correctly emulate 'file'
@@ -38,14 +41,14 @@ def open(filename, mode="r", tmp=None, codec=None):
     """
     Opens a file that writes to a temp location and replaces existing file
     on close.
-    
+
     filename -- filename to open
     mode     -- write mode (default: 'w')
     tmp      -- specify tempfile
     codec    -- preferred encoding
     """
     stream = SafeFile(filename, mode, tmp)
-    
+
     if "b" not in mode and codec:
         if "r" in mode:
             stream = codecs.getreader(codec)(stream)
@@ -71,17 +74,15 @@ class SafeFile (file):
 
         self._tmp = tmp
         self._filename = filename
-        
+
         # open file
         if self._tmp:
             file.__init__(self, self._tmp, mode)
         else:
             file.__init__(self, filename, mode)
 
-
     def close(self):
         """Closes file and moves temp file to final location"""
-        
         try:
             self.flush()
             os.fsync(self.fileno())
@@ -97,8 +98,6 @@ class SafeFile (file):
             os.rename(self._tmp, self._filename)
             self._tmp = None
 
-
-
     def discard(self):
         """
         Close and discard written data.
@@ -111,9 +110,7 @@ class SafeFile (file):
         if self._tmp:
             os.remove(self._tmp)
             self._tmp = None
-    
 
     def get_tempfile(self):
         """Returns tempfile filename"""
         return self._tmp
-

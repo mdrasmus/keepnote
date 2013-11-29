@@ -1,5 +1,5 @@
 """
-   
+
     KeepNote
     Notebook updating
 
@@ -25,25 +25,23 @@
 #
 
 import os
-from xml.sax.saxutils import escape
-
 
 from keepnote import notebook as notebooklib
-from keepnote import safefile
 from keepnote.compat import notebook_update_v1_2, notebook_update_v5_6
 
 
-def update_notebook(filename, 
-                    desired_version=notebooklib.NOTEBOOK_FORMAT_VERSION, 
+def update_notebook(filename,
+                    desired_version=notebooklib.NOTEBOOK_FORMAT_VERSION,
                     warn=lambda w: False,
                     verify=True):
-    """Updates a notebook to the desired version (downgrading not implemented)"""
+    """
+    Updates a notebook to the desired version (downgrading not implemented)
+    """
 
     # try to open notebook (may raise exceptions)
     version = notebooklib.get_notebook_version(filename)
     if version >= desired_version:
-        return        
-
+        return
 
     while version < desired_version:
 
@@ -66,13 +64,14 @@ def update_notebook(filename,
             notebook.write_preferences()
 
             # recursively upgrade notes
-            def walk(node):                        
+            def walk(node):
                 try:
                     node._version = 3
                     node.write_meta_data()
                 except Exception, e:
                     if not warn(e):
-                        raise notebooklib.NoteBookError("Could not update notebook", e)
+                        raise notebooklib.NoteBookError(
+                            "Could not update notebook", e)
 
                 # recurse
                 for child in node.get_children():
@@ -80,7 +79,6 @@ def update_notebook(filename,
             walk(notebook)
 
             version = notebook.pref.version
-
 
             # verify notebook updated successfully
             if verify:
@@ -96,7 +94,7 @@ def update_notebook(filename,
         # upgrade 3 --> 4
         elif version == 3:
             from keepnote.compat import notebook_v3 as old_notebooklib
-            
+
             # try to load old notebook (may raise exceptions)
             notebook = old_notebooklib.NoteBook()
             notebook.load(filename)
@@ -104,7 +102,7 @@ def update_notebook(filename,
             index_file = os.path.join(notebook.get_pref_dir(), "index.sqlite")
             if os.path.exists(index_file):
                 os.remove(index_file)
-            old_notebooklib.write_new_preferences(notebook.pref, 
+            old_notebooklib.write_new_preferences(notebook.pref,
                                                   notebook.get_pref_file())
             notebook.close()
             version = 4
@@ -112,7 +110,7 @@ def update_notebook(filename,
         # upgrade 4 --> 5
         elif version == 4:
             from keepnote.compat import notebook_v4 as old_notebooklib
-            
+
             # try to load old notebook (may raise exceptions)
             notebook = old_notebooklib.NoteBook()
             notebook.load(filename)
@@ -124,14 +122,7 @@ def update_notebook(filename,
 
             notebook.close()
             version = 5
-            
 
         elif version == 5:
             notebook_update_v5_6.update(filename)
             version = 6
-
-
-
-
-
-

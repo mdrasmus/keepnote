@@ -5,9 +5,6 @@ pygtk.require('2.0')
 import gtk
 
 
-
-
-
 class PopupWindow (gtk.Window):
     """A customizable popup window"""
 
@@ -16,19 +13,17 @@ class PopupWindow (gtk.Window):
         self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_MENU)
         self.set_transient_for(parent.get_toplevel())
         self.set_flags(gtk.CAN_FOCUS)
-        self.add_events(gtk.gdk.KEY_PRESS_MASK | 
+        self.add_events(gtk.gdk.KEY_PRESS_MASK |
                         gtk.gdk.KEY_RELEASE_MASK)
 
-
         self._parent = parent
-        self._parent.get_toplevel().connect("configure-event", 
+        self._parent.get_toplevel().connect("configure-event",
                                             self._on_configure_event)
 
         # coordinates of popup
         self._x = 0
         self._y = 0
         self._y2 = 0
-
 
     def _on_configure_event(self, widget, event):
         self.move_on_parent(self._x, self._y, self._y2)
@@ -46,7 +41,6 @@ class PopupWindow (gtk.Window):
         self._y2 = y2
 
         # get screen dimensions
-        screenw = gtk.gdk.screen_width()
         screenh = gtk.gdk.screen_height()
 
         # account for window
@@ -57,12 +51,12 @@ class PopupWindow (gtk.Window):
         # account for widget
         rect = self._parent.get_allocation()
         x3 += rect.x
-        y3 += rect.y 
+        y3 += rect.y
 
         # get size of popup
         w, h = self.child.size_request()
         self.resize(w, h)
-        
+
         # perform move
         if y + y3 + h < screenh:
             # drop down
