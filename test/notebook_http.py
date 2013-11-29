@@ -22,7 +22,7 @@ from keepnote import plist
 
 # connect to notebook on disk
 conn = NoteBookConnectionFS()
-conn.connect(u"test/data/notes")
+conn.connect(u"test/data/notebook")
 
 # start server in another thread
 host = "localhost"

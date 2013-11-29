@@ -1,8 +1,3 @@
-
-
-
-
-
 # python imports
 import os, sys, shutil
 
@@ -36,9 +31,3 @@ class Conn (unittest.TestCase):
         self.assertEqual(connlib.path_basename("aaa/"), "aaa")
         self.assertEqual(connlib.path_basename(""), "")
         self.assertEqual(connlib.path_basename("/"), "")
-
-
-        
-if __name__ == "__main__":
-    test_main()
-

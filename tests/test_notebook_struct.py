@@ -1,7 +1,7 @@
 
 
 
-from test.testing import *
+from tests.testing import *
 
 # python imports
 import unittest, os, sys, shutil, time
@@ -35,7 +35,7 @@ class Test (unittest.TestCase):
         struct = [["a", ["a1"], ["a2"], ["a3"]],
                   ["b", ["b1"], ["b2",
                                  ["c1"], ["c2"]]]]
-        
+
 
         # initialize a notebook
         make_clean_dir("test/tmp/notebook_struct")
@@ -52,7 +52,7 @@ class Test (unittest.TestCase):
         print "load"
         book = notebook.NoteBook()
         book.load("test/tmp/notebook_struct/n1")
-        
+
         a2 = book.get_children()[0].get_children()[1]
         b = book.get_children()[1]
         a2.move(b)
@@ -67,7 +67,7 @@ class Test (unittest.TestCase):
         struct = [["a", ["a1"], ["a2"], ["a3"]],
                   ["b", ["b1"], ["b2",
                                  ["c1"], ["c2"]]]]
-        
+
 
         # initialize a notebook
         make_clean_dir("test/tmp/notebook_struct")
@@ -96,7 +96,7 @@ class Test (unittest.TestCase):
         struct = [["a", ["a1"], ["a2"], ["a3"]],
                   ["b", ["b1"], ["b2",
                                  ["c1"], ["c2"]]]]
-        
+
 
         # initialize a notebook
         make_clean_dir("test/tmp/notebook_struct")
@@ -113,17 +113,17 @@ class Test (unittest.TestCase):
         print "load"
         book = notebook.NoteBook()
         book.load("test/tmp/notebook_struct/n1")
-        
+
         c1 = book.get_node_by_id(c1id)
         print "found", c1.get_title()
 
         book.close()
 
-        
+
 
     def test_orphans(self):
-        
-        
+
+
         clean_dir("test/tmp/conn")
 
         # create new notebook
@@ -178,10 +178,3 @@ class Test (unittest.TestCase):
         # check orphan node dir is gone
         assert os.path.exists("test/tmp/conn/__NOTEBOOK__/orphans/%s/%s"
                               % (nodeid[:2], nodeid[2:]))
-
-
-
-        
-if __name__ == "__main__":
-    test_main()
-
