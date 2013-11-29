@@ -43,21 +43,26 @@ class ConnectionError (StandardError):
         else:
             return StandardError.repr(self)
 
+
 class UnknownNode (ConnectionError):
     def __init__(self, msg="unknown node"):
         ConnectionError.__init__(self, msg)
+
 
 class NodeExists (ConnectionError):
     def __init__(self, msg="node exists"):
         ConnectionError.__init__(self, msg)
 
+
 class FileError (ConnectionError):
     def __init__(self, msg="file error", error=None):
         ConnectionError.__init__(self, msg, error)
 
+
 class UnknownFile (FileError):
     def __init__(self, msg="unknown file"):
         FileError.__init__(self, msg)
+
 
 class CorruptIndex (ConnectionError):
     def __init__(self, msg="index error", error=None):
@@ -66,6 +71,7 @@ class CorruptIndex (ConnectionError):
 
 #=============================================================================
 # file path functions
+
 
 def path_join(*parts):
     """
@@ -98,7 +104,6 @@ def path_basename(filename):
     else:
         i = filename.rfind("/", 0, -1) + 1
         return filename[i:]
-
 
 
 #=============================================================================
@@ -154,7 +159,6 @@ class NoteBookConnection (object):
         """Returns nodeid of notebook root node"""
         raise NotImplementedError("get_rootid")
 
-
     #===============
     # file API
 
@@ -168,7 +172,6 @@ class NoteBookConnection (object):
         codec    -- read or write with an encoding (default: None)
         """
         raise NotImplementedError("open_file")
-
 
     def delete_file(self, nodeid, filename):
         """Delete a file contained within a node"""
@@ -187,19 +190,17 @@ class NoteBookConnection (object):
     def has_file(self, nodeid, filename):
         raise NotImplementedError("has_file")
 
-    def move_file(self, nodeid, filename1, nodeid2, filename2):
+    def move_file(self, nodeid1, filename1, nodeid2, filename2):
         """
         Move or rename a node file
 
         'nodeid1' and 'nodeid2' cannot be None.
         """
-
-        if nodeid is None or nodeid2 is None:
+        if nodeid1 is None or nodeid2 is None:
             raise UnknownFile("nodeid cannot be None")
 
-        self.copy_file(nodeid, filename, nodeid, new_filename)
-        self.delete_file(nodeid, filename)
-
+        self.copy_file(nodeid, filename1, nodeid2, filename2)
+        self.delete_file(nodeid, filename1)
 
     def copy_file(self, nodeid1, filename1, nodeid2, filename2):
         """
@@ -211,9 +212,7 @@ class NoteBookConnection (object):
 
         If 'filename1' is a dir (ends with a "/") filename2 must be a dir
         and the copy is recursive for the contents of 'filename1'.
-
         """
-
         if filename1.endswith("/"):
             # copy directory tree
             self.create_dir(nodeid2, filename2)
@@ -245,7 +244,6 @@ class NoteBookConnection (object):
 
             stream1.close()
             stream2.close()
-
 
     #---------------------------------
     # indexing
@@ -281,7 +279,6 @@ class NoteBookConnection (object):
 
         elif query[0] == "get_attr":
             return self.get_attr_by_id(query[1], query[2])
-
 
         # FS-specific
         elif query[0] == "init":
@@ -319,8 +316,6 @@ class NoteBookConnection (object):
     def get_attr_by_id(self, nodeid, key):
         return self.index(["get_attr", nodeid, key])
 
-
-
     #---------------------------------------
     # FS-specific index management
     # TODO: try to deprecate
@@ -338,8 +333,6 @@ class NoteBookConnection (object):
     def index_all(self):
         return self.index(["index_all"])
 
-
-
     #================================
     # Filesystem-specific API (may not be supported by some connections)
 
@@ -355,7 +348,6 @@ class NoteBookConnection (object):
     # will eventually need some kind of fetching mechanism
     def get_file(self, nodeid, filename, _path=None):
         raise NotImplementedError("get_file")
-
 
 
 #=============================================================================
@@ -388,5 +380,3 @@ class NoteBookConnections (object):
 
     def lookup(self, proto):
         return self._protos.get(proto, None)
-
-

@@ -47,7 +47,6 @@ def on_conflict_newer(nodeid, conn1, conn2, attr1=None, attr2=None):
 
     conn2 wins ties
     """
-
     if attr1 is None:
         attr1 = conn1.read_node(nodeid)
     if attr2 is None:
@@ -72,7 +71,6 @@ def sync_node(nodeid, conn1, conn2, attr=None,
 
     Conflicts are resolved based on on_conflict (newer node by default)
     """
-
     if attr is None:
         attr = conn1.read_node(nodeid)
 
@@ -82,7 +80,6 @@ def sync_node(nodeid, conn1, conn2, attr=None,
     except NodeExists:
         # conflict
         on_conflict(nodeid, conn1, conn2, attr)
-
 
 
 def sync_files(conn1, nodeid1, conn2, nodeid2, path1="/", path2="/"):

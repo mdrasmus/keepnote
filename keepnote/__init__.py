@@ -1,7 +1,7 @@
 """
     KeepNote
     Module for KeepNote
-    
+
     Basic backend data structures for KeepNote and NoteBooks
 """
 
@@ -23,7 +23,6 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
-
 
 
 # python imports
@@ -48,6 +47,12 @@ DEFAULT_ENCODING = sys.getdefaultencoding()
 FS_ENCODING = sys.getfilesystemencoding()
 
 # keepnote imports
+from keepnote import extension
+from keepnote import mswin
+from keepnote import orderdict
+from keepnote import plist
+from keepnote import safefile
+from keepnote.listening import Listeners
 from keepnote.notebook import \
     NoteBookError, \
     get_unique_filename_list
@@ -55,38 +60,42 @@ import keepnote.notebook as notebooklib
 import keepnote.notebook.connection
 import keepnote.notebook.connection.fs
 import keepnote.notebook.connection.http
+from keepnote.pref import Pref
 import keepnote.timestamp
-import keepnote.xdg
-from keepnote.listening import Listeners
-from keepnote import mswin
 import keepnote.trans
 from keepnote.trans import GETTEXT_DOMAIN
-from keepnote import extension
-from keepnote import plist
-from keepnote import safefile
-from keepnote.pref import Pref
-
+import keepnote.xdg
 
 
 #=============================================================================
 # modules needed by builtin extensions
 # these are imported here, so that py2exe can auto-discover them
+
+import base64
+import htmlentitydefs
 from keepnote import tarfile
+import random
+import sgmllib
+import string
 import xml.dom.minidom
 import xml.sax.saxutils
-import sgmllib
-import htmlentitydefs
-import re
-import base64
-import string
-import random
+
+# make pyflakes ignore these used modules
+GETTEXT_DOMAIN
+base64
+get_unique_filename_list
+htmlentitydefs
+random
+sgmllib
+string
+tarfile
+xml
 
 # import screenshot so that py2exe discovers it
 try:
     import mswin.screenshot
 except ImportError:
     pass
-
 
 
 #=============================================================================
@@ -127,8 +136,6 @@ TRANSLATOR_CREDITS = (
 )
 
 
-
-
 BASEDIR = os.path.dirname(unicode(__file__, FS_ENCODING))
 PLATFORM = None
 
@@ -141,7 +148,6 @@ USER_EXTENSIONS_DATA_DIR = u"extensions_data"
 PORTABLE_FILE = u"portable.txt"
 
 
-
 #=============================================================================
 # application resources
 
@@ -149,6 +155,7 @@ PORTABLE_FILE = u"portable.txt"
 
 def get_basedir():
     return os.path.dirname(unicode(__file__, FS_ENCODING))
+
 
 def set_basedir(basedir):
     global BASEDIR
@@ -169,16 +176,16 @@ def get_resource(*path_list):
 def get_platform():
     """Returns a string for the current platform"""
     global PLATFORM
-    
+
     if PLATFORM is None:
-        p = sys.platform    
+        p = sys.platform
         if p == 'darwin':
             PLATFORM = 'darwin'
         elif p.startswith('win'):
             PLATFORM = 'windows'
         else:
             PLATFORM = 'unix'
-                    
+
     return PLATFORM
 
 
@@ -204,7 +211,7 @@ def unicode_gtk(text):
     """
     Converts a string from gtk (utf8) to unicode
 
-    All strings from the pygtk API are returned as byte strings (str) 
+    All strings from the pygtk API are returned as byte strings (str)
     encoded as utf8.  KeepNote has the convention to keep all strings as
     unicode internally.  So strings from pygtk must be converted to unicode
     immediately.
@@ -249,17 +256,17 @@ def print_runtime_info(out=None):
               "keepnote: " + keepnote.__file__+"\n")
     try:
         import gtk
-        out.write("gtk: "+ gtk.__file__+"\n")
+        out.write("gtk: " + gtk.__file__+"\n")
         out.write("gtk.gtk_version: "+repr(gtk.gtk_version)+"\n")
     except:
         out.write("gtk: NOT PRESENT\n")
-    
+
     from keepnote.notebook.connection.fs.index import sqlite
     out.write("sqlite: " + sqlite.__file__+"\n"
               "sqlite.version: " + sqlite.version+"\n"
               "sqlite.sqlite_version: " + sqlite.sqlite_version+"\n"
               "sqlite.fts3: " + str(test_fts3())+"\n")
-    
+
     try:
         import gtkspell
         out.write("gtkspell: " + gtkspell.__file__+"\n")
@@ -269,10 +276,9 @@ def print_runtime_info(out=None):
 
 
 def test_fts3():
-
     from keepnote.notebook.connection.fs.index import sqlite
-    
-    con  = sqlite.connect(":memory:")
+
+    con = sqlite.connect(":memory:")
     try:
         con.execute("CREATE VIRTUAL TABLE fts3test USING fts3(col TEXT);")
     except:
@@ -282,13 +288,13 @@ def test_fts3():
     return True
 
 
-
 #=============================================================================
 # locale functions
 
 def translate(message):
     """Translate a string"""
     return keepnote.trans.translate(message)
+
 
 def get_locale_dir():
     """Returns KeepNote's locale directory"""
@@ -312,7 +318,7 @@ def get_home():
 
 def get_user_pref_dir(home=None):
     """Returns the directory of the application preference file"""
-    
+
     p = get_platform()
     if p == "unix" or p == "darwin":
         if home is None:
@@ -340,7 +346,7 @@ def get_user_extensions_dir(pref_dir=None, home=None):
     if pref_dir is None:
         pref_dir = get_user_pref_dir(home)
     return os.path.join(pref_dir, USER_EXTENSIONS_DIR)
-    
+
 
 def get_user_extensions_data_dir(pref_dir=None, home=None):
     """Returns user extensions data directory"""
@@ -362,13 +368,13 @@ def get_user_documents(home=None):
         if home is None:
             home = get_home()
         return home
-    
+
     elif p == "windows":
         return unicode(mswin.get_my_documents(), FS_ENCODING)
-    
+
     else:
         return u""
-    
+
 
 def get_user_pref_file(pref_dir=None, home=None):
     """Returns the filename of the application preference file"""
@@ -434,7 +440,7 @@ def init_error_log(pref_dir=None, home=None):
     """Initialize the error log"""
 
     if pref_dir is None:
-        pref_dir = get_user_pref_dir(home)     
+        pref_dir = get_user_pref_dir(home)
 
     error_log = get_user_error_log(pref_dir)
     if not os.path.exists(error_log):
@@ -446,7 +452,7 @@ def init_error_log(pref_dir=None, home=None):
 
 def log_error(error=None, tracebk=None, out=None):
     """Write an exception error to the error log"""
-    
+
     if out is None:
         out = sys.stderr
 
@@ -479,12 +485,12 @@ def log_message(message, out=None):
 
 class EnvError (StandardError):
     """Exception that occurs when environment variables are ill-defined"""
-    
+
     def __init__(self, msg, error=None):
         StandardError.__init__(self)
         self.msg = msg
         self.error = error
-        
+
     def __str__(self):
         if self.error:
             return str(self.error) + "\n" + self.msg
@@ -497,7 +503,7 @@ class KeepNoteError (StandardError):
         StandardError.__init__(self, msg)
         self.msg = msg
         self.error = error
-    
+
     def __repr__(self):
         if self.error:
             return str(self.error) + "\n" + self.msg
@@ -510,12 +516,12 @@ class KeepNoteError (StandardError):
 
 class KeepNotePreferenceError (StandardError):
     """Exception that occurs when manipulating preferences"""
-    
+
     def __init__(self, msg, error=None):
         StandardError.__init__(self)
         self.msg = msg
         self.error = error
-        
+
     def __str__(self):
         if self.error:
             return str(self.error) + "\n" + self.msg
@@ -527,7 +533,9 @@ class KeepNotePreferenceError (StandardError):
 # Preference data structures
 
 class ExternalApp (object):
-    """Class represents the information needed for calling an external application"""
+    """
+    Class represents the information needed for calling an external application
+    """
 
     def __init__(self, key, title, prog, args=[]):
         self.key = key
@@ -536,21 +544,21 @@ class ExternalApp (object):
         self.args = args
 
 
-
 DEFAULT_EXTERNAL_APPS = [
-            ExternalApp("file_launcher", "File Launcher", u""),
-            ExternalApp("web_browser", "Web Browser", u""),
-            ExternalApp("file_explorer", "File Explorer", u""),
-            ExternalApp("text_editor", "Text Editor", u""),
-            ExternalApp("image_editor", "Image Editor", u""),
-            ExternalApp("image_viewer", "Image Viewer", u""),
-            ExternalApp("screen_shot", "Screen Shot", u"")
-            ]
+    ExternalApp("file_launcher", "File Launcher", u""),
+    ExternalApp("web_browser", "Web Browser", u""),
+    ExternalApp("file_explorer", "File Explorer", u""),
+    ExternalApp("text_editor", "Text Editor", u""),
+    ExternalApp("image_editor", "Image Editor", u""),
+    ExternalApp("image_viewer", "Image Viewer", u""),
+    ExternalApp("screen_shot", "Screen Shot", u"")
+]
+
 
 def get_external_app_defaults():
     if get_platform() == "windows":
         files = ensure_unicode(
-            os.environ.get(u"PROGRAMFILES", u"C:\\Program Files"),FS_ENCODING)
+            os.environ.get(u"PROGRAMFILES", u"C:\\Program Files"), FS_ENCODING)
 
         return [
             ExternalApp("file_launcher", "File Launcher", u"explorer.exe"),
@@ -563,7 +571,7 @@ def get_external_app_defaults():
             ExternalApp("image_viewer", "Image Viewer",
                         files + u"\\Internet Explorer\\iexplore.exe"),
             ExternalApp("screen_shot", "Screen Shot", "")
-            ]
+        ]
 
     elif get_platform() == "unix":
         return [
@@ -574,17 +582,15 @@ def get_external_app_defaults():
             ExternalApp("image_editor", "Image Editor", u""),
             ExternalApp("image_viewer", "Image Viewer", u"display"),
             ExternalApp("screen_shot", "Screen Shot", u"import")
-            ]
+        ]
     else:
         return DEFAULT_EXTERNAL_APPS
-        
-
 
 
 class KeepNotePreferences (Pref):
     """Preference data structure for the KeepNote application"""
-    
-    def __init__(self, pref_dir=None):       
+
+    def __init__(self, pref_dir=None):
         Pref.__init__(self)
         if pref_dir is None:
             self._pref_dir = get_user_pref_dir()
@@ -595,17 +601,14 @@ class KeepNotePreferences (Pref):
         self.changed = Listeners()
         #self.changed.add(self._on_changed)
 
-
     def get_pref_dir(self):
         """Returns preference directory"""
         return self._pref_dir
 
-
     #def _on_changed(self):
     #    """Listener for preference changes"""
     #    self.write()
-        
-    
+
     #=========================================
     # Input/Output
 
@@ -619,13 +622,14 @@ class KeepNotePreferences (Pref):
                 init_user_pref_dir(self._pref_dir)
                 self.write()
             except Exception, e:
-                raise KeepNotePreferenceError("Cannot initialize preferences", e)
+                raise KeepNotePreferenceError(
+                    "Cannot initialize preferences", e)
 
         try:
             # read preferences xml
             tree = ET.ElementTree(
                 file=get_user_pref_file(self._pref_dir))
-            
+
             # parse xml
             # check tree structure matches current version
             root = tree.getroot()
@@ -650,20 +654,18 @@ class KeepNotePreferences (Pref):
                 self._data.update(data)
         except Exception, e:
             raise KeepNotePreferenceError("Cannot read preferences", e)
-        
-                
+
         # notify listeners
         self.changed.notify()
 
- 
     def write(self):
-        """Write preferences to file"""        
+        """Write preferences to file"""
 
         try:
             if not os.path.exists(self._pref_dir):
                 init_user_pref_dir(self._pref_dir)
-            
-            out = safefile.open(get_user_pref_file(self._pref_dir), "w", 
+
+            out = safefile.open(get_user_pref_file(self._pref_dir), "w",
                                 codec="utf-8")
             out.write(u'<?xml version="1.0" encoding="UTF-8"?>\n'
                       u'<keepnote>\n'
@@ -671,13 +673,12 @@ class KeepNotePreferences (Pref):
             plist.dump(self._data, out, indent=4, depth=4)
             out.write(u'</pref>\n'
                       u'</keepnote>\n')
-            
+
             out.close()
-                                         
+
         except (IOError, OSError), e:
             log_error(e, sys.exc_info()[2])
             raise NoteBookError(_("Cannot save preferences"), e)
-
 
 
 #=============================================================================
@@ -699,7 +700,7 @@ class ExtensionEntry (object):
 class AppCommand (object):
     """Application Command"""
 
-    def __init__(self, name, func=lambda app, args: None, 
+    def __init__(self, name, func=lambda app, args: None,
                  metavar="", help=""):
         self.name = name
         self.func = func
@@ -710,14 +711,13 @@ class AppCommand (object):
 class KeepNote (object):
     """KeepNote application class"""
 
-    
     def __init__(self, basedir=None):
-        
+
         # base directory of keepnote library
         if basedir is not None:
             set_basedir(basedir)
         self._basedir = BASEDIR
-        
+
         # load application preferences
         self.pref = KeepNotePreferences()
         self.pref.changed.add(self._on_pref_changed)
@@ -727,19 +727,21 @@ class KeepNote (object):
         # list of registered application commands
         self._commands = {}
 
-        # list of opened notebooks        
+        # list of opened notebooks
         self._notebooks = {}
-        self._notebook_count = {} # notebook ref counts
+        self._notebook_count = {}  # notebook ref counts
 
         # default protocols for notebooks
         self._conns = keepnote.notebook.connection.NoteBookConnections()
-        self._conns.add("file", keepnote.notebook.connection.fs.NoteBookConnectionFS)
-        self._conns.add("http", keepnote.notebook.connection.http.NoteBookConnectionHttp)
+        self._conns.add(
+            "file", keepnote.notebook.connection.fs.NoteBookConnectionFS)
+        self._conns.add(
+            "http", keepnote.notebook.connection.http.NoteBookConnectionHttp)
 
         # external apps
         self._external_apps = []
         self._external_apps_lookup = {}
-        
+
         # set of registered extensions for this application
         self._extension_paths = []
         self._extensions = {}
@@ -748,10 +750,9 @@ class KeepNote (object):
         # listeners
         self._listeners = {}
 
-
     def init(self):
         """Initialize from preferences saved on disk"""
-        
+
         # read preferences
         self.pref.read()
         self.load_preferences()
@@ -760,14 +761,13 @@ class KeepNote (object):
         self._extension_paths = [
             (get_system_extensions_dir(), "system"),
             (get_user_extensions_dir(), "user")]
-        
+
         # initialize all extensions
         self.init_extensions()
 
-
     def load_preferences(self):
         """Load information from preferences"""
-        
+
         self.language = self.pref.get("language", default="")
         self.set_lang()
 
@@ -786,19 +786,17 @@ class KeepNote (object):
         # external apps
         self._load_external_app_preferences()
 
-
         # extensions
         self._disabled_extensions = self.pref.get(
             "extension_info", "disabled", default=[])
         self.pref.get("extensions", define=True)
 
-
     def save_preferences(self):
         """Save information into preferences"""
-        
+
         # language
         self.pref.set("language", self.language)
-        
+
         # external apps
         self.pref.set("external_apps", [
             {"key": app.key,
@@ -811,20 +809,17 @@ class KeepNote (object):
         self.pref.set("extension_info", {
             "disabled": self._disabled_extensions[:]
             })
-        
+
         # save to disk
         self.pref.write()
 
-    
     def _on_pref_changed(self):
         """Callback for when application preferences change"""
         self.load_preferences()
-        
 
-    def set_lang(self):                
+    def set_lang(self):
         """Set the language based on preference"""
         keepnote.trans.set_lang(self.language)
-
 
     def error(self, text, error=None, tracebk=None):
         """Display an error message"""
@@ -832,34 +827,30 @@ class KeepNote (object):
         if error is not None:
             keepnote.log_error(error, tracebk)
 
-
     def quit(self):
         """Stop the application"""
-        
+
         if self.pref.get("use_last_notebook", default=False):
-            self.pref.set("default_notebooks", 
-                  [n.get_path() for n in self.iter_notebooks()])
+            self.pref.set("default_notebooks",
+                          [n.get_path() for n in self.iter_notebooks()])
 
         self.save_preferences()
 
-
     def get_default_path(self, name):
         """Returns a default path for saving/reading files"""
-        return self.pref.get("default_paths", name, 
+        return self.pref.get("default_paths", name,
                              default=get_user_documents())
 
-    
     def set_default_path(self, name, path):
         """Sets the default path for saving/reading files"""
         self.pref.set("default_paths", name, path)
-
 
     #==================================
     # Notebooks
 
     def open_notebook(self, filename, window=None, task=None):
         """Open a new notebook"""
-        
+
         try:
             conn = self._conns.get(filename)
             notebook = notebooklib.NoteBook()
@@ -896,11 +887,10 @@ class KeepNote (object):
         """
         pass
 
-
     def get_notebook(self, filename, window=None, task=None):
         """
         Returns a an opened notebook referenced by filename
-        
+
         Open a new notebook if it is not already opened.
         """
 
@@ -923,9 +913,8 @@ class KeepNote (object):
         else:
             notebook = self._notebooks[filename]
             self.ref_notebook(notebook)
-            
-        return notebook
 
+        return notebook
 
     def ref_notebook(self, notebook):
         if notebook not in self._notebook_count:
@@ -933,9 +922,8 @@ class KeepNote (object):
         else:
             self._notebook_count[notebook] += 1
 
-
     def unref_notebook(self, notebook):
-        self._notebook_count[notebook] -= 1 
+        self._notebook_count[notebook] -= 1
 
         # close if refcount is zero
         if self._notebook_count[notebook] == 0:
@@ -944,11 +932,9 @@ class KeepNote (object):
     def has_ref_notebook(self, notebook):
         return notebook in self._notebook_count
 
-
     def iter_notebooks(self):
         """Iterate through open notebooks"""
         return self._notebooks.itervalues()
-
 
     def save_notebooks(self, silent=False):
         """Save all opened notebooks"""
@@ -957,10 +943,9 @@ class KeepNote (object):
         for notebook in self._notebooks.itervalues():
             notebook.save()
 
-
     def get_node(self, nodeid):
         """Returns a node with 'nodeid' from any of the opened notebooks"""
-        
+
         for notebook in self._notebooks.itervalues():
             node = notebook.get_node_by_id(nodeid)
             if node is not None:
@@ -968,15 +953,12 @@ class KeepNote (object):
 
         return None
 
-
-
     def save(self, silent=False):
         """Save notebooks and preferences"""
-        
+
         self.save_notebooks()
 
         self.save_preferences()
-
 
     #================================
     # listeners
@@ -987,21 +969,20 @@ class KeepNote (object):
             listeners = Listeners()
             self._listeners[key] = listeners
         return listeners
-        
 
     #================================
     # external apps
 
     def _load_external_app_preferences(self):
-        
+
         # external apps
         self._external_apps = []
         for app in self.pref.get("external_apps", default=[]):
             if "key" not in app:
                 continue
-            app2 = ExternalApp(app["key"], 
-                               app.get("title", ""), 
-                               app.get("prog", ""), 
+            app2 = ExternalApp(app["key"],
+                               app.get("title", ""),
+                               app.get("prog", ""),
                                app.get("args", ""))
             self._external_apps.append(app2)
 
@@ -1022,7 +1003,6 @@ class KeepNote (object):
         top = len(DEFAULT_EXTERNAL_APPS)
         self._external_apps.sort(key=lambda x: (lookup.get(x.key, top), x.key))
 
-    
     def get_external_app(self, key):
         """Return an external application by its key name"""
         app = self._external_apps_lookup.get(key, None)
@@ -1033,17 +1013,20 @@ class KeepNote (object):
     def iter_external_apps(self):
         return iter(self._external_apps)
 
-    
     def run_external_app(self, app_key, filename, wait=False):
         """Runs a registered external application on a file"""
 
         app = self.get_external_app(app_key)
-        
+
         if app is None or app.prog == "":
             if app:
-                raise KeepNoteError(_("Must specify '%s' program in Helper Applications" % app.title))
+                raise KeepNoteError(
+                    _("Must specify '%s' program in Helper Applications" %
+                      app.title))
             else:
-                raise KeepNoteError(_("Must specify '%s' program in Helper Applications" % app_key))
+                raise KeepNoteError(
+                    _("Must specify '%s' program in Helper Applications" %
+                      app_key))
 
         # build command arguments
         cmd = [app.prog] + app.args
@@ -1053,20 +1036,20 @@ class KeepNote (object):
             for i in xrange(len(cmd)):
                 if cmd[i] == "%f":
                     cmd[i] = filename
-        
+
         # create proper encoding
         cmd = map(lambda x: unicode(x), cmd)
         if get_platform() == "windows":
             cmd = [x.encode('mbcs') for x in cmd]
         else:
             cmd = [x.encode(FS_ENCODING) for x in cmd]
-        
+
         # execute command
         try:
             proc = subprocess.Popen(cmd)
         except OSError, e:
             raise KeepNoteError(
-                _(u"Error occurred while opening file with %s.\n\n" 
+                _(u"Error occurred while opening file with %s.\n\n"
                   u"program: '%s'\n\n"
                   u"file: '%s'\n\n"
                   u"error: %s")
@@ -1078,10 +1061,9 @@ class KeepNote (object):
         if wait:
             return proc.wait()
 
-
     def run_external_app_node(self, app_key, node, kind, wait=False):
         """Runs an external application on a node"""
-        
+
         if kind == "dir":
             filename = node.get_path()
         else:
@@ -1104,13 +1086,11 @@ class KeepNote (object):
 
         self.run_external_app(app_key, filename, wait=wait)
 
-
     def open_webpage(self, url):
         """View a node with an external web browser"""
 
         if url:
             self.run_external_app("web_browser", url)
-          
 
     def take_screenshot(self, filename):
         """Take a screenshot and save it to 'filename'"""
@@ -1121,7 +1101,7 @@ class KeepNote (object):
         if get_platform() == "windows":
             # use win32api to take screenshot
             # create temp file
-            
+
             f, imgfile = tempfile.mkstemp(u".bmp", filename)
             os.close(f)
             mswin.screenshot.take_screenshot(imgfile)
@@ -1129,7 +1109,9 @@ class KeepNote (object):
             # use external app for screen shot
             screenshot = self.get_external_app("screen_shot")
             if screenshot is None or screenshot.prog == "":
-                raise Exception(_("You must specify a Screen Shot program in Application Options"))
+                raise Exception(
+                    _("You must specify a Screen Shot program in "
+                      "Application Options"))
 
             # create temp file
             f, imgfile = tempfile.mkstemp(".png", filename)
@@ -1141,11 +1123,11 @@ class KeepNote (object):
 
         if not os.path.exists(imgfile):
             # catch error if image is not created
-            raise Exception(_("The screenshot program did not create the necessary image file '%s'") % imgfile)
+            raise Exception(
+                _("The screenshot program did not create the necessary "
+                  "image file '%s'") % imgfile)
 
-        return imgfile  
-
-
+        return imgfile
 
     #================================
     # commands
@@ -1157,7 +1139,6 @@ class KeepNote (object):
     def get_commands(self):
         """Returns a list of all registered commands"""
         return self._commands.values()
-
 
     def add_command(self, command):
         """Adds a command to the application"""
@@ -1171,10 +1152,9 @@ class KeepNote (object):
         if command_name in self._commands:
             del self._commands[command_name]
 
-
     #================================
-    # extensions        
-        
+    # extensions
+
     def init_extensions(self):
         """Enable all extensions"""
 
@@ -1182,7 +1162,7 @@ class KeepNote (object):
         self._clear_extensions()
 
         # scan for extensions
-        self._scan_extension_paths()        
+        self._scan_extension_paths()
 
         # import all extensions
         self._import_all_extensions()
@@ -1193,20 +1173,19 @@ class KeepNote (object):
             try:
                 if ext.key not in self._disabled_extensions:
                     log_message(_("enabling extension '%s'\n") % ext.key)
-                    enabled = ext.enable(True)
+                    ext.enable(True)
 
             except extension.DependencyError, e:
                 # could not enable due to failed dependency
                 log_message(_("  skipping extension '%s':\n") % ext.key)
                 for dep in ext.get_depends():
                     if not self.dependency_satisfied(dep):
-                        log_message(_("    failed dependency: %s\n") % 
+                        log_message(_("    failed dependency: %s\n") %
                                     repr(dep))
 
             except Exception, e:
                 # unknown error
                 log_error(e, sys.exc_info()[2])
-
 
     def _clear_extensions(self):
         """Disable and unregister all extensions for the app"""
@@ -1219,34 +1198,30 @@ class KeepNote (object):
         self._extensions = {
             "keepnote": ExtensionEntry("", "system", KeepNoteExtension(self))}
 
-
     def _scan_extension_paths(self):
         """Scan all extension paths"""
-        for path, ext_type in self._extension_paths:         
+        for path, ext_type in self._extension_paths:
             self._scan_extension_path(path, ext_type)
-
 
     def _scan_extension_path(self, extensions_path, ext_type):
         """
         Scan extensions directory and register extensions with app
-        
+
         extensions_path -- path for extensions
         ext_type        -- "user"/"system"
         """
         for filename in extension.scan_extensions_dir(extensions_path):
             self.add_extension(filename, ext_type)
 
-    
     def add_extension(self, filename, ext_type):
-        """Add an extension filename to the app's extension entries"""        
+        """Add an extension filename to the app's extension entries"""
         entry = ExtensionEntry(filename, ext_type, None)
         self._extensions[entry.get_key()] = entry
         return entry
-                
 
     def remove_extension(self, ext_key):
         """Remove an extension entry"""
-        
+
        # retrieve information about extension
         entry = self._extensions.get(ext_key, None)
         if entry:
@@ -1257,42 +1232,37 @@ class KeepNote (object):
             # unregister extension from app
             del self._extensions[ext_key]
 
-
     def get_extension(self, name):
         """Get an extension module by name"""
-        
+
         # return None if extension name is unknown
         if name not in self._extensions:
             return None
-        
+
         # get extension information
         entry = self._extensions[name]
 
         # load if first use
         if entry.ext is None:
             self._import_extension(entry)
-        
-        return entry.ext
 
+        return entry.ext
 
     def get_installed_extensions(self):
         """Iterates through installed extensions"""
         return self._extensions.iterkeys()
 
-    
     def get_imported_extensions(self):
         """Iterates through imported extensions"""
         for entry in self._extensions.values():
             if entry.ext is not None:
                 yield entry.ext
 
-    
     def get_enabled_extensions(self):
         """Iterates through enabled extensions"""
         for ext in self.get_imported_extensions():
             if ext.is_enabled():
                 yield ext
-
 
     def _import_extension(self, entry):
         """Import an extension from an extension entry"""
@@ -1302,12 +1272,11 @@ class KeepNote (object):
         except KeepNotePreferenceError, e:
             log_error(e, sys.exc_info()[2])
             return None
-        
+
         entry.ext.type = entry.ext_type
         entry.ext.enabled.add(
             lambda e: self.on_extension_enabled(entry.ext, e))
         return entry.ext
-
 
     def _import_all_extensions(self):
         """Import all extensions"""
@@ -1316,14 +1285,12 @@ class KeepNote (object):
             if entry.ext is None:
                 self._import_extension(entry)
 
-
     def dependency_satisfied(self, dep):
         """
         Returns True if dependency 'dep' is satisfied by registered extensions
         """
-        ext  = self.get_extension(dep[0])
+        ext = self.get_extension(dep[0])
         return extension.dependency_satisfied(ext, dep)
-
 
     def dependencies_satisfied(self, depends):
         """Returns True if dependencies 'depends' are satisfied"""
@@ -1333,7 +1300,6 @@ class KeepNote (object):
             if ext is None or not extension.dependency_satisfied(ext, dep):
                 return False
         return True
-
 
     def on_extension_enabled(self, ext, enabled):
         """Callback for when extension is enabled"""
@@ -1345,7 +1311,6 @@ class KeepNote (object):
         else:
             if ext.key not in self._disabled_extensions:
                 self._disabled_extensions.append(ext.key)
-    
 
     def install_extension(self, filename):
         """Install a new extension from package 'filename'"""
@@ -1371,7 +1336,7 @@ class KeepNote (object):
                        e, tracebk=sys.exc_info()[2])
 
             # delete newfiles
-            for fn in newfiles:
+            for newfile in newfiles:
                 try:
                     keepnote.log_message(_("removing '%s'") % newfile)
                     os.remove(newfile)
@@ -1380,7 +1345,7 @@ class KeepNote (object):
                     pass
 
             return []
-        
+
         # enable new extensions
         log_message(_("Enabling new extensions:\n"))
         for ext in new_exts:
@@ -1389,15 +1354,15 @@ class KeepNote (object):
 
         return new_exts
 
-
     def uninstall_extension(self, ext_key):
         """Uninstall an extension"""
-        
+
         # retrieve information about extension
         entry = self._extensions.get(ext_key, None)
 
-        if entry is None:            
-            self.error(_("Unable to uninstall unknown extension '%s'.") % ext_key)
+        if entry is None:
+            self.error(
+                _("Unable to uninstall unknown extension '%s'.") % ext_key)
             return False
 
         # cannot uninstall system extensions
@@ -1409,37 +1374,33 @@ class KeepNote (object):
         self.remove_extension(ext_key)
 
         # delete extension from filesystem
-        try:      
+        try:
             shutil.rmtree(entry.filename)
-        except OSError, e:
-            self.error(_("Unable to uninstall extension.  Do not have permission."))
+        except OSError:
+            self.error(
+                _("Unable to uninstall extension.  Do not have permission."))
             return False
 
         return True
 
-
     def can_uninstall(self, ext):
         """Return True if extension can be uninstalled"""
         return ext.type != "system"
-        
 
     def get_extension_base_dir(self, extkey):
         """Get base directory of an extension"""
         return self._extensions[extkey].filename
 
-    
     def get_extension_data_dir(self, extkey):
         """Get the data directory of an extension"""
         return os.path.join(get_user_extensions_data_dir(), extkey)
-
-
 
 
 def unzip(filename, outdir):
     """Unzip an extension"""
 
     extzip = zipfile.ZipFile(filename)
-            
+
     for fn in extzip.namelist():
         if fn.endswith("/") or fn.endswith("\\"):
             # skip directory entries
@@ -1458,7 +1419,6 @@ def unzip(filename, outdir):
             os.makedirs(dirname)
         elif not os.path.isdir(dirname) or os.path.exists(newfilename):
             raise Exception("Cannot unzip.  Other files are in the way")
-
 
         # extract file
         out = open(newfilename, "wb")
@@ -1480,7 +1440,6 @@ class KeepNoteExtension (extension.Extension):
 
     def __init__(self, app):
         extension.Extension.__init__(self, app)
-        
 
     def enable(self, enable):
         """This extension is always enabled"""
@@ -1490,4 +1449,3 @@ class KeepNoteExtension (extension.Extension):
     def get_depends(self):
         """Application has no dependencies, returns []"""
         return []
-

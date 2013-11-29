@@ -1,7 +1,7 @@
 """
 
-    KeepNote    
-    
+    KeepNote
+
     Low-level Create-Read-Update-Delete (CRUD) interface for notebooks.
 
     This module provides a pure-memory implementation of the notebook
@@ -27,12 +27,9 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
-import urlparse
 from StringIO import StringIO
 
 # keepnote imports
-import keepnote
-from keepnote import notebook
 import keepnote.notebook.connection as connlib
 from keepnote.notebook.connection import NoteBookConnection
 
@@ -43,6 +40,7 @@ class Node (object):
     def __init__(self, attr={}):
         self.attr = dict(attr)
         self.files = {}
+
 
 class File (StringIO):
     def close(self):
@@ -64,7 +62,7 @@ class NoteBookConnectionMem (NoteBookConnection):
     def connect(self, url):
         """Make a new connection"""
         pass
-        
+
     def close(self):
         """Close connection"""
         pass
@@ -75,7 +73,7 @@ class NoteBookConnectionMem (NoteBookConnection):
 
     #======================
     # Node I/O API
-    
+
     def create_node(self, nodeid, attr):
         """Create a node"""
         if nodeid in self._nodes:
@@ -83,8 +81,7 @@ class NoteBookConnectionMem (NoteBookConnection):
         if self._rootid is None:
             self._rootid = nodeid
         self._nodes[nodeid] = Node(attr)
-        
-            
+
     def read_node(self, nodeid):
         """Read a node attr"""
         node = self._nodes.get(nodeid)
@@ -110,11 +107,9 @@ class NoteBookConnectionMem (NoteBookConnection):
         """Returns True if node exists"""
         return nodeid in self._nodes
 
-
     def get_rootid(self):
         """Returns nodeid of notebook root node"""
         return self._rootid
-    
 
     #===============
     # file API
@@ -140,7 +135,6 @@ class NoteBookConnectionMem (NoteBookConnection):
             stream.reopen()
         return stream
 
-
     def delete_file(self, nodeid, filename):
         """Delete a file contained within a node"""
         node = self._nodes.get(nodeid)
@@ -158,7 +152,7 @@ class NoteBookConnectionMem (NoteBookConnection):
             raise connlib.UnknownNode()
         if not filename.endswith("/"):
             raise connlib.FileError()
-        node.files[filename] = None        
+        node.files[filename] = None
 
     def list_dir(self, nodeid, filename="/"):
         """
@@ -171,17 +165,17 @@ class NoteBookConnectionMem (NoteBookConnection):
             raise connlib.FileError()
         files = [f for f in node.files.iterkeys()
                  if f.startswith(filename) and f != filename]
-                
+        return files
+
     def has_file(self, nodeid, filename):
         node = self._nodes.get(nodeid)
         if node is None:
             raise connlib.UnknownNode()
         return filename in node.files
 
-
     #---------------------------------
     # indexing
-    
+
     def index(self, query):
 
         # TODO: make this plugable
@@ -195,7 +189,6 @@ class NoteBookConnectionMem (NoteBookConnection):
         # ["node_path", nodeid]
         # ["get_attr", nodeid, key]
 
-
         if query[0] == "index_attr":
             return
 
@@ -203,7 +196,7 @@ class NoteBookConnectionMem (NoteBookConnection):
             assert query[1] == "title"
             return [(nodeid, node.attr["title"])
                     for nodeid, node in self._nodes.iteritems()
-                        if query[2] in node.attr.get("title", "")]
+                    if query[2] in node.attr.get("title", "")]
 
         elif query[0] == "search_fulltext":
             # TODO: could implement brute-force backup
@@ -231,7 +224,7 @@ class NoteBookConnectionMem (NoteBookConnection):
 
         # FS-specific
         elif query[0] == "init":
-            return 
+            return
 
         elif query[0] == "index_needed":
             return False

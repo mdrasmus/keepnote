@@ -81,15 +81,10 @@ UPDATE: Perhaps at this time unmanaged changes to payload files are not
 
 
 # python imports
-import gettext
-import mimetypes
 import os
-import sys
 import shutil
 import re
-import traceback
-from os.path import join, isdir, isfile
-from os import listdir
+from os.path import join
 
 # xml imports
 import xml.etree.cElementTree as ET
@@ -101,7 +96,8 @@ from keepnote import trans
 from keepnote.notebook.connection.fs import index as notebook_index
 from keepnote.notebook.connection import \
     NoteBookConnection, UnknownNode, FileError, UnknownFile, NodeExists, \
-    CorruptIndex, ConnectionError, path_basename
+    ConnectionError
+# path_basename
 import keepnote
 import keepnote.notebook
 
@@ -129,12 +125,15 @@ def get_node_meta_file(nodepath):
     """Returns the metadata file for a node"""
     return os.path.join(nodepath, NODE_META_FILE)
 
+
 def get_pref_file(nodepath):
     """Returns the filename of the notebook preference file"""
     return os.path.join(nodepath, keepnote.notebook.PREF_FILE)
 
+
 def get_lostdir(nodepath):
     return os.path.join(nodepath, NOTEBOOK_META_DIR, LOSTDIR)
+
 
 def get_orphandir(nodepath, nodeid=None):
     if nodeid is not None:
@@ -142,6 +141,7 @@ def get_orphandir(nodepath, nodeid=None):
                             nodeid[:2], nodeid[2:])
     else:
         return os.path.join(nodepath, NOTEBOOK_META_DIR, ORPHANDIR)
+
 
 def path_local2node(filename):
     """
@@ -203,6 +203,7 @@ REGEX_SLASHES = re.compile(ur"[/\\]")
 REGEX_BAD_CHARS = re.compile(ur"[\*\?'&<>|`:;]")
 REGEX_LEADING_UNDERSCORE = re.compile(ur"^__+")
 
+
 def get_valid_filename(filename, default=u"folder",
                        maxlen=MAX_LEN_NODE_FILENAME):
     """
@@ -210,7 +211,6 @@ def get_valid_filename(filename, default=u"folder",
 
     Strips bad characters from filename
     """
-
     filename = filename[:maxlen]
     filename = re.sub(REGEX_SLASHES, u"-", filename)
     filename = re.sub(REGEX_BAD_CHARS, u"", filename)
@@ -228,7 +228,6 @@ def get_valid_filename(filename, default=u"folder",
     filename = filename.lower()
 
     return filename
-
 
 
 def get_valid_unique_filename(path, filename, ext=u"", sep=u" ", number=2,
@@ -258,6 +257,7 @@ def new_filename(conn, nodeid, new_filename, ext=u"", sep=u" ", number=2,
                              use_number=use_number, ensure_valid=ensure_valid,
                              _path=_path)
 
+
 def new_filename_list(filenames, new_filename, ext=u"", sep=u" ", number=2,
                       return_number=False, use_number=False, ensure_valid=True,
                       _path=None):
@@ -282,7 +282,6 @@ def new_filename_list(filenames, new_filename, ext=u"", sep=u" ", number=2,
         return fullname, number
     else:
         return fullname
-
 
 
 #=============================================================================
@@ -347,15 +346,20 @@ def find_node_changes(path, last_mtime):
 
         queue.extend(iter_child_node_paths(path))
 
+
 _mtime_cache = {}
+
+
 def get_path_mtime2(path):
     mtime = _mtime_cache.get(path, None)
     if mtime is None:
         mtime = _mtime_cache[path] = os.stat(path).st_mtime
     return mtime
 
+
 def get_path_mtime(path):
     return os.stat(path).st_mtime
+
 
 def mark_path_outdated(path):
     os.utime(path, None)
@@ -364,14 +368,12 @@ def mark_path_outdated(path):
         del _mtime_cache[path]
 
 
-
 def read_attr(filename):
     """
     Read a node meta data file. Returns an attr dict
 
     filename -- a filename or stream
     """
-
     try:
         tree = ET.ElementTree(file=filename)
     except Exception, e:
@@ -405,7 +407,6 @@ def write_attr(filename, attr):
     filename -- a filename or stream
     attr     -- attribute dict
     """
-
     if isinstance(filename, basestring):
         out = safefile.open(filename, "w", codec="utf-8")
 
@@ -419,7 +420,6 @@ def write_attr(filename, attr):
 
     if isinstance(filename, basestring):
         out.close()
-
 
 
 #=============================================================================
@@ -436,12 +436,10 @@ class PathCacheNode (object):
         self.children_complete = False
 
 
-
 class PathCache (object):
     """
     An in-memory cache of filesystem paths for nodeids
     """
-
     def __init__(self, rootid=None, rootpath=u""):
         self._root_parent = object()
         self._nodes = {None: self._root_parent}
@@ -449,17 +447,14 @@ class PathCache (object):
         if rootid:
             self.add(rootid, rootpath, self._root_parent)
 
-
     def clear(self):
         """Clears cache"""
         self._nodes.clear()
         self._nodes[None] = self._root_parent
 
-
     def has_node(self, nodeid):
         """Returns True if node in cache"""
         return nodeid in self._nodes
-
 
     def get_path_list(self, nodeid):
         """
@@ -483,7 +478,6 @@ class PathCache (object):
         path_list.reverse()
 
         return path_list
-
 
     def get_path(self, nodeid):
         """
@@ -509,7 +503,6 @@ class PathCache (object):
 
         return os.path.join(*path_list)
 
-
     def get_basename(self, nodeid):
         """
         Returns basename of path for a nodeid
@@ -521,7 +514,6 @@ class PathCache (object):
         else:
             return None
 
-
     def get_parentid(self, nodeid):
         """
         Returns parentid of a nodeid
@@ -532,7 +524,6 @@ class PathCache (object):
             return node.parent.nodeid
         else:
             return None
-
 
     def get_children(self, nodeid):
         """
@@ -550,7 +541,6 @@ class PathCache (object):
         if node:
             node.children_complete = complete
 
-
     def add(self, nodeid, basename, parentid):
         """Add a new nodeid, basename, and parentid to the cache"""
 
@@ -564,10 +554,10 @@ class PathCache (object):
             node.parent = parent
             node.basename = basename
         else:
-            node = self._nodes[nodeid] = PathCacheNode(nodeid, basename, parent)
+            node = self._nodes[nodeid] = PathCacheNode(
+                nodeid, basename, parent)
         if parent and parent is not self._root_parent:
             parent.children.add(node)
-
 
     def remove(self, nodeid):
         """Remove a nodeid from the cache"""
@@ -576,7 +566,6 @@ class PathCache (object):
             if node.parent and node.parent is not self._root_parent:
                 node.parent.children.remove(node)
             del self._nodes[nodeid]
-
 
     def move(self, nodeid, new_basename, parentid):
         """move nodeid to a new parent"""
@@ -595,7 +584,6 @@ class PathCache (object):
                 parent.children.add(node)
 
 
-
 class NoteBookConnectionFS (NoteBookConnection):
     def __init__(self):
         NoteBookConnection.__init__(self)
@@ -611,15 +599,12 @@ class NoteBookConnectionFS (NoteBookConnection):
         self._attr_suppress = set(["parentids", "childrenids"])
         self._attr_mask = maskdict.MaskDict({}, self._attr_suppress)
 
-
-
     #================================
     # Filesystem-specific API (may not be supported by some connections)
 
     def get_node_path(self, nodeid):
         """Returns the path of the node"""
         return self._get_node_path(nodeid)
-
 
     def get_node_basename(self, nodeid):
         """Returns the basename of the node"""
@@ -633,7 +618,6 @@ class NoteBookConnectionFS (NoteBookConnection):
             raise UnknownNode(nodeid)
         return basename
 
-
     # TODO: returning a fullpath to a file is not fully portable
     # will eventually need some kind of fetching mechanism
 
@@ -643,13 +627,11 @@ class NoteBookConnectionFS (NoteBookConnection):
         path = self._get_node_path(nodeid) if _path is None else _path
         return get_node_filename(path, filename)
 
-
     #===========================
     # Private path API
 
     def _get_node_path(self, nodeid):
         """Returns the path of the nodeid"""
-
         path = self._path_cache.get_path(nodeid)
 
         if path is None and self._index:
@@ -662,7 +644,6 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         return path
 
-
     def _get_node_name_path(self, nodeid):
         """Returns the path of the nodeid"""
 
@@ -674,11 +655,9 @@ class NoteBookConnectionFS (NoteBookConnection):
             raise UnknownNode(nodeid)
         return path
 
-
     def _get_node_mtime(self, nodeid):
         """mtime (modification time) for nodeid"""
         return os.stat(self._get_node_path(nodeid)).st_mtime
-
 
     def _get_lostdir(self):
         return get_lostdir(self._filename)
@@ -688,7 +667,6 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def _move_to_lostdir(self, filename):
         """Moves a file/dir to the lost_found directory"""
-
         lostdir = self._get_lostdir()
         if not os.path.exists(lostdir):
             os.makedirs(lostdir)
@@ -721,10 +699,8 @@ class NoteBookConnectionFS (NoteBookConnection):
         """Save any unsynced state"""
         self._index.save()
 
-
     #======================
     # Node I/O API
-
 
     def create_node(self, nodeid, attr, _path=None):
         """Create a node"""
@@ -740,7 +716,6 @@ class NoteBookConnectionFS (NoteBookConnection):
             _root = True
         else:
             _root = False
-
 
         # check for existing nodeid
         if self.has_node(nodeid):
@@ -798,9 +773,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         self._index.add_node(nodeid, parentid, basename, attr,
                              mtime=get_path_mtime(path))
 
-
         return nodeid
-
 
     def _init_root(self):
         """Initialize root node"""
@@ -812,7 +785,6 @@ class NoteBookConnectionFS (NoteBookConnection):
         if self._index is None:
             self.init_index()
 
-
         # make lost and found
         lostdir = self._get_lostdir()
         if not os.path.exists(lostdir):
@@ -822,8 +794,6 @@ class NoteBookConnectionFS (NoteBookConnection):
         orphandir = self._get_orphandir()
         if not os.path.exists(orphandir):
             os.makedirs(orphandir)
-
-
 
     def _read_root(self):
         """Read root node attr"""
@@ -835,20 +805,16 @@ class NoteBookConnectionFS (NoteBookConnection):
         self._init_root()
         return attr
 
-
     def read_node(self, nodeid, _force_index=False):
         """Read a node attr"""
-
         path = self._get_node_path(nodeid)
         parentid = self._get_parentid(nodeid)
         return self._read_node(parentid, path, _force_index=_force_index)
-
 
     def has_node(self, nodeid):
         """Returns True if node exists"""
         return (self._path_cache.has_node(nodeid) or
                 (self._index and self._index.has_node(nodeid)))
-
 
     def update_node(self, nodeid, attr):
         """Write node attr"""
@@ -856,16 +822,16 @@ class NoteBookConnectionFS (NoteBookConnection):
         # TODO: support mutltiple parents
 
         # determine if parentid has changed
-        parentid = self._get_parentid(nodeid) # old parent
+        parentid = self._get_parentid(nodeid)  # old parent
 
         if nodeid == self.get_rootid():
             parentid2 = None
         else:
-            parentids2 = attr.get("parentids", ()) # new parent
+            parentids2 = attr.get("parentids", ())  # new parent
             parentid2 = parentids2[0] if parentids2 else None
 
         # determine if title has changed
-        title_index = self._index.get_attr(nodeid, "title") # old title
+        title_index = self._index.get_attr(nodeid, "title")  # old title
 
         # write attrs
         path = self._get_node_path(nodeid)
@@ -884,7 +850,6 @@ class NoteBookConnectionFS (NoteBookConnection):
             basename = os.path.basename(path)
             self._index.add_node(nodeid, parentid2, basename, attr,
                                  mtime=get_path_mtime(path))
-
 
     def _rename_node_dir(self, nodeid, attr, parentid, new_parentid, path):
         """Renames a node directory to resemble attr['title']"""
@@ -919,8 +884,6 @@ class NoteBookConnectionFS (NoteBookConnection):
             self._index.set_node_mtime(
                 new_parentid, get_path_mtime(new_parent_path))
 
-
-
     def delete_node(self, nodeid):
         """Delete node"""
 
@@ -937,14 +900,12 @@ class NoteBookConnectionFS (NoteBookConnection):
         self._path_cache.remove(nodeid)
         self._index.remove_node(nodeid)
 
-
     def get_rootid(self):
         """Returns nodeid of notebook root node"""
         if self._rootid:
             return self._rootid
         else:
             return self._read_root()["nodeid"]
-
 
     def _get_parentid(self, nodeid):
         """Returns nodeid of parent of node"""
@@ -954,7 +915,6 @@ class NoteBookConnectionFS (NoteBookConnection):
             if node and node["parentid"] != keepnote.notebook.UNIVERSAL_ROOT:
                 return node["parentid"]
         return parentid
-
 
     def _list_children_attr(self, nodeid, _path=None, _full=True):
         """List attr of children nodes of nodeid"""
@@ -979,7 +939,6 @@ class NoteBookConnectionFS (NoteBookConnection):
                     # TODO: raise warning, not all children read
 
         self._path_cache.set_children_complete(nodeid, True)
-
 
     def _list_children_nodeids(self, nodeid, _path=None, _index=True):
         """List nodeids of children of node"""
@@ -1007,8 +966,8 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         # fallback to reading attrs of children
         return (attr["nodeid"]
-             for attr in self._list_children_attr(nodeid, _path, _full=False))
-
+                for attr in self._list_children_attr(
+                    nodeid, _path, _full=False))
 
     def _read_node(self, parentid, path, _full=True, _force_index=False):
         """Reads a node from disk"""
@@ -1024,7 +983,6 @@ class NoteBookConnectionFS (NoteBookConnection):
         nodeid = attr["nodeid"]
         basename = os.path.basename(path) if parentid else path
         self._path_cache.add(nodeid, basename, parentid)
-
 
         # check indexing
         if _force_index:
@@ -1046,17 +1004,14 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         return attr
 
-
     def _node_index_current(self, nodeid, path, mtime=None):
         if mtime is None:
             mtime = get_path_mtime(path)
         index_mtime = self._index.get_node_mtime(nodeid)
         return mtime <= index_mtime, mtime
 
-
     def _reindex_node(self, nodeid, parentid, path, attr, mtime, warn=True):
         """Reindex a node that has been tampered"""
-
         if warn:
             keepnote.log_message(
                 u"Unmanaged change detected. Reindexing '%s'\n" % path)
@@ -1065,9 +1020,9 @@ class NoteBookConnectionFS (NoteBookConnection):
         # use 0 for mtime, so that they will still trigger an index for them
         # selves
         # reindex all children in case their parentid's changed
-        for path2 in iter_child_node_paths(path):
-            attr2 = self._read_node(nodeid, path2, _full=False,
-                                    _force_index=True)
+        #for path2 in iter_child_node_paths(path):
+        #    attr2 = self._read_node(nodeid, path2, _full=False,
+        #                            _force_index=True)
             #self._index.add_node(
             #    attr2["nodeid"], nodeid,
             #    os.path.basename(path2), attr2,
@@ -1077,16 +1032,12 @@ class NoteBookConnectionFS (NoteBookConnection):
         self._index.add_node(
             nodeid, parentid, os.path.basename(path), attr, mtime)
 
-
-
     def _get_node_attr_file(self, nodeid, path=None):
         """Returns the meta file for the node"""
         return self.get_file(nodeid, NODE_META_FILE, path)
 
-
     def _write_attr(self, filename, attr):
         """Write a node meta data file"""
-
         self._attr_mask.set_dict(attr)
 
         try:
@@ -1095,15 +1046,11 @@ class NoteBookConnectionFS (NoteBookConnection):
             raise ConnectionError(
                 _("Cannot write meta data" + " " + filename + ":" + str(e)), e)
 
-
     def _read_attr(self, filename, recover=True):
         """Read a node meta data file"""
-
         return read_attr(filename)
 
-
     def _recover_attr(self, filename):
-
         if os.path.exists(filename):
             self._move_to_lostdir(filename)
         try:
@@ -1113,7 +1060,6 @@ class NoteBookConnectionFS (NoteBookConnection):
         except:
             keepnote.log_error(u"failed to recover '%s'" % filename)
             pass
-
 
     def _validate_attr(self, attr):
 
@@ -1125,7 +1071,6 @@ class NoteBookConnectionFS (NoteBookConnection):
         # TODO: ensure no duplicated nodeid's
 
         return True
-
 
     #===============
     # file API
@@ -1149,7 +1094,8 @@ class NoteBookConnectionFS (NoteBookConnection):
             stream = safefile.open(fullname, mode + "b", codec=codec)
         except Exception, e:
             raise FileError(
-                "cannot open file '%s' '%s': %s" % (nodeid, filename, str(e)), e)
+                "cannot open file '%s' '%s': %s" %
+                (nodeid, filename, str(e)), e)
 
         # TODO: this should check and update the mtime
         # but only update if it was previously consistent (before the open)
@@ -1158,7 +1104,6 @@ class NoteBookConnectionFS (NoteBookConnection):
             self._index.set_node_mtime(nodeid, os.stat(path).st_mtime)
 
         return stream
-
 
     def delete_file(self, nodeid, filename, _path=None):
         """Delete a node file"""
@@ -1176,7 +1121,6 @@ class NoteBookConnectionFS (NoteBookConnection):
         except Exception, e:
             raise FileError("error deleting file '%s' '%s'" %
                             (nodeid, filename), e)
-
 
     def move_file(self, nodeid1, filename1, nodeid2, filename2,
                   _path1=None, _path2=None):
@@ -1200,7 +1144,6 @@ class NoteBookConnectionFS (NoteBookConnection):
             raise FileError("could not move file '%s' '%s'" %
                             (nodeid1, filename1), e)
 
-
     def list_dir(self, nodeid, filename="/", _path=None):
         """
         List data files in node
@@ -1214,11 +1157,12 @@ class NoteBookConnectionFS (NoteBookConnection):
         try:
             filenames = os.listdir(path)
         except:
-            raise UnknownFile("cannot file file '%s' '%s'" % (nodeid, filename))
+            raise UnknownFile("cannot file file '%s' '%s'" %
+                              (nodeid, filename))
 
         for filename in filenames:
             if (filename != NODE_META_FILE and
-                not filename.startswith("__")):
+                    not filename.startswith("__")):
                 fullname = os.path.join(path, filename)
                 if not os.path.exists(get_node_meta_file(fullname)):
                     # ensure directory is not a node
@@ -1227,7 +1171,6 @@ class NoteBookConnectionFS (NoteBookConnection):
                         yield filename + "/"
                     else:
                         yield filename
-
 
     def create_dir(self, nodeid, filename, _path=None):
         """
@@ -1247,7 +1190,6 @@ class NoteBookConnectionFS (NoteBookConnection):
             raise FileError(
                 "cannot create dir '%s' '%s'" % (nodeid, filename), e)
 
-
     def has_file(self, nodeid, filename, _path=None):
         path = self._get_node_path(nodeid) if _path is None else _path
 
@@ -1255,7 +1197,6 @@ class NoteBookConnectionFS (NoteBookConnection):
             return os.path.isdir(get_node_filename(path, filename))
         else:
             return os.path.isfile(get_node_filename(path, filename))
-
 
     def copy_file(self, nodeid1, filename1, nodeid2, filename2,
                   _path1=None, _path2=None):
@@ -1306,7 +1247,6 @@ class NoteBookConnectionFS (NoteBookConnection):
         if os.path.exists(os.path.dirname(fn)):
             self._index = notebook_index.NoteBookIndex(self, fn)
 
-
     def index_needed(self):
         return self._index.index_needed()
 
@@ -1354,7 +1294,6 @@ class NoteBookConnectionFS (NoteBookConnection):
         else:
             return NoteBookConnection.index(self, query)
 
-
     def index_attr(self, key, datatype, index_value=False):
 
         if isinstance(datatype, basestring):
@@ -1368,10 +1307,8 @@ class NoteBookConnectionFS (NoteBookConnection):
         else:
             raise Exception("unknown attr datatype '%s'" % repr(datatype))
 
-
         self._index.add_attr(notebook_index.AttrIndex(key, index_type,
                                                       index_value=index_value))
-
 
     def search_node_titles(self, text):
         """Search nodes by title"""
@@ -1380,7 +1317,6 @@ class NoteBookConnectionFS (NoteBookConnection):
     def search_node_contents(self, text):
         """Search nodes by content"""
         return self._index.search_contents(text)
-
 
     def has_fulltext_search(self):
         return self._index.has_fulltext_search()
@@ -1392,12 +1328,8 @@ class NoteBookConnectionFS (NoteBookConnection):
         """Lookup node by nodeid"""
         return self._index.get_node_path(nodeid)
 
-
     def get_attr_by_id(self, nodeid, key):
         return self._index.get_attr(nodeid, key)
-
-
-
 
 
 # TODO: need to keep namespace of files and node directories spearate.
@@ -1446,5 +1378,3 @@ Looking for filename on disk:
 node directories aren't allowed to start with '_'.
 
 """
-
-

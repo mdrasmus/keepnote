@@ -84,11 +84,9 @@ class LinkedTreeNode (object):
             return self._prev
         else:
             return None
-            
 
     def append_child(self, child):
         """Append child to end of sibling list"""
-
         if self._child is None:
             # add first child
             self._child = child
@@ -105,7 +103,6 @@ class LinkedTreeNode (object):
 
     def prepend_child(self, child):
         """Prepend child to begining of sibling list"""
-
         if self._child is None:
             # add first child
             self._child = child
@@ -115,7 +112,7 @@ class LinkedTreeNode (object):
             # prepend to begining of sibling list
             first = self._child
             child._next = first
-            child._prev = first._prev            
+            child._prev = first._prev
             first._prev = child
             self._child = child
 
@@ -126,10 +123,8 @@ class LinkedTreeNode (object):
         assert child._parent is self
         self.child.remove()
 
-
     def replace_child(self, old_child, new_child):
         """Replace the old_child with a new_child"""
-
         assert old_child._parent == self
 
         # set parent child link
@@ -152,18 +147,14 @@ class LinkedTreeNode (object):
         else:
             # notify first child
             new_child._parent._child._prev = new_child
-        
-        
 
         # clear old links
         old_child._next = None
         old_child._prev = None
         old_child._parent = None
 
-
     def insert_before(self, child, new_child):
         """Insert new_child before child"""
-
         new_child._prev = child._prev
         if self._child != child:
             child._prev._next = new_child
@@ -172,12 +163,10 @@ class LinkedTreeNode (object):
         child._prev = new_child
         new_child._next = child
         new_child._parent = self
-        
-    
 
     def remove(self):
         """Remove from parent"""
-        
+
         if self._next:
             # setup next sibling
             self._next._prev = self._prev
@@ -195,6 +184,3 @@ class LinkedTreeNode (object):
         self._parent = None
         self._next = None
         self._prev = None
-    
-        
-

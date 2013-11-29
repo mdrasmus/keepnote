@@ -5,7 +5,6 @@
 
 """
 
-
 #
 #  KeepNote
 #  Copyright (c) 2008-2009 Matt Rasmussen
@@ -25,9 +24,8 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
-
-import sys, threading
-
+import sys
+import threading
 
 from keepnote import listening
 
@@ -50,7 +48,7 @@ class Task (object):
         self._exc_info = (None, None, None)
         self._aborted = False
         self._proc = None
-        
+
         self.change_event = listening.Listeners()
 
     def lock(self):
@@ -58,7 +56,6 @@ class Task (object):
 
     def unlock(self):
         self._lock.release()
-        
 
     def set_result(self, result):
         #self._lock.acquire()
@@ -67,13 +64,11 @@ class Task (object):
 
         self.change_event.notify()
 
-
     def get_result(self):
         #self._lock.acquire()
         r = self._result
         #self._lock.release()
         return r
-    
 
     def set_percent(self, percent):
         #self._lock.acquire()
@@ -84,18 +79,17 @@ class Task (object):
 
     def get_percent(self):
         return self._percent
-    
 
     def set_message(self, message):
         #self._lock.acquire()
-        self._messages.append(message)        
+        self._messages.append(message)
         #self._lock.release()
 
         self.change_event.notify()
 
     def get_messages(self, clear=True):
         #self._lock.acquire()
-        
+
         #messages = list(self._messages)
         #if clear:
         #    self._messages = []
@@ -104,7 +98,7 @@ class Task (object):
             self._messages = []
         else:
             messages = list(messages)
-            
+
         #self._lock.release()
         return messages
 
@@ -113,7 +107,6 @@ class Task (object):
         e = self._exc_info
         #self._lock.release()
         return e
-    
 
     def run(self, new_thread=True):
         self._lock.acquire()
@@ -131,28 +124,25 @@ class Task (object):
                 if self._autofinish:
                     self.finish()
                 return
-        
+
         self._lock.release()
 
         if self._proc:
             self._proc.start()
 
-
     def join(self):
         if self._proc:
             self._proc.join()
-            
 
     def _new_thread(self):
-        try:            
+        try:
             self._func(self)
             if self._autofinish:
                 self.finish()
-            
-        except Exception, e:
+
+        except Exception:
             self.set_exc_info()
             self.change_event.notify()
-
 
     def stop(self):
         """Request that the task be stopped"""
@@ -169,7 +159,7 @@ class Task (object):
         #self._lock.acquire()
         self._state = STOPPED
         #self._lock.release()
-        
+
         self.change_event.notify()
 
     def is_stopped(self):
@@ -195,7 +185,6 @@ class Task (object):
         a = self._aborted
         #self._lock.release()
         return a
-
 
     def set_exc_info(self, exc_info=None):
         self._lock.acquire()

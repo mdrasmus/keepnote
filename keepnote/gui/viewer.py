@@ -24,32 +24,21 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
-
 # python imports
-import gettext
-import os
-import subprocess
-import traceback
 import uuid
-
 
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
-from gtk import gdk
 import gtk
 import gobject
 
-
 # keepnote imports
 import keepnote
-from keepnote import KeepNoteError
 from keepnote.history import NodeHistory
 from keepnote import notebook as notebooklib
-from keepnote.gui.treemodel import iter_children
 
 _ = keepnote.translate
-
 
 
 class Viewer (gtk.VBox):
@@ -60,13 +49,12 @@ class Viewer (gtk.VBox):
         self._main_window = parent
         self._viewerid = viewerid if viewerid else unicode(uuid.uuid4())
         self._viewer_name = viewer_name
-        
+
         self._notebook = None
         self._history = NodeHistory()
 
         # register viewer
         self._main_window.add_viewer(self)
-        
 
     def get_id(self):
         return self._viewerid
@@ -88,7 +76,7 @@ class Viewer (gtk.VBox):
     def close_notebook(self, notebook):
         if notebook == self.get_notebook():
             self.set_notebook(None)
-    
+
     def load_preferences(self, app_pref, first_open):
         pass
 
@@ -137,13 +125,11 @@ class Viewer (gtk.VBox):
 
         return node
 
-
     def goto_node(self, node, direct=False):
         pass
 
     def visit_history(self, offset):
         """Visit a node in the viewer's history"""
-        
         nodeid = self._history.move(offset)
         if nodeid is None:
             return
@@ -153,11 +139,10 @@ class Viewer (gtk.VBox):
             self.goto_node(node, False)
             self._history.end_suspend()
 
-
     #===============================================
     # search
 
-    def start_search_result(self):        
+    def start_search_result(self):
         pass
 
     def add_search_result(self, node):
@@ -165,7 +150,6 @@ class Viewer (gtk.VBox):
 
     def end_search_result(self):
         pass
-
 
     #================================================
     # UI management
@@ -177,20 +161,16 @@ class Viewer (gtk.VBox):
         pass
 
 
-
-
-
 gobject.type_register(Viewer)
-gobject.signal_new("error", Viewer, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (str, object))
-gobject.signal_new("status", Viewer, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (str, str))
-gobject.signal_new("history-changed", Viewer, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object,))
-gobject.signal_new("window-request", Viewer, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (str,))
-gobject.signal_new("modified", Viewer, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (bool,))
-gobject.signal_new("current-node", Viewer, gobject.SIGNAL_RUN_LAST, 
-    gobject.TYPE_NONE, (object,))
-
+gobject.signal_new("error", Viewer, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, (str, object))
+gobject.signal_new("status", Viewer, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, (str, str))
+gobject.signal_new("history-changed", Viewer, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, (object,))
+gobject.signal_new("window-request", Viewer, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, (str,))
+gobject.signal_new("modified", Viewer, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, (bool,))
+gobject.signal_new("current-node", Viewer, gobject.SIGNAL_RUN_LAST,
+                   gobject.TYPE_NONE, (object,))

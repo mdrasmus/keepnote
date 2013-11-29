@@ -8,7 +8,6 @@
 
 """
 
-
 #
 #  KeepNote
 #  Copyright (c) 2008-2009 Matt Rasmussen
@@ -28,17 +27,14 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
-
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
-from gtk import gdk
-import gtk.glade
-import gobject
 
 # keepnote imports
 import keepnote
 from keepnote.gui.editor import KeepNoteEditor
+
 
 _ = keepnote.translate
 
@@ -57,16 +53,15 @@ class MultiEditor (KeepNoteEditor):
         self._editor = None
         self._window = None
 
-        self._signals = ["view-node", 
-                         "visit-node", 
-                         "modified", 
-                         "font-change", 
-                         "error", 
-                         "child-activated", 
-                         "window-request", 
+        self._signals = ["view-node",
+                         "visit-node",
+                         "modified",
+                         "font-change",
+                         "error",
+                         "child-activated",
+                         "window-request",
                          "make-link"]
         self._signal_ids = []
-
 
     def set_editor(self, editor):
         """Set the current child editor"""
@@ -74,7 +69,7 @@ class MultiEditor (KeepNoteEditor):
         # do nothing if editor is already set
         if editor == self._editor:
             return
-        
+
         # tear down old editor, if it exists
         if self._editor:
             self._editor.view_nodes([])
@@ -98,11 +93,9 @@ class MultiEditor (KeepNoteEditor):
             self._editor.load_preferences(self._app.pref)
             self._editor.view_nodes(self._nodes)
 
-
     def get_editor(self):
         """Get the current child editor"""
         return self._editor
-
 
     def _connect_signals(self, editor):
         """Connect all signals for child editor"""
@@ -112,14 +105,12 @@ class MultiEditor (KeepNoteEditor):
         for sig in self._signals:
             self._signal_ids.append(
                 editor.connect(sig, make_callback(sig)))
-    
 
     def _disconnect_signals(self, editor):
         """Disconnect al signals for child editor"""
         for sigid in self._signal_ids:
             editor.disconnect(sigid)
         self._signal_ids = []
-
 
     #========================================
     # Editor Interface
@@ -135,7 +126,7 @@ class MultiEditor (KeepNoteEditor):
         if self._editor:
             return self._editor.get_textview()
         return None
-        
+
     def is_focus(self):
         """Return True if text editor has focus"""
         if self._editor:
@@ -151,19 +142,18 @@ class MultiEditor (KeepNoteEditor):
         """Clear editor view"""
         if self._editor:
             return self._editor.clear_view()
-    
+
     def view_nodes(self, nodes):
         """View a page in the editor"""
         self._nodes = nodes[:]
         if self._editor:
             return self._editor.view_nodes(nodes)
-    
+
     def save(self):
         """Save the loaded node"""
         if self._editor:
             return self._editor.save()
 
-        
     def save_needed(self):
         """Returns True if textview is modified"""
         if self._editor:
@@ -174,13 +164,11 @@ class MultiEditor (KeepNoteEditor):
         """Load application preferences"""
         if self._editor:
             return self._editor.load_preferences(app_pref, first_open)
-        
 
     def save_preferences(self, app_pref):
         """Save application preferences"""
         if self._editor:
             return self._editor.save_preferences(app_pref)
-        
 
     def add_ui(self, window):
         """Add editor UI to window"""
@@ -188,13 +176,12 @@ class MultiEditor (KeepNoteEditor):
         if self._editor:
             return self._editor.add_ui(window)
 
-
     def remove_ui(self, window):
         """Remove editor from UI"""
         self._window = None
         if self._editor:
             return self._editor.remove_ui(window)
-                         
+
     def undo(self):
         """Undo last editor action"""
         if self._editor:
@@ -213,10 +200,9 @@ class ContentEditor (MultiEditor):
 
     def __init__(self, app):
         MultiEditor.__init__(self, app)
-        
+
         self._editors = {}
         self._default_editor = None
-
 
     def add_editor(self, content_type, editor):
         """Add an editor for a content-type"""
@@ -253,4 +239,3 @@ class ContentEditor (MultiEditor):
                 self.set_editor(self._default_editor)
 
             MultiEditor.view_nodes(self, nodes)
-
