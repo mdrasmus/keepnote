@@ -1,5 +1,6 @@
 
 # python imports
+import os
 import unittest
 
 from testing import clean_dir, makedirs
@@ -10,20 +11,25 @@ import keepnote.notebook.connection as connlib
 import keepnote.notebook.sync as sync
 
 
+# root path for test data
+_datapath = os.path.join(
+    os.path.dirname(__file__), "tmp/notebook_sync")
+
+
 class Sync (unittest.TestCase):
 
     def test_sync(self):
 
         # initialize two notebooks
-        clean_dir("test/tmp/notebook_sync/n1")
-        clean_dir("test/tmp/notebook_sync/n2")
-        makedirs("test/tmp/notebook_sync")
+        clean_dir(_datapath + "/n1")
+        clean_dir(_datapath + "/n2")
+        makedirs(_datapath)
 
         notebook1 = notebook.NoteBook()
-        notebook1.create("test/tmp/notebook_sync/n1")
+        notebook1.create(_datapath + "/n1")
 
         notebook2 = notebook.NoteBook()
-        notebook2.create("test/tmp/notebook_sync/n2")
+        notebook2.create(_datapath + "/n2")
 
         print list(notebook1.list_dir())
 
@@ -80,15 +86,15 @@ class Sync (unittest.TestCase):
     def test_files(self):
 
         # initialize two notebooks
-        clean_dir("test/tmp/notebook_sync/n1")
-        clean_dir("test/tmp/notebook_sync/n2")
-        makedirs("test/tmp/notebook_sync")
+        clean_dir(_datapath + "/n1")
+        clean_dir(_datapath + "/n2")
+        makedirs(_datapath)
 
         notebook1 = notebook.NoteBook()
-        notebook1.create("test/tmp/notebook_sync/n1")
+        notebook1.create(_datapath + "/n1")
 
         notebook2 = notebook.NoteBook()
-        notebook2.create("test/tmp/notebook_sync/n2")
+        notebook2.create(_datapath + "/n2")
 
         # create a new node in notebook1 with several files
         n = notebook1.new_child("text/html", "node1")

@@ -25,6 +25,7 @@
 #
 
 # python imports
+from itertools import chain
 import mimetypes
 import os
 import sys
@@ -64,11 +65,12 @@ _ = trans.translate
 # NOTE: the <?xml ?> header is left off to keep it compatiable with IE,
 # for the time being.
 # constants
-BLANK_NOTE = u"""\
+NOTE_HEADER = u"""\
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" """ + """\
 "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"><body></body></html>
-"""
+<html xmlns="http://www.w3.org/1999/xhtml"><body>"""
+NOTE_FOOTER = u"</body></html>"
+BLANK_NOTE = NOTE_HEADER + NOTE_FOOTER
 
 
 NOTEBOOK_FORMAT_VERSION = 6

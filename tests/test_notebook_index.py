@@ -1,28 +1,110 @@
+# -*- coding: utf-8 -*-
+
 import os
 import unittest
+from StringIO import StringIO
+import sqlite3 as sqlite
+import sys
+import threading
+import time
+import traceback
 
 # keepnote imports
-from keepnote import notebook, safefile
+from keepnote import notebook
+from keepnote import safefile
+
+from testing import clean_dir
 
 
 # test notebook
 _notebook_file = os.path.join(
-    os.path.dirname(__file__), "../test/data/notebook")
+    os.path.dirname(__file__), "tmp/notebook")
+
+
+def write_content(page, text):
+    with page.open_file(notebook.PAGE_DATA_FILE, 'w') as out:
+        out.write(notebook.NOTE_HEADER)
+        out.write(text)
+        out.write(notebook.NOTE_FOOTER)
+
+    # Trigger re-indexing of full text.
+    page.save(True)
 
 
 class Index (unittest.TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
+
+        # Create a simple notebook to test against.
+        clean_dir(_notebook_file)
+        cls._notebook = book = notebook.NoteBook()
+        book.create(_notebook_file)
+
+        # create simple nodes
+        page1 = notebook.new_page(book, 'Page 1')
+        pagea = notebook.new_page(page1, 'Page A')
+        write_content(pagea, 'hello world')
+        pageb = notebook.new_page(page1, 'Page B')
+        write_content(pageb, 'why hello, what is new?')
+        pagec = notebook.new_page(page1, 'Page C')
+        write_content(pageb, 'brand new world')
+
+        pagex = notebook.new_page(pageb, 'Page X')
+        cls._pagex_nodeid = pagex.get_attr('nodeid')
+
+        page2 = notebook.new_page(book, 'Page 2')
+
+        page3 = notebook.new_page(book, 'Page 3')
+        book.close()
+
+    @classmethod
+    def tearDownClass(cls):
         pass
 
-    def test_node_url(self):
+    def test_read_data_as_plain_text(self):
+        infile = StringIO(
+            '<html><body>\n'
+            'hello there<br>\n'
+            'how are you\n'
+            '</body></html>')
+        expected = ['\n', 'hello there\n', 'how are you\n', '']
+        self.assertEqual(list(notebook.read_data_as_plain_text(infile)),
+                         expected)
 
-        self.assertEqual(notebook.is_node_url(
-            "nbk:///0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"), True)
-        self.assertEqual(
-            notebook.is_node_url("nbk://bad_url"), False)
-        self.assertEqual(notebook.is_node_url(
-            "http:///0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"), False)
+        # </body> on same line as text
+        infile = StringIO(
+            '<html><body>\n'
+            'hello there<br>\n'
+            'how are you</body></html>')
+        expected = ['\n', 'hello there\n', 'how are you']
+        self.assertEqual(list(notebook.read_data_as_plain_text(infile)),
+                         expected)
+
+        # <body> on same line as text
+        infile = StringIO(
+            '<html><body>hello there<br>\n'
+            'how are you\n'
+            '</body></html>')
+        expected = ['hello there\n', 'how are you\n', '']
+        self.assertEqual(list(notebook.read_data_as_plain_text(infile)),
+                         expected)
+
+        # <body> and </body> on same line as text
+        infile = StringIO(
+            '<html><body>hello there</body></html>')
+        expected = ['hello there']
+        self.assertEqual(list(notebook.read_data_as_plain_text(infile)),
+                         expected)
+
+    def test_node_url(self):
+        """Node URL API."""
+        self.assertTrue(notebook.is_node_url(
+            "nbk:///0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"))
+        self.assertFalse(
+            notebook.is_node_url("nbk://bad_url"))
+        self.assertFalse(notebook.is_node_url(
+            "http:///0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"))
 
         host, nodeid = notebook.parse_node_url(
             "nbk:///0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6")
@@ -34,196 +116,128 @@ class Index (unittest.TestCase):
         self.assertEqual(host, "host")
         self.assertEqual(nodeid, "0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6")
 
-    def _test_notebook_lookup_node(self):
-
-        nodeid = "0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"
-        path = os.path.join(_notebook_file, "stress tests")
-
+    def test_get_node_by_id(self):
+        """Get a Node by its nodeid."""
         book = notebook.NoteBook()
         book.load(_notebook_file)
 
-        path2 = book.get_node_path_by_id(nodeid)
-        print path2
-        self.assertEqual(path, path2)
+        node = book.get_node_by_id(self._pagex_nodeid)
+        self.assertEqual(node.get_title(), 'Page X')
         book.close()
 
-        book2 = notebook.NoteBook()
-        book2.load(_notebook_file)
-
-        path2 = book2.get_node_path_by_id(nodeid)
-        self.assertEqual(path, path2)
-        book2.close()
-
-    '''
-    def test_notebook_move_deja_vu(self):
-
+    def test_notebook_search_titles(self):
+        """Search notebook titles."""
         book = notebook.NoteBook()
-        book.load("test/data/notebook")
+        book.load(_notebook_file)
 
-        # get the page u"Deja vu")
-        nodeids = book.search_node_titles(u"vu")
-        print nodeids
-        nodea = book.get_node_by_id(nodeids[0][0])
+        results = book.search_node_titles("Page X")
+        self.assertTrue(self._pagex_nodeid in
+                        (nodeid for nodeid, title in results))
 
-        nodeids = book.search_node_titles("e")
-        nodeb = book.get_node_by_id(nodeids[0][0])
-
-        print
-        print nodea.get_path()
-        print nodeb.get_path()
-        parenta = nodea.get_parent()
-
-        nodea.move(nodeb)
-
-        print "new path:", nodea.get_path()
-        nodea.move(parenta)
-        print "back path:", nodea.get_path()
+        results = book.search_node_titles("Page")
+        self.assertTrue(len(results) >= 7)
 
         book.close()
 
-    def test_notebook_title(self):
-
+    def test_index_all(self):
+        """Reindex all nodes in notebook."""
         book = notebook.NoteBook()
-        book.load("test/data/notebook")
+        book.load(_notebook_file)
 
-        print book.search_node_titles("STRESS")
-        print book.search_node_titles("aaa")
-
-        self.assert_(len(book.search_node_titles("STRESS")) > 0)
-
-    def test_notebook_threads(self):
-
-        test = self
-
-        print
-        book = notebook.NoteBook()
-        book.load("test/data/notebook")
-        book.save()
-
-        class Task (threading.Thread):
-
-            def run(self):
-                try:
-                    print "loading..."
-
-                    nodeid = "0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"
-                    path = book.get_node_path_by_id(nodeid)
-                    print "path:", path
-                    test.assertEqual(
-                        path,
-                        os.path.join("test/data/notebook", "stress tests"))
-                    #book.save()
-
-                except Exception, e:
-                    print "ERROR:"
-                    traceback.print_exception(type(e), e, sys.exc_info()[2])
-                    raise e
-
-        task = Task()
-        task.start()
-        task.join()
-
-        book.save()
-        book.close()
-
-    def test_notebook_threads2(self):
-
-        test = self
-        error = False
-
-        print
-        book = notebook.NoteBook()
-        book.load("test/data/notebook")
-        book.save()
-
-        nodeid = "0841d4cc-2605-4fbb-9b3a-db5d4aeed7a6"
-
-        def walk(node):
-            for child in node.get_children():
-                walk(child)
-
-
-        class Task (threading.Thread):
-
-            def run(self):
-                try:
-                    print "loading..."
-                    #node = book.get_node_by_id(nodeid)
-                    walk(book)
-
-                except Exception, e:
-                    error = True
-                    print "ERROR:"
-                    traceback.print_exception(type(e), e, sys.exc_info()[2])
-                    raise e
-
-        #node = book.get_node_by_id(nodeid)
-
-        task = Task()
-        task.start()
-        task.join()
-
-        walk(book)
+        for node in book.index_all():
+            print node
 
         book.close()
-
-        self.assert_(not error)
 
     def test_fts3(self):
-
-        import sqlite3 as sqlite
-
-        print sqlite.sqlite_version
-
+        """Ensure full-text search is available."""
         con = sqlite.connect(":memory:")
         con.execute("CREATE VIRTUAL TABLE email USING fts3(content TEXT);")
 
         con.execute("INSERT INTO email VALUES ('hello there how are you');")
         con.execute("INSERT INTO email VALUES ('this is tastier');")
 
-        print list(
-            con.execute("SELECT * FROM email WHERE content MATCH 'tast*';"))
+        self.assertTrue(len(list(
+            con.execute("SELECT * FROM email WHERE content MATCH 'tast*';"))))
 
     def test_fulltext(self):
-
-        import sqlite3 as sqlite
-
-        print sqlite.sqlite_version
-
-        con = sqlite.connect(":memory:")
-        con.execute("""CREATE VIRTUAL TABLE notes USING
-                     fts3(nodeid TEXT, content TEXT);""")
-
+        """Full-text search notebook."""
         book = notebook.NoteBook()
-        book.load("test/data/notebook")
+        book.load(_notebook_file)
 
-        def walk(node):
+        # TODO: the comma on "hello," prevents it from being indexed.
+        # See how to change that by striping puncuation.
+        results = list(book.search_node_contents('hello'))
+        self.assertTrue(len(results))
 
-            if node.get_attr("content_type") == notebook.CONTENT_TYPE_PAGE:
-                text = "".join(
-                    notebook.read_data_as_plain_text(
-                        safefile.open(node.get_data_file(), codec="utf-8")))
-
-                con.execute("INSERT INTO notes VALUES (?, ?)",
-                            (node.get_attr("nodeid"), text))
-
-            for child in node.get_children():
-                walk(child)
-
-        walk(book)
-
-        print list(con.execute(
-            "SELECT nodeid FROM notes WHERE content MATCH '*hello*';"))
+        results = list(book.search_node_contents('world'))
+        self.assertTrue(len(results) == 2)
 
         book.close()
 
-    def test_concurrent(self):
+    def test_notebook_threads(self):
+        """Access a notebook in another thread"""
+        test = self
 
+        book = notebook.NoteBook()
+        book.load(_notebook_file)
+
+        class Task (threading.Thread):
+            def run(self):
+                try:
+                    results = list(book.search_node_contents('world'))
+                    test.assertTrue(len(results) == 2)
+                except Exception as e:
+                    traceback.print_exception(*sys.exc_info())
+                    raise e
+
+        task = Task()
+        task.start()
+        task.join()
+
+        book.close()
+
+    def test_notebook_threads2(self):
+        """"""
+        test = self
+        error = False
+
+        print
+        book = notebook.NoteBook()
+        book.load(_notebook_file)
+
+        def process(book, name):
+            for i in range(100):
+                print i, name
+                results = list(book.search_node_contents('world'))
+                test.assertTrue(len(results) == 2)
+                time.sleep(.001)
+
+        class Task (threading.Thread):
+            def run(self):
+                try:
+                    process(book, 'B')
+                except Exception, e:
+                    error = True
+                    traceback.print_exception(type(e), e, sys.exc_info()[2])
+                    raise e
+
+        task = Task()
+        task.start()
+        process(book, 'A')
+        task.join()
+
+        book.close()
+
+        self.assertFalse(error)
+
+    def _test_concurrent(self):
+        """Open a notebook twice."""
         book1 = notebook.NoteBook()
-        book1.load("test/data/notebook")
+        book1.load(_notebook_file)
 
-        book2= notebook.NoteBook()
-        book2.load("test/data/notebook")
+        book2 = notebook.NoteBook()
+        book2.load(_notebook_file)
 
         print list(book1.iter_attr())
         print list(book2.iter_attr())
@@ -231,13 +245,23 @@ class Index (unittest.TestCase):
         book1.close()
         book2.close()
 
-    def test_index_all(self):
-
+    def test_create_unicode_node(self):
+        """Create a node with a unicode title."""
         book = notebook.NoteBook()
-        book.load("test/data/notebook")
+        book.load(_notebook_file)
+        deja = notebook.new_page(book, u'Déjà vu')
+        book.close()
 
-        for node in book.index_all():
-            print node
+    def test_notebook_move_deja_vu(self):
+        """Move a unicode titled node."""
+        book = notebook.NoteBook()
+        book.load(_notebook_file)
+
+        deja = notebook.new_page(book, u'Déjà vu again')
+        nodex = book.get_node_by_id(self._pagex_nodeid)
+        deja.move(nodex)
+
+        # clean up.
+        deja.delete()
 
         book.close()
-    '''
