@@ -1,14 +1,13 @@
 
 # python imports
-import os, sys, shutil
+import unittest
 
-from testing import *
+from testing import clean_dir, makedirs
 
 # keepnote imports
-from keepnote import notebook, safefile
+from keepnote import notebook
 import keepnote.notebook.connection as connlib
 import keepnote.notebook.sync as sync
-
 
 
 class Sync (unittest.TestCase):
@@ -49,7 +48,6 @@ class Sync (unittest.TestCase):
         print attr
         self.assert_(attr is not None)
 
-
         # rename node and increase modified time
         # transfer should detect conflict and use newer node
         attr["title"] = "node2"
@@ -65,7 +63,6 @@ class Sync (unittest.TestCase):
         attr = notebook2._conn.read_node(n.get_attr("nodeid"))
         self.assert_(attr["title"] == "node2")
 
-
         # rename node and decrease modified time
         # transfer should detect conflict and reject transfer
         attr["title"] = "node3"
@@ -79,7 +76,6 @@ class Sync (unittest.TestCase):
         attr = notebook2._conn.read_node(n.get_attr("nodeid"))
         self.assert_(attr["title"] == "node2")
         notebook2.close()
-
 
     def test_files(self):
 
@@ -105,6 +101,7 @@ class Sync (unittest.TestCase):
 
         # list files
         nodeid = n.get_attr("nodeid")
+        self.assertTrue(nodeid)
         files = set(u"file" + str(i) for i in range(5))
         files.add(u"dir/")
         self.assertEqual(set(n.list_dir()),

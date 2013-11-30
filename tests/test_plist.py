@@ -1,9 +1,7 @@
 #!/usr/bin/env python
 
-import sys
 from StringIO import StringIO
 import unittest
-import xml.etree.ElementTree as ET
 
 from keepnote import plist
 
@@ -14,7 +12,8 @@ class PListTest(unittest.TestCase):
             'aaa': 444,
             '11': True,
         }
-        plist_xml = """<dict><key>aaa</key><integer>444</integer><key>11</key><true/></dict>"""
+        plist_xml = ("<dict><key>aaa</key><integer>444</integer>"
+                     "<key>11</key><true/></dict>")
 
         elm = plist.load(StringIO(plist_xml))
         self.assertEqual(elm, data)

@@ -1,10 +1,7 @@
 # python imports
-import os, sys, shutil
-
-from testing import *
+import unittest
 
 # keepnote imports
-from keepnote import notebook, safefile
 import keepnote.notebook.connection as connlib
 
 

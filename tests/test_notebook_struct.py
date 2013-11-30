@@ -1,16 +1,13 @@
 
-
-
-from tests.testing import *
-
 # python imports
-import unittest, os, sys, shutil, time
+import unittest
+import os
 
 # keepnote imports
-from keepnote import notebook, safefile
-import keepnote.notebook.connection as connlib
+from keepnote import notebook
 import keepnote.notebook.connection.fs as fs
 from keepnote.notebook import new_nodeid
+from testing import make_clean_dir, clean_dir
 
 
 def display_notebook(node, depth=0):
@@ -36,7 +33,6 @@ class Test (unittest.TestCase):
                   ["b", ["b1"], ["b2",
                                  ["c1"], ["c2"]]]]
 
-
         # initialize a notebook
         make_clean_dir("test/tmp/notebook_struct")
 
@@ -45,7 +41,8 @@ class Test (unittest.TestCase):
         book.create("test/tmp/notebook_struct/n1")
         make_notebook(book, struct)
 
-        c1id = book.get_children()[1].get_children()[1].get_children()[0]
+        self.assertTrue(
+            book.get_children()[1].get_children()[1].get_children()[0])
 
         book.close()
 
@@ -60,14 +57,11 @@ class Test (unittest.TestCase):
         display_notebook(book)
         book.close()
 
-
-
     def test_rename(self):
 
         struct = [["a", ["a1"], ["a2"], ["a3"]],
                   ["b", ["b1"], ["b2",
                                  ["c1"], ["c2"]]]]
-
 
         # initialize a notebook
         make_clean_dir("test/tmp/notebook_struct")
@@ -82,21 +76,17 @@ class Test (unittest.TestCase):
 
         book.close()
 
-
         print "load"
         book = notebook.NoteBook()
         book.load("test/tmp/notebook_struct/n1")
         display_notebook(book)
         book.close()
 
-
-
     def test_random_access(self):
 
         struct = [["a", ["a1"], ["a2"], ["a3"]],
                   ["b", ["b1"], ["b2",
                                  ["c1"], ["c2"]]]]
-
 
         # initialize a notebook
         make_clean_dir("test/tmp/notebook_struct")
@@ -106,7 +96,8 @@ class Test (unittest.TestCase):
         book.create("test/tmp/notebook_struct/n1")
         make_notebook(book, struct)
 
-        c1id = book.get_children()[1].get_children()[1].get_children()[0].get_attr("nodeid")
+        c1id = (book.get_children()[1]
+                .get_children()[1].get_children()[0].get_attr("nodeid"))
 
         book.close()
 
@@ -119,10 +110,7 @@ class Test (unittest.TestCase):
 
         book.close()
 
-
-
     def test_orphans(self):
-
 
         clean_dir("test/tmp/conn")
 
@@ -133,7 +121,6 @@ class Test (unittest.TestCase):
         conn.create_node(rootid, {"nodeid": rootid,
                                   "parentids": [],
                                   "key": 12})
-
 
         # check orphan dir
         assert os.path.exists("test/tmp/conn/__NOTEBOOK__/orphans")
@@ -159,7 +146,6 @@ class Test (unittest.TestCase):
         print open("test/tmp/conn/__NOTEBOOK__/orphans/%s/%s/node.xml"
                    % (nodeid[:2], nodeid[2:])).read()
 
-
         # move orphan out of orphandir
         attr["parentids"] = [rootid]
         conn.update_node(nodeid, attr)
@@ -168,7 +154,6 @@ class Test (unittest.TestCase):
         # check orphan node dir is gone
         assert not os.path.exists("test/tmp/conn/__NOTEBOOK__/orphans/%s/%s"
                                   % (nodeid[:2], nodeid[2:]))
-
 
         # move node into orphandir
         attr["parentids"] = []

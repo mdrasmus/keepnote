@@ -1,5 +1,6 @@
-import os, shutil, unittest, codecs
-
+import os
+import shutil
+import unittest
 
 from keepnote import safefile
 
@@ -8,16 +9,15 @@ def mk_clean_dir(dirname):
     if os.path.exists(dirname):
         shutil.rmtree(dirname)
     os.makedirs(dirname)
-    
+
 
 class TestCaseSafeFile (unittest.TestCase):
-    
-    def setUp(self):      
+
+    def setUp(self):
 
         for f in os.listdir("test/tmp"):
             if f.startswith("safefile"):
                 os.remove(os.path.join("test/tmp", f))
-
 
     def test1(self):
         """test successful write"""
@@ -26,7 +26,7 @@ class TestCaseSafeFile (unittest.TestCase):
 
         out = safefile.open(filename, "w", codec="utf-8")
         tmp = out.get_tempfile()
-        
+
         out.write(u"\u2022 hello\n")
         out.write(u"there")
         out.close()
@@ -34,7 +34,6 @@ class TestCaseSafeFile (unittest.TestCase):
         self.assertEquals(safefile.open(filename, codec="utf-8").read(),
                           u"\u2022 hello\nthere")
         self.assertEquals(os.path.exists(tmp), False)
-
 
     def test2(self):
         """test unsuccessful write"""
@@ -57,7 +56,6 @@ class TestCaseSafeFile (unittest.TestCase):
         self.assertEquals(safefile.open(filename, codec="utf-8").read(),
                           u"\u2022 hello\nthere")
         self.assertEquals(os.path.exists(out.get_tempfile()), True)
-
 
     def test3(self):
 
@@ -82,7 +80,7 @@ class TestCaseSafeFile (unittest.TestCase):
     def test4(self):
 
         filename = "test/tmp/safefile"
-        
+
         out = safefile.open(filename, "w", codec="utf-8")
 
         out.writelines([u"\u2022 hello\n",
@@ -95,9 +93,3 @@ class TestCaseSafeFile (unittest.TestCase):
         self.assertEquals(lines, [u"\u2022 hello\n",
                                   u"there\n",
                                   u"again\n"])
-
-
-
-if __name__ == "__main__":
-    unittest.main()
-

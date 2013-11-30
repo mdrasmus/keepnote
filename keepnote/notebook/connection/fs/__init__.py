@@ -94,6 +94,8 @@ import xml.etree.cElementTree as ET
 from keepnote import safefile, plist, maskdict
 from keepnote import trans
 from keepnote.notebook.connection.fs import index as notebook_index
+from keepnote.notebook.connection.index import AttrIndex
+
 from keepnote.notebook.connection import \
     NoteBookConnection, UnknownNode, FileError, UnknownFile, NodeExists, \
     ConnectionError
@@ -1307,8 +1309,8 @@ class NoteBookConnectionFS (NoteBookConnection):
         else:
             raise Exception("unknown attr datatype '%s'" % repr(datatype))
 
-        self._index.add_attr(notebook_index.AttrIndex(key, index_type,
-                                                      index_value=index_value))
+        self._index.add_attr(AttrIndex(key, index_type,
+                                       index_value=index_value))
 
     def search_node_titles(self, text):
         """Search nodes by title"""

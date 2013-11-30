@@ -27,6 +27,10 @@ WININSTALLER=dist/$(WININSTALLER_FILE)
 # files to upload
 UPLOAD_FILES=$(SDIST) $(RPM) $(DEB) $(EBUILD) $(WININSTALLER)
 
+CODEQUALITY_FILES=\
+	keepnote/*.py \
+	keepnote/gui \
+	tests
 
 TMP_FILES=MANIFEST
 
@@ -70,8 +74,8 @@ clean:
 	rm -rf $(TMP_FILES) $(UPLOAD_FILES) $(WINDIR) $(WININSTALLER_SRC)
 
 cq:
-	pep8 keepnote/*.py keepnote/gui | grep -v tarfile || true
-	pyflakes keepnote/*.py keepnote/gui | grep -v tarfile || true
+	pep8 $(CODEQUALITY_FILES) | grep -v tarfile || true
+	pyflakes $(CODEQUALITY_FILES) | grep -v tarfile || true
 
 # show makefile actions
 help:
