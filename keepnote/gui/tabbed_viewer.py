@@ -299,7 +299,7 @@ class TabbedViewer (Viewer):
 
         for tab in tabs:
             # TODO: add check for unknown type
-            viewer_type = self._viewer_lookup.get(tab.get("viewer_type", ""))
+            viewer_type = self._viewer_lookup.get1(tab.get("viewer_type", ""))
             viewer = self._current_viewer
 
             if viewer.get_notebook() or type(viewer) != viewer_type:

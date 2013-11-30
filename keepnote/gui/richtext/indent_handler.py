@@ -28,13 +28,9 @@ from .textbuffer_tools import \
     move_to_start_of_line, \
     move_to_end_of_line, \
     paragraph_iter
-
-from .richtext_tags import \
-    RichTextIndentTag
-
-from .richtextbasebuffer import \
-    get_paragraph, \
-    get_paragraphs_selected
+from .richtext_tags import RichTextIndentTag
+from .richtextbasebuffer import get_paragraph
+from textbuffer_tools import get_paragraphs_selected
 
 
 # string for bullet points
