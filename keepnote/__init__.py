@@ -392,7 +392,6 @@ def get_user_lock_file(pref_dir=None, home=None):
 
 def get_user_error_log(pref_dir=None, home=None):
     """Returns a file for the error log"""
-
     if pref_dir is None:
         pref_dir = get_user_pref_dir(home)
     return os.path.join(pref_dir, USER_ERROR_LOG)
@@ -590,10 +589,10 @@ def get_external_app_defaults():
 class KeepNotePreferences (Pref):
     """Preference data structure for the KeepNote application"""
 
-    def __init__(self, pref_dir=None):
+    def __init__(self, pref_dir=None, home=None):
         Pref.__init__(self)
         if pref_dir is None:
-            self._pref_dir = get_user_pref_dir()
+            self._pref_dir = get_user_pref_dir(home)
         else:
             self._pref_dir = pref_dir
 
@@ -711,7 +710,7 @@ class AppCommand (object):
 class KeepNote (object):
     """KeepNote application class"""
 
-    def __init__(self, basedir=None):
+    def __init__(self, basedir=None, pref_dir=None):
 
         # base directory of keepnote library
         if basedir is not None:
@@ -719,7 +718,7 @@ class KeepNote (object):
         self._basedir = BASEDIR
 
         # load application preferences
-        self.pref = KeepNotePreferences()
+        self.pref = KeepNotePreferences(pref_dir)
         self.pref.changed.add(self._on_pref_changed)
 
         self.id = None
@@ -760,7 +759,7 @@ class KeepNote (object):
         # init extension paths
         self._extension_paths = [
             (get_system_extensions_dir(), "system"),
-            (get_user_extensions_dir(), "user")]
+            (get_user_extensions_dir(self.get_pref_dir()), "user")]
 
         # initialize all extensions
         self.init_extensions()
@@ -844,6 +843,9 @@ class KeepNote (object):
     def set_default_path(self, name, path):
         """Sets the default path for saving/reading files"""
         self.pref.set("default_paths", name, path)
+
+    def get_pref_dir(self):
+        return self.pref.get_pref_dir()
 
     #==================================
     # Notebooks
@@ -1315,7 +1317,9 @@ class KeepNote (object):
     def install_extension(self, filename):
         """Install a new extension from package 'filename'"""
 
-        userdir = get_user_extensions_dir()
+        log_message(_("Installing extension '%s'\n") % filename)
+
+        userdir = get_user_extensions_dir(self.get_pref_dir())
 
         newfiles = []
         try:
@@ -1338,7 +1342,7 @@ class KeepNote (object):
             # delete newfiles
             for newfile in newfiles:
                 try:
-                    keepnote.log_message(_("removing '%s'") % newfile)
+                    keepnote.log_message(_("Removing file '%s'") % newfile)
                     os.remove(newfile)
                 except:
                     # delete may fail, continue
@@ -1393,7 +1397,8 @@ class KeepNote (object):
 
     def get_extension_data_dir(self, extkey):
         """Get the data directory of an extension"""
-        return os.path.join(get_user_extensions_data_dir(), extkey)
+        return os.path.join(
+            get_user_extensions_data_dir(self.get_pref_dir()), extkey)
 
 
 def unzip(filename, outdir):

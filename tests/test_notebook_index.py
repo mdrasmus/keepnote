@@ -11,7 +11,6 @@ import traceback
 
 # keepnote imports
 from keepnote import notebook
-from keepnote import safefile
 
 from testing import clean_dir
 
@@ -48,14 +47,14 @@ class Index (unittest.TestCase):
         pageb = notebook.new_page(page1, 'Page B')
         write_content(pageb, 'why hello, what is new?')
         pagec = notebook.new_page(page1, 'Page C')
-        write_content(pageb, 'brand new world')
+        write_content(pagec, 'brand new world')
 
         pagex = notebook.new_page(pageb, 'Page X')
         cls._pagex_nodeid = pagex.get_attr('nodeid')
 
-        page2 = notebook.new_page(book, 'Page 2')
+        notebook.new_page(book, 'Page 2')
 
-        page3 = notebook.new_page(book, 'Page 3')
+        notebook.new_page(book, 'Page 3')
         book.close()
 
     @classmethod
@@ -165,10 +164,8 @@ class Index (unittest.TestCase):
         book = notebook.NoteBook()
         book.load(_notebook_file)
 
-        # TODO: the comma on "hello," prevents it from being indexed.
-        # See how to change that by striping puncuation.
         results = list(book.search_node_contents('hello'))
-        self.assertTrue(len(results))
+        self.assertTrue(len(results) == 2)
 
         results = list(book.search_node_contents('world'))
         self.assertTrue(len(results) == 2)
@@ -200,7 +197,7 @@ class Index (unittest.TestCase):
     def test_notebook_threads2(self):
         """"""
         test = self
-        error = False
+        error = [False]
 
         print
         book = notebook.NoteBook()
@@ -218,7 +215,7 @@ class Index (unittest.TestCase):
                 try:
                     process(book, 'B')
                 except Exception, e:
-                    error = True
+                    error[0] = True
                     traceback.print_exception(type(e), e, sys.exc_info()[2])
                     raise e
 
@@ -229,7 +226,7 @@ class Index (unittest.TestCase):
 
         book.close()
 
-        self.assertFalse(error)
+        self.assertFalse(error[0])
 
     def _test_concurrent(self):
         """Open a notebook twice."""
@@ -249,7 +246,7 @@ class Index (unittest.TestCase):
         """Create a node with a unicode title."""
         book = notebook.NoteBook()
         book.load(_notebook_file)
-        deja = notebook.new_page(book, u'Déjà vu')
+        notebook.new_page(book, u'Déjà vu')
         book.close()
 
     def test_notebook_move_deja_vu(self):

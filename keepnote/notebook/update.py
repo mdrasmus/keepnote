@@ -53,10 +53,11 @@ def update_notebook(filename,
 
         # upgrade 2 --> 3
         elif version == 2:
-            from keepnote.compat import notebook_v2 as old_notebooklib
+            from keepnote.compat import notebook_v2
+            from keepnote.compat import notebook_v3
 
             # try to load old notebook (may raise exceptions)
-            notebook = old_notebooklib.NoteBook()
+            notebook = notebook_v2.NoteBook()
             notebook.load(filename)
 
             # write new notebook preference file
@@ -80,9 +81,9 @@ def update_notebook(filename,
 
             version = notebook.pref.version
 
-            # verify notebook updated successfully
+            # verify notebook updated successfully by walking all nodes.
             if verify:
-                notebook = notebooklib.NoteBook()
+                notebook = notebook_v3.NoteBook()
                 notebook.load(filename)
 
                 def walk(node):
@@ -93,26 +94,30 @@ def update_notebook(filename,
 
         # upgrade 3 --> 4
         elif version == 3:
-            from keepnote.compat import notebook_v3 as old_notebooklib
+            from keepnote.compat import notebook_v3
 
             # try to load old notebook (may raise exceptions)
-            notebook = old_notebooklib.NoteBook()
+            notebook = notebook_v3.NoteBook()
             notebook.load(filename)
             notebook.pref.version = 4
+
+            # Clear out old index.
             index_file = os.path.join(notebook.get_pref_dir(), "index.sqlite")
             if os.path.exists(index_file):
                 os.remove(index_file)
-            old_notebooklib.write_new_preferences(notebook.pref,
-                                                  notebook.get_pref_file())
+
+            # Write new preferences.
+            notebook_v3.write_new_preferences(notebook.pref,
+                                              notebook.get_pref_file())
             notebook.close()
             version = 4
 
         # upgrade 4 --> 5
         elif version == 4:
-            from keepnote.compat import notebook_v4 as old_notebooklib
+            from keepnote.compat import notebook_v4
 
             # try to load old notebook (may raise exceptions)
-            notebook = old_notebooklib.NoteBook()
+            notebook = notebook_v4.NoteBook()
             notebook.load(filename)
             notebook.pref.set("version", 5)
             notebook.save(force=True)

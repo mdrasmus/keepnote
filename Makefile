@@ -30,7 +30,7 @@ UPLOAD_FILES=$(SDIST) $(RPM) $(DEB) $(EBUILD) $(WININSTALLER)
 CODEQUALITY_FILES=\
 	keepnote/*.py \
 	keepnote/gui \
-	tests
+	tests/*.py
 
 TMP_FILES=MANIFEST
 
@@ -46,6 +46,10 @@ WWW=/var/www/dev/rasm/keepnote
 
 #=============================================================================
 # linux build
+
+.PHONY: all sdist rpm deb ebuild clean cq test help share \
+	winebuild wineinstaller winclean contribs \
+	pypi upload upload-test upload-contrib
 
 all: $(UPLOAD_FILES)
 
@@ -76,6 +80,9 @@ clean:
 cq:
 	pep8 $(CODEQUALITY_FILES) | grep -v tarfile || true
 	pyflakes $(CODEQUALITY_FILES) | grep -v tarfile || true
+
+test:
+	nosetests -sv tests
 
 # show makefile actions
 help:
@@ -122,7 +129,6 @@ contribs:
 pypi:
 	$(PYTHON) setup.py register
 
-
 upload: $(UPLOAD_FILES)
 	cp $(UPLOAD_FILES) $(WWW)/download
 	tar zxv -C $(WWW)/download \
@@ -130,7 +136,6 @@ upload: $(UPLOAD_FILES)
 
 upload-test: $(UPLOAD_FILES)
 	cp $(UPLOAD_FILES) $(WWW)/download-test
-
 
 upload-contrib:
 	make -C contrib upload
