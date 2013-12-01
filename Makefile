@@ -30,7 +30,8 @@ UPLOAD_FILES=$(SDIST) $(RPM) $(DEB) $(EBUILD) $(WININSTALLER)
 CODEQUALITY_FILES=\
 	keepnote/*.py \
 	keepnote/gui \
-	tests/*.py
+	tests/*.py \
+	tests/gui/*.py
 
 TMP_FILES=MANIFEST
 

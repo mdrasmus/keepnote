@@ -7,12 +7,12 @@ import os
 from keepnote import notebook
 import keepnote.notebook.connection.fs as fs
 from keepnote.notebook import new_nodeid
-from testing import make_clean_dir, clean_dir
+
+from . import make_clean_dir, clean_dir, TMP_DIR
 
 
 # root path for test data
-_datapath = os.path.join(
-    os.path.dirname(__file__), "tmp/notebook_struct")
+_datapath = os.path.join(TMP_DIR, 'notebook_struct')
 
 
 def display_notebook(node, depth=0):

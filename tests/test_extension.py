@@ -5,15 +5,13 @@ import unittest
 import keepnote
 from keepnote import extension
 
-from .testing import clean_dir
+from . import clean_dir, DATA_DIR, TMP_DIR
 
 
 # paths
-_testpath = os.path.dirname(__file__)
-_datapath = os.path.join(_testpath, 'data')
-_tmppath = os.path.join(_testpath, 'tmp', 'extension')
+_tmppath = os.path.join(TMP_DIR, 'extension')
 _home = os.path.join(_tmppath, 'home')
-_extension_file = os.path.join(_datapath, 'test_extension.kne')
+_extension_file = os.path.join(DATA_DIR, 'test_extension.kne')
 _pref_dir = os.path.join(_home, '.config', 'keepnote')
 
 

@@ -12,18 +12,14 @@ from keepnote.compat import notebook_v4
 from keepnote import notebook
 from keepnote.notebook import update
 
-from testing import clean_dir
-
-
-_tmppath = os.path.join(os.path.dirname(__file__), 'tmp')
-_datapath = os.path.join(os.path.dirname(__file__), 'data')
+from . import clean_dir, TMP_DIR, DATA_DIR
 
 
 def setup_old_notebook(old_version, new_version):
 
     # Setup paths.
-    old_notebook_filename = _datapath + "/notebook-v%s" % old_version
-    new_notebook_filename = _tmppath + "/notebook-v%s-update" % new_version
+    old_notebook_filename = DATA_DIR + "/notebook-v%s" % old_version
+    new_notebook_filename = TMP_DIR + "/notebook-v%s-update" % new_version
 
     # make copy of old notebook
     clean_dir(new_notebook_filename)

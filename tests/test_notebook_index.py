@@ -12,12 +12,11 @@ import traceback
 # keepnote imports
 from keepnote import notebook
 
-from testing import clean_dir
+from . import clean_dir, TMP_DIR
 
 
 # test notebook
-_notebook_file = os.path.join(
-    os.path.dirname(__file__), "tmp/notebook")
+_notebook_file = os.path.join(TMP_DIR, "notebook")
 
 
 def write_content(page, text):

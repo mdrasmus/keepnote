@@ -3,17 +3,16 @@
 import os
 import unittest
 
-from testing import clean_dir, makedirs
-
 # keepnote imports
 from keepnote import notebook
 import keepnote.notebook.connection as connlib
 import keepnote.notebook.sync as sync
 
+from . import clean_dir, makedirs, TMP_DIR
+
 
 # root path for test data
-_datapath = os.path.join(
-    os.path.dirname(__file__), "tmp/notebook_sync")
+_datapath = os.path.join(TMP_DIR, 'notebook_sync')
 
 
 class Sync (unittest.TestCase):

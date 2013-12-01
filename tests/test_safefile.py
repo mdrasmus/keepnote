@@ -1,28 +1,22 @@
-import os
-import shutil
 import unittest
 
 from keepnote import safefile
 
+from . import make_clean_dir, TMP_DIR
 
-def mk_clean_dir(dirname):
-    if os.path.exists(dirname):
-        shutil.rmtree(dirname)
-    os.makedirs(dirname)
+
+_tmpdir = os.path.join(TMP_DIR, 'safefile')
 
 
 class TestCaseSafeFile (unittest.TestCase):
 
     def setUp(self):
-
-        for f in os.listdir("test/tmp"):
-            if f.startswith("safefile"):
-                os.remove(os.path.join("test/tmp", f))
+        make_clean_dir(_tmpdir)
 
     def test1(self):
         """test successful write"""
 
-        filename = "test/tmp/safefile"
+        filename = _tmpdir + "/safefile"
 
         out = safefile.open(filename, "w", codec="utf-8")
         tmp = out.get_tempfile()
@@ -38,7 +32,7 @@ class TestCaseSafeFile (unittest.TestCase):
     def test2(self):
         """test unsuccessful write"""
 
-        filename = "test/tmp/safefile"
+        filename = _tmpdir + "/safefile"
 
         # make file
         self.test1()
@@ -59,7 +53,7 @@ class TestCaseSafeFile (unittest.TestCase):
 
     def test3(self):
 
-        filename = "test/tmp/safefile"
+        filename = _tmpdir + "/safefile"
 
         out = safefile.open(filename, "w", codec="utf-8")
         out.write(u"\u2022 hello\nthere\nagain\n")
@@ -79,7 +73,7 @@ class TestCaseSafeFile (unittest.TestCase):
 
     def test4(self):
 
-        filename = "test/tmp/safefile"
+        filename = _tmpdir + "/safefile"
 
         out = safefile.open(filename, "w", codec="utf-8")
 
