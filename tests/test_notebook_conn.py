@@ -13,6 +13,179 @@ from . import clean_dir, TMP_DIR
 _tmpdir = TMP_DIR + '/notebook_conn/'
 
 
+class ConnBase (unittest.TestCase):
+
+    def _test_api(self, conn):
+        self._test_nodes(conn)
+        self._test_files(conn)
+
+    def _test_nodes(self, conn):
+
+        self._test_create_read_node(conn)
+        self._test_update_node(conn)
+        self._test_delete_node(conn)
+        self._test_unknown_node(conn)
+
+    def _test_create_read_node(self, conn):
+
+        attrs = [
+            # Basic types.
+            {
+                'key1': 1,
+                'key2': 2.0,
+                'key3': '3',
+                'key4': True,
+                'key5': None,
+            },
+
+            # Empty attributes.
+            {},
+
+            # Complex attributes.
+            {
+                'a list': [1, 2, 'x'],
+                'a dict': {
+                    'a': 1,
+                    'bb': 2,
+                    'cc': 4.0,
+                },
+            },
+        ]
+
+        for i, attr in enumerate(attrs):
+            nodeid = 'create%d' % i
+            conn.create_node(nodeid, attr)
+
+            # Node should now exist.
+            self.assertTrue(conn.has_node(nodeid))
+
+            # Read a node back.  It should match the stored data.
+            attr2 = conn.read_node(nodeid)
+            self.assertEqual(attr, attr2)
+
+        # Double create should fail.
+        conn.create_node('double_create', {})
+        self.assertRaises(connlib.NodeExists,
+                          lambda: conn.create_node('double_create', {}))
+
+    def _test_unknown_node(self, conn):
+
+        self.assertRaises(connlib.UnknownNode, lambda:
+                          conn.read_node('unknown_node'))
+        self.assertRaises(connlib.UnknownNode,
+                          lambda: conn.update_node('unknown_node', {}))
+        self.assertRaises(connlib.UnknownNode,
+                          lambda: conn.delete_node('unknown_node'))
+
+
+    def _test_update_node(self, conn):
+        # Create node.
+        attr = {
+            'key1': 1,
+            'key2': 2.0,
+            'key3': '3',
+            'key4': True,
+            'key5': None,
+        }
+        conn.create_node('node2', attr)
+
+        # Update a node.
+        attr['key2'] = 5.0
+        conn.update_node('node2', attr)
+
+        # Read a node back.  It should match the stored data.
+        attr2 = conn.read_node('node2')
+        self.assertEqual(attr, attr2)
+
+    def _test_delete_node(self, conn):
+        # Create node.
+        attr = {
+            'key1': 1,
+            'key2': 2.0,
+            'key3': '3',
+            'key4': True,
+            'key5': None,
+        }
+        conn.create_node('node3', attr)
+        self.assertTrue(conn.has_node('node3'))
+
+        # Delete node.
+        conn.delete_node('node3')
+        self.assertFalse(conn.has_node('node3'))
+        self.assertRaises(connlib.UnknownNode,
+                          lambda: conn.read_node('node3'))
+
+    def _test_files(self, conn):
+
+        # Create empty node.
+        if conn.has_node('node1'):
+            conn.delete_node('node1')
+        conn.create_node('node1', {})
+
+        # Write file.
+        data = 'hello world'
+        with conn.open_file('node1', 'file1', 'w') as out:
+            out.write(data)
+
+        # Read file.
+        with conn.open_file('node1', 'file1') as infile:
+            self.assertEqual(infile.read(), data)
+
+        # Write file inside directory.
+        data2 = 'another hello world'
+        with conn.open_file('node1', 'dir1/file1', 'w') as out:
+            out.write(data2)
+
+        # Read file inside a directory.
+        with conn.open_file('node1', 'dir1/file1') as infile:
+            self.assertEqual(infile.read(), data2)
+
+        # Delete a file.
+        conn.delete_file('node1', 'dir1/file1')
+        self.assertFalse(conn.has_file('node1', 'dir1/file1'))
+
+        # Delete a directory.
+        self.assertTrue(conn.has_file('node1', 'dir1/'))
+        conn.delete_file('node1', 'dir1/')
+        self.assertFalse(conn.has_file('node1', 'dir1/'))
+
+        # Delete a non-empty directory.
+        conn.open_file('node1', 'dir3/dir/file1', 'w').close()
+        self.assertTrue(conn.has_file('node1', 'dir3/dir/file1'))
+        conn.delete_file('node1', 'dir3/')
+        self.assertFalse(conn.has_file('node1', 'dir3/'))
+
+        # Create a directory.
+        conn.create_dir('node1', 'new dir/')
+
+        # Require trailing / for directories.
+        # Do not allow trailing / for files.
+        self.assertRaises(fs.FileError, lambda:
+                          conn.create_dir('node1', 'bad dir'))
+        self.assertRaises(fs.FileError, lambda:
+                          conn.open_file('node1', 'bad file/', 'w'))
+
+        # Rename file.
+        conn.move_file('node1', 'file1', 'node1', 'file2')
+        self.assertFalse(conn.has_file('node1', 'file1'))
+        self.assertTrue(conn.has_file('node1', 'file2'))
+
+        # Move a file.
+        if conn.has_node('node2'):
+            conn.delete_node('node2')
+        conn.create_node('node2', {})
+        conn.move_file('node1', 'file2', 'node2', 'file2')
+        self.assertFalse(conn.has_file('node1', 'file2'))
+        self.assertTrue(conn.has_file('node2', 'file2'))
+
+        # Copy a file.
+        conn.copy_file('node2', 'file2', 'node1', 'copied-file')
+        self.assertTrue(conn.has_file('node2', 'file2'))
+        self.assertTrue(conn.has_file('node1', 'copied-file'))
+        self.assertEqual(conn.open_file('node1', 'copied-file').read(),
+                         data)
+
+
 class Conn (unittest.TestCase):
 
     def test_basename(self):
@@ -35,6 +208,8 @@ class Conn (unittest.TestCase):
         self.assertEqual(connlib.path_basename("aaa/"), "aaa")
         self.assertEqual(connlib.path_basename(""), "")
         self.assertEqual(connlib.path_basename("/"), "")
+
+class ConnFS (ConnBase):
 
     def test_fs_orphan(self):
         """Test orphan node directory names"""

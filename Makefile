@@ -83,7 +83,7 @@ cq:
 	pyflakes $(CODEQUALITY_FILES) | grep -v tarfile || true
 
 test:
-	nosetests -sv tests
+	nosetests -sv tests/*.py
 
 # show makefile actions
 help:

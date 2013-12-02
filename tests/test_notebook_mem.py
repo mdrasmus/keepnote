@@ -8,6 +8,8 @@ from StringIO import StringIO
 from keepnote import notebook
 from keepnote.notebook.connection import mem
 
+from .test_notebook_conn import ConnBase
+
 
 def display_notebook(node, depth=0, out=sys.stdout):
     print >>out, " " * depth + node.get_attr("title")
@@ -15,7 +17,14 @@ def display_notebook(node, depth=0, out=sys.stdout):
         display_notebook(child, depth+2, out)
 
 
-class Mem (unittest.TestCase):
+class Mem (ConnBase):
+
+    def test_api(self):
+
+        # initialize a notebook
+        conn = mem.NoteBookConnectionMem()
+        self._test_api(conn)
+
 
     def test_struct(self):
 

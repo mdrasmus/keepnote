@@ -50,6 +50,12 @@ class File (StringIO):
         self.closed = False
         self.seek(0)
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
 
 class NoteBookConnectionMem (NoteBookConnection):
     def __init__(self):
@@ -130,6 +136,9 @@ class NoteBookConnectionMem (NoteBookConnection):
             raise connlib.FileError()
         stream = node.files.get(filename)
         if stream is None:
+            i = filename.rfind("/")
+            if i != -1:
+                self.create_dir(nodeid, filename[:i+1])
             stream = node.files[filename] = File()
         else:
             stream.reopen()
@@ -152,7 +161,11 @@ class NoteBookConnectionMem (NoteBookConnection):
             raise connlib.UnknownNode()
         if not filename.endswith("/"):
             raise connlib.FileError()
-        node.files[filename] = None
+
+        # Create all directory parts.
+        parts = filename.split("/")
+        for i in range(len(parts)):
+            node.files["/".join(parts[:i+1]) + "/"] = None
 
     def list_dir(self, nodeid, filename="/"):
         """

@@ -139,8 +139,12 @@ def get_lostdir(nodepath):
 
 def get_orphandir(nodepath, nodeid=None):
     if nodeid is not None:
-        return os.path.join(nodepath, NOTEBOOK_META_DIR, ORPHANDIR,
-                            nodeid[:2], nodeid[2:])
+        if len(nodeid) > 2:
+            return os.path.join(nodepath, NOTEBOOK_META_DIR, ORPHANDIR,
+                                nodeid[:2], nodeid[2:])
+        else:
+            return os.path.join(nodepath, NOTEBOOK_META_DIR, ORPHANDIR,
+                                nodeid[:2])
     else:
         return os.path.join(nodepath, NOTEBOOK_META_DIR, ORPHANDIR)
 
@@ -768,7 +772,7 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         # finish initializing root
         if _root:
-            self._rootid = attr["nodeid"]
+            self._rootid = nodeid
             self._init_root()
 
         # update index
@@ -1082,6 +1086,9 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         if mode not in "rwa":
             raise FileError("mode must be 'r', 'w', or 'a'")
+
+        if filename.endswith("/"):
+            raise FileError("filename '%s' cannot end with '/'" % filename)
 
         path = self._get_node_path(nodeid) if _path is None else _path
         fullname = get_node_filename(path, filename)

@@ -199,8 +199,8 @@ class NoteBookConnection (object):
         if nodeid1 is None or nodeid2 is None:
             raise UnknownFile("nodeid cannot be None")
 
-        self.copy_file(nodeid, filename1, nodeid2, filename2)
-        self.delete_file(nodeid, filename1)
+        self.copy_file(nodeid1, filename1, nodeid2, filename2)
+        self.delete_file(nodeid1, filename1)
 
     def copy_file(self, nodeid1, filename1, nodeid2, filename2):
         """
