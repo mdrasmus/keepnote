@@ -4,7 +4,7 @@ import os
 import unittest
 
 # keepnote imports
-from keepnote import PROGRAM_NAME, PROGRAM_VERSION_TEXT
+from keepnote import PROGRAM_VERSION_TEXT
 
 from . import TMP_DIR, SRC_DIR, make_clean_dir
 

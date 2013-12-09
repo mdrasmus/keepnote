@@ -32,7 +32,7 @@ class Heal (unittest.TestCase):
         book = notebook.NoteBook()
         book.load(_tmpdir + "/n1")
         self.assertTrue("index.sqlite" in os.listdir(
-            _tmpdir +"/n1/__NOTEBOOK__"))
+            _tmpdir + "/n1/__NOTEBOOK__"))
         book.close()
 
     def test_bad_index(self):

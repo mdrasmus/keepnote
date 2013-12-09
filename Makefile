@@ -79,8 +79,8 @@ clean:
 	rm -rf $(TMP_FILES) $(UPLOAD_FILES) $(WINDIR) $(WININSTALLER_SRC)
 
 cq:
-	pep8 $(CODEQUALITY_FILES) | grep -v tarfile || true
-	pyflakes $(CODEQUALITY_FILES) | grep -v tarfile || true
+	pep8 $(CODEQUALITY_FILES) | grep -v 'tarfile\|sqlitedict' || true
+	pyflakes $(CODEQUALITY_FILES) | grep -v 'tarfile\|sqlitedict' || true
 
 test:
 	nosetests -sv tests/*.py

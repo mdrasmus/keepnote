@@ -1,6 +1,5 @@
 
 # python imports
-import os
 import shutil
 import unittest
 

@@ -1,9 +1,12 @@
 
 # python imports
 import os
+from StringIO import StringIO
+import sys
 import unittest
 
 # keepnote imports
+from keepnote import notebook
 from keepnote.notebook import NOTEBOOK_FORMAT_VERSION
 import keepnote.notebook.connection as connlib
 from keepnote.notebook.connection import fs
@@ -13,11 +16,18 @@ from . import clean_dir, TMP_DIR
 _tmpdir = TMP_DIR + '/notebook_conn/'
 
 
-class ConnBase (unittest.TestCase):
+def display_notebook(node, depth=0, out=sys.stdout):
+    print >>out, " " * depth + node.get_attr("title")
+    for child in node.get_children():
+        display_notebook(child, depth+2, out)
+
+
+class TestConnBase (unittest.TestCase):
 
     def _test_api(self, conn):
         self._test_nodes(conn)
         self._test_files(conn)
+        self._test_notebook(conn)
 
     def _test_nodes(self, conn):
 
@@ -68,16 +78,6 @@ class ConnBase (unittest.TestCase):
         self.assertRaises(connlib.NodeExists,
                           lambda: conn.create_node('double_create', {}))
 
-    def _test_unknown_node(self, conn):
-
-        self.assertRaises(connlib.UnknownNode, lambda:
-                          conn.read_node('unknown_node'))
-        self.assertRaises(connlib.UnknownNode,
-                          lambda: conn.update_node('unknown_node', {}))
-        self.assertRaises(connlib.UnknownNode,
-                          lambda: conn.delete_node('unknown_node'))
-
-
     def _test_update_node(self, conn):
         # Create node.
         attr = {
@@ -114,6 +114,15 @@ class ConnBase (unittest.TestCase):
         self.assertFalse(conn.has_node('node3'))
         self.assertRaises(connlib.UnknownNode,
                           lambda: conn.read_node('node3'))
+
+    def _test_unknown_node(self, conn):
+
+        self.assertRaises(connlib.UnknownNode, lambda:
+                          conn.read_node('unknown_node'))
+        self.assertRaises(connlib.UnknownNode,
+                          lambda: conn.update_node('unknown_node', {}))
+        self.assertRaises(connlib.UnknownNode,
+                          lambda: conn.delete_node('unknown_node'))
 
     def _test_files(self, conn):
 
@@ -185,8 +194,83 @@ class ConnBase (unittest.TestCase):
         self.assertEqual(conn.open_file('node1', 'copied-file').read(),
                          data)
 
+    def _test_notebook(self, conn):
 
-class Conn (unittest.TestCase):
+        # initialize a notebook
+        book1 = notebook.NoteBook()
+        book1.create("n1", conn)
+        book1.set_attr("title", "root")
+
+        # populate book
+        for i in range(5):
+            node = notebook.new_page(book1, "a%d" % i)
+            for j in range(2):
+                notebook.new_page(node, "b%d-%d" % (i, j))
+
+        expected = """\
+root
+  a0
+    b0-0
+    b0-1
+  a1
+    b1-0
+    b1-1
+  a2
+    b2-0
+    b2-1
+  a3
+    b3-0
+    b3-1
+  a4
+    b4-0
+    b4-1
+  Trash
+"""
+        # assert structure is correct.
+        out = StringIO()
+        display_notebook(book1, out=out)
+        self.assertEqual(out.getvalue(), expected)
+
+        # edit book
+        nodeid = book1.search_node_titles("a1")[0][0]
+        node1 = book1.get_node_by_id(nodeid)
+
+        nodeid = book1.search_node_titles("b3-0")[0][0]
+        node2 = book1.get_node_by_id(nodeid)
+
+        node1.move(node2)
+
+        expected = """\
+root
+  a0
+    b0-0
+    b0-1
+  a2
+    b2-0
+    b2-1
+  a3
+    b3-0
+      a1
+        b1-0
+        b1-1
+    b3-1
+  a4
+    b4-0
+    b4-1
+  Trash
+"""
+
+        # Assert new structure.
+        out = StringIO()
+        display_notebook(book1, out=out)
+        self.assertEqual(out.getvalue(), expected)
+
+        # Assert that file contents are provided.
+        self.assertEqual(node1.open_file("page.html").read(),
+                         notebook.BLANK_NOTE)
+
+
+class TestConn (unittest.TestCase):
 
     def test_basename(self):
 
@@ -209,7 +293,8 @@ class Conn (unittest.TestCase):
         self.assertEqual(connlib.path_basename(""), "")
         self.assertEqual(connlib.path_basename("/"), "")
 
-class ConnFS (ConnBase):
+
+class TestConnFS (TestConnBase):
 
     def test_fs_orphan(self):
         """Test orphan node directory names"""
@@ -302,11 +387,8 @@ class ConnFS (ConnBase):
         # Delete node.
         conn.delete_node('n')
         self.assertFalse(conn.has_node('n'))
-
-        def func():
-            attr2 = conn.read_node('n')
-
-        self.assertRaises(connlib.UnknownNode, func)
+        self.assertRaises(connlib.UnknownNode,
+                          lambda: conn.read_node('n'))
 
         # Create child node.
         attr = {
