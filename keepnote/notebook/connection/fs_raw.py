@@ -36,16 +36,23 @@ import uuid
 import xml.etree.cElementTree as ET
 
 # keepnote imports
-from keepnote import safefile, plist, maskdict
-from keepnote import trans
-from keepnote.notebook import connection as connlib
-from keepnote.notebook.connection import \
-    NoteBookConnection, UnknownNode, FileError, UnknownFile, NodeExists, \
-    ConnectionError
-# path_basename
 import keepnote
-import keepnote.notebook
+from keepnote import maskdict
+from keepnote import plist
 from keepnote import sqlitedict
+from keepnote import safefile
+from keepnote import trans
+import keepnote.notebook
+from keepnote.notebook import connection as connlib
+from keepnote.notebook.connection import ConnectionError
+from keepnote.notebook.connection import FileError
+from keepnote.notebook.connection import NodeExists
+from keepnote.notebook.connection import NoteBookConnection
+from keepnote.notebook.connection import UnknownFile
+from keepnote.notebook.connection import UnknownNode
+from keepnote.notebook.connection.fs import get_node_filename
+from keepnote.notebook.connection.fs import read_attr
+from keepnote.notebook.connection.fs import write_attr
 
 _ = trans.translate
 
@@ -65,7 +72,7 @@ MAX_LEN_NODE_FILENAME = 40
 NULL = object()
 
 
-class NodeDirsSimple(object):
+class NodeFSSimple(object):
     """
     Stores node directories in a directory structure organized by nodeid.
 
@@ -114,23 +121,31 @@ class NodeDirsSimple(object):
 
         return os.path.join(self._rootpath, self._othersdir, nodeid)
 
-    def create_nodedir(self, nodeid):
+    def create_nodedir(self, nodeid, force=False):
         """Create directory of nodeid."""
         nodedir = self.get_nodedir(nodeid)
         if not os.path.exists(nodedir):
             os.makedirs(nodedir)
+        else:
+            raise NodeExists()
         return nodedir
 
-    def delete_nodedir(self, nodeid):
+    def delete_nodedir(self, nodeid, force=False):
         """Delete directory of nodeid."""
         nodedir = self.get_nodedir(nodeid)
         if os.path.exists(nodedir):
             shutil.rmtree(nodedir)
+        else:
+            raise UnknownNode()
 
     def has_nodedir(self, nodeid):
         """Returns True if nodeid exists."""
         nodedir = self.get_nodedir(nodeid)
         return os.path.exists(nodedir)
+
+    def close(self):
+        """Cease any more interaction with the filesystem."""
+        pass
 
     def iter_nodeids(self):
         """Iterates through all stored nodeids."""
@@ -144,11 +159,11 @@ class NodeDirsSimple(object):
                     yield prefix + filename
 
 
-class NodeDirsStandard(NodeDirsSimple):
+class NodeFSStandard(NodeFSSimple):
     """
     Stores node directories in a directory structure organized by nodeid.
 
-    Builds off of NodeDirsSimple to provide a greater range of nodeids.
+    Builds off of NodeFSSimple to provide a greater range of nodeids.
 
     In this store, nodeid have the following restrictions:
     - nodeids length must be within [1, 255] inclusive.
@@ -161,7 +176,7 @@ class NodeDirsStandard(NodeDirsSimple):
     BANNED_NODEIDS = ['.', '..']
 
     def __init__(self, rootpath, others='00_extra'):
-        super(NodeDirsStandard, self).__init__(rootpath)
+        super(NodeFSStandard, self).__init__(rootpath)
         self._othersdir = others
         assert(len(self._othersdir) > self._fansize)
 
@@ -202,7 +217,7 @@ class NodeDirsStandard(NodeDirsSimple):
 
     def iter_nodeids(self):
         """Iterates through all stored nodeids."""
-        for nodeid in super(NodeDirsStandard, self).iter_nodeids():
+        for nodeid in super(NodeFSStandard, self).iter_nodeids():
             yield nodeid
 
         # List other nodeids.
@@ -212,11 +227,11 @@ class NodeDirsStandard(NodeDirsSimple):
                 yield filename
 
 
-class NodeDirs(NodeDirsStandard):
+class NodeFS(NodeFSStandard):
     """
     Stores node directories in a directory structure organized by nodeid.
 
-    Builds off of NodeDirsStandard to support any non-empty nodeid.
+    Builds off of NodeFSStandard to support any non-empty nodeid.
     """
 
     BANNED_NODEIDS = ['.', '..']
@@ -224,7 +239,7 @@ class NodeDirs(NodeDirsStandard):
     def __init__(self, rootpath, others='00_extra',
                  index='00_index.db', tablename='nodes',
                  alt_tablename='alt_nodes'):
-        super(NodeDirs, self).__init__(rootpath, others=others)
+        super(NodeFS, self).__init__(rootpath, others=others)
         self._indexfile = os.path.join(self._rootpath, index)
         self._index = sqlitedict.open(self._indexfile, tablename,
                                       flag='c', autocommit=True)
@@ -234,13 +249,13 @@ class NodeDirs(NodeDirsStandard):
     def _is_nonstandard(self, nodeid):
         """Return True if nodeid requires special indexing."""
         return(
-            # long nodeids
+            # Long nodeids.
             len(nodeid) > 255 or
 
-            # BANNED nodeids
+            # BANNED nodeids.
             nodeid in self.BANNED_NODEIDS or
 
-            # Contains invalid characters
+            # Contains invalid characters.
             not re.match(self.VALID_REGEX, nodeid))
 
     def _get_alt_nodeid(self, nodeid):
@@ -280,7 +295,7 @@ class NodeDirs(NodeDirsStandard):
 
     def delete_nodedir(self, nodeid):
         """Delete directory of nodeid."""
-        super(NodeDirs, self).delete_nodedir(nodeid)
+        super(NodeFS, self).delete_nodedir(nodeid)
 
         # non-standard ids need to be removed from the index.
         if self._is_nonstandard(nodeid):
@@ -290,180 +305,229 @@ class NodeDirs(NodeDirsStandard):
             self._index.commit()
             self._index_alt.commit()
 
+    def close(self):
+        """Cease any more interaction with the filesystem."""
+        super(NodeFS, self).close()
+
+        # Close indexes.
+        self._index.close()
+        self._alt_index.close()
+
     def iter_nodeids(self):
         """Iterates through all stored nodeids."""
-        for nodeid in super(NodeDirs, self).iter_nodeids():
-            # Do not yield alternate nodeids
+        for nodeid in super(NodeFS, self).iter_nodeids():
+            # Do not yield alternate nodeids.
             if nodeid not in self._index_alt:
                 yield nodeid
 
-        # Iterate through nonstandard nodeids
+        # Iterate through nonstandard nodeids.
         for nodeid in self._index:
             yield nodeid
 
 
-class Node (object):
-    def __init__(self, attr={}):
-        self.attr = dict(attr)
-        self.files = {}
+class FileFS(object):
+    """
+    Implements the NoteBook File API using the file-system.
+    """
 
+    def __init__(self, nodeid2path):
+        """
+        nodeid2path: a function that returns a filesystem path for a nodeid.
+        """
+        self._nodeid2path = nodeid2path
 
-class File (StringIO):
-    def close(self):
-        self.closed = True
+    def _get_node_path(self, nodeid):
+        return self._nodeid2path(nodeid)
 
-    def reopen(self):
-        self.closed = False
-        self.seek(0)
+    def open_file(self, nodeid, filename, mode="r", codec=None, _path=None):
+        """Open a node file"""
+        if mode not in "rwa":
+            raise FileError("mode must be 'r', 'w', or 'a'")
 
-    def __enter__(self):
-        return self
+        if filename.endswith("/"):
+            raise FileError("filename '%s' cannot end with '/'" % filename)
 
-    def __exit__(self, *args):
-        self.close()
+        path = self._get_node_path(nodeid) if _path is None else _path
+        fullname = get_node_filename(path, filename)
+        dirpath = os.path.dirname(fullname)
+
+        try:
+            if not os.path.exists(dirpath):
+                os.makedirs(dirpath)
+
+            # NOTE: always use binary mode to ensure no
+            # Window-specific line ending conversion
+            stream = safefile.open(fullname, mode + "b", codec=codec)
+        except Exception, e:
+            raise FileError(
+                "cannot open file '%s' '%s': %s" %
+                (nodeid, filename, str(e)), e)
+
+        return stream
+
+    def delete_file(self, nodeid, filename, _path=None):
+        """Delete a node file"""
+        path = self._get_node_path(nodeid) if _path is None else _path
+        filepath = get_node_filename(path, filename)
+
+        try:
+            if os.path.isfile(filepath):
+                os.remove(filepath)
+            elif os.path.isdir(filepath):
+                shutil.rmtree(filepath)
+            else:
+                # filename may not exist, delete is successful by default
+                pass
+        except Exception, e:
+            raise FileError("error deleting file '%s' '%s'" %
+                            (nodeid, filename), e)
+
+    def create_dir(self, nodeid, filename, _path=None):
+        """Create directory within node."""
+        if not filename.endswith("/"):
+            raise FileError("filename '%s' does not end with '/'" % filename)
+
+        path = self._get_node_path(nodeid) if _path is None else _path
+        fullname = get_node_filename(path, filename)
+
+        try:
+            if not os.path.isdir(fullname):
+                os.makedirs(fullname)
+        except Exception, e:
+            raise FileError(
+                "cannot create dir '%s' '%s'" % (nodeid, filename), e)
+
+    def list_dir(self, nodeid, filename="/", _path=None):
+        """List data files in node."""
+        path = self._get_node_path(nodeid) if _path is None else _path
+        path = get_node_filename(path, filename)
+
+        try:
+            filenames = os.listdir(path)
+        except:
+            raise UnknownFile("cannot file file '%s' '%s'" %
+                              (nodeid, filename))
+
+        for filename in filenames:
+            if (filename != NODE_META_FILE and
+                    not filename.startswith("__")):
+                fullname = os.path.join(path, filename)
+                if not os.path.exists(get_node_meta_file(fullname)):
+                    # ensure directory is not a node
+
+                    if os.path.isdir(fullname):
+                        yield filename + "/"
+                    else:
+                        yield filename
+
+    def has_file(self, nodeid, filename, _path=None):
+        """Return True if file exists."""
+        path = self._get_node_path(nodeid) if _path is None else _path
+        if filename.endswith("/"):
+            return os.path.isdir(get_node_filename(path, filename))
+        else:
+            return os.path.isfile(get_node_filename(path, filename))
 
 
 class NoteBookConnectionFSRaw (NoteBookConnection):
 
-    # Require 'simple' nodeids
-    # nodeids that can be stored in the filesystem using git-style convention
-    # nodeids must be length > than 2
-
     def __init__(self):
-        self._nodes = {}
         self._rootid = None
 
-        self._path = None
+        self._rootpath = None
+        self._nodefs = None
+        self._filefs = FileFS(self._get_node_path)
 
     def _create_rootdir(self, url):
         os.makedirs(url)
+
+    def _get_node_path(self, nodeid):
+        return self._nodefs.get_nodedir(nodeid)
+
+    def _get_node_attr_file(self, nodepath):
+        return os.path.join(nodepath, NODE_META_FILE)
 
     #======================
     # connection API
 
     def connect(self, url):
-        """Make a new connection"""
-
-        self._path = url
+        """Make a new connection."""
+        self._rootpath = url
         if not os.path.exists(url):
             self._create_rootdir(url)
+        self._nodefs = NodeFS(self._rootpath)
 
     def close(self):
-        """Close connection"""
-        pass
+        """Close connection."""
+        self._nodefs.close()
 
     def save(self):
-        """Save any unsynced state"""
+        """Save any unsynced state."""
         pass
 
     #======================
     # Node I/O API
 
     def create_node(self, nodeid, attr):
-        """Create a node"""
-        if nodeid in self._nodes:
-            raise connlib.NodeExists()
+        """Create a node."""
+        # First node is root.
         if self._rootid is None:
             self._rootid = nodeid
-        self._nodes[nodeid] = Node(attr)
+        nodepath = self._nodefs.create_nodedir(nodeid)
+        attr_file = self._get_node_attr_file(nodepath)
+        write_attr(attr_file, attr)
 
     def read_node(self, nodeid):
-        """Read a node attr"""
-        node = self._nodes.get(nodeid)
-        if node is None:
+        """Read a node attr."""
+        nodepath = self._nodefs.get_nodedir(nodeid)
+        if not os.path.exists(nodepath):
             raise connlib.UnknownNode()
-        return node.attr
+        attr_file = self._get_node_attr_file(nodepath)
+        return read_attr(attr_file, set_version=False)
 
     def update_node(self, nodeid, attr):
-        """Write node attr"""
-        node = self._nodes.get(nodeid)
-        if node is None:
+        """Write node attr."""
+        nodepath = self._nodefs.get_nodedir(nodeid)
+        if not os.path.exists(nodepath):
             raise connlib.UnknownNode()
-        node.attr = dict(attr)
+        attr_file = self._get_node_attr_file(nodepath)
+        write_attr(attr_file, attr)
 
     def delete_node(self, nodeid):
-        """Delete node"""
-        node = self._nodes.get(nodeid)
-        if node is None:
-            raise connlib.UnknownNode()
-        del self._nodes[nodeid]
+        """Delete node."""
+        self._nodefs.delete_nodedir(nodeid)
 
     def has_node(self, nodeid):
-        """Returns True if node exists"""
-        return nodeid in self._nodes
+        """Returns True if node exists."""
+        return self._nodefs.has_nodedir(nodeid)
 
     def get_rootid(self):
-        """Returns nodeid of notebook root node"""
+        """Returns nodeid of notebook root node."""
         return self._rootid
 
     #===============
     # file API
 
-    def open_file(self, nodeid, filename, mode="r", codec=None):
-        """
-        Open a file contained within a node
+    def open_file(self, nodeid, filename, mode="r", codec=None, _path=None):
+        """Open a node file."""
+        return self._filefs.open_file(
+            nodeid, filename, mode=mode, codec=codec, _path=_path)
 
-        nodeid   -- node to open a file from
-        filename -- filename of file to open
-        mode     -- can be "r" (read), "w" (write), "a" (append)
-        codec    -- read or write with an encoding (default: None)
-        """
-        node = self._nodes.get(nodeid)
-        if node is None:
-            raise connlib.UnknownNode()
-        if filename.endswith("/"):
-            raise connlib.FileError()
-        stream = node.files.get(filename)
-        if stream is None:
-            i = filename.rfind("/")
-            if i != -1:
-                self.create_dir(nodeid, filename[:i+1])
-            stream = node.files[filename] = File()
-        else:
-            stream.reopen()
-        return stream
+    def delete_file(self, nodeid, filename, _path=None):
+        """Delete a node file."""
+        return self._filefs.delete_file(nodeid, filename, _path)
 
-    def delete_file(self, nodeid, filename):
-        """Delete a file contained within a node"""
-        node = self._nodes.get(nodeid)
-        if node is None:
-            raise connlib.UnknownNode()
-        try:
-            del node.files[filename]
-        except:
-            raise connlib.UnknownFile()
+    def create_dir(self, nodeid, filename, _path=None):
+        """Create directory within node."""
+        return self._filefs.create_dir(nodeid, filename, _path)
 
-    def create_dir(self, nodeid, filename):
-        """Create directory within node"""
-        node = self._nodes.get(nodeid)
-        if node is None:
-            raise connlib.UnknownNode()
-        if not filename.endswith("/"):
-            raise connlib.FileError()
+    def list_dir(self, nodeid, filename="/", _path=None):
+        """List data files in node."""
+        return self._filefs.list_dir(nodeid, filename, _path)
 
-        # Create all directory parts.
-        parts = filename.split("/")
-        for i in range(len(parts)):
-            node.files["/".join(parts[:i+1]) + "/"] = None
-
-    def list_dir(self, nodeid, filename="/"):
-        """
-        List data files in node
-        """
-        node = self._nodes.get(nodeid)
-        if node is None:
-            raise connlib.UnknownNode()
-        if not filename.endswith("/"):
-            raise connlib.FileError()
-        files = [f for f in node.files.iterkeys()
-                 if f.startswith(filename) and f != filename]
-        return files
-
-    def has_file(self, nodeid, filename):
-        node = self._nodes.get(nodeid)
-        if node is None:
-            raise connlib.UnknownNode()
-        return filename in node.files
+    def has_file(self, nodeid, filename, _path=None):
+        """Return True if file exists."""
+        return self._filefs.has_file(nodeid, filename, _path)
 
     #---------------------------------
     # indexing
@@ -486,9 +550,13 @@ class NoteBookConnectionFSRaw (NoteBookConnection):
 
         elif query[0] == "search":
             assert query[1] == "title"
-            return [(nodeid, node.attr["title"])
-                    for nodeid, node in self._nodes.iteritems()
-                    if query[2] in node.attr.get("title", "")]
+
+            return [
+                (nodeid, node["title"])
+                for nodeid, node in (
+                    (nodeid, self.read_node(nodeid))
+                    for nodeid in self._nodefs.iter_nodeids())
+                if query[2] in node.get("title", "")]
 
         elif query[0] == "search_fulltext":
             # TODO: could implement brute-force backup
@@ -500,19 +568,19 @@ class NoteBookConnectionFSRaw (NoteBookConnection):
         elif query[0] == "node_path":
             nodeid = query[1]
             path = []
-            node = self._nodes.get(nodeid)
+            node = self.read_node(nodeid)
             while node:
-                path.append(node.attr["nodeid"])
-                parentids = node.attr.get("parentids")
+                path.append(node["nodeid"])
+                parentids = node.get("parentids")
                 if parentids:
-                    node = self._nodes.get(parentids[0])
+                    node = self.read_node(parentids[0])
                 else:
                     break
             path.reverse()
             return path
 
         elif query[0] == "get_attr":
-            return self._nodes[query[1]][query[2]]
+            return self.read_node(query[1])[query[2]]
 
         # FS-specific
         elif query[0] == "init":

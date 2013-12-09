@@ -27,7 +27,6 @@ class TestConnBase (unittest.TestCase):
     def _test_api(self, conn):
         self._test_nodes(conn)
         self._test_files(conn)
-        self._test_notebook(conn)
 
     def _test_nodes(self, conn):
 
@@ -173,6 +172,8 @@ class TestConnBase (unittest.TestCase):
                           conn.create_dir('node1', 'bad dir'))
         self.assertRaises(fs.FileError, lambda:
                           conn.open_file('node1', 'bad file/', 'w'))
+        self.assertRaises(fs.FileError, lambda:
+                          conn.create_dir('node1', 'bad dir'))
 
         # Rename file.
         conn.move_file('node1', 'file1', 'node1', 'file2')
@@ -194,11 +195,11 @@ class TestConnBase (unittest.TestCase):
         self.assertEqual(conn.open_file('node1', 'copied-file').read(),
                          data)
 
-    def _test_notebook(self, conn):
+    def _test_notebook(self, conn, filename):
 
         # initialize a notebook
         book1 = notebook.NoteBook()
-        book1.create("n1", conn)
+        book1.create(filename, conn)
         book1.set_attr("title", "root")
 
         # populate book

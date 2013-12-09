@@ -11,3 +11,9 @@ class Mem (TestConnBase):
         # initialize a notebook
         conn = mem.NoteBookConnectionMem()
         self._test_api(conn)
+
+    def test_notebook(self):
+        # initialize a notebook
+
+        conn = mem.NoteBookConnectionMem()
+        self._test_notebook(conn, 'n1')

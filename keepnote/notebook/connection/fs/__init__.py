@@ -374,7 +374,7 @@ def mark_path_outdated(path):
         del _mtime_cache[path]
 
 
-def read_attr(filename):
+def read_attr(filename, set_version=True):
     """
     Read a node meta data file. Returns an attr dict
 
@@ -400,7 +400,7 @@ def read_attr(filename):
         if child.tag == "version":
             version = int(child.text)
 
-    if version:
+    if version and set_version:
         attr["version"] = version
 
     return attr

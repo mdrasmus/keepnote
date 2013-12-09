@@ -21,13 +21,21 @@ class FSRaw (TestConnBase):
         conn.connect(filename)
         self._test_api(conn)
 
+    def test_notebook(self):
+        # initialize a notebook
+        filename = TMP_DIR + '/notebook_fs_raw/n2'
+        make_clean_dir(TMP_DIR + '/notebook_fs_raw')
+
+        conn = fs_raw.NoteBookConnectionFSRaw()
+        self._test_notebook(conn, filename)
+
     def test_nodedirs_standard(self):
-        """Basic NodeDirsStandard API."""
+        """Basic NodeFSStandard API."""
 
         filename = TMP_DIR + '/notebook_fs_raw/nodedirs_standard'
         make_clean_dir(filename)
 
-        nodedirs = fs_raw.NodeDirsStandard(filename)
+        nodedirs = fs_raw.NodeFSStandard(filename)
 
         # Create nodedirs.
         dir1 = nodedirs.create_nodedir('abcdefg')
@@ -91,12 +99,12 @@ class FSRaw (TestConnBase):
                  '...', '....', 'ab.', 'ab..']))
 
     def test_nodedirs(self):
-        """Basic NodeDirs API."""
+        """Basic NodeFS API."""
 
         filename = TMP_DIR + '/notebook_fs_raw/nodedirs'
         make_clean_dir(filename)
 
-        nodedirs = fs_raw.NodeDirs(filename)
+        nodedirs = fs_raw.NodeFS(filename)
 
         # Create nodedirs.
         dir1 = nodedirs.create_nodedir('abcdefg')
@@ -174,7 +182,7 @@ class FSRaw (TestConnBase):
         filename = TMP_DIR + '/notebook_fs_raw/nodedirs_no_extra'
         make_clean_dir(filename)
 
-        nodedirs = fs_raw.NodeDirs(filename)
+        nodedirs = fs_raw.NodeFS(filename)
         nodedirs.create_nodedir('abcdefg')
         nodedirs.create_nodedir('abcdefghij')
         nodedirs.create_nodedir('1234567')
@@ -188,7 +196,7 @@ class FSRaw (TestConnBase):
         filename = TMP_DIR + '/notebook_fs_raw/nodedirs_many'
         make_clean_dir(filename)
 
-        nodedirs = fs_raw.NodeDirs(filename)
+        nodedirs = fs_raw.NodeFS(filename)
         for i in xrange(1000):
             nodeid = str(uuid.uuid4())
             nodedirs.create_nodedir(nodeid)
