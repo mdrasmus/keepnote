@@ -195,6 +195,37 @@ class TestConnBase (unittest.TestCase):
         self.assertEqual(conn.open_file('node1', 'copied-file').read(),
                          data)
 
+        # Ensure files aren't interpreted as children files.
+        # Create a file that conflicts with a child node directory.
+        conn.create_node('node3', {})
+        data2 = 'another hello world'
+        conn.create_node('dir2', {
+            'nodeid': 'dir2',
+            'title': 'dir2',
+            'parentids': ['node3']})
+
+        with conn.open_file('node3', 'dir2/file1', 'w') as out:
+            out.write(data2)
+
+        with conn.open_file('node3', 'dir2/file1') as infile:
+            self.assertEqual(infile.read(), data2)
+
+        self.assertTrue(conn.has_file('node3', 'dir2/file1'))
+
+        conn.open_file('node3', 'dir2/file2', 'w').close()
+        conn.create_dir('node3', 'dir2/dir3/')
+        #self.assertEqual(
+        #    set(conn.list_dir('node3', 'dir2/')),
+        #    set(['dir2/file1', 'dir2/file2', 'dir2/dir3/']))
+        self.assertEqual(
+            set(conn.list_dir('node3', 'dir2/')),
+            set(['file1', 'file2', 'dir3/']))
+
+        # TODO: fix this bug for FS.
+        #self.assertFalse(conn.has_file('dir2', 'file1'))
+
+        # TODO: more testing of list_dir is needed.
+
     def _test_notebook(self, conn, filename):
 
         # initialize a notebook
@@ -449,94 +480,6 @@ class TestConnFS (TestConnBase):
             'key4': True,
             'key5': None,
         }
-        conn.create_node('node1', attr)
+        conn.create_node('root', attr)
 
-        # Create file.
-        data = 'hello world'
-        with conn.open_file('node1', 'file1', 'w') as out:
-            out.write(data)
-        os.path.exists(notebook_file + '/file1')
-
-        with conn.open_file('node1', 'file1') as infile:
-            self.assertEqual(infile.read(), data)
-
-        # Create file.
-        data2 = 'another hello world'
-        with conn.open_file('node1', 'dir1/file1', 'w') as out:
-            out.write(data2)
-        os.path.exists(notebook_file + '/dir1/file1')
-
-        with conn.open_file('node1', 'dir1/file1') as infile:
-            self.assertEqual(infile.read(), data2)
-
-        # Create a file that conflicts with a child node directory.
-        data2 = 'another hello world'
-        conn.create_node('dir2', {
-            'nodeid': 'dir2',
-            'title': 'dir2',
-            'parentids': ['node1']})
-
-        with conn.open_file('node1', 'dir2/file1', 'w') as out:
-            out.write(data2)
-        os.path.exists(notebook_file + '/dir2/file1')
-
-        with conn.open_file('node1', 'dir2/file1') as infile:
-            self.assertEqual(infile.read(), data2)
-
-        self.assertTrue(conn.has_file('node1', 'dir2/file1'))
-
-        conn.open_file('node1', 'dir2/file2', 'w').close()
-        conn.create_dir('node1', 'dir2/dir3/')
-        self.assertEqual(
-            set(conn.list_dir('node1', 'dir2')),
-            set(['file1', 'file2', 'dir3/']))
-
-        # TODO: fix this bug.
-        #self.assertFalse(conn.has_file('dir2', 'file1'))
-
-        # Delete a file.
-        conn.delete_file('node1', 'dir1/file1')
-        self.assertFalse(conn.has_file('node1', 'dir1/file1'))
-
-        # Delete a directory.
-        self.assertTrue(conn.has_file('node1', 'dir1/'))
-        conn.delete_file('node1', 'dir1/')
-        self.assertFalse(conn.has_file('node1', 'dir1/'))
-
-        # Delete a non-empty directory.
-        conn.open_file('node1', 'dir3/dir/file1', 'w').close()
-        self.assertTrue(conn.has_file('node1', 'dir3/dir/file1'))
-        conn.delete_file('node1', 'dir3/')
-        self.assertFalse(conn.has_file('node1', 'dir3/'))
-
-        # Create a directory.
-        conn.create_dir('node1', 'new dir/')
-
-        # Require trailing / for directories.
-        # Do not allow trailing / for files.
-        self.assertRaises(fs.FileError, lambda:
-                          conn.create_dir('node1', 'bad dir'))
-        self.assertRaises(fs.FileError, lambda:
-                          conn.open_file('node1', 'bad file/', 'w'))
-
-        # Rename file.
-        conn.move_file('node1', 'file1', 'node1', 'file2')
-        self.assertFalse(conn.has_file('node1', 'file1'))
-        self.assertTrue(conn.has_file('node1', 'file2'))
-
-        # Move a file.
-        conn.create_node('node2', {
-            'nodeid': 'node2',
-            'parentids': ['node1'],
-            'title': 'node2',
-        })
-        conn.move_file('node1', 'file2', 'node2', 'file2')
-        self.assertFalse(conn.has_file('node1', 'file2'))
-        self.assertTrue(conn.has_file('node2', 'file2'))
-
-        # Copy a file.
-        conn.copy_file('node2', 'file2', 'node1', 'copied-file')
-        self.assertTrue(conn.has_file('node2', 'file2'))
-        self.assertTrue(conn.has_file('node1', 'copied-file'))
-        self.assertEqual(conn.open_file('node1', 'copied-file').read(),
-                         data)
+        self._test_files(conn)

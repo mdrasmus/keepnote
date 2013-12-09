@@ -21,6 +21,8 @@ class FSRaw (TestConnBase):
         conn.connect(filename)
         self._test_api(conn)
 
+        conn.close()
+
     def test_notebook(self):
         # initialize a notebook
         filename = TMP_DIR + '/notebook_fs_raw/n2'
@@ -28,6 +30,8 @@ class FSRaw (TestConnBase):
 
         conn = fs_raw.NoteBookConnectionFSRaw()
         self._test_notebook(conn, filename)
+
+        conn.close()
 
     def test_nodedirs_standard(self):
         """Basic NodeFSStandard API."""
@@ -97,6 +101,8 @@ class FSRaw (TestConnBase):
             set(['abcdefg', u'abcdefghij', u'1234567',
                  'ab', 'ac', 'a',
                  '...', '....', 'ab.', 'ab..']))
+
+        nodedirs.close()
 
     def test_nodedirs(self):
         """Basic NodeFS API."""
@@ -176,6 +182,8 @@ class FSRaw (TestConnBase):
                  '...', '....', 'ab.', 'ab..',
                  'x' * 256, '.', '..', 'abc+', 'abc/aaa']))
 
+        nodedirs.close()
+
     def test_no_extra(self):
         """Ensure nodeid iteration occurs even when no small nodids exists."""
 
@@ -191,6 +199,8 @@ class FSRaw (TestConnBase):
             set(nodedirs.iter_nodeids()),
             set(['abcdefg', u'abcdefghij', u'1234567']))
 
+        nodedirs.close()
+
     def test_many_nodeids(self):
 
         filename = TMP_DIR + '/notebook_fs_raw/nodedirs_many'
@@ -200,3 +210,5 @@ class FSRaw (TestConnBase):
         for i in xrange(1000):
             nodeid = str(uuid.uuid4())
             nodedirs.create_nodedir(nodeid)
+
+        nodedirs.close()

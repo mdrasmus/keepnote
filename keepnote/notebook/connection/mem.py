@@ -164,7 +164,7 @@ class NoteBookConnectionMem (NoteBookConnection):
 
         # Create all directory parts.
         parts = filename.split("/")
-        for i in range(len(parts)):
+        for i in range(len(parts)-1):
             node.files["/".join(parts[:i+1]) + "/"] = None
 
     def list_dir(self, nodeid, filename="/"):
@@ -176,7 +176,9 @@ class NoteBookConnectionMem (NoteBookConnection):
             raise connlib.UnknownNode()
         if not filename.endswith("/"):
             raise connlib.FileError()
-        files = [f for f in node.files.iterkeys()
+
+        # TODO: do not list entire subtree.
+        files = [f[len(filename):] for f in node.files.iterkeys()
                  if f.startswith(filename) and f != filename]
         return files
 

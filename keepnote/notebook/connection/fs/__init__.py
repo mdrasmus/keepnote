@@ -590,6 +590,167 @@ class PathCache (object):
                 parent.children.add(node)
 
 
+#=============================================================================
+# NotebookFile File-System API
+
+class FileFS(object):
+    """
+    Implements the NoteBook File API using the file-system.
+    """
+
+    def __init__(self, nodeid2path):
+        """
+        nodeid2path: a function that returns a filesystem path for a nodeid.
+        """
+        self._nodeid2path = nodeid2path
+
+    def get_node_path(self, nodeid):
+        return self._nodeid2path(nodeid)
+
+    def open_file(self, nodeid, filename, mode="r", codec=None, _path=None):
+        """Open a node file"""
+        if mode not in "rwa":
+            raise FileError("mode must be 'r', 'w', or 'a'")
+
+        if filename.endswith("/"):
+            raise FileError("filename '%s' cannot end with '/'" % filename)
+
+        path = self.get_node_path(nodeid) if _path is None else _path
+        fullname = get_node_filename(path, filename)
+        dirpath = os.path.dirname(fullname)
+
+        try:
+            if not os.path.exists(dirpath):
+                os.makedirs(dirpath)
+
+            # NOTE: always use binary mode to ensure no
+            # Window-specific line ending conversion
+            stream = safefile.open(fullname, mode + "b", codec=codec)
+        except Exception, e:
+            raise FileError(
+                "cannot open file '%s' '%s': %s" %
+                (nodeid, filename, str(e)), e)
+
+        return stream
+
+    def delete_file(self, nodeid, filename, _path=None):
+        """Delete a node file"""
+        path = self.get_node_path(nodeid) if _path is None else _path
+        filepath = get_node_filename(path, filename)
+
+        try:
+            if os.path.isfile(filepath):
+                os.remove(filepath)
+            elif os.path.isdir(filepath):
+                shutil.rmtree(filepath)
+            else:
+                # filename may not exist, delete is successful by default
+                pass
+        except Exception, e:
+            raise FileError("error deleting file '%s' '%s'" %
+                            (nodeid, filename), e)
+
+    def create_dir(self, nodeid, filename, _path=None):
+        """Create directory within node."""
+        if not filename.endswith("/"):
+            raise FileError("filename '%s' does not end with '/'" % filename)
+
+        path = self.get_node_path(nodeid) if _path is None else _path
+        fullname = get_node_filename(path, filename)
+
+        try:
+            if not os.path.isdir(fullname):
+                os.makedirs(fullname)
+        except Exception, e:
+            raise FileError(
+                "cannot create dir '%s' '%s'" % (nodeid, filename), e)
+
+    def list_dir(self, nodeid, filename="/", _path=None):
+        """List data files in node."""
+        path = self.get_node_path(nodeid) if _path is None else _path
+        path = get_node_filename(path, filename)
+
+        try:
+            filenames = os.listdir(path)
+        except:
+            raise UnknownFile("cannot file file '%s' '%s'" %
+                              (nodeid, filename))
+
+        for filename in filenames:
+            if (filename != NODE_META_FILE and
+                    not filename.startswith("__")):
+                fullname = os.path.join(path, filename)
+                if not os.path.exists(get_node_meta_file(fullname)):
+                    # ensure directory is not a node
+
+                    if os.path.isdir(fullname):
+                        yield filename + "/"
+                    else:
+                        yield filename
+
+    def has_file(self, nodeid, filename, _path=None):
+        """Return True if file exists."""
+        path = self.get_node_path(nodeid) if _path is None else _path
+        if filename.endswith("/"):
+            return os.path.isdir(get_node_filename(path, filename))
+        else:
+            return os.path.isfile(get_node_filename(path, filename))
+
+    def move_file(self, nodeid1, filename1, nodeid2, filename2,
+                  _path1=None, _path2=None):
+        """Rename a node file."""
+        path1 = self.get_node_path(nodeid1) if _path1 is None else _path1
+        path2 = self.get_node_path(nodeid2) if _path2 is None else _path2
+        filepath1 = get_node_filename(path1, filename1)
+        filepath2 = get_node_filename(path2, filename2)
+        try:
+            # remove files in the way
+            if os.path.isfile(filepath2):
+                os.remove(filepath2)
+            if os.path.isdir(filename2):
+                shutil.rmtree(filepath2)
+
+            # rename file
+            os.rename(filepath1, filepath2)
+        except Exception, e:
+            raise FileError("could not move file '%s' '%s'" %
+                            (nodeid1, filename1), e)
+
+    def copy_file(self, nodeid1, filename1, nodeid2, filename2,
+                  _path1=None, _path2=None):
+        """
+        Copy a file between two nodes.
+
+        If nodeid is None, filename is assumed to be a local file.
+        """
+        # Determine full filenames.
+        if nodeid1 is None:
+            fullname1 = filename1
+        else:
+            path1 = self.get_node_path(nodeid1) if not _path1 else _path1
+            fullname1 = get_node_filename(path1, filename1)
+
+        if nodeid2 is None:
+            fullname2 = filename2
+        else:
+            path2 = self.get_node_path(nodeid2) if not _path2 else _path2
+            fullname2 = get_node_filename(path2, filename2)
+
+        try:
+            if os.path.isfile(fullname1):
+                shutil.copy(fullname1, fullname2)
+            elif os.path.isdir(fullname1):
+                # TODO: handle case where filename1 = "/" and
+                # filename2 could be an existing directory
+                shutil.copytree(fullname1, fullname2)
+        except Exception, e:
+            raise FileError(
+                "unable to copy file '%s' '%s'" % (nodeid1, filename1), e)
+
+
+#=============================================================================
+# Main NoteBook Connection
+
 class NoteBookConnectionFS (NoteBookConnection):
     def __init__(self):
         NoteBookConnection.__init__(self)
@@ -598,6 +759,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         self._index = None
         self._path_cache = PathCache()
         self._rootid = None
+        self._filefs = FileFS(self._get_node_path)
 
         self._index_file = None
 
@@ -1082,29 +1244,10 @@ class NoteBookConnectionFS (NoteBookConnection):
     # file API
 
     def open_file(self, nodeid, filename, mode="r", codec=None, _path=None):
-        """Open a node file"""
-
-        if mode not in "rwa":
-            raise FileError("mode must be 'r', 'w', or 'a'")
-
-        if filename.endswith("/"):
-            raise FileError("filename '%s' cannot end with '/'" % filename)
-
-        path = self._get_node_path(nodeid) if _path is None else _path
-        fullname = get_node_filename(path, filename)
-        dirpath = os.path.dirname(fullname)
-
-        try:
-            if not os.path.exists(dirpath):
-                os.makedirs(dirpath)
-
-            # NOTE: always use binary mode to ensure no
-            # Window-specific line ending conversion
-            stream = safefile.open(fullname, mode + "b", codec=codec)
-        except Exception, e:
-            raise FileError(
-                "cannot open file '%s' '%s': %s" %
-                (nodeid, filename, str(e)), e)
+        """Open a node file."""
+        path = self._filefs.get_node_path(nodeid)
+        stream = self._filefs.open_file(
+            nodeid, filename, mode=mode, codec=codec, _path=_path)
 
         # TODO: this should check and update the mtime
         # but only update if it was previously consistent (before the open)
@@ -1115,136 +1258,41 @@ class NoteBookConnectionFS (NoteBookConnection):
         return stream
 
     def delete_file(self, nodeid, filename, _path=None):
-        """Delete a node file"""
-        path = self._get_node_path(nodeid) if _path is None else _path
-        filepath = get_node_filename(path, filename)
-
-        try:
-            if os.path.isfile(filepath):
-                os.remove(filepath)
-            elif os.path.isdir(filepath):
-                shutil.rmtree(filepath)
-            else:
-                # filename may not exist, delete is successful by default
-                pass
-        except Exception, e:
-            raise FileError("error deleting file '%s' '%s'" %
-                            (nodeid, filename), e)
-
-    def move_file(self, nodeid1, filename1, nodeid2, filename2,
-                  _path1=None, _path2=None):
-        """Rename a node file"""
-
-        path1 = self._get_node_path(nodeid1) if _path1 is None else _path1
-        path2 = self._get_node_path(nodeid2) if _path2 is None else _path2
-        filepath1 = get_node_filename(path1, filename1)
-        filepath2 = get_node_filename(path2, filename2)
-
-        try:
-            # remove files in the way
-            if os.path.isfile(filepath2):
-                os.remove(filepath2)
-            if os.path.isdir(filename2):
-                shutil.rmtree(filepath2)
-
-            # rename file
-            os.rename(filepath1, filepath2)
-        except Exception, e:
-            raise FileError("could not move file '%s' '%s'" %
-                            (nodeid1, filename1), e)
+        """Delete a node file."""
+        self._filefs.delete_file(
+            nodeid, filename, _path=_path)
 
     def list_dir(self, nodeid, filename="/", _path=None):
         """
-        List data files in node
+        List data files in node.
 
-        directories have a '/' at the end of their name
+        Directories have a '/' at the end of their name.
         """
-
-        path = self._get_node_path(nodeid) if _path is None else _path
-        path = get_node_filename(path, filename)
-
-        try:
-            filenames = os.listdir(path)
-        except:
-            raise UnknownFile("cannot file file '%s' '%s'" %
-                              (nodeid, filename))
-
-        for filename in filenames:
-            if (filename != NODE_META_FILE and
-                    not filename.startswith("__")):
-                fullname = os.path.join(path, filename)
-                if not os.path.exists(get_node_meta_file(fullname)):
-                    # ensure directory is not a node
-
-                    if os.path.isdir(fullname):
-                        yield filename + "/"
-                    else:
-                        yield filename
+        return self._filefs.list_dir(nodeid, filename, _path=_path)
 
     def create_dir(self, nodeid, filename, _path=None):
-        """
-        Create directory within node
-        """
-
-        if not filename.endswith("/"):
-            raise FileError("filename '%s' does not end with '/'" % filename)
-
-        path = self._get_node_path(nodeid) if _path is None else _path
-        fullname = get_node_filename(path, filename)
-
-        try:
-            if not os.path.isdir(fullname):
-                os.makedirs(fullname)
-        except Exception, e:
-            raise FileError(
-                "cannot create dir '%s' '%s'" % (nodeid, filename), e)
+        """Create directory within node."""
+        return self._filefs.create_dir(nodeid, filename, _path=_path)
 
     def has_file(self, nodeid, filename, _path=None):
-        path = self._get_node_path(nodeid) if _path is None else _path
+        """Return True is file exists."""
+        return self._filefs.has_file(nodeid, filename, _path=_path)
 
-        if filename.endswith("/"):
-            return os.path.isdir(get_node_filename(path, filename))
-        else:
-            return os.path.isfile(get_node_filename(path, filename))
+    def move_file(self, nodeid1, filename1, nodeid2, filename2,
+                  _path1=None, _path2=None):
+        """Rename a node file."""
+        return self._filefs.move_file(nodeid1, filename1, nodeid2, filename2,
+                                      _path1=_path1, _path2=_path2)
 
     def copy_file(self, nodeid1, filename1, nodeid2, filename2,
                   _path1=None, _path2=None):
         """
-        Copy a file between two nodes
+        Copy a file between two nodes.
 
-        if nodeid is None, filename is assumed to be a local file
+        If nodeid is None, filename is assumed to be a local file.
         """
-
-        if nodeid1 is None:
-            fullname1 = filename1
-        else:
-            path1 = self._get_node_path(nodeid1) if not _path1 else _path1
-            fullname1 = get_node_filename(path1, filename1)
-
-        if nodeid2 is None:
-            fullname2 = filename2
-        else:
-            path2 = self._get_node_path(nodeid2) if not _path2 else _path2
-            fullname2 = get_node_filename(path2, filename2)
-
-        try:
-            # remove files in the way
-            # TODO: make sure to handle case where filename2 is "/"
-            #if os.path.isfile(fullname2):
-            #    os.remove(fullname2)
-            #if os.path.isdir(fullname2):
-            #    shutil.rmtree(fullname2)
-
-            if os.path.isfile(fullname1):
-                shutil.copy(fullname1, fullname2)
-            elif os.path.isdir(fullname1):
-                # TODO: handle case where filename1 = "/" and
-                # filename2 could be an existing directory
-
-                shutil.copytree(fullname1, fullname2)
-        except Exception, e:
-            raise FileError(
-                "unable to copy file '%s' '%s'" % (nodeid1, filename1), e)
+        self._filefs.copy_file(nodeid1, filename1, nodeid2, filename2,
+                               _path1=_path1, _path2=_path2)
 
     #---------------------------------
     # index management
@@ -1341,7 +1389,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         return self._index.get_attr(nodeid, key)
 
 
-# TODO: need to keep namespace of files and node directories spearate.
+# TODO: need to keep namespace of files and node directories separate.
 # Need to carefully define what valid filenames look like.
 #  - is it case-sensitive?
 #  - which characters are allowed?
