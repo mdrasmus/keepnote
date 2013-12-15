@@ -1080,7 +1080,7 @@ class NoteBookNode (object):
             return_number=return_number, use_number=use_number,
             ensure_valid=ensure_valid)
 
-    def list_dir(self, filename=""):
+    def list_dir(self, filename="/"):
         return self._conn.list_dir(self._attr["nodeid"], filename)
 
     def create_dir(self, filename):

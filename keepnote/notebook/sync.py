@@ -26,8 +26,10 @@
 #
 
 
-from keepnote.notebook.connection import \
-    NodeExists, UnknownNode, path_join
+from keepnote.notebook.connection import NodeExists
+from keepnote.notebook.connection import path_basename
+from keepnote.notebook.connection import path_join
+from keepnote.notebook.connection import UnknownNode
 
 
 #=============================================================================
@@ -84,7 +86,6 @@ def sync_node(nodeid, conn1, conn2, attr=None,
 
 def sync_files(conn1, nodeid1, conn2, nodeid2, path1="/", path2="/"):
     """Sync files from conn1.nodeid1 to conn2.nodeid2"""
-
     files = list(conn1.list_dir(nodeid1, path1))
 
     # ensure target path exists
@@ -99,9 +100,8 @@ def sync_files(conn1, nodeid1, conn2, nodeid2, path1="/", path2="/"):
 
     # copy files from node1 to node2
     for f in files:
-        file1 = path_join(path1, f)
-        file2 = path_join(path2, f)
-        print '>>', file1, path1, f
+        file1 = f
+        file2 = path_join(path2, f[len(path1):])
 
         if f.endswith("/"):
             # recurse into directories

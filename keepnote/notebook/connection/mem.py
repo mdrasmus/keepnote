@@ -177,10 +177,18 @@ class NoteBookConnectionMem (NoteBookConnection):
         if not filename.endswith("/"):
             raise connlib.FileError()
 
-        # TODO: do not list entire subtree.
-        files = [f[len(filename):] for f in node.files.iterkeys()
-                 if f.startswith(filename) and f != filename]
-        return files
+        seen = set()
+        for name in node.files.iterkeys():
+            if name.startswith(filename) and name != filename:
+                part = name[len(filename):]
+                index = part.find('/')
+                if index >= 0:
+                    # Do not list files within directory.
+                    part = part[:index+1]
+                fullname = filename + part
+                if fullname not in seen:
+                    yield fullname
+                    seen.add(fullname)
 
     def has_file(self, nodeid, filename):
         node = self._nodes.get(nodeid)

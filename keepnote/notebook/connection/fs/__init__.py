@@ -98,7 +98,7 @@ from keepnote.notebook.connection.index import AttrIndex
 
 from keepnote.notebook.connection import \
     NoteBookConnection, UnknownNode, FileError, UnknownFile, NodeExists, \
-    ConnectionError
+    ConnectionError, path_join
 # path_basename
 import keepnote
 import keepnote.notebook
@@ -667,6 +667,9 @@ class FileFS(object):
 
     def list_dir(self, nodeid, filename="/", _path=None):
         """List data files in node."""
+        if not filename.endswith("/"):
+            raise FileError("filename '%s' does not end with '/'" % filename)
+
         path = self.get_node_path(nodeid) if _path is None else _path
         path = get_node_filename(path, filename)
 
@@ -676,17 +679,17 @@ class FileFS(object):
             raise UnknownFile("cannot file file '%s' '%s'" %
                               (nodeid, filename))
 
-        for filename in filenames:
-            if (filename != NODE_META_FILE and
-                    not filename.startswith("__")):
-                fullname = os.path.join(path, filename)
+        for name in filenames:
+            if (name != NODE_META_FILE and
+                    not name.startswith("__")):
+                fullname = os.path.join(path, name)
+                node_fullname = path_join(filename, name)
                 if not os.path.exists(get_node_meta_file(fullname)):
                     # ensure directory is not a node
-
                     if os.path.isdir(fullname):
-                        yield filename + "/"
+                        yield node_fullname + "/"
                     else:
-                        yield filename
+                        yield node_fullname
 
     def has_file(self, nodeid, filename, _path=None):
         """Return True if file exists."""

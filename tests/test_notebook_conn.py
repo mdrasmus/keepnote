@@ -174,6 +174,8 @@ class TestConnBase (unittest.TestCase):
                           conn.open_file('node1', 'bad file/', 'w'))
         self.assertRaises(fs.FileError, lambda:
                           conn.create_dir('node1', 'bad dir'))
+        self.assertRaises(fs.FileError, lambda:
+                          list(conn.list_dir('node1', 'file1')))
 
         # Rename file.
         conn.move_file('node1', 'file1', 'node1', 'file2')
@@ -211,20 +213,17 @@ class TestConnBase (unittest.TestCase):
             self.assertEqual(infile.read(), data2)
 
         self.assertTrue(conn.has_file('node3', 'dir2/file1'))
-
-        conn.open_file('node3', 'dir2/file2', 'w').close()
-        conn.create_dir('node3', 'dir2/dir3/')
-        #self.assertEqual(
-        #    set(conn.list_dir('node3', 'dir2/')),
-        #    set(['dir2/file1', 'dir2/file2', 'dir2/dir3/']))
-        self.assertEqual(
-            set(conn.list_dir('node3', 'dir2/')),
-            set(['file1', 'file2', 'dir3/']))
-
         # TODO: fix this bug for FS.
         #self.assertFalse(conn.has_file('dir2', 'file1'))
 
-        # TODO: more testing of list_dir is needed.
+        # listdir should return full file paths.
+        conn.open_file('node3', 'dir2/file2', 'w').close()
+        conn.create_dir('node3', 'dir2/dir3/')
+        conn.open_file('node3', 'dir2/dir3/file1', 'w').close()
+        self.assertEqual(
+            set(conn.list_dir('node3', 'dir2/')),
+            set(['dir2/file1', 'dir2/file2', 'dir2/dir3/']))
+
 
     def _test_notebook(self, conn, filename):
 
