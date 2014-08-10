@@ -26,11 +26,22 @@
 #
 
 # python imports
+from cStringIO import StringIO
 import httplib
+import json
+import mimetypes
 import urllib
 import urlparse
 import BaseHTTPServer
 from collections import defaultdict
+
+# bottle imports
+from . import bottle
+from .bottle import Bottle
+from .bottle import abort
+from .bottle import get
+from .bottle import request
+from .bottle import response
 
 # keepnote imports
 import keepnote
@@ -59,7 +70,7 @@ def determine_path_prefix(path, prefixes=()):
     return ""
 
 
-def parse_node_path(path, prefixes=("/")):
+def parse_node_path(path, prefixes=("/",)):
 
     # skip over prefix
     prefix = determine_path_prefix(path, prefixes)
@@ -335,11 +346,87 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_error(httplib.NOT_FOUND, "cannot find node: " + str(e))
 
 
-class NoteBookHttpServer (BaseHTTPServer.HTTPServer):
+class NoteBookHttpServer ():
 
-    def __init__(self, conn, prefix="/", host="", port=8000):
+    def __init__(self, conn, host="", port=8000):
         self.conn = conn
-        self.prefixes = [prefix]
-        self.server_address = (host, port)
-        BaseHTTPServer.HTTPServer.__init__(self, self.server_address,
-                                           HttpHandler)
+        self.host = host
+        self.port = port
+        self.notebook_prefixes = ['notebook/']
+
+        # Setup web app.
+        self.app = Bottle()
+        self.app.route('/notebook/<path:re:.*>', 'GET',
+                       callback=self.notebook_view)
+
+    def serve_forever(self):
+        """Run server."""
+        self.app.run(host=self.host, port=self.port, debug=True, reloader=True)
+
+    def shutdown(self):
+        """Shutdown server."""
+        pass
+
+    def parse_path(self, path):
+        """
+        Parse a url path into (urlparts, nodeid, filename)
+        """
+        parts = urlparse.urlsplit(path)
+        nodeid, filename = parse_node_path(parts.path, self.notebook_prefixes)
+        return parts, nodeid, filename
+
+    def plist_response(self, data):
+        response.content_type = 'text/xml'
+        return XML_HEADER + plist.dumps(data).encode('utf8')
+
+    def json_response(self, data):
+        response.content_type = 'application/json'
+        return json.dumps(data).encode('utf8')
+
+    def notebook_view(self, path):
+        parts, nodeid, filename = self.parse_path(path)
+
+        try:
+
+            if nodeid == '':
+                if 'all' in request.GET:
+                    response.content_type = 'text/html'
+
+                    body = StringIO()
+                    body.write("<html><body>")
+                    write_tree(body, self.conn)
+                    body.write("</body></html>")
+                    return body.getvalue()
+
+                # get rootid
+                rootid = self.conn.get_rootid()
+                return self.json_response(rootid)
+
+            elif filename is None:
+                # return node attr
+                attr = self.conn.read_node(nodeid)
+
+                response.content_type = 'text/xml'
+
+                if attr.get("parentids") == [None]:
+                    del attr["parentids"]
+
+                return self.json_response(attr)
+
+            elif filename.endswith("/"):
+                # list directory
+                files = list(self.conn.list_dir(nodeid, filename))
+                return self.json_response(files)
+
+            else:
+                # return node file
+                with self.conn.open_file(nodeid, filename) as stream:
+                    mime, encoding = mimetypes.guess_type(
+                        filename, strict=False)
+                    response.content_type = (mime if mime else
+                                             'application/octet-stream')
+                    return stream.read()
+
+        except Exception, e:
+            keepnote.log_error()
+            abort(404, 'node not found ' + str(e))
