@@ -23,6 +23,9 @@ class Install (unittest.TestCase):
         install_dir = TMP_DIR + "/install/distutil"
         home_dir = TMP_DIR + "/install/home"
 
+        if not os.path.exists(sdist):
+            raise OSError('Must build install package to test: %s' % sdist)
+
         make_clean_dir(install_dir)
         make_clean_dir(home_dir)
 
