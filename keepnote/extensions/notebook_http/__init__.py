@@ -1,5 +1,5 @@
 """
-    KeepNote Extension 
+    KeepNote Extension
     notebook_html
 
     Command-line basic commands
@@ -36,16 +36,14 @@ import keepnote.notebook
 import keepnote.extension
 import keepnote.gui.extension
 from keepnote.notebook.connection.fs import NoteBookConnectionFS
-from keepnote.notebook.connection.http import NoteBookHttpServer
-
-
+from keepnote.server import NoteBookHttpServer
 
 
 class Extension (keepnote.gui.extension.Extension):
-    
+
     def __init__(self, app):
         """Initialize extension"""
-        
+
         keepnote.gui.extension.Extension.__init__(self, app)
         self.app = app
         self.enabled.add(self.on_enabled)
@@ -54,11 +52,11 @@ class Extension (keepnote.gui.extension.Extension):
 
         self.commands = [
             # window commands
-            AppCommand("start-http", 
+            AppCommand("start-http",
                        self.start_http,
                        metavar="PORT NOTEBOOK",
                        help="start HTTP server on PORT with NOTEBOOK"),
-            AppCommand("stop-http", 
+            AppCommand("stop-http",
                        self.stop_http,
                        metavar="PORT",
                        help="stop HTTP server on port PORT")
@@ -70,7 +68,7 @@ class Extension (keepnote.gui.extension.Extension):
 
 
     def on_enabled(self, enabled):
-        
+
         if enabled:
             for command in self.commands:
                 if self.app.get_command(command.name):
@@ -90,7 +88,7 @@ class Extension (keepnote.gui.extension.Extension):
     # commands
 
     def start_http(self, app, args):
-        
+
         port = int(args[1])
         notebook_path = unicode(args[2])
 
@@ -116,7 +114,7 @@ class Extension (keepnote.gui.extension.Extension):
 
 
     def stop_http(self, app, args):
-        
+
         port = int(args[1])
 
         if port not in self._ports:
@@ -128,6 +126,6 @@ class Extension (keepnote.gui.extension.Extension):
         server.shutdown()
 
         del self._ports[port]
-       
+
 
 
