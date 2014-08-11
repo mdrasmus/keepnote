@@ -1,1 +1,40 @@
-<html></html>
+<!DOCTYPE html>
+<html>
+<head>
+  <title>KeepNote Notebook</title>
+
+  <link type="text/css" rel="stylesheet" href="/static/thirdparty/css/bootstrap.css">
+  <link type="text/css" rel="stylesheet" href="/static/thirdparty/css/bootstrap-theme.css">
+
+  <link type="text/css" rel="stylesheet" href="/static/css/keepnote.css">
+
+  <script type="text/javascript" src="/static/thirdparty/js/jquery.min.js"></script>
+  <script type="text/javascript" src="/static/thirdparty/js/underscore.js"></script>
+  <script type="text/javascript" src="/static/thirdparty/js/backbone.js"></script>
+  <script type="text/javascript" src="/static/thirdparty/js/bootstrap.min.js"></script>
+
+  <script type="text/javascript" src="/static/js/notebook.js"></script>
+
+</head>
+<body>
+
+<div id="notebook"></div>
+
+<script>
+    var notebook;
+    var notebookView;
+
+    $(document).ready(function () {
+        $.get('/notebook/').done(function (rootid) {
+            notebook = new Node({id: rootid});
+
+            notebookView = new NodeView({model: notebook});
+            notebookView.setElement($("#notebook").get(0));
+
+            notebook.fetch();
+        });
+    });
+</script>
+
+</body>
+</html>
