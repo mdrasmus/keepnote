@@ -1,0 +1,23 @@
+{
+  "name": "keepnote",
+  "version": "0.7.9",
+  "authors": [
+    "Matt Rasmussen <matt.rasmus@gmail.com>"
+  ],
+  "description": "Note-taking and organization",
+  "license": "MIT",
+  "homepage": "http://keepnote.org",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap": "~3.2.0",
+    "jquery": "~2.1.1",
+    "backbone": "~1.1.2"
+  }
+}
