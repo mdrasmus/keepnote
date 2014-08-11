@@ -26,14 +26,15 @@
 #
 
 # python imports
+import BaseHTTPServer
+from collections import defaultdict
 from cStringIO import StringIO
 import httplib
 import json
 import mimetypes
+import os
 import urllib
 import urlparse
-import BaseHTTPServer
-from collections import defaultdict
 
 # bottle imports
 from . import bottle
@@ -42,6 +43,8 @@ from .bottle import abort
 from .bottle import get
 from .bottle import request
 from .bottle import response
+from .bottle import static_file
+from .bottle import template
 
 # keepnote imports
 import keepnote
@@ -53,6 +56,11 @@ from keepnote import plist
 XML_HEADER = u"""\
 <?xml version="1.0" encoding="UTF-8"?>
 """
+
+# Server directories.
+BASE_DIR = os.path.dirname(__file__)
+STATIC_DIR = os.path.join(BASE_DIR, 'static')
+TEMPLATES_DIR = os.path.join(BASE_DIR, 'templates')
 
 
 #=============================================================================
@@ -356,6 +364,9 @@ class NoteBookHttpServer ():
 
         # Setup web app.
         self.app = Bottle()
+        self.app.route('/', 'GET',callback=self.home_view)
+        self.app.route('/static/<filename:re:.*>',
+                       callback=self.static_file_view)
         self.app.route('/notebook/<path:re:.*>', 'GET',
                        callback=self.notebook_view)
 
@@ -383,7 +394,13 @@ class NoteBookHttpServer ():
         response.content_type = 'application/json'
         return json.dumps(data).encode('utf8')
 
+    def home_view(self):
+        """Homepage of notebook webapp."""
+        context = {}
+        return template(TEMPLATES_DIR + '/home.html', context)
+
     def notebook_view(self, path):
+        """Notebook data view."""
         parts, nodeid, filename = self.parse_path(path)
 
         try:
@@ -416,17 +433,23 @@ class NoteBookHttpServer ():
             elif filename.endswith("/"):
                 # list directory
                 files = list(self.conn.list_dir(nodeid, filename))
-                return self.json_response(files)
+                return self.json_response({
+                    'files': files,
+                })
 
             else:
                 # return node file
                 with self.conn.open_file(nodeid, filename) as stream:
                     mime, encoding = mimetypes.guess_type(
                         filename, strict=False)
-                    response.content_type = (mime if mime else
-                                             'application/octet-stream')
+                    response.content_type = (mime if mime else 'text')
+#                                             'application/octet-stream')
                     return stream.read()
 
         except Exception, e:
             keepnote.log_error()
             abort(404, 'node not found ' + str(e))
+
+    # get static files
+    def static_file_view(self, filename):
+        return static_file(filename, root=STATIC_DIR)
