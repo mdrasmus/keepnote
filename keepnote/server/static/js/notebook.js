@@ -9,6 +9,7 @@ var Node = Backbone.Model.extend({
         });
         this.children = [];
         this.ordered = false;
+        this.fetched = false;
 
         this.on('change', this.onChanged, this);
     },
@@ -19,6 +20,8 @@ var Node = Backbone.Model.extend({
         var that = this;
         var result = Node.__super__.fetch.call(this, options);
         return result.done(function () {
+            that.fetched = true;
+
             // Allocate children nodes.
             var childrenIds = that.get('childrenids');
             that.children = [];
@@ -44,7 +47,7 @@ var Node = Backbone.Model.extend({
     orderChildren: function () {
         var that = this;
 
-        if (this.ordered)
+        if (!this.fetched || this.ordered)
             return;
 
         function cmp(node1, node2) {
@@ -170,11 +173,18 @@ var NodeView = Backbone.View.extend({
         if (!this.filesExpanded)
             this.files.$el.hide();
 
+        // Auto-expand children nodes.
+        if (this.model.get('expanded'))
+            this.toggleChildren(true);
+
         return this;
     },
 
-    toggleChildren: function () {
-        this.children.toggle();
+    toggleChildren: function (show) {
+        if (show)
+            this.children.show();
+        else
+            this.children.toggle();
 
         this.childrenExpanded = this.children.is(':visible');
         if (this.childrenExpanded)
@@ -240,12 +250,16 @@ var NodeFileView = Backbone.View.extend({
             this.childList.hide();
 
         this.$el.append(this.childList);
+
         return this;
     },
 
-    toggleChildren: function () {
+    toggleChildren: function (show) {
         var that = this;
-        this.childList.toggle();
+        if (show)
+            this.childList.show();
+        else
+            this.childList.toggle();
 
         this.expanded = this.childList.is(':visible');
         if (this.expanded)
