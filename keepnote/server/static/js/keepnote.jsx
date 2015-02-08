@@ -22,16 +22,14 @@ var NotebookTree = React.createClass({
 
         // Get children
         var children = [];
-        if (this.state.expanded) {
-            for (var i=0; i<node.children.length; i++) {
-                var child = node.children[i];
-                children.push(
-                    <li key={i}><NotebookTree node={child} /></li>);
-                child.fetch();
-            }
+        for (var i=0; i<node.children.length; i++) {
+            var child = node.children[i];
+            children.push(
+                <li key={child.id}><NotebookTree node={child} /></li>);
         }
 
         var onExpand = function () { this.toggleChildren(); }.bind(this);
+        var displayChildren = (this.state.expanded ? "inline" : "none");
 
         return <div>
           <a className="expand" onClick={onExpand} href="#">+</a>
@@ -39,7 +37,7 @@ var NotebookTree = React.createClass({
           <a className="attr" href={node.url()}>attr</a> &nbsp;
           <a className="files" href="#">files</a>
           <div className="files-list"></div>
-          <div className="children">
+          <div className="children" style={{display: displayChildren}}>
             <ul>
               {children}
             </ul>
@@ -48,13 +46,13 @@ var NotebookTree = React.createClass({
     },
 
     toggleChildren: function (show) {
-        if (typeof(show) == 'undefined') {
-            this.setState({expanded: !this.state.expanded});
-        } else {
-            this.setState({expanded: show});
-        }
+        if (typeof(show) == 'undefined')
+            show = !this.state.expanded;
+        this.setState({expanded: show});
 
-        if (this.state.expanded)
+        if (show) {
+            this.props.node.fetchChildren();
             this.props.node.orderChildren();
+        }
     },
 });
