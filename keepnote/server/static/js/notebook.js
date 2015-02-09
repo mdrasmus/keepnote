@@ -70,6 +70,7 @@ var NodeFile = Backbone.Model.extend({
     initialize: function (options) {
         this.node = options.node;
         this.path = options.path || '';
+        this.children = [];
 
         this.isDir = (this.path == '' || 
                       this.path.substr(-1) == '/');
@@ -93,21 +94,26 @@ var NodeFile = Backbone.Model.extend({
             return parts[parts.length - 1];
     },
 
+    fetch: function (options) {
+        var result = Node.__super__.fetch.call(this, options);
+        return result.done(function () {
+
+            // Allocate children nodes.
+            var files = this.get('files');
+            this.children = [];
+            for (var i in files) {
+                this.children.push(new NodeFile({
+                    node: this.node,
+                    path: files[i]
+                }));
+            }
+
+            this.trigger('change');
+        }.bind(this));
+    },
+
     getChildren: function () {
-        var children = [];
-        var files = this.get('files');
-
-        if (!files)
-            return children;
-        
-        for (var i in files) {
-            children.push(new NodeFile({
-                node: this.node,
-                path: files[i]
-            }));
-        }
-
-        return children;
+        return this.children;
     },
 
     fetchChildren: function () {
