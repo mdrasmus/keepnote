@@ -1,5 +1,25 @@
-
-
 .title {
-    padding: 5px;
+  padding: 5px;
+}
+
+#treeview-pane {
+  border: solid #ccc 1px;
+  width: 400px;
+  overflow-x: scroll;
+  float: left;
+}
+
+.files {
+  margin: 5px;
+  background: #ddddff;
+}
+
+#page-pane {
+  border: solid #ccc 1px;
+  width: 600px;
+  float: left;
+}
+
+#page-view {
+  overflow: scroll;
 }

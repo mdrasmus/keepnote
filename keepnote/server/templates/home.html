@@ -21,7 +21,15 @@
 </head>
 <body>
 
-<div id="notebook"></div>
+<div id="app">
+  <div id="treeview-pane">
+    <div id="notebook"></div>
+  </div>
+  <div id="page-pane">
+    <div id="page-view"></div>
+  </div>
+</div>
+
 
 <script type="text/jsx">
     var notebook;
@@ -30,7 +38,7 @@
         // Render GUI.
         React.render(
             <NotebookTree node={notebook.root} />,
-            document.getElementById('notebook')
+            $('#treeview-pane #notebook').get(0)
         );
     }
     queueUpdateView = _.debounce(updateView, 0);

@@ -1,3 +1,27 @@
+function viewPage(node) {
+    var baseUrl = node.url() + "/";
+
+    $.ajax(node.pageUrl()).done(function (result) {
+        //window.history.pushState({}, node.get("title"), node.url());
+
+        // Parse page html.
+        var parser = new DOMParser();
+        var htmlDoc = parser.parseFromString(result, "text/html");
+        var body = $(htmlDoc.getElementsByTagName("body"));
+
+        // Adjust all img urls.
+        body.find("img").each(function (i) {
+            var img = $(this);
+            img.attr("src", baseUrl + img.attr("src"));
+        });
+
+        // Load page.
+        $("#page-view").empty();
+        $("#page-view").append(body.children());
+    });
+}
+
+
 var NotebookTree = React.createClass({
     getInitialState: function () {
         var node = this.props.node;
@@ -21,8 +45,7 @@ var NotebookTree = React.createClass({
                 <li key={child.id}><NotebookTree node={child} /></li>);
         }
 
-        var onExpand = function (e) { this.toggleChildren(e); }.bind(this);
-        var onFileClick = function (e) { this.toggleFiles(e); }.bind(this);
+        //var onPageClick = function (e) { this.
         var displayChildren = (this.state.expanded ? "inline" : "none");
         var displayFiles = (this.state.filesExpanded ? "block" : "none");
 
@@ -30,7 +53,7 @@ var NotebookTree = React.createClass({
         var title = <span className="title">{node.get('title')}</span>;
         if (node.isPage()) {
             // Notebook page.
-            title = <a href={node.pageUrl()}>{title}</a>;
+            title = <a href="#" onClick={this.onPageClick}>{title}</a>;
         } else if (node.get("payload_filename")) {
             // Attached file.
             title = <a href={node.payloadUrl()}>{title}</a>;
@@ -48,16 +71,17 @@ var NotebookTree = React.createClass({
         }
 
         return <div>
-          <a className="expand" onClick={onExpand} href="#">+</a>
+          <a className="expand" onClick={this.toggleChildren} href="#">+</a>
           {title}
-          [<a className="attr" href={node.url()}>attr</a>]&nbsp;
-          [<a className="files" onClick={onFileClick} href="#">files</a>]
+          [<a href={node.url()}>attr</a>]&nbsp;
+          [<a onClick={this.toggleFiles} href="#">files</a>]
 
-          <NotebookFile
-            file={node.file}
-            showFilename={false}
-            expanded={true}
-            style={{display: displayFiles}} />
+          <div className="files" style={{display: displayFiles}}>
+            <NotebookFile
+             file={node.file}
+             showFilename={false}
+             expanded={true} />
+          </div>
 
           <div className="children" style={{display: displayChildren}}>
             <ul>
@@ -75,8 +99,6 @@ var NotebookTree = React.createClass({
         if (expanded) {
             this.props.node.fetchChildren();
         }
-
-        return false;
     },
 
     toggleFiles: function (e) {
@@ -88,6 +110,10 @@ var NotebookTree = React.createClass({
             this.props.node.file.fetch();
     },
 
+    onPageClick: function (e) {
+        e.preventDefault();
+        viewPage(this.props.node);
+    }
 });
 
 
@@ -126,9 +152,7 @@ var NotebookFile = React.createClass({
             var onClick = null;
             var href = "#";
             if (file.isDir) {
-                onClick = function (e) {
-                    return this.toggleChildren(e);
-                }.bind(this);
+                onClick = this.toggleChildren;
             } else {
                 href = file.url();
             }
