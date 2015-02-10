@@ -1,8 +1,11 @@
-
 var NotebookTree = React.createClass({
     getInitialState: function () {
+        var node = this.props.node;
+        var expanded = node.get("expanded") || false;
+
         return {
-            expanded: false,
+            firstOpen: true,
+            expanded: expanded,
             filesExpanded: false
         };
     },
@@ -10,7 +13,7 @@ var NotebookTree = React.createClass({
     render: function() {
         var node = this.props.node;
 
-        // Get children
+        // Get children.
         var children = [];
         for (var i=0; i<node.children.length; i++) {
             var child = node.children[i];
@@ -23,11 +26,32 @@ var NotebookTree = React.createClass({
         var displayChildren = (this.state.expanded ? "inline" : "none");
         var displayFiles = (this.state.filesExpanded ? "block" : "none");
 
+        // Build node title.
+        var title = <span className="title">{node.get('title')}</span>;
+        if (node.isPage()) {
+            // Notebook page.
+            title = <a href={node.pageUrl()}>{title}</a>;
+        } else if (node.get("payload_filename")) {
+            // Attached file.
+            title = <a href={node.payloadUrl()}>{title}</a>;
+        }
+
+        // Fetch children if node is expanded.
+        if (node.get("expanded") && this.state.firstOpen) {
+            setTimeout(function () {
+                node.fetchChildren();
+                this.setState({
+                    firstOpen: false,
+                    expanded: node.get("expanded")
+                });
+            }.bind(this), 0);
+        }
+
         return <div>
           <a className="expand" onClick={onExpand} href="#">+</a>
-          <span className="title">{node.get('title')}</span>
-          <a className="attr" href={node.url()}>attr</a> &nbsp;
-          <a className="files" onClick={onFileClick} href="#">files</a>
+          {title}
+          [<a className="attr" href={node.url()}>attr</a>]&nbsp;
+          [<a className="files" onClick={onFileClick} href="#">files</a>]
 
           <NotebookFile
             file={node.file}
@@ -50,7 +74,6 @@ var NotebookTree = React.createClass({
         this.setState({expanded: expanded});
         if (expanded) {
             this.props.node.fetchChildren();
-            this.props.node.orderChildren();
         }
 
         return false;

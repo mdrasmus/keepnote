@@ -2,6 +2,9 @@
 // Notebook node model.
 var Node = Backbone.Model.extend({
 
+    PAGE_CONTENT_TYPE: "text/xhtml+xml",
+    PAGE_FILE: "page.html",
+
     initialize: function (options) {
         this.file = new NodeFile({
             node: this,
@@ -54,18 +57,16 @@ var Node = Backbone.Model.extend({
         }.bind(this));
     },
 
-    fetchChildren: function () {
+    _loadChildren: function () {
         var defers = []
 
-        for (var i in this.children)
+        for (var i=0; i<this.children.length; i++)
             defers.push(this.children[i].fetch());
 
         return $.when.apply($, defers);
     },
 
-    orderChildren: function () {
-        var that = this;
-
+    fetchChildren: function () {
         if (!this.fetched || this.ordered)
             return;
 
@@ -73,13 +74,24 @@ var Node = Backbone.Model.extend({
             return node1.get('order') - node2.get('order');
         }
 
-        return this.fetchChildren().then(function () {
-            that.children.sort(cmp);
-            that.ordered = true;
-            that.trigger('change');
-        });
-    }
+        return this._loadChildren().then(function () {
+            this.children.sort(cmp);
+            this.ordered = true;
+            this.trigger('change');
+        }.bind(this));
+    },
 
+    isPage: function () {
+        return this.get("content_type") == this.PAGE_CONTENT_TYPE;
+    },
+
+    pageUrl: function () {
+        return this.url() + "/" + this.PAGE_FILE;
+    },
+
+    payloadUrl: function () {
+        return this.url() + "/" + this.get("payload_filename");
+    }
 });
 
 
