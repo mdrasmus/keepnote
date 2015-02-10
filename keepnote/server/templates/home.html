@@ -25,22 +25,29 @@
 
 <script type="text/jsx">
     var notebook;
-    var notebookView;
+    //var notebookView;
+
+    function updateView() {
+        // Render GUI.
+        React.render(
+            <NotebookTree node={notebook.root} />,
+            document.getElementById('notebook')
+        );
+    }
+    queueUpdateView = _.debounce(updateView, 0);
+
+    function onNoteBookChange(notebook, node) {
+        queueUpdateView();
+    }
 
     $(document).ready(function () {
         $.get('/notebook/').done(function (rootid) {
-            notebook = new Node({id: rootid});
+            notebook = new NoteBook({rootid: rootid});
+            notebook.on("node-change", onNoteBookChange);
+            notebook.fetch();
 
             //notebookView = new NodeView({model: notebook});
             //notebookView.setElement($("#notebook").get(0));
-
-            notebook.fetch();
-
-            // Start GUI.
-            React.render(
-              <NotebookTree node={notebook} />,
-              document.getElementById('notebook')
-            );
         });
     });
 </script>

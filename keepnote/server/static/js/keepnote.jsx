@@ -7,18 +7,6 @@ var NotebookTree = React.createClass({
         };
     },
 
-    componentDidMount: function () {
-        //forceUpdate will be called at most once every second
-        var threshold = 0;
-        this._boundForceUpdate = _.throttle(
-            this.forceUpdate.bind(this, null), threshold);
-        this.props.node.on("all", this._boundForceUpdate, this);
-    },
-
-    componentWillUnmount: function () {
-        this.props.node.off("all", this._boundForceUpdate);
-    },
-
     render: function() {
         var node = this.props.node;
 
@@ -91,20 +79,20 @@ var NotebookFile = React.createClass({
 
     getInitialState: function () {
         return {
-            expanded: this.props.expanded
+            expanded: this.props.expanded,
+            firstOpen: true
         };
     },
 
     componentDidMount: function () {
-        //forceUpdate will be called at most once every second
-        var threshold = 0;
-        this._boundForceUpdate = _.throttle(
-            this.forceUpdate.bind(this, null), threshold);
-        this.props.file.on("all", this._boundForceUpdate, this);
+        this.props.file.on("change", function (e) {
+            this.forceUpdate();
+        }.bind(this), this);
     },
 
     componentWillUnmount: function () {
-        this.props.file.off("all", this._boundForceUpdate);
+        //this.props.node.off("all", this._boundForceUpdate);
+        this.props.file.off("change", null, null, this);
     },
 
     render: function () {
@@ -151,8 +139,13 @@ var NotebookFile = React.createClass({
         e.preventDefault();
 
         var show = !this.state.expanded;
-        this.setState({expanded: show});
-        if (show)
+        var firstOpen = this.state.firstOpen;
+
+        this.setState({
+            expanded: show,
+            firstOpen: false
+        });
+        if (show && firstOpen)
             this.props.file.fetch();
     }
 });

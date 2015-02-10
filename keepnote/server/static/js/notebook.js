@@ -10,29 +10,35 @@ var Node = Backbone.Model.extend({
         this.children = [];
         this.ordered = false;
         this.fetched = false;
-
-        this.on('change', this.onChanged, this);
     },
 
     urlRoot: '/notebook',
 
+    _allocateChildren: function (childrenIds) {
+        this.trigger("removing-children", this);
+
+        // Allocate and register new children.
+        this.children = [];
+        for (var i=0; i<childrenIds.length; i++) {
+            this.children.push(new Node({id: childrenIds[i]}));
+        }
+
+        this.trigger("adding-children", this);
+    },
+
     fetch: function (options) {
-        var that = this;
         var result = Node.__super__.fetch.call(this, options);
         return result.done(function () {
-            that.fetched = true;
+            this.fetched = true;
 
             // Allocate children nodes.
-            var childrenIds = that.get('childrenids');
-            that.children = [];
-            if (typeof(childrenIds) != "undefined") {
-                for (var i in childrenIds) {
-                    that.children.push(new Node({id: childrenIds[i]}));
-                }
-            }
+            var childrenIds = this.get('childrenids');
+            if (typeof(childrenIds) == "undefined")
+                childrenIds = [];
+            this._allocateChildren(childrenIds);
 
-            that.trigger('change');
-        });
+            this.trigger('change');
+        }.bind(this));
     },
 
     fetchChildren: function () {
@@ -40,7 +46,7 @@ var Node = Backbone.Model.extend({
 
         for (var i in this.children)
             defers.push(this.children[i].fetch());
-        
+
         return $.when.apply($, defers);
     },
 
@@ -66,13 +72,13 @@ var Node = Backbone.Model.extend({
 
 // Notebook node file model.
 var NodeFile = Backbone.Model.extend({
-    
+
     initialize: function (options) {
         this.node = options.node;
         this.path = options.path || '';
         this.children = [];
 
-        this.isDir = (this.path == '' || 
+        this.isDir = (this.path == '' ||
                       this.path.substr(-1) == '/');
     },
 
@@ -125,6 +131,50 @@ var NodeFile = Backbone.Model.extend({
 });
 
 
+var NoteBook = Backbone.Model.extend({
+    initialize: function (options) {
+        this.root = new Node({id: options.rootid});
+        this.root.on("change", function () {
+            this.onNodeChange(this.root); }, this);
+        this.root.on("adding-children", this.onAddingChildren, this);
+    },
+
+    fetch: function (options) {
+        return this.root.fetch();
+    },
+
+    onNodeChange: function (node) {
+        this.trigger("node-change", this, node);
+    },
+
+    onAddingChildren: function (node) {
+        for (var i=0; i<node.children.length; i++) {
+            var child = node.children[i];
+
+            // Propogate listening of new children.
+            child.on("adding-children", this.onAddingChildren, this);
+
+            // Add node listeners.
+            child.on("change", function () {
+                this.onNodeChange(child); }, this);
+        }
+    },
+
+    onRemovingChildren: function (node) {
+        for (var i=0; i<node.children.length; i++) {
+            var child = node.children[i];
+
+            // Remove listeners for children.
+            child.off("adding-children", null, this);
+            child.off("change", null, this);
+        }
+    },
+});
+
+
+//=============================================================================
+// Backbone views
+
 var NodeView = Backbone.View.extend({
 
     initialize: function () {
@@ -140,8 +190,8 @@ var NodeView = Backbone.View.extend({
         this.$el.html(
             '<a class="expand" href="#">+</a> ' +
             '<span class="title"></span> ' +
-            '<a class="attr" href="#">attr</a> ' + 
-            '<a class="files" href="#">files</a> ' + 
+            '<a class="attr" href="#">attr</a> ' +
+            '<a class="files" href="#">files</a> ' +
             '<div class="files-list"></div>' +
             '<div class="children"></div>'
         );
@@ -152,14 +202,14 @@ var NodeView = Backbone.View.extend({
         this.$el.find('.title').text(this.model.get('title'));
         this.$el.find('.expand').click(function () { that.toggleChildren(); });
         this.$el.find('.attr').attr('href', this.model.url());
-        this.$el.find('.files').click(function () { 
+        this.$el.find('.files').click(function () {
             that.toggleFiles(); return false;
         });
 
         // Children node subviews.
         if (!this.childrenExpanded)
             this.children.hide();
-        
+
         var list = $("<ul>");
         this.children.append(list);
         for (var i in this.model.children) {
@@ -209,7 +259,7 @@ var NodeView = Backbone.View.extend({
 
 
 var NodeFileView = Backbone.View.extend({
-    
+
     initialize: function (options) {
         this.showFilename = options.showFilename;
         if (typeof(this.showFilename) == 'undefined')
@@ -223,7 +273,7 @@ var NodeFileView = Backbone.View.extend({
     render: function () {
         var that = this;
         this.childList = $('<ul></ul>');
-        
+
         // Populate child list.
         var children = this.model.getChildren();
         for (var i in children) {
