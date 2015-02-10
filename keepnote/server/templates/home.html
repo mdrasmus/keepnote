@@ -25,7 +25,6 @@
 
 <script type="text/jsx">
     var notebook;
-    //var notebookView;
 
     function updateView() {
         // Render GUI.
@@ -36,18 +35,15 @@
     }
     queueUpdateView = _.debounce(updateView, 0);
 
-    function onNoteBookChange(notebook, node) {
+    function onNoteBookChange() {
         queueUpdateView();
     }
 
     $(document).ready(function () {
         $.get('/notebook/').done(function (rootid) {
             notebook = new NoteBook({rootid: rootid});
-            notebook.on("node-change", onNoteBookChange);
+            notebook.on("change", onNoteBookChange);
             notebook.fetch();
-
-            //notebookView = new NodeView({model: notebook});
-            //notebookView.setElement($("#notebook").get(0));
         });
     });
 </script>

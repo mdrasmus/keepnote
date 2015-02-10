@@ -46,10 +46,9 @@ var NotebookTree = React.createClass({
     toggleChildren: function (e) {
         e.preventDefault();
 
-        var show = !this.state.expanded;
-        this.setState({expanded: show});
-
-        if (show) {
+        var expanded = !this.state.expanded;
+        this.setState({expanded: expanded});
+        if (expanded) {
             this.props.node.fetchChildren();
             this.props.node.orderChildren();
         }
@@ -79,20 +78,8 @@ var NotebookFile = React.createClass({
 
     getInitialState: function () {
         return {
-            expanded: this.props.expanded,
-            firstOpen: true
+            expanded: this.props.expanded
         };
-    },
-
-    componentDidMount: function () {
-        this.props.file.on("change", function (e) {
-            this.forceUpdate();
-        }.bind(this), this);
-    },
-
-    componentWillUnmount: function () {
-        //this.props.node.off("all", this._boundForceUpdate);
-        this.props.file.off("change", null, null, this);
     },
 
     render: function () {
@@ -100,7 +87,7 @@ var NotebookFile = React.createClass({
 
         // Populate child list.
         var children = [];
-        var fileChildren = file.getChildren();
+        var fileChildren = file.children;
         for (var i=0; i<fileChildren.length; i++) {
             var child = fileChildren[i];
             children.push(<li key={i}><NotebookFile file={child} /></li>);
@@ -138,14 +125,9 @@ var NotebookFile = React.createClass({
     toggleChildren: function (e) {
         e.preventDefault();
 
-        var show = !this.state.expanded;
-        var firstOpen = this.state.firstOpen;
-
-        this.setState({
-            expanded: show,
-            firstOpen: false
-        });
-        if (show && firstOpen)
+        var expanded = !this.state.expanded;
+        this.setState({expanded: expanded});
+        if (expanded)
             this.props.file.fetch();
     }
 });
