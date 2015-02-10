@@ -21,18 +21,20 @@
 </head>
 <body>
 
-<div id="app">
-  <div id="treeview-pane">
-    <div id="notebook"></div>
-  </div>
-  <div id="page-pane">
-    <div id="page-view"></div>
-  </div>
+<div id="base">
 </div>
 
 
 <script type="text/jsx">
     var notebook;
+
+    function updateApp() {
+        React.render(
+            <KeepNoteView/>,
+            $('#base').get(0)
+        );
+    }
+    updateApp();
 
     function updateView() {
         // Render GUI.
@@ -48,6 +50,8 @@
     }
 
     $(document).ready(function () {
+        $(window).resize(updateApp);
+
         $.get('/notebook/').done(function (rootid) {
             notebook = new NoteBook({rootid: rootid});
             notebook.on("change", onNoteBookChange);

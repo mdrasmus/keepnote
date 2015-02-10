@@ -1,12 +1,26 @@
+body {
+  overflow: hidden;
+}
+
 .title {
   padding: 5px;
 }
 
 #treeview-pane {
   border: solid #ccc 1px;
-  width: 400px;
-  overflow-x: scroll;
   float: left;
+}
+
+#notebook {
+  overflow-x: scroll;
+}
+
+#notebook ul {
+  padding-left: 20px;
+}
+
+#notebook li {
+  list-style: none;
 }
 
 .files {
@@ -16,10 +30,9 @@
 
 #page-pane {
   border: solid #ccc 1px;
-  width: 600px;
   float: left;
 }
 
 #page-view {
-  overflow: scroll;
+  overflow: auto;
 }

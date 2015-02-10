@@ -16,10 +16,33 @@ function viewPage(node) {
         });
 
         // Load page.
-        $("#page-view").empty();
-        $("#page-view").append(body.children());
+        var pageView = $("#page-view");
+        pageView.empty();
+        pageView.append(body.contents());
     });
 }
+
+
+var KeepNoteView = React.createClass({
+    render: function () {
+        var windowSize = [$(window).width(), $(window).height()];
+        //var offset = [this.pageScrollOffset[0], 0];
+        var treeWidth = 400;
+        var appHeight = windowSize[1] - 4;
+        var pageWidth = windowSize[0] - treeWidth - 4;
+
+        return <div id="app">
+          <div id="treeview-pane">
+            <div id="notebook"
+             style={{height: appHeight, width: treeWidth}}></div>
+          </div>
+          <div id="page-pane">
+            <div id="page-view"
+             style={{height: appHeight, width: pageWidth}}></div>
+          </div>
+        </div>;
+    }
+});
 
 
 var NotebookTree = React.createClass({
