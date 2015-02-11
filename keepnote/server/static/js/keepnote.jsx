@@ -79,7 +79,7 @@ var NotebookTree = React.createClass({
             title = <a href="#" onClick={this.onPageClick}>{title}</a>;
         } else if (node.get("payload_filename")) {
             // Attached file.
-            title = <a href={node.payloadUrl()}>{title}</a>;
+            title = <a href={node.payloadUrl()} target="_blank">{title}</a>;
         }
 
         // Fetch children if node is expanded.
