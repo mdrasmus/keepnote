@@ -25,22 +25,45 @@ function viewPage(node) {
 
 var KeepNoteView = React.createClass({
     render: function () {
-        var windowSize = [$(window).width(), $(window).height()];
-        //var offset = [this.pageScrollOffset[0], 0];
         var treeWidth = 400;
-        var appHeight = windowSize[1] - 4;
-        var pageWidth = windowSize[0] - treeWidth - 4;
+        var toolbarHeight = 25;
+
+        //var offset = [this.pageScrollOffset[0], 0];
+        var windowSize = [$(window).width(), $(window).height()];
+        var appSize = [windowSize[0] - 4, windowSize[1] - 2];
+        var treeSize = [treeWidth, appSize[1]];
+
+        var pageWidth = windowSize[0] - treeSize[0] - 4;
+        var toolbarSize = [pageWidth, toolbarHeight];
+        var pageSize = [pageWidth, appSize[1] - toolbarHeight];
 
         return <div id="app">
           <div id="treeview-pane">
             <div id="notebook"
-             style={{height: appHeight, width: treeWidth}}></div>
+             style={{width: treeSize[0], height: treeSize[1]}}></div>
           </div>
           <div id="page-pane">
+            <div id="page-toolbar"
+             style={{width: toolbarSize[0], height: toolbarSize[1]}}>
+              <a onClick={this.onViewPage} href="#">view</a> &nbsp;
+              <a onClick={this.onEditPage} href="#">edit</a>
+            </div>
             <div id="page-view"
-             style={{height: appHeight, width: pageWidth}}></div>
+             style={{width: pageSize[0], height: pageSize[1]}}></div>
           </div>
         </div>;
+    },
+
+    onViewPage: function (e) {
+        e.preventDefault();
+
+        console.log("view");
+    },
+
+    onEditPage: function (e) {
+        e.preventDefault();
+
+        console.log("edit");
     }
 });
 
