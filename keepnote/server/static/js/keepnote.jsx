@@ -192,6 +192,12 @@ var NotebookFile = React.createClass({
 
 
 var KeepNoteView = React.createClass({
+    getInitialState: function () {
+        return {
+            editing: false
+        };
+    },
+
     render: function () {
         var notebook = this.props.notebook;
 
@@ -207,6 +213,9 @@ var KeepNoteView = React.createClass({
         var toolbarSize = [pageWidth, toolbarHeight];
         var pageSize = [pageWidth, appSize[1]];
 
+        var displayPageView = (!this.state.editing ? "inline" : "none");
+        var displayPageEditor = (this.state.editing ? "inline" : "none");
+
         return <div id="app">
           <div id="treeview-pane"
             style={{width: treeSize[0], height: treeSize[1]}} >
@@ -219,20 +228,19 @@ var KeepNoteView = React.createClass({
              style={{width: toolbarSize[0], height: toolbarSize[1]}}
              onViewPage={this.onViewPage}
              onEditPage={this.onEditPage} />
-            <div id="page-view"></div>
+            <div id="page-view" style={{display: displayPageView}}></div>
+            <div id="page-edit" style={{display: displayPageEditor}}></div>
           </div>
         </div>;
     },
 
     onViewPage: function (e) {
         e.preventDefault();
-
-        console.log("view");
+        this.setState({editing: false});
     },
 
     onEditPage: function (e) {
         e.preventDefault();
-
-        console.log("edit");
+        this.setState({editing: true});
     }
 });
