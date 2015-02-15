@@ -28,7 +28,7 @@ body {
   background: #ddddff;
 }
 
-#page-toolbar {
+.page-toolbar {
   background-color: #ccc;
   padding-left: 5px;
 }

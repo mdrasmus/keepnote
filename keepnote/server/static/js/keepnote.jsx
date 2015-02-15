@@ -23,6 +23,16 @@ function viewPage(node) {
 }
 
 
+var PageToolbar = React.createClass({
+    render: function () {
+        return <div className="page-toolbar">
+          <a onClick={this.props.onViewPage} href="#">view</a> &nbsp;
+          <a onClick={this.props.onEditPage} href="#">edit</a>
+        </div>;
+    }
+});
+
+
 var KeepNoteView = React.createClass({
     render: function () {
         var treeWidth = 400;
@@ -43,11 +53,10 @@ var KeepNoteView = React.createClass({
              style={{width: treeSize[0], height: treeSize[1]}}></div>
           </div>
           <div id="page-pane">
-            <div id="page-toolbar"
-             style={{width: toolbarSize[0], height: toolbarSize[1]}}>
-              <a onClick={this.onViewPage} href="#">view</a> &nbsp;
-              <a onClick={this.onEditPage} href="#">edit</a>
-            </div>
+            <PageToolbar
+             style={{width: toolbarSize[0], height: toolbarSize[1]}}
+             onViewPage={this.onViewPage}
+             onEditPage={this.onEditPage} />
             <div id="page-view"
              style={{width: pageSize[0], height: pageSize[1]}}></div>
           </div>
