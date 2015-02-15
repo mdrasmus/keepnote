@@ -33,50 +33,6 @@ var PageToolbar = React.createClass({
 });
 
 
-var KeepNoteView = React.createClass({
-    render: function () {
-        var treeWidth = 400;
-        var toolbarHeight = 25;
-
-        //var offset = [this.pageScrollOffset[0], 0];
-        var windowSize = [$(window).width(), $(window).height()];
-        var appSize = [windowSize[0] - 4, windowSize[1] - 2];
-        var treeSize = [treeWidth, appSize[1]];
-
-        var pageWidth = windowSize[0] - treeSize[0] - 4;
-        var toolbarSize = [pageWidth, toolbarHeight];
-        var pageSize = [pageWidth, appSize[1] - toolbarHeight];
-
-        return <div id="app">
-          <div id="treeview-pane">
-            <div id="notebook"
-             style={{width: treeSize[0], height: treeSize[1]}}></div>
-          </div>
-          <div id="page-pane">
-            <PageToolbar
-             style={{width: toolbarSize[0], height: toolbarSize[1]}}
-             onViewPage={this.onViewPage}
-             onEditPage={this.onEditPage} />
-            <div id="page-view"
-             style={{width: pageSize[0], height: pageSize[1]}}></div>
-          </div>
-        </div>;
-    },
-
-    onViewPage: function (e) {
-        e.preventDefault();
-
-        console.log("view");
-    },
-
-    onEditPage: function (e) {
-        e.preventDefault();
-
-        console.log("edit");
-    }
-});
-
-
 var NotebookTree = React.createClass({
     getInitialState: function () {
         var node = this.props.node;
@@ -125,7 +81,7 @@ var NotebookTree = React.createClass({
             }.bind(this), 0);
         }
 
-        return <div>
+        return <div className="node-tree">
           <a className="expand" onClick={this.toggleChildren} href="#">+</a>
           {title}
           [<a href={node.url()}>attr</a>]&nbsp;
@@ -231,5 +187,52 @@ var NotebookFile = React.createClass({
         this.setState({expanded: expanded});
         if (expanded)
             this.props.file.fetch();
+    }
+});
+
+
+var KeepNoteView = React.createClass({
+    render: function () {
+        var notebook = this.props.notebook;
+
+        var treeWidth = 400;
+        var toolbarHeight = 25;
+
+        //var offset = [this.pageScrollOffset[0], 0];
+        var windowSize = [$(window).width(), $(window).height()];
+        var appSize = [windowSize[0] - 4, windowSize[1] - 2];
+        var treeSize = [treeWidth, appSize[1]];
+
+        var pageWidth = windowSize[0] - treeSize[0] - 4;
+        var toolbarSize = [pageWidth, toolbarHeight];
+        var pageSize = [pageWidth, appSize[1]];
+
+        return <div id="app">
+          <div id="treeview-pane"
+            style={{width: treeSize[0], height: treeSize[1]}} >
+            <NotebookTree
+             node={notebook.root} />
+          </div>
+          <div id="page-pane"
+           style={{width: pageSize[0], height: pageSize[1]}} >
+            <PageToolbar
+             style={{width: toolbarSize[0], height: toolbarSize[1]}}
+             onViewPage={this.onViewPage}
+             onEditPage={this.onEditPage} />
+            <div id="page-view"></div>
+          </div>
+        </div>;
+    },
+
+    onViewPage: function (e) {
+        e.preventDefault();
+
+        console.log("view");
+    },
+
+    onEditPage: function (e) {
+        e.preventDefault();
+
+        console.log("edit");
     }
 });

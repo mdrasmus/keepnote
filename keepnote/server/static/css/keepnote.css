@@ -9,17 +9,17 @@ body {
 #treeview-pane {
   border: solid #ccc 1px;
   float: left;
-}
-
-#notebook {
   overflow: auto;
 }
 
-#notebook ul {
+#treeview-pane .node-tree {
+}
+
+.node-tree ul {
   padding-left: 20px;
 }
 
-#notebook li {
+.node-tree li {
   list-style: none;
 }
 
@@ -36,8 +36,8 @@ body {
 #page-pane {
   border: solid #ccc 1px;
   float: left;
+  overflow-y: auto;
 }
 
 #page-view {
-  overflow-y: auto;
 }

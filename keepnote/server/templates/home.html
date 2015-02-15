@@ -29,12 +29,14 @@
     var notebook;
 
     function updateApp() {
+        if (!notebook)
+           return;
         React.render(
-            <KeepNoteView/>,
+            <KeepNoteView notebook={notebook} />,
             $('#base').get(0)
         );
     }
-    updateApp();
+    queueUpdateApp = _.debounce(updateApp, 0);
 
     function updateView() {
         // Render GUI.
@@ -46,11 +48,13 @@
     queueUpdateView = _.debounce(updateView, 0);
 
     function onNoteBookChange() {
-        queueUpdateView();
+        queueUpdateApp();
     }
 
     $(document).ready(function () {
-        $(window).resize(updateApp);
+        updateApp();
+
+        $(window).resize(queueUpdateApp);
 
         $.get('/notebook/').done(function (rootid) {
             notebook = new NoteBook({rootid: rootid});
