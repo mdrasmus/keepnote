@@ -1,24 +1,39 @@
-function viewPage(node) {
+
+// Parse a page's HTML into DOM elements.
+function parsePageHtml(node, html) {
     var baseUrl = node.url() + "/";
 
+    // Parse page html.
+    var parser = new DOMParser();
+    var htmlDoc = parser.parseFromString(html, "text/html");
+    var body = $(htmlDoc.getElementsByTagName("body"));
+
+    // Adjust all img urls.
+    body.find("img").each(function (i) {
+        var img = $(this);
+        img.attr("src", baseUrl + img.attr("src"));
+    });
+
+    return body.contents();
+}
+
+
+function viewPage(node) {
     $.ajax(node.pageUrl()).done(function (result) {
         //window.history.pushState({}, node.get("title"), node.url());
 
-        // Parse page html.
-        var parser = new DOMParser();
-        var htmlDoc = parser.parseFromString(result, "text/html");
-        var body = $(htmlDoc.getElementsByTagName("body"));
-
-        // Adjust all img urls.
-        body.find("img").each(function (i) {
-            var img = $(this);
-            img.attr("src", baseUrl + img.attr("src"));
-        });
+        // Load page view;
+        var pageView = $("#page-view");
+        var content = parsePageHtml(node, result);
+        pageView.empty();
+        pageView.append(content);
 
         // Load page.
-        var pageView = $("#page-view");
-        pageView.empty();
-        pageView.append(body.contents());
+        var pageEditor = $("#page-editor");
+        var content = parsePageHtml(node, result);
+        pageEditor.empty();
+        pageEditor.append(content);
+
     });
 }
 
@@ -229,7 +244,8 @@ var KeepNoteView = React.createClass({
              onViewPage={this.onViewPage}
              onEditPage={this.onEditPage} />
             <div id="page-view" style={{display: displayPageView}}></div>
-            <div id="page-edit" style={{display: displayPageEditor}}></div>
+            <div id="page-editor" style={{display: displayPageEditor}}
+             contentEditable="true"></div>
           </div>
         </div>;
     },
