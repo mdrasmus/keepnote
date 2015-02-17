@@ -23,14 +23,24 @@
     "wysihtml": "~0.4.17"
   },
   "overrides": {
-      "bootstrap": {
-          "main": "dist/**/*.*"
-      },
-      "jquery": {
-          "main": "dist/**/*.*"
-      },
-      "react": {
-          "main": "*.js"
+    "bootstrap": {
+      "main": "dist/**/*.*",
+      "normalize": {
+        "css": ["*.map", "*.css"],
+        "font": ["*.eot", "*.svg", "*.ttf", "*.woff"]
       }
+    },
+    "jquery": {
+      "main": "dist/**/*.*"
+    },
+    "react": {
+      "main": "*.js"
+    },
+    "wysihtml": {
+      "main": [
+        "dist/**/*.*",
+        "parser_rules/advanced_and_extended.js"
+      ]
+    }
   }
 }
