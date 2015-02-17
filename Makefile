@@ -10,6 +10,9 @@ VERSION:=$(shell python -c 'import keepnote; print keepnote.PROGRAM_VERSION_TEXT
 # build programs
 PYTHON=python2.5
 
+VENV_DIR=env
+VENV=. $(VENV_DIR)/bin/activate
+
 # release filenames
 SDIST_FILE=$(PKG)-$(VERSION).tar.gz
 RPM_FILE=$(PKG)-$(VERSION)-1.noarch.rpm
@@ -44,13 +47,39 @@ WININSTALLER_SRC=installer.iss
 # personal www paths
 WWW=/var/www/dev/rasm/keepnote
 
+.PHONY: all dev venv sdist rpm deb ebuild clean cq test help share \
+	winebuild wineinstaller winclean contribs \
+	pypi upload upload-test upload-contrib
+
+
+#=============================================================================
+# dev
+
+dev: venv
+	$(VENV) && pip install -r requirements-dev.txt
+	npm install
+	[ -f bower ] || ln -s node_modules/.bin/bower bower
+	[ -f gulp ] || ln -s node_modules/.bin/gulp gulp
+	./bower install
+
+venv: $(VENV_DIR)/bin/activate
+
+$(VENV_DIR)/bin/activate:
+	virtualenv env
+
+cq:
+	pep8 $(CODEQUALITY_FILES) | grep -v 'tarfile\|sqlitedict' || true
+	pyflakes $(CODEQUALITY_FILES) | grep -v 'tarfile\|sqlitedict' || true
+
+test:
+	nosetests -sv tests/*.py
+
+# show makefile actions
+help:
+	grep '^[^$$][^\w=]*:[^=]*$$' Makefile | sed 's/:.*//'
 
 #=============================================================================
 # linux build
-
-.PHONY: all sdist rpm deb ebuild clean cq test help share \
-	winebuild wineinstaller winclean contribs \
-	pypi upload upload-test upload-contrib
 
 all: $(UPLOAD_FILES)
 
@@ -77,17 +106,6 @@ $(EBUILD):
 
 clean:
 	rm -rf $(TMP_FILES) $(UPLOAD_FILES) $(WINDIR) $(WININSTALLER_SRC)
-
-cq:
-	pep8 $(CODEQUALITY_FILES) | grep -v 'tarfile\|sqlitedict' || true
-	pyflakes $(CODEQUALITY_FILES) | grep -v 'tarfile\|sqlitedict' || true
-
-test:
-	nosetests -sv tests/*.py
-
-# show makefile actions
-help:
-	grep '^[^$$][^\w=]*:[^=]*$$' Makefile | sed 's/:.*//'
 
 #=============================================================================
 # icons
@@ -140,4 +158,3 @@ upload-test: $(UPLOAD_FILES)
 
 upload-contrib:
 	make -C contrib upload
-
