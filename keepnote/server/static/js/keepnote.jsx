@@ -28,12 +28,13 @@ function viewPage(node) {
         pageView.empty();
         pageView.append(content);
 
+        /*
         // Load page.
         var pageEditor = $("#page-editor");
         var content = parsePageHtml(node, result);
         pageEditor.empty();
         pageEditor.append(content);
-
+        */
     });
 }
 
@@ -244,8 +245,16 @@ var KeepNoteView = React.createClass({
              onViewPage={this.onViewPage}
              onEditPage={this.onEditPage} />
             <div id="page-view" style={{display: displayPageView}}></div>
-            <div id="page-editor" style={{display: displayPageEditor}}
-             contentEditable="true"></div>
+            <div id="page-editor" style={{display: displayPageEditor}}>
+              <div id="toolbar">
+                <a data-wysihtml5-command="bold">bold</a>
+                <a data-wysihtml5-command="italic">italic</a>
+                <a data-wysihtml5-command="formatBlock" data-wysihtml5-command-value="h1">H1</a>
+                <a data-wysihtml5-command="formatBlock" data-wysihtml5-command-value="p">P</a>
+              </div>
+
+              <div id="editor" data-placeholder="Go on, start editing..."></div>
+            </div>
           </div>
         </div>;
     },
