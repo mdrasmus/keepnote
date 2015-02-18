@@ -224,7 +224,6 @@ class TestConnBase (unittest.TestCase):
             set(conn.list_dir('node3', 'dir2/')),
             set(['dir2/file1', 'dir2/file2', 'dir2/dir3/']))
 
-
     def _test_notebook(self, conn, filename):
 
         # initialize a notebook

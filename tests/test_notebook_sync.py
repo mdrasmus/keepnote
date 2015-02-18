@@ -5,7 +5,6 @@ import unittest
 
 # keepnote imports
 from keepnote import notebook
-import keepnote.notebook.connection as connlib
 import keepnote.notebook.sync as sync
 
 from . import clean_dir, makedirs, TMP_DIR

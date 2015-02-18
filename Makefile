@@ -33,8 +33,7 @@ UPLOAD_FILES=$(SDIST) $(RPM) $(DEB) $(EBUILD) $(WININSTALLER)
 CODEQUALITY_FILES=\
 	keepnote/*.py \
 	keepnote/gui \
-	tests/*.py \
-	tests/gui/*.py
+	tests/*.py
 
 TMP_FILES=MANIFEST
 
@@ -65,14 +64,14 @@ dev: venv
 venv: $(VENV_DIR)/bin/activate
 
 $(VENV_DIR)/bin/activate:
-	virtualenv env
+	virtualenv --system-site-packages env
 
 cq:
-	pep8 $(CODEQUALITY_FILES) | grep -v 'tarfile\|sqlitedict' || true
-	pyflakes $(CODEQUALITY_FILES) | grep -v 'tarfile\|sqlitedict' || true
+	$(VENV) && pep8 $(CODEQUALITY_FILES) | grep -v 'tarfile\|sqlitedict' || true
+	$(VENV) && pyflakes $(CODEQUALITY_FILES) | grep -v 'tarfile\|sqlitedict' || true
 
 test:
-	nosetests -sv tests/*.py
+	$(VENV) && nosetests -sv tests/*.py
 
 # show makefile actions
 help:
