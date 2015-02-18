@@ -294,7 +294,7 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
             else:
                 # write file
                 params = urlparse.parse_qs(parts.query)
-                if params.get("mode", "r") == ["a"]:
+                if params.get("mode", "w") == ["a"]:
                     stream = self.server.conn.open_file(nodeid, filename, "a")
                 else:
                     stream = self.server.conn.open_file(nodeid, filename, "w")
@@ -354,7 +354,7 @@ class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_error(httplib.NOT_FOUND, "cannot find node: " + str(e))
 
 
-class NoteBookHttpServer ():
+class NoteBookHttpServer(object):
 
     def __init__(self, conn, host="", port=8000):
         self.conn = conn
@@ -362,13 +362,19 @@ class NoteBookHttpServer ():
         self.port = port
         self.notebook_prefixes = ['notebook/']
 
-        # Setup web app.
+        # Setup web app routes.
         self.app = Bottle()
-        self.app.route('/', 'GET',callback=self.home_view)
-        self.app.route('/static/<filename:re:.*>',
-                       callback=self.static_file_view)
-        self.app.route('/notebook/<path:re:.*>', 'GET',
-                       callback=self.notebook_view)
+        self.app.get('/', callback=self.home_view)
+        self.app.get('/static/<filename:re:.*>',
+                     callback=self.static_file_view)
+        self.app.get('/notebook/',
+                     callback=self.notebook_root_view)
+        self.app.get('/notebook/<nodeid:re:[^/]*>',
+                     callback=self.notebook_node_view)
+        self.app.get('/notebook/<nodeid:re:[^/]*>/<filename:re:.*>',
+                     callback=self.notebook_file_view)
+        self.app.post('/notebook/<nodeid:re:[^/]*>/<filename:re:.*>',
+                       callback=self.post_notebook_file_view)
 
     def serve_forever(self):
         """Run server."""
@@ -377,18 +383,6 @@ class NoteBookHttpServer ():
     def shutdown(self):
         """Shutdown server."""
         pass
-
-    def parse_path(self, path):
-        """
-        Parse a url path into (urlparts, nodeid, filename)
-        """
-        parts = urlparse.urlsplit(path)
-        nodeid, filename = parse_node_path(parts.path, self.notebook_prefixes)
-        return parts, nodeid, filename
-
-    def plist_response(self, data):
-        response.content_type = 'text/xml'
-        return XML_HEADER + plist.dumps(data).encode('utf8')
 
     def json_response(self, data):
         response.content_type = 'application/json'
@@ -399,38 +393,50 @@ class NoteBookHttpServer ():
         context = {}
         return template(TEMPLATES_DIR + '/home.html', context)
 
-    def notebook_view(self, path):
-        """Notebook data view."""
-        parts, nodeid, filename = self.parse_path(path)
+    def notebook_root_view(self):
+        """Return notebook root nodeid"""
+        if 'all' in request.GET:
+            response.content_type = 'text/html'
+
+            body = StringIO()
+            body.write("<html><body>")
+            write_tree(body, self.conn)
+            body.write("</body></html>")
+            return body.getvalue()
+
+        # get rootid
+        rootid = self.conn.get_rootid()
+        return self.json_response(rootid)
+
+    def notebook_node_view(self, nodeid):
+        """Access notebook node attr."""
+        nodeid = urllib.unquote(nodeid)
 
         try:
+            # return node attr
+            attr = self.conn.read_node(nodeid)
+            if attr.get("parentids") == [None]:
+                del attr["parentids"]
 
-            if nodeid == '':
-                if 'all' in request.GET:
-                    response.content_type = 'text/html'
+            response.content_type = 'text/xml'
+            return self.json_response(attr)
 
-                    body = StringIO()
-                    body.write("<html><body>")
-                    write_tree(body, self.conn)
-                    body.write("</body></html>")
-                    return body.getvalue()
+        except connlib.UnknownNode, e:
+            keepnote.log_error()
+            abort(404, 'node not found ' + str(e))
 
-                # get rootid
-                rootid = self.conn.get_rootid()
-                return self.json_response(rootid)
+    def notebook_file_view(self, nodeid, filename):
+        """Access notebook file."""
+        nodeid = urllib.unquote(nodeid)
+        filename = urllib.unquote(filename)
+        if not filename:
+            filename = '/'
 
-            elif filename is None:
-                # return node attr
-                attr = self.conn.read_node(nodeid)
+        #default_mime = 'application/octet-stream'
+        default_mime = 'text'
 
-                response.content_type = 'text/xml'
-
-                if attr.get("parentids") == [None]:
-                    del attr["parentids"]
-
-                return self.json_response(attr)
-
-            elif filename.endswith("/"):
+        try:
+            if filename.endswith("/"):
                 # list directory
                 files = list(self.conn.list_dir(nodeid, filename))
                 return self.json_response({
@@ -442,13 +448,40 @@ class NoteBookHttpServer ():
                 with self.conn.open_file(nodeid, filename) as stream:
                     mime, encoding = mimetypes.guess_type(
                         filename, strict=False)
-                    response.content_type = (mime if mime else 'text')
-#                                             'application/octet-stream')
+                    response.content_type = (mime if mime else default_mime)
+
+                    # TODO: return stream.
                     return stream.read()
 
-        except Exception, e:
+        except connlib.ConnectionError, e:
             keepnote.log_error()
-            abort(404, 'node not found ' + str(e))
+            abort(404, 'node file not found ' + str(e))
+
+    def post_notebook_file_view(self, nodeid, filename):
+        """Access notebook file."""
+        nodeid = urllib.unquote(nodeid)
+        filename = urllib.unquote(filename)
+        if not filename:
+            filename = '/'
+
+        #default_mime = 'application/octet-stream'
+        default_mime = 'text'
+
+        if filename.endswith("/"):
+            abort(400, 'Cannot post directory')
+
+        try:
+            # write file
+            if request.query.get("mode", "w") == ["a"]:
+                stream = self.conn.open_file(nodeid, filename, "a")
+            else:
+                stream = self.conn.open_file(nodeid, filename, "w")
+            stream.write(request.body.read())
+            stream.close()
+
+        except connlib.ConnectionError, e:
+            keepnote.log_error()
+            abort(400, 'Could not post file ' + str(e))
 
     # get static files
     def static_file_view(self, filename):
