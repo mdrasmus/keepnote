@@ -4,12 +4,9 @@
   <meta http-equiv='Content-type' content='text/html; charset=utf-8'>
   <title>KeepNote Notebook</title>
 
+  <!-- thirdparty -->
   <link type="text/css" rel="stylesheet" href="/static/thirdparty/bootstrap/css/bootstrap.css">
-  <!--
   <link type="text/css" rel="stylesheet" href="/static/thirdparty/bootstrap/css/bootstrap-theme.css">
--->
-
-  <link type="text/css" rel="stylesheet" href="/static/css/keepnote.css">
 
   <script type="text/javascript" src="/static/thirdparty/jquery/js/jquery.min.js"></script>
   <script type="text/javascript" src="/static/thirdparty/underscore/js/underscore.js"></script>
@@ -17,9 +14,11 @@
   <script type="text/javascript" src="/static/thirdparty/bootstrap/js/bootstrap.min.js"></script>
   <script type="text/javascript" src="/static/thirdparty/react/js/react.js"></script>
   <script type="text/javascript" src="/static/thirdparty/react/js/JSXTransformer.js"></script>
+  <script type="text/javascript" src="/static/thirdparty/wysihtml/js/wysihtml5x-toolbar.min.js"></script>
+  <script type="text/javascript" src="/static/thirdparty/wysihtml/js/advanced_and_extended.js"></script>
 
-  <script src="/static/thirdparty/wysihtml/js/wysihtml5x-toolbar.min.js"></script>
-  <script src="/static/thirdparty/wysihtml/js/advanced_and_extended.js"></script>
+  <!-- keepnote -->
+  <link type="text/css" rel="stylesheet" href="/static/css/keepnote.css">
 
   <script type="text/javascript" src="/static/js/notebook.js"></script>
   <script type="text/jsx" src="/static/js/keepnote.jsx"></script>
@@ -30,50 +29,17 @@
 </div>
 
 
-<script type="text/jsx">
-    var notebook;
+<script type="text/javascript">
+  var app;
 
-    function updateApp() {
-        if (!notebook)
-           return;
-        React.render(
-            <KeepNoteView notebook={notebook} />,
-            $('#base').get(0)
-        );
-    }
-    queueUpdateApp = _.debounce(updateApp, 0);
+  function initKeepNoteApp() {
+    app = new KeepNoteApp();
+    app.init();
+  }
 
-    function updateView() {
-        // Render GUI.
-        React.render(
-            <NotebookTree node={notebook.root} />,
-            $('#treeview-pane #notebook').get(0)
-        );
-    }
-    queueUpdateView = _.debounce(updateView, 0);
-
-    function onNoteBookChange() {
-        queueUpdateApp();
-    }
-
-    function initEditor() {
-        var editor = new wysihtml5.Editor('editor', {
-            toolbar: 'toolbar',
-            parserRules:  wysihtml5ParserRules
-        });
-    }
-
-    $(document).ready(function () {
-        updateApp();
-
-        $(window).resize(queueUpdateApp);
-
-        $.get('/notebook/').done(function (rootid) {
-            notebook = new NoteBook({rootid: rootid});
-            notebook.on("change", onNoteBookChange);
-            notebook.fetch();
-        });
-    });
+  function onKeepNoteComplied() {
+    initKeepNoteApp();
+  }
 </script>
 
 </body>

@@ -18,32 +18,12 @@ function parsePageHtml(node, html) {
 }
 
 
-function viewPage(node) {
-    $.ajax(node.pageUrl()).done(function (result) {
-        //window.history.pushState({}, node.get("title"), node.url());
-
-        // Load page view;
-        var pageView = $("#page-view");
-        var content = parsePageHtml(node, result);
-        pageView.empty();
-        pageView.append(content);
-
-        /*
-        // Load page.
-        var pageEditor = $("#page-editor");
-        var content = parsePageHtml(node, result);
-        pageEditor.empty();
-        pageEditor.append(content);
-        */
-    });
-}
-
-
 var PageToolbar = React.createClass({
     render: function () {
         return <div className="page-toolbar">
           <a onClick={this.props.onViewPage} href="#">view</a> &nbsp;
-          <a onClick={this.props.onEditPage} href="#">edit</a>
+          <a onClick={this.props.onEditPage} href="#">edit</a> &nbsp;
+          <a onClick={this.props.onSavePage} href="#">save</a>
         </div>;
     }
 });
@@ -69,10 +49,11 @@ var NotebookTree = React.createClass({
         for (var i=0; i<node.children.length; i++) {
             var child = node.children[i];
             children.push(
-                <li key={child.id}><NotebookTree node={child} /></li>);
+                <li key={child.id}>
+                  <NotebookTree node={child}
+                   onViewNode={this.props.onViewNode} /></li>);
         }
 
-        //var onPageClick = function (e) { this.
         var displayChildren = (this.state.expanded ? "inline" : "none");
         var displayFiles = (this.state.filesExpanded ? "block" : "none");
 
@@ -139,7 +120,11 @@ var NotebookTree = React.createClass({
 
     onPageClick: function (e) {
         e.preventDefault();
-        viewPage(this.props.node);
+
+        console.log(">>", this.props.onViewNode);
+
+        if (this.props.onViewNode)
+            this.props.onViewNode(this.props.node);
     }
 });
 
@@ -215,7 +200,8 @@ var KeepNoteView = React.createClass({
     },
 
     render: function () {
-        var notebook = this.props.notebook;
+        var app = this.props.app;
+        var notebook = app.notebook;
 
         var treeWidth = 400;
         var toolbarHeight = 25;
@@ -236,14 +222,17 @@ var KeepNoteView = React.createClass({
           <div id="treeview-pane"
             style={{width: treeSize[0], height: treeSize[1]}} >
             <NotebookTree
-             node={notebook.root} />
+             node={notebook.root}
+             onViewNode={this.onViewNode}
+            />
           </div>
           <div id="page-pane"
            style={{width: pageSize[0], height: pageSize[1]}} >
             <PageToolbar
              style={{width: toolbarSize[0], height: toolbarSize[1]}}
              onViewPage={this.onViewPage}
-             onEditPage={this.onEditPage} />
+             onEditPage={this.onEditPage}
+             onSavePage={this.onSavePage} />
             <div id="page-view" style={{display: displayPageView}}></div>
             <div id="page-editor" style={{display: displayPageEditor}}>
               <div id="toolbar">
@@ -259,6 +248,10 @@ var KeepNoteView = React.createClass({
         </div>;
     },
 
+    onViewNode: function (node) {
+        app.viewNode(node);
+    },
+
     onViewPage: function (e) {
         e.preventDefault();
         this.setState({editing: false});
@@ -267,5 +260,107 @@ var KeepNoteView = React.createClass({
     onEditPage: function (e) {
         e.preventDefault();
         this.setState({editing: true});
+    },
+
+    onSavePage: function (e) {
+        e.preventDefault();
+
+        var htmlHeader = (
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\n' +
+            '<html xmlns="http://www.w3.org/1999/xhtml">\n' +
+            '<head>\n' +
+            '<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />\n' +
+            '<title>distributions</title>\n' +
+                '</head><body>\n');
+        var htmlFooter = (
+            '</body></html>');
+
+        var editor = $("#editor");
+        var pageContents = htmlHeader + editor.html() + htmlFooter;
+        var node = this.props.app.currentNode;
+
+        $.post(node.pageUrl(), pageContents);
     }
 });
+
+
+function KeepNoteApp() {
+    this.notebook = null;
+    this.editor = null;
+    this.currentNode = null;
+
+    this.init = function () {
+        this.updateApp();
+
+        $(window).resize(this.queueUpdateApp.bind(this));
+
+        $.get('/notebook/').done(function (rootid) {
+            this.notebook = new NoteBook({rootid: rootid});
+            this.notebook.on("change", this.onNoteBookChange.bind(this));
+            this.notebook.fetch();
+        }.bind(this));
+    };
+
+    this.initEditor = function () {
+        if (this.editor)
+            return;
+        this.editor = new wysihtml5.Editor('editor', {
+            toolbar: 'toolbar',
+            parserRules:  wysihtml5ParserRules
+        });
+    };
+
+    this.onNoteBookChange = function () {
+        this.queueUpdateApp();
+    };
+
+    this.updateApp = function () {
+        if (!this.notebook)
+            return;
+        React.render(
+            <KeepNoteView app={this} />,
+            $('#base').get(0),
+            this.initEditor.bind(this)
+        );
+    };
+    this.queueUpdateApp = _.debounce(this.updateApp.bind(this), 0);
+
+    this.updateView = function () {
+        // Render GUI.
+        React.render(
+            <NotebookTree node={this.notebook.root} />,
+            $('#treeview-pane #notebook').get(0)
+        );
+    };
+    this.queueUpdateView = _.debounce(this.updateView.bind(this), 0);
+
+    this.viewNode = function (node) {
+        console.log("node", node);
+        this.currentNode = node;
+
+        $.ajax(node.pageUrl()).done(function (result) {
+            //window.history.pushState({}, node.get("title"), node.url());
+
+            console.log(">", node, result);
+
+            // Load page view;
+            var pageView = $("#page-view");
+            var content = parsePageHtml(node, result);
+            pageView.empty();
+            pageView.append(content);
+
+            /*
+            // Load page.
+            var pageEditor = $("#page-editor");
+            var content = parsePageHtml(node, result);
+            pageEditor.empty();
+            pageEditor.append(content);
+            */
+        });
+    };
+}
+
+
+// Callback for when JSX file is compiled.
+if (onKeepNoteComplied)
+    onKeepNoteComplied();
