@@ -221,7 +221,6 @@ class NoteBookHttpServer(object):
         body.write("</body></html>")
         return body.getvalue()
 
-
     def read_node_view(self, nodeid):
         """
         Read notebook node attr.
