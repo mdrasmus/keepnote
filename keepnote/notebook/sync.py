@@ -27,7 +27,6 @@
 
 
 from keepnote.notebook.connection import NodeExists
-from keepnote.notebook.connection import path_basename
 from keepnote.notebook.connection import path_join
 from keepnote.notebook.connection import UnknownNode
 

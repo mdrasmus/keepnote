@@ -25,7 +25,6 @@
 #
 
 # python imports
-from itertools import chain
 import mimetypes
 import os
 import sys
@@ -33,8 +32,6 @@ import re
 import urlparse
 import urllib2
 import uuid
-
-# xml imports
 import xml.etree.cElementTree as ET
 
 # keepnote imports

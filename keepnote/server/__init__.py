@@ -130,7 +130,7 @@ class NoteBookHttpServer(object):
         self.app.get('/notebook/<nodeid:re:[^/]*>',
                      callback=self.read_node_view)
         self.app.put('/notebook/<nodeid:re:[^/]*>',
-                      callback=self.create_node_view)
+                     callback=self.create_node_view)
         self.app.post('/notebook/<nodeid:re:[^/]*>',
                       callback=self.update_node_view)
         self.app.delete('/notebook/<nodeid:re:[^/]*>',

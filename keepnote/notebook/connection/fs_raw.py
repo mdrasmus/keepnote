@@ -28,29 +28,16 @@
 # python imports
 import logging
 import os
-from os.path import join
 import shutil
-from StringIO import StringIO
 import re
 import uuid
-import xml.etree.cElementTree as ET
 
 # keepnote imports
-import keepnote
-from keepnote import maskdict
-from keepnote import plist
 from keepnote import sqlitedict
-from keepnote import safefile
 from keepnote import trans
-import keepnote.notebook
-from keepnote.notebook import connection as connlib
-from keepnote.notebook.connection import ConnectionError
-from keepnote.notebook.connection import FileError
 from keepnote.notebook.connection import NodeExists
 from keepnote.notebook.connection import NoteBookConnection
-from keepnote.notebook.connection import UnknownFile
 from keepnote.notebook.connection import UnknownNode
-from keepnote.notebook.connection.fs import get_node_filename
 from keepnote.notebook.connection.fs import FileFS
 from keepnote.notebook.connection.fs import read_attr
 from keepnote.notebook.connection.fs import write_attr
@@ -206,7 +193,8 @@ class NodeFSStandard(NodeFSSimple):
 
         # Contains invalid characters
         if not re.match(self.VALID_REGEX, nodeid):
-            raise Exception('Nodeid contains invalid characters: "%s"' % nodeid)
+            raise Exception(
+                'Nodeid contains invalid characters: "%s"' % nodeid)
 
         if not self._is_other(nodeid):
             return os.path.join(self._rootpath,
@@ -382,7 +370,7 @@ class NoteBookConnectionFSRaw (NoteBookConnection):
         """Read a node attr."""
         nodepath = self._nodefs.get_nodedir(nodeid)
         if not os.path.exists(nodepath):
-            raise connlib.UnknownNode()
+            raise UnknownNode()
         attr_file = self._get_node_attr_file(nodepath)
         return read_attr(attr_file, set_version=False)
 
@@ -390,7 +378,7 @@ class NoteBookConnectionFSRaw (NoteBookConnection):
         """Write node attr."""
         nodepath = self._nodefs.get_nodedir(nodeid)
         if not os.path.exists(nodepath):
-            raise connlib.UnknownNode()
+            raise UnknownNode()
         attr_file = self._get_node_attr_file(nodepath)
         write_attr(attr_file, attr)
 
