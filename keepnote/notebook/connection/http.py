@@ -26,17 +26,19 @@
 #
 
 # python imports
-import httplib
-import urllib
-import urlparse
 import BaseHTTPServer
 from collections import defaultdict
+import contextlib
+import httplib
+import json
+import urllib
+import urlparse
 
 # keepnote imports
 import keepnote
+from keepnote import plist
 import keepnote.notebook.connection as connlib
 from keepnote.notebook.connection import NoteBookConnection
-from keepnote import plist
 
 
 XML_HEADER = u"""\
@@ -347,11 +349,12 @@ class NoteBookHttpServer (BaseHTTPServer.HTTPServer):
 
 class NoteBookConnectionHttp (NoteBookConnection):
 
-    def __init__(self):
+    def __init__(self, version=2):
         self._netloc = ""
         self._prefix = "/"
         self._conn = None
         self._title_cache = NodeTitleCache()
+        self._version = version
 
     def connect(self, url):
         parts = urlparse.urlsplit(url)
@@ -380,15 +383,35 @@ class NoteBookConnectionHttp (NoteBookConnection):
             self._conn = httplib.HTTPConnection(self._netloc)
             return self._request(action, url, body, headers)
 
+    def load_data(self, stream):
+        if self._version == 2:
+            return json.loads(stream.read())
+        else:
+            return plist.load(stream)
+
+    def loads_data(self, data):
+        if self._version == 2:
+            return json.loads(data)
+        else:
+            return plist.loads(data)
+
+    def dumps_data(self, data):
+        if self._version == 2:
+            return json.dumps(data)
+        else:
+            return plist.dumps(data)
+
     #===========================================
 
     def create_node(self, nodeid, attr):
 
-        body_content = plist.dumps(attr).encode("utf8")
+        body_content = self.dumps_data(attr).encode("utf8")
         self._request('PUT', format_node_path(self._prefix, nodeid),
                       body_content)
         result = self._conn.getresponse()
-        if result.status != httplib.OK:
+        if result.status == httplib.FORBIDDEN:
+            raise connlib.NodeExists()
+        elif result.status != httplib.OK:
             raise connlib.ConnectionError("unexpected error")
 
         self._title_cache.update_attr(attr)
@@ -399,7 +422,7 @@ class NoteBookConnectionHttp (NoteBookConnection):
         result = self._conn.getresponse()
         if result.status == httplib.OK:
             try:
-                attr = plist.load(result)
+                attr = self.load_data(result)
                 self._title_cache.update_attr(attr)
                 return attr
             except Exception, e:
@@ -410,11 +433,13 @@ class NoteBookConnectionHttp (NoteBookConnection):
 
     def update_node(self, nodeid, attr):
 
-        body_content = plist.dumps(attr).encode("utf8")
+        body_content = self.dumps_data(attr).encode("utf8")
         self._request('POST', format_node_path(self._prefix, nodeid),
                       body_content)
         result = self._conn.getresponse()
-        if result.status != httplib.OK:
+        if result.status == httplib.NOT_FOUND:
+            raise connlib.UnknownNode()
+        elif result.status != httplib.OK:
             raise connlib.ConnectionError()
         self._title_cache.update_attr(attr)
 
@@ -422,7 +447,9 @@ class NoteBookConnectionHttp (NoteBookConnection):
 
         self._request('DELETE', format_node_path(self._prefix, nodeid))
         result = self._conn.getresponse()
-        if result.status != httplib.OK:
+        if result.status == httplib.NOT_FOUND:
+            raise connlib.UnknownNode()
+        elif result.status != httplib.OK:
             raise connlib.ConnectionError()
         self._title_cache.remove(nodeid)
 
@@ -440,7 +467,7 @@ class NoteBookConnectionHttp (NoteBookConnection):
         self._request('GET', format_node_path(self._prefix))
         result = self._conn.getresponse()
         if result.status == httplib.OK:
-            return plist.load(result)
+            return self.load_data(result)
         else:
             raise connlib.UnknownNode()
 
@@ -464,12 +491,28 @@ class NoteBookConnectionHttp (NoteBookConnection):
                     data = data.encode(codec)
                 self.data.append(data)
 
+            def close(self):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, type, value, tb):
+                self.close()
+
+        # Cannot open directories.
+        if filename.endswith("/"):
+            raise connlib.FileError()
+
         if mode == "r":
             self._request(
                 'GET', format_node_path(self._prefix, nodeid, filename))
             result = self._conn.getresponse()
             if result.status == httplib.OK:
-                return result
+                stream = contextlib.closing(result)
+                stream.read = result.read
+                stream.close = result.close
+                return stream
             else:
                 raise connlib.FileError()
 
@@ -512,9 +555,11 @@ class NoteBookConnectionHttp (NoteBookConnection):
 
     def create_dir(self, nodeid, filename):
 
-        # PUT nodeid/dir/
+        # Directories must end with "/"
         if not filename.endswith("/"):
-            filename += "/"
+            raise connlib.FileError()
+
+        # PUT nodeid/dir/
         self._request(
             'PUT', format_node_path(self._prefix, nodeid, filename))
         result = self._conn.getresponse()
@@ -525,16 +570,21 @@ class NoteBookConnectionHttp (NoteBookConnection):
         """
         List data files in node
         """
+        # Cannot list files.
+        if not filename.endswith("/"):
+            raise connlib.FileError()
 
         # GET nodeid/dir/
-        if not filename.endswith("/"):
-            filename += "/"
         self._request(
             'GET', format_node_path(self._prefix, nodeid, filename))
         result = self._conn.getresponse()
         if result.status == httplib.OK:
             try:
-                return plist.load(result)
+                if self._version == 1:
+                    return self.load_data(result)
+                else:
+                    data = self.load_data(result)
+                    return data['files']
             except Exception, e:
                 raise connlib.ConnectionError(
                     "unexpected response '%s'" % str(e), e)
@@ -556,13 +606,13 @@ class NoteBookConnectionHttp (NoteBookConnection):
 
         # POST /?index
         # query plist encoded
-        body_content = plist.dumps(query).encode("utf8")
+        body_content = self.dumps_data(query).encode("utf8")
         self._request(
             'POST', format_node_path(self._prefix) + "?index", body_content)
         result = self._conn.getresponse()
         if result.status == httplib.OK:
             try:
-                return plist.load(result)
+                return self.load_data(result)
             except Exception, e:
                 raise connlib.ConnectionError(
                     "unexpected response '%s'" % str(e), e)
