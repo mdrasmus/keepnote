@@ -79,31 +79,31 @@ def format_node_url(host, prefix, nodeid, filename=None, port=80):
 # Notebook HTTP Server
 
 
-def write_tree(out, conn):
+def write_node_tree(out, conn, nodeid=None):
+    if not nodeid:
+        nodeid = conn.get_rootid()
 
-    def walk(conn, nodeid):
-        attr = conn.read_node(nodeid)
+    attr = conn.read_node(nodeid)
 
-        # TODO: needs escape
-        if attr.get("content_type", "") == "text/xhtml+xml":
-            url = format_node_path("", nodeid, "page.html")
-        elif "payload_filename" in attr:
-            url = format_node_path("", nodeid,
-                                   attr["payload_filename"])
-        else:
-            url = format_node_path("", nodeid, "")
-        out.write(
-            "<a href='%s'>%s</a>" % (
-                url, attr.get("title", "page").encode("utf8")))
-        out.write("<ul>")
+    # TODO: needs escape
+    if attr.get("content_type", "") == "text/xhtml+xml":
+        url = format_node_path("", nodeid, "page.html")
+    elif "payload_filename" in attr:
+        url = format_node_path("", nodeid,
+                               attr["payload_filename"])
+    else:
+        url = format_node_path("", nodeid, "")
+    out.write(
+        "<a href='%s'>%s</a>" % (
+            url, attr.get("title", "page").encode("utf8")))
+    out.write("<ul>")
 
-        for childid in attr.get("childrenids", ()):
-            out.write("<li>")
-            walk(conn, childid)
-            out.write("</li>")
+    for childid in attr.get("childrenids", ()):
+        out.write("<li>")
+        write_node_tree(out, conn, childid)
+        out.write("</li>")
 
-        out.write("</ul>")
-    walk(conn, conn.get_rootid())
+    out.write("</ul>")
 
 
 class NoteBookHttpServer(object):
@@ -154,6 +154,9 @@ class NoteBookHttpServer(object):
         """
         Run server.
         """
+        if os.environ.get("KEEPNOTE_DEBUG"):
+            debug = True
+
         self.server = bottle.WSGIRefServer(
             host=self.host, port=self.port, debug=debug)
         self.app.run(
@@ -205,24 +208,30 @@ class NoteBookHttpServer(object):
         """
         Return notebook root nodeid.
         """
-        if 'all' in request.query:
-            response.content_type = 'text/html'
-
-            body = StringIO()
-            body.write("<html><body>")
-            write_tree(body, self.conn)
-            body.write("</body></html>")
-            return body.getvalue()
-
         # get rootid
-        rootid = self.conn.get_rootid()
-        return self.json_response(rootid)
+        result = {
+            'rootids': [self.conn.get_rootid()],
+        }
+        return self.json_response(result)
+
+    def render_node_tree(self, nodeid):
+        body = StringIO()
+        body.write("<html><body>")
+        write_node_tree(body, self.conn, nodeid)
+        body.write("</body></html>")
+        return body.getvalue()
+
 
     def read_node_view(self, nodeid):
         """
         Read notebook node attr.
         """
         nodeid = urllib.unquote(nodeid)
+
+        if 'all' in request.query:
+            # Render a simple tree
+            response.content_type = 'text/html'
+            return self.render_node_tree(nodeid)
 
         try:
             # return node attr
