@@ -466,10 +466,16 @@ class NoteBookConnectionHttp (NoteBookConnection):
         # GET /
         self._request('GET', format_node_path(self._prefix))
         result = self._conn.getresponse()
-        if result.status == httplib.OK:
-            return self.load_data(result)
-        else:
+
+        if result.status == httplib.NOT_FOUND:
             raise connlib.UnknownNode()
+        if result.status != httplib.OK:
+            raise connlib.ConnectionError()
+
+        # Currently only the first rootid is returned.
+        data = self.load_data(result)
+        rootid = data['rootids'][0]
+        return rootid
 
     #===============
     # file API
@@ -603,7 +609,6 @@ class NoteBookConnectionHttp (NoteBookConnection):
     # indexing/querying
 
     def index_raw(self, query):
-
         # POST /?index
         # query plist encoded
         body_content = self.dumps_data(query).encode("utf8")
@@ -621,13 +626,11 @@ class NoteBookConnectionHttp (NoteBookConnection):
 
         if len(query) > 2 and query[:2] == ["search", "title"]:
             if not self._title_cache.is_complete():
-                #print "full index"
                 result = self.index_raw(["search", "title", "%"])
                 for nodeid, title in result:
                     self._title_cache.add(nodeid, title)
                 self._title_cache.set_complete()
 
-            #print len(self._title_cache._titles), query
             return list(self._title_cache.get(query[2]))
 
         elif len(query) == 3 and query[0] == "get_attr" and query[2] == "icon":
@@ -638,14 +641,9 @@ class NoteBookConnectionHttp (NoteBookConnection):
             return self.index_raw(query)
 
     def get_node_path(self, nodeid):
-        #if nodeid == self.get_rootid():
-        #    nodeid == ""
-        #return format_node_path(self._prefix, nodeid)
-
         return format_node_url(self._netloc, self._prefix, nodeid)
 
     def get_file(self, nodeid, filename):
-
         return format_node_url(self._netloc, self._prefix, nodeid, filename)
 
 

@@ -190,19 +190,19 @@ class NoteBookHttpServer(object):
         """
         if 'save' in request.query:
             # Force notebook save.
-            self.server.conn.save()
+            self.conn.save()
 
         elif 'index' in request.query:
             # Query notebook index.
             data = request.body.read()
             query = json.loads(data)
-            res = self.conn.index(query)
+            result = self.conn.index(query)
 
             # Build list if needed.
-            if hasattr(res, "next"):
-                res = list(res)
+            if hasattr(result, "next"):
+                result = list(result)
 
-            self.json_response(res)
+            return self.json_response(result)
 
     def read_root_view(self):
         """
