@@ -121,8 +121,6 @@ var NotebookTree = React.createClass({
     onPageClick: function (e) {
         e.preventDefault();
 
-        console.log(">>", this.props.onViewNode);
-
         if (this.props.onViewNode)
             this.props.onViewNode(this.props.node);
     }
@@ -279,7 +277,7 @@ var KeepNoteView = React.createClass({
         var pageContents = htmlHeader + editor.html() + htmlFooter;
         var node = this.props.app.currentNode;
 
-        $.post(node.pageUrl(), pageContents);
+        node.writeFile(node.PAGE_FILE, pageContents);
     }
 });
 
@@ -336,13 +334,10 @@ function KeepNoteApp() {
     this.queueUpdateView = _.debounce(this.updateView.bind(this), 0);
 
     this.viewNode = function (node) {
-        console.log("node", node);
         this.currentNode = node;
 
         $.ajax(node.pageUrl()).done(function (result) {
             //window.history.pushState({}, node.get("title"), node.url());
-
-            console.log(">", node, result);
 
             // Load page view;
             var pageView = $("#page-view");

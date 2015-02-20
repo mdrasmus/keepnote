@@ -17,6 +17,7 @@ var Node = Backbone.Model.extend({
 
     urlRoot: '/notebook',
 
+    // Allocate children nodes.
     _allocateChildren: function (childrenIds) {
         this.trigger("removing-children", this);
 
@@ -36,12 +37,14 @@ var Node = Backbone.Model.extend({
             var child = (childId in lookup ?
                          lookup[childId] :
                          new Node({id: childId}));
+            child.on("destroy", this.onChildDestroy.bind(this));
             this.children.push(child);
         }
 
         this.trigger("adding-children", this);
     },
 
+    // Fetch node data.
     fetch: function (options) {
         var result = Node.__super__.fetch.call(this, options);
         return result.done(function () {
@@ -58,7 +61,7 @@ var Node = Backbone.Model.extend({
     },
 
     _loadChildren: function () {
-        var defers = []
+        var defers = [];
 
         for (var i=0; i<this.children.length; i++)
             defers.push(this.children[i].fetch());
@@ -66,6 +69,7 @@ var Node = Backbone.Model.extend({
         return $.when.apply($, defers);
     },
 
+    // Fetch all children.
     fetchChildren: function () {
         if (!this.fetched || this.ordered)
             return;
@@ -81,16 +85,60 @@ var Node = Backbone.Model.extend({
         }.bind(this));
     },
 
+    onChildDestroy: function (child) {
+        // Remove child from children.
+        this.children = _.filter(this.children,
+                                 function(o) { return o !== child; });
+        this.trigger('change');
+    },
+
     isPage: function () {
         return this.get("content_type") == this.PAGE_CONTENT_TYPE;
     },
 
+    fileUrl: function (filename) {
+        return this.url() + "/" + filename;
+    },
+
     pageUrl: function () {
-        return this.url() + "/" + this.PAGE_FILE;
+        return this.fileUrl(this.PAGE_FILE);
     },
 
     payloadUrl: function () {
-        return this.url() + "/" + this.get("payload_filename");
+        return this.fileUrl(this.get("payload_filename"));
+    },
+
+    getFile: function (filename) {
+        var parts = filename.split('/');
+        var file = this.file;
+        for (var i in parts) {
+            var part = parts[i];
+            file = file.getChildByName(part);
+            if (!file)
+                return null;
+        }
+        return file;
+    },
+
+    _isDir: function (filename) {
+        return filename.match(/\/$/);
+    },
+
+    writeFile: function (filename, content) {
+        if (this._isDir(filename))
+            throw "Cannot write to a directory.";
+        return $.post(this.fileUrl(filename), content);
+    },
+
+    readFile: function (filename) {
+        if (this._isDir(filename))
+            throw "Cannot read from a directory.";
+        return $.get(this.fileUrl(filename));
+    },
+
+    deleteFile: function (filename) {
+        var file = this.getFile(filename);
+        file.destroy();
     }
 });
 
@@ -153,8 +201,11 @@ var NodeFile = Backbone.Model.extend({
         this.trigger("adding-children", this);
     },
 
-
     fetch: function (options) {
+        // Files do not have any meta data and nothing to fetch.
+        if (!this.isDir)
+            return;
+
         var result = Node.__super__.fetch.call(this, options);
         return result.done(function () {
             // Allocate children nodes.
@@ -170,6 +221,29 @@ var NodeFile = Backbone.Model.extend({
         return this.fetch().then(function () {
             return that.children;
         });
+    },
+
+    getChildByName: function (name) {
+        for (var i=0; i<this.children.length; i++) {
+            var child = this.children[i];
+            if (child.basename() == name)
+                return child;
+        }
+        return null;
+    },
+
+    read: function () {
+        if (!this.isDir)
+            return $.get(this.url());
+        else
+            throw "Cannot read from a directory";
+    },
+
+    write: function (data) {
+        if (!this.isDir)
+            return $.post(this.url(), data);
+        else
+            throw "Cannot write to a directory";
     }
 });
 
