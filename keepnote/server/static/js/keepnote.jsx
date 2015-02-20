@@ -20,10 +20,12 @@ function parsePageHtml(node, html) {
 
 var PageToolbar = React.createClass({
     render: function () {
-        return <div className="page-toolbar">
-          <a onClick={this.props.onViewPage} href="#">view</a> &nbsp;
-          <a onClick={this.props.onEditPage} href="#">edit</a> &nbsp;
-          <a onClick={this.props.onSavePage} href="#">save</a>
+        return <div className="page-toolbar" id="page-toolbar">
+            <a onClick={this.props.onSavePage} href="#">save</a>
+            <a data-wysihtml5-command="bold">bold</a>
+            <a data-wysihtml5-command="italic">italic</a>
+            <a data-wysihtml5-command="formatBlock" data-wysihtml5-command-value="h1">H1</a>
+            <a data-wysihtml5-command="formatBlock" data-wysihtml5-command-value="p">P</a>
         </div>;
     }
 });
@@ -213,9 +215,6 @@ var KeepNoteView = React.createClass({
         var toolbarSize = [pageWidth, toolbarHeight];
         var pageSize = [pageWidth, appSize[1]];
 
-        var displayPageView = (!this.state.editing ? "inline" : "none");
-        var displayPageEditor = (this.state.editing ? "inline" : "none");
-
         return <div id="app">
           <div id="treeview-pane"
             style={{width: treeSize[0], height: treeSize[1]}} >
@@ -225,23 +224,11 @@ var KeepNoteView = React.createClass({
             />
           </div>
           <div id="page-pane"
-           style={{width: pageSize[0], height: pageSize[1]}} >
+        style={{width: pageSize[0], height: pageSize[1]}} >
             <PageToolbar
              style={{width: toolbarSize[0], height: toolbarSize[1]}}
-             onViewPage={this.onViewPage}
-             onEditPage={this.onEditPage}
              onSavePage={this.onSavePage} />
-            <div id="page-view" style={{display: displayPageView}}></div>
-            <div id="page-editor" style={{display: displayPageEditor}}>
-              <div id="toolbar">
-                <a data-wysihtml5-command="bold">bold</a>
-                <a data-wysihtml5-command="italic">italic</a>
-                <a data-wysihtml5-command="formatBlock" data-wysihtml5-command-value="h1">H1</a>
-                <a data-wysihtml5-command="formatBlock" data-wysihtml5-command-value="p">P</a>
-              </div>
-
-              <div id="editor" data-placeholder="Go on, start editing..."></div>
-            </div>
+            <div id="page-editor" data-placeholder=""></div>
           </div>
         </div>;
     },
@@ -273,7 +260,7 @@ var KeepNoteView = React.createClass({
         var htmlFooter = (
             '</body></html>');
 
-        var editor = $("#editor");
+        var editor = $("#page-editor");
         var pageContents = htmlHeader + editor.html() + htmlFooter;
         var node = this.props.app.currentNode;
 
@@ -303,8 +290,8 @@ function KeepNoteApp() {
     this.initEditor = function () {
         if (this.editor)
             return;
-        this.editor = new wysihtml5.Editor('editor', {
-            toolbar: 'toolbar',
+        this.editor = new wysihtml5.Editor('page-editor', {
+            toolbar: 'page-toolbar',
             parserRules:  wysihtml5ParserRules
         });
     };
@@ -340,19 +327,11 @@ function KeepNoteApp() {
             //window.history.pushState({}, node.get("title"), node.url());
 
             // Load page view;
-            var pageView = $("#page-view");
+            var pageView = $("#page-editor");
             var content = parsePageHtml(node, result);
             pageView.empty();
             pageView.append(content);
-
-            /*
-            // Load page.
-            var pageEditor = $("#page-editor");
-            var content = parsePageHtml(node, result);
-            pageEditor.empty();
-            pageEditor.append(content);
-            */
-        });
+        }.bind(this));
     };
 }
 
