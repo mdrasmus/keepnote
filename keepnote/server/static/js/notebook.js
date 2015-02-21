@@ -6,6 +6,7 @@ var Node = Backbone.Model.extend({
     PAGE_FILE: "page.html",
 
     initialize: function (options) {
+        this.notebook = options.notebook || null;
         this.file = new NodeFile({
             node: this,
             path: ''
@@ -21,22 +22,10 @@ var Node = Backbone.Model.extend({
     _allocateChildren: function (childrenIds) {
         this.trigger("removing-children", this);
 
-        // Build lookup of existing children.
-        var lookup = {};
-        for (var i=0; i<this.children.length; i++) {
-            var child = this.children[i];
-            lookup[child.id] = child;
-        }
-
         // Allocate and register new children.
         this.children = [];
         for (var i=0; i<childrenIds.length; i++) {
-            var childId = childrenIds[i];
-
-            // Try to reuse existing children if possible.
-            var child = (childId in lookup ?
-                         lookup[childId] :
-                         new Node({id: childId}));
+            var child = this.notebook.getNode(childrenIds[i]);
             child.on("destroy", this.onChildDestroy.bind(this));
             this.children.push(child);
         }
@@ -250,16 +239,37 @@ var NodeFile = Backbone.Model.extend({
 
 var NoteBook = Backbone.Model.extend({
     initialize: function (options) {
-        this.root = new Node({id: options.rootid});
-        this.registerNode(this.root);
+        this.nodes = {};
+        this.root = this.getNode(options.rootid);
     },
 
     fetch: function (options) {
         return this.root.fetch();
     },
 
+    // Return a node in the node cache.
+    getNode: function (nodeid) {
+        if (nodeid in this.nodes)
+            return this.nodes[nodeid];
+
+        var node = new Node({
+            id: nodeid,
+            notebook: this
+        });
+        this.registerNode(node);
+
+        return node;
+    },
+
+    fetchNode: function (nodeid) {
+        var node = this.getNode(nodeid);
+        return node.fetch();
+    },
+
     // Register all callbacks for a node.
     registerNode: function (node) {
+        this.nodes[node.id] = node;
+
         // Node listeners.
         node.on("change", function () {
             this.onNodeChange(node); }, this);
@@ -335,5 +345,5 @@ var NoteBook = Backbone.Model.extend({
             var child = file.children[i];
             this.unregisterFile(child);
         }
-    },
+    }
 });
