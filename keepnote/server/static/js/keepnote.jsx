@@ -1,20 +1,49 @@
 
 // Parse a page's HTML into DOM elements.
 function parsePageHtml(node, html) {
-    var baseUrl = node.url() + "/";
-
     // Parse page html.
     var parser = new DOMParser();
     var htmlDoc = parser.parseFromString(html, "text/html");
     var body = $(htmlDoc.getElementsByTagName("body"));
 
-    // Adjust all img urls.
-    body.find("img").each(function (i) {
-        var img = $(this);
-        img.attr("src", baseUrl + img.attr("src"));
-    });
+    convertHtmlForDisplay(node, body);
 
     return body.contents();
+}
+
+
+function isAbsoluteUrl(url) {
+    return url.match(/^(?:[a-zA-Z]+:)?\/\//);
+}
+
+
+function convertHtmlForDisplay(node, body) {
+    var baseUrl = node.url() + "/";
+
+    // Adjust all relative image urls for display.
+    body.find("img").each(function (i) {
+        var img = $(this);
+        var src = img.attr("src");
+
+        if (!isAbsoluteUrl(src))
+            img.attr("src", baseUrl + src);
+    });
+}
+
+
+function convertHtmlForStorage(node, body) {
+    var baseUrl = node.url() + "/";
+
+    // Adjust all img urls for storage.
+    body.find("img").each(function (i) {
+        var img = $(this);
+        var src = img.attr("src");
+
+        // TODO: prevent image loading.
+        // Strip baseUrl if present.
+        if (src.substr(0, baseUrl.length) == baseUrl)
+            img.attr("src", src.substr(baseUrl.length));
+    });
 }
 
 
@@ -200,7 +229,6 @@ var NotebookFile = React.createClass({
 var KeepNoteView = React.createClass({
     getInitialState: function () {
         return {
-            editing: false,
             currentNode: null
         };
     },
@@ -227,7 +255,7 @@ var KeepNoteView = React.createClass({
             <NotebookTree
              node={notebook.root}
              currentNode={this.state.currentNode}
-             onViewNode={this.onViewNode}
+             onViewNode={this.viewNode}
             />
           </div>
           <div id="page-pane"
@@ -240,19 +268,16 @@ var KeepNoteView = React.createClass({
         </div>;
     },
 
-    onViewNode: function (node) {
-        app.viewNode(node);
+    viewNode: function (node) {
+        //window.history.pushState({}, node.get("title"), node.url());
         this.setState({currentNode: node});
-    },
 
-    onViewPage: function (e) {
-        e.preventDefault();
-        this.setState({editing: false});
-    },
-
-    onEditPage: function (e) {
-        e.preventDefault();
-        this.setState({editing: true});
+        this.loadPage(node).done(function (content) {
+            // Load page view;
+            var pageView = $("#page-editor");
+            pageView.empty();
+            pageView.append(content);
+        });
     },
 
     onSavePage: function (e) {
@@ -267,6 +292,8 @@ var KeepNoteView = React.createClass({
     },
 
     savePage: function () {
+        var node = this.state.currentNode;
+
         var htmlHeader = (
             '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\n' +
             '<html xmlns="http://www.w3.org/1999/xhtml">\n' +
@@ -278,8 +305,9 @@ var KeepNoteView = React.createClass({
             '</body></html>');
 
         var editor = $("#page-editor");
-        var pageContents = htmlHeader + editor.html() + htmlFooter;
-        var node = this.props.app.currentNode;
+        var body = editor.clone();
+        convertHtmlForStorage(node, body);
+        var pageContents = htmlHeader + body.html() + htmlFooter;
 
         return node.writeFile(node.PAGE_FILE, pageContents);
     }
@@ -336,20 +364,6 @@ function KeepNoteApp() {
         );
     };
     this.queueUpdateView = _.debounce(this.updateView.bind(this), 0);
-
-    this.viewNode = function (node) {
-        this.currentNode = node;
-
-        $.ajax(node.pageUrl()).done(function (result) {
-            //window.history.pushState({}, node.get("title"), node.url());
-
-            // Load page view;
-            var pageView = $("#page-editor");
-            var content = parsePageHtml(node, result);
-            pageView.empty();
-            pageView.append(content);
-        }.bind(this));
-    };
 }
 
 
