@@ -273,16 +273,12 @@ var NoteBook = Backbone.Model.extend({
         // Node listeners.
         node.on("change", function () {
             this.onNodeChange(node); }, this);
-        node.on("adding-children", this.onAddingChildren, this);
-        node.on("removing-children", this.onRemovingChildren, this);
 
         this.registerFile(node.file);
     },
 
     // Unregister all callbacks for a node.
     unregisterNode: function (node) {
-        node.off("adding-children", null, this);
-        node.off("removing-children", null, this);
         node.off("change", null, this);
 
         this.unregisterFile(node.file);
@@ -313,22 +309,6 @@ var NoteBook = Backbone.Model.extend({
     onFileChange: function (file) {
         this.trigger("file-change", this, file);
         this.trigger("change");
-    },
-
-    // Callback for when a node loads its children.
-    onAddingChildren: function (node) {
-        for (var i=0; i<node.children.length; i++) {
-            var child = node.children[i];
-            this.registerNode(child);
-        }
-    },
-
-    // Callback for when a node unloads its children.
-    onRemovingChildren: function (node) {
-        for (var i=0; i<node.children.length; i++) {
-            var child = node.children[i];
-            this.unregisterNode(child);
-        }
     },
 
     // Callback for when a file loads its children.
