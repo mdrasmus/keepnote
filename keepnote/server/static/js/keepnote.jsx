@@ -43,6 +43,9 @@ function convertHtmlForStorage(node, body) {
         // Strip baseUrl if present.
         if (src.substr(0, baseUrl.length) == baseUrl)
             img.attr("src", src.substr(baseUrl.length));
+
+        // Remove unneeded title attribute.
+        img.removeAttr("title");
     });
 }
 
@@ -296,18 +299,21 @@ var KeepNoteView = React.createClass({
 
         var htmlHeader = (
             '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\n' +
-            '<html xmlns="http://www.w3.org/1999/xhtml">\n' +
-            '<head>\n' +
-            '<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />\n' +
-            '<title>distributions</title>\n' +
-                '</head><body>\n');
-        var htmlFooter = (
-            '</body></html>');
+            '<html xmlns="http://www.w3.org/1999/xhtml"><body>');
+        var htmlFooter = '</body></html>';
 
         var editor = $("#page-editor");
         var body = editor.clone();
         convertHtmlForStorage(node, body);
-        var pageContents = htmlHeader + body.html() + htmlFooter;
+
+        var serializer = new XMLSerializer();
+        var xhtml = [];
+        body.contents().each(function (i) {
+            xhtml.push(serializer.serializeToString($(this).get(0)));
+        });
+        xhtml = xhtml.join('');
+
+        var pageContents = htmlHeader + xhtml + htmlFooter;
 
         return node.writeFile(node.PAGE_FILE, pageContents);
     }
