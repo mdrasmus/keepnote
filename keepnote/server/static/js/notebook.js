@@ -7,10 +7,8 @@ var Node = Backbone.Model.extend({
 
     initialize: function (options) {
         this.notebook = options.notebook || null;
-        this.file = new NodeFile({
-            node: this,
-            path: ''
-        });
+        this.files = {};
+        this.file = this.getFile('');
         this.children = [];
         this.ordered = false;
         this.fetched = false;
@@ -98,14 +96,15 @@ var Node = Backbone.Model.extend({
     },
 
     getFile: function (filename) {
-        var parts = filename.split('/');
-        var file = this.file;
-        for (var i in parts) {
-            var part = parts[i];
-            file = file.getChildByName(part);
-            if (!file)
-                return null;
-        }
+        if (filename in this.files)
+            return this.files[filename];
+
+        var file = new NodeFile({
+            node: this,
+            path: filename
+        });
+        this.files[filename] = file;
+
         return file;
     },
 
@@ -165,27 +164,10 @@ var NodeFile = Backbone.Model.extend({
     _allocateChildren: function (files) {
         this.trigger("removing-children", this);
 
-        // Build lookup of existing children.
-        var lookup = {};
-        for (var i=0; i<this.children.length; i++) {
-            var child = this.children[i];
-            lookup[child.path] = child;
-        }
-
         // Allocate and register new children.
         this.children = [];
-        for (var i=0; i<files.length; i++) {
-            var file = files[i];
-
-            // Try to reuse existing children if possible.
-            var child = (file in lookup ?
-                         lookup[file] :
-                         new NodeFile({
-                             node: this.node,
-                             path: file
-                         }));
-            this.children.push(child);
-        }
+        for (var i=0; i<files.length; i++)
+            this.children.push(this.node.getFile(files[i]));
 
         this.trigger("adding-children", this);
     },
