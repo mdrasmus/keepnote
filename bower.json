@@ -20,14 +20,23 @@
     "jquery": "~2.1.1",
     "backbone": "~1.1.2",
     "react": "~0.12.2",
-    "wysihtml": "~0.4.17"
+    "wysihtml": "~0.4.17",
+    "xmldom": "~0.1.16"
   },
   "overrides": {
     "bootstrap": {
       "main": "dist/**/*.*",
       "normalize": {
-        "css": ["*.map", "*.css"],
-        "font": ["*.eot", "*.svg", "*.ttf", "*.woff"]
+        "css": [
+          "*.map",
+          "*.css"
+        ],
+        "font": [
+          "*.eot",
+          "*.svg",
+          "*.ttf",
+          "*.woff"
+        ]
       }
     },
     "jquery": {
@@ -41,6 +50,9 @@
         "dist/**/*.*",
         "parser_rules/advanced_and_extended.js"
       ]
+    },
+    "xmldom": {
+      "main": ["dom.js"]
     }
   }
 }
