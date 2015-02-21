@@ -1,14 +1,22 @@
+var child_process = require('child_process');
 var del = require('del');
 var gulp = require('gulp');
-
-var mainBowerFiles = require('main-bower-files');
 var bowerNormalizer = require('gulp-bower-normalize');
+var mainBowerFiles = require('main-bower-files');
 
 function buildBowerFiles() {
-    return gulp.src(mainBowerFiles(),
+    var stream = gulp.src(mainBowerFiles(),
                     {base: './bower_components'})
         .pipe(bowerNormalizer({bowerJson: './bower.json'}))
-        .pipe(gulp.dest("./keepnote/server/static/thirdparty/"));
+        .pipe(gulp.dest('./keepnote/server/static/thirdparty/'));
+
+    stream.on('end', function () {
+        var patcher = child_process.spawn('patch', [
+            '-N',
+            'keepnote/server/static/thirdparty/xmldom/js/dom.js',
+            'setup/xmldom.patch'
+        ]);
+    });
 }
 
 gulp.task('bower-files', buildBowerFiles);
