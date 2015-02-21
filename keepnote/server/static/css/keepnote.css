@@ -7,12 +7,21 @@ body {
 }
 
 #treeview-pane {
-  border: solid #ccc 1px;
+  border: solid #cccccc 1px;
   float: left;
   overflow: auto;
 }
 
-#treeview-pane .node-tree {
+.node-tree .active {
+  background-color: #5555cc;
+  color: #ffffff;
+}
+
+.node-tree .active a:link,
+.node-tree .active a:hover,
+.node-tree .active a:visited
+{
+  color: #ffffff;
 }
 
 .node-tree ul {
@@ -29,7 +38,7 @@ body {
 }
 
 .page-toolbar {
-  background-color: #ccc;
+  background-color: #cccccc;
 }
 
 .page-toolbar a {

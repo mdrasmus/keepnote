@@ -52,12 +52,17 @@ var NotebookTree = React.createClass({
             var child = node.children[i];
             children.push(
                 <li key={child.id}>
-                  <NotebookTree node={child}
+                  <NotebookTree
+                   node={child}
+                   currentNode={this.props.currentNode}
                    onViewNode={this.props.onViewNode} /></li>);
         }
 
         var displayChildren = (this.state.expanded ? "inline" : "none");
         var displayFiles = (this.state.filesExpanded ? "block" : "none");
+        var nodeClass = "node-tree";
+        if (node == this.props.currentNode)
+            nodeClass += " active";
 
         // Build node title.
         var title = <span className="title">{node.get('title')}</span>;
@@ -80,7 +85,7 @@ var NotebookTree = React.createClass({
             }.bind(this), 0);
         }
 
-        return <div className="node-tree">
+        return <div className={nodeClass}>
           <a className="expand" onClick={this.toggleChildren} href="#">+</a>
           {title}
           [<a href={node.url()}>attr</a>]&nbsp;
@@ -195,7 +200,8 @@ var NotebookFile = React.createClass({
 var KeepNoteView = React.createClass({
     getInitialState: function () {
         return {
-            editing: false
+            editing: false,
+            currentNode: null
         };
     },
 
@@ -220,6 +226,7 @@ var KeepNoteView = React.createClass({
             style={{width: treeSize[0], height: treeSize[1]}} >
             <NotebookTree
              node={notebook.root}
+             currentNode={this.state.currentNode}
              onViewNode={this.onViewNode}
             />
           </div>
@@ -235,6 +242,7 @@ var KeepNoteView = React.createClass({
 
     onViewNode: function (node) {
         app.viewNode(node);
+        this.setState({currentNode: node});
     },
 
     onViewPage: function (e) {
@@ -249,7 +257,16 @@ var KeepNoteView = React.createClass({
 
     onSavePage: function (e) {
         e.preventDefault();
+        this.savePage();
+    },
 
+    loadPage: function (node) {
+        return node.readFile(node.PAGE_FILE).then(function (result) {
+            return parsePageHtml(node, result);
+        });
+    },
+
+    savePage: function () {
         var htmlHeader = (
             '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\n' +
             '<html xmlns="http://www.w3.org/1999/xhtml">\n' +
@@ -264,7 +281,7 @@ var KeepNoteView = React.createClass({
         var pageContents = htmlHeader + editor.html() + htmlFooter;
         var node = this.props.app.currentNode;
 
-        node.writeFile(node.PAGE_FILE, pageContents);
+        return node.writeFile(node.PAGE_FILE, pageContents);
     }
 });
 

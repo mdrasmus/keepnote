@@ -138,7 +138,7 @@ var Node = Backbone.Model.extend({
 
     deleteFile: function (filename) {
         var file = this.getFile(filename);
-        file.destroy();
+        return file.destroy();
     }
 });
 
