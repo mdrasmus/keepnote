@@ -104,8 +104,27 @@ var Node = Backbone.Model.extend({
             path: filename
         });
         this.files[filename] = file;
+        this.registerFile(file);
 
         return file;
+    },
+
+    registerFile: function (file) {
+        file.on("change", function () {
+            this.trigger('file-change');
+        }, this);
+        file.on("destroy", function () {
+            this.onFileDestroy(file); }, this);
+    },
+
+    unregisterFile: function (file) {
+        file.off("change", null, this);
+        file.off("destroy", function () {
+            this.onFileDestroy(file); }, this);
+    },
+
+    onFileDestroy: function (file) {
+        this.unregisterFile(file);
     },
 
     _isDir: function (filename) {
@@ -188,10 +207,9 @@ var NodeFile = Backbone.Model.extend({
     },
 
     fetchChildren: function () {
-        var that = this;
         return this.fetch().then(function () {
-            return that.children;
-        });
+            return this.children;
+        }.bind(this));
     },
 
     getChildByName: function (name) {
@@ -255,8 +273,8 @@ var NoteBook = Backbone.Model.extend({
         // Node listeners.
         node.on("change", function () {
             this.onNodeChange(node); }, this);
-
-        this.registerFile(node.file);
+        node.on("file-change", function (file) {
+            this.onFileChange(file); }, this);
     },
 
     // Unregister all callbacks for a node.
@@ -264,21 +282,6 @@ var NoteBook = Backbone.Model.extend({
         node.off("change", null, this);
 
         this.unregisterFile(node.file);
-    },
-
-    // Register all callbacks for a file.
-    registerFile: function (file) {
-        file.on("change", function () {
-            this.onFileChange(file); }, this);
-        file.on("adding-children", this.onAddingFileChildren, this);
-        file.on("removing-children", this.onRemovingFileChildren, this);
-    },
-
-    // Unregister all callbacks for a file.
-    unregisterFile: function (file) {
-        file.off("change", null, this);
-        file.off("adding-children", null, this);
-        file.off("removing-children", null, this);
     },
 
     // Callback for when nodes change.
@@ -291,21 +294,5 @@ var NoteBook = Backbone.Model.extend({
     onFileChange: function (file) {
         this.trigger("file-change", this, file);
         this.trigger("change");
-    },
-
-    // Callback for when a file loads its children.
-    onAddingFileChildren: function (file) {
-        for (var i=0; i<file.children.length; i++) {
-            var child = file.children[i];
-            this.registerFile(child);
-        }
-    },
-
-    // Callback for when a file unloads its children.
-    onRemovingFileChildren: function (file) {
-        for (var i=0; i<file.children.length; i++) {
-            var child = file.children[i];
-            this.unregisterFile(child);
-        }
     }
 });
