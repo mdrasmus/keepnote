@@ -12,3 +12,8 @@
   - Add page/directory.
   - Remove node.
   - Move node (requires some kind of drag and drop)
+
+
+## Resources
+
+- Draggable component: https://github.com/mzabriskie/react-draggable
