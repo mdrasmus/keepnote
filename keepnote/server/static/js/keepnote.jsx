@@ -69,7 +69,7 @@ var NotebookTree = React.createClass({
         var expanded = node.get("expanded") || false;
 
         return {
-            firstOpen: true,
+            firstOpen: !node.fetched,
             expanded: expanded,
             filesExpanded: false
         };
@@ -82,12 +82,14 @@ var NotebookTree = React.createClass({
         var children = [];
         for (var i=0; i<node.children.length; i++) {
             var child = node.children[i];
-            children.push(
-                <li key={child.id}>
-                  <NotebookTree
-                   node={child}
-                   currentNode={this.props.currentNode}
-                   onViewNode={this.props.onViewNode} /></li>);
+            if (child.fetched) {
+                children.push(
+                  <li key={child.id}>
+                   <NotebookTree
+                    node={child}
+                    currentNode={this.props.currentNode}
+                    onViewNode={this.props.onViewNode} /></li>);
+            }
         }
 
         var displayChildren = (this.state.expanded ? "inline" : "none");
@@ -104,17 +106,6 @@ var NotebookTree = React.createClass({
         } else if (node.get("payload_filename")) {
             // Attached file.
             title = <a href={node.payloadUrl()} target="_blank">{title}</a>;
-        }
-
-        // Fetch children if node is expanded.
-        if (node.get("expanded") && this.state.firstOpen) {
-            setTimeout(function () {
-                node.fetchChildren();
-                this.setState({
-                    firstOpen: false,
-                    expanded: node.get("expanded")
-                });
-            }.bind(this), 0);
         }
 
         return <div className={nodeClass}>
@@ -334,7 +325,8 @@ function KeepNoteApp() {
             var rootid = result["rootids"][0];
             this.notebook = new NoteBook({rootid: rootid});
             this.notebook.on("change", this.onNoteBookChange.bind(this));
-            this.notebook.fetch();
+
+            this.notebook.root.fetchExpanded();
         }.bind(this));
     };
 
@@ -352,6 +344,8 @@ function KeepNoteApp() {
     };
 
     this.updateApp = function () {
+        console.log("update");
+
         if (!this.notebook)
             return;
         React.render(
@@ -361,15 +355,6 @@ function KeepNoteApp() {
         );
     };
     this.queueUpdateApp = _.debounce(this.updateApp.bind(this), 0);
-
-    this.updateView = function () {
-        // Render GUI.
-        React.render(
-            <NotebookTree node={this.notebook.root} />,
-            $('#treeview-pane #notebook').get(0)
-        );
-    };
-    this.queueUpdateView = _.debounce(this.updateView.bind(this), 0);
 }
 
 

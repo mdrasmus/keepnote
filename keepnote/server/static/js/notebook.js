@@ -34,7 +34,7 @@ var Node = Backbone.Model.extend({
     // Fetch node data.
     fetch: function (options) {
         var result = Node.__super__.fetch.call(this, options);
-        return result.done(function () {
+        return result.then(function () {
             this.fetched = true;
 
             // Allocate children nodes.
@@ -77,6 +77,24 @@ var Node = Backbone.Model.extend({
         this.children = _.filter(this.children,
                                  function(o) { return o !== child; });
         this.trigger('change');
+    },
+
+    // Recursively fetch all expanded nodes.
+    fetchExpanded: function () {
+        var defer = $.Deferred();
+
+        if (!this.fetched)
+            defer = this.fetch();
+        else
+            defer.resolve();
+
+        defer.done(function () {
+            if (this.get('expanded')) {
+                for (var i=0; i<this.children.length; i++) {
+                    this.children[i].fetchExpanded();
+                }
+            }
+        }.bind(this));
     },
 
     isPage: function () {
