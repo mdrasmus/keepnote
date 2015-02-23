@@ -42,14 +42,20 @@ body {
 }
 
 .page-toolbar a {
-  padding: 2px 5px 2px 5px;
+  padding: 0px;
+}
+
+.page-toolbar .block {
+  display: inline;
+  padding-left: 2px;
+  padding-right: 2px;
 }
 
 #page-pane {
   border: solid #ccc 1px;
   float: left;
-  overflow-y: auto;
 }
 
-#page-view {
+#page-editor {
+  overflow-y: auto;
 }

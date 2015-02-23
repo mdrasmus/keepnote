@@ -52,13 +52,13 @@ function convertHtmlForStorage(node, body) {
 
 var PageToolbar = React.createClass({
     render: function () {
-        return <div className="page-toolbar" id="page-toolbar">
-            <a onClick={this.props.onSavePage} href="#">save</a>
-            <a data-wysihtml5-command="bold">bold</a>
-            <a data-wysihtml5-command="italic">italic</a>
-            <a data-wysihtml5-command="formatBlock" data-wysihtml5-command-value="h1">H1</a>
-            <a data-wysihtml5-command="formatBlock" data-wysihtml5-command-value="p">P</a>
-        </div>;
+        var toolbar = (
+          <div className="page-toolbar" id="page-toolbar">
+            <a onClick={this.props.onSavePage} href="#">
+              <img src="/static/images/save.png"/>
+            </a>
+          </div>);
+        return toolbar;
     }
 });
 
@@ -253,11 +253,11 @@ var KeepNoteView = React.createClass({
             />
           </div>
           <div id="page-pane"
-        style={{width: pageSize[0], height: pageSize[1]}} >
+           style={{width: pageSize[0], height: pageSize[1]}}>
             <PageToolbar
              style={{width: toolbarSize[0], height: toolbarSize[1]}}
              onSavePage={this.onSavePage} />
-            <div id="page-editor" data-placeholder=""></div>
+            <div id="page-editor"></div>
           </div>
         </div>;
     },
@@ -333,6 +333,12 @@ function KeepNoteApp() {
     this.initEditor = function () {
         if (this.editor)
             return;
+
+        // Add editor buttons.
+        var toolbar = $($("#page-toolbar-template").html()).children();
+        $('#page-toolbar').append(toolbar);
+
+        // Setup editor.
         this.editor = new wysihtml5.Editor('page-editor', {
             toolbar: 'page-toolbar',
             parserRules:  wysihtml5ParserRules
@@ -344,8 +350,6 @@ function KeepNoteApp() {
     };
 
     this.updateApp = function () {
-        console.log("update");
-
         if (!this.notebook)
             return;
         React.render(

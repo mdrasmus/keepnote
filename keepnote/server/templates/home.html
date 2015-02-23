@@ -23,6 +23,114 @@
 
   <script type="text/javascript" src="/static/js/notebook.js"></script>
   <script type="text/jsx" src="/static/js/keepnote.jsx"></script>
+
+  <script id="page-toolbar-template" language="text/template">
+    <div>
+      <div class="block">
+        <a data-wysihtml5-command="bold" title="CTRL+B"><img src="/static/images/bold.png"></a>
+        <a data-wysihtml5-command="italic" title="CTRL+I"><img src="/static/images/italic.png"></a>
+        <a data-wysihtml5-command="underline" title="CTRL+U"><img src="/static/images/underline.png"></a>
+        <a data-wysihtml5-command="createLink"><img src="/static/images/link.png"></a>
+        <a data-wysihtml5-command="removeLink"><s><img src="/static/images/link.png"></s></a>
+      </div>
+
+      <div class="block">
+        <a data-wysihtml5-command="alignLeftStyle"><img src="/static/images/alignleft.png"></a>
+        <a data-wysihtml5-command="alignCenterStyle"><img src="/static/images/aligncenter.png"></a>
+        <a data-wysihtml5-command="alignRightStyle"><img src="/static/images/alignright.png"></a>
+      </div>
+
+      <div class="block">
+        <a data-wysihtml5-command="insertUnorderedList"><img src="/static/images/bullet.png"></a>
+        <a data-wysihtml5-command="insertOrderedList">1.</a>
+        <a data-wysihtml5-command="outdentList"><img src="/static/images/indent-less.png"></a>
+        <a data-wysihtml5-command="indentList"><img src="/static/images/indent-more.png"></a>
+      </div>
+
+      <div class="block">
+        <a data-wysihtml5-command="insertImage">image</a>
+        <a data-wysihtml5-command="formatBlock" data-wysihtml5-command-value="h1">h1</a>
+        <a data-wysihtml5-command="formatBlock" data-wysihtml5-command-value="h2">h2</a>
+        <a data-wysihtml5-command="formatBlock" data-wysihtml5-command-value="h3">h3</a>
+        <a data-wysihtml5-command="formatBlock" data-wysihtml5-command-value="p">p</a>
+        <a data-wysihtml5-command="formatBlock" data-wysihtml5-command-value="pre">pre</a>
+        <a data-wysihtml5-command="formatBlock" data-wysihtml5-command-blank-value="true">plaintext</a>
+        <a data-wysihtml5-command="insertBlockQuote">blockquote</a>
+        <a data-wysihtml5-command="formatCode" data-wysihtml5-command-value="language-html">Code</a>
+      </div>
+
+      <div class="block">
+        <a data-wysihtml5-command="fontSizeStyle">Size</a>
+        <div data-wysihtml5-dialog="fontSizeStyle" style="display: none;">
+          Size:
+          <input type="text" data-wysihtml5-dialog-field="size" style="width: 60px;" value="" />
+          <a data-wysihtml5-dialog-action="save">OK</a>&nbsp;<a data-wysihtml5-dialog-action="cancel">Cancel</a>
+        </div>
+      </div>
+
+      <div class="block">
+        <a data-wysihtml5-command="foreColorStyle">Color</a>
+        <div data-wysihtml5-dialog="foreColorStyle" style="display: none;">
+          Color:
+          <input type="text" data-wysihtml5-dialog-field="color" value="rgba(0,0,0,1)" />
+          <a data-wysihtml5-dialog-action="save">OK</a>&nbsp;<a data-wysihtml5-dialog-action="cancel">Cancel</a>
+        </div>
+      </div>
+
+      <div class="block">
+        <a data-wysihtml5-command="bgColorStyle">BG Color</a>
+        <div data-wysihtml5-dialog="bgColorStyle" style="display: none;">
+          Color:
+          <input type="text" data-wysihtml5-dialog-field="color" value="rgba(0,0,0,1)" />
+          <a data-wysihtml5-dialog-action="save">OK</a>&nbsp;<a data-wysihtml5-dialog-action="cancel">Cancel</a>
+        </div>
+      </div>
+
+      <div class="block">
+        <a data-wysihtml5-command="undo"><img src="/static/images/undo.png"></a>
+        <a data-wysihtml5-command="redo"><img src="/static/images/redo.png"></a>
+      </div>
+
+      <div class="block">
+        <a data-wysihtml5-action="showSource">HTML</a>
+      </div>
+
+      <div class="block" data-wysihtml5-hiddentools="table" style="display: none;">
+        <a data-wysihtml5-command="mergeTableCells">Merge</a>
+        <a data-wysihtml5-command="addTableCells" data-wysihtml5-command-value="above">row-before</a>
+        <a data-wysihtml5-command="addTableCells" data-wysihtml5-command-value="below">row-after</a>
+        <a data-wysihtml5-command="addTableCells" data-wysihtml5-command-value="before">col-before</a>
+        <a data-wysihtml5-command="addTableCells" data-wysihtml5-command-value="after">col-after</a>
+
+        <a data-wysihtml5-command="deleteTableCells" data-wysihtml5-command-value="row">delete row</a>
+        <a data-wysihtml5-command="deleteTableCells" data-wysihtml5-command-value="column">delete col</a>
+      </div>
+
+      <div data-wysihtml5-dialog="createLink" style="display: none;">
+        <label>
+          Link:
+          <input data-wysihtml5-dialog-field="href" value="http://">
+        </label>
+        <a data-wysihtml5-dialog-action="save">OK</a>&nbsp;<a data-wysihtml5-dialog-action="cancel">Cancel</a>
+      </div>
+      <div data-wysihtml5-dialog="insertImage" style="display: none;">
+        <label>
+          Image:
+          <input data-wysihtml5-dialog-field="src" value="http://">
+        </label>
+        <label>
+          Align:
+          <select data-wysihtml5-dialog-field="className">
+            <option value="">default</option>
+            <option value="wysiwyg-float-left">left</option>
+            <option value="wysiwyg-float-right">right</option>
+          </select>
+        </label>
+        <a data-wysihtml5-dialog-action="save">OK</a>&nbsp;<a data-wysihtml5-dialog-action="cancel">Cancel</a>
+      </div>
+    </div>
+  </script>
+
 </head>
 <body>
 
