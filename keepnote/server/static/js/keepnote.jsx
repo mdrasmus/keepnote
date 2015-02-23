@@ -7,8 +7,28 @@ function parsePageHtml(node, html) {
     var body = $(htmlDoc.getElementsByTagName("body"));
 
     convertHtmlForDisplay(node, body);
+    return body;
+}
 
-    return body.contents();
+
+function formatPageHtml(node, body) {
+    var htmlHeader = (
+        '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\n' +
+        '<html xmlns="http://www.w3.org/1999/xhtml"><body>');
+    var htmlFooter = '</body></html>';
+
+    convertHtmlForStorage(node, body);
+
+    // Serialize to XHTML.
+    var serializer = new XMLSerializer();
+    var xhtml = [];
+    body.contents().each(function (i) {
+        xhtml.push(serializer.serializeToString($(this).get(0)));
+    });
+    xhtml = xhtml.join('');
+
+    // Add header and footer.
+    return htmlHeader + xhtml + htmlFooter;
 }
 
 
@@ -319,31 +339,18 @@ var KeepNoteView = React.createClass({
 
     loadPage: function (node) {
         return node.readFile(node.PAGE_FILE).then(function (result) {
-            return parsePageHtml(node, result);
+            return parsePageHtml(node, result).contents();
         });
     },
 
     savePage: function () {
         var node = this.state.currentNode;
-
-        var htmlHeader = (
-            '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">\n' +
-            '<html xmlns="http://www.w3.org/1999/xhtml"><body>');
-        var htmlFooter = '</body></html>';
+        if (!node)
+            return;
 
         var body = this.refs.pageEditor.getContent();
-        convertHtmlForStorage(node, body);
-
-        var serializer = new XMLSerializer();
-        var xhtml = [];
-        body.contents().each(function (i) {
-            xhtml.push(serializer.serializeToString($(this).get(0)));
-        });
-        xhtml = xhtml.join('');
-
-        var pageContents = htmlHeader + xhtml + htmlFooter;
-
-        return node.writeFile(node.PAGE_FILE, pageContents);
+        var html = formatPageHtml(node, body);
+        return node.writeFile(node.PAGE_FILE, html);
     }
 });
 
