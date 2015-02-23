@@ -60,16 +60,18 @@ var Node = Backbone.Model.extend({
     fetchChildren: function () {
         if (!this.fetched || this.ordered)
             return;
+        return this._loadChildren().then(
+            this.orderChildren.bind(this)
+        );
+    },
 
+    orderChildren: function () {
         function cmp(node1, node2) {
             return node1.get('order') - node2.get('order');
         }
-
-        return this._loadChildren().then(function () {
-            this.children.sort(cmp);
-            this.ordered = true;
-            this.trigger('change');
-        }.bind(this));
+        this.children.sort(cmp);
+        this.ordered = true;
+        this.trigger('change');
     },
 
     onChildDestroy: function (child) {
@@ -83,16 +85,24 @@ var Node = Backbone.Model.extend({
     fetchExpanded: function () {
         var defer = $.Deferred();
 
+        // Fetch this node if needed.
         if (!this.fetched)
             defer = this.fetch();
         else
             defer.resolve();
 
-        defer.done(function () {
+        // Recursively fetch children.
+        return defer.done(function () {
             if (this.get('expanded')) {
+                var defers = [];
                 for (var i=0; i<this.children.length; i++) {
-                    this.children[i].fetchExpanded();
+                    defers.push(this.children[i].fetchExpanded());
                 }
+
+                // After all child load, order them.
+                $.when.apply($, defers).done(
+                    this.orderChildren.bind(this)
+                );
             }
         }.bind(this));
     },
