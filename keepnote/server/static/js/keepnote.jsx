@@ -50,19 +50,6 @@ function convertHtmlForStorage(node, body) {
 }
 
 
-var PageToolbar = React.createClass({
-    render: function () {
-        var toolbar = (
-          <div className="page-toolbar" id="page-toolbar">
-            <a onClick={this.props.onSavePage} href="#">
-              <img src="/static/images/save.png"/>
-            </a>
-          </div>);
-        return toolbar;
-    }
-});
-
-
 var NotebookTree = React.createClass({
     getInitialState: function () {
         var node = this.props.node;
@@ -220,6 +207,47 @@ var NotebookFile = React.createClass({
 });
 
 
+var PageToolbar = React.createClass({
+    render: function () {
+        var toolbar = (
+          <div className="page-toolbar" id="page-toolbar">
+            <a onClick={this.props.onSavePage} href="#">
+              <img src="/static/images/save.png"/>
+            </a>
+          </div>);
+        return toolbar;
+    }
+});
+
+
+var PageEditor = React.createClass({
+    render: function () {
+        var size = this.props.size;
+        var toolbarHeight = 25;
+        var toolbarSize = [size[0], toolbarHeight];
+
+        return (<div>
+          <PageToolbar
+            style={{width: toolbarSize[0], height: toolbarSize[1]}}
+            onSavePage={this.props.onSavePage}/>
+          <div id="page-editor"></div>
+        </div>);
+    },
+
+    componentDidMount: function () {
+        // Add editor buttons.
+        var toolbar = $($("#page-toolbar-template").html()).children();
+        $('#page-toolbar').append(toolbar);
+
+        // Setup editor.
+        this.editor = new wysihtml5.Editor('page-editor', {
+            toolbar: 'page-toolbar',
+            parserRules:  wysihtml5ParserRules
+        });
+    }
+});
+
+
 var KeepNoteView = React.createClass({
     getInitialState: function () {
         return {
@@ -232,7 +260,6 @@ var KeepNoteView = React.createClass({
         var notebook = app.notebook;
 
         var treeWidth = 400;
-        var toolbarHeight = 25;
 
         //var offset = [this.pageScrollOffset[0], 0];
         var windowSize = [$(window).width(), $(window).height()];
@@ -240,7 +267,6 @@ var KeepNoteView = React.createClass({
         var treeSize = [treeWidth, appSize[1]];
 
         var pageWidth = windowSize[0] - treeSize[0] - 4;
-        var toolbarSize = [pageWidth, toolbarHeight];
         var pageSize = [pageWidth, appSize[1]];
 
         return <div id="app">
@@ -254,10 +280,7 @@ var KeepNoteView = React.createClass({
           </div>
           <div id="page-pane"
            style={{width: pageSize[0], height: pageSize[1]}}>
-            <PageToolbar
-             style={{width: toolbarSize[0], height: toolbarSize[1]}}
-             onSavePage={this.onSavePage} />
-            <div id="page-editor"></div>
+            <PageEditor size={pageSize} onSavePage={this.onSavePage}/>
           </div>
         </div>;
     },
@@ -265,13 +288,9 @@ var KeepNoteView = React.createClass({
     viewNode: function (node) {
         //window.history.pushState({}, node.get("title"), node.url());
         this.setState({currentNode: node});
-
         this.loadPage(node).done(function (content) {
-            // Load page view;
-            var pageView = $("#page-editor");
-            pageView.empty();
-            pageView.append(content);
-        });
+            this.props.app.setEditorContent(content);
+        }.bind(this));
     },
 
     onSavePage: function (e) {
@@ -293,8 +312,7 @@ var KeepNoteView = React.createClass({
             '<html xmlns="http://www.w3.org/1999/xhtml"><body>');
         var htmlFooter = '</body></html>';
 
-        var editor = $("#page-editor");
-        var body = editor.clone();
+        var body = this.props.app.getEditorContent();
         convertHtmlForStorage(node, body);
 
         var serializer = new XMLSerializer();
@@ -330,19 +348,18 @@ function KeepNoteApp() {
         }.bind(this));
     };
 
-    this.initEditor = function () {
-        if (this.editor)
-            return;
+    // Set content for page editor.
+    this.setEditorContent = function (content) {
+        var pageView = $("#page-editor");
+        pageView.empty();
+        pageView.append(content);
+    };
 
-        // Add editor buttons.
-        var toolbar = $($("#page-toolbar-template").html()).children();
-        $('#page-toolbar').append(toolbar);
-
-        // Setup editor.
-        this.editor = new wysihtml5.Editor('page-editor', {
-            toolbar: 'page-toolbar',
-            parserRules:  wysihtml5ParserRules
-        });
+    // Get content from page editor.
+    this.getEditorContent = function () {
+        var editor = $("#page-editor");
+        var body = editor.clone();
+        return body;
     };
 
     this.onNoteBookChange = function () {
@@ -354,8 +371,7 @@ function KeepNoteApp() {
             return;
         React.render(
             <KeepNoteView app={this} />,
-            $('#base').get(0),
-            this.initEditor.bind(this)
+            $('#base').get(0)
         );
     };
     this.queueUpdateApp = _.debounce(this.updateApp.bind(this), 0);
