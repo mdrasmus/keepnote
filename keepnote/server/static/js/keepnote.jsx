@@ -54,7 +54,6 @@ var NotebookTree = React.createClass({
     getInitialState: function () {
         var node = this.props.node;
         var expanded = node.get("expanded") || false;
-
         return {
             firstOpen: !node.fetched,
             expanded: expanded,
@@ -272,7 +271,7 @@ var KeepNoteView = React.createClass({
 
     render: function () {
         var app = this.props.app;
-        var notebook = app.notebook;
+        var root = app.notebook ? app.notebook.root : null;
 
         var treeWidth = 400;
 
@@ -284,14 +283,17 @@ var KeepNoteView = React.createClass({
         var pageWidth = windowSize[0] - treeSize[0] - 4;
         var pageSize = [pageWidth, appSize[1]];
 
+        var viewtree = root ?
+            <NotebookTree
+             node={root}
+             currentNode={this.state.currentNode}
+             onViewNode={this.viewNode}/> :
+            <div/>;
+
         return <div id="app">
           <div id="treeview-pane"
-            style={{width: treeSize[0], height: treeSize[1]}} >
-            <NotebookTree
-             node={notebook.root}
-             currentNode={this.state.currentNode}
-             onViewNode={this.viewNode}
-            />
+            style={{width: treeSize[0], height: treeSize[1]}}>
+            {viewtree}
           </div>
           <div id="page-pane"
            style={{width: pageSize[0], height: pageSize[1]}}>
@@ -368,8 +370,6 @@ function KeepNoteApp() {
     };
 
     this.updateApp = function () {
-        if (!this.notebook)
-            return;
         React.render(
             <KeepNoteView app={this} />,
             $('#base').get(0)
