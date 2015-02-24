@@ -355,8 +355,56 @@ var KeepNoteView = React.createClass({
 });
 
 
+// Register key bindings to callbacks.
+function KeyBinding() {
+    this.bindings = {};
+
+    // Add a new key binding.
+    this.add = function (key, callback) {
+        if (!(key in this.bindings))
+            this.bindings[key] = [];
+        this.bindings[key].push(callback);
+    }
+
+    // Remove a key binding.
+    this.remove = function (key) {
+        delete this.bindings[key];
+    }
+
+    // Clear all key bindings.
+    this.clear = function () {
+        this.bindings = {};
+    }
+
+    // Process a key press event.
+    this.processEvent = function (event) {
+        var hash = this.hashKeyEvent(event);
+
+        if (hash in this.bindings) {
+            var callbacks = this.bindings[hash];
+            for (var i=0; i<callbacks.length; i++) {
+                callbacks[i]();
+            }
+            event.preventDefault();
+        }
+    }
+
+    // Return a hash of a key press event.
+    this.hashKeyEvent = function (event) {
+        var hash = "";
+        if (event.ctrlKey || event.metaKey) {
+            hash += "ctrl+";
+        }
+        hash += event.key;
+        return hash;
+    };
+}
+
+
 function KeepNoteApp() {
     this.notebook = null;
+    this.view = null;
+    this.bindings = new KeyBinding();
 
     this.init = function () {
         // Initial render.
@@ -364,7 +412,8 @@ function KeepNoteApp() {
 
         // Register events.
         $(window).resize(this.queueUpdateApp.bind(this));
-        $("body").keypress(this.onKeyPress.bind(this));
+        $("body").keypress(this.bindings.processEvent.bind(this.bindings));
+        this.setupKeyBindings();
 
         // Fetch notebook.
         $.get('/notebook/').done(function (result) {
@@ -376,25 +425,24 @@ function KeepNoteApp() {
         }.bind(this));
     };
 
+    this.setupKeyBindings = function () {
+        this.bindings.add("ctrl+s", this.save.bind(this));
+    };
+
     this.onNoteBookChange = function () {
         this.queueUpdateApp();
     };
 
     this.updateApp = function () {
-        React.render(
+        this.view = React.render(
             <KeepNoteView app={this} />,
             $('#base').get(0)
         );
     };
     this.queueUpdateApp = _.debounce(this.updateApp.bind(this), 0);
 
-    this.onKeyPress = function (e) {
-        if (e.key == "s" && (e.ctrlKey || e.metaKey)) {
-            this.save();
-        }
-    };
-
     this.save = function () {
+        this.view.savePage();
     };
 }
 
