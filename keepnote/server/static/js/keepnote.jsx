@@ -359,14 +359,18 @@ function KeepNoteApp() {
     this.notebook = null;
 
     this.init = function () {
+        // Initial render.
         this.updateApp();
 
+        // Register events.
         $(window).resize(this.queueUpdateApp.bind(this));
+        $("body").keypress(this.onKeyPress.bind(this));
 
+        // Fetch notebook.
         $.get('/notebook/').done(function (result) {
             var rootid = result["rootids"][0];
             this.notebook = new NoteBook({rootid: rootid});
-            this.notebook.on("change", this.onNoteBookChange.bind(this));
+            this.notebook.on("change", this.onNoteBookChange, this);
 
             this.notebook.root.fetchExpanded();
         }.bind(this));
@@ -383,6 +387,15 @@ function KeepNoteApp() {
         );
     };
     this.queueUpdateApp = _.debounce(this.updateApp.bind(this), 0);
+
+    this.onKeyPress = function (e) {
+        if (e.key == "s" && (e.ctrlKey || e.metaKey)) {
+            this.save();
+        }
+    };
+
+    this.save = function () {
+    };
 }
 
 
