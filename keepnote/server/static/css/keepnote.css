@@ -12,14 +12,18 @@ body {
   overflow: auto;
 }
 
-.node-tree .active {
+.node-tree-title {
+  cursor: pointer;
+}
+
+.node-tree-title.active {
   background-color: #5555cc;
   color: #ffffff;
 }
 
-.node-tree .active a:link,
-.node-tree .active a:hover,
-.node-tree .active a:visited
+.node-tree-title.active a:link,
+.node-tree-title.active a:hover,
+.node-tree-title.active a:visited
 {
   color: #ffffff;
 }

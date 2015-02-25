@@ -163,7 +163,25 @@ var NotebookTreeRaw = React.createClass({
 });
 
 
+// Text that can be edited when clicked on.
+var TextEdit = React.createClass({
+    render: function () {
+        return <span className={this.props.className}>
+          {this.props.text}
+        </span>;
+    }
+});
+
+
+// Notebook tree component.
 var NotebookTree = React.createClass({
+    getDefaultProps: function () {
+        return {
+            depth: 0,
+            indent: 20
+        };
+    },
+
     getInitialState: function () {
         var node = this.props.node;
         var expanded = node.get("expanded") || false;
@@ -183,53 +201,51 @@ var NotebookTree = React.createClass({
             var child = node.children[i];
             if (child.fetched) {
                 children.push(
-                  <li key={child.id}>
-                   <NotebookTree
-                    node={child}
-                    currentNode={this.props.currentNode}
-                    onViewNode={this.props.onViewNode} /></li>);
+                  <NotebookTree
+                   key={child.id}
+                   node={child}
+                   depth={this.props.depth + 1}
+                   indent={this.props.indent}
+                   currentNode={this.props.currentNode}
+                   onViewNode={this.props.onViewNode}/>);
             }
         }
 
         var displayChildren = (this.state.expanded ? "inline" : "none");
-        var displayFiles = (this.state.filesExpanded ? "block" : "none");
-        var nodeClass = "node-tree";
+        var indent = this.props.depth * this.props.indent;
+        var nodeClass = "node-tree-title";
         if (node == this.props.currentNode)
             nodeClass += " active";
 
         // Build node title.
-        var title = <span className="title">{node.get('title')}</span>;
-        if (node.isPage()) {
-            // Notebook page.
-            title = <a href="#" onClick={this.onPageClick}>{title}</a>;
-        } else if (node.get("payload_filename")) {
+        var onNodeClick;
+        if (node.get("payload_filename")) {
             // Attached file.
-            title = <a href={node.payloadUrl()} target="_blank">{title}</a>;
+            onNodeClick = this.onPayloadClick;
+        } else {
+            // Regular node.
+            onNodeClick = this.onPageClick;
         }
 
-        return <div className={nodeClass}>
-          <a className="expand" onClick={this.toggleChildren} href="#">+</a>
-          {title}
-          [<a href={node.url()}>attr</a>]&nbsp;
-          [<a onClick={this.toggleFiles} href="#">files</a>]
-
-          <div className="files" style={{display: displayFiles}}>
-            <NotebookFile
-             file={node.file}
-             showFilename={false}
-             expanded={true} />
+        return <div className="node-tree">
+          <div className={nodeClass} onClick={onNodeClick}>
+            <div style={{paddingLeft: indent}}>
+              <a className="expand" onClick={this.toggleChildren} href="javascript:;">+</a>
+              <TextEdit className="title"
+               text={node.get('title')}/>
+            </div>
           </div>
 
           <div className="children" style={{display: displayChildren}}>
-            <ul>
-              {children}
-            </ul>
+            {children}
           </div>
         </div>;
     },
 
+    // Toggle display of child nodes.
     toggleChildren: function (e) {
         e.preventDefault();
+        e.stopPropagation();
 
         var expanded = !this.state.expanded;
         this.setState({expanded: expanded});
@@ -238,20 +254,19 @@ var NotebookTree = React.createClass({
         }
     },
 
-    toggleFiles: function (e) {
-        e.preventDefault();
-
-        var expanded = !this.state.filesExpanded;
-        this.setState({filesExpanded: expanded});
-        if (expanded)
-            this.props.node.file.fetch();
-    },
-
+    // View a node's page.
     onPageClick: function (e) {
         e.preventDefault();
 
         if (this.props.onViewNode)
             this.props.onViewNode(this.props.node);
+    },
+
+    // Open node attached file in new window.
+    onPayloadClick: function (e) {
+        e.preventDefault();
+
+        window.open(this.props.node.payloadUrl(), '_blank');
     }
 });
 
@@ -359,6 +374,11 @@ var PageEditor = React.createClass({
         });
     },
 
+    clear: function () {
+        var editor = $(this.refs.pageEditor.getDOMNode());
+        editor.empty();
+    },
+
     // Set content for page editor.
     setContent: function (content) {
         var editor = $(this.refs.pageEditor.getDOMNode());
@@ -420,9 +440,15 @@ var KeepNoteView = React.createClass({
     viewNode: function (node) {
         //window.history.pushState({}, node.get("title"), node.url());
         this.setState({currentNode: node});
-        this.loadPage(node).done(function (content) {
-            this.refs.pageEditor.setContent(content);
-        }.bind(this));
+
+        if (node.isPage()) {
+            this.loadPage(node).done(function (content) {
+                this.refs.pageEditor.setContent(content);
+            }.bind(this));
+        } else {
+            // Node is a directory. Display blank page.
+            this.refs.pageEditor.clear();
+        }
     },
 
     onSavePage: function (e) {
