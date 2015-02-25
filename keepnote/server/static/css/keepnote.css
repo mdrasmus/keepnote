@@ -12,6 +12,10 @@ body {
   overflow: auto;
 }
 
+#treeview-pane:focus {
+  border: solid #ffcccc 1px;
+}
+
 .node-tree-title {
   cursor: pointer;
 }

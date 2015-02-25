@@ -397,13 +397,9 @@ var NotebookFile = React.createClass({
 
 var PageToolbar = React.createClass({
     render: function () {
-        var toolbar = (
-          <div className="page-toolbar" id="page-toolbar">
-            <a onClick={this.props.onSavePage} href="#">
-              <img src="/static/images/save.png"/>
-            </a>
-          </div>);
-        return toolbar;
+        return (<div className="page-toolbar" id="page-toolbar">
+          <a href="javascript:;" onClick={this.props.onShowAttr}>attr</a>
+        </div>);
     }
 });
 
@@ -413,12 +409,14 @@ var PageEditor = React.createClass({
         var size = this.props.size;
         var toolbarHeight = 25;
         var toolbarSize = [size[0], toolbarHeight];
+        var editorSize = [size[0], size[1] - toolbarHeight];
 
         return (<div>
           <PageToolbar ref="toolbar"
-            style={{width: toolbarSize[0], height: toolbarSize[1]}}
-            onSavePage={this.props.onSavePage}/>
-          <div id="page-editor" ref="pageEditor"></div>
+           style={{width: toolbarSize[0], height: toolbarSize[1]}}
+           onShowAttr={this.props.onShowAttr}/>
+          <div id="page-editor" ref="pageEditor"
+           style={{width: editorSize[0], height: editorSize[1]}}/>
         </div>);
     },
 
@@ -493,7 +491,7 @@ var KeepNoteView = React.createClass({
            style={{width: pageSize[0], height: pageSize[1]}}>
             <PageEditor ref="pageEditor"
              size={pageSize}
-             onSavePage={this.onSavePage}/>
+             onShowAttr={this.onShowAttr}/>
           </div>
         </div>;
     },
@@ -512,9 +510,11 @@ var KeepNoteView = React.createClass({
         }
     },
 
-    onSavePage: function (e) {
+    onShowAttr: function (e) {
         e.preventDefault();
-        this.savePage();
+        console.log("hello", this.state.currentNode);
+        if (this.state.currentNode)
+            window.location = this.state.currentNode.url();
     },
 
     loadPage: function (node) {
