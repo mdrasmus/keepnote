@@ -53,5 +53,17 @@ class TestHttp(TestConnBase):
         attr2 = json.loads(data)
         self.assertEqual(attr, attr2)
 
+        # Test new node without specifying nodeid and with auto set.
+        attr = {
+            "key1": 123,
+            "key2": 456,
+        }
+        data = urllib.urlopen(url + 'nodes/?auto', json.dumps(attr)).read()
+        nodeid = json.loads(data)['nodeid']
+        data = urllib.urlopen(url + 'nodes/%s' % nodeid).read()
+        attr2 = json.loads(data)
+        attr["nodeid"] = nodeid
+        self.assertEqual(attr, attr2)
+
         # Close server.
         server.shutdown()

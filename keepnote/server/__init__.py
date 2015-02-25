@@ -258,6 +258,11 @@ class NoteBookHttpServer(object):
 
         data = request.body.read()
         attr = json.loads(data)
+
+        if 'auto' in request.query:
+            # Auto set nodeid in attr.
+            attr['nodeid'] = nodeid
+
         try:
             self.conn.create_node(nodeid, attr)
         except connlib.NodeExists, e:
