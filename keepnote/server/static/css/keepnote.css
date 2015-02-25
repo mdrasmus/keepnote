@@ -21,6 +21,17 @@ body {
   color: #ffffff;
 }
 
+.node-tree-title input {
+  background: #9999cc;;
+  border: 0px;
+  outline: 0px;
+  padding: 0px;
+  padding-left: 5px;
+  margin: 0px;
+  font: inherit;
+  text-align: inherit;
+}
+
 .node-tree-title.active a:link,
 .node-tree-title.active a:hover,
 .node-tree-title.active a:visited

@@ -164,11 +164,64 @@ var NotebookTreeRaw = React.createClass({
 
 
 // Text that can be edited when clicked on.
-var TextEdit = React.createClass({
+var InplaceEditor = React.createClass({
+    getInitialState: function () {
+        return {
+            editing: false
+        };
+    },
+
     render: function () {
-        return <span className={this.props.className}>
-          {this.props.text}
-        </span>;
+        if (this.state.editing) {
+            return <input type="text" ref="input"
+                    className={this.props.className}
+                    defaultValue={this.props.value}
+                    onBlur={this.onBlur}
+                    onKeyPress={this.onKeyPress}
+                    onKeyDown={this.onKeyDown}/>;
+        } else {
+            return <span className={this.props.className}
+                    onDoubleClick={this.onEdit}>
+              {this.props.value}
+            </span>;
+        }
+    },
+
+    onEdit: function (e) {
+        e.preventDefault();
+        this.setState({editing: true});
+    },
+
+    onBlur: function (e) {
+        e.preventDefault();
+        this.submit();
+    },
+
+    onKeyPress: function (e) {
+        var ENTER = 13;
+        if (e.charCode == ENTER) {
+            e.preventDefault();
+            this.submit();
+        }
+    },
+
+    onKeyDown: function (e) {
+        var ESCAPE = 27;
+        if (e.which == ESCAPE) {
+            e.preventDefault();
+            this.cancel();
+        }
+    },
+
+    cancel: function () {
+        this.setState({editing: false});
+    },
+
+    submit: function () {
+        var value = $(this.refs.input.getDOMNode()).val();
+        if (this.props.onSubmit)
+            this.props.onSubmit(value);
+        this.setState({editing: false});
     }
 });
 
@@ -231,8 +284,9 @@ var NotebookTree = React.createClass({
           <div className={nodeClass} onClick={onNodeClick}>
             <div style={{paddingLeft: indent}}>
               <a className="expand" onClick={this.toggleChildren} href="javascript:;">+</a>
-              <TextEdit className="title"
-               text={node.get('title')}/>
+              <InplaceEditor className="title"
+               value={node.get('title')}
+               onSubmit={this.onRenameNode}/>
             </div>
           </div>
 
@@ -267,6 +321,13 @@ var NotebookTree = React.createClass({
         e.preventDefault();
 
         window.open(this.props.node.payloadUrl(), '_blank');
+    },
+
+    // Rename a node title.
+    onRenameNode: function (value) {
+        var node = this.props.node;
+        node.set("title", value);
+        node.save();
     }
 });
 
@@ -406,7 +467,7 @@ var KeepNoteView = React.createClass({
         var app = this.props.app;
         var root = app.notebook ? app.notebook.root : null;
 
-        var treeWidth = 400;
+        var treeWidth = 300;
 
         //var offset = [this.pageScrollOffset[0], 0];
         var windowSize = [$(window).width(), $(window).height()];
