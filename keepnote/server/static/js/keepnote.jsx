@@ -631,7 +631,7 @@ function KeepNoteApp() {
         $(window).resize(this.queueUpdateApp.bind(this));
 
         // Fetch notebook.
-        $.get('/notebook/').done(function (result) {
+        $.get('/notebook/nodes/').done(function (result) {
             var rootid = result["rootids"][0];
             this.notebook = new NoteBook({rootid: rootid});
             this.notebook.on("change", this.onNoteBookChange, this);

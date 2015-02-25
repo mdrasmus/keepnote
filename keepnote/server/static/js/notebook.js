@@ -16,7 +16,7 @@ var Node = Backbone.Model.extend({
     },
 
     // TODO: make customizable.
-    urlRoot: '/notebook',
+    urlRoot: '/notebook/nodes/',
     idAttribute: 'nodeid',
 
     // Allocate children nodes.
