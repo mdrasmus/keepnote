@@ -457,8 +457,21 @@ var PageEditor = React.createClass({
 var KeepNoteView = React.createClass({
     getInitialState: function () {
         return {
-            currentNode: null
+            currentNode: null,
+            bindings: new KeyBinding()
         };
+    },
+
+    componentDidMount: function () {
+        var bindings = this.state.bindings;
+        $("body").keypress(bindings.processEvent.bind(bindings));
+        this.initKeyBindings();
+    },
+
+    initKeyBindings: function () {
+        var bindings = this.state.bindings;
+        bindings.add("ctrl+s", this.save.bind(this));
+        bindings.add("ctrl+n", this.newNode.bind(this));
     },
 
     render: function () {
@@ -494,6 +507,31 @@ var KeepNoteView = React.createClass({
              onShowAttr={this.onShowAttr}/>
           </div>
         </div>;
+    },
+
+    save: function () {
+        this.savePage();
+    },
+
+    newNode: function () {
+        var notebook = this.props.app.notebook;
+        if (!notebook)
+            return;
+
+        var root = notebook.root;
+        var node = this.state.currentNode;
+        var parent = null;
+        var index = null;
+
+        if (!node || node == root) {
+            parent = root;
+            index = null;
+        } else {
+            parent = node.parents[0];
+            index = (node.get('order') || 0) + 1;
+        }
+
+        return notebook.newNode(parent, index);
     },
 
     viewNode: function (node) {
@@ -584,7 +622,6 @@ function KeyBinding() {
 function KeepNoteApp() {
     this.notebook = null;
     this.view = null;
-    this.bindings = new KeyBinding();
 
     this.init = function () {
         // Initial render.
@@ -592,8 +629,6 @@ function KeepNoteApp() {
 
         // Register events.
         $(window).resize(this.queueUpdateApp.bind(this));
-        $("body").keypress(this.bindings.processEvent.bind(this.bindings));
-        this.setupKeyBindings();
 
         // Fetch notebook.
         $.get('/notebook/').done(function (result) {
@@ -603,10 +638,6 @@ function KeepNoteApp() {
 
             this.notebook.root.fetchExpanded();
         }.bind(this));
-    };
-
-    this.setupKeyBindings = function () {
-        this.bindings.add("ctrl+s", this.save.bind(this));
     };
 
     this.onNoteBookChange = function () {
@@ -620,10 +651,6 @@ function KeepNoteApp() {
         );
     };
     this.queueUpdateApp = _.debounce(this.updateApp.bind(this), 0);
-
-    this.save = function () {
-        this.view.savePage();
-    };
 }
 
 

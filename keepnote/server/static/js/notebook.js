@@ -7,9 +7,10 @@ var Node = Backbone.Model.extend({
 
     initialize: function () {
         this.notebook = null;
+        this.parents = [];
+        this.children = [];
         this.files = {};
         this.file = this.getFile('');
-        this.children = [];
         this.ordered = false;
         this.fetched = false;
     },
@@ -36,8 +37,14 @@ var Node = Backbone.Model.extend({
     // Fetch node data.
     fetch: function (options) {
         var result = Node.__super__.fetch.call(this, options);
-        return result.then(function () {
+        return result.done(function () {
             this.fetched = true;
+
+            // Allocate parents.
+            this.parents = [];
+            var parentids = this.get('parentids') || [];
+            for (var i=0; i<parentids.length; i++)
+                this.parents.push(this.notebook.getNode(parentids[i]));
 
             // Allocate children nodes.
             var childrenIds = this.get('childrenids');
@@ -76,6 +83,7 @@ var Node = Backbone.Model.extend({
         this.trigger('change');
     },
 
+    // TODO: move to notebook.
     onChildDestroy: function (child) {
         // Remove child from children.
         this.children = _.filter(this.children,
@@ -322,5 +330,11 @@ var NoteBook = Backbone.Model.extend({
     onFileChange: function (file) {
         this.trigger("file-change", this, file);
         this.trigger("change");
+    },
+
+    newNode: function (parent, index) {
+        var NEW_TITLE = "New Page";
+
+        console.log('new', parent, index);
     }
 });
