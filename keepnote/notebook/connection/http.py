@@ -158,7 +158,7 @@ class NoteBookConnectionHttp (NoteBookConnection):
     def create_node(self, nodeid, attr):
 
         body_content = self.dumps_data(attr).encode("utf8")
-        self._request('PUT', format_node_path(self._prefix, nodeid),
+        self._request('POST', format_node_path(self._prefix, nodeid),
                       body_content)
         result = self._conn.getresponse()
         if result.status == httplib.FORBIDDEN:
@@ -186,7 +186,7 @@ class NoteBookConnectionHttp (NoteBookConnection):
     def update_node(self, nodeid, attr):
 
         body_content = self.dumps_data(attr).encode("utf8")
-        self._request('POST', format_node_path(self._prefix, nodeid),
+        self._request('PUT', format_node_path(self._prefix, nodeid),
                       body_content)
         result = self._conn.getresponse()
         if result.status == httplib.NOT_FOUND:
