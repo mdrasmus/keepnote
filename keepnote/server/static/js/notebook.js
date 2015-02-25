@@ -5,8 +5,8 @@ var Node = Backbone.Model.extend({
     PAGE_CONTENT_TYPE: "text/xhtml+xml",
     PAGE_FILE: "page.html",
 
-    initialize: function (options) {
-        this.notebook = options.notebook || null;
+    initialize: function () {
+        this.notebook = null;
         this.files = {};
         this.file = this.getFile('');
         this.children = [];
@@ -14,7 +14,9 @@ var Node = Backbone.Model.extend({
         this.fetched = false;
     },
 
+    // TODO: make customizable.
     urlRoot: '/notebook',
+    idAttribute: 'nodeid',
 
     // Allocate children nodes.
     _allocateChildren: function (childrenIds) {
@@ -280,10 +282,8 @@ var NoteBook = Backbone.Model.extend({
         if (nodeid in this.nodes)
             return this.nodes[nodeid];
 
-        var node = new Node({
-            id: nodeid,
-            notebook: this
-        });
+        var node = new Node({nodeid: nodeid});
+        node.notebook = this;
         this.registerNode(node);
 
         return node;
@@ -296,7 +296,7 @@ var NoteBook = Backbone.Model.extend({
 
     // Register all callbacks for a node.
     registerNode: function (node) {
-        this.nodes[node.id] = node;
+        this.nodes[node.nodeid] = node;
 
         // Node listeners.
         node.on("change", function () {
