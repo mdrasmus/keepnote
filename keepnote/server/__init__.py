@@ -46,6 +46,7 @@ from .bottle import template
 
 # keepnote imports
 import keepnote
+from keepnote.notebook import new_nodeid
 import keepnote.notebook.connection as connlib
 
 # Server directories.
@@ -127,15 +128,17 @@ class NoteBookHttpServer(object):
                       callback=self.command_view)
         self.app.get('/notebook/nodes/',
                      callback=self.read_root_view)
-        self.app.get('/notebook/nodes/<nodeid:re:[^/]*>',
+        self.app.get('/notebook/nodes/<nodeid:re:[^/]+>',
                      callback=self.read_node_view)
-        self.app.post('/notebook/nodes/<nodeid:re:[^/]*>',
+        self.app.post('/notebook/nodes/',
                       callback=self.create_node_view)
-        self.app.put('/notebook/nodes/<nodeid:re:[^/]*>',
+        self.app.post('/notebook/nodes/<nodeid:re:[^/]+>',
+                      callback=self.create_node_view)
+        self.app.put('/notebook/nodes/<nodeid:re:[^/]+>',
                      callback=self.update_node_view)
-        self.app.delete('/notebook/nodes/<nodeid:re:[^/]*>',
+        self.app.delete('/notebook/nodes/<nodeid:re:[^/]+>',
                         callback=self.delete_node_view)
-        self.app.route('/notebook/nodes/<nodeid:re:[^/]*>', 'HEAD',
+        self.app.route('/notebook/nodes/<nodeid:re:[^/]+>', 'HEAD',
                        callback=self.has_node_view)
 
         # Notebook file routes.
@@ -244,11 +247,14 @@ class NoteBookHttpServer(object):
             keepnote.log_error()
             abort(NOT_FOUND, 'node not found ' + str(e))
 
-    def create_node_view(self, nodeid):
+    def create_node_view(self, nodeid=None):
         """
         Create new notebook node.
         """
-        nodeid = urllib.unquote(nodeid)
+        if nodeid is not None:
+            nodeid = urllib.unquote(nodeid)
+        else:
+            nodeid = new_nodeid()
 
         data = request.body.read()
         attr = json.loads(data)
@@ -257,6 +263,10 @@ class NoteBookHttpServer(object):
         except connlib.NodeExists, e:
             keepnote.log_error()
             abort(FORBIDDEN, 'node already exists.' + str(e))
+
+        return self.json_response({
+            "nodeid": nodeid,
+        })
 
     def update_node_view(self, nodeid):
         """Update notebook node attr."""

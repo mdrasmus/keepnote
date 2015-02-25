@@ -1,5 +1,7 @@
+import json
 import socket
 import thread
+import urllib
 
 from keepnote import notebook as notebooklib
 from keepnote.notebook.connection.http import NoteBookConnectionHttp
@@ -39,6 +41,17 @@ class TestHttp(TestConnBase):
 
         # Test full notebook API.
         self._test_api(self.conn2)
+
+        # Test new node without specifying nodeid.
+        attr = {
+            "key1": 123,
+            "key2": 456,
+        }
+        data = urllib.urlopen(url + 'nodes/', json.dumps(attr)).read()
+        nodeid = json.loads(data)['nodeid']
+        data = urllib.urlopen(url + 'nodes/%s' % nodeid).read()
+        attr2 = json.loads(data)
+        self.assertEqual(attr, attr2)
 
         # Close server.
         server.shutdown()
