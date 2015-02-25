@@ -125,30 +125,30 @@ class NoteBookHttpServer(object):
         # Notebook node routes.
         self.app.post('/notebook/',
                       callback=self.command_view)
-        self.app.get('/notebook/',
+        self.app.get('/notebook/nodes/',
                      callback=self.read_root_view)
-        self.app.get('/notebook/<nodeid:re:[^/]*>',
+        self.app.get('/notebook/nodes/<nodeid:re:[^/]*>',
                      callback=self.read_node_view)
-        self.app.post('/notebook/<nodeid:re:[^/]*>',
+        self.app.post('/notebook/nodes/<nodeid:re:[^/]*>',
                       callback=self.create_node_view)
-        self.app.put('/notebook/<nodeid:re:[^/]*>',
+        self.app.put('/notebook/nodes/<nodeid:re:[^/]*>',
                      callback=self.update_node_view)
-        self.app.delete('/notebook/<nodeid:re:[^/]*>',
+        self.app.delete('/notebook/nodes/<nodeid:re:[^/]*>',
                         callback=self.delete_node_view)
-        self.app.route('/notebook/<nodeid:re:[^/]*>', 'HEAD',
+        self.app.route('/notebook/nodes/<nodeid:re:[^/]*>', 'HEAD',
                        callback=self.has_node_view)
 
         # Notebook file routes.
-        self.app.get('/notebook/<nodeid:re:[^/]*>/<filename:re:.*>',
+        self.app.get('/notebook/nodes/<nodeid:re:[^/]*>/<filename:re:.*>',
                      callback=self.read_file_view)
-        self.app.post('/notebook/<nodeid:re:[^/]*>/<filename:re:.*>',
+        self.app.post('/notebook/nodes/<nodeid:re:[^/]*>/<filename:re:.*>',
                       callback=self.write_file_view)
-        self.app.put('/notebook/<nodeid:re:[^/]*>/<filename:re:.*>',
+        self.app.put('/notebook/nodes/<nodeid:re:[^/]*>/<filename:re:.*>',
                      callback=self.write_file_view)
-        self.app.delete('/notebook/<nodeid:re:[^/]*>/<filename:re:.*>',
+        self.app.delete('/notebook/nodes/<nodeid:re:[^/]*>/<filename:re:.*>',
                         callback=self.delete_file_view)
-        self.app.route('/notebook/<nodeid:re:[^/]*>/<filename:re:.*>', 'HEAD',
-                       callback=self.has_file_view)
+        self.app.route('/notebook/nodes/<nodeid:re:[^/]*>/<filename:re:.*>',
+                       'HEAD', callback=self.has_file_view)
 
     def serve_forever(self, debug=False):
         """

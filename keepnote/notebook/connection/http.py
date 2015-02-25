@@ -112,7 +112,8 @@ class NoteBookConnectionHttp (NoteBookConnection):
         parts = urlparse.urlsplit(url)
 
         self._netloc = parts.netloc
-        self._prefix = parts.path
+        self._prefix = parts.path + 'nodes/'
+        self._notebook_prefix = parts.path
         self._conn = httplib.HTTPConnection(self._netloc)
         self._title_cache.clear()
         #self._conn.set_debuglevel(1)
@@ -123,7 +124,8 @@ class NoteBookConnectionHttp (NoteBookConnection):
     def save(self):
         # POST http://host/prefix/?save
 
-        self._request('POST', format_node_path(self._prefix) + "?save")
+        self._request(
+            'POST', format_node_path(self._notebook_prefix) + "?save")
         self._conn.getresponse()
         pass
 
@@ -365,7 +367,8 @@ class NoteBookConnectionHttp (NoteBookConnection):
         # query plist encoded
         body_content = self.dumps_data(query).encode("utf8")
         self._request(
-            'POST', format_node_path(self._prefix) + "?index", body_content)
+            'POST', format_node_path(self._notebook_prefix) + "?index",
+            body_content)
         result = self._conn.getresponse()
         if result.status == httplib.OK:
             try:
