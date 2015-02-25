@@ -238,7 +238,6 @@ class NoteBookHttpServer(object):
             if attr.get("parentids") == [None]:
                 del attr["parentids"]
 
-            response.content_type = 'text/xml'
             return self.json_response(attr)
 
         except connlib.UnknownNode, e:
