@@ -167,7 +167,8 @@ var NotebookTreeRaw = React.createClass({
 var InplaceEditor = React.createClass({
     getInitialState: function () {
         return {
-            editing: false
+            editing: false,
+            select: false
         };
     },
 
@@ -187,9 +188,19 @@ var InplaceEditor = React.createClass({
         }
     },
 
+    componentDidUpdate: function () {
+        if (this.state.select) {
+            $(this.refs.input.getDOMNode()).select();
+            this.setState({select: false});
+        }
+    },
+
     onEdit: function (e) {
         e.preventDefault();
-        this.setState({editing: true});
+        this.setState({
+            editing: true,
+            select: true
+        });
     },
 
     onBlur: function (e) {
@@ -470,8 +481,8 @@ var KeepNoteView = React.createClass({
 
     initKeyBindings: function () {
         var bindings = this.state.bindings;
-        bindings.add("ctrl+s", this.save.bind(this));
-        bindings.add("ctrl+n", this.newNode.bind(this));
+        bindings.add("ctrl+s", this.save);
+        bindings.add("ctrl+n", this.newNode);
     },
 
     render: function () {
@@ -552,7 +563,7 @@ var KeepNoteView = React.createClass({
         e.preventDefault();
         console.log("hello", this.state.currentNode);
         if (this.state.currentNode)
-            window.location = this.state.currentNode.url();
+            window.open(this.state.currentNode.url(), '_blank');
     },
 
     loadPage: function (node) {

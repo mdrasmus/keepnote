@@ -10,7 +10,7 @@
   - When changing pages.
   - At regular intervals (1min?)
 - [ ] Add node editing options
-  - [ ] Rename node.
+  - [x] Rename node.
   - [ ] Add page.
   - Remove node.
   - Move node (requires some kind of drag and drop)

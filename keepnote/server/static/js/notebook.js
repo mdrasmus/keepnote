@@ -304,7 +304,7 @@ var NoteBook = Backbone.Model.extend({
 
     // Register all callbacks for a node.
     registerNode: function (node) {
-        this.nodes[node.nodeid] = node;
+        this.nodes[node.id] = node;
 
         // Node listeners.
         node.on("change", function () {
