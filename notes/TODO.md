@@ -1,5 +1,11 @@
 # TODO
 
+## Fri Feb 27 14:03:39 PST 2015
+
+- [ ] Better define idea of notebook schemas. The lowest level allows
+      any data to be writen to nodes. The "notebook schema" requires
+      'nodeid' to be present.
+
 ## Sat Feb 21 01:46:05 PST 2015
 
 - [x] I usually save XHTML. Should I continue to do that?
