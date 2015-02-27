@@ -561,7 +561,6 @@ var KeepNoteView = React.createClass({
 
     onShowAttr: function (e) {
         e.preventDefault();
-        console.log("hello", this.state.currentNode);
         if (this.state.currentNode)
             window.open(this.state.currentNode.url(), '_blank');
     },
