@@ -13,26 +13,15 @@ var Node = Backbone.Model.extend({
         this.file = this.getFile('');
         this.ordered = false;
         this.fetched = false;
+
+        this.on("change", this.onChange, this);
+        this.on("change:childrenids", this.onChangeChildren, this);
+        this.on("change:parentids", this.onChangeParents, this);
     },
 
     // TODO: make customizable.
     urlRoot: '/notebook/nodes/',
     idAttribute: 'nodeid',
-
-    // Allocate children nodes.
-    _allocateChildren: function (childrenIds) {
-        this.trigger("removing-children", this);
-
-        // Allocate and register new children.
-        this.children = [];
-        for (var i=0; i<childrenIds.length; i++) {
-            var child = this.notebook.getNode(childrenIds[i]);
-            child.on("destroy", this.onChildDestroy.bind(this));
-            this.children.push(child);
-        }
-
-        this.trigger("adding-children", this);
-    },
 
     // Fetch node data.
     fetch: function (options) {
@@ -40,20 +29,41 @@ var Node = Backbone.Model.extend({
         return result.done(function () {
             this.fetched = true;
 
-            // Allocate parents.
-            this.parents = [];
-            var parentids = this.get('parentids') || [];
-            for (var i=0; i<parentids.length; i++)
-                this.parents.push(this.notebook.getNode(parentids[i]));
-
-            // Allocate children nodes.
-            var childrenIds = this.get('childrenids');
-            if (typeof(childrenIds) == "undefined")
-                childrenIds = [];
-            this._allocateChildren(childrenIds);
-
-            this.trigger('change');
+            this.onChangeChildren();
+            this.onChangeParents();
         }.bind(this));
+    },
+
+    onChange: function () {
+    },
+
+    // Allocate children nodes.
+    onChangeChildren: function () {
+        // Allocate and register new children.
+        var childrenIds = this.get("childrenids") || [];
+        var hasOrderLoaded = true;
+        this.children = [];
+        for (var i=0; i<childrenIds.length; i++) {
+            var child = this.notebook.getNode(childrenIds[i]);
+            this.children.push(child);
+            if (typeof(child.get("order")) == "undefined") {
+                hasOrderLoaded = false;
+            }
+        }
+
+        // Sort children by their order.
+        if (hasOrderLoaded)
+            this.orderChildren(false);
+    },
+
+    // Allocate parent nodes.
+    onChangeParents: function () {
+        // Allocate and register new children.
+        var parentIds = this.get("parentids") || [];
+        this.parents = [];
+        for (var i=0; i<parentIds.length; i++) {
+            this.parents.push(this.notebook.getNode(parentIds[i]));
+        }
     },
 
     _loadChildren: function () {
@@ -67,28 +77,27 @@ var Node = Backbone.Model.extend({
 
     // Fetch all children.
     fetchChildren: function () {
-        if (!this.fetched || this.ordered)
-            return;
-        return this._loadChildren().then(
-            this.orderChildren.bind(this)
-        );
+        var defer = $.Deferred();
+        if (!this.fetched)
+            defer = this.fetch();
+        else
+            defer.resolve();
+        return defer
+            .then(this._loadChildren.bind(this))
+            .then(this.orderChildren.bind(this));
     },
 
-    orderChildren: function () {
+    orderChildren: function (trigger) {
+        if (typeof(trigger) === "undefined")
+            trigger = true;
+
         function cmp(node1, node2) {
-            return node1.get('order') - node2.get('order');
+            return (node1.get('order') || 0) - (node2.get('order') || 0);
         }
         this.children.sort(cmp);
         this.ordered = true;
-        this.trigger('change');
-    },
-
-    // TODO: move to notebook.
-    onChildDestroy: function (child) {
-        // Remove child from children.
-        this.children = _.filter(this.children,
-                                 function(o) { return o !== child; });
-        this.trigger('change');
+        if (trigger)
+            this.trigger('change');
     },
 
     // Recursively fetch all expanded nodes.
@@ -141,6 +150,7 @@ var Node = Backbone.Model.extend({
             node: this,
             path: filename
         });
+
         this.files[filename] = file;
         this.registerFile(file);
 
@@ -334,7 +344,51 @@ var NoteBook = Backbone.Model.extend({
 
     newNode: function (parent, index) {
         var NEW_TITLE = "New Page";
+        var EMPTY_PAGE = "<html><body></body></html>";
 
-        console.log('new', parent, index);
+        if (index == null || typeof(index) === "undefined")
+            index = parent.children.length;
+        if (index > parent.children.length)
+            index = parent.children.length;
+
+        // Create new node.
+        var node = new Node({
+            "content_type": this.root.PAGE_CONTENT_TYPE,
+            "title": NEW_TITLE,
+            "parentids": [parent.id],
+            "childrenids": [],
+            "order": index
+        });
+        node.notebook = this;
+        return node.save().then(function (result) {
+            var nodeid = result["nodeid"];
+            node.id = nodeid;
+            this.registerNode(node);
+
+            // Adjust parent children ids.
+            var childrenIds = parent.get("childrenids").slice(0);
+            childrenIds.splice(index, 0, nodeid);
+            var defer = parent.save(
+                {childrenids: childrenIds},
+                {wait: true}
+            ).then(function () {
+                return parent.fetch();
+            }).then(function () {
+                return parent.fetchChildren();
+            });
+
+            // TODO: reset all sibling order attrs.
+
+            // Create empty page.
+            var file = node.getFile(node.PAGE_FILE);
+            file.write(EMPTY_PAGE);
+
+            return defer;
+        }.bind(this));
     }
 });
+
+
+if (typeof(exports) !== "undefined") {
+    exports.NoteBook = NoteBook;
+}
