@@ -6,12 +6,25 @@ import urllib
 from keepnote import notebook as notebooklib
 from keepnote.notebook.connection.http import NoteBookConnectionHttp
 from keepnote.notebook.connection import mem
+from keepnote.server import BaseNoteBookHttpServer
 from keepnote.server import NoteBookHttpServer
 
 from .test_notebook_conn import TestConnBase
 
 
 class TestHttp(TestConnBase):
+
+    def wait_for_server(self, conn):
+        """
+        Wait for server to start.
+        """
+        while True:
+            try:
+                conn.get_rootid()
+                break
+            except socket.error:
+                # Try again.
+                pass
 
     def test_api(self):
         # Make pure memory notebook.
@@ -23,24 +36,43 @@ class TestHttp(TestConnBase):
         host = "localhost"
         self.port = 8123
         url = "http://%s:%d/notebook/" % (host, self.port)
+        server = BaseNoteBookHttpServer(self.conn, port=self.port)
+        thread.start_new_thread(server.serve_forever, ())
+
+        # Connect to server.
+        self.conn2 = NoteBookConnectionHttp()
+        self.conn2.connect(url)
+        self.wait_for_server(self.conn2)
+
+        # Test full notebook API.
+        self._test_api(self.conn2)
+
+        self.conn2.close()
+        self.conn.close()
+
+        # Close server.
+        server.shutdown()
+
+    def test_notebook_schema(self):
+        """
+        Full HTTP Notebook should enfore schema with nodeid usage.
+        """
+        # Make pure memory notebook.
+        self.conn = mem.NoteBookConnectionMem()
+        self.notebook = notebooklib.NoteBook()
+        self.notebook.create('', self.conn)
+
+        # Start server in another thread
+        host = "localhost"
+        self.port = 8124
+        url = "http://%s:%d/notebook/" % (host, self.port)
         server = NoteBookHttpServer(self.conn, port=self.port)
         thread.start_new_thread(server.serve_forever, ())
 
         # Connect to server.
         self.conn2 = NoteBookConnectionHttp()
         self.conn2.connect(url)
-
-        # Wait for server to start.
-        while True:
-            try:
-                self.conn2.get_rootid()
-                break
-            except socket.error:
-                # Try again.
-                pass
-
-        # Test full notebook API.
-        self._test_api(self.conn2)
+        self.wait_for_server(self.conn2)
 
         # Test new node without specifying nodeid.
         attr = {
@@ -51,18 +83,7 @@ class TestHttp(TestConnBase):
         nodeid = json.loads(data)['nodeid']
         data = urllib.urlopen(url + 'nodes/%s' % nodeid).read()
         attr2 = json.loads(data)
-        self.assertEqual(attr, attr2)
-
-        # Test new node without specifying nodeid and with auto set.
-        attr = {
-            "key1": 123,
-            "key2": 456,
-        }
-        data = urllib.urlopen(url + 'nodes/?auto', json.dumps(attr)).read()
-        nodeid = json.loads(data)['nodeid']
-        data = urllib.urlopen(url + 'nodes/%s' % nodeid).read()
-        attr2 = json.loads(data)
-        attr["nodeid"] = nodeid
+        attr['nodeid'] = nodeid
         self.assertEqual(attr, attr2)
 
         # Close server.

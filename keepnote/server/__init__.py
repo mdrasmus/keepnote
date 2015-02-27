@@ -107,7 +107,7 @@ def write_node_tree(out, conn, nodeid=None):
     out.write("</ul>")
 
 
-class NoteBookHttpServer(object):
+class BaseNoteBookHttpServer(object):
 
     def __init__(self, conn, host="", port=8000):
         self.conn = conn
@@ -259,9 +259,6 @@ class NoteBookHttpServer(object):
         data = request.body.read()
         attr = json.loads(data)
 
-        # Enforce notebook scheme, nodeid is required.
-        attr['nodeid'] = nodeid
-
         try:
             self.conn.create_node(nodeid, attr)
         except connlib.NodeExists, e:
@@ -407,3 +404,29 @@ class NoteBookHttpServer(object):
     # get static files
     def static_file_view(self, filename):
         return static_file(filename, root=STATIC_DIR)
+
+
+class NoteBookHttpServer(BaseNoteBookHttpServer):
+
+    def create_node_view(self, nodeid=None):
+        """
+        Create new notebook node.
+        """
+        if nodeid is not None:
+            nodeid = urllib.unquote(nodeid)
+        else:
+            nodeid = new_nodeid()
+
+        data = request.body.read()
+        attr = json.loads(data)
+
+        # Enforce notebook scheme, nodeid is required.
+        attr['nodeid'] = nodeid
+
+        try:
+            self.conn.create_node(nodeid, attr)
+        except connlib.NodeExists, e:
+            keepnote.log_error()
+            abort(FORBIDDEN, 'node already exists.' + str(e))
+
+        return self.json_response(attr)
