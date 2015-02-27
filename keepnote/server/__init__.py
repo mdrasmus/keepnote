@@ -259,9 +259,8 @@ class NoteBookHttpServer(object):
         data = request.body.read()
         attr = json.loads(data)
 
-        if 'auto' in request.query:
-            # Auto set nodeid in attr.
-            attr['nodeid'] = nodeid
+        # Enforce notebook scheme, nodeid is required.
+        attr['nodeid'] = nodeid
 
         try:
             self.conn.create_node(nodeid, attr)
@@ -269,9 +268,7 @@ class NoteBookHttpServer(object):
             keepnote.log_error()
             abort(FORBIDDEN, 'node already exists.' + str(e))
 
-        return self.json_response({
-            "nodeid": nodeid,
-        })
+        return self.json_response(attr)
 
     def update_node_view(self, nodeid):
         """Update notebook node attr."""
@@ -286,6 +283,8 @@ class NoteBookHttpServer(object):
         except connlib.UnknownNode, e:
             keepnote.log_error()
             abort(NOT_FOUND, 'node not found ' + str(e))
+
+        return self.json_response(attr)
 
     def delete_node_view(self, nodeid):
         """Delete notebook node."""
