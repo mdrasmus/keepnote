@@ -545,6 +545,13 @@ var KeepNoteView = React.createClass({
         return notebook.newNode(parent, index);
     },
 
+    deleteNode: function () {
+        var notebook = this.props.app.notebook;
+        var node = this.state.currentNode;
+        if (node)
+            notebook.deleteNode(node);
+    },
+
     viewNode: function (node) {
         //window.history.pushState({}, node.get("title"), node.url());
         this.setState({currentNode: node});

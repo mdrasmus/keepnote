@@ -319,6 +319,8 @@ var NoteBook = Backbone.Model.extend({
         // Node listeners.
         node.on("change", function () {
             this.onNodeChange(node); }, this);
+        node.on("destroy", function () {
+            this.onNodeDestroy(node); }, this);
         node.on("file-change", function (file) {
             this.onFileChange(file); }, this);
     },
@@ -326,13 +328,26 @@ var NoteBook = Backbone.Model.extend({
     // Unregister all callbacks for a node.
     unregisterNode: function (node) {
         node.off("change", null, this);
-
-        this.unregisterFile(node.file);
+        node.off("destroy", null, this);
+        delete this.nodes[node.id];
     },
 
     // Callback for when nodes change.
     onNodeChange: function (node) {
         this.trigger("node-change", this, node);
+        this.trigger("change");
+    },
+
+    onNodeDestroy: function (node) {
+        // TODO: don't rely on store to update children ids.
+        // Refetch all parents.
+        for (var i=0; i<node.parents.length; i++) {
+            node.parents[i].fetch();
+        }
+
+        // TODO: decide what to do with children. Recurse?
+
+        this.unregisterNode(node);
         this.trigger("change");
     },
 
@@ -385,6 +400,10 @@ var NoteBook = Backbone.Model.extend({
 
             return defer;
         }.bind(this));
+    },
+
+    deleteNode: function (node) {
+        return node.destroy();
     }
 });
 
