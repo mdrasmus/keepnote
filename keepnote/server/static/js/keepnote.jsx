@@ -238,7 +238,7 @@ var InplaceEditor = React.createClass({
 
 
 // Notebook tree component.
-var NotebookTree = React.createClass({
+var NotebookTreeNode = React.createClass({
     getDefaultProps: function () {
         return {
             depth: 0,
@@ -265,7 +265,7 @@ var NotebookTree = React.createClass({
             var child = node.children[i];
             if (child.fetched) {
                 children.push(
-                  <NotebookTree
+                  <NotebookTreeNode
                    key={child.id}
                    node={child}
                    depth={this.props.depth + 1}
@@ -339,6 +339,27 @@ var NotebookTree = React.createClass({
         var node = this.props.node;
         node.set("title", value);
         node.save();
+    }
+});
+
+
+var NotebookTree = React.createClass({
+    render: function () {
+        return <div onKeyDown={this.onKeyDown} tabIndex="1">
+            <NotebookTreeNode
+                node={this.props.node}
+                currentNode={this.props.currentNode}
+                onViewNode={this.props.onViewNode}/>
+          </div>;
+    },
+
+    onKeyDown: function (event) {
+        if (event.key == 'Backspace') {
+            if (this.props.onDeleteNode)
+                this.props.onDeleteNode(this.props.currentNode);
+            event.preventDefault();
+            event.stopPropagation();
+        }
     }
 });
 
@@ -483,9 +504,6 @@ var KeepNoteView = React.createClass({
         var bindings = this.state.bindings;
         bindings.add("ctrl s", this.save);
         bindings.add("ctrl n", this.newNode);
-
-        // TODO: bind to treeview instead.
-        //bindings.add("Backspace", this.deleteNode);
     },
 
     render: function () {
@@ -506,11 +524,12 @@ var KeepNoteView = React.createClass({
             <NotebookTree
              node={root}
              currentNode={this.state.currentNode}
-             onViewNode={this.viewNode}/> :
+             onViewNode={this.viewNode}
+             onDeleteNode={this.deleteNode}/> :
             <div/>;
 
         return <div id="app">
-          <div id="treeview-pane"
+          <div id="treeview-pane" tabIndex="1"
             style={{width: treeSize[0], height: treeSize[1]}}>
             {viewtree}
           </div>
@@ -548,13 +567,6 @@ var KeepNoteView = React.createClass({
         return notebook.newNode(parent, index);
     },
 
-    deleteNode: function () {
-        var notebook = this.props.app.notebook;
-        var node = this.state.currentNode;
-        if (node)
-            notebook.deleteNode(node);
-    },
-
     viewNode: function (node) {
         //window.history.pushState({}, node.get("title"), node.url());
         this.setState({currentNode: node});
@@ -567,6 +579,11 @@ var KeepNoteView = React.createClass({
             // Node is a directory. Display blank page.
             this.refs.pageEditor.clear();
         }
+    },
+
+    deleteNode: function (node) {
+        var notebook = this.props.app.notebook;
+        return notebook.deleteNode(node);
     },
 
     onShowAttr: function (e) {
