@@ -481,8 +481,11 @@ var KeepNoteView = React.createClass({
 
     initKeyBindings: function () {
         var bindings = this.state.bindings;
-        bindings.add("ctrl+s", this.save);
-        bindings.add("ctrl+n", this.newNode);
+        bindings.add("ctrl s", this.save);
+        bindings.add("ctrl n", this.newNode);
+
+        // TODO: bind to treeview instead.
+        //bindings.add("Backspace", this.deleteNode);
     },
 
     render: function () {
@@ -628,9 +631,19 @@ function KeyBinding() {
     this.hashKeyEvent = function (event) {
         var hash = "";
         if (event.ctrlKey || event.metaKey) {
-            hash += "ctrl+";
+            hash += 'ctrl ';
         }
-        hash += event.key;
+        if (event.shiftKey) {
+            hash += 'shift ';
+        }
+
+        var key = event.key;
+
+        // Compatibility.
+        if (key.match(/Left|Right|Up|Down/))
+            key = 'Arrow' + key;
+
+        hash += key;
         return hash;
     };
 }
