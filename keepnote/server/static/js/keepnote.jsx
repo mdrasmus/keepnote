@@ -210,18 +210,26 @@ var InplaceEditor = React.createClass({
 
     onKeyPress: function (e) {
         var ENTER = 13;
-        if (e.charCode == ENTER) {
+        switch (e.charCode) {
+        case ENTER:
             e.preventDefault();
             this.submit();
+            break;
         }
+
+        e.stopPropagation();
     },
 
     onKeyDown: function (e) {
         var ESCAPE = 27;
-        if (e.which == ESCAPE) {
+        switch (e.keyCode) {
+        case ESCAPE:
             e.preventDefault();
             this.cancel();
+            break;
         }
+
+        e.stopPropagation();
     },
 
     cancel: function () {
@@ -567,6 +575,11 @@ var KeepNoteView = React.createClass({
         return notebook.newNode(parent, index);
     },
 
+    deleteNode: function (node) {
+        var notebook = this.props.app.notebook;
+        return notebook.deleteNode(node);
+    },
+
     viewNode: function (node) {
         //window.history.pushState({}, node.get("title"), node.url());
         this.setState({currentNode: node});
@@ -579,11 +592,6 @@ var KeepNoteView = React.createClass({
             // Node is a directory. Display blank page.
             this.refs.pageEditor.clear();
         }
-    },
-
-    deleteNode: function (node) {
-        var notebook = this.props.app.notebook;
-        return notebook.deleteNode(node);
     },
 
     onShowAttr: function (e) {
