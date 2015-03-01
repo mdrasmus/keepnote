@@ -390,6 +390,8 @@ var NoteBook = Backbone.Model.extend({
                 return parent.fetch();
             }).then(function () {
                 return parent.fetchChildren();
+            }).then(function () {
+                return node;
             });
 
             // TODO: reset all sibling order attrs.

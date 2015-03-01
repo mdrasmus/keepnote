@@ -512,6 +512,7 @@ var KeepNoteView = React.createClass({
         var bindings = this.state.bindings;
         bindings.add("ctrl s", this.save);
         bindings.add("ctrl n", this.newNode);
+        bindings.add("ctrl shift N", this.newChildNode);
     },
 
     render: function () {
@@ -572,7 +573,22 @@ var KeepNoteView = React.createClass({
             index = (node.get('order') || 0) + 1;
         }
 
-        return notebook.newNode(parent, index);
+        return notebook.newNode(parent, index).done(function (node) {
+            this.viewNode(node);
+        }.bind(this));
+    },
+
+    newChildNode: function () {
+        var notebook = this.props.app.notebook;
+        if (!notebook)
+            return;
+
+        var parent = this.state.currentNode;
+        if (!parent)
+            parent = notebook.root;
+        return notebook.newNode(parent).done(function (node) {
+            this.viewNode(node);
+        }.bind(this));
     },
 
     deleteNode: function (node) {
