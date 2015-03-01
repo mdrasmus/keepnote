@@ -17,11 +17,13 @@
   - At regular intervals (1min?)
 - [ ] Add node editing options
   - [x] Rename node.
-  - [ ] Add page.
-  - Remove node.
+  - [x] Add page.
+  - [x] Remove node.
   - Move node (requires some kind of drag and drop)
 
 
 ## Resources
 
 - Draggable component: https://github.com/mzabriskie/react-draggable
+- Drag and drop: https://github.com/gaearon/react-dnd
+
