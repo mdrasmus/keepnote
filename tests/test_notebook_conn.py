@@ -9,6 +9,7 @@ import unittest
 from keepnote import notebook
 from keepnote.notebook import NOTEBOOK_FORMAT_VERSION
 import keepnote.notebook.connection as connlib
+from keepnote.notebook.connection import FileError
 from keepnote.notebook.connection import fs
 
 from . import clean_dir, TMP_DIR
@@ -168,13 +169,13 @@ class TestConnBase (unittest.TestCase):
 
         # Require trailing / for directories.
         # Do not allow trailing / for files.
-        self.assertRaises(fs.FileError, lambda:
+        self.assertRaises(FileError, lambda:
                           conn.create_dir('node1', 'bad dir'))
-        self.assertRaises(fs.FileError, lambda:
+        self.assertRaises(FileError, lambda:
                           conn.open_file('node1', 'bad file/', 'w'))
-        self.assertRaises(fs.FileError, lambda:
+        self.assertRaises(FileError, lambda:
                           conn.create_dir('node1', 'bad dir'))
-        self.assertRaises(fs.FileError, lambda:
+        self.assertRaises(FileError, lambda:
                           list(conn.list_dir('node1', 'file1')))
 
         # Rename file.

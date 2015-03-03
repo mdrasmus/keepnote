@@ -319,6 +319,9 @@ class NodeFS(NodeFSStandard):
 
 
 class NoteBookConnectionFSRaw (NoteBookConnection):
+    """
+    Provides a NoteBookConnection using NodeFS as a backing.
+    """
 
     def __init__(self):
         self._rootid = None

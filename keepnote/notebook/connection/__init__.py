@@ -106,6 +106,13 @@ def path_basename(filename):
         return filename[i:]
 
 
+def is_dir(filename):
+    """
+    Returns True if node filename represents a directory.
+    """
+    return filename.endswith('/')
+
+
 #=============================================================================
 
 class NoteBookConnection (object):
