@@ -1,4 +1,5 @@
-# [KeepNote](http://keepnote.org)
+[KeepNote](http://keepnote.org)
+===============================
 
 **KeepNote is a note taking application that works on Windows, Linux, and MacOS X.** With KeepNote, you can store your class notes, TODO lists, research notes, journal entries, paper outlines, etc in a simple notebook hierarchy with rich-text formatting, images, and more. Using full-text search, you can retrieve any note for later reference.
 
@@ -22,7 +23,8 @@ Read more about KeepNote's [design philosophy](http://keepnote.org/manual/#philo
 
 ## Further information
 
-- For install instructions see [INSTALL](INSTALL).
+- For install instructions see [INSTALL.md](INSTALL.md).
+- For development instructions see [DEVELOP.md](DEVELOP.md).
 - For documentation see the [manual](http://keepnote.org/manual/).
 - For license information see [LICENSE](LICENSE), [COPYING](COPYING).
 - The change log of features and bug fixes are in [CHANGES](CHANGING).
