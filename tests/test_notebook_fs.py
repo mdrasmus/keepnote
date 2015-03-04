@@ -56,6 +56,33 @@ class TestConnFS (TestConnBase):
         self.assertEqual(fs.get_orphandir('path', 'a'),
                          'path/__NOTEBOOK__/orphans/a')
 
+    def test_fs_schema(self):
+        """Test NoteBook-specific schema behavior."""
+        notebook_file = _tmpdir + '/notebook_nodes'
+        clean_dir(notebook_file)
+
+        # Start connection.
+        conn = fs.NoteBookConnectionFS()
+        conn.connect(notebook_file)
+
+        # Create root node with no attributes given.
+        nodeid = conn.create_node(None, {})
+        attr = conn.read_node(nodeid)
+
+        # Assert that default keys are added.
+        expected_keys = ['nodeid', 'parentids', 'childrenids', 'version']
+        for key in expected_keys:
+            self.assertIn(key, attr)
+
+        # New root node should have no parents or children.
+        self.assertEquals(attr['parentids'], [])
+        self.assertEquals(attr['childrenids'], [])
+
+        # Updating a node should enforce schema required keys.
+        conn.update_node(nodeid, {})
+        attr2 = conn.read_node(nodeid)
+        self.assertEqual(attr, attr2)
+
     def test_fs_nodes(self):
         """Test NoteBookConnectionFS node API."""
         notebook_file = _tmpdir + '/notebook_nodes'

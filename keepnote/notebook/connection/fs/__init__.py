@@ -342,7 +342,7 @@ def read_attr(filename, set_version=True):
     for child in root:
         if child.tag == "dict":
             attr = plist.load_etree(child)
-        if child.tag == "version":
+        elif child.tag == "version":
             version = int(child.text)
 
     if version and set_version:
@@ -405,6 +405,8 @@ class PathCache (object):
 
     def has_node(self, nodeid):
         """Returns True if node in cache"""
+        if nodeid is None:
+            return False
         return nodeid in self._nodes
 
     def get_path_list(self, nodeid):
@@ -659,18 +661,18 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def create_node(self, nodeid, attr, _path=None):
         """Create a node"""
+        if self._filename is None:
+            raise ConnectionError("connect() has not been called")
 
         # check for creating root
         if self._rootid is None:
-            if self._filename is None:
-                raise ConnectionError("connect() has not been called")
-            parentids = attr.get("parentids", ())
+            parentids = attr.get("parentids", [])
             if parentids != []:
                 raise ConnectionError("root node must have parentids = []")
             _path = self._filename
-            _root = True
+            is_root = True
         else:
-            _root = False
+            is_root = False
 
         # check for existing nodeid
         if self.has_node(nodeid):
@@ -684,51 +686,74 @@ class NoteBookConnectionFS (NoteBookConnection):
         # TODO: handle case where parent finally shows up and
         # reunites with its children in the orphans dir
 
-        # determine parentid
-        parentids = attr.get("parentids", ())
-        if not parentids:
-            # if parentids is None or [], it is orphan
-            parentid = None
-        else:
-            parentid = parentids[0]
+        # Determine parentid.
+        # TODO: support multiple parents.
+        parentids = attr.get("parentids")
+        parentid = parentids[0] if parentids else None
 
-        # if no path, use title to set path
-        if _path is None:
-            title = attr.get("title", _("New Page"))
-            if parentid is not None:
-                # TODO: handle case where parentid is unknown
-                # and therefore node is orphan
-                parent_path = self._get_node_path(parentid)
-                path = get_valid_unique_filename(parent_path, title)
-            else:
-                path = self._get_orphandir(nodeid)
-        else:
+        # Determine path.
+        if _path:
             path = _path
+        elif parentid:
+            # Make path using parent and title.
+            parent_path = self._get_node_path(parentid)
+            title = attr.get("title", _("New Page"))
+            path = get_valid_unique_filename(parent_path, title)
+        else:
+            # Use an orphandir since no parent exists.
+            path = self._get_orphandir(nodeid)
 
-        # initialize with no children
-        attr["childrenids"] = []
+        # Clean attributes.
+        self._clean_attr(nodeid, attr)
 
-        # determine basename
-        basename = os.path.basename(path) if parentid else path
-
-        # make directory and write attr
+        # Make directory and write attr
         try:
+            attr_file = self._get_node_attr_file(nodeid, path)
             os.makedirs(path)
-            self._write_attr(self._get_node_attr_file(nodeid, path), attr)
-            self._path_cache.add(nodeid, basename, parentid)
+            self._write_attr(attr_file, attr)
+
         except OSError, e:
             raise ConnectionError(_("Cannot create node"), e)
 
-        # finish initializing root
-        if _root:
+        # Finish initializing root.
+        if is_root:
             self._rootid = nodeid
             self._init_root()
 
-        # update index
+        # Update cache and index.
+        basename = os.path.basename(path) if parentid else path
+        self._path_cache.add(nodeid, basename, parentid)
         self._index.add_node(nodeid, parentid, basename, attr,
                              mtime=get_path_mtime(path))
 
         return nodeid
+
+    def _clean_attr(self, nodeid, attr):
+        """
+        Ensure attributes follow the notebook schema.
+        """
+        was_clean = True
+        masked = {'childrenids', 'parentids'}
+
+        # Set default attrs if needed.
+        defaults = {
+            'nodeid': nodeid,
+            'version': keepnote.notebook.NOTEBOOK_FORMAT_VERSION,
+            'parentids': [],
+            'childrenids': [],
+        }
+        for key, value in defaults.items():
+            if key not in attr:
+                attr[key] = value
+                if key not in masked:
+                    was_clean = False
+
+        # Issue new nodeid if one is not present.
+        if not attr['nodeid']:
+            attr['nodeid'] = keepnote.notebook.new_nodeid()
+            was_clean = False
+
+        return was_clean
 
     def _init_root(self):
         """Initialize root node"""
@@ -776,32 +801,38 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         # TODO: support mutltiple parents
 
-        # determine if parentid has changed
-        parentid = self._get_parentid(nodeid)  # old parent
-
-        if nodeid == self.get_rootid():
-            parentid2 = None
-        else:
-            parentids2 = attr.get("parentids", ())  # new parent
-            parentid2 = parentids2[0] if parentids2 else None
-
-        # determine if title has changed
-        title_index = self._index.get_attr(nodeid, "title")  # old title
+        # Clean attributes.
+        self._clean_attr(nodeid, attr)
 
         # write attrs
         path = self._get_node_path(nodeid)
         self._write_attr(get_node_meta_file(path), attr)
 
+        # Determine possible path changes due to node moves or title renaming.
+
+        # Get old parentid.
+        parentid = self._get_parentid(nodeid)
+
+        # Get new parentid
+        if nodeid == self.get_rootid():
+            parentid2 = None
+        else:
+            parentids2 = attr.get("parentids")
+            parentid2 = parentids2[0] if parentids2 else None
+
+        # Get old title.
+        title_index = self._index.get_attr(nodeid, "title")
+
         if parentid != parentid2:
-            # move to a new parent
+            # Move to a new parent.
             self._rename_node_dir(nodeid, attr, parentid, parentid2, path)
         elif (parentid and title_index and
               title_index != attr.get("title", u"")):
-            # rename node directory, but
-            # do not rename root node dir (parentid is None)
+            # Rename node directory, but
+            # do not rename root node dir (parentid is None).
             self._rename_node_dir(nodeid, attr, parentid, parentid2, path)
         else:
-            # update index
+            # Update index.
             basename = os.path.basename(path)
             self._index.add_node(nodeid, parentid2, basename, attr,
                                  mtime=get_path_mtime(path))
@@ -930,8 +961,8 @@ class NoteBookConnectionFS (NoteBookConnection):
         metafile = get_node_meta_file(path)
 
         attr = read_attr(metafile)
-        attr["parentids"] = ([parentid] if parentid else [])
-        if not self._validate_attr(attr):
+        attr['parentids'] = [parentid] if parentid else []
+        if not self._clean_attr(attr['nodeid'], attr):
             self._write_attr(metafile, attr)
 
         # update path cache
@@ -1000,32 +1031,6 @@ class NoteBookConnectionFS (NoteBookConnection):
         except Exception, e:
             raise ConnectionError(
                 _("Cannot write meta data" + " " + filename + ":" + str(e)), e)
-
-    def _read_attr(self, filename, recover=True):
-        """Read a node meta data file"""
-        return read_attr(filename)
-
-    def _recover_attr(self, filename):
-        if os.path.exists(filename):
-            self._move_to_lostdir(filename)
-        try:
-            out = open(filename, "w")
-            out.write("<node></node>")
-            out.close()
-        except:
-            keepnote.log_error(u"failed to recover '%s'" % filename)
-            pass
-
-    def _validate_attr(self, attr):
-
-        nodeid = attr.get("nodeid", None)
-        if nodeid is None:
-            nodeid = attr["nodeid"] = keepnote.notebook.new_nodeid()
-            return False
-
-        # TODO: ensure no duplicated nodeid's
-
-        return True
 
     #===============
     # file API
