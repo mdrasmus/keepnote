@@ -367,7 +367,7 @@ class NoteBookConnectionFSRaw (NoteBookConnection):
             self._rootid = nodeid
         nodepath = self._nodefs.create_nodedir(nodeid)
         attr_file = self._get_node_attr_file(nodepath)
-        write_attr(attr_file, attr)
+        write_attr(attr_file, nodeid, attr)
 
     def read_node(self, nodeid):
         """Read a node attr."""
@@ -375,7 +375,8 @@ class NoteBookConnectionFSRaw (NoteBookConnection):
         if not os.path.exists(nodepath):
             raise UnknownNode()
         attr_file = self._get_node_attr_file(nodepath)
-        return read_attr(attr_file, set_version=False)
+        attrs, extra = read_attr(attr_file, set_extra=False)
+        return attrs
 
     def update_node(self, nodeid, attr):
         """Write node attr."""
@@ -383,7 +384,7 @@ class NoteBookConnectionFSRaw (NoteBookConnection):
         if not os.path.exists(nodepath):
             raise UnknownNode()
         attr_file = self._get_node_attr_file(nodepath)
-        write_attr(attr_file, attr)
+        write_attr(attr_file, nodeid, attr)
 
     def delete_node(self, nodeid):
         """Delete node."""

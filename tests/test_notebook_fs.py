@@ -22,13 +22,13 @@ class TestConnFS (TestConnBase):
         clean_dir(notebook_file)
 
         # Start connection.
-        conn = fs.NoteBookConnectionFS()
+        conn = fs.BaseNoteBookConnectionFS()
         conn.connect(notebook_file)
 
         # Create root node.
         attr = {
             # Required attributes.
-            'nodeid': 'node1',
+            'nodeid': 'root',
             'version': NOTEBOOK_FORMAT_VERSION,
             'parentids': [],
             'childrenids': [],
@@ -41,11 +41,7 @@ class TestConnFS (TestConnBase):
             'key5': None,
         }
         conn.create_node('root', attr)
-
-        self._test_files(conn)
-
-        # TODO: enable.
-        #self._test_api(conn)
+        self._test_api(conn)
 
     def test_fs_orphan(self):
         """Test orphan node directory names"""

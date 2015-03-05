@@ -319,7 +319,7 @@ def mark_path_outdated(path):
         del _mtime_cache[path]
 
 
-def read_attr(filename, set_version=True):
+def read_attr(filename, set_extra=True):
     """
     Read a node meta data file. Returns an attr dict
 
@@ -338,20 +338,27 @@ def read_attr(filename, set_version=True):
 
     # iterate children
     attr = {}
-    version = None
+    extra = {}
     for child in root:
         if child.tag == "dict":
             attr = plist.load_etree(child)
         elif child.tag == "version":
-            version = int(child.text)
+            extra['version'] = int(child.text)
+        elif child.tag == "id":
+            extra['nodeid'] = child.text
 
-    if version and set_version:
-        attr["version"] = version
+    # For backward-compatibility, use attr nodeid to set extra if needed.
+    if 'nodeid' not in extra:
+        extra['nodeid'] = attr['nodeid']
 
-    return attr
+    if set_extra:
+        for key, value in extra.items():
+            attr[key] = value
+
+    return attr, extra
 
 
-def write_attr(filename, attr):
+def write_attr(filename, nodeid, attr):
     """
     Write a node meta file
 
@@ -361,11 +368,17 @@ def write_attr(filename, attr):
     if isinstance(filename, basestring):
         out = safefile.open(filename, "w", codec="utf-8")
 
+    # Ensure nodeid is consistent if given.
+    nodeid2 = attr.get('nodeid')
+    if nodeid2:
+        assert nodeid == nodeid2, (nodeid, nodeid2)
+
+    version = attr.get('version',
+                       keepnote.notebook.NOTEBOOK_FORMAT_VERSION)
     out.write(u'<?xml version="1.0" encoding="UTF-8"?>\n'
               u'<node>\n'
-              u'<version>%d</version>\n' %
-              attr.get("version",
-                       keepnote.notebook.NOTEBOOK_FORMAT_VERSION))
+              u'<version>%d</version>\n'
+              u'<id>%s</id>\n' % (version, nodeid))
     plist.dump(attr, out, indent=2, depth=0)
     out.write(u'</node>\n')
 
@@ -483,7 +496,7 @@ class PathCache (object):
         Returns iterator of the child ids of a nodeid
         Returns None if nodeid is not cached or children have not been read
         """
-        node = self._nodes.get(nodeid, None)
+        node = self._nodes.get(nodeid)
         if node and node.children_complete:
             return (child.nodeid for child in node.children)
         else:
@@ -540,7 +553,7 @@ class PathCache (object):
 #=============================================================================
 # Main NoteBook Connection
 
-class NoteBookConnectionFS (NoteBookConnection):
+class BaseNoteBookConnectionFS (NoteBookConnection):
     def __init__(self):
         NoteBookConnection.__init__(self)
 
@@ -710,7 +723,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         try:
             attr_file = self._get_node_attr_file(nodeid, path)
             os.makedirs(path)
-            self._write_attr(attr_file, attr)
+            self._write_attr(attr_file, nodeid, attr)
 
         except OSError, e:
             raise ConnectionError(_("Cannot create node"), e)
@@ -732,28 +745,7 @@ class NoteBookConnectionFS (NoteBookConnection):
         """
         Ensure attributes follow the notebook schema.
         """
-        was_clean = True
-        masked = {'childrenids', 'parentids'}
-
-        # Set default attrs if needed.
-        defaults = {
-            'nodeid': nodeid,
-            'version': keepnote.notebook.NOTEBOOK_FORMAT_VERSION,
-            'parentids': [],
-            'childrenids': [],
-        }
-        for key, value in defaults.items():
-            if key not in attr:
-                attr[key] = value
-                if key not in masked:
-                    was_clean = False
-
-        # Issue new nodeid if one is not present.
-        if not attr['nodeid']:
-            attr['nodeid'] = keepnote.notebook.new_nodeid()
-            was_clean = False
-
-        return was_clean
+        return True
 
     def _init_root(self):
         """Initialize root node"""
@@ -806,7 +798,7 @@ class NoteBookConnectionFS (NoteBookConnection):
 
         # write attrs
         path = self._get_node_path(nodeid)
-        self._write_attr(get_node_meta_file(path), attr)
+        self._write_attr(get_node_meta_file(path), nodeid, attr)
 
         # Determine possible path changes due to node moves or title renaming.
 
@@ -874,9 +866,12 @@ class NoteBookConnectionFS (NoteBookConnection):
         """Delete node"""
 
         # TODO: will need code that orphans any children of nodeid
+        path = self._get_node_path(nodeid)
+        if not os.path.exists(path):
+            raise UnknownNode()
 
         try:
-            shutil.rmtree(self._get_node_path(nodeid))
+            shutil.rmtree(path)
         except Exception, e:
             raise ConnectionError(
                 _(u"Do not have permission to delete"), e)
@@ -955,18 +950,25 @@ class NoteBookConnectionFS (NoteBookConnection):
                 for attr in self._list_children_attr(
                     nodeid, _path, _full=False))
 
+    def _read_attr(self, metafile):
+        return read_attr(metafile, set_extra=False)
+
     def _read_node(self, parentid, path, _full=True, _force_index=False):
-        """Reads a node from disk"""
+        """
+        Reads a node from disk.
 
+        _full -- If True, populate all children ids from filesystem.
+        _force_index -- Index node regardless of mtime.
+        """
         metafile = get_node_meta_file(path)
+        attr, extra = self._read_attr(metafile)
+        nodeid = extra['nodeid']
 
-        attr = read_attr(metafile)
-        attr['parentids'] = [parentid] if parentid else []
-        if not self._clean_attr(attr['nodeid'], attr):
-            self._write_attr(metafile, attr)
+        # Clean attr and rewrite them if needed.
+        if not self._clean_attr(nodeid, attr):
+            self._write_attr(metafile, nodeid, attr)
 
         # update path cache
-        nodeid = attr["nodeid"]
         basename = os.path.basename(path) if parentid else path
         self._path_cache.add(nodeid, basename, parentid)
 
@@ -981,10 +983,12 @@ class NoteBookConnectionFS (NoteBookConnection):
             if not current:
                 self._reindex_node(nodeid, parentid, path, attr, mtime)
 
-        # supplement childids
+        # Supplement parent and child ids
         # TODO: when cloning is implemented, use filesystem to only supplement
-        # not replace childrenids list
-        if _full:
+        # not replace ids
+        if parentid and 'parentids' in attr:
+            attr['parentids'] = [parentid]
+        if _full and 'childrenids' in attr:
             attr["childrenids"] = list(
                 self._list_children_nodeids(nodeid, path))
 
@@ -1022,13 +1026,14 @@ class NoteBookConnectionFS (NoteBookConnection):
         """Returns the meta file for the node"""
         return self.get_file(nodeid, NODE_META_FILE, path)
 
-    def _write_attr(self, filename, attr):
+    def _write_attr(self, filename, nodeid, attr):
         """Write a node meta data file"""
         self._attr_mask.set_dict(attr)
 
         try:
-            write_attr(filename, self._attr_mask)
+            write_attr(filename, nodeid, self._attr_mask)
         except Exception, e:
+            raise
             raise ConnectionError(
                 _("Cannot write meta data" + " " + filename + ":" + str(e)), e)
 
@@ -1179,6 +1184,38 @@ class NoteBookConnectionFS (NoteBookConnection):
 
     def get_attr_by_id(self, nodeid, key):
         return self._index.get_attr(nodeid, key)
+
+
+class NoteBookConnectionFS (BaseNoteBookConnectionFS):
+    def _read_attr(self, metafile):
+        return read_attr(metafile, set_extra=True)
+
+    def _clean_attr(self, nodeid, attr):
+        """
+        Ensure attributes follow the notebook schema.
+        """
+        was_clean = True
+        masked = {'childrenids', 'parentids'}
+
+        # Set default attrs if needed.
+        defaults = {
+            'nodeid': nodeid,
+            'version': keepnote.notebook.NOTEBOOK_FORMAT_VERSION,
+            'parentids': [],
+            'childrenids': [],
+        }
+        for key, value in defaults.items():
+            if key not in attr:
+                attr[key] = value
+                if key not in masked:
+                    was_clean = False
+
+        # Issue new nodeid if one is not present.
+        if not attr['nodeid']:
+            attr['nodeid'] = keepnote.notebook.new_nodeid()
+            was_clean = False
+
+        return was_clean
 
 
 # TODO: need to keep namespace of files and node directories separate.
