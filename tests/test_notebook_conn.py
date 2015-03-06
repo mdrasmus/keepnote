@@ -175,6 +175,14 @@ class TestConnBase (unittest.TestCase):
         self.assertRaises(FileError, lambda:
                           list(conn.list_dir('node1', 'file1')))
 
+        # Should not delete file because its given as a dir.
+        conn.delete_file('node1', 'file1/')
+        self.assertTrue(conn.has_file('node1', 'file1'))
+
+        # Should not delete dir, becuase its given as a file.
+        conn.delete_file('node1', 'new dir')
+        self.assertTrue(conn.has_file('node1', 'new dir/'))
+
         # Rename file.
         conn.move_file('node1', 'file1', 'node1', 'file2')
         self.assertFalse(conn.has_file('node1', 'file1'))

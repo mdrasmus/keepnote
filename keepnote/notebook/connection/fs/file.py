@@ -72,7 +72,7 @@ class FileFS(object):
         try:
             if os.path.isfile(filepath):
                 os.remove(filepath)
-            elif os.path.isdir(filepath):
+            elif filename.endswith('/') and os.path.isdir(filepath):
                 shutil.rmtree(filepath)
             else:
                 # filename may not exist, delete is successful by default
