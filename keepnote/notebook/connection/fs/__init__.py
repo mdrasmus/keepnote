@@ -554,6 +554,11 @@ class PathCache (object):
 # Main NoteBook Connection
 
 class BaseNoteBookConnectionFS (NoteBookConnection):
+    """
+    NoteBook connection that stores data on the filesystem.
+
+    This base class enforces no attr schema.
+    """
     def __init__(self):
         NoteBookConnection.__init__(self)
 
@@ -612,17 +617,6 @@ class BaseNoteBookConnectionFS (NoteBookConnection):
         if path is None:
             raise UnknownNode(nodeid)
 
-        return path
-
-    def _get_node_name_path(self, nodeid):
-        """Returns the path of the nodeid"""
-
-        path = self._path_cache.get_path_list(nodeid)
-        if path is None and self._index:
-            # fallback to index
-            path = [self._filename] + self._index.get_node_filepath(nodeid)
-        if path is None:
-            raise UnknownNode(nodeid)
         return path
 
     def _get_node_mtime(self, nodeid):
@@ -1187,6 +1181,16 @@ class BaseNoteBookConnectionFS (NoteBookConnection):
 
 
 class NoteBookConnectionFS (BaseNoteBookConnectionFS):
+    """
+    NoteBook connection that stores data on the filesystem.
+
+    This connection enforces a schema where the following attr fields
+    are always present:
+      - nodeid
+      - version
+      - parentids
+      - childrenids
+    """
     def _read_attr(self, metafile):
         return read_attr(metafile, set_extra=True)
 
@@ -1216,51 +1220,3 @@ class NoteBookConnectionFS (BaseNoteBookConnectionFS):
             was_clean = False
 
         return was_clean
-
-
-# TODO: need to keep namespace of files and node directories separate.
-# Need to carefully define what valid filenames look like.
-#  - is it case-sensitive?
-#  - which characters are allowed?
-#  - would do a translation between what the user thinks the path is and
-#    what is actually used on disk.
-
-
-"""
-File path translation strategy.
-
-on disk            user-visible
-filename    =>     filename
-_filename   =>     filename
-__filename  =>     _filename
-
-user-visble       on disk
-filename     =>  filename (if file 'filename' exists)
-filename     =>  _filename (if file 'filename' does not-exist)
-_filename    =>  __filename
-
-
-Within an attached directory naming scheme is 1-to-1
-
-
-
-Reading filename from disk:
-  filename = read_from_disk()
-  if filename.startswith("_"):
-    # unquote filename
-    return filename[1:]
-
-Looking for filename on disk:
-  if filename.startswith("_"):
-    # escape '_'
-    filename = "_" + filename
-  if simple_file_exists(filename):  # i.e. not a node dir
-    return filename
-  else:
-    # try quoted name
-    return "_" + filename
-
-
-node directories aren't allowed to start with '_'.
-
-"""
