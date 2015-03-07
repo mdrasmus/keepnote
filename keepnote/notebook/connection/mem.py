@@ -151,8 +151,8 @@ class NoteBookConnectionMem (NoteBookConnection):
             raise connlib.UnknownNode()
         try:
             del node.files[filename]
-        except:
-            raise connlib.UnknownFile()
+        except KeyError:
+            pass
 
     def create_dir(self, nodeid, filename):
         """Create directory within node"""
