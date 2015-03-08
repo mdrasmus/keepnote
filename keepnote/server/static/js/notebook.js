@@ -76,9 +76,9 @@ var Node = Backbone.Model.extend({
     },
 
     // Fetch all children.
-    fetchChildren: function () {
+    fetchChildren: function (refetch) {
         var defer = $.Deferred();
-        if (!this.fetched)
+        if (!this.fetched || refetch)
             defer = this.fetch();
         else
             defer.resolve();
@@ -111,7 +111,7 @@ var Node = Backbone.Model.extend({
             defer.resolve();
 
         // Recursively fetch children.
-        return defer.done(function () {
+        return defer.then(function () {
             if (this.get('expanded')) {
                 var defers = [];
                 for (var i=0; i<this.children.length; i++) {
@@ -119,7 +119,7 @@ var Node = Backbone.Model.extend({
                 }
 
                 // After all child load, order them.
-                $.when.apply($, defers).done(
+                return $.when.apply($, defers).done(
                     this.orderChildren.bind(this)
                 );
             }
@@ -194,6 +194,10 @@ var Node = Backbone.Model.extend({
     deleteFile: function (filename) {
         var file = this.getFile(filename);
         return file.destroy();
+    },
+
+    move: function (options) {
+        return this.notebook.moveNode(this, options);
     }
 });
 
@@ -382,14 +386,13 @@ var NoteBook = Backbone.Model.extend({
 
             // Adjust parent children ids.
             var childrenIds = parent.get("childrenids").slice(0);
-            childrenIds.splice(index, 0, nodeid);
+            childrenIds.splice(index, 0, node.id);
+
             var defer = parent.save(
                 {childrenids: childrenIds},
                 {wait: true}
             ).then(function () {
-                return parent.fetch();
-            }).then(function () {
-                return parent.fetchChildren();
+                return parent.fetchChildren(true);
             }).then(function () {
                 return node;
             });
@@ -406,6 +409,81 @@ var NoteBook = Backbone.Model.extend({
 
     deleteNode: function (node) {
         return node.destroy();
+    },
+
+    moveNode: function(node, options) {
+        var target = options.target;
+        var relation = options.relation;
+        var parent = options.parent;
+        var index = options.index;
+
+        if (typeof(parent) !== 'undefined') {
+            if (index == null || typeof(index) === "undefined")
+                index = parent.children.length;
+            if (index > parent.children.length)
+                index = parent.children.length;
+        } else if (relation == 'child') {
+            parent = target;
+            index = parent.children.length;
+        } else if (relation == 'after' || relation == 'before') {
+            parent = target;
+            if (parent.parents.length > 0)
+                parent = parent.parents[0];
+            index = parent.children.indexOf(target);
+            if (index == -1)
+                index = parent.children.length;
+            else if (relation == 'after')
+                index++;
+        } else {
+            throw 'Unknown relation: ' + relation;
+        }
+
+        console.log('move>', parent.id, index, parent.children.length);
+
+        // TODO: childrenids aren't actually sorted yet.
+        // Insert child into new parent.
+        var childrenIds = parent.get("childrenids").slice(0);
+        childrenIds.splice(index, 0, node.id);
+
+        // Remove child from old parent.
+        var oldParent = node.parents[0];
+        var oldChildrenIds;
+        if (parent == oldParent)
+            oldChildrenIds = childrenIds;
+        else
+            oldChildrenIds = oldParent.get('childrenids').slice(0);
+        var i = oldChildrenIds.indexOf(node.id);
+        oldChildrenIds.splice(i, 1);
+
+        // Save new parent children.
+        var defer = parent.save(
+            {childrenids: childrenIds},
+            {wait: true}
+        ).then(function () {
+            return parent.fetchChildren(true);
+        });
+
+        // Save old parent children, if distinct.
+        var defer2 = $.Deferred();
+        if (parent != oldParent) {
+           defer2 = oldParent.save(
+               {childrenids: oldChildrenIds},
+               {wait: true}
+           ).then(function () {
+               return oldParent.fetchChildren(true);
+           });
+        } else {
+            defer2.resolve();
+        }
+
+        // Save child.
+        node.set({
+            parentids: [parent.id],
+            order: index
+        });
+        var defer3 =  node.save();
+
+        return $.when(defer, defer2, defer3);
     }
 });
 

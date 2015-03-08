@@ -245,8 +245,95 @@ var InplaceEditor = React.createClass({
 });
 
 
+function isNodeDescendant(ancestor, node) {
+    var ptr = node;
+    while (true) {
+        if (ptr == ancestor)
+            return true;
+        if (ptr.parents.length > 0)
+            ptr = ptr.parents[0];
+        else
+            break;
+    }
+    return false;
+}
+
+
+var NotebookTreeDrop = React.createClass({
+    mixins: [ReactDND.DragDropMixin],
+
+    statics: {
+        configureDragDrop: function (register) {
+            register('NODE', {
+                dropTarget: {
+                    canDrop: function (component, node) {
+                        // Target node cannot be a child of node.
+                        return !isNodeDescendant(
+                            node, component.props.targetNode);
+                    },
+                    acceptDrop: function(component, node) {
+                        node.move({
+                            target: component.props.targetNode,
+                            relation: component.props.relation
+                        });
+                    }
+                }
+            });
+        }
+    },
+
+    render: function () {
+        var style = {};
+
+        if (this.props.relation == 'before') {
+            style = {
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                height: '20%',
+                width: '100%'
+            };
+        } else if (this.props.relation == 'after') {
+            style = {
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                height: '20%',
+                width: '100%'
+            };
+        } else if (this.props.relation == 'child') {
+            style = {
+                position: 'absolute',
+                top: '20%',
+                bottom: '20%',
+                left: 0,
+                height: '60%',
+                width: '100%'
+            };
+        }
+
+        //style['border'] = '1px solid orange';
+
+        // Hovering.
+        if (this.getDropState('NODE').isHovering) {
+            style.backgroundColor = 'orange';
+            style.opacity = .5;
+        }
+
+        if (this.getDropState('NODE').isDragging) {
+            return <div {...this.dropTargetFor('NODE')}
+            style={style}/>;
+        } else {
+            return <span></span>;
+        }
+    }
+});
+
+
 // Notebook tree component.
 var NotebookTreeNode = React.createClass({
+    mixins: [ReactDND.DragDropMixin],
+
     getDefaultProps: function () {
         return {
             depth: 0,
@@ -262,6 +349,21 @@ var NotebookTreeNode = React.createClass({
             expanded: expanded,
             filesExpanded: false
         };
+    },
+
+    statics: {
+        // Configure drag-and-drop behavior.
+        configureDragDrop: function(register) {
+            register('NODE', {
+                dragSource: {
+                    beginDrag: function(component) {
+                        return {
+                            item: component.props.node
+                        };
+                    },
+                }
+            });
+        }
     },
 
     render: function() {
@@ -300,13 +402,30 @@ var NotebookTreeNode = React.createClass({
         }
 
         return <div className="node-tree">
-          <div className={nodeClass} onClick={onNodeClick}>
+          <div className={nodeClass}
+           onClick={onNodeClick}
+           style={{position: 'relative'}}
+           {...this.dragSourceFor('NODE')}>
+
+            <NotebookTreeDrop
+             relation="before"
+             targetNode={node}/>
+
+            <NotebookTreeDrop
+             relation="child"
+             targetNode={node}/>
+
+            <NotebookTreeDrop
+             relation="after"
+             targetNode={node}/>
+
             <div style={{paddingLeft: indent}}>
               <a className="expand" onClick={this.toggleChildren} href="javascript:;">+</a>
               <InplaceEditor className="title"
                value={node.get('title')}
                onSubmit={this.onRenameNode}/>
             </div>
+
           </div>
 
           <div className="children" style={{display: displayChildren}}>

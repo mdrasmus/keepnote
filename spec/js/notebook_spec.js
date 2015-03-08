@@ -198,7 +198,7 @@ describe("Test notebook data store", function() {
         });
     });
 
-    it("Can read root node and add one child", function(done) {
+    it("Add multiple children nodes", function(done) {
         var jsdom = require('jsdom');
         var html = '<html></html>';
 
@@ -238,6 +238,134 @@ describe("Test notebook data store", function() {
             }).then(function () {
                 expect(notebook.root.children.length).toEqual(2);
                 done();
+            });
+        });
+    });
+
+    it("Move nodes", function(done) {
+        var jsdom = require('jsdom');
+        var html = '<html></html>';
+
+        jsdom.env(html, function (errors, window) {
+            $ = require('jquery')(window);
+            Backbone = require('backbone');
+            Backbone.$ = $;
+            book = require('../../keepnote/server/static/js/notebook.js');
+            NoteBook = book.NoteBook;
+
+            // Setup local notebook;
+            var rootid = '1';
+            var notebook = new NoteBook({rootid: rootid});
+
+            // Setup mock server;
+            var server = new MockServer();
+            server.rootid = [rootid];
+            server.nodes = {
+                1: {
+                    nodeid: '1',
+                    title: "My node",
+                    parentids: [],
+                    childrenids: ['2', '3'],
+                    expanded: true
+                },
+                2: {
+                    nodeid: '2',
+                    parentids: ['1'],
+                    childrenids: [],
+                    expanded: true
+                },
+                3: {
+                    nodeid: '3',
+                    parentids: ['1'],
+                    childrenids: [],
+                    expanded: true
+                }
+            };
+
+            // Mock ajax to use server.
+            var ajax = function (config) {
+                return server.send(config);
+            };
+            mockAsync($, "ajax", true, function () {
+                return ajax.apply(null, arguments);
+            });
+
+            notebook.root.fetchExpanded().then(function () {
+                var node = notebook.nodes[2];
+                var node2 = notebook.nodes[3];
+                node.move({
+                    parent: node2,
+                    index: null
+                }).then(function () {
+                    expect(node2.children).toEqual([node]);
+                    done();
+                });
+            });
+        });
+    });
+
+    it("Move nodes within same parent", function(done) {
+        var jsdom = require('jsdom');
+        var html = '<html></html>';
+
+        jsdom.env(html, function (errors, window) {
+            $ = require('jquery')(window);
+            Backbone = require('backbone');
+            Backbone.$ = $;
+            book = require('../../keepnote/server/static/js/notebook.js');
+            NoteBook = book.NoteBook;
+
+            // Setup local notebook;
+            var rootid = '1';
+            var notebook = new NoteBook({rootid: rootid});
+
+            // Setup mock server;
+            var server = new MockServer();
+            server.rootid = [rootid];
+            server.nodes = {
+                1: {
+                    nodeid: '1',
+                    title: "My node",
+                    parentids: [],
+                    childrenids: ['2', '3'],
+                    expanded: true
+                },
+                2: {
+                    nodeid: '2',
+                    parentids: ['1'],
+                    childrenids: [],
+                    expanded: true
+                },
+                3: {
+                    nodeid: '3',
+                    parentids: ['1'],
+                    childrenids: [],
+                    expanded: true
+                }
+            };
+
+            // Mock ajax to use server.
+            var ajax = function (config) {
+                return server.send(config);
+            };
+            mockAsync($, "ajax", true, function () {
+                return ajax.apply(null, arguments);
+            });
+
+            notebook.root.fetchExpanded().then(function () {
+                var node = notebook.nodes[2];
+                var node2 = notebook.nodes[3];
+                node.move({
+                    target: node2,
+                    relation: 'after'
+                    //parent: notebook.nodes[1],
+                    //index: 2
+                }).then(function () {
+                    console.log('>', notebook.root.children);
+                    expect(notebook.root.get('childrenids'))
+                        .toEqual(['3', '2']);
+                    done();
+                });
             });
         });
     });
