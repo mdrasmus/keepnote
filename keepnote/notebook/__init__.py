@@ -1507,7 +1507,7 @@ class NoteBook (NoteBookNode):
     def get_icons(self):
         """Returns list of icons in notebook icon store"""
         filename = connection.path_join(
-            NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR)
+            NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR) + '/'
         filenames = list(self._conn.list_dir(self._attr["nodeid"], filename))
         filenames.sort()
         return filenames
@@ -1540,16 +1540,13 @@ class NoteBook (NoteBookNode):
         startname = connection.path_join(NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR,
                                          basename)
 
-        nodepath = self.get_path()
-
         number = 2
         use_number = False
         while True:
             newfilename, number = connection_fs.new_filename(
                 self._conn, self._attr["nodeid"], startname, ext, u"-",
                 number=number, return_number=True, use_number=use_number,
-                ensure_valid=False,
-                path=nodepath)
+                ensure_valid=False)
 
             # determine open icon filename
             newfilename_open = startname
@@ -1581,7 +1578,7 @@ class NoteBook (NoteBookNode):
             return
         filename = connection.path_join(
             NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR, basename)
-        self._conn.delete_node_file(self._attr["nodeid"], filename)
+        self._conn.delete_file(self._attr["nodeid"], filename)
 
     #================================================
     # search
