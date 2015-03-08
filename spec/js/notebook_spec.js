@@ -166,6 +166,11 @@ describe("Test notebook data store", function() {
                         var data = JSON.parse(config.data);
                         expect(data).toEqual(attrWithChild);
 
+                    } else if (config.url == '/notebook/nodes/456' &&
+                               config.type == 'PUT') {
+                        var data = JSON.parse(config.data);
+                        // Update order.
+
                     } else if (config.url == '/notebook/nodes/456/page.html' &&
                                config.type.toUpperCase() == 'POST') {
                         expect(config.data)
@@ -352,20 +357,38 @@ describe("Test notebook data store", function() {
                 return ajax.apply(null, arguments);
             });
 
+            // Move node 2 after node 3.
             notebook.root.fetchExpanded().then(function () {
-                var node = notebook.nodes[2];
-                var node2 = notebook.nodes[3];
-                node.move({
-                    target: node2,
+                var node2 = notebook.nodes[2];
+                var node3 = notebook.nodes[3];
+                return node2.move({
+                    target: node3,
                     relation: 'after'
-                    //parent: notebook.nodes[1],
-                    //index: 2
-                }).then(function () {
-                    console.log('>', notebook.root.children);
-                    expect(notebook.root.get('childrenids'))
-                        .toEqual(['3', '2']);
-                    done();
                 });
+            }).then(function () {
+                // Ensure children ids have been updated on parent.
+                expect(notebook.root.get('childrenids'))
+                    .toEqual(['3', '2']);
+
+                // Ensure new order attr have been set.
+                var orders = [
+                    notebook.root.children[0].get('order'),
+                    notebook.root.children[1].get('order')
+                ];
+                expect(orders).toEqual([0, 1]);
+
+                // Move a node backwards in the list.
+                var node2 = notebook.nodes[2];
+                var node3 = notebook.nodes[3];
+                return node2.move({
+                    target: node3,
+                    relation: 'before'
+                });
+            }).then(function () {
+                // Ensure children ids have been updated on parent.
+                expect(notebook.root.get('childrenids'))
+                    .toEqual(['2', '3']);
+                done();
             });
         });
     });

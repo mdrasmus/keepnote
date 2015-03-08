@@ -95,6 +95,13 @@ var Node = Backbone.Model.extend({
             return (node1.get('order') || 0) - (node2.get('order') || 0);
         }
         this.children.sort(cmp);
+
+        // Update children ids.
+        var childrenIds = [];
+        for (var i=0; i<this.children.length; i++)
+            childrenIds.push(this.children[i].id);
+        this.set('childrenids', childrenIds);
+
         this.ordered = true;
         if (trigger)
             this.trigger('change');
@@ -371,6 +378,7 @@ var NoteBook = Backbone.Model.extend({
             index = parent.children.length;
 
         // Create new node.
+        var childrenIds;
         var node = new Node({
             "content_type": this.root.PAGE_CONTENT_TYPE,
             "title": NEW_TITLE,
@@ -384,11 +392,18 @@ var NoteBook = Backbone.Model.extend({
             node.id = nodeid;
             this.registerNode(node);
 
+            // Create empty page.
+            var file = node.getFile(node.PAGE_FILE);
+            file.write(EMPTY_PAGE);
+
             // Adjust parent children ids.
-            var childrenIds = parent.get("childrenids").slice(0);
+            childrenIds = parent.get("childrenids").slice(0);
             childrenIds.splice(index, 0, node.id);
 
-            var defer = parent.save(
+            // Update all children orders.
+            return this.updateChildOrder(childrenIds);
+        }.bind(this)).then(function () {
+            return parent.save(
                 {childrenids: childrenIds},
                 {wait: true}
             ).then(function () {
@@ -396,14 +411,6 @@ var NoteBook = Backbone.Model.extend({
             }).then(function () {
                 return node;
             });
-
-            // TODO: reset all sibling order attrs.
-
-            // Create empty page.
-            var file = node.getFile(node.PAGE_FILE);
-            file.write(EMPTY_PAGE);
-
-            return defer;
         }.bind(this));
     },
 
@@ -417,15 +424,25 @@ var NoteBook = Backbone.Model.extend({
         var parent = options.parent;
         var index = options.index;
 
+        // Determine parent and index.
         if (typeof(parent) !== 'undefined') {
+            // Parent is given, determine index.
             if (index == null || typeof(index) === "undefined")
                 index = parent.children.length;
             if (index > parent.children.length)
                 index = parent.children.length;
+
+        } else if (typeof(target) == 'undefined') {
+            // Without parent, target must be given.
+            throw 'Target node must be given';
+
         } else if (relation == 'child') {
+            // Move node to be the last child of target.
             parent = target;
             index = parent.children.length;
+
         } else if (relation == 'after' || relation == 'before') {
+            // Move node to be sibling of target.
             parent = target;
             if (parent.parents.length > 0)
                 parent = parent.parents[0];
@@ -434,56 +451,77 @@ var NoteBook = Backbone.Model.extend({
                 index = parent.children.length;
             else if (relation == 'after')
                 index++;
+
         } else {
             throw 'Unknown relation: ' + relation;
         }
 
-        console.log('move>', parent.id, index, parent.children.length);
+        // Remove node from old location, use place holder null.
+        var oldParent = node.parents[0];
+        var oldChildrenIds = oldParent.get('childrenids').slice(0);
+        var i = oldChildrenIds.indexOf(node.id);
+        oldChildrenIds[i] = null;
 
-        // TODO: childrenids aren't actually sorted yet.
         // Insert child into new parent.
-        var childrenIds = parent.get("childrenids").slice(0);
+        var childrenIds;
+        if (parent == oldParent)
+            childrenIds = oldChildrenIds;
+        else
+            childrenIds = parent.get("childrenids").slice(0);
         childrenIds.splice(index, 0, node.id);
 
-        // Remove child from old parent.
-        var oldParent = node.parents[0];
-        var oldChildrenIds;
-        if (parent == oldParent)
-            oldChildrenIds = childrenIds;
-        else
-            oldChildrenIds = oldParent.get('childrenids').slice(0);
-        var i = oldChildrenIds.indexOf(node.id);
+        // Remove placeholder null.
+        i = oldChildrenIds.indexOf(null);
         oldChildrenIds.splice(i, 1);
-
-        // Save new parent children.
-        var defer = parent.save(
-            {childrenids: childrenIds},
-            {wait: true}
-        ).then(function () {
-            return parent.fetchChildren(true);
-        });
-
-        // Save old parent children, if distinct.
-        var defer2 = $.Deferred();
-        if (parent != oldParent) {
-           defer2 = oldParent.save(
-               {childrenids: oldChildrenIds},
-               {wait: true}
-           ).then(function () {
-               return oldParent.fetchChildren(true);
-           });
-        } else {
-            defer2.resolve();
-        }
 
         // Save child.
         node.set({
-            parentids: [parent.id],
-            order: index
+            parentids: [parent.id]
         });
-        var defer3 =  node.save();
+        return node.save().then(function () {
+            // Update all sibling orders of new parent.
+            // We can leave old parent's orders non-contiguous.
+            return this.updateChildOrder(childrenIds);
 
-        return $.when(defer, defer2, defer3);
+        }.bind(this)).then(function () {
+            // Save new parent children.
+            var defer = parent.save(
+                {childrenids: childrenIds},
+                {wait: true}
+            ).then(function () {
+                return parent.fetchChildren(true);
+            });
+
+            // Save old parent children, if distinct.
+            var defer2 = $.Deferred();
+            if (parent != oldParent) {
+                defer2 = oldParent.save(
+                    {childrenids: oldChildrenIds},
+                    {wait: true}
+                ).then(function () {
+                    return oldParent.fetchChildren(true);
+                });
+            } else {
+                defer2.resolve();
+            }
+
+            return $.when(defer, defer2);
+        }.bind(this));
+    },
+
+    // Update the order attr for all children given by their sorting.
+    updateChildOrder: function (childrenIds) {
+        var defers = [];
+
+        for (var i=0; i<childrenIds.length; i++) {
+            var child = this.getNode(childrenIds[i]);
+            if (typeof(child) == 'undefined')
+                continue;
+
+            defers.push(child.save({order: i}));
+        }
+
+        return $.when.apply($, defers);
     }
 });
 
