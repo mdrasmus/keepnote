@@ -23,14 +23,13 @@ Read more about KeepNote's [design philosophy](http://keepnote.org/manual/#philo
 
 ## Further information
 
-- For install instructions see [INSTALL.md](INSTALL.md).
-- For development instructions see [DEVELOP.md](DEVELOP.md).
-- For documentation see the [manual](http://keepnote.org/manual/).
-- For license information see [LICENSE](LICENSE), [COPYING](COPYING).
-- The change log of features and bug fixes are in [CHANGES](CHANGING).
-- Translation information is in [README.translations.txt](README.translations.txt).
 - Website: http://keepnote.org
-
+- Documentation: http://keepnote.org/manual/
+- Install instructions: [INSTALL.md](INSTALL.md)
+- Development instructions: [DEVELOP.md](DEVELOP.md)
+- License information: [LICENSE](LICENSE) - MIT and GPLv2
+- Change log of features and bug fixes: [CHANGES](CHANGES)
+- Language translation information: [README.translations.txt](README.translations.txt)
 
 Copyright 2015 Matt Rasmussen
 matt.rasmus@gmail.com
