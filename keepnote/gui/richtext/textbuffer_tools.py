@@ -33,7 +33,6 @@ from keepnote.util import PushIter
 ANCHOR_CHAR = u'\ufffc'
 
 
-
 def iter_buffer_contents(textbuffer, start=None, end=None,
                          ignore_tag=lambda x: False):
     """Iterate over the items of a textbuffer
@@ -54,33 +53,32 @@ def iter_buffer_contents(textbuffer, start=None, end=None,
     if end is None:
         end = textbuffer.get_end_iter()
 
-
     # yield opening tags at begining of region
     for tag in it.get_tags():
         if not ignore_tag(tag):
             yield ("begin", it, tag)
-    
+
     while True:
         it2 = it.copy()
 
         # advance it to next tag toggle
         it.forward_to_tag_toggle(None)
-        if it.compare(end) == -1: #it.get_offset() < end.get_offset():
+        if it.compare(end) == -1:  # it.get_offset() < end.get_offset():
             stop = it
         else:
             stop = end
-        
+
         # yield child anchors between tags
         # namely, advance it2 towards it
         while True:
             # find next achor
             ret = it2.forward_search(ANCHOR_CHAR, (), stop)
 
-            if ret:                
+            if ret:
                 # anchor found
                 a, b = ret
                 anchor = a.get_child_anchor()
-            
+
                 # yield text before anchor
                 text = it2.get_text(a)
                 if len(text) > 0:
@@ -100,11 +98,11 @@ def iter_buffer_contents(textbuffer, start=None, end=None,
                 if len(text) > 0:
                     yield ("text", it2, text)
                 break
-        
+
         # stop iterating if we have pasted end of region
-        if it.compare(end) == 1: #it.get_offset() > end.get_offset():
+        if it.compare(end) == 1:  # it.get_offset() > end.get_offset():
             break
-        
+
         # yield closing tags
         for tag in it.get_toggled_tags(False):
             if not ignore_tag(tag):
@@ -114,12 +112,12 @@ def iter_buffer_contents(textbuffer, start=None, end=None,
         for tag in it.get_toggled_tags(True):
             if not ignore_tag(tag):
                 yield ("begin", it, tag)
-        
+
         #last = it.copy()
-        
+
         if it.equal(end):
             break
-    
+
     # yield tags that have not been closed yet
     toggled = set(end.get_toggled_tags(False))
     for tag in end.get_tags():
@@ -134,7 +132,6 @@ def iter_buffer_anchors(textbuffer, start=None, end=None):
     start      -- starting position (TextIter)
     end        -- ending position (TextIter)
     """
-
     # initialize iterators
     if start is None:
         it = textbuffer.get_start_iter()
@@ -143,17 +140,17 @@ def iter_buffer_anchors(textbuffer, start=None, end=None):
 
     if end is None:
         end = textbuffer.get_end_iter()
-        
+
     while True:
         # find next achor
         ret = it.forward_search(ANCHOR_CHAR, (), end)
-        if not ret:                
+        if not ret:
             break
 
         # anchor found
         a, b = ret
         anchor = a.get_child_anchor()
-            
+
         # yield anchor
         if anchor is not None:
             yield ("anchor", a, (anchor, anchor.get_widgets()))
@@ -162,10 +159,8 @@ def iter_buffer_anchors(textbuffer, start=None, end=None):
         it = b
 
 
-
 def buffer_contents_iter_to_offset(contents):
     """Converts to iters of a content list to offsets"""
-    
     for kind, it, param in contents:
         yield (kind, it.get_offset(), param)
 
@@ -182,7 +177,6 @@ def _normalize_close(open_stack, closing_tags):
                           closing              reopen
 
     """
-
     closing_tags = set(closing_tags)
 
     # close tags until all closing_tags are closed
@@ -202,7 +196,6 @@ def _normalize_close(open_stack, closing_tags):
         open_stack.append(tag)
         yield ("begin", None, tag)
 
-    
 
 def normalize_tags(contents, is_stable_tag=lambda tag: False):
     """Normalize open and close tags to ensure proper nesting
@@ -222,9 +215,9 @@ def normalize_tags(contents, is_stable_tag=lambda tag: False):
 
     for item in contents:
         kind, it, param = item
-        
+
         if kind == "begin":
-            
+
             if is_stable_tag(param):
                 # if stable tag, skim ahead to see its closing tag
                 stable_span = LinkedList()
@@ -240,7 +233,7 @@ def normalize_tags(contents, is_stable_tag=lambda tag: False):
                         else:
                             # record tags that close within the stable_span
                             within_closes.add(item2[2])
-                
+
                 # push items back on contents stream
                 for item2 in reversed(stable_span):
                     contents.push(item2)
@@ -261,19 +254,19 @@ def normalize_tags(contents, is_stable_tag=lambda tag: False):
                 # yield stable open
                 open_stack.append(param)
                 yield ("begin", None, param)
-                
+
                 # reopen preopen_inside
                 for tag in preopen_inside:
                     open_stack.append(tag)
                     yield ("begin", None, tag)
-                
-            else:                
+
+            else:
                 # yield item unchanged
                 open_stack.append(param)
                 yield ("begin", None, param)
 
         elif kind == "end":
-            
+
             for item2 in _normalize_close(open_stack, [param]):
                 yield item2
 
@@ -281,11 +274,8 @@ def normalize_tags(contents, is_stable_tag=lambda tag: False):
             yield (kind, None, param)
 
 
-
-
 #def remove_empty_text(contents):
 #    """Remove spurious text items that are empty"""
-
 
 
 # NOTE: I have a add_child() function to abstract the insertion of child
@@ -305,48 +295,46 @@ def insert_buffer_contents(textbuffer, pos, contents, add_child,
 
     insert_mark = textbuffer.get_insert()
     #lookup_tag = textbuffer.get_tag_table().lookup
-    
+
     textbuffer.place_cursor(pos)
     tags = {}
     tagstrs = {}
 
-    
-    
     # make sure all tags are removed on first text/anchor insert
     first_insert = True
-    
+
     for kind, offset, param in contents:
         # NOTE: offset is ignored
-        
+
         if kind == "text":
             # insert text
             textbuffer.insert_at_cursor(param)
-            
+
             if first_insert:
                 it = textbuffer.get_iter_at_mark(insert_mark)
                 it2 = it.copy()
                 it2.backward_chars(len(param))
                 textbuffer.remove_all_tags(it2, it)
                 first_insert = False
-            
+
         elif kind == "anchor":
-            # insert widget            
+            # insert widget
             it = textbuffer.get_iter_at_mark(insert_mark)
             anchor = param[0].copy()
             add_child(textbuffer, it, anchor)
-            
+
             if first_insert:
                 it = textbuffer.get_iter_at_mark(insert_mark)
                 it2 = it.copy()
-                it2.backward_chars(1) #len(param))
+                it2.backward_chars(1)  # len(param))
                 textbuffer.remove_all_tags(it2, it)
                 first_insert = False
-            
+
         elif kind == "begin":
             # remember the starting position of a tag
             tags[param] = textbuffer.get_iter_at_mark(
                 insert_mark).get_offset()
-            
+
         elif kind == "end":
             # apply tag
             start = textbuffer.get_iter_at_offset(tags[param])
@@ -354,7 +342,7 @@ def insert_buffer_contents(textbuffer, pos, contents, add_child,
             textbuffer.apply_tag(param, start, end)
 
             del tags[param]
-            
+
         elif kind == "beginstr":
             # remember the starting position of a tag referred to by a string
 
@@ -375,21 +363,19 @@ def insert_buffer_contents(textbuffer, pos, contents, add_child,
                 end = textbuffer.get_iter_at_mark(insert_mark)
                 textbuffer.apply_tag(tag, start, end)
 
-    
     textbuffer.end_user_action()
 
 
 def buffer_contents_apply_tags(textbuffer, contents):
     """Apply tags to a textbuffer"""
-    
     tags = {}
-    
+
     for item in contents:
         kind, offset, param = item
-        
+
         if kind == "begin":
             tags[param] = textbuffer.get_iter_at_offset(offset)
-            
+
         elif kind == "end":
             start = tags[param]
             end = textbuffer.get_iter_at_offset(offset)
@@ -410,7 +396,7 @@ def sanitize_text(text):
 
 def move_to_start_of_line(it):
     """Move a TextIter it to the start of a paragraph"""
-    
+
     if not it.starts_line():
         if it.get_line() > 0:
             it.backward_line()
@@ -419,10 +405,12 @@ def move_to_start_of_line(it):
             it = it.get_buffer().get_start_iter()
     return it
 
+
 def move_to_end_of_line(it):
     """Move a TextIter it to the start of a paragraph"""
     it.forward_line()
     return it
+
 
 def get_paragraph(it):
     """Get iters for the start and end of the paragraph containing 'it'"""
@@ -433,6 +421,7 @@ def get_paragraph(it):
     end.forward_line()
     return start, end
 
+
 class paragraph_iter (object):
     """Iterate through the paragraphs of a TextBuffer"""
 
@@ -440,7 +429,7 @@ class paragraph_iter (object):
         self.buf = buf
         self.pos = start
         self.end = end
-    
+
         # create marks that survive buffer edits
         self.pos_mark = buf.create_mark(None, self.pos, True)
         self.end_mark = buf.create_mark(None, self.end, True)
@@ -470,19 +459,17 @@ class paragraph_iter (object):
         self.pos_mark = None
         self.end_mark = None
 
-        
+
 def get_paragraphs_selected(buf):
     """Get start and end of selection rounded to nears paragraph boundaries"""
     sel = buf.get_selection_bounds()
-    
+
     if not sel:
         start, end = get_paragraph(buf.get_iter_at_mark(buf.get_insert()))
     else:
         start = move_to_start_of_line(sel[0])
         end = move_to_end_of_line(sel[1])
     return start, end
-
-
 
 
 #=============================================================================
@@ -494,7 +481,7 @@ class Dom (LinkedTreeNode):
 
     def __init__(self):
         LinkedTreeNode.__init__(self)
-    
+
     def display_indent(self, indent, *text):
         print "  " * indent + " ".join(text)
 
@@ -543,7 +530,6 @@ class TextDom (Dom):
             t = "".join(self.lst)
             self.lst = [t]
             return t
-        
 
     def set(self, text):
         self.lst = [text]
@@ -553,12 +539,12 @@ class TextDom (Dom):
 
     def visit_contents(self, visit):
         visit("text", None, self.get())
-    
+
 
 class AnchorDom (Dom):
     """An anchor object in a DOM"""
     def __init__(self, anchor):
-        Dom.__init__(self)        
+        Dom.__init__(self)
         self.anchor = anchor
 
     def display(self, indent=0):
@@ -566,7 +552,7 @@ class AnchorDom (Dom):
 
     def visit_contents(self, visit):
         visit("anchor", None, (self.anchor, []))
-    
+
 
 class TagDom (Dom):
     """A TextTag object in a DOM"""
@@ -584,16 +570,15 @@ class TagDom (Dom):
             child.display(indent+1)
 
     def visit_contents(self, visit):
-
         visit("begin", None, self.tag)
         for child in self:
-             child.visit_contents(visit)
+            child.visit_contents(visit)
         visit("end", None, self.tag)
-        
+
 
 class TagNameDom (Dom):
     """A name for a TextTag object in a DOM"""
-    
+
     def __init__(self, tagname, contents=None):
         Dom.__init__(self)
         self.tagname = tagname
@@ -607,16 +592,15 @@ class TagNameDom (Dom):
             child.display(indent+1)
 
     def visit_contents(self, visit):
-
         visit("beginstr", None, self.tagname)
         for child in self:
-             child.visit_contents(visit)
+            child.visit_contents(visit)
         visit("endstr", None, self.tagname)
 
 
 class TextBufferDom (Dom):
     """Document Object Model for TextBuffers"""
-    
+
     def __init__(self, contents=None):
         Dom.__init__(self)
         if contents is not None:
@@ -628,7 +612,7 @@ class TextBufferDom (Dom):
 
     def get_contents(self):
         contents = []
-        self.visit_contents(lambda kind,pos,param:
+        self.visit_contents(lambda kind, pos, param:
                             contents.append((kind, pos, param)))
         return contents
 
@@ -636,6 +620,3 @@ class TextBufferDom (Dom):
         self.display_indent(indent, "TextBufferDom")
         for child in self:
             child.display(indent+1)
-    
-
-    

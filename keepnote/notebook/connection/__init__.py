@@ -1,7 +1,7 @@
 """
 
-    KeepNote    
-    
+    KeepNote
+
     Low-level Create-Read-Update-Delete (CRUD) interface for notebooks.
 
 """
@@ -43,30 +43,35 @@ class ConnectionError (StandardError):
         else:
             return StandardError.repr(self)
 
+
 class UnknownNode (ConnectionError):
     def __init__(self, msg="unknown node"):
         ConnectionError.__init__(self, msg)
+
 
 class NodeExists (ConnectionError):
     def __init__(self, msg="node exists"):
         ConnectionError.__init__(self, msg)
 
+
 class FileError (ConnectionError):
     def __init__(self, msg="file error", error=None):
         ConnectionError.__init__(self, msg, error)
+
 
 class UnknownFile (FileError):
     def __init__(self, msg="unknown file"):
         FileError.__init__(self, msg)
 
+
 class CorruptIndex (ConnectionError):
     def __init__(self, msg="index error", error=None):
         ConnectionError.__init__(self, msg, error)
 
-    
 
 #=============================================================================
 # file path functions
+
 
 def path_join(*parts):
     """
@@ -75,9 +80,10 @@ def path_join(*parts):
     Node files always use '/' for path separator.
     """
     # skip empty strings
-    # trim training "slashes"
-    return "/".join((part[:-1] if part[-1] == "/" else part) 
-                    for part in parts if part != "")
+    parts = [(part[:-1] if part.endswith("/") and i < len(parts) - 1
+              else part)
+             for i, part in enumerate(parts)]
+    return "/".join(part for part in parts if part != "")
 
 
 def path_basename(filename):
@@ -100,6 +106,12 @@ def path_basename(filename):
         return filename[i:]
 
 
+def is_dir(filename):
+    """
+    Returns True if node filename represents a directory.
+    """
+    return filename.endswith('/')
+
 
 #=============================================================================
 
@@ -113,7 +125,7 @@ class NoteBookConnection (object):
     def connect(self, url):
         """Make a new connection"""
         pass
-        
+
     def close(self):
         """Close connection"""
         pass
@@ -124,7 +136,7 @@ class NoteBookConnection (object):
 
     #======================
     # Node I/O API
-    
+
     def create_node(self, nodeid, attr):
         """Create a node"""
         # TODO: document root creation
@@ -132,7 +144,7 @@ class NoteBookConnection (object):
         # proposal 2: if parentids is [], then this node is root
         # proposal 3: try to remove root concept from connection
         raise NotImplementedError("create_node")
-            
+
     def read_node(self, nodeid):
         """Read a node attr"""
         raise NotImplementedError("read_node")
@@ -153,7 +165,6 @@ class NoteBookConnection (object):
     def get_rootid(self):
         """Returns nodeid of notebook root node"""
         raise NotImplementedError("get_rootid")
-    
 
     #===============
     # file API
@@ -169,7 +180,6 @@ class NoteBookConnection (object):
         """
         raise NotImplementedError("open_file")
 
-
     def delete_file(self, nodeid, filename):
         """Delete a file contained within a node"""
         raise NotImplementedError("delete_file")
@@ -183,23 +193,21 @@ class NoteBookConnection (object):
         List data files in node
         """
         raise NotImplementedError("list_dir")
-    
+
     def has_file(self, nodeid, filename):
         raise NotImplementedError("has_file")
 
-    def move_file(self, nodeid, filename1, nodeid2, filename2):
+    def move_file(self, nodeid1, filename1, nodeid2, filename2):
         """
         Move or rename a node file
-        
+
         'nodeid1' and 'nodeid2' cannot be None.
         """
-
-        if nodeid is None or nodeid2 is None:
+        if nodeid1 is None or nodeid2 is None:
             raise UnknownFile("nodeid cannot be None")
-        
-        self.copy_file(nodeid, filename, nodeid, new_filename)
-        self.delete_file(nodeid, filename)
 
+        self.copy_file(nodeid1, filename1, nodeid2, filename2)
+        self.delete_file(nodeid1, filename1)
 
     def copy_file(self, nodeid1, filename1, nodeid2, filename2):
         """
@@ -211,9 +219,7 @@ class NoteBookConnection (object):
 
         If 'filename1' is a dir (ends with a "/") filename2 must be a dir
         and the copy is recursive for the contents of 'filename1'.
-
         """
-
         if filename1.endswith("/"):
             # copy directory tree
             self.create_dir(nodeid2, filename2)
@@ -224,7 +230,7 @@ class NoteBookConnection (object):
 
         else:
             # copy file
-            
+
             if nodeid1 is not None:
                 stream1 = self.open_file(nodeid1, filename1)
             else:
@@ -246,10 +252,9 @@ class NoteBookConnection (object):
             stream1.close()
             stream2.close()
 
-
     #---------------------------------
     # indexing
-    
+
     def index(self, query):
 
         # TODO: make this plugable
@@ -265,7 +270,7 @@ class NoteBookConnection (object):
         if query[0] == "index_attr":
             index_value = query[3] if len(query) == 4 else False
             return self.index_attr(query[1], query[2], index_value)
-            
+
         elif query[0] == "search":
             assert query[1] == "title"
             return self.search_node_titles(query[2])
@@ -281,7 +286,6 @@ class NoteBookConnection (object):
 
         elif query[0] == "get_attr":
             return self.get_attr_by_id(query[1], query[2])
-
 
         # FS-specific
         elif query[0] == "init":
@@ -311,15 +315,13 @@ class NoteBookConnection (object):
     def search_node_contents(self, text):
         """Search nodes by content"""
         return self.index(["search_fulltext", text])
-    
+
     def get_node_path_by_id(self, nodeid):
         """Lookup node path by nodeid"""
         return self.index(["node_path", nodeid])
 
     def get_attr_by_id(self, nodeid, key):
         return self.index(["get_attr", nodeid, key])
-
-
 
     #---------------------------------------
     # FS-specific index management
@@ -328,7 +330,7 @@ class NoteBookConnection (object):
     def init_index(self):
         """Initialize the index"""
         return self.index(["init"])
-    
+
     def index_needed(self):
         return self.index(["index_needed"])
 
@@ -338,24 +340,21 @@ class NoteBookConnection (object):
     def index_all(self):
         return self.index(["index_all"])
 
-
-
     #================================
     # Filesystem-specific API (may not be supported by some connections)
-    
+
     def get_node_path(self, nodeid):
         """Returns the path of the node"""
         raise NotImplementedError("get_node_path")
-    
+
     def get_node_basename(self, nodeid):
         """Returns the basename of the node"""
         raise NotImplementedError("get_node_basename")
 
     # TODO: returning a fullpath to a file is not fully portable
-    # will eventually need some kind of fetching mechanism    
+    # will eventually need some kind of fetching mechanism
     def get_file(self, nodeid, filename, _path=None):
         raise NotImplementedError("get_file")
-
 
 
 #=============================================================================
@@ -388,5 +387,3 @@ class NoteBookConnections (object):
 
     def lookup(self, proto):
         return self._protos.get(proto, None)
-
-

@@ -8,7 +8,10 @@ PKG=keepnote
 VERSION:=$(shell python -c 'import keepnote; print keepnote.PROGRAM_VERSION_TEXT')
 
 # build programs
-PYTHON=python2.5
+PYTHON=python
+
+VENV_DIR=env
+VENV=. $(VENV_DIR)/bin/activate
 
 # release filenames
 SDIST_FILE=$(PKG)-$(VERSION).tar.gz
@@ -27,6 +30,12 @@ WININSTALLER=dist/$(WININSTALLER_FILE)
 # files to upload
 UPLOAD_FILES=$(SDIST) $(RPM) $(DEB) $(EBUILD) $(WININSTALLER)
 
+CODEQUALITY_FILES=\
+	keepnote/*.py \
+	keepnote/gui \
+	keepnote/notebook \
+	keepnote/server \
+	tests/*.py
 
 TMP_FILES=MANIFEST
 
@@ -39,6 +48,43 @@ WININSTALLER_SRC=installer.iss
 # personal www paths
 WWW=/var/www/dev/rasm/keepnote
 
+.PHONY: all dev venv sdist rpm deb ebuild clean cq test teardown help share \
+	winebuild wineinstaller winclean contribs \
+	pypi upload upload-test upload-contrib
+
+
+#=============================================================================
+# dev
+
+dev: venv
+	$(VENV) && pip install -r requirements-dev.txt
+	npm install
+	[ -f bower ] || ln -s node_modules/.bin/bower bower
+	[ -f gulp ] || ln -s node_modules/.bin/gulp gulp
+	./bower install
+
+venv: $(VENV_DIR)/bin/activate
+
+$(VENV_DIR)/bin/activate:
+	virtualenv --system-site-packages env
+
+cq:
+	$(VENV) && pep8 $(CODEQUALITY_FILES) | grep -v 'tarfile\|sqlitedict\|bottle.py' || true
+	$(VENV) && pyflakes $(CODEQUALITY_FILES) | grep -v 'tarfile\|sqlitedict\|bottle.py' || true
+
+test: venv
+	$(VENV) && nosetests -sv tests/*.py
+	npm test
+
+teardown:
+	rm -rf $(VENV_DIR)
+	rm -rf node_modules
+	rm -rf bower_components
+	rm -f bower gulp
+
+# show makefile actions
+help:
+	grep '^[^$$][^\w=]*:[^=]*$$' Makefile | sed 's/:.*//'
 
 #=============================================================================
 # linux build
@@ -68,10 +114,6 @@ $(EBUILD):
 
 clean:
 	rm -rf $(TMP_FILES) $(UPLOAD_FILES) $(WINDIR) $(WININSTALLER_SRC)
-
-# show makefile actions
-help:
-	grep '^[^$$][^\w=]*:[^=]*$$' Makefile | sed 's/:.*//'
 
 #=============================================================================
 # icons
@@ -114,7 +156,6 @@ contribs:
 pypi:
 	$(PYTHON) setup.py register
 
-
 upload: $(UPLOAD_FILES)
 	cp $(UPLOAD_FILES) $(WWW)/download
 	tar zxv -C $(WWW)/download \
@@ -123,7 +164,5 @@ upload: $(UPLOAD_FILES)
 upload-test: $(UPLOAD_FILES)
 	cp $(UPLOAD_FILES) $(WWW)/download-test
 
-
 upload-contrib:
 	make -C contrib upload
-

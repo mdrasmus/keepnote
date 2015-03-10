@@ -1,7 +1,7 @@
 """
     KeepNote
     extended plist module
-    
+
     Apple's property list xml serialization
 
     - added null type
@@ -33,9 +33,11 @@ try:
 except ImportError:
     import xml.etree.elementtree.ElementTree as ET
 from StringIO import StringIO
-from xml.sax.saxutils import escape
-import base64, datetime, re
+import base64
+import datetime
+import re
 import sys
+from xml.sax.saxutils import escape
 
 try:
     from .orderdict import OrderDict
@@ -49,15 +51,15 @@ class Data (object):
 
 
 # date format:
-# ISO 8601 (in particular, YYYY '-' MM '-' DD 'T' HH ':' MM ':' SS 'Z'.  
+# ISO 8601 (in particular, YYYY '-' MM '-' DD 'T' HH ':' MM ':' SS 'Z'.
 # Smaller units may be omitted with a loss of precision
 
 
 _unmarshallers = {
     # collections
     "array": lambda x: [v.text for v in x],
-    "dict": lambda x:
-       OrderDict((x[i].text, x[i+1].text) for i in range(0, len(x), 2)),
+    "dict": lambda x: OrderDict(
+        (x[i].text, x[i+1].text) for i in range(0, len(x), 2)),
     "key": lambda x: x.text or u"",
 
     # simple types
@@ -88,7 +90,7 @@ def load(infile=sys.stdin):
     return parser.root.text
 
 
-def loads(string): 
+def loads(string):
     return load(StringIO(string))
 
 
@@ -105,17 +107,17 @@ def load_etree(elm):
         raise IOError("unknown plist type: %r" % elm.tag)
 
     return elm.text
-   
+
 
 def dump(elm, out=sys.stdout, indent=0, depth=0, suppress=False):
 
     if indent and not suppress:
-       out.write(" " * depth)
+        out.write(" " * depth)
 
     if isinstance(elm, dict):
         out.write(u"<dict>")
         if indent:
-           out.write(u"\n")
+            out.write(u"\n")
         for key, val in elm.iteritems():
             if indent:
                 out.write(" " * (depth + indent))
@@ -128,7 +130,7 @@ def dump(elm, out=sys.stdout, indent=0, depth=0, suppress=False):
     elif isinstance(elm, (list, tuple)):
         out.write(u"<array>")
         if indent:
-           out.write(u"\n")
+            out.write(u"\n")
         for item in elm:
             dump(item, out, indent, depth+indent)
         if indent:
@@ -162,11 +164,11 @@ def dump(elm, out=sys.stdout, indent=0, depth=0, suppress=False):
         raise Exception("not implemented")
 
     else:
-        raise Exception("unknown data type '%s' for value '%s'" % 
+        raise Exception("unknown data type '%s' for value '%s'" %
                         (str(type(elm)), str(elm)))
 
     if indent:
-       out.write(u"\n")
+        out.write(u"\n")
 
 
 def dumps(elm, indent=0):
@@ -176,7 +178,6 @@ def dumps(elm, indent=0):
 
 
 def dump_etree(elm):
-    
     if isinstance(elm, dict):
         elm2 = ET.Element("dict")
         for key, val in elm.iteritems():
@@ -219,8 +220,7 @@ def dump_etree(elm):
         raise Exception("not implemented")
 
     else:
-        raise Exception("unknown data type '%s' for value '%s'" % 
+        raise Exception("unknown data type '%s' for value '%s'" %
                         (str(type(elm)), str(elm)))
 
     return elm2
-

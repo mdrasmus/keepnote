@@ -1,0 +1,4 @@
+919c919
+< 		var nodeName = node.tagName;
+---
+> 		var nodeName = node.localName;

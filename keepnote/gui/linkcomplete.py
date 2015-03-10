@@ -8,7 +8,7 @@ import gobject
 # keepnote imports
 from keepnote import unicode_gtk
 from keepnote.gui.popupwindow import PopupWindow
-    
+
 
 class LinkPicker (gtk.TreeView):
 
@@ -36,14 +36,10 @@ class LinkPicker (gtk.TreeView):
 
         self.list = gtk.ListStore(gtk.gdk.Pixbuf, str, object)
         self.set_model(self.list)
-        
+
         self.maxlinks = 10
 
-        
-
-
     def set_links(self, urls):
-
         self.list.clear()
         for nodeid, url, icon in urls[:self.maxlinks]:
             self.list.append([icon, url, nodeid])
@@ -57,16 +53,16 @@ class LinkPicker (gtk.TreeView):
             self.set_size_request(-1, -1)
 
 
-
 class LinkPickerPopup (PopupWindow):
 
     def __init__(self, parent, maxwidth=100):
         PopupWindow.__init__(self, parent)
         self._maxwidth = maxwidth
-        
+
         self._link_picker = LinkPicker()
         self._link_picker.show()
-        self._link_picker.get_selection().connect("changed", self.on_select_changed)
+        self._link_picker.get_selection().connect(
+            "changed", self.on_select_changed)
         self._cursor_move = False
 
         self._shown = False
@@ -77,7 +73,6 @@ class LinkPickerPopup (PopupWindow):
         frame.add(self._link_picker)
         frame.show()
         self.add(frame)
-       
 
     def set_links(self, urls):
         """Set links in popup"""
@@ -90,19 +85,15 @@ class LinkPickerPopup (PopupWindow):
             self.show()
             self._shown = True
 
-
-            
     def shown(self):
         """Return True if popup is visible"""
         return self._shown
 
-
     def on_key_press_event(self, widget, event):
         """Callback for key press events"""
-
         model, sel = self._link_picker.get_selection().get_selected()
-        
-        if event.keyval == gtk.keysyms.Down:            
+
+        if event.keyval == gtk.keysyms.Down:
             # move selection down
             self._cursor_move = True
 
@@ -117,7 +108,7 @@ class LinkPickerPopup (PopupWindow):
             return True
 
         elif event.keyval == gtk.keysyms.Up:
-            # move selection up            
+            # move selection up
             self._cursor_move = True
 
             if sel is None:
@@ -141,30 +132,24 @@ class LinkPickerPopup (PopupWindow):
             # discard popup
             self.set_links([])
 
-
         return False
 
-
-
     def on_select_changed(self, treeselect):
-        
+
         if not self._cursor_move:
             model, sel = self._link_picker.get_selection().get_selected()
             if sel:
                 icon, title, nodeid = model[sel]
                 self.emit("pick-link", unicode_gtk(title), nodeid)
-        
+
         self._cursor_move = False
 
         #model, paths = treeselect.get_selected_rows()
         #self.__sel_nodes = [self.model.get_value(self.model.get_iter(path),
         #                                         self._node_col)
         #                    for path in paths]
-        
 
 
 gobject.type_register(LinkPickerPopup)
 gobject.signal_new("pick-link", LinkPickerPopup, gobject.SIGNAL_RUN_LAST,
                    gobject.TYPE_NONE, (str, object))
-
-

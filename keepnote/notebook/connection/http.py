@@ -1,8 +1,8 @@
 """
 
-    KeepNote    
-    
-    Serving/accessing KeepNote notebooks over HTTP 
+    KeepNote
+
+    Serving/accessing KeepNote notebooks over HTTP
 
 """
 
@@ -25,30 +25,24 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
-
 # python imports
-import sys
-import os
+from collections import defaultdict
+import contextlib
 import httplib
+import json
 import urllib
 import urlparse
-import thread
-import select
-import BaseHTTPServer
-from collections import defaultdict
 
 # keepnote imports
-import keepnote
-from keepnote import notebook
+from keepnote import plist
 import keepnote.notebook.connection as connlib
 from keepnote.notebook.connection import NoteBookConnection
-from keepnote.notebook.connection.fs import NoteBookConnectionFS
-from keepnote import plist
 
 
 XML_HEADER = u"""\
 <?xml version="1.0" encoding="UTF-8"?>
 """
+
 
 #=============================================================================
 # Node URL scheme
@@ -64,12 +58,13 @@ def determine_path_prefix(path, prefixes=()):
 
     return ""
 
+
 def parse_node_path(path, prefixes=("/")):
 
     # skip over prefix
     prefix = determine_path_prefix(path, prefixes)
     path = path[len(prefix):]
-    
+
     # find end of nodeid (ends with an optional slash)
     i = path.find("/")
     if i != -1:
@@ -97,298 +92,29 @@ def format_node_path(prefix, nodeid="", filename=None):
 
 def format_node_url(host, prefix, nodeid, filename=None, port=80):
     portstr = ":" + str(port) if port != 80 else ""
-    return "http://%s%s/%s" % (host, portstr, 
+    return "http://%s%s/%s" % (host, portstr,
                                format_node_path(prefix, nodeid, filename))
 
 
-
-
-
 #=============================================================================
-# Notebook HTTP Server
-
-
-def write_tree(out, conn):
-    
-    def walk(conn, nodeid):
-        attr = conn.read_node(nodeid)
-
-        # TODO: needs escape
-        if attr.get("content_type", "") == "text/xhtml+xml":
-            url = format_node_path("", nodeid, "page.html")
-        elif "payload_filename" in attr:
-            url = format_node_path("", nodeid, 
-                                   attr["payload_filename"])
-        else:
-            url = format_node_path("", nodeid, "")
-        out.write(
-            "<a href='%s'>%s</a>" % (
-                url, attr.get("title", "page").encode("utf8")))
-        out.write("<ul>")
-
-        for childid in attr.get("childrenids", ()):
-            out.write("<li>")
-            walk(conn, childid)
-            out.write("</li>")
-
-        out.write("</ul>")
-    walk(conn, conn.get_rootid())
-
-
-
-class HttpHandler (BaseHTTPServer.BaseHTTPRequestHandler):
-    """
-    HTTP handler for NoteBook Server
-    """
-
-    def parse_path(self, path=None):
-        """
-        Parse a url path into (urlparts, nodeid, filename)
-        """
-
-        if path is None:
-            path = self.path
-        parts = urlparse.urlsplit(path)
-        nodeid, filename = parse_node_path(parts.path, self.server.prefixes)
-        return parts, nodeid, filename
-
-
-    def do_GET(self):
-        """
-        GET action handler
-        """
-        parts, nodeid, filename = self.parse_path()
-        
-        try:
-            if nodeid == "":
-                if parts.query == "all":
-                    self.send_response(httplib.OK)
-                    self.send_header("content_type", "text/html")
-                    self.end_headers()
-
-                    self.wfile.write("<html><body>")
-                    write_tree(self.wfile, self.server.conn)
-                    self.wfile.write("</body></html>")
-                    return
-
-
-                # get rootid
-                rootid = self.server.conn.get_rootid()
-
-                self.send_response(httplib.OK)
-                self.send_header("content_type", "text/xml")
-                self.end_headers()
-                self.wfile.write(XML_HEADER)
-                self.wfile.write(plist.dumps(rootid))
-
-            elif filename is None:
-                # return node attr
-                attr = self.server.conn.read_node(nodeid)
-
-                self.send_response(httplib.OK)
-                self.send_header("content_type", "text/xml")
-                self.end_headers()
-
-                if attr.get("parentids") == [None]:
-                    del attr["parentids"]
-                self.wfile.write(XML_HEADER)
-                self.wfile.write(plist.dumps(attr).encode("utf8"))
-
-            elif filename.endswith("/"):
-                # list directory
-                files = list(self.server.conn.list_dir(nodeid, filename))
-                
-                self.send_response(httplib.OK)
-                self.send_header("content_type", "application/octet-stream")
-                self.end_headers()
-                self.wfile.write(XML_HEADER)
-                self.wfile.write(plist.dumps(files).encode("utf8"))
-                
-            else:
-                # return node file
-                stream = self.server.conn.open_file(nodeid, filename)
-                self.send_response(httplib.OK)
-                self.send_header("content_type", "application/octet-stream")
-                self.end_headers()
-                self.wfile.write(stream.read())
-                stream.close()
-
-        except Exception, e:
-            keepnote.log_error()
-            self.send_error(404, "node not found " + str(e))
-
-
-    def do_PUT(self):
-        """
-        PUT action handler
-        """
-
-        parts, nodeid, filename = self.parse_path()
-        
-        # read attr
-        content_len = int(self.headers.get("Content-length", 0))
-        
-        try:
-            if filename is None:
-                # create node
-                data = self.rfile.read(content_len)
-                attr = plist.loads(data)
-                attr["nodeid"] = nodeid
-                self.server.conn.create_node(nodeid, attr)
-                
-            elif filename.endswith("/"):
-                # create dir
-                self.server.conn.create_dir(nodeid, filename)
-
-            else:
-                # create file
-                data = self.rfile.read(content_len)
-                stream = self.server.conn.open_file(nodeid, filename, "w")
-                stream.write(data)
-                stream.close()
-
-            self.send_response(httplib.OK)
-            self.send_header("content_type", "text/plain")
-            self.end_headers()
-            
-        except Exception, e:
-            # FIX response
-            keepnote.log_error()
-            self.send_error(httplib.NOT_FOUND, "cannot create node: " + str(e))
-
-
-    def do_POST(self):
-
-        parts, nodeid, filename = self.parse_path()
-
-        content_len = int(self.headers.get("Content-length", 0))
-        data = self.rfile.read(content_len)
-
-        try:
-            if nodeid == "":
-                # pure command                
-                if parts.query == "save":
-                    self.server.conn.save()
-                    
-                elif parts.query == "index":
-                    query = plist.loads(data)
-                    res = self.server.conn.index(query)
-                    if hasattr(res, "next"):
-                        res = list(res)
-                    self.send_response(httplib.OK)
-                    self.send_header("content_type", "text/xml")
-                    self.end_headers()
-                    self.wfile.write(XML_HEADER)
-                    self.wfile.write(plist.dumps(res).encode("utf8"))
-                    return 
-
-            elif not filename:
-                # update node
-                attr = plist.loads(data)
-                attr["nodeid"] = nodeid
-                self.server.conn.update_node(nodeid, attr)
-
-            else:
-                # write file
-                params = urlparse.parse_qs(parts.query)
-                if params.get("mode", "r") == ["a"]:
-                    stream = self.server.conn.open_file(nodeid, filename, "a")
-                else:
-                    stream = self.server.conn.open_file(nodeid, filename, "w")
-                stream.write(data)
-                stream.close()
-
-            self.send_response(httplib.OK)
-            self.send_header("content_type", "text/plain")
-            self.end_headers()
-            
-            
-        except Exception, e:
-            # FIX response
-            keepnote.log_error()
-            self.send_error(httplib.NOT_FOUND, "cannot create node: " + str(e))
-
-
-    def do_DELETE(self):
-
-        parts, nodeid, filename = self.parse_path()
-        
-        try:
-            if not filename:
-                # delete node
-                self.server.conn.delete_node(nodeid)
-            else:
-                # delete file/dir
-                self.server.conn.delete_file(nodeid, filename)
-
-            self.send_response(httplib.OK)
-            self.send_header("content_type", "text/plain")
-            self.end_headers()
-            
-        except Exception, e:
-            # TDOD: fix response
-            keepnote.log_error()
-            self.send_error(httplib.NOT_FOUND, "cannot delete node: " + str(e))
-
-
-    def do_HEAD(self):
-        
-        parts, nodeid, filename = self.parse_path()
-        
-        try:
-            if not filename:
-                # exists node
-                exists = self.server.conn.has_node(nodeid)
-            else:
-                # exists file/dir
-                exists = self.server.conn.has_file(nodeid, filename)
-
-            if exists:
-                self.send_response(httplib.OK)
-            else:
-                self.send_response(httplib.NOT_FOUND)
-            self.send_header("content_type", "text/plain")
-            self.end_headers()
-            
-        except Exception, e:
-            # TODO: fix response
-            keepnote.log_error()
-            self.send_error(httplib.NOT_FOUND, "cannot find node: " + str(e))
-
-
-    #def log_message(self, format, *args):
-        # suppress logging
-    #    pass
-
-
-
-class NoteBookHttpServer (BaseHTTPServer.HTTPServer):
-
-    def __init__(self, conn, prefix="/", host="", port=8000):
-        self.conn = conn
-        self.prefixes = [prefix]
-        self.server_address = (host, port)
-        BaseHTTPServer.HTTPServer.__init__(self, self.server_address, 
-                                           HttpHandler)
-
-
+# NoteBook HTTP client
 
 class NoteBookConnectionHttp (NoteBookConnection):
 
-    def __init__(self):
+    def __init__(self, version=2):
         self._netloc = ""
         self._prefix = "/"
         self._conn = None
         self._title_cache = NodeTitleCache()
-        
-        
+        self._version = version
+
     def connect(self, url):
-        
         parts = urlparse.urlsplit(url)
 
         self._netloc = parts.netloc
-        self._prefix = parts.path
-        self._conn =  httplib.HTTPConnection(self._netloc)
+        self._prefix = parts.path + 'nodes/'
+        self._notebook_prefix = parts.path
+        self._conn = httplib.HTTPConnection(self._netloc)
         self._title_cache.clear()
         #self._conn.set_debuglevel(1)
 
@@ -396,39 +122,53 @@ class NoteBookConnectionHttp (NoteBookConnection):
         self._conn.close()
 
     def save(self):
-
         # POST http://host/prefix/?save
-        
-        self._request('POST', format_node_path(self._prefix) + "?save")
-        result = self._conn.getresponse()
-        
-        pass
 
+        self._request(
+            'POST', format_node_path(self._notebook_prefix) + "?save")
+        self._conn.getresponse()
+        pass
 
     def _request(self, action, url, body=None, headers={}):
         try:
             return self._conn.request(action, url, body, headers)
         except httplib.ImproperConnectionState:
             # restart connection
-            self._conn =  httplib.HTTPConnection(self._netloc)
+            self._conn = httplib.HTTPConnection(self._netloc)
             return self._request(action, url, body, headers)
 
+    def load_data(self, stream):
+        if self._version == 2:
+            return json.loads(stream.read())
+        else:
+            return plist.load(stream)
+
+    def loads_data(self, data):
+        if self._version == 2:
+            return json.loads(data)
+        else:
+            return plist.loads(data)
+
+    def dumps_data(self, data):
+        if self._version == 2:
+            return json.dumps(data)
+        else:
+            return plist.dumps(data)
 
     #===========================================
-    
-    
+
     def create_node(self, nodeid, attr):
-        
-        body_content = plist.dumps(attr).encode("utf8")
-        self._request('PUT', format_node_path(self._prefix, nodeid), 
+
+        body_content = self.dumps_data(attr).encode("utf8")
+        self._request('POST', format_node_path(self._prefix, nodeid),
                       body_content)
         result = self._conn.getresponse()
-        if result.status != httplib.OK:
-            raise connlib.ConnectionError(
-                "unexpected error '%s'" % str(e), e)
+        if result.status == httplib.FORBIDDEN:
+            raise connlib.NodeExists()
+        elif result.status != httplib.OK:
+            raise connlib.ConnectionError("unexpected error")
 
         self._title_cache.update_attr(attr)
-
 
     def read_node(self, nodeid):
 
@@ -436,7 +176,7 @@ class NoteBookConnectionHttp (NoteBookConnection):
         result = self._conn.getresponse()
         if result.status == httplib.OK:
             try:
-                attr = plist.load(result)
+                attr = self.load_data(result)
                 self._title_cache.update_attr(attr)
                 return attr
             except Exception, e:
@@ -445,26 +185,27 @@ class NoteBookConnectionHttp (NoteBookConnection):
         else:
             raise connlib.UnknownNode(nodeid)
 
-
     def update_node(self, nodeid, attr):
-        
-        body_content = plist.dumps(attr).encode("utf8")
-        self._request('POST', format_node_path(self._prefix, nodeid), 
+
+        body_content = self.dumps_data(attr).encode("utf8")
+        self._request('PUT', format_node_path(self._prefix, nodeid),
                       body_content)
         result = self._conn.getresponse()
-        if result.status != httplib.OK:
+        if result.status == httplib.NOT_FOUND:
+            raise connlib.UnknownNode()
+        elif result.status != httplib.OK:
             raise connlib.ConnectionError()
         self._title_cache.update_attr(attr)
 
-        
     def delete_node(self, nodeid):
-        
+
         self._request('DELETE', format_node_path(self._prefix, nodeid))
         result = self._conn.getresponse()
-        if result.status != httplib.OK:
+        if result.status == httplib.NOT_FOUND:
+            raise connlib.UnknownNode()
+        elif result.status != httplib.OK:
             raise connlib.ConnectionError()
         self._title_cache.remove(nodeid)
-
 
     def has_node(self, nodeid):
         """Returns True if node exists"""
@@ -474,18 +215,21 @@ class NoteBookConnectionHttp (NoteBookConnection):
         result = self._conn.getresponse()
         return result.status == httplib.OK
 
-
     def get_rootid(self):
         """Returns nodeid of notebook root node"""
         # GET /
         self._request('GET', format_node_path(self._prefix))
         result = self._conn.getresponse()
-        if result.status == httplib.OK:
-            return plist.load(result)
-        else:
-            raise connlib.UnknownNode()
-        
 
+        if result.status == httplib.NOT_FOUND:
+            raise connlib.UnknownNode()
+        if result.status != httplib.OK:
+            raise connlib.ConnectionError()
+
+        # Currently only the first rootid is returned.
+        data = self.load_data(result)
+        rootid = data['rootids'][0]
+        return rootid
 
     #===============
     # file API
@@ -507,42 +251,57 @@ class NoteBookConnectionHttp (NoteBookConnection):
                     data = data.encode(codec)
                 self.data.append(data)
 
+            def close(self):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, type, value, tb):
+                self.close()
+
+        # Cannot open directories.
+        if filename.endswith("/"):
+            raise connlib.FileError()
 
         if mode == "r":
             self._request(
                 'GET', format_node_path(self._prefix, nodeid, filename))
             result = self._conn.getresponse()
             if result.status == httplib.OK:
-                return result
+                stream = contextlib.closing(result)
+                stream.read = result.read
+                stream.close = result.close
+                return stream
             else:
                 raise connlib.FileError()
 
         elif mode == "w":
             stream = HttpFile(codec)
+
             def on_close():
                 body_content = "".join(stream.data)
                 self._request(
                     'POST', format_node_path(self._prefix, nodeid, filename),
                     body_content)
-                result = self._conn.getresponse()
+                self._conn.getresponse()
             stream.close = on_close
             return stream
-          
+
         elif mode == "a":
             stream = HttpFile(codec)
+
             def on_close():
                 body_content = "".join(stream.data)
                 self._request(
-                    'POST', format_node_path(self._prefix, nodeid, filename)
-                    + "?mode=a", 
-                body_content)
-                result = self._conn.getresponse()
+                    'POST', format_node_path(self._prefix, nodeid, filename) +
+                    "?mode=a", body_content)
+                self._conn.getresponse()
             stream.close = on_close
             return stream
-        
+
         else:
             raise connlib.FileError("unknown mode '%s'" % mode)
-        
 
     def delete_file(self, nodeid, filename):
         """Open a file contained within a node"""
@@ -556,9 +315,11 @@ class NoteBookConnectionHttp (NoteBookConnection):
 
     def create_dir(self, nodeid, filename):
 
-        # PUT nodeid/dir/
+        # Directories must end with "/"
         if not filename.endswith("/"):
-            filename += "/"
+            raise connlib.FileError()
+
+        # PUT nodeid/dir/
         self._request(
             'PUT', format_node_path(self._prefix, nodeid, filename))
         result = self._conn.getresponse()
@@ -569,23 +330,27 @@ class NoteBookConnectionHttp (NoteBookConnection):
         """
         List data files in node
         """
+        # Cannot list files.
+        if not filename.endswith("/"):
+            raise connlib.FileError()
 
         # GET nodeid/dir/
-        if not filename.endswith("/"):
-            filename += "/"
         self._request(
             'GET', format_node_path(self._prefix, nodeid, filename))
         result = self._conn.getresponse()
         if result.status == httplib.OK:
             try:
-                return plist.load(result)
+                if self._version == 1:
+                    return self.load_data(result)
+                else:
+                    data = self.load_data(result)
+                    return data['files']
             except Exception, e:
                 raise connlib.ConnectionError(
                     "unexpected response '%s'" % str(e), e)
         else:
             raise connlib.FileError("cannot list node")
-        
-    
+
     def has_file(self, nodeid, filename):
 
         # HEAD nodeid/filename
@@ -594,75 +359,60 @@ class NoteBookConnectionHttp (NoteBookConnection):
         result = self._conn.getresponse()
         return result.status == httplib.OK
 
-
     #---------------------------------
     # indexing/querying
 
     def index_raw(self, query):
-
         # POST /?index
         # query plist encoded
-        body_content = plist.dumps(query).encode("utf8")
+        body_content = self.dumps_data(query).encode("utf8")
         self._request(
-            'POST', format_node_path(self._prefix) + "?index", body_content)
+            'POST', format_node_path(self._notebook_prefix) + "?index",
+            body_content)
         result = self._conn.getresponse()
         if result.status == httplib.OK:
             try:
-                return plist.load(result)
+                return self.load_data(result)
             except Exception, e:
                 raise connlib.ConnectionError(
                     "unexpected response '%s'" % str(e), e)
 
-
     def index(self, query):
-        
+
         if len(query) > 2 and query[:2] == ["search", "title"]:
             if not self._title_cache.is_complete():
-                #print "full index"
                 result = self.index_raw(["search", "title", "%"])
                 for nodeid, title in result:
                     self._title_cache.add(nodeid, title)
                 self._title_cache.set_complete()
 
-            #print len(self._title_cache._titles), query
             return list(self._title_cache.get(query[2]))
 
         elif len(query) == 3 and query[0] == "get_attr" and query[2] == "icon":
             # HACK: fetching icons is too slow right now
             return None
-        
+
         else:
             return self.index_raw(query)
 
-
     def get_node_path(self, nodeid):
-        
-        #if nodeid == self.get_rootid():
-        #    nodeid == ""
-        #return format_node_path(self._prefix, nodeid)
-
         return format_node_url(self._netloc, self._prefix, nodeid)
 
-
     def get_file(self, nodeid, filename):
-
         return format_node_url(self._netloc, self._prefix, nodeid, filename)
-
 
 
 class NodeTitleCache (object):
     def __init__(self):
-        self._titles = defaultdict(lambda:set())
+        self._titles = defaultdict(lambda: set())
         self._nodeids = {}
         self._complete = False
 
     def is_complete(self):
         return self._complete
-    
 
     def set_complete(self, val=True):
         self._complete = val
-                     
 
     def update_attr(self, attr):
         nodeid = attr.get("nodeid", None)
@@ -681,25 +431,20 @@ class NodeTitleCache (object):
 
         self.add(nodeid, title)
 
-
     def remove_attr(self, attr):
-
         nodeid = attr.get("nodeid", None)
-        
+
         # do nothing if nodeid is not present
         if nodeid is None:
             return
-        
-        self.remove(nodeid)
 
+        self.remove(nodeid)
 
     def add(self, nodeid, title):
         self._titles[title.lower()].add(nodeid)
         self._nodeids[nodeid] = title
 
-
     def remove(self, nodeid):
-        
         # if nodeid is in cache, remove it
         if nodeid in self._nodeids:
             try:
@@ -709,14 +454,12 @@ class NodeTitleCache (object):
             except:
                 pass
 
-        
     def get(self, query):
         query = query.lower()
         for title in self._titles.iterkeys():
             if query in title:
                 for nodeid in self._titles[title]:
                     yield (nodeid, self._nodeids[nodeid])
-
 
     def clear(self):
         self._titles.clear()

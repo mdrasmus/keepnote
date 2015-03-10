@@ -1,5 +1,5 @@
 """
- 
+
     KeepNote
     RichText base classes for tags
 
@@ -28,9 +28,7 @@
 # pygtk imports
 import pygtk
 pygtk.require('2.0')
-import gtk, gobject, pango
-from gtk import gdk
-
+import gtk
 
 
 #=============================================================================
@@ -45,7 +43,6 @@ class RichTextBaseTagTable (gtk.TextTagTable):
     # example: a piece of text cannot have two colors, two families,
     # two sizes, or two justifications.
 
-    
     def __init__(self):
         gtk.TextTagTable.__init__(self)
 
@@ -68,11 +65,8 @@ class RichTextBaseTagTable (gtk.TextTagTable):
         if tag in self._expiring_tags:
             self._expiring_tags.remove(tag)
         cls = self._tag2class[tag]
-        del self._tag2class[tag]        
+        del self._tag2class[tag]
         cls.tags.remove(tag)
-
-        
-            
 
     def new_tag_class(self, class_name, class_type, exclusive=True):
         """Create a new RichTextTag class for RichTextBaseTagTable"""
@@ -95,20 +89,18 @@ class RichTextBaseTagTable (gtk.TextTagTable):
         self.add(tag)
         self._tag2class[tag] = c
         return tag
-        
 
     def get_class_of_tag(self, tag):
         """Returns the exclusive class of tag,
            or None if not an exclusive tag"""
         return self._tag2class.get(tag, None)
-    
 
     def lookup(self, name):
         """Lookup any tag, create it if needed"""
 
         # test to see if name is directly in table
         #  modifications and justifications are directly stored
-        tag = gtk.TextTagTable.lookup(self, name)        
+        tag = gtk.TextTagTable.lookup(self, name)
         if tag:
             return tag
 
@@ -117,16 +109,14 @@ class RichTextBaseTagTable (gtk.TextTagTable):
             if tag_class.class_type.is_name(name):
                 tag = tag_class.class_type.make_from_name(name)
                 self.tag_class_add(tag_class.name, tag)
-                
+
                 if tag.expires():
                     self.gc()
                     self._expiring_tags.add(tag)
 
                 return tag
-        
-        
-        raise Exception("unknown tag '%s'" % name)
 
+        raise Exception("unknown tag '%s'" % name)
 
     def gc(self):
         """Garbage collect"""
@@ -143,17 +133,16 @@ class RichTextBaseTagTable (gtk.TextTagTable):
                 # scan buffer for all present tags
                 it = buf.get_start_iter()
                 o = it.get_offset()
-                while True:                    
+                while True:
                     for tag in it.get_tags():
                         if tag in self._expiring_tags:
                             saved.add(tag)
 
                     if (not it.forward_to_tag_toggle(None) or
-                        it.get_offset() == o):
+                            it.get_offset() == o):
                         break
                     o = it.get_offset()
-                    
-            
+
             # remove expired tags
             remove = []
             for tag in self._expiring_tags:
@@ -169,13 +158,11 @@ class RichTextBaseTagTable (gtk.TextTagTable):
             #self.foreach(func)
 
             #print "after", self.get_size()
-    
 
 
 class RichTextTagClass (object):
     """
     A class of tags that specify the same attribute
-
 
     Class tags cannot overlap any other tag of the same class.
     example: a piece of text cannot have two colors, two families,
@@ -187,14 +174,12 @@ class RichTextTagClass (object):
         """
         name:        name of the class of tags (i.e. "family", "fg_color")
         class_type:  RichTextTag class for all tags in class
-        exclusive:   bool for whether tags in class should be mutually exclusive
+        exclusive:   True if tags in class should be mutually exclusive
         """
-        
         self.name = name
         self.tags = set()
         self.class_type = class_type
         self.exclusive = exclusive
-
 
 
 class RichTextTag (gtk.TextTag):
@@ -202,7 +187,7 @@ class RichTextTag (gtk.TextTag):
     def __init__(self, name, **kargs):
         gtk.TextTag.__init__(self, name)
         self._count = 0
-        
+
         for key, val in kargs.iteritems():
             self.set_property(key.replace("_", "-"), val)
 
@@ -233,5 +218,5 @@ class RichTextTag (gtk.TextTag):
         return False
 
     @classmethod
-    def make_from_name(cls, tag_name):        
+    def make_from_name(cls, tag_name):
         return cls(cls.get_value(tag_name))

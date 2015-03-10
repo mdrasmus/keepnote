@@ -64,7 +64,7 @@ class AttrDef (object):
             self.default = datatype
         else:
             self.default = default
-        
+
         # writer function
         if datatype == bool:
             self.write = lambda x: unicode(int(x))
@@ -77,7 +77,7 @@ class AttrDef (object):
         else:
             self.read = datatype
 
-        
+
 class UnknownAttr (object):
     """A value that belongs to an unknown AttrDef"""
 
@@ -87,7 +87,7 @@ class UnknownAttr (object):
 
 g_default_attr_defs = [
     AttrDef("nodeid", unicode, "Node ID", default=new_nodeid),
-    AttrDef("content_type", unicode, "Content type", 
+    AttrDef("content_type", unicode, "Content type",
             default=lambda: CONTENT_TYPE_DIR),
     AttrDef("title", unicode, "Title"),
     AttrDef("order", int, "Order", default=lambda: sys.maxint),
@@ -107,9 +107,9 @@ g_attr_defs_lookup = dict((attr.key, attr) for attr in g_default_attr_defs)
 
 
 def read_attr_v5(filename, attr_defs=g_attr_defs_lookup):
-    
+
     attr = {}
-    
+
     tree = ET.ElementTree(file=filename)
 
     # check root
@@ -140,7 +140,7 @@ def read_attr_v5(filename, attr_defs=g_attr_defs_lookup):
 
     return attr
 
-    
+
 def write_attr_v6(filename, attr):
     out = safefile.open(filename, "w", codec="utf-8")
     out.write(u'<?xml version="1.0" encoding="UTF-8"?>\n'
@@ -155,26 +155,27 @@ def convert_node_attr(filename, filename2, attr_defs=g_attr_defs_lookup):
     """Convert a node.xml file from version 5 to 6"""
 
     keepnote.log_message("converting '%s'...\n" % filename2)
-    
+
     try:
         attr = read_attr_v5(filename, attr_defs)
         attr["version"] = 6
         write_attr_v6(filename2, attr)
     except Exception, e:
-        keepnote.log_error("cannot convert %s: %s\n" % (filename, str(e)), 
+        keepnote.log_error("cannot convert %s: %s\n" % (filename, str(e)),
                            sys.exc_info()[2])
-                           
-    
+
+
 
 
 def update(filename):
+    filename = unicode(filename)
 
     def walk(path):
         nodepath = os.path.join(path, u"node.xml")
         convert_node_attr(nodepath, nodepath)
         for path2 in iter_child_node_paths(path):
             walk(path2)
-    
+
     walk(filename)
 
     preffile = os.path.join(filename, u"notebook.nbk")

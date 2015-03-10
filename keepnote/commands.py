@@ -42,7 +42,6 @@ KEEPNOTE_HEADER = "keepnote\n"
 #KEEPNOTE_ESCAPE = "\xff"
 
 
-
 # TODO: add unicode support
 
 # TODO: ensure commands are executed in order, but don't allow malicious
@@ -57,14 +56,13 @@ def get_lock_file(lockfile):
     Returns (acquire, fd) where 'acquire' is True if the lock is acquired and
     'fd' is the file descriptor of the lock file.
     """
-
     acquire = False
 
     while True:
         try:
             # try to create file with exclusive access
-            fd = os.open(lockfile, os.O_CREAT|os.O_EXCL|os.O_RDWR, 0600)
-            
+            fd = os.open(lockfile, os.O_CREAT | os.O_EXCL | os.O_RDWR, 0600)
+
             # creation succeeded, we have the lock
             acquire = True
             break
@@ -88,10 +86,8 @@ def get_lock_file(lockfile):
 
                 # The lock file disapeared between the two open attempts.
                 # Loop and try again.
-            
-    return acquire, fd
-    
 
+    return acquire, fd
 
 
 def write_lock_file(fd, port, passwd):
@@ -118,10 +114,9 @@ def make_passwd():
 def open_socket(port=None, start_port=4000, end_port=10000, tries=10):
     """
     Open a new socket to listen for new connections.
-    This function makes multiple attempts and can possibly try random 
+    This function makes multiple attempts and can possibly try random
     port numbers.
     """
-    
     s = socket.socket(socket.AF_INET)
 
     for i in range(tries):
@@ -155,7 +150,6 @@ def listen_commands(sock, connfunc, args):
                 must take arguments (conn, addr, *args)
     args     -- tuple of arguments to pass to connfunc
     """
-
     while True:
         try:
             conn, addr = sock.accept()
@@ -186,16 +180,16 @@ def process_connection(conn, addr, passwd, execfunc):
             # password failed, close connection
             conn.close()
             return
-        
+
         # parse command and execute
         try:
             # redirect stdout to connection
             sys.stdout.flush()
             stdout = sys.stdout
-            sys.stdout = connfile #QuotedOutput(connfile)
+            sys.stdout = connfile
             execfunc(parse_command(command))
             #connfile.write(KEEPNOTE_EOF)
-            connfile.flush()    
+            connfile.flush()
         except:
             keepnote.log_error()
             pass
@@ -206,7 +200,6 @@ def process_connection(conn, addr, passwd, execfunc):
         connfile.close()
         conn.shutdown(socket.SHUT_RDWR)
         conn.close()
-        
 
     except socket.error, e:
         # socket error, close connection
@@ -233,10 +226,11 @@ def unescape(text):
             i += 1
         else:
             text2.append(text[i])
-            
+
         i += 1
-        
+
     return "".join(text2)
+
 
 def escape(text):
     """Escape a string for sending over the socket"""
@@ -250,8 +244,9 @@ def escape(text):
             text2.append("\\\\")
         else:
             text2.append(c)
-    
+
     return "".join(text2)
+
 
 def split_args(text):
     args = []
@@ -263,14 +258,15 @@ def split_args(text):
     args.append(text[last:])
     return args
 
+
 def parse_command(text):
     """Parse a command from the socket"""
     return [unescape(x) for x in split_args(text)]
 
+
 def format_command(argv):
     """Format a command from the socket"""
     return " ".join(escape(x) for x in argv)
-
 
 
 class CommandExecutor (object):
@@ -280,20 +276,17 @@ class CommandExecutor (object):
         self._app = None
         self._port = None
 
-
     def set_app(self, app):
         """Set the app for the CommandExecutor"""
         self._app = app
-
 
     def set_port(self, port):
         """Set the socket port for the CommandExecutor"""
         self._port = port
 
-
     def _listen(self, fd, execfunc):
         """Listen for other processes to send commands"""
-        
+
         # open socket and record port number in lock file
         passwd = make_passwd()
         sock, port = open_socket(self._port)
@@ -304,13 +297,13 @@ class CommandExecutor (object):
         self._execfunc = execfunc
 
         # start listening to socket for remote commands
-        thread.start_new_thread(listen_commands, 
-                                (sock, process_connection, (passwd, 
+        thread.start_new_thread(listen_commands,
+                                (sock, process_connection, (passwd,
                                                             self.execute)))
 
     def _connect(self, fd):
         """Connect to the main process"""
-        
+
         port, passwd = read_lock_file(fd)
         os.close(fd)
         fd = None
@@ -318,10 +311,9 @@ class CommandExecutor (object):
         # use port number to connect
         s = socket.socket(socket.AF_INET)
         s.connect(("localhost", port))
-        
-                    
+
         # ensure header matches
-        s.settimeout(5.0) # wait up to 5 seconds to connect
+        s.settimeout(5.0)  # wait up to 5 seconds to connect
         header = s.recv(len(KEEPNOTE_HEADER))
         assert header == KEEPNOTE_HEADER
 
@@ -329,7 +321,7 @@ class CommandExecutor (object):
         connfile = s.makefile()
         connfile.write("%s\n" % passwd)
         connfile.flush()
-                    
+
         def execute(app, argv):
             # send command
             connfile.write(format_command(argv) + "\n")
@@ -345,17 +337,16 @@ class CommandExecutor (object):
             except socket.error:
                 pass
             sys.stdout.flush()
-    
+
             # close socket
             connfile.close()
             s.close()
         self._execfunc = execute
-        
 
-    def setup(self, execfunc):        
+    def setup(self, execfunc):
         """
         Returns True if this is the main process, False otherwise
-        execfunc  -- a function to call with arguments if this is the 
+        execfunc  -- a function to call with arguments if this is the
                      main process
         """
 
@@ -377,7 +368,7 @@ class CommandExecutor (object):
                     self._connect(fd)
                     return False
 
-                except Exception, e:
+                except Exception:
                     # lockfile does not contain proper port number
                     # remove lock file and attempt to acquire again
                     try:
@@ -391,8 +382,7 @@ class CommandExecutor (object):
                     os.remove(lock_file)
 
         raise Exception("cannot get lock")
-    
-    
+
     def execute(self, argv):
         """Send a command to the main thread"""
         self._execfunc(self._app, argv)
@@ -413,7 +403,6 @@ def get_command_executor(func, port=None):
     return main_proc, cmd_exec
 
 
-
 #=============================================================================
 # old code
 
@@ -430,13 +419,13 @@ class QuotedOutput (object):
 
     def closed(self):
         return self.__out.closed()
-    
+
     def flush(self):
         self.__out.flush()
 
 # TODO: maybe not needed
 def format_result(result):
-    
+
     for c in result:
         if c == KEEPNOTE_EOF or c == KEEPNOTE_ESCAPE:
             yield KEEPNOTE_ESCAPE
@@ -480,11 +469,6 @@ def parse_result(result):
 '''
 
 
-
-
-
-
-
 '''
 # dbus
 try:
@@ -492,7 +476,7 @@ try:
     import dbus.bus
     import dbus.service
     import dbus.mainloop.glib
-    
+
 except ImportError:
     dbus = None
 
@@ -532,9 +516,8 @@ if dbus:
                 self.exec_func(self.app, argv)
 
 
-
 def get_command_executor(listen, exec_func):
-    
+
     # setup dbus
     if not dbus or not listen:
         return True, SimpleCommandExecutor(exec_func)
@@ -553,6 +536,4 @@ def get_command_executor(listen, exec_func):
         obj = bus.get_object(APP_NAME, "/")
         ce = dbus.Interface(obj, APP_NAME)
         return False, ce
-
-
 '''

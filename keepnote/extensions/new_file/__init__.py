@@ -33,7 +33,7 @@ import time
 import xml.etree.cElementTree as etree
 
 
-#_ = gettext.gettext
+_ = gettext.gettext
 
 import keepnote
 from keepnote import unicode_gtk

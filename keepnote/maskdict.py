@@ -25,10 +25,6 @@
 #
 
 
-
-
-
-
 class MaskDict (dict):
     """
     A dict with some keys masked
@@ -50,7 +46,6 @@ class MaskDict (dict):
     def get_dict(self):
         return self._dict
 
-    
     # The following methods keep names in sync with dictionary keys
     def __setitem__(self, key, value):
         self._dict.__setitem__(key, value)
@@ -59,7 +54,7 @@ class MaskDict (dict):
         if key in self._mask:
             raise KeyError(key)
         return self._dict.__getitem__(key)
-    
+
     def __delitem__(self, key):
         self._dict.__delitem__(key)
 
@@ -71,10 +66,10 @@ class MaskDict (dict):
             return default
         else:
             return self._dict.get(key, default)
-    
+
     def setdefault(self, key, value):
         return self._dict.setdefault(key, value)
-    
+
     def clear(self):
         self._dict.clear()
 
@@ -83,24 +78,24 @@ class MaskDict (dict):
 
     def iterkeys(self):
         return (k for k in self._dict if k not in self._mask)
-    
+
     def values(self):
         return [self._dict[key] for key in self._dict if key not in self._mask]
-    
+
     def itervalues(self):
         return (self._dict[key] for key in self._dict if key not in self._mask)
-        
+
     def items(self):
-        return [(key, self._dict[key]) for key in self._dict 
+        return [(key, self._dict[key]) for key in self._dict
                 if key not in self._mask]
 
     def iteritems(self):
-        return ((key, self._dict[key]) for key in self._dict 
+        return ((key, self._dict[key]) for key in self._dict
                 if key not in self._mask)
 
     def __iter__(self):
         return (key for key in self._dict if key not in self._mask)
-    
+
     def __repr__(self):
         return repr(dict(self.iteritems()))
 

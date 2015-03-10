@@ -1,6 +1,6 @@
 """
 
-    KeepNote    
+    KeepNote
     Notebook data structure
 
 """
@@ -24,21 +24,15 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301, USA.
 #
 
-
 # python imports
 import mimetypes
 import os
 import sys
-import shutil
 import re
-import traceback
 import urlparse
 import urllib2
 import uuid
-
-# xml imports
 import xml.etree.cElementTree as ET
-
 
 # keepnote imports
 from keepnote.listening import Listeners
@@ -48,7 +42,6 @@ from keepnote.notebook.connection import fs as connection_fs
 from keepnote.notebook import connection
 from keepnote import safefile
 from keepnote import orderdict
-from keepnote import maskdict
 from keepnote import plist
 from keepnote.pref import Pref
 import keepnote
@@ -58,6 +51,9 @@ from keepnote.notebook.connection.fs import get_valid_unique_filename
 from keepnote.notebook.connection.fs import index as notebook_index
 from keepnote.notebook import sync
 
+# pyflakes import
+get_valid_unique_filename
+
 _ = trans.translate
 
 #=============================================================================
@@ -66,10 +62,12 @@ _ = trans.translate
 # NOTE: the <?xml ?> header is left off to keep it compatiable with IE,
 # for the time being.
 # constants
-BLANK_NOTE = u"""\
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml"><body></body></html>
-"""
+NOTE_HEADER = u"""\
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" """ + """\
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><body>"""
+NOTE_FOOTER = u"</body></html>"
+BLANK_NOTE = NOTE_HEADER + NOTE_FOOTER
 
 
 NOTEBOOK_FORMAT_VERSION = 6
@@ -105,13 +103,13 @@ def get_unique_filename(path, filename, ext=u"", sep=u" ", number=2,
 
     if path != u"":
         assert os.path.exists(path), path
-    
+
     # try the given filename
     if not use_number:
         newname = os.path.join(path, filename + ext)
-        if not os.path.exists(newname):            
+        if not os.path.exists(newname):
             return (newname, None) if return_number else newname
-    
+
     # try numbered suffixes
     i = number
     while True:
@@ -125,13 +123,13 @@ def get_unique_filename_list(filenames, filename, ext=u"", sep=u" ", number=2,
                              return_number=False, use_number=False):
     """Returns a unique filename for a given list of existing files"""
     filenames = set(filenames)
-    
+
     # try the given filename
     if not use_number:
         newname = filename + ext
         if newname not in filenames:
             return (newname, None) if return_number else newname
-    
+
     # try numbered suffixes
     i = number
     while True:
@@ -157,9 +155,8 @@ def relpath(filename, start):
             filename = filename[1:]
         return filename
     else:
-        raise Excpetion("unhandled case")
-        
-    
+        raise Exception("unhandled case")
+
 
 #=============================================================================
 # File naming scheme
@@ -173,18 +170,17 @@ def normalize_notebook_dirname(filename, longpath=None):
     """
     Normalize a notebook filename
 
-    If the filename contains 'path/to/the-notebook/notebook.nbk', then 
+    If the filename contains 'path/to/the-notebook/notebook.nbk', then
     return 'path/to/the-notebook'.
 
-    If the platform is windows (or longpath=True), then return the long 
+    If the platform is windows (or longpath=True), then return the long
     file name prefix '\\\\?\\'.
     """
-
     filename = keepnote.ensure_unicode(filename, keepnote.FS_ENCODING)
 
     # allow long file paths in windows
-    if (longpath is True or 
-        (longpath is None and keepnote.get_platform() == "windows")):
+    if (longpath is True or
+            (longpath is None and keepnote.get_platform() == "windows")):
         filename = "\\\\?\\" + filename
 
     # ensure filename points to notebook directory
@@ -201,8 +197,11 @@ def normalize_notebook_dirname(filename, longpath=None):
 # HTML functions
 
 TAG_PATTERN = re.compile(u"<[^>]*>")
+
+
 def strip_tags(line):
     return re.sub(TAG_PATTERN, u"", line)
+
 
 def read_data_as_plain_text(infile):
     """Read a Note data file as plain text"""
@@ -228,7 +227,6 @@ def read_data_as_plain_text(infile):
         yield strip_tags(line)
 
 
-
 #=============================================================================
 # functions
 
@@ -236,7 +234,7 @@ def read_data_as_plain_text(infile):
 
 def get_notebook_version(filename):
     """Read the version of a notebook from its preference file"""
-    
+
     if os.path.isdir(filename):
         filename = get_pref_file(filename)
 
@@ -252,7 +250,7 @@ def get_notebook_version(filename):
 
 def get_notebook_version_etree(tree):
     """Read the version of a notebook from an ElementTree"""
-    
+
     root = tree.getroot()
     if root.tag == "notebook":
         p = root.find("version")
@@ -265,8 +263,7 @@ def get_notebook_version_etree(tree):
 
         return int(p.text)
     else:
-        raise NoteBookError(_("Notebook preference data is corrupt"), e)
-
+        raise NoteBookError(_("Notebook preference data is corrupt"))
 
 
 def new_nodeid():
@@ -281,7 +278,8 @@ def get_node_url(nodeid, host=u""):
 
 def is_node_url(url):
     """Returns True if URL is a node"""
-    return re.match(u"nbk://[^/]*/.*", url) != None
+    return re.match(u"nbk://[^/]*/.*", url) is not None
+
 
 def parse_node_url(url):
     """
@@ -295,7 +293,7 @@ def parse_node_url(url):
         return match.groups()
     else:
         raise Exception("bad node URL")
-    
+
 
 def guess_file_mimetype(filename, default="application/octet-stream"):
     """Guess the mimetype of a file by its filename"""
@@ -353,20 +351,17 @@ def attach_file(filename, node, index=None):
         raise e
 
 
-
-
 #=============================================================================
 # errors
 
 class NoteBookError (StandardError):
     """Exception that occurs when manipulating NoteBook's"""
-    
+
     def __init__(self, msg, error=None):
         StandardError.__init__(self)
         self.msg = msg
         self.error = error
-    
-    
+
     def __str__(self):
         if self.error is not None:
             return repr(self.error) + "\n" + self.msg
@@ -378,11 +373,12 @@ class NoteBookVersionError (NoteBookError):
     """Exception for version errors while reading notebooks"""
 
     def __init__(self, notebook_version, readable_version,  error=None):
-        NoteBookError.__init__(self,
+        NoteBookError.__init__(
+            self,
             "Notebook version '%d' is higher than what is readable '%d'" %
-                               (notebook_version,
-                                readable_version),
-                               error)
+            (notebook_version,
+             readable_version),
+            error)
         self.notebook_version = notebook_version
         self.readable_version = readable_version
 
@@ -396,13 +392,13 @@ _datatype_defaults = {
     "float": 0.0,
     "bool": False}
 
+
 class AttrDef (object):
     """
     An AttrDef defines the type of an notebook attr
     """
 
     def __init__(self, key, datatype, name, default=None):
-
         self.key = key
         self.datatype = datatype
         self.name = name
@@ -413,12 +409,10 @@ class AttrDef (object):
         else:
             self.default = default
 
-
     def format(self):
         """
         Returns dict representation
         """
-
         return {"key": self.key,
                 "datatype": self.datatype,
                 "name": self.name,
@@ -426,7 +420,7 @@ class AttrDef (object):
 
 
 class AttrDefs (object):
-    """ 
+    """
     A collection of AttrDef's
     """
 
@@ -455,7 +449,6 @@ class AttrDefs (object):
                 for attr_def in self._attr_defs.itervalues()]
 
 
-
 def format_attr_def(attr_def):
     return attr_def.format()
 
@@ -466,6 +459,7 @@ def parse_attr_def(attr_def_dict):
                    attr_def_dict.get("name", attr_def_dict["key"]),
                    default=attr_def_dict.get("default", None))
 
+
 def iter_attr_defs(lst):
     for item in lst:
         yield parse_attr_def(item)
@@ -475,7 +469,8 @@ def iter_attr_defs(lst):
 
 g_default_attr_defs = [
     AttrDef("nodeid", "string", "Node ID"),
-    AttrDef("content_type", "string", "Content type", default=CONTENT_TYPE_DIR),
+    AttrDef(
+        "content_type", "string", "Content type", default=CONTENT_TYPE_DIR),
     AttrDef("title", "string", "Title"),
     AttrDef("order", "integer", "Order", default=sys.maxint),
     AttrDef("created_time", "timestamp", "Created time"),
@@ -492,13 +487,12 @@ g_default_attr_defs = [
 ]
 
 
-
 class AttrTable (object):
     def __init__(self, key, name, attrs=[]):
         self.key = key
         self.name = name
         self.attrs = list(attrs)
-        
+
     def format(self):
         return {"key": self.key,
                 "name": self.name,
@@ -506,7 +500,7 @@ class AttrTable (object):
 
 
 class AttrTables (object):
-    """ 
+    """
     A collection of AttrTable's
     """
 
@@ -535,10 +529,9 @@ class AttrTables (object):
                 for attr_table in self._attr_tables.itervalues()]
 
 
-
 g_default_attr_tables = [
     AttrTable(
-        "default", "Default Table", 
+        "default", "Default Table",
         attrs=["title", "created_time", "modified_time"])]
 
 
@@ -560,6 +553,7 @@ def iter_attr_tables(lst):
 
 BUILTIN_ATTR = ("nodeid", "parentids", "childrenids", "order")
 
+
 class NoteBookNode (object):
     """A general base class for all nodes in a NoteBook"""
 
@@ -578,17 +572,14 @@ class NoteBookNode (object):
                       "content_type": content_type}
         if attr:
             self._attr.update(attr)
-        
-        
+
     def is_valid(self):
         """Returns True if node is valid (not deleted)"""
         return self._valid
-    
-    
+
     def get_notebook(self):
         """Returns the notebook that owns this node"""
         return self._notebook
-
 
     #==============================================
     # filesystem-specific methods (may not always be available)
@@ -608,25 +599,22 @@ class NoteBookNode (object):
         """Returns URL for node"""
         return get_node_url(self._attr["nodeid"], host)
 
-
     #=======================================
     # attr methods
-    
+
     def clear_attr(self, title="", content_type=CONTENT_TYPE_DIR):
         """Clear attributes (set them to defaults)"""
         for key in self._attr.keys():
             if key not in BUILTIN_ATTR:
                 del self._attr[key]
-        
+
         # set title and content_type
         self._attr["title"] = title
         self._attr["content_type"] = content_type
-        
-    
+
     def get_attr(self, name, default=None):
         """Get the value of an attribute"""
         return self._attr.get(name, default)
-
 
     def set_attr(self, name, value):
         """Set the value of an attribute"""
@@ -635,11 +623,9 @@ class NoteBookNode (object):
         if value != oldvalue:
             self._set_dirty(True)
 
-
     def has_attr(self, name):
         """Returns True if node has the attribute"""
         return name in self._attr
-
 
     def del_attr(self, name):
         """Delete an attribute from the node"""
@@ -648,12 +634,10 @@ class NoteBookNode (object):
         if name in self._attr:
             del self._attr[name]
         self._set_dirty(True)
-        
 
     def iter_attr(self):
         """Iterate through attributes of the node"""
         return self._attr.iteritems()
-    
 
     def _init_attr(self):
         """Initialize attributes from a dict"""
@@ -663,7 +647,6 @@ class NoteBookNode (object):
         self._attr.setdefault("childrenids", [])
         self._attr.setdefault("parentids", [])
 
-
     #========================================
     # special attr methods
 
@@ -671,11 +654,9 @@ class NoteBookNode (object):
         """Returns the parent of the node"""
         return self._parent
 
-
     def get_title(self):
         """Returns the display title of a node"""
         return self._attr.get("title", "")
-    
 
     def set_attr_timestamp(self, name, timestamp=None):
         """Set a timestamp attribute"""
@@ -683,7 +664,6 @@ class NoteBookNode (object):
             timestamp = get_timestamp()
         self._attr[name] = timestamp
         self._set_dirty(True)
-        
 
     def set_payload(self, filename, new_filename=None):
         """Copy file into NoteBook directory"""
@@ -693,14 +673,14 @@ class NoteBookNode (object):
             new_filename = os.path.basename(filename)
         new_filename = connection_fs.new_filename(
             self._conn, self._attr["nodeid"], new_filename, None)
-        
+
         try:
             # attempt url parse
             parts = urlparse.urlparse(filename)
-            
+
             if os.path.exists(filename) or parts[0] == "":
                 # perform local copy
-                self._conn.copy_file(None, filename, 
+                self._conn.copy_file(None, filename,
                                      self._attr["nodeid"], new_filename)
             else:
                 # perform download
@@ -715,11 +695,9 @@ class NoteBookNode (object):
                 out.close()
         except Exception, e:
             raise NoteBookError(_("Cannot copy file '%s'" % filename), e)
-        
+
         # set attr
         self._attr["payload_filename"] = new_filename
-
-    
 
     #=============================================
     # node structure methods
@@ -732,13 +710,12 @@ class NoteBookNode (object):
         self._attr["parentids"] = [self._parent._attr["nodeid"]]
         self._attr["childrenids"] = []
         self._attr.setdefault("order", sys.maxint)
-        
+
         self._init_attr()
-        
+
         self._conn.create_node(self._attr["nodeid"], self._attr)
         self._set_dirty(False)
-       
-    
+
     def delete(self):
         """Deletes this node from the notebook"""
 
@@ -758,43 +735,40 @@ class NoteBookNode (object):
                 walk(child)
             self._conn.delete_node(node._attr["nodeid"])
         walk(self)
-        
+
         # update data structure
         self._parent._remove_child(self)
         self._parent._set_child_order()
         self._set_dirty(False)
-        
+
         # TODO: this will change with multiple parents.  Need GC of some sort
         # make sure to recursively invalidate
         def walk(node):
             node._valid = False
             if node._children is not None:
-                for child in node._children:                    
+                for child in node._children:
                     walk(child)
         walk(self)
 
         # parent node notifies listeners of change
         self._notebook.node_changed.notify(
             [("removed", self._parent, self._attr["order"])])
-    
-    
+
     def trash(self):
         """Places node in the notebook's trash folder"""
-
         if self._notebook is None:
             raise NoteBookError(_("This node is not part of any notebook"))
-        
+
         if self.in_trash():
             # delete if in trash folder already
             self.delete()
         else:
-            # move to trash            
+            # move to trash
             self.move(self._notebook._trash)
-        
-    
+
     def in_trash(self):
         """Determines if node is inside Trash folder"""
-        
+
         # TODO: become more complicated with general graph structure
         # trace up through parents
 
@@ -807,21 +781,20 @@ class NoteBookNode (object):
                 return True
             ptr = ptr._parent
         return False
-    
-    
+
     def move(self, parent, index=None):
         """Move this node to be the child of another node 'parent'"""
-        
-        # TODO: if parent is in another notebook, accessory data like icons 
+
+        # TODO: if parent is in another notebook, accessory data like icons
         # might need to be transferred.
         #  Maybe I won't support that.
 
-        # TODO: with multiple parents, we need to specify here which 
+        # TODO: with multiple parents, we need to specify here which
         # parent relationship we are breaking.
-        
+
         assert self != parent
         old_parent = self._parent
-        old_index = self._attr["order"]
+        #old_index = self._attr["order"]
 
         # check whether move is allowed
         allowed, error = self._notebook.move_allowed(self, parent, index)
@@ -830,8 +803,7 @@ class NoteBookNode (object):
 
         # check to see if move is across notebooks
         if self._notebook != parent._notebook:
-            return self._move_notebooks(parent, index)        
-
+            return self._move_notebooks(parent, index)
 
         # make sure new parents children are loaded
         parent.get_children()
@@ -867,15 +839,12 @@ class NoteBookNode (object):
         # the 'added' event changes path of 'remove' location
         #self._notebook.node_changed.notify([
         #        ("removed", old_parent, old_index), ("added", self)])
-    
-
 
     def _move_notebooks(self, parent, index=None):
         """Move node to a different notebook"""
-        
+
         # TODO: does conflict detection go inside the connection?
-        
-        old_parent = self._parent
+
         conn1 = self._conn
         conn2 = parent._conn
 
@@ -883,8 +852,9 @@ class NoteBookNode (object):
         try:
             # change parent pointer
             self._attr["parentids"] = [parent._attr["nodeid"]]
+
             def walk(node):
-                sync.sync_node(node._attr["nodeid"], conn1, conn2, 
+                sync.sync_node(node._attr["nodeid"], conn1, conn2,
                                attr=node._attr)
                 for child in node.get_children():
                     walk(child)
@@ -905,10 +875,9 @@ class NoteBookNode (object):
             keepnote.log_error()
             pass
 
-    
     def rename(self, title):
         """Renames the title of the node"""
-        
+
         # TODO: keep attach file names in sync
 
         self.set_attr("title", title)
@@ -917,11 +886,9 @@ class NoteBookNode (object):
         # TODO: generalize notify for all attrs that might appear in listview
         # or other GUI widgets
         self.notify_change(False)
-        
 
     def new_child(self, content_type, title, index=None):
         """Add a new node under this node"""
-
         self.get_children()
         node = self._notebook.new_node(content_type, self, {"title": title})
         self._add_child(node, index)
@@ -929,21 +896,18 @@ class NoteBookNode (object):
         #self.notify_change(True)
         self._notebook.node_changed.notify([("added", node)])
         return node
-    
 
     def _new_child(self, content_type, title, index=None):
-        """Add a new node under this node
-           Private method.  Does not notify listeners.
         """
-        
+        Add a new node under this node
+        Private method.  Does not notify listeners.
+        """
         self.get_children()
         node = self._notebook.new_node(content_type, self, {"title": title})
         self._add_child(node, index)
         node.save(True)
         return node
-    
 
-    
     def duplicate(self, parent, index=None, recurse=False, notify=True,
                   skip=None):
         """Duplicate a node to a new parent"""
@@ -951,7 +915,6 @@ class NoteBookNode (object):
         # NOTE: we must be able to handle the case where the root node is
         # duplicated.
 
-        
         # initialize skip set to prevent double copying
         if skip is None:
             skip = set()
@@ -969,10 +932,10 @@ class NoteBookNode (object):
 
         # record the nodeid of the original node
         node._attr["duplicate_of"] = self.get_attr("nodeid")
-        
+
         #node._conn.update_node(node._attr["nodeid"], node._attr)
         node._write_attr(node._attr)
-        
+
         # copy files
         try:
             sync.sync_files(self._conn, self._attr["nodeid"],
@@ -981,7 +944,6 @@ class NoteBookNode (object):
             keepnote.log_error()
             # TODO: handle errors
             pass
-
 
         # TODO: prevent loops, copy paste within same tree.
         if recurse:
@@ -995,13 +957,10 @@ class NoteBookNode (object):
 
         return node
 
-
     def _write_attr(self, attr):
-        
         #self._notebook._mask_attr.set_dict(attr)
         #self._conn.update_node(attr["nodeid"], self._notebook._mask_attr)
         self._conn.update_node(attr["nodeid"], attr)
-
 
     #==================================
     # child node management
@@ -1012,7 +971,6 @@ class NoteBookNode (object):
             self._get_children()
         return self._children
 
-
     def has_children(self):
         """Return True if node has children"""
         if self._children is None:
@@ -1021,7 +979,6 @@ class NoteBookNode (object):
             return self._has_children
         else:
             return len(self._children) > 0
-    
 
     def add_child(self, child, index=None):
         """Add node as a child"""
@@ -1029,60 +986,52 @@ class NoteBookNode (object):
         self._notebook.node_changed.notify([("added", child)])
         #self.notify_change(True)
 
-    
     def allows_children(self):
         """Returns True if this node allows children"""
         return True
 
-    
     def _get_children(self):
         """Load children list from filesystem"""
-        
         self._children = list(self._iter_children())
 
         # assign orders
         self._children.sort(key=lambda x: x._attr.get("order", sys.maxint))
         self._set_child_order()
 
-
     def _iter_children(self):
         """Iterate through children
            Returns temporary node objects
         """
-        
-        for childid in self._attr["childrenids"]: 
+        for childid in self._attr["childrenids"]:
             try:
                 yield self._notebook._read_node(childid, parent=self)
             except:
                 keepnote.log_error()
                 continue
 
-    
-    
     def _set_child_order(self):
         """Ensures that child know their order in the children list"""
         for i, child in enumerate(self._children):
             if child._attr.get("order") != i:
                 child._attr["order"] = i
                 child._set_dirty(True)
-        
 
     def _add_child(self, child, index=None):
         """Add a node as a child"""
-        
+
         # propogate notebook
         child._notebook = self._notebook
         child._conn = self._conn
-        
+
         # determine insert location
         if self._children is None:
             self._get_children()
-        
+
         if index is not None:
             # insert child at index
             self._children.insert(index, child)
             self._set_child_order()
-        elif (self._notebook and len(self._children) > 0 and 
+        elif (self._notebook and len(self._children) > 0 and
               self._children[-1] == self._notebook.get_trash()):
             # append child before trash
             self._children.insert(len(self._children)-1, child)
@@ -1091,9 +1040,8 @@ class NoteBookNode (object):
             # append child at end of list
             child._attr["order"] = len(self._children)
             self._children.append(child)
-            
+
         child._set_dirty(True)
-    
 
     def _remove_child(self, child):
         """Remove a child node"""
@@ -1101,17 +1049,15 @@ class NoteBookNode (object):
             self._get_children()
         self._children.remove(child)
 
-
     #==============================================
     # input/output
-        
+
     def save(self, force=False):
         """Save node if modified (dirty)"""
         if (force or self._is_dirty()) and self._valid:
             self._write_attr(self._attr)
             #self._conn.update_node(self._attr["nodeid"], self._attr)
             self._set_dirty(False)
-    
 
     #=============================================
     # node file methods
@@ -1123,29 +1069,28 @@ class NoteBookNode (object):
     def delete_file(self, filename):
         return self._conn.delete_file(self._attr["nodeid"], filename)
 
-    def new_filename(self, new_filename, ext=u"", sep=u" ", number=2, 
+    def new_filename(self, new_filename, ext=u"", sep=u" ", number=2,
                      return_number=False, use_number=False, ensure_valid=True):
-        return connection_fs.new_filename(self._conn,
-            self._attr["nodeid"], new_filename, ext, sep, number, 
-            return_number=return_number, use_number=use_number, 
+        return connection_fs.new_filename(
+            self._conn,
+            self._attr["nodeid"], new_filename, ext, sep, number,
+            return_number=return_number, use_number=use_number,
             ensure_valid=ensure_valid)
-    
-    def list_dir(self, filename=""):
+
+    def list_dir(self, filename="/"):
         return self._conn.list_dir(self._attr["nodeid"], filename)
 
     def create_dir(self, filename):
         self._conn.create_dir(self._attr["nodeid"], filename)
 
-
     def get_page_file(self):
         """Returns filename of data/text/html/etc"""
-
         # TODO: think about generalizing this to payload concept
         return PAGE_DATA_FILE
 
     def get_file(self, filename):
         return self._conn.get_file(self._attr["nodeid"], filename)
-    
+
     def get_data_file(self):
         """
         Returns filename of data/text/html/etc
@@ -1154,26 +1099,24 @@ class NoteBookNode (object):
         """
         return self._conn.get_file(self._attr["nodeid"], PAGE_DATA_FILE)
 
-
     #=============================================
     # marking for save needed
 
     def _set_dirty(self, dirty):
         """Sets the dirty bit to indicates whether node needs saving"""
-        
         self._notebook._set_dirty_node(self, dirty)
-        
+
     def _is_dirty(self):
         """Returns True if node needs saving"""
         return self._notebook._is_dirty_node(self)
-        
+
     def mark_modified(self):
         """Marks a node as modified or dirty"""
         self._notebook._set_dirty_node(self, True)
 
     #===============================================
     # listeners
-    
+
     def notify_change(self, recurse):
         """Notify listeners that node has changed"""
         if self._notebook:
@@ -1199,15 +1142,14 @@ class NoteBookNode (object):
             self._notebook.node_changed.suppress(listener)
 
     def resume_change(self, listener=None):
-        """Resume notification of listeners for node changes"""        
+        """Resume notification of listeners for node changes"""
         if self._notebook:
-            self._notebook.node_changed.resume(listener)        
+            self._notebook.node_changed.resume(listener)
     '''
 
 
 class NodeAction (object):
     pass
-
 
 
 #=============================================================================
@@ -1218,19 +1160,16 @@ class NoteBookPreferences (Pref):
     """Preference data structure for a NoteBook"""
     def __init__(self):
         keepnote.Pref.__init__(self)
-        
+
         self.quick_pick_icons_changed = Listeners()
         self.init()
-
 
     def set_data(self, data):
         self.init()
         self._data.update(data)
 
-
     def get_data(self):
         return self._data
-
 
     def init(self):
         self._data["version"] = NOTEBOOK_FORMAT_VERSION
@@ -1238,29 +1177,27 @@ class NoteBookPreferences (Pref):
 
         self.quick_pick_icons_changed.notify()
 
-
     def get_quick_pick_icons(self):
         return self._data.get("quick_pick_icons", [])
 
     def set_quick_pick_icons(self, icons):
         self._data["quick_pick_icons"] = list(icons)
         self.quick_pick_icons_changed.notify()
-        
 
-    
+
 #=============================================================================
 # NoteBook type
 
 
 class NoteBook (NoteBookNode):
     """Class represents a NoteBook"""
-    
+
     def __init__(self):
-        
-        self._conn = None # Note: this comes first in order satify base class
-        NoteBookNode.__init__(self, notebook=self, 
+
+        self._conn = None  # Note: this comes first in order satify base class
+        NoteBookNode.__init__(self, notebook=self,
                               content_type=CONTENT_TYPE_DIR)
-        
+
         self.pref = NoteBookPreferences()
         self._filename = None
         self._dirty = set()
@@ -1268,7 +1205,7 @@ class NoteBook (NoteBookNode):
         self.attr_defs = AttrDefs()
         self.attr_tables = AttrTables()
         self._necessary_attrs = []
-        
+
         # init notebook attributes
         self._init_default_attr()
 
@@ -1280,7 +1217,6 @@ class NoteBook (NoteBookNode):
         self.closing_event = Listeners()
         self.close_event = Listeners()
 
-
     def get_listeners(self, key):
         """Get custom listener"""
         listeners = self.listeners.get(key, None)
@@ -1289,13 +1225,12 @@ class NoteBook (NoteBookNode):
             self.listeners[key] = listeners
         return listeners
 
-
     #=====================================
-    # attrs        
+    # attrs
 
     def _init_default_attr(self):
         """Initialize default notebook attributes"""
-        
+
         # TODO: not being used right now
         self._necessary_attrs = ["nodeid", "created_time", "modified_time",
                                  "order"]
@@ -1310,68 +1245,57 @@ class NoteBook (NoteBookNode):
         for attr_table in g_default_attr_tables:
             self.attr_tables.add(attr_table)
 
-
     def add_attr_def(self, attr_def):
         """Adds a new attribute definition to the notebook"""
         self.attr_defs.add(attr_def)
-    
 
     def clear_attr_defs(self):
         """Clears all attribute definitions from the notebook"""
         self.attr_defs.clear()
 
-
     def get_necessary_attrs(self):
         """Returns necessary attributes"""
         return self._necessary_attrs
 
-
     def _read_attr_defs(self):
         self._init_default_attr()
-        
+
         self.attr_defs.parse(self._attr.get("attr_defs", ()))
         self.attr_tables.parse(self._attr.get("attr_tables", ()))
-
 
     def _write_attr_defs(self):
         self._attr["attr_defs"] = self.attr_defs.format()
         self._attr["attr_tables"] = self.attr_tables.format()
-    
-    
+
     #===================================================
     # input/output
-    
+
     def create(self, filename, conn=None):
         """Initialize NoteBook at location 'filename'"""
-        
         self._conn = conn if conn else connection_fs.NoteBookConnectionFS()
         self._filename = filename
 
         self._attr["nodeid"] = new_nodeid()
         self._init_attr()
 
-
         self._conn.connect(filename)
         self._conn.create_node(self._attr["nodeid"],  self._attr)
-        
+
         self._init_index()
-        
+
         self.write_preferences()
 
         self._set_dirty(False)
 
         self._init_trash()
 
-    
     def load(self, filename, conn=None):
         """Load the NoteBook from filename"""
-
         self._conn = conn if conn else connection_fs.NoteBookConnectionFS()
 
         if isinstance(self._conn, connection_fs.NoteBookConnectionFS):
             # ensure filename points to notebook directory
             filename = normalize_notebook_dirname(filename, longpath=False)
-
 
             # TODO: generalize. this is currently fs-specific
             # cheat by reading preferences first so that we can set index_dir
@@ -1396,7 +1320,6 @@ class NoteBook (NoteBookNode):
             if version > NOTEBOOK_FORMAT_VERSION:
                 raise NoteBookVersionError(version, NOTEBOOK_FORMAT_VERSION)
 
-        
         # read basic info
         self._filename = filename
         self._conn.connect(filename)
@@ -1414,11 +1337,9 @@ class NoteBook (NoteBookNode):
 
         self.notify_change(True)
 
-    
-    
     def save(self, force=False):
         """Recursively save any loaded nodes"""
-        
+
         # TODO: keepnote copy of old pref.  only save pref if its changed.
 
         if force or self in self._dirty:
@@ -1435,57 +1356,49 @@ class NoteBook (NoteBookNode):
             for node in list(self._dirty):
                 node.save()
         self._conn.save()
-        
-        self._dirty.clear()
 
+        self._dirty.clear()
 
     def close(self, save=True):
         """Close notebook"""
-        
         self.closing_event.notify(self, save)
         if save:
             self.save()
         self._conn.close()
         self.close_event.notify(self)
 
-
     def get_connection(self):
         """Returns the notebook connection"""
         return self._conn
 
-
     def get_filename(self):
         return self._filename
-
 
     def _init_index(self):
         """Initialize the index"""
 
-        # TODO: ideally I would like to do index_attr()'s before 
-        # conn.init_index(), so that the initial indexing properly 
+        # TODO: ideally I would like to do index_attr()'s before
+        # conn.init_index(), so that the initial indexing properly
         # catches all the desired attr's
         self._conn.index_attr("icon", "TEXT")
         self._conn.index_attr("title", "TEXT", index_value=True)
 
-
     #--------------------------------------
-    # input/output        
-    
+    # input/output
+
     def save_needed(self):
         """Returns True if save is needed"""
         return len(self._dirty) > 0
 
-
     def new_node(self, content_type, parent, attr):
         """Create a new NodeBookNode"""
-        
-        node = NoteBookNode(attr.get("title", DEFAULT_PAGE_NAME), 
+
+        node = NoteBookNode(attr.get("title", DEFAULT_PAGE_NAME),
                             parent=parent, notebook=self,
-                            content_type=content_type, 
+                            content_type=content_type,
                             attr=attr)
         node.create()
         return node
-
 
     def move_allowed(self, node, parent, index=None):
         """Returns True if this node move is allowed"""
@@ -1495,10 +1408,9 @@ class NoteBook (NoteBookNode):
                 # trash node must be child of root
                 return False, NoteBookError(
                     _("The Trash folder must be a top-level folder."))
-        
+
         # move is allowed
         return True, None
-
 
     def delete_allowed(self, node):
         """Returns True if this node can be deleted"""
@@ -1510,28 +1422,24 @@ class NoteBook (NoteBookNode):
 
         return True, None
 
-
     def _set_dirty_node(self, node, dirty):
-        """Mark a node to be dirty (needs saving) in NoteBook"""        
-        
+        """Mark a node to be dirty (needs saving) in NoteBook"""
+
         if dirty:
             self._dirty.add(node)
         else:
             if node in self._dirty:
                 self._dirty.remove(node)
-    
-    
+
     def _is_dirty_node(self, node):
         """Returns True if node is dirty (needs saving)"""
         return node in self._dirty
 
-
-    def _read_node(self, nodeid, parent=None, 
+    def _read_node(self, nodeid, parent=None,
                    default_content_type=CONTENT_TYPE_DIR):
-
         attr = self._conn.read_node(nodeid)
         node = NoteBookNode(
-            attr.get("title", DEFAULT_PAGE_NAME), 
+            attr.get("title", DEFAULT_PAGE_NAME),
             parent=parent, notebook=self,
             content_type=attr.get("content_type", default_content_type),
             attr=attr)
@@ -1544,38 +1452,35 @@ class NoteBook (NoteBookNode):
 
     def get_trash(self):
         """Returns the Trash Folder for the NoteBook"""
-        return self._trash        
-
+        return self._trash
 
     def _init_trash(self):
         """Ensures Trash directory exists in a notebook"""
-        
+
         # ensure trash directory exists
         self._trash = None
         for child in self.get_children():
             if self.is_trash_dir(child):
                 self._trash = child
                 break
-        
+
         # if no trash folder, create it
         if self._trash is None:
             try:
-                self._trash = self.new_node(CONTENT_TYPE_TRASH, self, 
+                self._trash = self.new_node(CONTENT_TYPE_TRASH, self,
                                             {"title": TRASH_NAME})
                 self._add_child(self._trash)
 
             except NoteBookError, e:
                 raise NoteBookError(_("Cannot create Trash folder"), e)
 
-    
     def is_trash_dir(self, node):
         """Returns True if node is a Trash Folder"""
         return node.get_attr("content_type") == CONTENT_TYPE_TRASH
 
-
     def empty_trash(self):
         """Deletes all nodes under Trash Folder"""
-        
+
         for child in reversed(list(self._trash.get_children())):
             child.delete()
 
@@ -1589,7 +1494,7 @@ class NoteBook (NoteBookNode):
 
     def get_icon_file(self, basename):
         """Lookup icon filename in notebook icon store"""
-        
+
         # TODO: is there a better way to access icons?
         # directly by stream?
         filename = connection.path_join(
@@ -1598,16 +1503,14 @@ class NoteBook (NoteBookNode):
             return self._conn.get_file(self._attr["nodeid"], filename)
         else:
             return None
-        
 
     def get_icons(self):
         """Returns list of icons in notebook icon store"""
         filename = connection.path_join(
-            NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR)
+            NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR) + '/'
         filenames = list(self._conn.list_dir(self._attr["nodeid"], filename))
         filenames.sort()
         return filenames
-
 
     def install_icon(self, filename):
         """Installs an icon into the notebook icon store"""
@@ -1616,18 +1519,16 @@ class NoteBook (NoteBookNode):
 
         basename = os.path.basename(filename)
         basename, ext = os.path.splitext(basename)
-        newfilename = connection.path_join(NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR,
-                                           basename)
+        newfilename = connection.path_join(
+            NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR, basename)
 
         newfilename = connection_fs.new_filename(
             self._conn, self._attr["nodeid"], newfilename, ext, u"-",
             ensure_valid=False)
 
-        self._conn.copy_file(None, filename, 
+        self._conn.copy_file(None, filename,
                              self._attr["nodeid"], newfilename)
         return connection.path_basename(newfilename)
-
-
 
     def install_icons(self, filename, filename_open):
         """Installs an icon into the notebook icon store"""
@@ -1639,16 +1540,13 @@ class NoteBook (NoteBookNode):
         startname = connection.path_join(NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR,
                                          basename)
 
-        nodepath = self.get_path()
-
         number = 2
         use_number = False
         while True:
             newfilename, number = connection_fs.new_filename(
                 self._conn, self._attr["nodeid"], startname, ext, u"-",
                 number=number, return_number=True, use_number=use_number,
-                ensure_valid=False,
-                path=nodepath)
+                ensure_valid=False)
 
             # determine open icon filename
             newfilename_open = startname
@@ -1665,15 +1563,14 @@ class NoteBook (NoteBookNode):
             else:
                 # we are done searching for names
                 break
-            
-        self._conn.copy_file(None, filename, 
+
+        self._conn.copy_file(None, filename,
                              self._attr["nodeid"], newfilename)
-        self._conn.copy_file(None, filename_open, 
+        self._conn.copy_file(None, filename_open,
                              self._attr["nodeid"], newfilename_open)
 
-        return (connection.path_basename(newfilename), 
+        return (connection.path_basename(newfilename),
                 connection.path_basename(newfilename_open))
-
 
     def uninstall_icon(self, basename):
         """Removes an icon from the notebook icon store"""
@@ -1681,9 +1578,8 @@ class NoteBook (NoteBookNode):
             return
         filename = connection.path_join(
             NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR, basename)
-        self._conn.delete_node_file(self._attr["nodeid"], filename)
-    
-    
+        self._conn.delete_file(self._attr["nodeid"], filename)
+
     #================================================
     # search
 
@@ -1691,27 +1587,26 @@ class NoteBook (NoteBookNode):
         """Lookup node by nodeid"""
 
         # TODO: could make this more efficient by not loading all uncles
-
         path = self._conn.get_node_path_by_id(nodeid)
         if path is None:
             keepnote.log_message("node %s not found\n" % nodeid)
             return None
-        
+
         def walk(node, path, i):
             if i >= len(path):
                 return node
-            
+
             # search children
             nodeid2 = path[i]
             for child in node.get_children():
                 if child.get_attr("nodeid") == nodeid2:
                     return walk(child, path, i+1)
-            
+
             # node not found
             keepnote.log_message("node %s not found\n" % str(path))
             return None
         return walk(self._notebook, path[1:], 0)
-    
+
     def get_node_path_by_id(self, nodeid):
         """Lookup node path by nodeid"""
         return self._conn.get_node_path_by_id(nodeid)
@@ -1735,14 +1630,13 @@ class NoteBook (NoteBookNode):
     def get_attr_by_id(self, nodeid, key):
         """Returns attr value for a node with id 'nodeid'"""
         return self._conn.get_attr_by_id(nodeid, key)
-    
+
     def index(self, query):
         return self._conn.index(query)
 
-
     #----------------------------------------
     # index interface (temparary until fully transparent)
-    
+
     def index_needed(self):
         return self._conn.index_needed()
 
@@ -1753,14 +1647,13 @@ class NoteBook (NoteBookNode):
         for node in self._conn.index_all():
             yield node
 
-
     #===============================================
     # preferences
-    
+
     def get_pref_file(self):
         """Gets the NoteBook's preference file"""
         return self._conn.get_file(self._attr["nodeid"], PREF_FILE)
-    
+
     def get_pref_dir(self):
         """
         Gets the NoteBook's preference directory
@@ -1771,24 +1664,24 @@ class NoteBook (NoteBookNode):
     def get_icon_dir(self):
         """Gets the NoteBook's icon directory"""
         return self._conn.get_file(
-            self._attr["nodeid"], 
+            self._attr["nodeid"],
             connection.path_join(NOTEBOOK_META_DIR, NOTEBOOK_ICON_DIR))
-    
 
     def set_preferences_dirty(self):
         """Notifies notebook that preferences need saving"""
         self._set_dirty(True)
 
-    
     def write_preferences(self):
         """Writes the NoteBooks preferences"""
         try:
             # ensure preference directory exists
-            self._conn.create_dir(self._attr["nodeid"], NOTEBOOK_META_DIR + "/")
-                
+            self._conn.create_dir(
+                self._attr["nodeid"], NOTEBOOK_META_DIR + "/")
+
             # ensure icon directory exists
-            self._conn.create_dir(self._attr["nodeid"], 
-                             NOTEBOOK_META_DIR + "/" +  NOTEBOOK_ICON_DIR + "/")
+            self._conn.create_dir(
+                self._attr["nodeid"],
+                NOTEBOOK_META_DIR + "/" + NOTEBOOK_ICON_DIR + "/")
 
             data = self.pref.get_data()
 
@@ -1807,18 +1700,16 @@ class NoteBook (NoteBookNode):
         except Exception, e:
             raise NoteBookError(_("File format error"), e)
 
-    
     def read_preferences(self, infile=None):
         """Reads the NoteBook's preferneces"""
-        
         try:
             if infile is None:
                 infile = self.open_file(PREF_FILE, "r", codec="utf-8")
             root = ET.fromstring(infile.read())
             tree = ET.ElementTree(root)
         except IOError, e:
-            raise NoteBookError(_("Cannot read notebook preferences %s")
-                                % self.get_file(PREF_FILE) , e)
+            raise NoteBookError(_("Cannot read notebook preferences %s") %
+                                self.get_file(PREF_FILE), e)
         except Exception, e:
             keepnote.log_error(e)
             #if recover:
@@ -1832,13 +1723,11 @@ class NoteBook (NoteBookNode):
             if infile:
                 infile.close()
 
-
         # check version
         version = get_notebook_version_etree(tree)
         if version > NOTEBOOK_FORMAT_VERSION:
             raise NoteBookVersionError(version, NOTEBOOK_FORMAT_VERSION)
 
-        
         if root.tag == "notebook":
             p = root.find("pref")
             if p is not None:
@@ -1850,15 +1739,13 @@ class NoteBook (NoteBookNode):
             else:
                 data = orderdict.OrderDict()
         else:
-            raise NoteBookError(_("Cannot read notebook preferences %s")
-                                % self.get_file(PREF_FILE) , e)
-        
+            raise NoteBookError(_("Cannot read notebook preferences %s") %
+                                self.get_file(PREF_FILE), e)
+
         data["version"] = version
         self.pref.set_data(data)
-      
 
     def _recover_preferences(self):
-        
         out = self.open_file(PREF_FILE, "w", "utf-8")
         out.write(u"<notebook></notebook>")
         out.close()
