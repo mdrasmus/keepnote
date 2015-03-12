@@ -440,7 +440,6 @@ class KeepNote (keepnote.KeepNote):
 
         # set defaults for auto save
         p = self.pref
-        #use_autosave = p.get("autosave", default=True)
         p.get("autosave_time", default=DEFAULT_AUTOSAVE_TIME)
 
         # set style

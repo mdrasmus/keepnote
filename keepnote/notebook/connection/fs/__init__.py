@@ -202,7 +202,8 @@ def new_filename(conn, nodeid, new_filename, ext=u"", sep=u" ", number=2,
                  return_number=False, use_number=False, ensure_valid=True,
                  _path=None):
 
-    filenames = list(conn.list_dir(nodeid, os.path.dirname(new_filename)))
+    filenames = list(conn.list_dir(nodeid,
+                                   os.path.dirname(new_filename) + '/'))
     return new_filename_list(filenames, new_filename, ext=ext, sep=sep,
                              number=number,  return_number=return_number,
                              use_number=use_number, ensure_valid=ensure_valid,
