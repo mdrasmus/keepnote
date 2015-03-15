@@ -648,6 +648,13 @@ var KeepNoteView = React.createClass({
         var bindings = this.state.bindings;
         $("body").keypress(bindings.processEvent.bind(bindings));
         this.initKeyBindings();
+
+        // Register back button event.
+        window.onpopstate = function (event) {
+            this.viewPageByUrl(window.location.pathname, {
+                skipHistory: true
+            });
+        }.bind(this);
     },
 
     initKeyBindings: function () {
@@ -739,9 +746,22 @@ var KeepNoteView = React.createClass({
         return notebook.deleteNode(node);
     },
 
-    viewNode: function (node) {
-        //window.history.pushState({}, node.get("title"), node.url());
-        this.setState({currentNode: node});
+    viewNode: function (node, options) {
+        var options = options || {};
+        var skipHistory = options.skipHistory || false;
+
+        // Save history.
+        if (!skipHistory) {
+            var state = {
+                currentNodeId: node.id
+            };
+            var pageUrl = this.getNodePageUrl(node);
+            window.history.pushState(state, node.get("title"), pageUrl);
+        }
+
+        this.setState({
+            currentNode: node
+        });
 
         if (node.isPage()) {
             this.loadPage(node).done(function (content) {
@@ -751,6 +771,30 @@ var KeepNoteView = React.createClass({
             // Node is a directory. Display blank page.
             this.refs.pageEditor.clear();
         }
+    },
+
+    viewPageByUrl: function (url, options) {
+        var notebook = this.props.app.notebook;
+
+        var match = url.match(/^\/pages\/(.*)/);
+        if (match) {
+            // Parse node id.
+            var nodeid = match[1];
+            var node = notebook.getNode(nodeid);
+            this.viewNode(node, options);
+        }
+
+        var match = url.match(/^nbk:\/\/\/(.*)/);
+        if (match) {
+            // Parse node id.
+            var nodeid = match[1];
+            var node = notebook.getNode(nodeid);
+            this.viewNode(node, options);
+        }
+    },
+
+    getNodePageUrl: function (node) {
+        return "/pages/" + node.id;
     },
 
     onShowAttr: function (e) {
@@ -777,7 +821,7 @@ var KeepNoteView = React.createClass({
 
     visitLink: function (url) {
         if (url.match(/^nbk:/)) {
-            console.log("notebook", url);
+            this.viewPageByUrl(url);
         } else {
             window.open(url, '_blank');
         }
@@ -858,7 +902,10 @@ function KeepNoteApp() {
             this.notebook = new NoteBook({rootid: rootid});
             this.notebook.on("change", this.onNoteBookChange, this);
 
-            this.notebook.root.fetchExpanded();
+            this.notebook.root.fetchExpanded().done(function () {
+                // Process initial page url.
+                this.view.viewPageByUrl(window.location.pathname);
+            }.bind(this));
         }.bind(this));
     };
 

@@ -120,6 +120,7 @@ class BaseNoteBookHttpServer(object):
 
         # Setup web app routes.
         self.app.get('/', callback=self.home_view)
+        self.app.get('/pages/<page:re:.*>', callback=self.home_view)
         self.app.get('/static/<filename:re:.*>',
                      callback=self.static_file_view)
 
@@ -180,7 +181,7 @@ class BaseNoteBookHttpServer(object):
         response.content_type = 'application/json'
         return json.dumps(data).encode('utf8')
 
-    def home_view(self):
+    def home_view(self, page=''):
         """
         Homepage of notebook webapp.
         """
