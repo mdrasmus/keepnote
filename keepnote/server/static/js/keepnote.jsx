@@ -581,6 +581,7 @@ var PageEditor = React.createClass({
 
     componentDidMount: function () {
         var size = this.props.size;
+        var pageEditor = this.refs.pageEditor.getDOMNode();
 
         // Add editor buttons.
         var toolbar = this.refs.toolbar.getDOMNode();
@@ -593,10 +594,17 @@ var PageEditor = React.createClass({
             parserRules:  wysihtml5ParserRules
         });
 
+        // Attach listener to link double clicks.
+        var that = this;
+        $(pageEditor).on('dblclick', 'a', function (event) {
+            event.preventDefault();
+            if (that.props.onVisitLink)
+                that.props.onVisitLink($(this).attr('href'));
+        });
+
         // TODO: move this into render.
         // Align dialog to bottom of editor.
         var toolbarHeight = 25;
-        var pageEditor = this.refs.pageEditor.getDOMNode();
         var rect = pageEditor.getBoundingClientRect();
         var linkDialog = $("[data-wysihtml5-dialog=createLink]");
         linkDialog.css({
@@ -680,7 +688,8 @@ var KeepNoteView = React.createClass({
            style={{width: pageSize[0], height: pageSize[1]}}>
             <PageEditor ref="pageEditor"
              size={pageSize}
-             onShowAttr={this.onShowAttr}/>
+             onShowAttr={this.onShowAttr}
+             onVisitLink={this.visitLink}/>
           </div>
         </div>;
     },
@@ -764,6 +773,14 @@ var KeepNoteView = React.createClass({
         var body = this.refs.pageEditor.getContent();
         var html = formatPageHtml(node, body);
         return node.writeFile(node.PAGE_FILE, html);
+    },
+
+    visitLink: function (url) {
+        if (url.match(/^nbk:/)) {
+            console.log("notebook", url);
+        } else {
+            window.open(url, '_blank');
+        }
     }
 });
 
