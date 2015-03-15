@@ -6,6 +6,37 @@ body {
   padding: 5px;
 }
 
+#topbar {
+  background: #cccccc;
+}
+
+#topbar .search {
+  float: right;
+}
+
+.tt-dropdown-menu {
+  background: white;
+  border: 1px solid #555555;
+  padding: 2px;
+}
+
+.tt-hint {
+  color: #999
+}
+
+.tt-suggestion {
+  padding: 2px;
+}
+
+.tt-suggestion p {
+  margin: 0;
+}
+
+.tt-suggestion.tt-cursor {
+  color: #fff;
+  background-color: #5555cc;
+}
+
 #treeview-pane {
   border: solid #cccccc 1px;
   float: left;

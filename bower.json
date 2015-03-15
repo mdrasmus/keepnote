@@ -22,7 +22,8 @@
     "react": "~0.12.2",
     "wysihtml": "~0.4.17",
     "xmldom": "~0.1.16",
-    "react-dnd": "~0.9.3"
+    "react-dnd": "~0.9.3",
+    "typeahead.js": "~0.10.5"
   },
   "overrides": {
     "bootstrap": {
@@ -45,6 +46,9 @@
     },
     "react": {
       "main": "*.js"
+    },
+    "typeahead.js": {
+      "main": "dist/*.*"
     },
     "wysihtml": {
       "main": [

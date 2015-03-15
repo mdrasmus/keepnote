@@ -115,6 +115,11 @@ class BaseNoteBookHttpServer(object):
         self.port = port
         self.notebook_prefixes = ['notebook/']
 
+        # TODO: move this to a more general location.
+        # Setup basic indexing.
+        self.conn.index_attr("icon", "TEXT")
+        self.conn.index_attr("title", "TEXT", index_value=True)
+
         self.app = Bottle()
         self.server = None
 

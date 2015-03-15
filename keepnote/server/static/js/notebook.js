@@ -297,6 +297,9 @@ var NodeFile = Backbone.Model.extend({
 
 
 var NoteBook = Backbone.Model.extend({
+
+    urlRoot: '/notebook/',
+
     initialize: function (options) {
         this.nodes = {};
         this.root = this.getNode(options.rootid);
@@ -304,6 +307,19 @@ var NoteBook = Backbone.Model.extend({
 
     fetch: function (options) {
         return this.root.fetch();
+    },
+
+    search: function (query) {
+        return $.ajax({
+            type: 'POST',
+            url: this.urlRoot + '?index',
+            data: JSON.stringify(query),
+            dataType: 'json'
+        });
+    },
+
+    searchTitle: function (title) {
+        return this.search(["search", "title", title]);
     },
 
     // Return a node in the node cache.

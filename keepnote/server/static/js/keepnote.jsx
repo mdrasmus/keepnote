@@ -636,6 +636,47 @@ var PageEditor = React.createClass({
 });
 
 
+var SearchBox = React.createClass({
+    render: function () {
+        return <div className="search"><input ref="search" type="text"/></div>;
+    },
+
+    componentDidMount: function () {
+        var input = $(this.refs.search.getDOMNode());
+
+        input.typeahead({
+            highlight: true
+        },
+        {
+            name: 'pages',
+            source: this.getResults
+        }).on('typeahead:selected', this.onSelected);
+    },
+
+    focus: function () {
+        var input = $(this.refs.search.getDOMNode());
+        input.focus().select();
+    },
+
+    getResults: function (query, cb) {
+        this.props.search(query).done(function (result) {
+            var suggestions = [];
+            for (var i=0; i<result.length; i++) {
+                suggestions.push({
+                    value: result[i][1],
+                    nodeid: result[i][0]
+                });
+            }
+            cb(suggestions);
+        });
+    },
+
+    onSelected: function (event, suggestion, dataset) {
+        this.props.onViewNodeId(suggestion.nodeid);
+    }
+});
+
+
 var KeepNoteView = React.createClass({
     getInitialState: function () {
         return {
@@ -660,6 +701,7 @@ var KeepNoteView = React.createClass({
     initKeyBindings: function () {
         var bindings = this.state.bindings;
         bindings.add("ctrl s", this.save);
+        bindings.add("ctrl k", this.focusSearch);
         bindings.add("ctrl n", this.newNode);
         bindings.add("ctrl shift N", this.newChildNode);
     },
@@ -668,15 +710,16 @@ var KeepNoteView = React.createClass({
         var app = this.props.app;
         var root = app.notebook ? app.notebook.root : null;
 
+        var topbarHeight = 30;
         var treeWidth = 300;
 
-        //var offset = [this.pageScrollOffset[0], 0];
         var windowSize = [$(window).width(), $(window).height()];
-        var appSize = [windowSize[0] - 4, windowSize[1] - 2];
-        var treeSize = [treeWidth, appSize[1]];
+        var appSize = [windowSize[0], windowSize[1]];
+        var topbarSize = [windowSize[0], topbarHeight];
+        var treeSize = [treeWidth - 2, appSize[1] - topbarHeight];
 
-        var pageWidth = windowSize[0] - treeSize[0] - 4;
-        var pageSize = [pageWidth, appSize[1]];
+        var pageWidth = windowSize[0] - treeSize[0];
+        var pageSize = [pageWidth, appSize[1] - topbarHeight];
 
         var viewtree = root ?
             <NotebookTree
@@ -687,8 +730,14 @@ var KeepNoteView = React.createClass({
             <div/>;
 
         return <div id="app">
+          <div id="topbar"
+           style={{width: topbarSize[0], height: topbarSize[1]}}>
+            <SearchBox ref="search"
+             search={this.searchTitle}
+             onViewNodeId={this.viewNodeId}/>
+          </div>
           <div id="treeview-pane" tabIndex="1"
-            style={{width: treeSize[0], height: treeSize[1]}}>
+           style={{width: treeSize[0], height: treeSize[1]}}>
             {viewtree}
           </div>
           <div id="page-pane"
@@ -773,6 +822,12 @@ var KeepNoteView = React.createClass({
         }
     },
 
+    viewNodeId: function (nodeid, options) {
+        var notebook = this.props.app.notebook;
+        var node = notebook.getNode(nodeid);
+        this.viewNode(node, options);
+    },
+
     viewPageByUrl: function (url, options) {
         var notebook = this.props.app.notebook;
 
@@ -825,6 +880,15 @@ var KeepNoteView = React.createClass({
         } else {
             window.open(url, '_blank');
         }
+    },
+
+    focusSearch: function () {
+        this.refs.search.focus();
+    },
+
+    searchTitle: function (query) {
+        var notebook = this.props.app.notebook;
+        return notebook.searchTitle(query);
     }
 });
 
