@@ -78,3 +78,7 @@ body {
 #page-editor {
   overflow-y: auto;
 }
+
+.dialog-link {
+  background: #cccccc;
+}

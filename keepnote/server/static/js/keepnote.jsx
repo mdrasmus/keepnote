@@ -580,6 +580,8 @@ var PageEditor = React.createClass({
     },
 
     componentDidMount: function () {
+        var size = this.props.size;
+
         // Add editor buttons.
         var toolbar = this.refs.toolbar.getDOMNode();
         var toolbarContent = $($("#page-toolbar-template").html()).children();
@@ -589,6 +591,19 @@ var PageEditor = React.createClass({
         this.editor = new wysihtml5.Editor('page-editor', {
             toolbar: 'page-toolbar',
             parserRules:  wysihtml5ParserRules
+        });
+
+        // TODO: move this into render.
+        // Align dialog to bottom of editor.
+        var toolbarHeight = 25;
+        var pageEditor = this.refs.pageEditor.getDOMNode();
+        var rect = pageEditor.getBoundingClientRect();
+        var linkDialog = $("[data-wysihtml5-dialog=createLink]");
+        linkDialog.css({
+            position: 'absolute',
+            width: size[0],
+            height: toolbarHeight,
+            top: rect.bottom - toolbarHeight
         });
     },
 

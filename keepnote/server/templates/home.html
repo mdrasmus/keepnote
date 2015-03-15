@@ -96,6 +96,7 @@
         <a data-wysihtml5-action="showSource">HTML</a>
       </div>
 
+      <!-- table editing -->
       <div class="block" data-wysihtml5-hiddentools="table" style="display: none;">
         <a data-wysihtml5-command="mergeTableCells">Merge</a>
         <a data-wysihtml5-command="addTableCells" data-wysihtml5-command-value="above">row-before</a>
@@ -107,13 +108,16 @@
         <a data-wysihtml5-command="deleteTableCells" data-wysihtml5-command-value="column">delete col</a>
       </div>
 
-      <div data-wysihtml5-dialog="createLink" style="display: none;">
+      <!-- link editor -->
+      <div class="dialog-link" data-wysihtml5-dialog="createLink" style="display: none;">
         <label>
           Link:
           <input data-wysihtml5-dialog-field="href" value="http://">
         </label>
         <a data-wysihtml5-dialog-action="save">OK</a>&nbsp;<a data-wysihtml5-dialog-action="cancel">Cancel</a>
       </div>
+
+      <!-- image dialog -->
       <div data-wysihtml5-dialog="insertImage" style="display: none;">
         <label>
           Image:
