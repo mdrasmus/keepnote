@@ -105,6 +105,7 @@ from keepnote.notebook.connection.fs.file import get_node_filename
 from keepnote.notebook.connection.fs.paths import get_node_meta_file
 from keepnote.notebook.connection.fs.paths import NODE_META_FILE
 from keepnote.notebook.connection.index import AttrIndex
+from keepnote.timestamp import get_timestamp
 
 
 _ = trans.translate
@@ -1200,7 +1201,8 @@ class NoteBookConnectionFS (BaseNoteBookConnectionFS):
         Ensure attributes follow the notebook schema.
         """
         was_clean = True
-        masked = {'childrenids', 'parentids'}
+        masked = set(['childrenids', 'parentids'])
+        current_time = get_timestamp()
 
         # Set default attrs if needed.
         defaults = {
@@ -1208,6 +1210,8 @@ class NoteBookConnectionFS (BaseNoteBookConnectionFS):
             'version': keepnote.notebook.NOTEBOOK_FORMAT_VERSION,
             'parentids': [],
             'childrenids': [],
+            'created_time': current_time,
+            'modified_time': current_time,
         }
         for key, value in defaults.items():
             if key not in attr:
