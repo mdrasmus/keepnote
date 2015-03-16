@@ -444,6 +444,10 @@ var NotebookTreeNode = React.createClass({
         if (expanded) {
             this.props.node.fetchChildren();
         }
+
+        this.props.node.save({
+            'expanded': expanded
+        });
     },
 
     // View a node's page.
@@ -752,6 +756,7 @@ var KeepNoteView = React.createClass({
 
     save: function () {
         this.savePage();
+        this.props.app.notebook.save();
     },
 
     newNode: function () {

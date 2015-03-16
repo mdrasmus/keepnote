@@ -309,6 +309,13 @@ var NoteBook = Backbone.Model.extend({
         return this.root.fetch();
     },
 
+    save: function () {
+        return $.ajax({
+            type: 'POST',
+            url: this.urlRoot + '?save',
+        });
+    },
+
     search: function (query) {
         return $.ajax({
             type: 'POST',
