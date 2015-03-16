@@ -31,6 +31,7 @@ WININSTALLER=dist/$(WININSTALLER_FILE)
 UPLOAD_FILES=$(SDIST) $(RPM) $(DEB) $(EBUILD) $(WININSTALLER)
 
 CODEQUALITY_FILES=\
+	setup.py \
 	keepnote/*.py \
 	keepnote/gui \
 	keepnote/notebook \
