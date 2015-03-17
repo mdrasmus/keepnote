@@ -47,6 +47,10 @@ body {
   border: solid #ffcccc 1px;
 }
 
+#listview-pane {
+  overflow: auto;
+}
+
 .node-tree-title {
   cursor: pointer;
 }

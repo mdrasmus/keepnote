@@ -108,7 +108,9 @@ var Node = Backbone.Model.extend({
     },
 
     // Recursively fetch all expanded nodes.
-    fetchExpanded: function () {
+    fetchExpanded: function (expandAttr) {
+        expandAttr = expandAttr || 'expanded';
+
         var defer = $.Deferred();
 
         // Fetch this node if needed.
@@ -119,7 +121,7 @@ var Node = Backbone.Model.extend({
 
         // Recursively fetch children.
         return defer.then(function () {
-            if (this.get('expanded')) {
+            if (this.get(expandAttr)) {
                 var defers = [];
                 for (var i=0; i<this.children.length; i++) {
                     defers.push(this.children[i].fetchExpanded());

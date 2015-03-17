@@ -343,7 +343,7 @@ var NotebookTreeNode = React.createClass({
 
     getInitialState: function () {
         var node = this.props.node;
-        var expanded = node.get("expanded") || false;
+        var expanded = node.get(this.props.expandAttr) || false;
         return {
             firstOpen: !node.fetched,
             expanded: expanded,
@@ -381,7 +381,8 @@ var NotebookTreeNode = React.createClass({
                    depth={this.props.depth + 1}
                    indent={this.props.indent}
                    currentNode={this.props.currentNode}
-                   onViewNode={this.props.onViewNode}/>);
+                   onViewNode={this.props.onViewNode}
+                   expandAttr={this.props.expandAttr}/>);
             }
         }
 
@@ -445,9 +446,9 @@ var NotebookTreeNode = React.createClass({
             this.props.node.fetchChildren();
         }
 
-        this.props.node.save({
-            'expanded': expanded
-        });
+        var attr = {};
+        attr[this.props.expandAttr] = expanded;
+        this.props.node.save(attr);
     },
 
     // View a node's page.
@@ -480,7 +481,8 @@ var NotebookTree = React.createClass({
             <NotebookTreeNode
                 node={this.props.node}
                 currentNode={this.props.currentNode}
-                onViewNode={this.props.onViewNode}/>
+                onViewNode={this.props.onViewNode}
+                expandAttr={this.props.expandAttr}/>
           </div>;
     },
 
@@ -685,6 +687,7 @@ var KeepNoteView = React.createClass({
     getInitialState: function () {
         return {
             currentNode: null,
+            currentTreeNode: null,
             bindings: new KeyBinding()
         };
     },
@@ -716,6 +719,7 @@ var KeepNoteView = React.createClass({
 
         var topbarHeight = 30;
         var treeWidth = 300;
+        var listviewHeight = 300;
 
         var windowSize = [$(window).width(), $(window).height()];
         var appSize = [windowSize[0], windowSize[1]];
@@ -723,14 +727,27 @@ var KeepNoteView = React.createClass({
         var treeSize = [treeWidth - 2, appSize[1] - topbarHeight];
 
         var pageWidth = windowSize[0] - treeSize[0];
-        var pageSize = [pageWidth, appSize[1] - topbarHeight];
+        var rightSize = [pageWidth, appSize[1] - topbarHeight];
+
+        var listviewSize = [pageWidth, listviewHeight];
+        var pageSize = [pageWidth, appSize[1] - topbarHeight - listviewHeight];
 
         var viewtree = root ?
             <NotebookTree
              node={root}
+             currentNode={this.state.currentTreeNode}
+             onViewNode={this.viewTreeNode}
+             onDeleteNode={this.deleteNode}
+             expandAttr="expanded"/> :
+            <div/>;
+
+        var listview = this.state.currentTreeNode ?
+            <NotebookTree
+             node={this.state.currentTreeNode}
              currentNode={this.state.currentNode}
              onViewNode={this.viewNode}
-             onDeleteNode={this.deleteNode}/> :
+             onDeleteNode={this.deleteNode}
+             expandAttr="expanded2"/> :
             <div/>;
 
         return <div id="app">
@@ -745,7 +762,11 @@ var KeepNoteView = React.createClass({
             {viewtree}
           </div>
           <div id="page-pane"
-           style={{width: pageSize[0], height: pageSize[1]}}>
+           style={{width: rightSize[0], height: rightSize[1]}}>
+           <div id="listview-pane" tabIndex="1"
+            style={{width: listviewSize[0], height: listviewSize[1]}}>
+            {listview}
+           </div>
             <PageEditor ref="pageEditor"
              size={pageSize}
              onShowAttr={this.onShowAttr}
@@ -813,18 +834,75 @@ var KeepNoteView = React.createClass({
             window.history.pushState(state, node.get("title"), pageUrl);
         }
 
+        // TODO: need to expand listview to node.
+        this.getVisibleTreeNode(node).done(function (treeNode) {
+            this.setState({
+                currentTreeNode: treeNode,
+                currentNode: node
+            });
+
+            // Expand for listview.
+            treeNode.fetchExpanded('expanded2');
+
+            // Load node in page editor.
+            if (node.isPage()) {
+                this.loadPage(node).done(function (content) {
+                    this.refs.pageEditor.setContent(content);
+                }.bind(this));
+            } else {
+                // Node is a directory. Display blank page.
+                this.refs.pageEditor.clear();
+            }
+        }.bind(this));
+    },
+
+    getVisibleTreeNode: function (node) {
+        // Get path to root.
+        var rootPath = [node];
+
+        // Recursively fetch the root path.
+        function visit(ptr) {
+            var defer = $.Deferred();
+            if (!ptr.fetched)
+                defer = ptr.fetch();
+            else
+                defer.resolve();
+
+            defer.then(function () {
+                var defer = $.Deferred();
+                if (ptr.parents.length == 0) {
+                    defer.resolve();
+                    return defer;
+                } else {
+                    ptr = ptr.parents[0];
+                    rootPath.push(ptr);
+                    defer.resolve(ptr);
+                    return defer.then(visit);
+                }
+            });
+            return defer;
+        }
+
+        return visit(node).then(function () {
+            // Find first selected or visible node in root path.
+            rootPath.reverse();
+            var treeNode = null;
+            for (var i=0; i<rootPath.length; i++) {
+                treeNode = rootPath[i];
+                if (!treeNode.get('expanded') ||
+                    treeNode == this.state.currentTreeNode)
+                    break;
+            }
+            return treeNode;
+        }.bind(this));
+    },
+
+    viewTreeNode: function (node, options) {
         this.setState({
+            currentTreeNode: node,
             currentNode: node
         });
-
-        if (node.isPage()) {
-            this.loadPage(node).done(function (content) {
-                this.refs.pageEditor.setContent(content);
-            }.bind(this));
-        } else {
-            // Node is a directory. Display blank page.
-            this.refs.pageEditor.clear();
-        }
+        this.viewNode(node, options);
     },
 
     viewNodeId: function (nodeid, options) {
@@ -945,7 +1023,7 @@ function KeyBinding() {
         var key = event.key;
 
         // Compatibility.
-        if (key.match(/Left|Right|Up|Down/))
+        if (key && key.match(/Left|Right|Up|Down/))
             key = 'Arrow' + key;
 
         hash += key;
