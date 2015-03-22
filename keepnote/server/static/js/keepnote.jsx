@@ -504,13 +504,13 @@ var NotebookTreeNode = React.createClass({
             if (i == 0) {
                 style.paddingLeft = indent;
 
-                content.push(<a className="expand"
+                content.push(<a key="1" className="expand"
                               onClick={this.toggleChildren}
                               href="javascript:;">+</a>);
             }
 
             if (column.attr == 'title') {
-                content.push(<InplaceEditor className="title"
+                content.push(<InplaceEditor key="2" className="title"
                              value={node.get('title')}
                              onSubmit={this.onRenameNode}/>);
             } else if (column.attr == 'created_time' ||
@@ -523,7 +523,7 @@ var NotebookTreeNode = React.createClass({
                 content.push(node.get(column.attr));
             }
 
-            columns.push(<div style={style}>{content}</div>);
+            columns.push(<div key={i} style={style}>{content}</div>);
         }
 
         return <div className="node-tree">
