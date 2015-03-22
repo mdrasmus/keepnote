@@ -37,18 +37,23 @@ body {
   background-color: #5555cc;
 }
 
+.treeview-header {
+  background-color: #eeeeee;
+  border-bottom: 1px solid #888;
+}
+
+.treeview-header-column {
+  padding-left: 5px;
+  border-left: 1px solid #888;
+}
+
 #treeview-pane {
   border: solid #cccccc 1px;
   float: left;
-  overflow: auto;
 }
 
 #treeview-pane:focus {
   border: solid #ffcccc 1px;
-}
-
-#listview-pane {
-  overflow: auto;
 }
 
 .node-tree-title {

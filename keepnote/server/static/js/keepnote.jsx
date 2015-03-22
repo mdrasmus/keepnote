@@ -513,6 +513,8 @@ var NotebookTree = React.createClass({
             node: null,
             currentNode: null,
             expandAttr: 'expanded',
+            showHeaders: false,
+            size: [300, 300],
             columns: [{
                 attr: 'title',
                 width: 300
@@ -521,13 +523,42 @@ var NotebookTree = React.createClass({
     },
 
     render: function () {
+        var headers = null;
+        var headersHeight = 20;
+        var viewSize = [this.props.size[0], this.props.size[1]];
+
+        if (this.props.showHeaders) {
+            viewSize[1] -= headersHeight;
+
+            // Build column headers.
+            var columns = [];
+            for (var i=0; i<this.props.columns.length; i++) {
+                var column = this.props.columns[i];
+                var style = {
+                    float: 'left',
+                    width: column.width
+                };
+                columns.push(<div key={i} className="treeview-header-column"
+                              style={style}>{column.attr}</div>);
+            }
+
+            headers = <div className='treeview-header'
+                       style={{height: headersHeight}}>{columns}</div>;
+        }
+
         return <div onKeyDown={this.onKeyDown} tabIndex="1">
-            <NotebookTreeNode
-             node={this.props.node}
-             currentNode={this.props.currentNode}
-             onViewNode={this.props.onViewNode}
-             expandAttr={this.props.expandAttr}
-             columns={this.props.columns}/>
+            {headers}
+            <div style={{
+              overflow: 'auto',
+              width: viewSize[0],
+              height: viewSize[1]}}>
+              <NotebookTreeNode
+               node={this.props.node}
+               currentNode={this.props.currentNode}
+               onViewNode={this.props.onViewNode}
+               expandAttr={this.props.expandAttr}
+               columns={this.props.columns}/>
+            </div>
           </div>;
     },
 
@@ -777,13 +808,14 @@ var KeepNoteView = React.createClass({
         var listviewSize = [pageWidth, listviewHeight];
         var pageSize = [pageWidth, appSize[1] - topbarHeight - listviewHeight];
 
-        var viewtree = root ?
+        var treeview = root ?
             <NotebookTree
              node={root}
              currentNode={this.state.currentTreeNode}
              onViewNode={this.viewTreeNode}
              onDeleteNode={this.deleteNode}
-             expandAttr="expanded"/> :
+             expandAttr="expanded"
+             size={treeSize}/> :
             <div/>;
 
         var listviewColumns = [
@@ -807,7 +839,9 @@ var KeepNoteView = React.createClass({
              onViewNode={this.viewNode}
              onDeleteNode={this.deleteNode}
              expandAttr="expanded2"
-             columns={listviewColumns}/> :
+             columns={listviewColumns}
+             showHeaders={true}
+             size={listviewSize}/> :
             <div/>;
 
         return <div id="app">
@@ -819,7 +853,7 @@ var KeepNoteView = React.createClass({
           </div>
           <div id="treeview-pane" tabIndex="1"
            style={{width: treeSize[0], height: treeSize[1]}}>
-            {viewtree}
+            {treeview}
           </div>
           <div id="page-pane"
            style={{width: rightSize[0], height: rightSize[1]}}>
