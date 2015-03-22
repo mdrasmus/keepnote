@@ -34,6 +34,16 @@ var Node = Backbone.Model.extend({
         }.bind(this));
     },
 
+    // Fetch node data only if not already fetched.
+    ensureFetched: function () {
+        var defer = $.Deferred();
+        if (!this.fetched)
+            defer = this.fetch();
+        else
+            defer.resolve();
+        return defer;
+    },
+
     onChange: function () {
     },
 

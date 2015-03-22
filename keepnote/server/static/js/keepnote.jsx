@@ -474,7 +474,8 @@ var NotebookTreeNode = React.createClass({
                columns={this.props.columns}/>);
         }
 
-        var displayChildren = (this.state.expanded ? "inline" : "none");
+        var displayChildren = (
+            node.get(this.props.expandAttr) ? "inline" : "none");
         var indent = this.props.depth * this.props.indent;
         var nodeClass = "node-tree-title";
         if (node == this.props.currentNode)
@@ -1051,9 +1052,11 @@ var KeepNoteView = React.createClass({
                 currentNode: node
             });
 
-            // TODO: need to expand listview to node.
-            // Fetch for listview.
-            treeNode.fetchExpanded('expanded2');
+            // Ensure listview is expanded make node visible.
+            // Ensure all visible nodes in listview are fetched.
+            this.expandToNode(node, 'expanded2').then(function () {
+                treeNode.fetchExpanded('expanded2');
+            });
 
             // Load node in page editor.
             if (node.isPage()) {
@@ -1075,31 +1078,35 @@ var KeepNoteView = React.createClass({
         }
     },
 
+    // Expand all nodes leading to node from root. Don't expand node itself.
+    expandToNode: function (node, attr) {
+        // Walk up parent path.
+        function visit(node, expand) {
+            return node.ensureFetched().then(function () {
+                if (!node.get(attr)) {
+                    var attrs = {};
+                    attrs[attr] = expand;
+                    node.set(attrs);
+                    node.save();
+                }
+                if (node.parents.length > 0)
+                    return visit(node.parents[0], true);
+            });
+        }
+        return visit(node, false);
+    },
+
     getVisibleTreeNode: function (node) {
         // Get path to root.
-        var rootPath = [node];
+        var rootPath = [];
 
         // Recursively fetch the root path.
-        function visit(ptr) {
-            var defer = $.Deferred();
-            if (!ptr.fetched)
-                defer = ptr.fetch();
-            else
-                defer.resolve();
-
-            defer.then(function () {
-                var defer = $.Deferred();
-                if (ptr.parents.length == 0) {
-                    defer.resolve();
-                    return defer;
-                } else {
-                    ptr = ptr.parents[0];
-                    rootPath.push(ptr);
-                    defer.resolve(ptr);
-                    return defer.then(visit);
-                }
+        function visit(node) {
+            rootPath.push(node);
+            return node.ensureFetched().then(function () {
+                if (node.parents.length > 0)
+                    return visit(node.parents[0]);
             });
-            return defer;
         }
 
         return visit(node).then(function () {
