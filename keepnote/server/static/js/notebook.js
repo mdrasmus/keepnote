@@ -91,28 +91,6 @@ var Node = Backbone.Model.extend({
         if (typeof(trigger) === "undefined")
             trigger = true;
 
-        /*
-        function cmpNodes(attr, direction) {
-            return function (node1, node2) {
-                var val1 = (node1.get(attr) || 0);
-                var val2 = (node2.get(attr) || 0);
-                if (val1 < val2)
-                    return -direction;
-                else if (val2 > val1)
-                    return direction;
-                else
-                    return 0;
-            }
-        }
-
-        var sortBy = this.get('info_sort');
-        if (typeof(sortBy) === 'undefined')
-            sortBy = 'order';
-        var sortDir = this.get('info_sort_dir');
-        if (sortDir != 1 && sortDir != -1)
-            sortDir = 1;
-        */
-
         this.children.sort(function (node1, node2) {
             var val1 = (node1.get('order') || 0);
             var val2 = (node2.get('order') || 0);

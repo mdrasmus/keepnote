@@ -75,7 +75,6 @@ var NotebookTreeRaw = React.createClass({
         var node = this.props.node;
         var expanded = node.get("expanded") || false;
         return {
-            firstOpen: !node.fetched,
             expanded: expanded,
             filesExpanded: false
         };
@@ -338,7 +337,9 @@ var NotebookTreeNode = React.createClass({
         return {
             depth: 0,
             indent: 20,
-            rowHeight: 20
+            rowHeight: 20,
+            sortColumn: null,
+            sortDir: 1
         };
     },
 
@@ -346,9 +347,7 @@ var NotebookTreeNode = React.createClass({
         var node = this.props.node;
         var expanded = node.get(this.props.expandAttr) || false;
         return {
-            firstOpen: !node.fetched,
-            expanded: expanded,
-            filesExpanded: false
+            expanded: expanded
         };
     },
 
@@ -370,22 +369,46 @@ var NotebookTreeNode = React.createClass({
     render: function() {
         var node = this.props.node;
 
-        // Get children.
-        var children = [];
+        // Sort function for child nodes.
+        function cmpNodes(attr, direction) {
+            return function (node1, node2) {
+                var val1 = (node1.get(attr) || 0);
+                var val2 = (node2.get(attr) || 0);
+                if (val1 < val2)
+                    return -direction;
+                else if (val1 > val2)
+                    return direction;
+                else
+                    return 0;
+            }
+        }
+
+        // Get child nodes in sorted order.
+        var childNodes = [];
         for (var i=0; i<node.children.length; i++) {
             var child = node.children[i];
             if (child.fetched) {
-                children.push(
-                  <NotebookTreeNode
-                   key={child.id}
-                   node={child}
-                   depth={this.props.depth + 1}
-                   indent={this.props.indent}
-                   currentNode={this.props.currentNode}
-                   onViewNode={this.props.onViewNode}
-                   expandAttr={this.props.expandAttr}
-                   columns={this.props.columns}/>);
+                childNodes.push(child);
             }
+        }
+        if (this.props.sortColumn)
+            childNodes.sort(cmpNodes(this.props.sortColumn,
+                                     this.props.sortDir));
+
+        // Render children nodes.
+        var children = [];
+        for (var i=0; i<childNodes.length; i++) {
+            var child = childNodes[i];
+            children.push(
+              <NotebookTreeNode
+               key={child.id}
+               node={child}
+               depth={this.props.depth + 1}
+               indent={this.props.indent}
+               currentNode={this.props.currentNode}
+               onViewNode={this.props.onViewNode}
+               expandAttr={this.props.expandAttr}
+               columns={this.props.columns}/>);
         }
 
         var displayChildren = (this.state.expanded ? "inline" : "none");
@@ -603,15 +626,15 @@ var NotebookTree = React.createClass({
         var headersHeight = 20;
         var viewSize = [this.props.size[0], this.props.size[1]];
 
+        var sortColumn = 'order';
+        var sortDir = 1;
         if (this.props.showHeaders) {
             viewSize[1] -= headersHeight;
             var node = this.props.node;
-            var sortColumn = null;
-            var sortDir = 1;
             if (node) {
                 sortColumn = node.get('info_sort') || 'order';
                 sortDir = node.get('info_sort_dir');
-                if (typeof(sortDir) === 'undefined')
+                if (sortDir != 1 && sortDir != -1)
                     sortDir = 1;
             }
 
@@ -634,6 +657,8 @@ var NotebookTree = React.createClass({
                currentNode={this.props.currentNode}
                onViewNode={this.props.onViewNode}
                expandAttr={this.props.expandAttr}
+               sortColumn={sortColumn}
+               sortDir={sortDir}
                columns={this.props.columns}/>
             </div>
           </div>;
@@ -651,11 +676,14 @@ var NotebookTree = React.createClass({
     onColumnSort: function (attr, sortDir) {
         var node = this.props.node;
         if (node) {
+            if (sortDir == 0) {
+                attr = 'order';
+                sortDir = 1;
+            }
             node.save({
                 info_sort: attr,
                 info_sort_dir: sortDir
             });
-            node.orderChildren();
         }
     }
 });
