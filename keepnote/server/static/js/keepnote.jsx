@@ -162,6 +162,69 @@ var NotebookTreeRaw = React.createClass({
 });
 
 
+var NotebookFile = React.createClass({
+    getDefaultProps: function () {
+        return {
+            showFilename: true,
+            expanded: false
+        };
+    },
+
+    getInitialState: function () {
+        return {
+            expanded: this.props.expanded
+        };
+    },
+
+    render: function () {
+        var file = this.props.file;
+
+        // Populate child list.
+        var children = [];
+        var fileChildren = file.children;
+        for (var i=0; i<fileChildren.length; i++) {
+            var child = fileChildren[i];
+            children.push(<li key={i}><NotebookFile file={child} /></li>);
+        }
+
+        var displayChildren = (this.state.expanded ? "block" : "none");
+
+        var filenameNode = null;
+        if (this.props.showFilename) {
+            // Render filename link.
+            var filename = file.basename() + (file.isDir ? '/' : '');
+
+            var onClick = null;
+            var href = "#";
+            if (file.isDir) {
+                onClick = this.toggleChildren;
+            } else {
+                href = file.url();
+            }
+
+            filenameNode = <a key="0" className="filename"
+                            onClick={onClick} href={href}>{filename}</a>;
+        }
+
+        return <div style={this.props.style}>
+            {filenameNode}
+            <ul style={{display: displayChildren}}>
+              {children}
+            </ul>
+          </div>;
+    },
+
+    toggleChildren: function (e) {
+        e.preventDefault();
+
+        var expanded = !this.state.expanded;
+        this.setState({expanded: expanded});
+        if (expanded)
+            this.props.file.fetch();
+    }
+});
+
+
 // Text that can be edited when clicked on.
 var InplaceEditor = React.createClass({
     getInitialState: function () {
@@ -685,69 +748,6 @@ var NotebookTree = React.createClass({
                 info_sort_dir: sortDir
             });
         }
-    }
-});
-
-
-var NotebookFile = React.createClass({
-    getDefaultProps: function () {
-        return {
-            showFilename: true,
-            expanded: false
-        };
-    },
-
-    getInitialState: function () {
-        return {
-            expanded: this.props.expanded
-        };
-    },
-
-    render: function () {
-        var file = this.props.file;
-
-        // Populate child list.
-        var children = [];
-        var fileChildren = file.children;
-        for (var i=0; i<fileChildren.length; i++) {
-            var child = fileChildren[i];
-            children.push(<li key={i}><NotebookFile file={child} /></li>);
-        }
-
-        var displayChildren = (this.state.expanded ? "block" : "none");
-
-        var filenameNode = null;
-        if (this.props.showFilename) {
-            // Render filename link.
-            var filename = file.basename() + (file.isDir ? '/' : '');
-
-            var onClick = null;
-            var href = "#";
-            if (file.isDir) {
-                onClick = this.toggleChildren;
-            } else {
-                href = file.url();
-            }
-
-            filenameNode = <a key="0" className="filename"
-                            onClick={onClick} href={href}>{filename}</a>;
-        }
-
-        return <div style={this.props.style}>
-            {filenameNode}
-            <ul style={{display: displayChildren}}>
-              {children}
-            </ul>
-          </div>;
-    },
-
-    toggleChildren: function (e) {
-        e.preventDefault();
-
-        var expanded = !this.state.expanded;
-        this.setState({expanded: expanded});
-        if (expanded)
-            this.props.file.fetch();
     }
 });
 
