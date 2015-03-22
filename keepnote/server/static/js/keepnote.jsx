@@ -507,6 +507,82 @@ var NotebookTreeNode = React.createClass({
 });
 
 
+var TreeviewHeader = React.createClass({
+    getDefaultProps: function () {
+        return {
+            sortColumn: null,
+            sortDir: 0
+        };
+    },
+
+    getInitialState: function () {
+        return {
+            sortColumn: this.props.sortColumn,
+            sortDir: this.props.sortDir
+        };
+    },
+
+    render: function () {
+        // Build column headers.
+        var columns = [];
+        for (var i=0; i<this.props.columns.length; i++) {
+            var column = this.props.columns[i];
+            var style = {
+                float: 'left',
+                width: column.width
+            };
+
+            var sortIcon = null;
+            if (column.attr == this.state.sortColumn) {
+                if (this.state.sortDir == 1) {
+                    sortIcon = 'V';
+                } else if (this.state.sortDir == -1) {
+                    sortIcon = '^';
+                }
+            }
+
+            columns.push(<div key={i} className="treeview-header-column"
+                          style={style}
+                          onClick={this.onClickHeader.bind(null, column)}>
+              {column.attr}
+              <span style={{float: 'right'}}>{sortIcon}</span>
+            </div>);
+        }
+
+        return <div className='treeview-header'
+                style={{height: this.props.height}}>{columns}</div>;
+    },
+
+    onClickHeader: function (column, event) {
+        event.preventDefault();
+        event.stopPropagation();
+        var sortDir = this.state.sortDir;
+
+        if (column.attr == this.state.sortColumn) {
+            // Cycle through sort direction.
+            if (sortDir == 1)
+                sortDir = -1
+            else if (sortDir == -1)
+                sortDir = 0;
+            else
+                sortDir = 1;
+        } else {
+            // Sort assending for new column.
+            sortDir = 1;
+        }
+
+        this.setState({
+            sortColumn: column.attr,
+            sortDir: sortDir
+        });
+
+        if (this.props.onSort) {
+            this.props.onSort(column.attr, sortDir);
+        }
+    }
+});
+
+
 var NotebookTree = React.createClass({
     getDefaultProps: function () {
         return {
@@ -529,21 +605,22 @@ var NotebookTree = React.createClass({
 
         if (this.props.showHeaders) {
             viewSize[1] -= headersHeight;
-
-            // Build column headers.
-            var columns = [];
-            for (var i=0; i<this.props.columns.length; i++) {
-                var column = this.props.columns[i];
-                var style = {
-                    float: 'left',
-                    width: column.width
-                };
-                columns.push(<div key={i} className="treeview-header-column"
-                              style={style}>{column.attr}</div>);
+            var node = this.props.node;
+            var sortColumn = null;
+            var sortDir = 1;
+            if (node) {
+                sortColumn = node.get('info_sort') || 'order';
+                sortDir = node.get('info_sort_dir');
+                if (typeof(sortDir) === 'undefined')
+                    sortDir = 1;
             }
 
-            headers = <div className='treeview-header'
-                       style={{height: headersHeight}}>{columns}</div>;
+            headers = <TreeviewHeader
+              height={headersHeight}
+              sortColumn={sortColumn}
+              sortDir={sortDir}
+              columns={this.props.columns}
+              onSort={this.onColumnSort}/>;
         }
 
         return <div onKeyDown={this.onKeyDown} tabIndex="1">
@@ -568,6 +645,17 @@ var NotebookTree = React.createClass({
                 this.props.onDeleteNode(this.props.currentNode);
             event.preventDefault();
             event.stopPropagation();
+        }
+    },
+
+    onColumnSort: function (attr, sortDir) {
+        var node = this.props.node;
+        if (node) {
+            node.save({
+                info_sort: attr,
+                info_sort_dir: sortDir
+            });
+            node.orderChildren();
         }
     }
 });
