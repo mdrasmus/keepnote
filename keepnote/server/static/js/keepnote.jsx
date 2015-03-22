@@ -337,7 +337,8 @@ var NotebookTreeNode = React.createClass({
     getDefaultProps: function () {
         return {
             depth: 0,
-            indent: 20
+            indent: 20,
+            rowHeight: 20
         };
     },
 
@@ -382,7 +383,8 @@ var NotebookTreeNode = React.createClass({
                    indent={this.props.indent}
                    currentNode={this.props.currentNode}
                    onViewNode={this.props.onViewNode}
-                   expandAttr={this.props.expandAttr}/>);
+                   expandAttr={this.props.expandAttr}
+                   columns={this.props.columns}/>);
             }
         }
 
@@ -400,6 +402,42 @@ var NotebookTreeNode = React.createClass({
         } else {
             // Regular node.
             onNodeClick = this.onPageClick;
+        }
+
+        // Build columns.
+        var columns = [];
+        for (var i=0; i<this.props.columns.length; i++) {
+            var column = this.props.columns[i];
+            var style = {
+                float: 'left',
+                width: column.width
+            };
+            var content = [];
+
+            // First column has indenting and expander.
+            if (i == 0) {
+                style.paddingLeft = indent;
+
+                content.push(<a className="expand"
+                              onClick={this.toggleChildren}
+                              href="javascript:;">+</a>);
+            }
+
+            if (column.attr == 'title') {
+                content.push(<InplaceEditor className="title"
+                             value={node.get('title')}
+                             onSubmit={this.onRenameNode}/>);
+            } else if (column.attr == 'created_time' ||
+                       column.attr == 'modified_time') {
+                var timeFormat = '%Y/%m/%d %I:%M:%S %p';
+                var time = node.get(column.attr);
+                var text = strftime(timeFormat, new Date(time * 1000));
+                content.push(text);
+            } else {
+                content.push(node.get(column.attr));
+            }
+
+            columns.push(<div style={style}>{content}</div>);
         }
 
         return <div className="node-tree">
@@ -420,13 +458,7 @@ var NotebookTreeNode = React.createClass({
              relation="after"
              targetNode={node}/>
 
-            <div style={{paddingLeft: indent}}>
-              <a className="expand" onClick={this.toggleChildren} href="javascript:;">+</a>
-              <InplaceEditor className="title"
-               value={node.get('title')}
-               onSubmit={this.onRenameNode}/>
-            </div>
-
+            <div style={{height: this.props.rowHeight}}>{columns}</div>
           </div>
 
           <div className="children" style={{display: displayChildren}}>
@@ -476,13 +508,26 @@ var NotebookTreeNode = React.createClass({
 
 
 var NotebookTree = React.createClass({
+    getDefaultProps: function () {
+        return {
+            node: null,
+            currentNode: null,
+            expandAttr: 'expanded',
+            columns: [{
+                attr: 'title',
+                width: 300
+            }]
+        };
+    },
+
     render: function () {
         return <div onKeyDown={this.onKeyDown} tabIndex="1">
             <NotebookTreeNode
-                node={this.props.node}
-                currentNode={this.props.currentNode}
-                onViewNode={this.props.onViewNode}
-                expandAttr={this.props.expandAttr}/>
+             node={this.props.node}
+             currentNode={this.props.currentNode}
+             onViewNode={this.props.onViewNode}
+             expandAttr={this.props.expandAttr}
+             columns={this.props.columns}/>
           </div>;
     },
 
@@ -741,13 +786,28 @@ var KeepNoteView = React.createClass({
              expandAttr="expanded"/> :
             <div/>;
 
+        var listviewColumns = [
+            {
+                attr: 'title',
+                width: 300
+            },
+            {
+                attr: 'created_time',
+                width: 200
+            },
+            {
+                attr: 'modified_time',
+                width: 200
+            }
+        ]
         var listview = this.state.currentTreeNode ?
             <NotebookTree
              node={this.state.currentTreeNode}
              currentNode={this.state.currentNode}
              onViewNode={this.viewNode}
              onDeleteNode={this.deleteNode}
-             expandAttr="expanded2"/> :
+             expandAttr="expanded2"
+             columns={listviewColumns}/> :
             <div/>;
 
         return <div id="app">
