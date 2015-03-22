@@ -1034,6 +1034,7 @@ var KeepNoteView = React.createClass({
     viewNode: function (node, options) {
         var options = options || {};
         var skipHistory = options.skipHistory || false;
+        var treeNode = options.treeNode || null;
 
         // Save history.
         if (!skipHistory) {
@@ -1044,14 +1045,14 @@ var KeepNoteView = React.createClass({
             window.history.pushState(state, node.get("title"), pageUrl);
         }
 
-        // TODO: need to expand listview to node.
-        this.getVisibleTreeNode(node).done(function (treeNode) {
+        var setViews = function (treeNode, node) {
             this.setState({
                 currentTreeNode: treeNode,
                 currentNode: node
             });
 
-            // Expand for listview.
+            // TODO: need to expand listview to node.
+            // Fetch for listview.
             treeNode.fetchExpanded('expanded2');
 
             // Load node in page editor.
@@ -1063,7 +1064,15 @@ var KeepNoteView = React.createClass({
                 // Node is a directory. Display blank page.
                 this.refs.pageEditor.clear();
             }
-        }.bind(this));
+        }.bind(this);
+
+        if (treeNode) {
+            setViews(treeNode, node);
+        } else {
+            this.getVisibleTreeNode(node).done(function (treeNode) {
+                setViews(treeNode, node);
+            });
+        }
     },
 
     getVisibleTreeNode: function (node) {
@@ -1108,10 +1117,8 @@ var KeepNoteView = React.createClass({
     },
 
     viewTreeNode: function (node, options) {
-        this.setState({
-            currentTreeNode: node,
-            currentNode: node
-        });
+        options = options || {};
+        options.treeNode = node;
         this.viewNode(node, options);
     },
 
