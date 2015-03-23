@@ -47,6 +47,11 @@ body {
   border-left: 1px solid #888;
 }
 
+.treeview-column {
+  height: 20px;
+  overflow: hidden;
+}
+
 #treeview-pane {
   border: solid #cccccc 1px;
   float: left;

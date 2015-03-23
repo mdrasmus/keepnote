@@ -524,7 +524,10 @@ var NotebookTreeNode = React.createClass({
                 content.push(node.get(column.attr));
             }
 
-            columns.push(<div key={i} style={style}>{content}</div>);
+            columns.push(
+                <div key={i} className='treeview-column' style={style}>
+                  {content}
+                </div>);
         }
 
         return <div className="node-tree">
@@ -801,12 +804,24 @@ var PageEditor = React.createClass({
                 that.props.onVisitLink($(this).attr('href'));
         });
 
+        this.linkDialog = $("[data-wysihtml5-dialog=createLink]");
+        this.updateLinkDialog();
+    },
+
+    componentDidUpdate: function (prevProps, prevState) {
+        this.updateLinkDialog();
+    },
+
+    updateLinkDialog: function () {
+        var size = this.props.size;
+        var pageEditor = this.refs.pageEditor.getDOMNode();
+
         // TODO: move this into render.
         // Align dialog to bottom of editor.
         var toolbarHeight = 25;
         var rect = pageEditor.getBoundingClientRect();
-        var linkDialog = $("[data-wysihtml5-dialog=createLink]");
-        linkDialog.css({
+
+        this.linkDialog.css({
             position: 'absolute',
             width: size[0],
             height: toolbarHeight,
