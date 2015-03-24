@@ -1,3 +1,9 @@
+// Import libs.
+if (typeof(require) !== 'undefined') {
+    var notebooklib = require('./notebook.js');
+    var NoteBook = notebooklib.NoteBook;
+}
+
 
 // Parse a page's HTML into DOM elements.
 function parsePageHtml(node, html) {
@@ -1309,6 +1315,9 @@ function KeepNoteApp() {
 }
 
 
-// Callback for when JSX file is compiled.
-if (onKeepNoteComplied)
-    onKeepNoteComplied();
+// Define module exports.
+if (typeof(module) !== 'undefined') {
+    module.exports = {
+        KeepNoteApp: KeepNoteApp
+    };
+}

@@ -14,7 +14,9 @@
   <script type="text/javascript" src="/static/thirdparty/backbone/js/backbone.js"></script>
   <script type="text/javascript" src="/static/thirdparty/bootstrap/js/bootstrap.min.js"></script>
   <script type="text/javascript" src="/static/thirdparty/react/js/react.js"></script>
+  <!--
   <script type="text/javascript" src="/static/thirdparty/react/js/JSXTransformer.js"></script>
+  -->
   <script type="text/javascript" src="/static/thirdparty/react-dnd/js/ReactDND.min.js"></script>
   <script type="text/javascript" src="/static/thirdparty/wysihtml/js/wysihtml5x-toolbar.min.js"></script>
   <script type="text/javascript" src="/static/thirdparty/wysihtml/js/advanced_and_extended.js"></script>
@@ -24,8 +26,7 @@
   <!-- keepnote -->
   <link type="text/css" rel="stylesheet" href="/static/css/keepnote.css">
 
-  <script type="text/javascript" src="/static/js/notebook.js"></script>
-  <script type="text/jsx" src="/static/js/keepnote.jsx"></script>
+  <script type="text/javascript" src="/static/js/keepnote-all.js"></script>
 
   <script id="page-toolbar-template" language="text/template">
     <div>
@@ -146,16 +147,8 @@
 
 
 <script type="text/javascript">
-  var app;
-
-  function initKeepNoteApp() {
-    app = new KeepNoteApp();
-    app.init();
-  }
-
-  function onKeepNoteComplied() {
-    initKeepNoteApp();
-  }
+  var app = new KeepNoteApp();
+  app.init();
 </script>
 
 </body>
