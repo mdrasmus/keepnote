@@ -146,6 +146,20 @@ var Node = Backbone.Model.extend({
         }.bind(this));
     },
 
+    // Return true if this node is a descendent of ancestor.
+    isDescendant(ancestor) {
+        var ptr = this;
+        while (true) {
+            if (ptr == ancestor)
+                return true;
+            if (ptr.parents.length > 0)
+                ptr = ptr.parents[0];
+            else
+                break;
+        }
+        return false;
+    },
+
     isPage: function () {
         return this.get("content_type") == this.PAGE_CONTENT_TYPE;
     },
