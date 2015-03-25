@@ -1,10 +1,12 @@
 var browserify = require('browserify');
 var child_process = require('child_process');
 var del = require('del');
+var eslint = require('gulp-eslint');
 var gulp = require('gulp');
 var bowerNormalizer = require('gulp-bower-normalize');
 var mainBowerFiles = require('main-bower-files');
 var reactify = require('reactify');
+var react = require('gulp-react');
 var rename = require('gulp-rename');
 var source = require('vinyl-source-stream');
 
@@ -24,6 +26,20 @@ function buildBowerFiles() {
         ]);
     });
 }
+
+gulp.task('lint', function () {
+    return gulp.src(["js/*.js", "js/*.jsx"])
+        .pipe(react())
+        .pipe(eslint({
+            globals: {
+                module: true,
+                require: true,
+                window: true
+            }
+        }))
+        .pipe(eslint.format())
+        .pipe(eslint.failOnError());
+});
 
 // Use Browserify to package all keepnote js code.
 gulp.task('build-main', function() {

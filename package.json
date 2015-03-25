@@ -6,6 +6,8 @@
     "del": "^1.1.1",
     "gulp": "^3.8.11",
     "gulp-bower-normalize": "^1.0.3",
+    "gulp-eslint": "^0.7.0",
+    "gulp-react": "^3.0.1",
     "gulp-rename": "^1.2.0",
     "jasmine": "^2.2.1",
     "jest-cli": "git://github.com/facebook/jest.git",

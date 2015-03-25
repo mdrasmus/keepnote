@@ -1,0 +1,20 @@
+{
+  "globals": {
+    "_": false,
+    "$": false,
+    "Backbone": false,
+    "DOMParser": false,
+    "module": false,
+    "React": false,
+    "ReactDND": false,
+    "require": false,
+    "strftime": false,
+    "window": false,
+    "wysihtml5": false,
+    "wysihtml5ParserRules": false,
+    "XMLSerializer": false
+  },
+  "rules": {
+    "quotes": [1, "single", "avoid-escape"]
+  }
+}

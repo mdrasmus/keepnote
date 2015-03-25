@@ -147,7 +147,7 @@ var Node = Backbone.Model.extend({
     },
 
     // Return true if this node is a descendent of ancestor.
-    isDescendant(ancestor) {
+    isDescendant: function(ancestor) {
         var ptr = this;
         while (true) {
             if (ptr == ancestor)
@@ -576,6 +576,6 @@ var NoteBook = Backbone.Model.extend({
 });
 
 
-if (typeof(exports) !== "undefined") {
-    exports.NoteBook = NoteBook;
+if (typeof(module) !== "undefined") {
+    module.exports.NoteBook = NoteBook;
 }

@@ -156,7 +156,7 @@ var NotebookFile = React.createClass({
 // Exports.
 if (typeof(module) !== 'undefined') {
     module.exports = {
-        NotebookTreeRaw: NotebookTreeRaw
+        NotebookTreeRaw: NotebookTreeRaw,
         NotebookFile: NotebookFile
     };
 }
