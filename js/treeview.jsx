@@ -225,6 +225,7 @@ var NotebookTreeNode = React.createClass({
             children.push(
               <NotebookTreeNode
                key={child.id}
+               ref={'child-' + child.id}
                node={child}
                depth={this.props.depth + 1}
                indent={this.props.indent}
@@ -448,6 +449,12 @@ var NotebookTree = React.createClass({
         };
     },
 
+    getInitialState: function () {
+        return {
+            scrolled: false  // User has scrolled.
+        };
+    },
+
     render: function () {
         var headers = null;
         var headersHeight = 20;
@@ -475,11 +482,12 @@ var NotebookTree = React.createClass({
 
         return <div onKeyDown={this.onKeyDown} tabIndex="1">
             {headers}
-            <div style={{
+            <div ref="scrollPane" style={{
               overflow: 'auto',
               width: viewSize[0],
               height: viewSize[1]}}>
               <NotebookTreeNode
+               ref="root"
                node={this.props.node}
                currentNode={this.props.currentNode}
                onViewNode={this.props.onViewNode}
@@ -489,6 +497,89 @@ var NotebookTree = React.createClass({
                columns={this.props.columns}/>
             </div>
           </div>;
+    },
+
+    componentDidMount: function () {
+        // Install scroll listener.
+        $(this.refs.scrollPane.getDOMNode()).on('scroll', this.onScroll);
+
+        this.scrollToNode(this.props.currentNode);
+    },
+
+    componentDidUpdate: function (prevProps, prevState) {
+        var scrolled = this.state.scrolled;
+
+        // If a new node is selected, then reset scrolled state.
+        if (prevProps.currentNode != this.props.currentNode) {
+            this.setState({scrolled: false});
+            scrolled = false;
+        }
+
+        // Autoscroll to current node, if user hasn't scrolled yet.
+        if (!scrolled) {
+            this.scrollToNode(this.props.currentNode);
+        }
+    },
+
+    scrollToNode: function (node) {
+        if (!node)
+            return;
+
+        // Recursively search for component with desired node.
+        function find(component) {
+            if (component.props.node === node)
+                return component;
+
+            for (var childName in component.refs) {
+                if (childName.match(/^child-/)) {
+                    var result = find(component.refs[childName]);
+                    if (result)
+                        return result;
+                }
+            }
+        }
+
+        // Scroll to desired node.
+        var component = find(this.refs.root);
+        if (component) {
+            var scrollPane = $(this.refs.scrollPane.getDOMNode());
+            var paneHeight = scrollPane.height();
+            var viewTop = scrollPane.scrollTop();
+            var viewBottom = viewTop + paneHeight;
+
+            var height = 20;
+            var offset = $(component.getDOMNode()).offset();
+            var nodeTop = offset.top;
+            var nodeBottom = offset.top + height;
+
+            if (nodeTop < viewTop || nodeBottom > viewBottom) {
+                // Autoscroll if out of view.
+                this.autoScrollTop(nodeTop);
+            }
+        }
+    },
+
+    autoScrolled: 0,
+
+    onScroll: function (event) {
+        var scrollPane = $(this.refs.scrollPane.getDOMNode());
+        var top = scrollPane.scrollTop();
+
+        if (!this.autoScrolled) {
+            this.setState({scrolled: true});
+        }
+    },
+
+    // Autoscroll to position 'top'.
+    autoScrollTop: function (top) {
+        var scrollPane = $(this.refs.scrollPane.getDOMNode());
+        if (scrollPane.scrollTop() !== top) {
+            this.autoScrolled++;
+            scrollPane.scrollTop(top);
+            setTimeout(function () {
+                this.autoScrolled--;
+            }.bind(this), 0);
+        }
     },
 
     onKeyDown: function (event) {
