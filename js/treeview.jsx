@@ -292,7 +292,7 @@ var NotebookTreeNode = React.createClass({
         }
 
         return <div className="node-tree">
-          <div className={nodeClass}
+          <div ref="node" className={nodeClass}
            onClick={onNodeClick}
            style={{position: 'relative'}}
            {...this.dragSourceFor('NODE')}>
@@ -542,43 +542,49 @@ var NotebookTree = React.createClass({
         // Scroll to desired node.
         var component = find(this.refs.root);
         if (component) {
-            var scrollPane = $(this.refs.scrollPane.getDOMNode());
-            var paneHeight = scrollPane.height();
-            var viewTop = scrollPane.scrollTop();
-            var viewBottom = viewTop + paneHeight;
-
-            var height = 20;
-            var offset = $(component.getDOMNode()).offset();
-            var nodeTop = offset.top;
-            var nodeBottom = offset.top + height;
-
-            if (nodeTop < viewTop || nodeBottom > viewBottom) {
-                // Autoscroll if out of view.
-                this.autoScrollTop(nodeTop);
-            }
+            this.scrollTo(
+                this.refs.scrollPane.getDOMNode(),
+                component.refs.node.getDOMNode(),
+                true);
         }
     },
 
     autoScrolled: 0,
 
     onScroll: function (event) {
-        var scrollPane = $(this.refs.scrollPane.getDOMNode());
-        var top = scrollPane.scrollTop();
-
         if (!this.autoScrolled) {
             this.setState({scrolled: true});
         }
     },
 
     // Autoscroll to position 'top'.
-    autoScrollTop: function (top) {
-        var scrollPane = $(this.refs.scrollPane.getDOMNode());
+    autoScrollTop: function (scrollPane, top) {
         if (scrollPane.scrollTop() !== top) {
             this.autoScrolled++;
             scrollPane.scrollTop(top);
             setTimeout(function () {
                 this.autoScrolled--;
             }.bind(this), 0);
+        }
+    },
+
+    scrollTo: function (pane, element, auto) {
+        pane = $(pane);
+        element = $(element);
+        var paneHeight = pane.height();
+        var viewTop = pane.scrollTop();
+        var viewBottom = viewTop + paneHeight;
+
+        var offset = element.offset();
+        var elementTop = offset.top;
+        var elementBottom = offset.top + element.height();
+
+        if (elementTop < viewTop || elementBottom > viewBottom) {
+            // Autoscroll if out of view.
+            if (auto)
+                this.autoScrollTop(pane, elementTop);
+            else
+                pane.scrollTop(elementTop);
         }
     },
 
