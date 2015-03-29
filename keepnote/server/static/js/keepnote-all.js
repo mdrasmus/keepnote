@@ -4,7 +4,164 @@ var keepnote = require('./keepnote.jsx');
 window.KeepNoteApp = keepnote.KeepNoteApp;
 
 
-},{"./keepnote.jsx":2}],2:[function(require,module,exports){
+},{"./keepnote.jsx":3}],2:[function(require,module,exports){
+
+var BUILTIN_ICONS_URL = '/static/images/node_icons/';
+
+// Guess the open version of an icon filename.
+function guessOpenIconFilename(filename) {
+    var ext = filename.match(/\.[^\.]*/);
+    if (ext) {
+        ext = ext[0];
+        var prefix = filename.slice(0, -ext.length);
+        return prefix + '-open' + ext;
+    } else {
+        return filename;
+    }
+}
+
+
+/*
+  Lookup full filename of a icon from a notebook and builtins.
+
+  Return null if not found
+  notebook: can be null
+  basename: basename of icon filename.
+*/
+function lookupIconFilename(notebook, basename) {
+    var defer = $.Deferred();
+
+    notebook.root.ensureFetched().then(function () {
+        // Lookup in notebook icon store.
+        var iconFilename = notebook.getIconFilename(basename);
+        return notebook.root.hasFile(iconFilename).then(function (exists) {
+            if (exists) {
+                var url = notebook.root.fileUrl(iconFilename);
+                return defer.resolve(url);
+            } else {
+                return $.Deferred().reject();
+            }
+        });
+    }).fail(function () {
+        // Lookup in builtins.
+        var url = BUILTIN_ICONS_URL + basename;
+        $.ajax({
+            type: 'HEAD',
+            url: url
+        }).then(function () {
+            return defer.resolve(BUILTIN_ICONS_URL + basename);
+        }).fail(function () {
+            return defer.reject();
+        });
+    });
+
+    // Lookup in mimetypes.
+
+    return defer;
+}
+
+
+// content-type --> [close-icon, open-icon]
+var DEFAULT_NODE_ICONS = {
+    'text/xhtml+xml': ['note.png', 'note.png'],
+    'application/x-notebook-dir': ['folder.png', 'folder-open.png'],
+    'application/x-notebook-trash': ['trash.png', 'trash.png'],
+    'application/x-notebook-unknown': ['note-unknown.png', 'note-unknown.png']
+};
+
+
+/*
+  Get icon filenames for notebook node.
+*/
+function getNodeIconBasenames(node) {
+    var basenames = {
+        close: [],
+        open: []
+    };
+
+    // Get icon based on node attributes.
+    if (node.has('icon_open')) {
+        basenames.open.push(node.get('icon_open'));
+    }
+    if (node.has('icon')) {
+        var icon = node.get('icon');
+        basenames.close.push(icon);
+        basenames.open.push(guessOpenIconFilename(icon));
+        basenames.open.push(icon);
+    }
+
+    // Get icons based on content_type.
+    if (node.get('content_type') in DEFAULT_NODE_ICONS) {
+        var names = DEFAULT_NODE_ICONS[node.get('content_type')];
+        basenames.close.push(names[0]);
+        basenames.open.push(names[1]);
+    }
+
+    // Add defaults.
+    basenames.close.push('note-unknown.png');
+    basenames.open.push('note-unknown.png');
+
+    return basenames;
+}
+
+/*
+def get_node_icon_filenames_basenames(node):
+
+    # TODO: merge with get_node_icon_filenames?
+
+    notebook = node.get_notebook()
+
+    # get default basenames
+    basenames = list(get_default_icon_basenames(node))
+    filenames = get_default_icon_filenames(node)
+
+    # load icon
+    if node.has_attr("icon"):
+        # use attr
+        basename = node.get_attr("icon")
+        filename = lookup_icon_filename(notebook, basename)
+        if filename:
+            filenames[0] = filename
+            basenames[0] = basename
+
+    # load icon with open state
+    if node.has_attr("icon_open"):
+        # use attr
+        basename = node.get_attr("icon_open")
+        filename = lookup_icon_filename(notebook, basename)
+        if filename:
+            filenames[1] = filename
+            basenames[1] = basename
+    else:
+        if node.has_attr("icon"):
+
+            # use icon to guess open icon
+            basename = guess_open_icon_filename(node.get_attr("icon"))
+            filename = lookup_icon_filename(notebook, basename)
+            if filename:
+                filenames[1] = filename
+                basenames[1] = basename
+            else:
+                # use icon as-is for open icon if it is specified
+                basename = node.get_attr("icon")
+                filename = lookup_icon_filename(notebook, basename)
+                if filename:
+                    filenames[1] = filename
+                    basenames[1] = basename
+
+    return basenames, filenames
+*/
+
+
+if (typeof module !== 'undefined') {
+    module.exports = {
+        lookupIconFilename: lookupIconFilename,
+        getNodeIconBasenames: getNodeIconBasenames
+    };
+}
+
+
+},{}],3:[function(require,module,exports){
 // Import libs.
 if (typeof require !== 'undefined') {
     var notebooklib = require('./notebook.js');
@@ -651,7 +808,12 @@ if (typeof module !== 'undefined') {
 }
 
 
-},{"./notebook.js":3,"./treeview.jsx":4}],3:[function(require,module,exports){
+},{"./notebook.js":4,"./treeview.jsx":5}],4:[function(require,module,exports){
+// Import libs.
+if (typeof require !== 'undefined') {
+    var icons = require('./icons.js');
+}
+
 
 // Notebook node model.
 var Node = Backbone.Model.extend({
@@ -1246,6 +1408,41 @@ var NoteBook = Backbone.Model.extend({
     getIconFilename: function (basename) {
         return this.NOTEBOOK_META_DIR + '/' + this.NOTEBOOK_ICON_DIR + '/' +
             basename;
+    },
+
+    basenames2filenames: {
+        'note.png': '/static/images/node_icons/note.png',
+        'note-unknown.png': '/static/images/node_icons/note-unknown.png'
+    },
+
+    getNodeIcon: function (node, kind) {
+        var basenames = icons.getNodeIconBasenames(node)[kind];
+
+        var registerFilename = function (basename, filename) {
+            this.basenames2filenames[basename] = filename;
+            this.trigger('changed');
+        };
+
+        for (var i=0; i<basenames.length; i++) {
+            var basename = basenames[i];
+            if (!(basename in this.basenames2filenames)) {
+                this.basenames2filenames[basename] = null;
+
+                // Attempt to load filename for basename.
+                icons.lookupIconFilename(this, basename).done(
+                    registerFilename.bind(this, basename)
+                );
+
+                // Temp filename while real one loads.
+                return this.basenames2filenames['note.png'];
+            } else {
+                var filename = this.basenames2filenames[basename];
+                if (filename)
+                    return filename;
+            }
+        }
+
+        return '/static/images/node_icons/note-unknown.png';
     }
 });
 
@@ -1255,8 +1452,7 @@ if (typeof module !== 'undefined') {
 }
 
 
-},{}],4:[function(require,module,exports){
-
+},{"./icons.js":2}],5:[function(require,module,exports){
 // Text that can be edited when clicked on.
 var InplaceEditor = React.createClass({displayName: "InplaceEditor",
     getInitialState: function () {
@@ -1493,8 +1689,8 @@ var NotebookTreeNode = React.createClass({displayName: "NotebookTreeNode",
                columns: this.props.columns}));
         }
 
-        var displayChildren = (
-            node.get(this.props.expandAttr) ? 'inline' : 'none');
+        var expanded = Boolean(node.get(this.props.expandAttr));
+        var displayChildren = (expanded ? 'inline' : 'none');
         var indent = this.props.depth * this.props.indent;
         var nodeClass = 'node-tree-title';
         if (node === this.props.currentNode)
@@ -1509,6 +1705,10 @@ var NotebookTreeNode = React.createClass({displayName: "NotebookTreeNode",
             // Regular node.
             onNodeClick = this.onPageClick;
         }
+
+        // Get icon.
+        var iconKind = (expanded ? 'open' : 'close');
+        var icon = node.notebook.getNodeIcon(node, iconKind);
 
         // Build columns.
         var columns = [];
@@ -1527,8 +1727,7 @@ var NotebookTreeNode = React.createClass({displayName: "NotebookTreeNode",
                 content.push(React.createElement("a", {key: "1", className: "expand", 
                               onClick: this.toggleChildren, 
                               href: "javascript:;"}, "+"));
-                content.push(
-                    React.createElement("img", {key: "1-icon", src: "/static/images/node_icons/note.png"}));
+                content.push(React.createElement("img", {key: "1-icon", src: icon}));
             }
 
             if (column.attr === 'title') {
@@ -1770,7 +1969,7 @@ var NotebookTree = React.createClass({displayName: "NotebookTree",
         var scrolled = this.state.scrolled;
 
         // If a new node is selected, then reset scrolled state.
-        if (prevProps.currentNode != this.props.currentNode) {
+        if (prevProps.currentNode !== this.props.currentNode) {
             this.setState({scrolled: false});
             scrolled = false;
         }
@@ -1813,7 +2012,8 @@ var NotebookTree = React.createClass({displayName: "NotebookTree",
 
     onScroll: function (event) {
         if (!this.autoScrolled) {
-            this.setState({scrolled: true});
+            if (!this.state.scrolled)
+                this.setState({scrolled: true});
         }
     },
 

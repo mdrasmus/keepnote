@@ -1,3 +1,8 @@
+// Import libs.
+if (typeof require !== 'undefined') {
+    var icons = require('./icons.js');
+}
+
 
 // Notebook node model.
 var Node = Backbone.Model.extend({
@@ -592,6 +597,41 @@ var NoteBook = Backbone.Model.extend({
     getIconFilename: function (basename) {
         return this.NOTEBOOK_META_DIR + '/' + this.NOTEBOOK_ICON_DIR + '/' +
             basename;
+    },
+
+    basenames2filenames: {
+        'note.png': '/static/images/node_icons/note.png',
+        'note-unknown.png': '/static/images/node_icons/note-unknown.png'
+    },
+
+    getNodeIcon: function (node, kind) {
+        var basenames = icons.getNodeIconBasenames(node)[kind];
+
+        var registerFilename = function (basename, filename) {
+            this.basenames2filenames[basename] = filename;
+            this.trigger('changed');
+        };
+
+        for (var i=0; i<basenames.length; i++) {
+            var basename = basenames[i];
+            if (!(basename in this.basenames2filenames)) {
+                this.basenames2filenames[basename] = null;
+
+                // Attempt to load filename for basename.
+                icons.lookupIconFilename(this, basename).done(
+                    registerFilename.bind(this, basename)
+                );
+
+                // Temp filename while real one loads.
+                return this.basenames2filenames['note.png'];
+            } else {
+                var filename = this.basenames2filenames[basename];
+                if (filename)
+                    return filename;
+            }
+        }
+
+        return '/static/images/node_icons/note-unknown.png';
     }
 });
 

@@ -1,4 +1,3 @@
-
 // Text that can be edited when clicked on.
 var InplaceEditor = React.createClass({
     getInitialState: function () {
@@ -235,8 +234,8 @@ var NotebookTreeNode = React.createClass({
                columns={this.props.columns}/>);
         }
 
-        var displayChildren = (
-            node.get(this.props.expandAttr) ? 'inline' : 'none');
+        var expanded = Boolean(node.get(this.props.expandAttr));
+        var displayChildren = (expanded ? 'inline' : 'none');
         var indent = this.props.depth * this.props.indent;
         var nodeClass = 'node-tree-title';
         if (node === this.props.currentNode)
@@ -251,6 +250,10 @@ var NotebookTreeNode = React.createClass({
             // Regular node.
             onNodeClick = this.onPageClick;
         }
+
+        // Get icon.
+        var iconKind = (expanded ? 'open' : 'close');
+        var icon = node.notebook.getNodeIcon(node, iconKind);
 
         // Build columns.
         var columns = [];
@@ -269,8 +272,7 @@ var NotebookTreeNode = React.createClass({
                 content.push(<a key="1" className="expand"
                               onClick={this.toggleChildren}
                               href="javascript:;">+</a>);
-                content.push(
-                    <img key="1-icon" src="/static/images/node_icons/note.png"/>);
+                content.push(<img key="1-icon" src={icon}/>);
             }
 
             if (column.attr === 'title') {
@@ -512,7 +514,7 @@ var NotebookTree = React.createClass({
         var scrolled = this.state.scrolled;
 
         // If a new node is selected, then reset scrolled state.
-        if (prevProps.currentNode != this.props.currentNode) {
+        if (prevProps.currentNode !== this.props.currentNode) {
             this.setState({scrolled: false});
             scrolled = false;
         }
@@ -555,7 +557,8 @@ var NotebookTree = React.createClass({
 
     onScroll: function (event) {
         if (!this.autoScrolled) {
-            this.setState({scrolled: true});
+            if (!this.state.scrolled)
+                this.setState({scrolled: true});
         }
     },
 
