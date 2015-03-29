@@ -1813,8 +1813,8 @@ var NotebookTree = React.createClass({displayName: "NotebookTree",
         var viewBottom = viewTop + paneHeight;
 
         var offset = element.offset();
-        var elementTop = offset.top;
-        var elementBottom = offset.top + element.height();
+        var elementTop = offset.top - pane.offset().top + viewTop;
+        var elementBottom = elementTop + element.height();
 
         if (elementTop < viewTop || elementBottom > viewBottom) {
             // Autoscroll if out of view.
