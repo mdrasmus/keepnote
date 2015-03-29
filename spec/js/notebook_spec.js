@@ -105,7 +105,7 @@ describe("Test notebook data store", function() {
             $ = require('jquery')(window);
             Backbone = require('backbone');
             Backbone.$ = $;
-            book = require('../../keepnote/server/static/js/notebook.js');
+            book = require('../../js/notebook.js');
             NoteBook = book.NoteBook;
 
             var ajax = function (config) {};
@@ -211,7 +211,7 @@ describe("Test notebook data store", function() {
             $ = require('jquery')(window);
             Backbone = require('backbone');
             Backbone.$ = $;
-            book = require('../../keepnote/server/static/js/notebook.js');
+            book = require('../../js/notebook.js');
             NoteBook = book.NoteBook;
 
             // Setup local notebook;
@@ -255,7 +255,7 @@ describe("Test notebook data store", function() {
             $ = require('jquery')(window);
             Backbone = require('backbone');
             Backbone.$ = $;
-            book = require('../../keepnote/server/static/js/notebook.js');
+            book = require('../../js/notebook.js');
             NoteBook = book.NoteBook;
 
             // Setup local notebook;
@@ -317,7 +317,7 @@ describe("Test notebook data store", function() {
             $ = require('jquery')(window);
             Backbone = require('backbone');
             Backbone.$ = $;
-            book = require('../../keepnote/server/static/js/notebook.js');
+            book = require('../../js/notebook.js');
             NoteBook = book.NoteBook;
 
             // Setup local notebook;
