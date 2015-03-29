@@ -106,7 +106,7 @@ var NotebookTreeDrop = React.createClass({
     render: function () {
         var style = {};
 
-        if (this.props.relation == 'before') {
+        if (this.props.relation === 'before') {
             style = {
                 position: 'absolute',
                 top: 0,
@@ -114,7 +114,7 @@ var NotebookTreeDrop = React.createClass({
                 height: '20%',
                 width: '100%'
             };
-        } else if (this.props.relation == 'after') {
+        } else if (this.props.relation === 'after') {
             style = {
                 position: 'absolute',
                 bottom: 0,
@@ -122,7 +122,7 @@ var NotebookTreeDrop = React.createClass({
                 height: '20%',
                 width: '100%'
             };
-        } else if (this.props.relation == 'child') {
+        } else if (this.props.relation === 'child') {
             style = {
                 position: 'absolute',
                 top: '20%',
@@ -182,7 +182,7 @@ var NotebookTreeNode = React.createClass({
                         return {
                             item: component.props.node
                         };
-                    },
+                    }
                 }
             });
         }
@@ -196,13 +196,14 @@ var NotebookTreeNode = React.createClass({
             return function (node1, node2) {
                 var val1 = (node1.get(attr) || 0);
                 var val2 = (node2.get(attr) || 0);
-                if (val1 < val2)
+                if (val1 < val2) {
                     return -direction;
-                else if (val1 > val2)
+                } else if (val1 > val2) {
                     return direction;
-                else
+                } else {
                     return 0;
-            }
+                }
+            };
         }
 
         // Get child nodes in sorted order.
@@ -234,15 +235,15 @@ var NotebookTreeNode = React.createClass({
         }
 
         var displayChildren = (
-            node.get(this.props.expandAttr) ? "inline" : "none");
+            node.get(this.props.expandAttr) ? 'inline' : 'none');
         var indent = this.props.depth * this.props.indent;
-        var nodeClass = "node-tree-title";
-        if (node == this.props.currentNode)
-            nodeClass += " active";
+        var nodeClass = 'node-tree-title';
+        if (node === this.props.currentNode)
+            nodeClass += ' active';
 
         // Build node title.
         var onNodeClick;
-        if (node.get("payload_filename")) {
+        if (node.get('payload_filename')) {
             // Attached file.
             onNodeClick = this.onPayloadClick;
         } else {
@@ -261,7 +262,7 @@ var NotebookTreeNode = React.createClass({
             var content = [];
 
             // First column has indenting and expander.
-            if (i == 0) {
+            if (i === 0) {
                 style.paddingLeft = indent;
 
                 content.push(<a key="1" className="expand"
@@ -269,12 +270,12 @@ var NotebookTreeNode = React.createClass({
                               href="javascript:;">+</a>);
             }
 
-            if (column.attr == 'title') {
+            if (column.attr === 'title') {
                 content.push(<InplaceEditor key="2" className="title"
                              value={node.get('title')}
                              onSubmit={this.onRenameNode}/>);
-            } else if (column.attr == 'created_time' ||
-                       column.attr == 'modified_time') {
+            } else if (column.attr === 'created_time' ||
+                       column.attr === 'modified_time') {
                 var timeFormat = '%Y/%m/%d %I:%M:%S %p';
                 var time = node.get(column.attr);
                 var text = strftime(timeFormat, new Date(time * 1000));
@@ -350,7 +351,7 @@ var NotebookTreeNode = React.createClass({
     // Rename a node title.
     onRenameNode: function (value) {
         var node = this.props.node;
-        node.set("title", value);
+        node.set('title', value);
         node.save();
     }
 });
@@ -382,10 +383,10 @@ var TreeviewHeader = React.createClass({
             };
 
             var sortIcon = null;
-            if (column.attr == this.state.sortColumn) {
-                if (this.state.sortDir == 1) {
+            if (column.attr === this.state.sortColumn) {
+                if (this.state.sortDir === 1) {
                     sortIcon = 'V';
-                } else if (this.state.sortDir == -1) {
+                } else if (this.state.sortDir === -1) {
                     sortIcon = '^';
                 }
             }
@@ -407,11 +408,11 @@ var TreeviewHeader = React.createClass({
         event.stopPropagation();
         var sortDir = this.state.sortDir;
 
-        if (column.attr == this.state.sortColumn) {
+        if (column.attr === this.state.sortColumn) {
             // Cycle through sort direction.
-            if (sortDir == 1)
-                sortDir = -1
-            else if (sortDir == -1)
+            if (sortDir === 1)
+                sortDir = -1;
+            else if (sortDir === -1)
                 sortDir = 0;
             else
                 sortDir = 1;
@@ -460,7 +461,7 @@ var NotebookTree = React.createClass({
             if (node) {
                 sortColumn = node.get('info_sort') || 'order';
                 sortDir = node.get('info_sort_dir');
-                if (sortDir != 1 && sortDir != -1)
+                if (sortDir !== 1 && sortDir !== -1)
                     sortDir = 1;
             }
 
@@ -491,7 +492,7 @@ var NotebookTree = React.createClass({
     },
 
     onKeyDown: function (event) {
-        if (event.key == 'Backspace') {
+        if (event.key === 'Backspace') {
             if (this.props.onDeleteNode)
                 this.props.onDeleteNode(this.props.currentNode);
             event.preventDefault();
@@ -502,13 +503,13 @@ var NotebookTree = React.createClass({
     onColumnSort: function (attr, sortDir) {
         var node = this.props.node;
         if (node) {
-            if (sortDir == 0) {
+            if (sortDir === 0) {
                 attr = 'order';
                 sortDir = 1;
             }
             node.save({
-                info_sort: attr,
-                info_sort_dir: sortDir
+                'info_sort': attr,
+                'info_sort_dir': sortDir
             });
         }
     }
@@ -516,7 +517,7 @@ var NotebookTree = React.createClass({
 
 
 // Exports.
-if (typeof(module) !== 'undefined') {
+if (typeof module !== 'undefined') {
     module.exports = {
         NotebookTree: NotebookTree
     };

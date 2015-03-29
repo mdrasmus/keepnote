@@ -1,7 +1,7 @@
 var NotebookTreeRaw = React.createClass({
     getInitialState: function () {
         var node = this.props.node;
-        var expanded = node.get("expanded") || false;
+        var expanded = node.get('expanded') || false;
         return {
             expanded: expanded,
             filesExpanded: false
@@ -25,18 +25,18 @@ var NotebookTreeRaw = React.createClass({
             }
         }
 
-        var displayChildren = (this.state.expanded ? "inline" : "none");
-        var displayFiles = (this.state.filesExpanded ? "block" : "none");
-        var nodeClass = "node-tree";
-        if (node == this.props.currentNode)
-            nodeClass += " active";
+        var displayChildren = (this.state.expanded ? 'inline' : 'none');
+        var displayFiles = (this.state.filesExpanded ? 'block' : 'none');
+        var nodeClass = 'node-tree';
+        if (node === this.props.currentNode)
+            nodeClass += ' active';
 
         // Build node title.
         var title = <span className="title">{node.get('title')}</span>;
         if (node.isPage()) {
             // Notebook page.
             title = <a href="#" onClick={this.onPageClick}>{title}</a>;
-        } else if (node.get("payload_filename")) {
+        } else if (node.get('payload_filename')) {
             // Attached file.
             title = <a href={node.payloadUrl()} target="_blank">{title}</a>;
         }
@@ -115,7 +115,7 @@ var NotebookFile = React.createClass({
             children.push(<li key={i}><NotebookFile file={child} /></li>);
         }
 
-        var displayChildren = (this.state.expanded ? "block" : "none");
+        var displayChildren = (this.state.expanded ? 'block' : 'none');
 
         var filenameNode = null;
         if (this.props.showFilename) {
@@ -123,7 +123,7 @@ var NotebookFile = React.createClass({
             var filename = file.basename() + (file.isDir ? '/' : '');
 
             var onClick = null;
-            var href = "#";
+            var href = '#';
             if (file.isDir) {
                 onClick = this.toggleChildren;
             } else {
@@ -154,7 +154,7 @@ var NotebookFile = React.createClass({
 
 
 // Exports.
-if (typeof(module) !== 'undefined') {
+if (typeof module !== 'undefined') {
     module.exports = {
         NotebookTreeRaw: NotebookTreeRaw,
         NotebookFile: NotebookFile

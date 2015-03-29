@@ -1,5 +1,5 @@
 // Import libs.
-if (typeof(require) !== 'undefined') {
+if (typeof require !== 'undefined') {
     var notebooklib = require('./notebook.js');
     var NoteBook = notebooklib.NoteBook;
 
@@ -12,8 +12,8 @@ if (typeof(require) !== 'undefined') {
 function parsePageHtml(node, html) {
     // Parse page html.
     var parser = new DOMParser();
-    var htmlDoc = parser.parseFromString(html, "text/html");
-    var body = $(htmlDoc.getElementsByTagName("body"));
+    var htmlDoc = parser.parseFromString(html, 'text/html');
+    var body = $(htmlDoc.getElementsByTagName('body'));
 
     convertHtmlForDisplay(node, body);
     return body;
@@ -47,34 +47,34 @@ function isAbsoluteUrl(url) {
 
 
 function convertHtmlForDisplay(node, body) {
-    var baseUrl = node.url() + "/";
+    var baseUrl = node.url() + '/';
 
     // Adjust all relative image urls for display.
-    body.find("img").each(function (i) {
+    body.find('img').each(function (i) {
         var img = $(this);
-        var src = img.attr("src");
+        var src = img.attr('src');
 
         if (!isAbsoluteUrl(src))
-            img.attr("src", baseUrl + src);
+            img.attr('src', baseUrl + src);
     });
 }
 
 
 function convertHtmlForStorage(node, body) {
-    var baseUrl = node.url() + "/";
+    var baseUrl = node.url() + '/';
 
     // Adjust all img urls for storage.
-    body.find("img").each(function (i) {
+    body.find('img').each(function (i) {
         var img = $(this);
-        var src = img.attr("src");
+        var src = img.attr('src');
 
         // TODO: prevent image loading.
         // Strip baseUrl if present.
-        if (src.substr(0, baseUrl.length) == baseUrl)
-            img.attr("src", src.substr(baseUrl.length));
+        if (src.substr(0, baseUrl.length) === baseUrl)
+            img.attr('src', src.substr(baseUrl.length));
 
         // Remove unneeded title attribute.
-        img.removeAttr("title");
+        img.removeAttr('title');
     });
 }
 
@@ -105,18 +105,17 @@ var PageEditor = React.createClass({
     },
 
     componentDidMount: function () {
-        var size = this.props.size;
         var pageEditor = this.refs.pageEditor.getDOMNode();
 
         // Add editor buttons.
         var toolbar = this.refs.toolbar.getDOMNode();
-        var toolbarContent = $($("#page-toolbar-template").html()).children();
+        var toolbarContent = $($('#page-toolbar-template').html()).children();
         $(toolbar).append(toolbarContent);
 
         // Setup editor.
         this.editor = new wysihtml5.Editor('page-editor', {
             toolbar: 'page-toolbar',
-            parserRules:  wysihtml5ParserRules
+            parserRules: wysihtml5ParserRules
         });
 
         // Attach listener to link double clicks.
@@ -127,7 +126,7 @@ var PageEditor = React.createClass({
                 that.props.onVisitLink($(this).attr('href'));
         });
 
-        this.linkDialog = $("[data-wysihtml5-dialog=createLink]");
+        this.linkDialog = $('[data-wysihtml5-dialog=createLink]');
         this.updateLinkDialog();
     },
 
@@ -225,7 +224,7 @@ var KeepNoteView = React.createClass({
 
     componentDidMount: function () {
         var bindings = this.state.bindings;
-        $("body").keypress(bindings.processEvent.bind(bindings));
+        $('body').keypress(bindings.processEvent.bind(bindings));
         this.initKeyBindings();
 
         // Register back button event.
@@ -238,10 +237,10 @@ var KeepNoteView = React.createClass({
 
     initKeyBindings: function () {
         var bindings = this.state.bindings;
-        bindings.add("ctrl s", this.save);
-        bindings.add("ctrl k", this.focusSearch);
-        bindings.add("ctrl n", this.newNode);
-        bindings.add("ctrl shift N", this.newChildNode);
+        bindings.add('ctrl s', this.save);
+        bindings.add('ctrl k', this.focusSearch);
+        bindings.add('ctrl n', this.newNode);
+        bindings.add('ctrl shift N', this.newChildNode);
     },
 
     render: function () {
@@ -286,7 +285,7 @@ var KeepNoteView = React.createClass({
                 attr: 'modified_time',
                 width: 200
             }
-        ]
+        ];
         var listview = this.state.currentTreeNode ?
             <NotebookTree
              node={this.state.currentTreeNode}
@@ -332,14 +331,14 @@ var KeepNoteView = React.createClass({
     newNode: function () {
         var notebook = this.props.app.notebook;
         if (!notebook)
-            return;
+            return $.Deferred().resolve();
 
         var root = notebook.root;
         var node = this.state.currentNode;
         var parent = null;
         var index = null;
 
-        if (!node || node == root) {
+        if (!node || node === root) {
             parent = root;
             index = null;
         } else {
@@ -355,7 +354,7 @@ var KeepNoteView = React.createClass({
     newChildNode: function () {
         var notebook = this.props.app.notebook;
         if (!notebook)
-            return;
+            return $.Deferred().resolve();
 
         var parent = this.state.currentNode;
         if (!parent)
@@ -381,7 +380,7 @@ var KeepNoteView = React.createClass({
                 currentNodeId: node.id
             };
             var pageUrl = this.getNodePageUrl(node);
-            window.history.pushState(state, node.get("title"), pageUrl);
+            window.history.pushState(state, node.get('title'), pageUrl);
         }
 
         var setViews = function (treeNode, node) {
@@ -454,7 +453,7 @@ var KeepNoteView = React.createClass({
             for (var i=0; i<rootPath.length; i++) {
                 treeNode = rootPath[i];
                 if (!treeNode.get('expanded') ||
-                    treeNode == this.state.currentTreeNode)
+                    treeNode === this.state.currentTreeNode)
                     break;
             }
             return treeNode;
@@ -494,7 +493,7 @@ var KeepNoteView = React.createClass({
     },
 
     getNodePageUrl: function (node) {
-        return "/pages/" + node.id;
+        return '/pages/' + node.id;
     },
 
     onShowAttr: function (e) {
@@ -512,7 +511,7 @@ var KeepNoteView = React.createClass({
     savePage: function () {
         var node = this.state.currentNode;
         if (!node)
-            return;
+            return $.Deferred().resolve();
 
         var body = this.refs.pageEditor.getContent();
         var html = formatPageHtml(node, body);
@@ -547,17 +546,17 @@ function KeyBinding() {
         if (!(key in this.bindings))
             this.bindings[key] = [];
         this.bindings[key].push(callback);
-    }
+    };
 
     // Remove a key binding.
     this.remove = function (key) {
         delete this.bindings[key];
-    }
+    };
 
     // Clear all key bindings.
     this.clear = function () {
         this.bindings = {};
-    }
+    };
 
     // Process a key press event.
     this.processEvent = function (event) {
@@ -570,11 +569,11 @@ function KeyBinding() {
             }
             event.preventDefault();
         }
-    }
+    };
 
     // Return a hash of a key press event.
     this.hashKeyEvent = function (event) {
-        var hash = "";
+        var hash = '';
         if (event.ctrlKey || event.metaKey) {
             hash += 'ctrl ';
         }
@@ -607,9 +606,9 @@ function KeepNoteApp() {
 
         // Fetch notebook.
         $.get('/notebook/nodes/').done(function (result) {
-            var rootid = result["rootids"][0];
+            var rootid = result.rootids[0];
             this.notebook = new NoteBook({rootid: rootid});
-            this.notebook.on("change", this.onNoteBookChange, this);
+            this.notebook.on('change', this.onNoteBookChange, this);
 
             this.notebook.root.fetchExpanded().done(function () {
                 // Process initial page url.
@@ -633,7 +632,7 @@ function KeepNoteApp() {
 
 
 // Define module exports.
-if (typeof(module) !== 'undefined') {
+if (typeof module !== 'undefined') {
     module.exports = {
         KeepNoteApp: KeepNoteApp
     };

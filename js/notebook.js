@@ -2,8 +2,8 @@
 // Notebook node model.
 var Node = Backbone.Model.extend({
 
-    PAGE_CONTENT_TYPE: "text/xhtml+xml",
-    PAGE_FILE: "page.html",
+    PAGE_CONTENT_TYPE: 'text/xhtml+xml',
+    PAGE_FILE: 'page.html',
 
     initialize: function () {
         this.notebook = null;
@@ -14,9 +14,9 @@ var Node = Backbone.Model.extend({
         this.ordered = false;
         this.fetched = false;
 
-        this.on("change", this.onChange, this);
-        this.on("change:childrenids", this.onChangeChildren, this);
-        this.on("change:parentids", this.onChangeParents, this);
+        this.on('change', this.onChange, this);
+        this.on('change:childrenids', this.onChangeChildren, this);
+        this.on('change:parentids', this.onChangeParents, this);
     },
 
     // TODO: make customizable.
@@ -50,13 +50,13 @@ var Node = Backbone.Model.extend({
     // Allocate children nodes.
     onChangeChildren: function () {
         // Allocate and register new children.
-        var childrenIds = this.get("childrenids") || [];
+        var childrenIds = this.get('childrenids') || [];
         var hasOrderLoaded = true;
         this.children = [];
         for (var i=0; i<childrenIds.length; i++) {
             var child = this.notebook.getNode(childrenIds[i]);
             this.children.push(child);
-            if (typeof(child.get("order")) == "undefined") {
+            if (typeof child.get('order') === 'undefined') {
                 hasOrderLoaded = false;
             }
         }
@@ -69,7 +69,7 @@ var Node = Backbone.Model.extend({
     // Allocate parent nodes.
     onChangeParents: function () {
         // Allocate and register new children.
-        var parentIds = this.get("parentids") || [];
+        var parentIds = this.get('parentids') || [];
         this.parents = [];
         for (var i=0; i<parentIds.length; i++) {
             this.parents.push(this.notebook.getNode(parentIds[i]));
@@ -98,7 +98,7 @@ var Node = Backbone.Model.extend({
     },
 
     orderChildren: function (trigger) {
-        if (typeof(trigger) === "undefined")
+        if (typeof trigger === 'undefined')
             trigger = true;
 
         this.children.sort(function (node1, node2) {
@@ -150,7 +150,7 @@ var Node = Backbone.Model.extend({
     isDescendant: function(ancestor) {
         var ptr = this;
         while (true) {
-            if (ptr == ancestor)
+            if (ptr === ancestor)
                 return true;
             if (ptr.parents.length > 0)
                 ptr = ptr.parents[0];
@@ -161,11 +161,11 @@ var Node = Backbone.Model.extend({
     },
 
     isPage: function () {
-        return this.get("content_type") == this.PAGE_CONTENT_TYPE;
+        return this.get('content_type') === this.PAGE_CONTENT_TYPE;
     },
 
     fileUrl: function (filename) {
-        return this.url() + "/" + filename;
+        return this.url() + '/' + filename;
     },
 
     pageUrl: function () {
@@ -173,7 +173,7 @@ var Node = Backbone.Model.extend({
     },
 
     payloadUrl: function () {
-        return this.fileUrl(this.get("payload_filename"));
+        return this.fileUrl(this.get('payload_filename'));
     },
 
     getFile: function (filename) {
@@ -192,16 +192,16 @@ var Node = Backbone.Model.extend({
     },
 
     registerFile: function (file) {
-        file.on("change", function () {
+        file.on('change', function () {
             this.trigger('file-change');
         }, this);
-        file.on("destroy", function () {
+        file.on('destroy', function () {
             this.onFileDestroy(file); }, this);
     },
 
     unregisterFile: function (file) {
-        file.off("change", null, this);
-        file.off("destroy", function () {
+        file.off('change', null, this);
+        file.off('destroy', function () {
             this.onFileDestroy(file); }, this);
     },
 
@@ -215,13 +215,13 @@ var Node = Backbone.Model.extend({
 
     writeFile: function (filename, content) {
         if (this._isDir(filename))
-            throw "Cannot write to a directory.";
+            throw 'Cannot write to a directory.';
         return $.post(this.fileUrl(filename), content);
     },
 
     readFile: function (filename) {
         if (this._isDir(filename))
-            throw "Cannot read from a directory.";
+            throw 'Cannot read from a directory.';
         return $.get(this.fileUrl(filename));
     },
 
@@ -244,8 +244,8 @@ var NodeFile = Backbone.Model.extend({
         this.path = options.path || '';
         this.children = [];
 
-        this.isDir = (this.path == '' ||
-                      this.path.substr(-1) == '/');
+        this.isDir = (this.path === '' ||
+                      this.path.substr(-1) === '/');
     },
 
     url: function () {
@@ -256,7 +256,7 @@ var NodeFile = Backbone.Model.extend({
     },
 
     basename: function () {
-        if (this.path == '')
+        if (this.path === '')
             return '';
 
         var parts = this.path.split('/');
@@ -267,20 +267,20 @@ var NodeFile = Backbone.Model.extend({
     },
 
     _allocateChildren: function (files) {
-        this.trigger("removing-children", this);
+        this.trigger('removing-children', this);
 
         // Allocate and register new children.
         this.children = [];
         for (var i=0; i<files.length; i++)
             this.children.push(this.node.getFile(files[i]));
 
-        this.trigger("adding-children", this);
+        this.trigger('adding-children', this);
     },
 
     fetch: function (options) {
         // Files do not have any meta data and nothing to fetch.
         if (!this.isDir)
-            return;
+            return $.Deferred().resolve();
 
         var result = Node.__super__.fetch.call(this, options);
         return result.done(function () {
@@ -301,7 +301,7 @@ var NodeFile = Backbone.Model.extend({
     getChildByName: function (name) {
         for (var i=0; i<this.children.length; i++) {
             var child = this.children[i];
-            if (child.basename() == name)
+            if (child.basename() === name)
                 return child;
         }
         return null;
@@ -311,14 +311,14 @@ var NodeFile = Backbone.Model.extend({
         if (!this.isDir)
             return $.get(this.url());
         else
-            throw "Cannot read from a directory";
+            throw 'Cannot read from a directory';
     },
 
     write: function (data) {
         if (!this.isDir)
             return $.post(this.url(), data);
         else
-            throw "Cannot write to a directory";
+            throw 'Cannot write to a directory';
     }
 });
 
@@ -339,7 +339,7 @@ var NoteBook = Backbone.Model.extend({
     save: function () {
         return $.ajax({
             type: 'POST',
-            url: this.urlRoot + '?save',
+            url: this.urlRoot + '?save'
         });
     },
 
@@ -353,7 +353,7 @@ var NoteBook = Backbone.Model.extend({
     },
 
     searchTitle: function (title) {
-        return this.search(["search", "title", title]);
+        return this.search(['search', 'title', title]);
     },
 
     // Return a node in the node cache.
@@ -378,25 +378,25 @@ var NoteBook = Backbone.Model.extend({
         this.nodes[node.id] = node;
 
         // Node listeners.
-        node.on("change", function () {
+        node.on('change', function () {
             this.onNodeChange(node); }, this);
-        node.on("destroy", function () {
+        node.on('destroy', function () {
             this.onNodeDestroy(node); }, this);
-        node.on("file-change", function (file) {
+        node.on('file-change', function (file) {
             this.onFileChange(file); }, this);
     },
 
     // Unregister all callbacks for a node.
     unregisterNode: function (node) {
-        node.off("change", null, this);
-        node.off("destroy", null, this);
+        node.off('change', null, this);
+        node.off('destroy', null, this);
         delete this.nodes[node.id];
     },
 
     // Callback for when nodes change.
     onNodeChange: function (node) {
-        this.trigger("node-change", this, node);
-        this.trigger("change");
+        this.trigger('node-change', this, node);
+        this.trigger('change');
     },
 
     onNodeDestroy: function (node) {
@@ -409,20 +409,20 @@ var NoteBook = Backbone.Model.extend({
         // TODO: decide what to do with children. Recurse?
 
         this.unregisterNode(node);
-        this.trigger("change");
+        this.trigger('change');
     },
 
     // Callback for when files change.
     onFileChange: function (file) {
-        this.trigger("file-change", this, file);
-        this.trigger("change");
+        this.trigger('file-change', this, file);
+        this.trigger('change');
     },
 
     newNode: function (parent, index) {
-        var NEW_TITLE = "New Page";
-        var EMPTY_PAGE = "<html><body></body></html>";
+        var NEW_TITLE = 'New Page';
+        var EMPTY_PAGE = '<html><body></body></html>';
 
-        if (index == null || typeof(index) === "undefined")
+        if (index === null || typeof index === 'undefined')
             index = parent.children.length;
         if (index > parent.children.length)
             index = parent.children.length;
@@ -430,16 +430,15 @@ var NoteBook = Backbone.Model.extend({
         // Create new node.
         var childrenIds;
         var node = new Node({
-            "content_type": this.root.PAGE_CONTENT_TYPE,
-            "title": NEW_TITLE,
-            "parentids": [parent.id],
-            "childrenids": [],
-            "order": index
+            'content_type': this.root.PAGE_CONTENT_TYPE,
+            'title': NEW_TITLE,
+            'parentids': [parent.id],
+            'childrenids': [],
+            'order': index
         });
         node.notebook = this;
         return node.save().then(function (result) {
-            var nodeid = result["nodeid"];
-            node.id = nodeid;
+            node.id = result.nodeid;
             this.registerNode(node);
 
             // Create empty page.
@@ -447,7 +446,7 @@ var NoteBook = Backbone.Model.extend({
             file.write(EMPTY_PAGE);
 
             // Adjust parent children ids.
-            childrenIds = parent.get("childrenids").slice(0);
+            childrenIds = parent.get('childrenids').slice(0);
             childrenIds.splice(index, 0, node.id);
 
             // Update all children orders.
@@ -475,31 +474,31 @@ var NoteBook = Backbone.Model.extend({
         var index = options.index;
 
         // Determine parent and index.
-        if (typeof(parent) !== 'undefined') {
+        if (typeof parent !== 'undefined') {
             // Parent is given, determine index.
-            if (index == null || typeof(index) === "undefined")
+            if (index === null || typeof index === 'undefined')
                 index = parent.children.length;
             if (index > parent.children.length)
                 index = parent.children.length;
 
-        } else if (typeof(target) == 'undefined') {
+        } else if (typeof target === 'undefined') {
             // Without parent, target must be given.
             throw 'Target node must be given';
 
-        } else if (relation == 'child') {
+        } else if (relation === 'child') {
             // Move node to be the last child of target.
             parent = target;
             index = parent.children.length;
 
-        } else if (relation == 'after' || relation == 'before') {
+        } else if (relation === 'after' || relation === 'before') {
             // Move node to be sibling of target.
             parent = target;
             if (parent.parents.length > 0)
                 parent = parent.parents[0];
             index = parent.children.indexOf(target);
-            if (index == -1)
+            if (index === -1)
                 index = parent.children.length;
-            else if (relation == 'after')
+            else if (relation === 'after')
                 index++;
 
         } else {
@@ -514,10 +513,10 @@ var NoteBook = Backbone.Model.extend({
 
         // Insert child into new parent.
         var childrenIds;
-        if (parent == oldParent)
+        if (parent === oldParent)
             childrenIds = oldChildrenIds;
         else
-            childrenIds = parent.get("childrenids").slice(0);
+            childrenIds = parent.get('childrenids').slice(0);
         childrenIds.splice(index, 0, node.id);
 
         // Remove placeholder null.
@@ -544,7 +543,7 @@ var NoteBook = Backbone.Model.extend({
 
             // Save old parent children, if distinct.
             var defer2 = $.Deferred();
-            if (parent != oldParent) {
+            if (parent !== oldParent) {
                 defer2 = oldParent.save(
                     {childrenids: oldChildrenIds},
                     {wait: true}
@@ -565,7 +564,7 @@ var NoteBook = Backbone.Model.extend({
 
         for (var i=0; i<childrenIds.length; i++) {
             var child = this.getNode(childrenIds[i]);
-            if (typeof(child) == 'undefined')
+            if (typeof child === 'undefined')
                 continue;
 
             defers.push(child.save({order: i}));
@@ -576,6 +575,6 @@ var NoteBook = Backbone.Model.extend({
 });
 
 
-if (typeof(module) !== "undefined") {
+if (typeof module !== 'undefined') {
     module.exports.NoteBook = NoteBook;
 }

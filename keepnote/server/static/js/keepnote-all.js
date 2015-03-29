@@ -6,7 +6,7 @@ window.KeepNoteApp = keepnote.KeepNoteApp;
 
 },{"./keepnote.jsx":2}],2:[function(require,module,exports){
 // Import libs.
-if (typeof(require) !== 'undefined') {
+if (typeof require !== 'undefined') {
     var notebooklib = require('./notebook.js');
     var NoteBook = notebooklib.NoteBook;
 
@@ -19,8 +19,8 @@ if (typeof(require) !== 'undefined') {
 function parsePageHtml(node, html) {
     // Parse page html.
     var parser = new DOMParser();
-    var htmlDoc = parser.parseFromString(html, "text/html");
-    var body = $(htmlDoc.getElementsByTagName("body"));
+    var htmlDoc = parser.parseFromString(html, 'text/html');
+    var body = $(htmlDoc.getElementsByTagName('body'));
 
     convertHtmlForDisplay(node, body);
     return body;
@@ -54,34 +54,34 @@ function isAbsoluteUrl(url) {
 
 
 function convertHtmlForDisplay(node, body) {
-    var baseUrl = node.url() + "/";
+    var baseUrl = node.url() + '/';
 
     // Adjust all relative image urls for display.
-    body.find("img").each(function (i) {
+    body.find('img').each(function (i) {
         var img = $(this);
-        var src = img.attr("src");
+        var src = img.attr('src');
 
         if (!isAbsoluteUrl(src))
-            img.attr("src", baseUrl + src);
+            img.attr('src', baseUrl + src);
     });
 }
 
 
 function convertHtmlForStorage(node, body) {
-    var baseUrl = node.url() + "/";
+    var baseUrl = node.url() + '/';
 
     // Adjust all img urls for storage.
-    body.find("img").each(function (i) {
+    body.find('img').each(function (i) {
         var img = $(this);
-        var src = img.attr("src");
+        var src = img.attr('src');
 
         // TODO: prevent image loading.
         // Strip baseUrl if present.
-        if (src.substr(0, baseUrl.length) == baseUrl)
-            img.attr("src", src.substr(baseUrl.length));
+        if (src.substr(0, baseUrl.length) === baseUrl)
+            img.attr('src', src.substr(baseUrl.length));
 
         // Remove unneeded title attribute.
-        img.removeAttr("title");
+        img.removeAttr('title');
     });
 }
 
@@ -112,18 +112,17 @@ var PageEditor = React.createClass({displayName: "PageEditor",
     },
 
     componentDidMount: function () {
-        var size = this.props.size;
         var pageEditor = this.refs.pageEditor.getDOMNode();
 
         // Add editor buttons.
         var toolbar = this.refs.toolbar.getDOMNode();
-        var toolbarContent = $($("#page-toolbar-template").html()).children();
+        var toolbarContent = $($('#page-toolbar-template').html()).children();
         $(toolbar).append(toolbarContent);
 
         // Setup editor.
         this.editor = new wysihtml5.Editor('page-editor', {
             toolbar: 'page-toolbar',
-            parserRules:  wysihtml5ParserRules
+            parserRules: wysihtml5ParserRules
         });
 
         // Attach listener to link double clicks.
@@ -134,7 +133,7 @@ var PageEditor = React.createClass({displayName: "PageEditor",
                 that.props.onVisitLink($(this).attr('href'));
         });
 
-        this.linkDialog = $("[data-wysihtml5-dialog=createLink]");
+        this.linkDialog = $('[data-wysihtml5-dialog=createLink]');
         this.updateLinkDialog();
     },
 
@@ -232,7 +231,7 @@ var KeepNoteView = React.createClass({displayName: "KeepNoteView",
 
     componentDidMount: function () {
         var bindings = this.state.bindings;
-        $("body").keypress(bindings.processEvent.bind(bindings));
+        $('body').keypress(bindings.processEvent.bind(bindings));
         this.initKeyBindings();
 
         // Register back button event.
@@ -245,10 +244,10 @@ var KeepNoteView = React.createClass({displayName: "KeepNoteView",
 
     initKeyBindings: function () {
         var bindings = this.state.bindings;
-        bindings.add("ctrl s", this.save);
-        bindings.add("ctrl k", this.focusSearch);
-        bindings.add("ctrl n", this.newNode);
-        bindings.add("ctrl shift N", this.newChildNode);
+        bindings.add('ctrl s', this.save);
+        bindings.add('ctrl k', this.focusSearch);
+        bindings.add('ctrl n', this.newNode);
+        bindings.add('ctrl shift N', this.newChildNode);
     },
 
     render: function () {
@@ -293,7 +292,7 @@ var KeepNoteView = React.createClass({displayName: "KeepNoteView",
                 attr: 'modified_time',
                 width: 200
             }
-        ]
+        ];
         var listview = this.state.currentTreeNode ?
             React.createElement(NotebookTree, {
              node: this.state.currentTreeNode, 
@@ -339,14 +338,14 @@ var KeepNoteView = React.createClass({displayName: "KeepNoteView",
     newNode: function () {
         var notebook = this.props.app.notebook;
         if (!notebook)
-            return;
+            return $.Deferred().resolve();
 
         var root = notebook.root;
         var node = this.state.currentNode;
         var parent = null;
         var index = null;
 
-        if (!node || node == root) {
+        if (!node || node === root) {
             parent = root;
             index = null;
         } else {
@@ -362,7 +361,7 @@ var KeepNoteView = React.createClass({displayName: "KeepNoteView",
     newChildNode: function () {
         var notebook = this.props.app.notebook;
         if (!notebook)
-            return;
+            return $.Deferred().resolve();
 
         var parent = this.state.currentNode;
         if (!parent)
@@ -388,7 +387,7 @@ var KeepNoteView = React.createClass({displayName: "KeepNoteView",
                 currentNodeId: node.id
             };
             var pageUrl = this.getNodePageUrl(node);
-            window.history.pushState(state, node.get("title"), pageUrl);
+            window.history.pushState(state, node.get('title'), pageUrl);
         }
 
         var setViews = function (treeNode, node) {
@@ -461,7 +460,7 @@ var KeepNoteView = React.createClass({displayName: "KeepNoteView",
             for (var i=0; i<rootPath.length; i++) {
                 treeNode = rootPath[i];
                 if (!treeNode.get('expanded') ||
-                    treeNode == this.state.currentTreeNode)
+                    treeNode === this.state.currentTreeNode)
                     break;
             }
             return treeNode;
@@ -501,7 +500,7 @@ var KeepNoteView = React.createClass({displayName: "KeepNoteView",
     },
 
     getNodePageUrl: function (node) {
-        return "/pages/" + node.id;
+        return '/pages/' + node.id;
     },
 
     onShowAttr: function (e) {
@@ -519,7 +518,7 @@ var KeepNoteView = React.createClass({displayName: "KeepNoteView",
     savePage: function () {
         var node = this.state.currentNode;
         if (!node)
-            return;
+            return $.Deferred().resolve();
 
         var body = this.refs.pageEditor.getContent();
         var html = formatPageHtml(node, body);
@@ -554,17 +553,17 @@ function KeyBinding() {
         if (!(key in this.bindings))
             this.bindings[key] = [];
         this.bindings[key].push(callback);
-    }
+    };
 
     // Remove a key binding.
     this.remove = function (key) {
         delete this.bindings[key];
-    }
+    };
 
     // Clear all key bindings.
     this.clear = function () {
         this.bindings = {};
-    }
+    };
 
     // Process a key press event.
     this.processEvent = function (event) {
@@ -577,11 +576,11 @@ function KeyBinding() {
             }
             event.preventDefault();
         }
-    }
+    };
 
     // Return a hash of a key press event.
     this.hashKeyEvent = function (event) {
-        var hash = "";
+        var hash = '';
         if (event.ctrlKey || event.metaKey) {
             hash += 'ctrl ';
         }
@@ -614,9 +613,9 @@ function KeepNoteApp() {
 
         // Fetch notebook.
         $.get('/notebook/nodes/').done(function (result) {
-            var rootid = result["rootids"][0];
+            var rootid = result.rootids[0];
             this.notebook = new NoteBook({rootid: rootid});
-            this.notebook.on("change", this.onNoteBookChange, this);
+            this.notebook.on('change', this.onNoteBookChange, this);
 
             this.notebook.root.fetchExpanded().done(function () {
                 // Process initial page url.
@@ -640,19 +639,20 @@ function KeepNoteApp() {
 
 
 // Define module exports.
-if (typeof(module) !== 'undefined') {
+if (typeof module !== 'undefined') {
     module.exports = {
         KeepNoteApp: KeepNoteApp
     };
 }
+
 
 },{"./notebook.js":3,"./treeview.jsx":4}],3:[function(require,module,exports){
 
 // Notebook node model.
 var Node = Backbone.Model.extend({
 
-    PAGE_CONTENT_TYPE: "text/xhtml+xml",
-    PAGE_FILE: "page.html",
+    PAGE_CONTENT_TYPE: 'text/xhtml+xml',
+    PAGE_FILE: 'page.html',
 
     initialize: function () {
         this.notebook = null;
@@ -663,9 +663,9 @@ var Node = Backbone.Model.extend({
         this.ordered = false;
         this.fetched = false;
 
-        this.on("change", this.onChange, this);
-        this.on("change:childrenids", this.onChangeChildren, this);
-        this.on("change:parentids", this.onChangeParents, this);
+        this.on('change', this.onChange, this);
+        this.on('change:childrenids', this.onChangeChildren, this);
+        this.on('change:parentids', this.onChangeParents, this);
     },
 
     // TODO: make customizable.
@@ -699,13 +699,13 @@ var Node = Backbone.Model.extend({
     // Allocate children nodes.
     onChangeChildren: function () {
         // Allocate and register new children.
-        var childrenIds = this.get("childrenids") || [];
+        var childrenIds = this.get('childrenids') || [];
         var hasOrderLoaded = true;
         this.children = [];
         for (var i=0; i<childrenIds.length; i++) {
             var child = this.notebook.getNode(childrenIds[i]);
             this.children.push(child);
-            if (typeof(child.get("order")) == "undefined") {
+            if (typeof child.get('order') === 'undefined') {
                 hasOrderLoaded = false;
             }
         }
@@ -718,7 +718,7 @@ var Node = Backbone.Model.extend({
     // Allocate parent nodes.
     onChangeParents: function () {
         // Allocate and register new children.
-        var parentIds = this.get("parentids") || [];
+        var parentIds = this.get('parentids') || [];
         this.parents = [];
         for (var i=0; i<parentIds.length; i++) {
             this.parents.push(this.notebook.getNode(parentIds[i]));
@@ -747,7 +747,7 @@ var Node = Backbone.Model.extend({
     },
 
     orderChildren: function (trigger) {
-        if (typeof(trigger) === "undefined")
+        if (typeof trigger === 'undefined')
             trigger = true;
 
         this.children.sort(function (node1, node2) {
@@ -796,10 +796,10 @@ var Node = Backbone.Model.extend({
     },
 
     // Return true if this node is a descendent of ancestor.
-    isDescendant(ancestor) {
+    isDescendant: function(ancestor) {
         var ptr = this;
         while (true) {
-            if (ptr == ancestor)
+            if (ptr === ancestor)
                 return true;
             if (ptr.parents.length > 0)
                 ptr = ptr.parents[0];
@@ -810,11 +810,11 @@ var Node = Backbone.Model.extend({
     },
 
     isPage: function () {
-        return this.get("content_type") == this.PAGE_CONTENT_TYPE;
+        return this.get('content_type') === this.PAGE_CONTENT_TYPE;
     },
 
     fileUrl: function (filename) {
-        return this.url() + "/" + filename;
+        return this.url() + '/' + filename;
     },
 
     pageUrl: function () {
@@ -822,7 +822,7 @@ var Node = Backbone.Model.extend({
     },
 
     payloadUrl: function () {
-        return this.fileUrl(this.get("payload_filename"));
+        return this.fileUrl(this.get('payload_filename'));
     },
 
     getFile: function (filename) {
@@ -841,16 +841,16 @@ var Node = Backbone.Model.extend({
     },
 
     registerFile: function (file) {
-        file.on("change", function () {
+        file.on('change', function () {
             this.trigger('file-change');
         }, this);
-        file.on("destroy", function () {
+        file.on('destroy', function () {
             this.onFileDestroy(file); }, this);
     },
 
     unregisterFile: function (file) {
-        file.off("change", null, this);
-        file.off("destroy", function () {
+        file.off('change', null, this);
+        file.off('destroy', function () {
             this.onFileDestroy(file); }, this);
     },
 
@@ -864,13 +864,13 @@ var Node = Backbone.Model.extend({
 
     writeFile: function (filename, content) {
         if (this._isDir(filename))
-            throw "Cannot write to a directory.";
+            throw 'Cannot write to a directory.';
         return $.post(this.fileUrl(filename), content);
     },
 
     readFile: function (filename) {
         if (this._isDir(filename))
-            throw "Cannot read from a directory.";
+            throw 'Cannot read from a directory.';
         return $.get(this.fileUrl(filename));
     },
 
@@ -893,8 +893,8 @@ var NodeFile = Backbone.Model.extend({
         this.path = options.path || '';
         this.children = [];
 
-        this.isDir = (this.path == '' ||
-                      this.path.substr(-1) == '/');
+        this.isDir = (this.path === '' ||
+                      this.path.substr(-1) === '/');
     },
 
     url: function () {
@@ -905,7 +905,7 @@ var NodeFile = Backbone.Model.extend({
     },
 
     basename: function () {
-        if (this.path == '')
+        if (this.path === '')
             return '';
 
         var parts = this.path.split('/');
@@ -916,20 +916,20 @@ var NodeFile = Backbone.Model.extend({
     },
 
     _allocateChildren: function (files) {
-        this.trigger("removing-children", this);
+        this.trigger('removing-children', this);
 
         // Allocate and register new children.
         this.children = [];
         for (var i=0; i<files.length; i++)
             this.children.push(this.node.getFile(files[i]));
 
-        this.trigger("adding-children", this);
+        this.trigger('adding-children', this);
     },
 
     fetch: function (options) {
         // Files do not have any meta data and nothing to fetch.
         if (!this.isDir)
-            return;
+            return $.Deferred().resolve();
 
         var result = Node.__super__.fetch.call(this, options);
         return result.done(function () {
@@ -950,7 +950,7 @@ var NodeFile = Backbone.Model.extend({
     getChildByName: function (name) {
         for (var i=0; i<this.children.length; i++) {
             var child = this.children[i];
-            if (child.basename() == name)
+            if (child.basename() === name)
                 return child;
         }
         return null;
@@ -960,14 +960,14 @@ var NodeFile = Backbone.Model.extend({
         if (!this.isDir)
             return $.get(this.url());
         else
-            throw "Cannot read from a directory";
+            throw 'Cannot read from a directory';
     },
 
     write: function (data) {
         if (!this.isDir)
             return $.post(this.url(), data);
         else
-            throw "Cannot write to a directory";
+            throw 'Cannot write to a directory';
     }
 });
 
@@ -988,7 +988,7 @@ var NoteBook = Backbone.Model.extend({
     save: function () {
         return $.ajax({
             type: 'POST',
-            url: this.urlRoot + '?save',
+            url: this.urlRoot + '?save'
         });
     },
 
@@ -1002,7 +1002,7 @@ var NoteBook = Backbone.Model.extend({
     },
 
     searchTitle: function (title) {
-        return this.search(["search", "title", title]);
+        return this.search(['search', 'title', title]);
     },
 
     // Return a node in the node cache.
@@ -1027,25 +1027,25 @@ var NoteBook = Backbone.Model.extend({
         this.nodes[node.id] = node;
 
         // Node listeners.
-        node.on("change", function () {
+        node.on('change', function () {
             this.onNodeChange(node); }, this);
-        node.on("destroy", function () {
+        node.on('destroy', function () {
             this.onNodeDestroy(node); }, this);
-        node.on("file-change", function (file) {
+        node.on('file-change', function (file) {
             this.onFileChange(file); }, this);
     },
 
     // Unregister all callbacks for a node.
     unregisterNode: function (node) {
-        node.off("change", null, this);
-        node.off("destroy", null, this);
+        node.off('change', null, this);
+        node.off('destroy', null, this);
         delete this.nodes[node.id];
     },
 
     // Callback for when nodes change.
     onNodeChange: function (node) {
-        this.trigger("node-change", this, node);
-        this.trigger("change");
+        this.trigger('node-change', this, node);
+        this.trigger('change');
     },
 
     onNodeDestroy: function (node) {
@@ -1058,20 +1058,20 @@ var NoteBook = Backbone.Model.extend({
         // TODO: decide what to do with children. Recurse?
 
         this.unregisterNode(node);
-        this.trigger("change");
+        this.trigger('change');
     },
 
     // Callback for when files change.
     onFileChange: function (file) {
-        this.trigger("file-change", this, file);
-        this.trigger("change");
+        this.trigger('file-change', this, file);
+        this.trigger('change');
     },
 
     newNode: function (parent, index) {
-        var NEW_TITLE = "New Page";
-        var EMPTY_PAGE = "<html><body></body></html>";
+        var NEW_TITLE = 'New Page';
+        var EMPTY_PAGE = '<html><body></body></html>';
 
-        if (index == null || typeof(index) === "undefined")
+        if (index === null || typeof index === 'undefined')
             index = parent.children.length;
         if (index > parent.children.length)
             index = parent.children.length;
@@ -1079,16 +1079,15 @@ var NoteBook = Backbone.Model.extend({
         // Create new node.
         var childrenIds;
         var node = new Node({
-            "content_type": this.root.PAGE_CONTENT_TYPE,
-            "title": NEW_TITLE,
-            "parentids": [parent.id],
-            "childrenids": [],
-            "order": index
+            'content_type': this.root.PAGE_CONTENT_TYPE,
+            'title': NEW_TITLE,
+            'parentids': [parent.id],
+            'childrenids': [],
+            'order': index
         });
         node.notebook = this;
         return node.save().then(function (result) {
-            var nodeid = result["nodeid"];
-            node.id = nodeid;
+            node.id = result.nodeid;
             this.registerNode(node);
 
             // Create empty page.
@@ -1096,7 +1095,7 @@ var NoteBook = Backbone.Model.extend({
             file.write(EMPTY_PAGE);
 
             // Adjust parent children ids.
-            childrenIds = parent.get("childrenids").slice(0);
+            childrenIds = parent.get('childrenids').slice(0);
             childrenIds.splice(index, 0, node.id);
 
             // Update all children orders.
@@ -1124,31 +1123,31 @@ var NoteBook = Backbone.Model.extend({
         var index = options.index;
 
         // Determine parent and index.
-        if (typeof(parent) !== 'undefined') {
+        if (typeof parent !== 'undefined') {
             // Parent is given, determine index.
-            if (index == null || typeof(index) === "undefined")
+            if (index === null || typeof index === 'undefined')
                 index = parent.children.length;
             if (index > parent.children.length)
                 index = parent.children.length;
 
-        } else if (typeof(target) == 'undefined') {
+        } else if (typeof target === 'undefined') {
             // Without parent, target must be given.
             throw 'Target node must be given';
 
-        } else if (relation == 'child') {
+        } else if (relation === 'child') {
             // Move node to be the last child of target.
             parent = target;
             index = parent.children.length;
 
-        } else if (relation == 'after' || relation == 'before') {
+        } else if (relation === 'after' || relation === 'before') {
             // Move node to be sibling of target.
             parent = target;
             if (parent.parents.length > 0)
                 parent = parent.parents[0];
             index = parent.children.indexOf(target);
-            if (index == -1)
+            if (index === -1)
                 index = parent.children.length;
-            else if (relation == 'after')
+            else if (relation === 'after')
                 index++;
 
         } else {
@@ -1163,10 +1162,10 @@ var NoteBook = Backbone.Model.extend({
 
         // Insert child into new parent.
         var childrenIds;
-        if (parent == oldParent)
+        if (parent === oldParent)
             childrenIds = oldChildrenIds;
         else
-            childrenIds = parent.get("childrenids").slice(0);
+            childrenIds = parent.get('childrenids').slice(0);
         childrenIds.splice(index, 0, node.id);
 
         // Remove placeholder null.
@@ -1193,7 +1192,7 @@ var NoteBook = Backbone.Model.extend({
 
             // Save old parent children, if distinct.
             var defer2 = $.Deferred();
-            if (parent != oldParent) {
+            if (parent !== oldParent) {
                 defer2 = oldParent.save(
                     {childrenids: oldChildrenIds},
                     {wait: true}
@@ -1214,7 +1213,7 @@ var NoteBook = Backbone.Model.extend({
 
         for (var i=0; i<childrenIds.length; i++) {
             var child = this.getNode(childrenIds[i]);
-            if (typeof(child) == 'undefined')
+            if (typeof child === 'undefined')
                 continue;
 
             defers.push(child.save({order: i}));
@@ -1225,8 +1224,8 @@ var NoteBook = Backbone.Model.extend({
 });
 
 
-if (typeof(exports) !== "undefined") {
-    exports.NoteBook = NoteBook;
+if (typeof module !== 'undefined') {
+    module.exports.NoteBook = NoteBook;
 }
 
 
@@ -1339,7 +1338,7 @@ var NotebookTreeDrop = React.createClass({displayName: "NotebookTreeDrop",
     render: function () {
         var style = {};
 
-        if (this.props.relation == 'before') {
+        if (this.props.relation === 'before') {
             style = {
                 position: 'absolute',
                 top: 0,
@@ -1347,7 +1346,7 @@ var NotebookTreeDrop = React.createClass({displayName: "NotebookTreeDrop",
                 height: '20%',
                 width: '100%'
             };
-        } else if (this.props.relation == 'after') {
+        } else if (this.props.relation === 'after') {
             style = {
                 position: 'absolute',
                 bottom: 0,
@@ -1355,7 +1354,7 @@ var NotebookTreeDrop = React.createClass({displayName: "NotebookTreeDrop",
                 height: '20%',
                 width: '100%'
             };
-        } else if (this.props.relation == 'child') {
+        } else if (this.props.relation === 'child') {
             style = {
                 position: 'absolute',
                 top: '20%',
@@ -1415,7 +1414,7 @@ var NotebookTreeNode = React.createClass({displayName: "NotebookTreeNode",
                         return {
                             item: component.props.node
                         };
-                    },
+                    }
                 }
             });
         }
@@ -1429,13 +1428,14 @@ var NotebookTreeNode = React.createClass({displayName: "NotebookTreeNode",
             return function (node1, node2) {
                 var val1 = (node1.get(attr) || 0);
                 var val2 = (node2.get(attr) || 0);
-                if (val1 < val2)
+                if (val1 < val2) {
                     return -direction;
-                else if (val1 > val2)
+                } else if (val1 > val2) {
                     return direction;
-                else
+                } else {
                     return 0;
-            }
+                }
+            };
         }
 
         // Get child nodes in sorted order.
@@ -1467,15 +1467,15 @@ var NotebookTreeNode = React.createClass({displayName: "NotebookTreeNode",
         }
 
         var displayChildren = (
-            node.get(this.props.expandAttr) ? "inline" : "none");
+            node.get(this.props.expandAttr) ? 'inline' : 'none');
         var indent = this.props.depth * this.props.indent;
-        var nodeClass = "node-tree-title";
-        if (node == this.props.currentNode)
-            nodeClass += " active";
+        var nodeClass = 'node-tree-title';
+        if (node === this.props.currentNode)
+            nodeClass += ' active';
 
         // Build node title.
         var onNodeClick;
-        if (node.get("payload_filename")) {
+        if (node.get('payload_filename')) {
             // Attached file.
             onNodeClick = this.onPayloadClick;
         } else {
@@ -1494,7 +1494,7 @@ var NotebookTreeNode = React.createClass({displayName: "NotebookTreeNode",
             var content = [];
 
             // First column has indenting and expander.
-            if (i == 0) {
+            if (i === 0) {
                 style.paddingLeft = indent;
 
                 content.push(React.createElement("a", {key: "1", className: "expand", 
@@ -1502,12 +1502,12 @@ var NotebookTreeNode = React.createClass({displayName: "NotebookTreeNode",
                               href: "javascript:;"}, "+"));
             }
 
-            if (column.attr == 'title') {
+            if (column.attr === 'title') {
                 content.push(React.createElement(InplaceEditor, {key: "2", className: "title", 
                              value: node.get('title'), 
                              onSubmit: this.onRenameNode}));
-            } else if (column.attr == 'created_time' ||
-                       column.attr == 'modified_time') {
+            } else if (column.attr === 'created_time' ||
+                       column.attr === 'modified_time') {
                 var timeFormat = '%Y/%m/%d %I:%M:%S %p';
                 var time = node.get(column.attr);
                 var text = strftime(timeFormat, new Date(time * 1000));
@@ -1583,7 +1583,7 @@ var NotebookTreeNode = React.createClass({displayName: "NotebookTreeNode",
     // Rename a node title.
     onRenameNode: function (value) {
         var node = this.props.node;
-        node.set("title", value);
+        node.set('title', value);
         node.save();
     }
 });
@@ -1615,10 +1615,10 @@ var TreeviewHeader = React.createClass({displayName: "TreeviewHeader",
             };
 
             var sortIcon = null;
-            if (column.attr == this.state.sortColumn) {
-                if (this.state.sortDir == 1) {
+            if (column.attr === this.state.sortColumn) {
+                if (this.state.sortDir === 1) {
                     sortIcon = 'V';
-                } else if (this.state.sortDir == -1) {
+                } else if (this.state.sortDir === -1) {
                     sortIcon = '^';
                 }
             }
@@ -1640,11 +1640,11 @@ var TreeviewHeader = React.createClass({displayName: "TreeviewHeader",
         event.stopPropagation();
         var sortDir = this.state.sortDir;
 
-        if (column.attr == this.state.sortColumn) {
+        if (column.attr === this.state.sortColumn) {
             // Cycle through sort direction.
-            if (sortDir == 1)
-                sortDir = -1
-            else if (sortDir == -1)
+            if (sortDir === 1)
+                sortDir = -1;
+            else if (sortDir === -1)
                 sortDir = 0;
             else
                 sortDir = 1;
@@ -1693,7 +1693,7 @@ var NotebookTree = React.createClass({displayName: "NotebookTree",
             if (node) {
                 sortColumn = node.get('info_sort') || 'order';
                 sortDir = node.get('info_sort_dir');
-                if (sortDir != 1 && sortDir != -1)
+                if (sortDir !== 1 && sortDir !== -1)
                     sortDir = 1;
             }
 
@@ -1724,7 +1724,7 @@ var NotebookTree = React.createClass({displayName: "NotebookTree",
     },
 
     onKeyDown: function (event) {
-        if (event.key == 'Backspace') {
+        if (event.key === 'Backspace') {
             if (this.props.onDeleteNode)
                 this.props.onDeleteNode(this.props.currentNode);
             event.preventDefault();
@@ -1735,13 +1735,13 @@ var NotebookTree = React.createClass({displayName: "NotebookTree",
     onColumnSort: function (attr, sortDir) {
         var node = this.props.node;
         if (node) {
-            if (sortDir == 0) {
+            if (sortDir === 0) {
                 attr = 'order';
                 sortDir = 1;
             }
             node.save({
-                info_sort: attr,
-                info_sort_dir: sortDir
+                'info_sort': attr,
+                'info_sort_dir': sortDir
             });
         }
     }
@@ -1749,7 +1749,7 @@ var NotebookTree = React.createClass({displayName: "NotebookTree",
 
 
 // Exports.
-if (typeof(module) !== 'undefined') {
+if (typeof module !== 'undefined') {
     module.exports = {
         NotebookTree: NotebookTree
     };
