@@ -383,6 +383,11 @@ var KeepNoteView = React.createClass({
             window.history.pushState(state, node.get('title'), pageUrl);
         }
 
+        // Set window title.
+        node.ensureFetched().done(function () {
+            document.title = node.get('title');
+        });
+
         var setViews = function (treeNode, node) {
             this.setState({
                 currentTreeNode: treeNode,
