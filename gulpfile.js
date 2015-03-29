@@ -29,7 +29,6 @@ function buildBowerFiles() {
 
 gulp.task('lint', function () {
     return gulp.src(["js/*.js", "js/*.jsx"])
-        .pipe(react())
         .pipe(eslint({
             globals: {
                 module: true,

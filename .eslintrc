@@ -1,4 +1,7 @@
 {
+  "ecmaFeatures": {
+    "jsx": true
+  },
   "globals": {
     "_": false,
     "$": false,
@@ -14,7 +17,30 @@
     "wysihtml5ParserRules": false,
     "XMLSerializer": false
   },
+  "plugins": [
+    "react"
+  ],
   "rules": {
+    "curly": 0,
+    "indent": [1, 4],
+    "new-cap": [
+      2, {
+        "capIsNewExceptions": [
+          "Deferred"
+        ]
+      }
+    ],
+    "no-constant-condition": 0,
+    "no-extra-bind": 0,
+    "no-redeclare": 0,
+    "no-script-url": 0,
+    "no-underscore-dangle": 0,
+    "no-unused-vars": [2, {"args": "none"}],
+    "no-use-before-define": 0,
+    "no-shadow": 0,
+    "react/jsx-uses-vars": 1,
+    "space-infix-ops": 0,
+    "strict": 0,
     "quotes": [1, "single", "avoid-escape"]
   }
 }

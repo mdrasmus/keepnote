@@ -49,7 +49,8 @@ WININSTALLER_SRC=installer.iss
 # personal www paths
 WWW=/var/www/dev/rasm/keepnote
 
-.PHONY: all dev venv sdist rpm deb ebuild clean cq test teardown help share \
+.PHONY: all dev venv sdist rpm deb ebuild clean cq test test-py test-js \
+	teardown help share \
 	winebuild wineinstaller winclean contribs \
 	pypi upload upload-test upload-contrib
 
@@ -72,9 +73,14 @@ $(VENV_DIR)/bin/activate:
 cq:
 	$(VENV) && pep8 $(CODEQUALITY_FILES) | grep -v 'tarfile\|sqlitedict\|bottle.py' || true
 	$(VENV) && pyflakes $(CODEQUALITY_FILES) | grep -v 'tarfile\|sqlitedict\|bottle.py' || true
+	./gulp lint
 
-test: venv
+test: test-py test-js
+
+test-py: venv
 	$(VENV) && nosetests -sv tests/*.py
+
+test-js:
 	npm test
 
 teardown:
