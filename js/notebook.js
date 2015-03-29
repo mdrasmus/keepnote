@@ -230,6 +230,19 @@ var Node = Backbone.Model.extend({
         return file.destroy();
     },
 
+    hasFile: function (filename) {
+        var defer = $.Deferred();
+        $.ajax({
+            type: 'HEAD',
+            url: this.fileUrl(filename)
+        }).done(function () {
+            defer.resolve(true);
+        }).fail(function () {
+            defer.resolve(false);
+        });
+        return defer;
+    },
+
     move: function (options) {
         return this.notebook.moveNode(this, options);
     }
@@ -324,6 +337,9 @@ var NodeFile = Backbone.Model.extend({
 
 
 var NoteBook = Backbone.Model.extend({
+
+    NOTEBOOK_META_DIR: '__NOTEBOOK__',
+    NOTEBOOK_ICON_DIR: 'icons',
 
     urlRoot: '/notebook/',
 
@@ -571,6 +587,11 @@ var NoteBook = Backbone.Model.extend({
         }
 
         return $.when.apply($, defers);
+    },
+
+    getIconFilename: function (basename) {
+        return this.NOTEBOOK_META_DIR + '/' + this.NOTEBOOK_ICON_DIR + '/' +
+            basename;
     }
 });
 

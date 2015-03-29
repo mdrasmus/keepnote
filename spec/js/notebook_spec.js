@@ -20,7 +20,7 @@ function mockAsync($, name, mockFunc) {
                 result = mockFunc.apply(null, args);
                 defer.resolve(result);
             } catch (err) {
-                defer.reject.apply(null, err);
+                defer.reject(err);
             }
         }, 0);
 
@@ -34,10 +34,18 @@ function MockServer() {
     this.rootids = {};
     this.nodeid = 1;
     this.debug = false;
+    this.ajax = null;
 
     // Mock ajax to use server.
     this.start = function () {
         mockAsync($, 'ajax', function (config) {
+            if (this.ajax) {
+                // See if custom mock wants to handle ajax call.
+                var result = this.ajax(config);
+                if (typeof result !== 'undefined')
+                    return result;
+            }
+            // Default to builtin mock handler.
             return this.send(config);
         }.bind(this));
     };
@@ -393,6 +401,91 @@ describe("Test notebook data store", function() {
                 expect(notebook.root.get('childrenids'))
                     .toEqual(['2', '3']);
                 done();
+            });
+        });
+    });
+
+    fit('notebook icons', function (done) {
+        var jsdom = require('jsdom');
+        var html = '<html></html>';
+
+        jsdom.env(html, function (errors, window) {
+            $ = require('jquery')(window);
+            Backbone = require('backbone');
+            Backbone.$ = $;
+            book = require('../../js/notebook.js');
+            NoteBook = book.NoteBook;
+            icons = require('../../js/icons.js');
+
+            // Setup local notebook;
+            var rootid = '1';
+            var notebook = new NoteBook({rootid: rootid});
+
+            // Setup mock server;
+            var server = new MockServer();
+            server.start();
+            server.rootid = [rootid];
+            server.nodes = {
+                1: {
+                    nodeid: '1',
+                    title: 'My node',
+                    parentids: [],
+                    childrenids: []
+                }
+            };
+
+            // Icon paths.
+            var notebookIcons = '/notebook/nodes/1/__NOTEBOOK__/icons/';
+            var builtinIcons = '/static/images/node_icons/';
+
+            server.ajax = function (config) {
+                // Mock notebook icon file.
+                if (config.type === 'HEAD' &&
+                    config.url === notebookIcons + 'note.png') {
+                    return true;
+                }
+
+                // Mock builtin icon file.
+                if (config.type === 'HEAD' &&
+                    config.url === notebookIcons + 'note2.png') {
+                    throw 'not found';
+                }
+                if (config.type === 'HEAD' &&
+                    config.url === builtinIcons + 'note2.png') {
+                    return true;
+                }
+            };
+
+            // Test icon filenames.
+            var icon = notebook.getIconFilename('note.png');
+            expect(icon).toEqual('__NOTEBOOK__/icons/note.png');
+
+            // Track successful tests.
+            doneCount = 2;
+            var testDone = function () {
+                doneCount--;
+                if (doneCount === 0)
+                    done();
+            };
+
+            notebook.root.fetch().done(function () {
+                // Ask for notebook-specific icon.
+                icons.lookupIconFilename(notebook, 'note.png').done(
+                    function (filename) {
+                        expect(filename).toEqual(
+                            '/notebook/nodes/1/__NOTEBOOK__/icons/note.png');
+                        testDone();
+                    }
+                );
+
+                // Ask for builtin icon.
+                icons.lookupIconFilename(notebook, 'note2.png').done(
+                    function (filename) {
+                        expect(filename).toEqual(
+                            '/static/images/node_icons/note2.png');
+                        testDone();
+                    }
+                );
             });
         });
     });

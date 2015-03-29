@@ -884,6 +884,19 @@ var Node = Backbone.Model.extend({
         return file.destroy();
     },
 
+    hasFile: function (filename) {
+        var defer = $.Deferred();
+        $.ajax({
+            type: 'HEAD',
+            url: this.fileUrl(filename)
+        }).done(function () {
+            defer.resolve(true);
+        }).fail(function () {
+            defer.resolve(false);
+        });
+        return defer;
+    },
+
     move: function (options) {
         return this.notebook.moveNode(this, options);
     }
@@ -978,6 +991,9 @@ var NodeFile = Backbone.Model.extend({
 
 
 var NoteBook = Backbone.Model.extend({
+
+    NOTEBOOK_META_DIR: '__NOTEBOOK__',
+    NOTEBOOK_ICON_DIR: 'icons',
 
     urlRoot: '/notebook/',
 
@@ -1225,6 +1241,11 @@ var NoteBook = Backbone.Model.extend({
         }
 
         return $.when.apply($, defers);
+    },
+
+    getIconFilename: function (basename) {
+        return this.NOTEBOOK_META_DIR + '/' + this.NOTEBOOK_ICON_DIR + '/' +
+            basename;
     }
 });
 
@@ -1506,6 +1527,8 @@ var NotebookTreeNode = React.createClass({displayName: "NotebookTreeNode",
                 content.push(React.createElement("a", {key: "1", className: "expand", 
                               onClick: this.toggleChildren, 
                               href: "javascript:;"}, "+"));
+                content.push(
+                    React.createElement("img", {key: "1-icon", src: "/static/images/node_icons/note.png"}));
             }
 
             if (column.attr === 'title') {

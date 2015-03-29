@@ -269,6 +269,8 @@ var NotebookTreeNode = React.createClass({
                 content.push(<a key="1" className="expand"
                               onClick={this.toggleChildren}
                               href="javascript:;">+</a>);
+                content.push(
+                    <img key="1-icon" src="/static/images/node_icons/note.png"/>);
             }
 
             if (column.attr === 'title') {
