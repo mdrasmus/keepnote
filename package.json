@@ -10,6 +10,7 @@
     "gulp-eslint": "^0.7.0",
     "gulp-react": "^3.0.1",
     "gulp-rename": "^1.2.0",
+    "gulp-watch": "^4.2.1",
     "jasmine": "^2.2.1",
     "jest-cli": "git://github.com/facebook/jest.git",
     "jquery": "^2.1.1",

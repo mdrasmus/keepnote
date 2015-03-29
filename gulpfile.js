@@ -9,6 +9,7 @@ var reactify = require('reactify');
 var react = require('gulp-react');
 var rename = require('gulp-rename');
 var source = require('vinyl-source-stream');
+var watch = require('gulp-watch');
 
 // Use BowerFiles to install bower packages in a
 // normalized directory structure.
@@ -47,6 +48,12 @@ gulp.task('build-main', function() {
         .bundle()
         .pipe(source('keepnote-all.js'))
         .pipe(gulp.dest('./keepnote/server/static/js/'));
+});
+
+gulp.task("watch", function() {
+    watch(['js/**/*.js', 'js/**/*.jsx'], function() {
+        gulp.start('build-main');
+    });
 });
 
 gulp.task('bower-files', buildBowerFiles);
