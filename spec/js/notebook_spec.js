@@ -1,6 +1,5 @@
-
 // Mock async calls.
-function mockAsync($, name, resolved, mockFunc) {
+function mockAsync($, name, mockFunc) {
     var original = $[name];
 
     spyOn($, name).and.callFake(function () {
@@ -16,11 +15,12 @@ function mockAsync($, name, resolved, mockFunc) {
         });
 
         setTimeout(function () {
-            var value = mockFunc.apply(null, args);
-            if (resolved) {
-                defer.resolve(value);
-            } else {
-                defer.reject();
+            var result;
+            try {
+                result = mockFunc.apply(null, args);
+                defer.resolve(result);
+            } catch (err) {
+                defer.reject.apply(null, err);
             }
         }, 0);
 
@@ -35,6 +35,13 @@ function MockServer() {
     this.nodeid = 1;
     this.debug = false;
 
+    // Mock ajax to use server.
+    this.start = function () {
+        mockAsync($, 'ajax', function (config) {
+            return this.send(config);
+        }.bind(this));
+    };
+
     this.send = function(config) {
         var match;
         var method = config.type.toUpperCase();
@@ -42,6 +49,7 @@ function MockServer() {
             console.log('==', config);
 
         if (method == 'GET') {
+            // Get root id.
             match = config.url.match(/^\/notebook\/nodes\/$/);
             if (match) {
                 return {
@@ -49,12 +57,14 @@ function MockServer() {
                 };
             }
 
+            // Get node.
             match = config.url.match(/^\/notebook\/nodes\/([^\/]+)$/);
             if (match) {
                 var nodeid = match[1];
                 return this.nodes[nodeid];
             }
 
+            // Get node file.
             match = config.url.match(/^\/notebook\/nodes\/([^\/]+)\/(.+)$/);
             if (match) {
                 return '';
@@ -63,6 +73,7 @@ function MockServer() {
             throw 'unknown';
 
         } else if (method == 'POST' || method == 'PUT') {
+            // Create new node.
             match = config.url.match(/^\/notebook\/nodes\/$/);
             if (match) {
                 var nodeid = (++this.nodeid) + '';
@@ -72,6 +83,7 @@ function MockServer() {
                 return attr;
             }
 
+            // Update node.
             match = config.url.match(/^\/notebook\/nodes\/([^\/]+)$/);
             if (match) {
                 var nodeid = match[1];
@@ -79,6 +91,19 @@ function MockServer() {
                 attr.nodeid = nodeid;
                 this.nodes[nodeid] = attr;
                 return attr;
+            }
+
+            // Create/update file.
+            match = config.url.match(/^\/notebook\/nodes\/([^\/]+)\/(.+)$/);
+            if (match) {
+                return;
+            }
+
+            throw 'unknown';
+        } else if (method == 'HEAD') {
+            match = config.url.match(/^\/static\/images\/node_icons\/(.+)$/);
+            if (match) {
+                return;
             }
 
             match = config.url.match(/^\/notebook\/nodes\/([^\/]+)\/(.+)$/);
@@ -109,7 +134,7 @@ describe("Test notebook data store", function() {
             NoteBook = book.NoteBook;
 
             var ajax = function (config) {};
-            mockAsync($, "ajax", true, function () {
+            mockAsync($, "ajax", function () {
                 return ajax.apply(null, arguments);
             });
 
@@ -220,6 +245,7 @@ describe("Test notebook data store", function() {
 
             // Setup mock server;
             var server = new MockServer();
+            server.start();
             server.rootid = [rootid];
             server.nodes[rootid] = {
                 nodeid: rootid,
@@ -227,14 +253,6 @@ describe("Test notebook data store", function() {
                 parentids: [],
                 childrenids: []
             };
-
-            // Mock ajax to use server.
-            var ajax = function (config) {
-                return server.send(config);
-            };
-            mockAsync($, "ajax", true, function () {
-                return ajax.apply(null, arguments);
-            });
 
             notebook.fetch().then(function (value) {
                 return notebook.newNode(notebook.root, null);
@@ -264,6 +282,7 @@ describe("Test notebook data store", function() {
 
             // Setup mock server;
             var server = new MockServer();
+            server.start();
             server.rootid = [rootid];
             server.nodes = {
                 1: {
@@ -286,14 +305,6 @@ describe("Test notebook data store", function() {
                     expanded: true
                 }
             };
-
-            // Mock ajax to use server.
-            var ajax = function (config) {
-                return server.send(config);
-            };
-            mockAsync($, "ajax", true, function () {
-                return ajax.apply(null, arguments);
-            });
 
             notebook.root.fetchExpanded().then(function () {
                 var node = notebook.nodes[2];
@@ -326,6 +337,7 @@ describe("Test notebook data store", function() {
 
             // Setup mock server;
             var server = new MockServer();
+            server.start();
             server.rootid = [rootid];
             server.nodes = {
                 1: {
@@ -348,14 +360,6 @@ describe("Test notebook data store", function() {
                     expanded: true
                 }
             };
-
-            // Mock ajax to use server.
-            var ajax = function (config) {
-                return server.send(config);
-            };
-            mockAsync($, "ajax", true, function () {
-                return ajax.apply(null, arguments);
-            });
 
             // Move node 2 after node 3.
             notebook.root.fetchExpanded().then(function () {
