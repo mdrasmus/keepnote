@@ -1724,10 +1724,17 @@ var NotebookTreeNode = React.createClass({displayName: "NotebookTreeNode",
             if (i === 0) {
                 style.paddingLeft = indent;
 
-                content.push(React.createElement("a", {key: "1", className: "expand", 
-                              onClick: this.toggleChildren, 
-                              href: "javascript:;"}, "+"));
-                content.push(React.createElement("img", {key: "1-icon", src: icon}));
+                if (node.get('childrenids').length > 0) {
+                    var expandIcon = (expanded ? '+' : '-');
+
+                    content.push(React.createElement("span", {key: "1", className: "expand", 
+                                  onClick: this.toggleChildren}, 
+                                  expandIcon));
+                } else {
+                    content.push(React.createElement("span", {key: "1", className: "expand"}, " "));
+                }
+                content.push(React.createElement("img", {key: "1-icon", src: icon, 
+                              onClick: this.toggleChildren}));
             }
 
             if (column.attr === 'title') {

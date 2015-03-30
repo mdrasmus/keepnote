@@ -269,10 +269,17 @@ var NotebookTreeNode = React.createClass({
             if (i === 0) {
                 style.paddingLeft = indent;
 
-                content.push(<a key="1" className="expand"
-                              onClick={this.toggleChildren}
-                              href="javascript:;">+</a>);
-                content.push(<img key="1-icon" src={icon}/>);
+                if (node.get('childrenids').length > 0) {
+                    var expandIcon = (expanded ? '+' : '-');
+
+                    content.push(<span key="1" className="expand"
+                                  onClick={this.toggleChildren}>
+                                  {expandIcon}</span>);
+                } else {
+                    content.push(<span key="1" className="expand">&nbsp;</span>);
+                }
+                content.push(<img key="1-icon" src={icon}
+                              onClick={this.toggleChildren}/>);
             }
 
             if (column.attr === 'title') {

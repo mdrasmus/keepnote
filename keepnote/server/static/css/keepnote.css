@@ -65,6 +65,16 @@ body {
   cursor: pointer;
 }
 
+.expand {
+  width: 10px;
+  text-align: center;
+  display: inline-block;
+}
+
+.expand:focus {
+  outline: none;
+}
+
 .node-tree-title.active {
   background-color: #5555cc;
   color: #ffffff;
