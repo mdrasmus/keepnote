@@ -32,10 +32,10 @@ command:
 If your language is not already present (should be 'gettext/$LANG.po'), then
 use this command to create a blank translation file:
 
-    make -f Makefile.gettext new LANG=de_DE.UTF8
+    make -f Makefile.gettext new LANG=de_DE.UTF-8
 
-In this example, a new translation for de_DE.UTF8 (German) is created.  You
-can now edit the file 'gettext/de_DE.UTF8.po'
+In this example, a new translation for de_DE.UTF-8 (German) is created.  You
+can now edit the file 'gettext/de_DE.UTF-8.po'
 
 
 4. Updating an existing translation with new extracted strings
@@ -46,7 +46,7 @@ again (see step 2) and merged into the existing translations within
 'gettext/$LANG.po'.  If you were working on the German translation the 
 command is:
 
-    make -f Makefile.gettext update LANG=de_DE.UTF8
+    make -f Makefile.gettext update LANG=de_DE.UTF-8
 
 
 5. Compiling translations
@@ -55,7 +55,7 @@ command is:
 Once translations are written in 'gettext/$LANG.po' they must be compiled into
 a file named 'locale/$LANG/LC_MESSAGES/keepnote.mo'.  Use this command,
 
-    make -f Makefile.gettext make LANG=de_DE.UTF8
+    make -f Makefile.gettext make LANG=de_DE.UTF-8
 
 
 6. Testing/Using a translation
@@ -65,7 +65,7 @@ To test or use a translation make sure that the LANG environment variable
 is set to the translation you would like to use, prior to running KeepNote.
 For example, to run KeepNote with German translations use:
 
-    LANG=de_DE.UTF8 bin/keepnote
+    LANG=de_DE.UTF-8 bin/keepnote
 
 
 7. Submitting your translation for inclusion in the KeepNote distribution
