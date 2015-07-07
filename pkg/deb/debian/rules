@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 
-DEB_PYTHON_SYSTEM=pycentral
-#DEB_PYTHON_SYSTEM=pysupport
+#DEB_PYTHON_SYSTEM=pycentral
+DEB_PYTHON_SYSTEM=pysupport
 
 # Debhelper must be included before python-distutils to use
 # dh_python / dh_pycentral / dh_pysupport
