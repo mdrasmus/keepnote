@@ -90,6 +90,14 @@ class Extension (keepnote.gui.extension.Extension):
                        metavar="[v VERSION] NOTEBOOK...",
                        help="upgrade a notebook"),
 
+            # export commands
+            AppCommand("backup", self.on_backup,
+                       metavar="NOTEBOOK BACKUP_FILE",
+                       help="backup the notebook"),
+            AppCommand("export-html", self.on_export,
+                       metavar="NOTEBOOK EXPORT_DIRECTORY",
+                       help="export the notebook to html"),
+
             # misc
             AppCommand("screenshot", self.on_screenshot,
                        help="insert a new screenshot"),
@@ -327,3 +335,31 @@ class Extension (keepnote.gui.extension.Extension):
                                  (version, filename))
             keepnote.notebook.update.update_notebook(filename, version, 
                                                      verify=True)
+
+
+    def on_backup(self,app,args):
+
+        try:
+            infile,outfile = args[1],args[2]
+        except IndexError:
+            sys.etderr.write("backup notebook failed"
+                             "please provide two arguments to backup: "
+                             "notebook location and output file")
+            return
+        notebook = app.get_notebook(infile)
+        bck = app.get_extension('backup_tar')
+        bck.archive_notebook(notebook,outfile)
+
+
+    def on_export(self,app,args):
+
+        try:
+            infile,outfile = args[1],args[2]
+        except IndexError:
+            sys.stderr.write("export notebook failed"
+                             "please provide two arguments to export-html: "
+                             "notebook location and output file")
+            return
+        notebook = app.get_notebook(infile)
+        ex = app.get_extension('export_html')
+        ex.export_notebook(notebook,outfile)
