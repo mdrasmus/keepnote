@@ -575,12 +575,23 @@ def get_external_app_defaults():
     elif get_platform() == "unix":
         return [
             ExternalApp("file_launcher", "File Launcher", u"xdg-open"),
-            ExternalApp("web_browser", "Web Browser", u""),
-            ExternalApp("file_explorer", "File Explorer", u""),
-            ExternalApp("text_editor", "Text Editor", u""),
+            ExternalApp("web_browser", "Web Browser", u"xdg-open"),
+            ExternalApp("file_explorer", "File Explorer", u"xdg-open"),
+            ExternalApp("text_editor", "Text Editor", u"xdg-open"),
             ExternalApp("image_editor", "Image Editor", u""),
             ExternalApp("image_viewer", "Image Viewer", u"display"),
             ExternalApp("screen_shot", "Screen Shot", u"import")
+        ]
+
+    elif get_platform() == "darwin":
+        return [
+            ExternalApp("file_launcher", "File Launcher", u"open"),
+            ExternalApp("web_browser", "Web Browser", u"open"),
+            ExternalApp("file_explorer", "File Explorer", u"open"),
+            ExternalApp("text_editor", "Text Editor", u"open"),
+            ExternalApp("image_editor", "Image Editor", u""),
+            ExternalApp("image_viewer", "Image Viewer", u"open"),
+            ExternalApp("screen_shot", "Screen Shot", u"")
         ]
     else:
         return DEFAULT_EXTERNAL_APPS
