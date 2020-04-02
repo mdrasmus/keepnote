@@ -94,7 +94,7 @@ OS X.  Once installed, KeepNote can be run directly from its source
 directory.
 
 
-For example, yo install dependencies with MacPorts use the following command:
+For example, you install dependencies with MacPorts use the following command:
 
 ```sh
 sudo port install py27-gtk aspell aspell-dict-en sqlite3
